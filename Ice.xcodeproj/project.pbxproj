@@ -11,6 +11,13 @@
 		716683302A767E6A006ABF84 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166832F2A767E6A006ABF84 /* ContentView.swift */; };
 		716683322A767E6B006ABF84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 716683312A767E6B006ABF84 /* Assets.xcassets */; };
 		716683352A767E6B006ABF84 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 716683342A767E6B006ABF84 /* Preview Assets.xcassets */; };
+		7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166833C2A7680CE006ABF84 /* AppDelegate.swift */; };
+		716683482A76811C006ABF84 /* DictionarySerialization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166833F2A76811C006ABF84 /* DictionarySerialization.swift */; };
+		7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683432A76811C006ABF84 /* ProcessInfo+isPreview.swift */; };
+		7166834B2A76811C006ABF84 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683452A76811C006ABF84 /* Logger.swift */; };
+		7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */; };
+		716683502A7681AF006ABF84 /* StatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166834F2A7681AF006ABF84 /* StatusBar.swift */; };
+		716683522A76820A006ABF84 /* ControlItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683512A76820A006ABF84 /* ControlItem.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +27,13 @@
 		716683312A767E6B006ABF84 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		716683342A767E6B006ABF84 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		716683362A767E6B006ABF84 /* Ice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ice.entitlements; sourceTree = "<group>"; };
+		7166833C2A7680CE006ABF84 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		7166833F2A76811C006ABF84 /* DictionarySerialization.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DictionarySerialization.swift; sourceTree = "<group>"; };
+		716683432A76811C006ABF84 /* ProcessInfo+isPreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ProcessInfo+isPreview.swift"; sourceTree = "<group>"; };
+		716683452A76811C006ABF84 /* Logger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSStatusItem+showMenu.swift"; sourceTree = "<group>"; };
+		7166834F2A7681AF006ABF84 /* StatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBar.swift; sourceTree = "<group>"; };
+		716683512A76820A006ABF84 /* ControlItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItem.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,7 +66,10 @@
 		7166832C2A767E6A006ABF84 /* Ice */ = {
 			isa = PBXGroup;
 			children = (
+				7166834D2A768184006ABF84 /* Features */,
+				7166833E2A76811C006ABF84 /* Utilities */,
 				7166832D2A767E6A006ABF84 /* IceApp.swift */,
+				7166833C2A7680CE006ABF84 /* AppDelegate.swift */,
 				7166832F2A767E6A006ABF84 /* ContentView.swift */,
 				716683312A767E6B006ABF84 /* Assets.xcassets */,
 				716683362A767E6B006ABF84 /* Ice.entitlements */,
@@ -67,6 +84,66 @@
 				716683342A767E6B006ABF84 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		7166833E2A76811C006ABF84 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				716683412A76811C006ABF84 /* Extensions */,
+				7166833F2A76811C006ABF84 /* DictionarySerialization.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		716683412A76811C006ABF84 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				716683422A76811C006ABF84 /* ProcessInfo */,
+				716683442A76811C006ABF84 /* Logger */,
+				716683462A76811C006ABF84 /* NSStatusItem */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		716683422A76811C006ABF84 /* ProcessInfo */ = {
+			isa = PBXGroup;
+			children = (
+				716683432A76811C006ABF84 /* ProcessInfo+isPreview.swift */,
+			);
+			path = ProcessInfo;
+			sourceTree = "<group>";
+		};
+		716683442A76811C006ABF84 /* Logger */ = {
+			isa = PBXGroup;
+			children = (
+				716683452A76811C006ABF84 /* Logger.swift */,
+			);
+			path = Logger;
+			sourceTree = "<group>";
+		};
+		716683462A76811C006ABF84 /* NSStatusItem */ = {
+			isa = PBXGroup;
+			children = (
+				716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */,
+			);
+			path = NSStatusItem;
+			sourceTree = "<group>";
+		};
+		7166834D2A768184006ABF84 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				7166834E2A768190006ABF84 /* StatusBar */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		7166834E2A768190006ABF84 /* StatusBar */ = {
+			isa = PBXGroup;
+			children = (
+				7166834F2A7681AF006ABF84 /* StatusBar.swift */,
+				716683512A76820A006ABF84 /* ControlItem.swift */,
+			);
+			path = StatusBar;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -139,6 +216,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
+				716683482A76811C006ABF84 /* DictionarySerialization.swift in Sources */,
+				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
+				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
+				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
+				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
+				7166834B2A76811C006ABF84 /* Logger.swift in Sources */,
 				716683302A767E6A006ABF84 /* ContentView.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 			);

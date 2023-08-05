@@ -44,71 +44,35 @@ class StatusBar {
 
     private init() { }
 
+    /// Performs the initial setup of the status bar's control item list.
     func initializeControlItems() {
         list.initializeControlItems(for: self)
     }
 
-    /// Returns the index of the given control item relative to the sorted
-    /// control items of the status bar.
-    func indexOfControlItem(_ controlItem: ControlItem) -> Int? {
-        sortedControlItems.firstIndex { $0 === controlItem }
+    /// Returns the status bar section for the given control item.
+    func section(for controlItem: ControlItem) -> StatusBarSection? {
+        sortedControlItems.enumerated().first { $0.element == controlItem }.flatMap { pair in
+            StatusBarSection(rawValue: pair.offset)
+        }
     }
 
-    /// Returns the control item at the given index in the sorted control
-    /// items of the status bar.
-    func controlItem(atIndex index: Int) -> ControlItem? {
+    /// Returns the control item for the given section of the status bar.
+    func controlItem(forSection section: StatusBarSection) -> ControlItem? {
+        let index = section.rawValue
         guard index < controlItems.count else {
             return nil
         }
         return sortedControlItems[index]
     }
+}
 
-    /// Returns the appropriate length for the given control item, determined
-    /// according to its current index and state.
-    func controlItemLength(for controlItem: ControlItem) -> CGFloat {
-        if indexOfControlItem(controlItem) == 0 {
-            // first item should never be expanded
-            return ControlItemLengths.collapsed
-        }
-        switch controlItem.state {
-        case .visible, .hidden(isExpanded: false):
-            return ControlItemLengths.collapsed
-        case .hidden(isExpanded: true):
-            return ControlItemLengths.expanded
-        }
-    }
+// MARK: - StatusBarSection
 
-    /// Returns the appropriate image for the given control item, determined
-    /// according to its current index and state.
-    func controlItemImage(for controlItem: ControlItem) -> NSImage? {
-        switch controlItem.state {
-        case .visible:
-            let index = indexOfControlItem(controlItem)
-            if index == 1 {
-                return ControlItemImages.largeChevron
-            } else if index == 2 {
-                return ControlItemImages.smallChevron
-            } else { // includes index == 0
-                return ControlItemImages.circleStroked
-            }
-        case .hidden(isExpanded: false):
-            return ControlItemImages.circleFilled
-        case .hidden(isExpanded: true):
-            return nil
-        }
-    }
-
-    /// Sets the state of all control items to ``ControlItem/State-swift.enum/visible``.
-    func showAllControlItems() {
-        // TODO: -
-        print("SHOW ALL")
-    }
-
-    /// Toggles the state of the given control item.
-    func toggleControlItem(_ controlItem: ControlItem) {
-        // TODO: -
-        print("TOGGLE")
-    }
+/// A representation of a section in a status bar.
+enum StatusBarSection: Int {
+    case alwaysVisible
+    case hidden
+    case alwaysHidden
 }
 
 // MARK: - ControlItemList
@@ -190,7 +154,7 @@ private class ControlItemList: ObservableObject {
                 return try DictionarySerialization.value(ofType: ControlItem.self, from: dictionary)
             } catch {
                 Logger.statusBar.error("Error decoding control item: \(error)")
-                return ControlItem(autosaveName: entry.key, position: CGFloat(index), state: .visible)
+                return ControlItem(autosaveName: entry.key, position: CGFloat(index))
             }
         }
     }
@@ -201,6 +165,7 @@ private class ControlItemList: ObservableObject {
             controlItems.hashValue == lastSavedControlItemsHash
         {
             // control items haven't changed -- no need to save
+            needsSaveControlItems = false
             return
         }
         do {

@@ -87,19 +87,6 @@ private class ControlItemList: ObservableObject {
 
     @Published var needsSaveControlItems = false
 
-    private var enableAlwaysHidden: Bool {
-        UserDefaults.standard.object(forKey: "EnableAlwaysHidden") as? Bool ?? true
-    }
-
-    private var serializedControlItems: [String: Any] {
-        get {
-            UserDefaults.standard.dictionary(forKey: "ControlItems") ?? [:]
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "ControlItems")
-        }
-    }
-
     weak var statusBar: StatusBar? {
         didSet {
             setStatusBar(statusBar, for: controlItems)
@@ -148,7 +135,7 @@ private class ControlItemList: ObservableObject {
             self.statusBar = statusBar
         }
 
-        controlItems = serializedControlItems.enumerated().map { index, entry in
+        controlItems = Defaults.serializedControlItems.enumerated().map { index, entry in
             do {
                 let dictionary = [entry.key: entry.value]
                 return try DictionarySerialization.value(ofType: ControlItem.self, from: dictionary)
@@ -164,12 +151,12 @@ private class ControlItemList: ObservableObject {
             let lastSavedControlItemsHash,
             controlItems.hashValue == lastSavedControlItemsHash
         {
-            // control items haven't changed -- no need to save
+            // control items haven't changed; no need to save
             needsSaveControlItems = false
             return
         }
         do {
-            serializedControlItems = try controlItems.reduce(into: [:]) { serialized, item in
+            Defaults.serializedControlItems = try controlItems.reduce(into: [:]) { serialized, item in
                 let dictionary = try DictionarySerialization.dictionary(from: item)
                 serialized.merge(dictionary, uniquingKeysWith: { $1 })
             }
@@ -191,8 +178,9 @@ private class ControlItemList: ObservableObject {
     /// removing items as needed, and returns a Boolean value indicating
     /// whether the count was valid.
     private func validateControlItemCount() -> Bool {
+        let enableAlwaysHidden = Defaults.enableAlwaysHidden
         if controlItems.isEmpty {
-            // fast path -- don't do work if we don't have to
+            // fast path; don't do work if we don't have to
             var items = [
                 ControlItem(position: 0),
                 ControlItem(position: 1),
@@ -207,11 +195,15 @@ private class ControlItemList: ObservableObject {
         // the always-hidden section
         let expectedCount = enableAlwaysHidden ? 3 : 2
         let actualCount = controlItems.count
+        if actualCount == expectedCount {
+            // count is already valid, so no need to do anything more
+            return true
+        }
         if actualCount < expectedCount {
             // add new items up to the expected count
-            if expectedCount == 3 {
-                // always-hidden section is enabled; subtract 1 from expected
-                // count and handle the last item separately
+            if enableAlwaysHidden {
+                // subtract 1 from expected count and handle always-hidden
+                // item separately
                 controlItems += {
                     var items = (actualCount..<(expectedCount - 1)).map { index in
                         ControlItem(position: CGFloat(index))
@@ -228,12 +220,11 @@ private class ControlItemList: ObservableObject {
                     ControlItem(position: CGFloat(index))
                 }
             }
-            return false // count was invalid
         } else if actualCount > expectedCount {
             // remove extra items down to the expected count
             controlItems = Array(controlItems[..<expectedCount])
-            return false // count was invalid
         }
-        return true // count was valid
+        // if we made it this far, count was invalid
+        return false
     }
 }

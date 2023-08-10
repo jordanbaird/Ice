@@ -6,14 +6,6 @@
 import Cocoa
 import Combine
 
-// MARK: - ControlItemLengths
-
-/// Namespace of possible control item lengths.
-enum ControlItemLengths {
-    static let standard: CGFloat = 25
-    static let expanded: CGFloat = 10_000
-}
-
 // MARK: - ControlItemImages
 
 /// Namespace for control item images.
@@ -67,6 +59,9 @@ enum ControlItemImages {
 // MARK: - ControlItem
 
 final class ControlItem: ObservableObject {
+    static let standardLength: CGFloat = 25
+    static let expandedLength: CGFloat = 10_000
+
     private let statusItem: NSStatusItem
 
     /// The position of the control item in the status bar.
@@ -98,7 +93,7 @@ final class ControlItem: ObservableObject {
     }
 
     /// The control item's section in the status bar.
-    var section: StatusBarSection? {
+    var section: StatusBar.Section? {
         statusBar?.section(for: self)
     }
 
@@ -140,10 +135,10 @@ final class ControlItem: ObservableObject {
         window.publisher(for: \.frame)
             .combineLatest(window.publisher(for: \.screen))
             .compactMap { [weak statusItem] frame, screen in
-                // window is placed offscreen at first; only publish frames
-                // that are at least partially onscreen
+                // only publish when status item has a standard length and
+                // window is at least partially onscreen
                 guard
-                    statusItem?.length == ControlItemLengths.standard,
+                    statusItem?.length == Self.standardLength,
                     let screenFrame = screen?.frame,
                     screenFrame.intersects(frame)
                 else {
@@ -158,16 +153,16 @@ final class ControlItem: ObservableObject {
 
     /// Updates the control item's status item to match its current state.
     func updateStatusItem() {
-        func updateLength(section: StatusBarSection, state: State) {
+        func updateLength(section: StatusBar.Section, state: State) {
             switch (section, state) {
             case (.alwaysVisible, _), (_, .showItems), (_, .hideItems(isExpanded: false)):
-                statusItem.length = ControlItemLengths.standard
+                statusItem.length = Self.standardLength
             case (_, .hideItems(isExpanded: true)):
-                statusItem.length = ControlItemLengths.expanded
+                statusItem.length = Self.expandedLength
             }
         }
 
-        func updateButton(_ button: NSStatusBarButton?, section: StatusBarSection, state: State) {
+        func updateButton(_ button: NSStatusBarButton?, section: StatusBar.Section, state: State) {
             guard let button else {
                 return
             }

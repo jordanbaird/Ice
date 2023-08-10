@@ -112,9 +112,9 @@
 		716683412A76811C006ABF84 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
-				716683422A76811C006ABF84 /* ProcessInfo */,
 				716683442A76811C006ABF84 /* Logger */,
 				716683462A76811C006ABF84 /* NSStatusItem */,
+				716683422A76811C006ABF84 /* ProcessInfo */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";

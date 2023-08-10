@@ -7,14 +7,41 @@ import Cocoa
 import Combine
 import OSLog
 
-class StatusBar {
+/// Manages the state of the items in the status bar.
+class StatusBar: ObservableObject {
+    /// A representation of a section in a status bar.
+    enum Section: Int {
+        case alwaysVisible
+        case hidden
+        case alwaysHidden
+    }
+
+    /// The shared status bar singleton.
     static let shared = StatusBar()
 
-    private let list = ControlItemList()
+    private var cancellables = Set<AnyCancellable>()
+
+    private var lastSavedControlItemsHash: Int?
+
+    /// Set to `true` to tell the status bar to save its control items.
+    @Published var needsSaveControlItems = false
 
     /// The current control items, unsorted.
-    var controlItems: [ControlItem] {
-        list.controlItems
+    private(set) var controlItems = [ControlItem]() {
+        willSet {
+            for controlItem in controlItems {
+                controlItem.statusBar = nil
+            }
+        }
+        didSet {
+            if validateControlItemCount() {
+                for controlItem in controlItems {
+                    controlItem.statusBar = self
+                }
+            }
+            configureCancellables()
+            needsSaveControlItems = true
+        }
     }
 
     /// The current control items, sorted by their position in the status bar.
@@ -24,13 +51,8 @@ class StatusBar {
         }
     }
 
-    /// Set to `true` to tell the status bar to save its control items.
-    var needsSaveControlItems: Bool {
-        get { list.needsSaveControlItems }
-        set { list.needsSaveControlItems = newValue }
-    }
-
-    /// Shared menu to show when a control item is right-clicked.
+    /// Shared menu to show when a control item belonging to the status bar is
+    /// right-clicked.
     let menu: NSMenu = {
         let quitItem = NSMenuItem(title: "Quit Ice", action: #selector(NSApp.terminate), keyEquivalent: "q")
         quitItem.keyEquivalentModifierMask = [.command]
@@ -42,97 +64,20 @@ class StatusBar {
         return menu
     }()
 
-    private init() { }
+    private init() {
+        configureCancellables()
+    }
 
     /// Performs the initial setup of the status bar's control item list.
     func initializeControlItems() {
-        list.initializeControlItems(for: self)
-    }
-
-    /// Returns the status bar section for the given control item.
-    func section(for controlItem: ControlItem) -> StatusBarSection? {
-        sortedControlItems.enumerated().first { $0.element == controlItem }.flatMap { pair in
-            StatusBarSection(rawValue: pair.offset)
-        }
-    }
-
-    /// Returns the control item for the given section of the status bar.
-    func controlItem(forSection section: StatusBarSection) -> ControlItem? {
-        let index = section.rawValue
-        guard index < controlItems.count else {
-            return nil
-        }
-        return sortedControlItems[index]
-    }
-}
-
-// MARK: - StatusBarSection
-
-/// A representation of a section in a status bar.
-enum StatusBarSection: Int {
-    case alwaysVisible
-    case hidden
-    case alwaysHidden
-}
-
-// MARK: - ControlItemList
-
-/// Observable list of control items.
-private class ControlItemList: ObservableObject {
-    private var saveCancellable: AnyCancellable?
-
-    private var updateCancellable: AnyCancellable?
-
-    private var lastSavedControlItemsHash: Int?
-
-    @Published var needsSaveControlItems = false
-
-    weak var statusBar: StatusBar? {
-        didSet {
-            setStatusBar(statusBar, for: controlItems)
-        }
-    }
-
-    var controlItems = [ControlItem]() {
-        willSet {
-            setStatusBar(nil, for: controlItems)
-            updateCancellable?.cancel()
-        }
-        didSet {
-            if validateControlItemCount() {
-                setStatusBar(statusBar, for: controlItems)
-                updateCancellable = Publishers.MergeMany(controlItems.map { $0.$position })
-                    .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
-                    .sink { [weak self] _ in
-                        guard let self else {
-                            return
-                        }
-                        for controlItem in controlItems {
-                            controlItem.updateStatusItem()
-                        }
-                    }
-                saveControlItems()
+        defer {
+            if lastSavedControlItemsHash == nil {
+                lastSavedControlItemsHash = controlItems.hashValue
             }
         }
-    }
 
-    init() {
-        self.saveCancellable = $needsSaveControlItems
-            .debounce(for: 1, scheduler: DispatchQueue.main)
-            .sink { [weak self] needsSave in
-                if needsSave {
-                    self?.saveControlItems()
-                }
-            }
-    }
-
-    func initializeControlItems(for statusBar: StatusBar) {
         guard controlItems.isEmpty else {
             return
-        }
-
-        if self.statusBar == nil {
-            self.statusBar = statusBar
         }
 
         controlItems = Defaults.serializedControlItems.enumerated().map { index, entry in
@@ -146,6 +91,7 @@ private class ControlItemList: ObservableObject {
         }
     }
 
+    /// Save all control items in the status bar to persistent storage.
     func saveControlItems() {
         if
             let lastSavedControlItemsHash,
@@ -164,13 +110,6 @@ private class ControlItemList: ObservableObject {
             needsSaveControlItems = false
         } catch {
             Logger.statusBar.error("Error encoding control item: \(error)")
-        }
-    }
-
-    /// Sets the given status bar for each of the given control items.
-    private func setStatusBar(_ statusBar: StatusBar?, for controlItems: [ControlItem]) {
-        for controlItem in controlItems {
-            controlItem.statusBar = statusBar
         }
     }
 
@@ -226,5 +165,54 @@ private class ControlItemList: ObservableObject {
         }
         // if we made it this far, count was invalid
         return false
+    }
+
+    /// Set up a series of cancellables to respond to key changes in the
+    /// status bar's state.
+    private func configureCancellables() {
+        // cancel and remove all current cancellables
+        for cancellable in cancellables {
+            cancellable.cancel()
+        }
+        cancellables.removeAll()
+
+        // update all control items when the position of one changes
+        Publishers.MergeMany(controlItems.map { $0.$position })
+            .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                for controlItem in controlItems {
+                    controlItem.updateStatusItem()
+                }
+            }
+            .store(in: &cancellables)
+
+        // save control items when a flag is set, avoiding rapid resaves
+        $needsSaveControlItems
+            .debounce(for: 1, scheduler: DispatchQueue.main)
+            .sink { [weak self] needsSave in
+                if needsSave {
+                    self?.saveControlItems()
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    /// Returns the status bar section for the given control item.
+    func section(for controlItem: ControlItem) -> Section? {
+        sortedControlItems.enumerated().first { $0.element == controlItem }.flatMap { pair in
+            Section(rawValue: pair.offset)
+        }
+    }
+
+    /// Returns the control item for the given status bar section.
+    func controlItem(forSection section: Section) -> ControlItem? {
+        let index = section.rawValue
+        guard index < controlItems.count else {
+            return nil
+        }
+        return sortedControlItems[index]
     }
 }

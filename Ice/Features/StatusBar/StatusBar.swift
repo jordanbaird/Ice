@@ -54,10 +54,17 @@ class StatusBar: ObservableObject {
     /// Shared menu to show when a control item belonging to the status bar is
     /// right-clicked.
     let menu: NSMenu = {
-        let quitItem = NSMenuItem(title: "Quit Ice", action: #selector(NSApp.terminate), keyEquivalent: "q")
+        let settingsAction = #selector(AppDelegate.openSettingsWindow)
+        let quitAction = #selector(NSApp.terminate)
+
+        let settingsItem = NSMenuItem(title: "Settings…", action: settingsAction, keyEquivalent: ",")
+        settingsItem.keyEquivalentModifierMask = [.command]
+
+        let quitItem = NSMenuItem(title: "Quit Ice", action: quitAction, keyEquivalent: "q")
         quitItem.keyEquivalentModifierMask = [.command]
 
         let menu = NSMenu(title: "Ice")
+        menu.addItem(settingsItem)
         menu.addItem(.separator())
         menu.addItem(quitItem)
 

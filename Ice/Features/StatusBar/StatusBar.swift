@@ -14,6 +14,15 @@ class StatusBar: ObservableObject {
         case alwaysVisible
         case hidden
         case alwaysHidden
+
+        /// A user-visible name that describes the section.
+        var name: String {
+            switch self {
+            case .alwaysVisible: return "Always Visible"
+            case .hidden: return "Hidden"
+            case .alwaysHidden: return "Always Hidden"
+            }
+        }
     }
 
     /// The shared status bar singleton.
@@ -51,25 +60,44 @@ class StatusBar: ObservableObject {
         }
     }
 
-    /// Shared menu to show when a control item belonging to the status bar is
-    /// right-clicked.
-    let menu: NSMenu = {
-        let settingsAction = #selector(AppDelegate.openSettingsWindow)
-        let quitAction = #selector(NSApp.terminate)
-
-        let settingsItem = NSMenuItem(title: "Settings…", action: settingsAction, keyEquivalent: ",")
-        settingsItem.keyEquivalentModifierMask = [.command]
-
-        let quitItem = NSMenuItem(title: "Quit Ice", action: quitAction, keyEquivalent: "q")
-        quitItem.keyEquivalentModifierMask = [.command]
-
-        let menu = NSMenu(title: "Ice")
-        menu.addItem(settingsItem)
-        menu.addItem(.separator())
-        menu.addItem(quitItem)
-
-        return menu
-    }()
+    /// Dynamically constructed menu to show when a control item belonging to
+    /// the status bar is right-clicked.
+    @MenuBuilder
+    var menu: NSMenu {
+        MenuComponents.Title(Constants.appName)
+        MenuComponents.ItemGroup {
+            if controlItem(forSection: .hidden) != nil {
+                let actionString = isSectionHidden(.hidden) ? "Show" : "Hide"
+                let sectionString = "\"\(Section.hidden.name)\" Section"
+                MenuItems.Item(title: "\(actionString) \(sectionString)") { [weak self] in
+                    self?.toggle(section: .hidden)
+                }
+            }
+            if controlItem(forSection: .alwaysHidden) != nil {
+                let actionString = isSectionHidden(.alwaysHidden) ? "Show" : "Hide"
+                let sectionString = "\"\(Section.alwaysHidden.name)\" Section"
+                MenuItems.Item(title: "\(actionString) \(sectionString)") { [weak self] in
+                    self?.toggle(section: .alwaysHidden)
+                }
+            }
+        }
+        MenuComponents.ItemGroup(separatorPlacement: [.before, .after]) {
+            MenuItems.Item(
+                title: "Settings…",
+                key: ",",
+                modifiers: .command,
+                action: #selector(AppDelegate.openSettingsWindow)
+            )
+        }
+        MenuComponents.ItemGroup {
+            MenuItems.Item(
+                title: "Quit \(Constants.appName)",
+                key: "q",
+                modifiers: .command,
+                action: #selector(NSApp.terminate)
+            )
+        }
+    }
 
     private init() {
         configureCancellables()
@@ -221,5 +249,54 @@ class StatusBar: ObservableObject {
             return nil
         }
         return sortedControlItems[index]
+    }
+
+    /// Returns a Boolean value that indicates whether the given section
+    /// is hidden by its control item.
+    func isSectionHidden(_ section: Section) -> Bool {
+        guard let item = controlItem(forSection: section) else {
+            return false
+        }
+        switch item.state {
+        case .hideItems: return true
+        case .showItems: return false
+        }
+    }
+
+    /// Shows the status items in the given section.
+    func show(section: Section) {
+        switch section {
+        case .alwaysVisible, .hidden:
+            controlItem(forSection: .alwaysVisible)?.state = .showItems
+            controlItem(forSection: .hidden)?.state = .showItems
+        case .alwaysHidden:
+            show(section: .hidden)
+            controlItem(forSection: .alwaysHidden)?.state = .showItems
+        }
+    }
+
+    /// Hides the status items in the given section.
+    func hide(section: Section) {
+        switch section {
+        case .alwaysVisible, .hidden:
+            controlItem(forSection: .alwaysVisible)?.state = .hideItems(isExpanded: false)
+            controlItem(forSection: .hidden)?.state = .hideItems(isExpanded: true)
+            hide(section: .alwaysHidden)
+        case .alwaysHidden:
+            controlItem(forSection: .alwaysHidden)?.state = .hideItems(isExpanded: true)
+        }
+    }
+
+    /// Toggles the visibility of the status items in the given section.
+    func toggle(section: Section) {
+        guard let item = controlItem(forSection: section) else {
+            return
+        }
+        switch item.state {
+        case .hideItems:
+            show(section: section)
+        case .showItems:
+            hide(section: section)
+        }
     }
 }

@@ -6,60 +6,9 @@
 import Cocoa
 import Combine
 
-// MARK: - ControlItemImages
-
-/// Namespace for control item images.
-enum ControlItemImages {
-    static let circleFilled: NSImage = {
-        let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { bounds in
-            NSColor.black.setFill()
-            NSBezierPath(ovalIn: bounds).fill()
-            return true
-        }
-        image.isTemplate = true
-        return image
-    }()
-
-    static let circleStroked: NSImage = {
-        let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { bounds in
-            let lineWidth: CGFloat = 1.5
-            let path = NSBezierPath(ovalIn: bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2))
-            path.lineWidth = lineWidth
-            NSColor.black.setStroke()
-            path.stroke()
-            return true
-        }
-        image.isTemplate = true
-        return image
-    }()
-
-    static let (largeChevron, smallChevron): (NSImage, NSImage) = {
-        func chevron(size: NSSize, lineWidth: CGFloat = 2) -> NSImage {
-            let image = NSImage(size: size, flipped: false) { bounds in
-                let insetBounds = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
-                let path = NSBezierPath()
-                path.move(to: NSPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.maxY))
-                path.line(to: NSPoint(x: (insetBounds.minX + insetBounds.midX) / 2, y: insetBounds.midY))
-                path.line(to: NSPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.minY))
-                path.lineWidth = lineWidth
-                path.lineCapStyle = .butt
-                NSColor.black.setStroke()
-                path.stroke()
-                return true
-            }
-            image.isTemplate = true
-            return image
-        }
-        let largeChevron = chevron(size: NSSize(width: 12, height: 12))
-        let smallChevron = chevron(size: NSSize(width: 7, height: 7))
-        return (largeChevron, smallChevron)
-    }()
-}
-
-// MARK: - ControlItem
-
 final class ControlItem: ObservableObject {
     static let standardLength: CGFloat = 25
+
     static let expandedLength: CGFloat = 10_000
 
     private let statusItem: NSStatusItem
@@ -153,100 +102,58 @@ final class ControlItem: ObservableObject {
 
     /// Updates the control item's status item to match its current state.
     func updateStatusItem() {
-        func updateLength(section: StatusBar.Section, state: State) {
-            switch (section, state) {
-            case (.alwaysVisible, _), (_, .showItems), (_, .hideItems(isExpanded: false)):
+        func updateLength(section: StatusBar.Section) {
+            if section == .alwaysVisible {
+                // item for always-visible section should never be expanded
                 statusItem.length = Self.standardLength
-            case (_, .hideItems(isExpanded: true)):
+                return
+            }
+            switch state {
+            case .showItems, .hideItems(isExpanded: false):
+                statusItem.length = Self.standardLength
+            case .hideItems(isExpanded: true):
                 statusItem.length = Self.expandedLength
             }
         }
 
-        func updateButton(_ button: NSStatusBarButton?, section: StatusBar.Section, state: State) {
-            guard let button else {
+        func updateButton(section: StatusBar.Section) {
+            guard let button = statusItem.button else {
                 return
             }
-            defer {
-                // automatically unhighlight the button after 0.1 seconds,
-                // for artistic effect
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    button.isHighlighted = false
-                }
-            }
-            switch state {
-            case .hideItems(isExpanded: true):
-                // prevent the item from being highlighted while expanded
+            if state == .hideItems(isExpanded: true) {
+                // prevent the cell from highlighting while expanded
                 button.cell?.isEnabled = false
-                // item can still sometimes flash for a split second while
-                // expanding; manually unhighlighting seems to mitigate it
+                // the cell still sometimes briefly highlights while
+                // expanding; manually unhighlighting seems to fix it
                 button.isHighlighted = false
                 button.image = nil
-            case .hideItems(isExpanded: false):
-                // make sure the item gets re-enabled
-                button.cell?.isEnabled = true
-                if case .alwaysVisible = section {
-                    // handle always-visible section separately to help keep
-                    // code duplication down; all other cases can be handled
-                    // together in the section switch below
-                    button.image = ControlItemImages.circleFilled
-                }
-            case .showItems:
-                // make sure the item gets re-enabled
-                button.cell?.isEnabled = true
-                if case .alwaysVisible = section {
-                    // handle always-visible section separately to help keep
-                    // code duplication down; all other cases can be handled
-                    // together in the section switch below
-                    button.image = ControlItemImages.circleStroked
-                }
+                return
             }
+            // enable the cell, as it may have been previously disabled
+            button.cell?.isEnabled = true
             switch section {
             case .hidden:
-                button.image = ControlItemImages.largeChevron
+                button.image = Images.largeChevron
             case .alwaysHidden:
-                button.image = ControlItemImages.smallChevron
+                button.image = Images.smallChevron
             case .alwaysVisible:
-                break // handled above
+                switch state {
+                case .hideItems:
+                    button.image = Images.circleFilled
+                case .showItems:
+                    button.image = Images.circleStroked
+                }
             }
         }
 
-        guard
-            let statusBar,
-            let section
-        else {
+        guard let section else {
             return
         }
-        defer {
-            statusBar.needsSaveControlItems = true
-        }
 
-        updateLength(section: section, state: state)
-        updateButton(statusItem.button, section: section, state: state)
-    }
+        updateLength(section: section)
+        updateButton(section: section)
 
-    /// Hides the control item's section.
-    func hide() {
-        switch section {
-        case .alwaysVisible:
-            state = .hideItems(isExpanded: false)
-        case .hidden, .alwaysHidden:
-            state = .hideItems(isExpanded: true)
-        case nil:
-            break
-        }
-    }
-
-    /// Shows the control item's section.
-    func show() {
-        state = .showItems
-    }
-
-    /// Toggles the control item's section.
-    func toggle() {
-        switch state {
-        case .hideItems: show()
-        case .showItems: hide()
-        }
+        statusBar?.needsSaveControlItems = true
     }
 
     @objc private func performAction() {
@@ -258,30 +165,12 @@ final class ControlItem: ObservableObject {
         }
         switch event.type {
         case .leftMouseDown where NSEvent.modifierFlags == .option:
-            for item in statusBar.controlItems {
-                item.show()
-            }
+            statusBar.show(section: .alwaysHidden)
         case .leftMouseDown:
             guard let section else {
                 return
             }
-            switch section {
-            case .alwaysVisible, .hidden:
-                let alwaysVisibleItem = statusBar.controlItem(forSection: .alwaysVisible)
-                let hiddenItem = statusBar.controlItem(forSection: .hidden)
-                let alwaysHiddenItem = statusBar.controlItem(forSection: .alwaysHidden)
-                switch state {
-                case .hideItems:
-                    alwaysVisibleItem?.show()
-                    hiddenItem?.show()
-                case .showItems:
-                    alwaysVisibleItem?.hide()
-                    hiddenItem?.hide()
-                }
-                alwaysHiddenItem?.hide()
-            case .alwaysHidden:
-                hide()
-            }
+            statusBar.toggle(section: section)
         case .rightMouseUp:
             statusItem.showMenu(statusBar.menu)
         default:
@@ -426,5 +315,56 @@ extension ControlItem {
                 UserDefaults.standard.set(newValue, forKey: key(for: autosaveName))
             }
         }
+    }
+}
+
+// MARK: - Images
+extension ControlItem {
+    /// Namespace for control item images.
+    enum Images {
+        static let circleFilled: NSImage = {
+            let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { bounds in
+                NSColor.black.setFill()
+                NSBezierPath(ovalIn: bounds).fill()
+                return true
+            }
+            image.isTemplate = true
+            return image
+        }()
+
+        static let circleStroked: NSImage = {
+            let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { bounds in
+                let lineWidth: CGFloat = 1.5
+                let path = NSBezierPath(ovalIn: bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2))
+                path.lineWidth = lineWidth
+                NSColor.black.setStroke()
+                path.stroke()
+                return true
+            }
+            image.isTemplate = true
+            return image
+        }()
+
+        static let (largeChevron, smallChevron): (NSImage, NSImage) = {
+            func chevron(size: NSSize, lineWidth: CGFloat = 2) -> NSImage {
+                let image = NSImage(size: size, flipped: false) { bounds in
+                    let insetBounds = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
+                    let path = NSBezierPath()
+                    path.move(to: NSPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.maxY))
+                    path.line(to: NSPoint(x: (insetBounds.minX + insetBounds.midX) / 2, y: insetBounds.midY))
+                    path.line(to: NSPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.minY))
+                    path.lineWidth = lineWidth
+                    path.lineCapStyle = .butt
+                    NSColor.black.setStroke()
+                    path.stroke()
+                    return true
+                }
+                image.isTemplate = true
+                return image
+            }
+            let largeChevron = chevron(size: NSSize(width: 12, height: 12))
+            let smallChevron = chevron(size: NSSize(width: 7, height: 7))
+            return (largeChevron, smallChevron)
+        }()
     }
 }

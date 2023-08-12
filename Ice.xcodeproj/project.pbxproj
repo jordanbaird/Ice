@@ -12,6 +12,9 @@
 		7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */; };
 		7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED692A85870E000A7E1B /* SettingsView.swift */; };
 		7133ED712A85AE6A000A7E1B /* SettingsItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED702A85AE6A000A7E1B /* SettingsItem.swift */; };
+		714752352A86C4770096B2CA /* MenuComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 714752342A86C4770096B2CA /* MenuComponent.swift */; };
+		714752372A86D9420096B2CA /* MenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 714752362A86D9420096B2CA /* MenuBuilder.swift */; };
+		714752392A86DF8A0096B2CA /* MenuItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 714752382A86DF8A0096B2CA /* MenuItem.swift */; };
 		7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166832D2A767E6A006ABF84 /* IceApp.swift */; };
 		716683322A767E6B006ABF84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 716683312A767E6B006ABF84 /* Assets.xcassets */; };
 		716683352A767E6B006ABF84 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 716683342A767E6B006ABF84 /* Preview Assets.xcassets */; };
@@ -32,6 +35,9 @@
 		7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+windowWithIdentifier.swift"; sourceTree = "<group>"; };
 		7133ED692A85870E000A7E1B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7133ED702A85AE6A000A7E1B /* SettingsItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsItem.swift; sourceTree = "<group>"; };
+		714752342A86C4770096B2CA /* MenuComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuComponent.swift; sourceTree = "<group>"; };
+		714752362A86D9420096B2CA /* MenuBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBuilder.swift; sourceTree = "<group>"; };
+		714752382A86DF8A0096B2CA /* MenuItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuItem.swift; sourceTree = "<group>"; };
 		7166832A2A767E6A006ABF84 /* Ice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7166832D2A767E6A006ABF84 /* IceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceApp.swift; sourceTree = "<group>"; };
 		716683312A767E6B006ABF84 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -84,6 +90,16 @@
 				71EA64992A84C65B009CE77F /* Defaults.swift */,
 			);
 			path = Defaults;
+			sourceTree = "<group>";
+		};
+		714752312A86C4410096B2CA /* MenuBuilder */ = {
+			isa = PBXGroup;
+			children = (
+				714752342A86C4770096B2CA /* MenuComponent.swift */,
+				714752382A86DF8A0096B2CA /* MenuItem.swift */,
+				714752362A86D9420096B2CA /* MenuBuilder.swift */,
+			);
+			path = MenuBuilder;
 			sourceTree = "<group>";
 		};
 		716683212A767E6A006ABF84 = {
@@ -173,6 +189,7 @@
 		7166834D2A768184006ABF84 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				714752312A86C4410096B2CA /* MenuBuilder */,
 				7133ED662A858230000A7E1B /* Settings */,
 				7166834E2A768190006ABF84 /* StatusBar */,
 			);
@@ -263,6 +280,7 @@
 				71EA649A2A84C65B009CE77F /* Defaults.swift in Sources */,
 				716683482A76811C006ABF84 /* DictionarySerialization.swift in Sources */,
 				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
+				714752352A86C4770096B2CA /* MenuComponent.swift in Sources */,
 				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
@@ -270,9 +288,11 @@
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
 				71EA649E2A84CD21009CE77F /* Default.swift in Sources */,
 				7166834B2A76811C006ABF84 /* Logger.swift in Sources */,
+				714752372A86D9420096B2CA /* MenuBuilder.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsItem.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
+				714752392A86DF8A0096B2CA /* MenuItem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

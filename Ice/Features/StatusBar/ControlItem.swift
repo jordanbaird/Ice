@@ -123,14 +123,15 @@ final class ControlItem: ObservableObject {
             if state == .hideItems(isExpanded: true) {
                 // prevent the cell from highlighting while expanded
                 button.cell?.isEnabled = false
-                // the cell still sometimes briefly highlights while
-                // expanding; manually unhighlighting seems to fix it
+                // cell still sometimes briefly flashes during expansion;
+                // manually unhighlighting seems to mitigate it
                 button.isHighlighted = false
                 button.image = nil
                 return
             }
             // enable the cell, as it may have been previously disabled
             button.cell?.isEnabled = true
+            // set the image based on section and state
             switch section {
             case .hidden:
                 button.image = Images.largeChevron

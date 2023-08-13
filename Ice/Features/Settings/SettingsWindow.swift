@@ -77,7 +77,7 @@ struct SettingsWindow: Scene {
     }
 
     private var titlebar: some View {
-        VisualEffectView(material: .titlebar)
+        VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
             .shadow(radius: 2.5)
             .frame(height: observer.titlebarHeight)
             .edgesIgnoringSafeArea(.top)

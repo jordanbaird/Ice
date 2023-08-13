@@ -28,6 +28,10 @@ class StatusBar: ObservableObject {
     /// The shared status bar singleton.
     static let shared = StatusBar()
 
+    private let dictionaryEncoder = DictionaryEncoder()
+
+    private let dictionaryDecoder = DictionaryDecoder()
+
     private var cancellables = Set<AnyCancellable>()
 
     private var lastSavedControlItemsHash: Int?
@@ -118,7 +122,7 @@ class StatusBar: ObservableObject {
         controlItems = Defaults.serializedControlItems.enumerated().map { index, entry in
             do {
                 let dictionary = [entry.key: entry.value]
-                return try DictionarySerialization.value(ofType: ControlItem.self, from: dictionary)
+                return try dictionaryDecoder.decode(ControlItem.self, from: dictionary)
             } catch {
                 Logger.statusBar.error("Error decoding control item: \(error)")
                 return ControlItem(autosaveName: entry.key, position: CGFloat(index))
@@ -138,7 +142,7 @@ class StatusBar: ObservableObject {
         }
         do {
             Defaults.serializedControlItems = try controlItems.reduce(into: [:]) { serialized, item in
-                let dictionary = try DictionarySerialization.dictionary(from: item)
+                let dictionary = try dictionaryEncoder.encode(item)
                 serialized.merge(dictionary, uniquingKeysWith: { $1 })
             }
             lastSavedControlItemsHash = controlItems.hashValue

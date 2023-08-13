@@ -19,7 +19,6 @@
 		716683322A767E6B006ABF84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 716683312A767E6B006ABF84 /* Assets.xcassets */; };
 		716683352A767E6B006ABF84 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 716683342A767E6B006ABF84 /* Preview Assets.xcassets */; };
 		7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166833C2A7680CE006ABF84 /* AppDelegate.swift */; };
-		716683482A76811C006ABF84 /* DictionarySerialization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166833F2A76811C006ABF84 /* DictionarySerialization.swift */; };
 		7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683432A76811C006ABF84 /* ProcessInfo+isPreview.swift */; };
 		7166834B2A76811C006ABF84 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683452A76811C006ABF84 /* Logger.swift */; };
 		7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */; };
@@ -28,6 +27,8 @@
 		71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */; };
 		71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */; };
 		71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C532A89445C00D89CD5 /* VisualEffectView.swift */; };
+		71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */; };
+		71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */; };
 		71EA649A2A84C65B009CE77F /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71EA64992A84C65B009CE77F /* Defaults.swift */; };
 		71EA649E2A84CD21009CE77F /* Default.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71EA649D2A84CD21009CE77F /* Default.swift */; };
 /* End PBXBuildFile section */
@@ -47,7 +48,6 @@
 		716683342A767E6B006ABF84 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		716683362A767E6B006ABF84 /* Ice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ice.entitlements; sourceTree = "<group>"; };
 		7166833C2A7680CE006ABF84 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		7166833F2A76811C006ABF84 /* DictionarySerialization.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DictionarySerialization.swift; sourceTree = "<group>"; };
 		716683432A76811C006ABF84 /* ProcessInfo+isPreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ProcessInfo+isPreview.swift"; sourceTree = "<group>"; };
 		716683452A76811C006ABF84 /* Logger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSStatusItem+showMenu.swift"; sourceTree = "<group>"; };
@@ -56,6 +56,8 @@
 		71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSSplitViewItem+swizzledCanCollapse.swift"; sourceTree = "<group>"; };
 		71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
 		71D36C532A89445C00D89CD5 /* VisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
+		71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryEncoder.swift; sourceTree = "<group>"; };
+		71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryDecoder.swift; sourceTree = "<group>"; };
 		71EA64992A84C65B009CE77F /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
 		71EA649D2A84CD21009CE77F /* Default.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Default.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -151,11 +153,11 @@
 			isa = PBXGroup;
 			children = (
 				714458942A82F54700A2632F /* Defaults */,
+				71D36C562A896ED700D89CD5 /* DictionarySerialization */,
 				716683412A76811C006ABF84 /* Extensions */,
 				71D36C492A88EDD200D89CD5 /* Swizzling */,
 				71D36C522A89443800D89CD5 /* Views */,
 				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
-				7166833F2A76811C006ABF84 /* DictionarySerialization.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -228,6 +230,15 @@
 				71D36C532A89445C00D89CD5 /* VisualEffectView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		71D36C562A896ED700D89CD5 /* DictionarySerialization */ = {
+			isa = PBXGroup;
+			children = (
+				71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */,
+				71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */,
+			);
+			path = DictionarySerialization;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -304,7 +315,6 @@
 				7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
 				71EA649A2A84C65B009CE77F /* Defaults.swift in Sources */,
-				716683482A76811C006ABF84 /* DictionarySerialization.swift in Sources */,
 				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
 				714752352A86C4770096B2CA /* MenuComponent.swift in Sources */,
 				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
@@ -312,6 +322,7 @@
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
+				71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */,
 				71EA649E2A84CD21009CE77F /* Default.swift in Sources */,
 				7166834B2A76811C006ABF84 /* Logger.swift in Sources */,
 				714752372A86D9420096B2CA /* MenuBuilder.swift in Sources */,
@@ -320,6 +331,7 @@
 				71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
+				71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */,
 				714752392A86DF8A0096B2CA /* MenuItem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

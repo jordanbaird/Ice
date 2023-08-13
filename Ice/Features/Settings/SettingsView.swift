@@ -29,10 +29,10 @@ struct SettingsView: View {
                 SettingsSidebarItem(item: item)
             }
             .navigationSplitViewColumnWidth(225)
+            .padding(.top, 5)
         } detail: {
             Text(selection.name.localized).font(.title)
         }
-        .background(Material.thin)
     }
 }
 

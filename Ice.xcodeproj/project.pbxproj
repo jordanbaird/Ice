@@ -25,6 +25,9 @@
 		7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */; };
 		716683502A7681AF006ABF84 /* StatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166834F2A7681AF006ABF84 /* StatusBar.swift */; };
 		716683522A76820A006ABF84 /* ControlItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683512A76820A006ABF84 /* ControlItem.swift */; };
+		71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */; };
+		71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */; };
+		71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C532A89445C00D89CD5 /* VisualEffectView.swift */; };
 		71EA649A2A84C65B009CE77F /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71EA64992A84C65B009CE77F /* Defaults.swift */; };
 		71EA649E2A84CD21009CE77F /* Default.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71EA649D2A84CD21009CE77F /* Default.swift */; };
 /* End PBXBuildFile section */
@@ -50,6 +53,9 @@
 		716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSStatusItem+showMenu.swift"; sourceTree = "<group>"; };
 		7166834F2A7681AF006ABF84 /* StatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBar.swift; sourceTree = "<group>"; };
 		716683512A76820A006ABF84 /* ControlItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItem.swift; sourceTree = "<group>"; };
+		71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSSplitViewItem+swizzledCanCollapse.swift"; sourceTree = "<group>"; };
+		71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
+		71D36C532A89445C00D89CD5 /* VisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		71EA64992A84C65B009CE77F /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
 		71EA649D2A84CD21009CE77F /* Default.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Default.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -77,8 +83,9 @@
 		7133ED662A858230000A7E1B /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				7133ED692A85870E000A7E1B /* SettingsView.swift */,
 				7133ED702A85AE6A000A7E1B /* SettingsItem.swift */,
+				7133ED692A85870E000A7E1B /* SettingsView.swift */,
+				71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -145,6 +152,8 @@
 			children = (
 				714458942A82F54700A2632F /* Defaults */,
 				716683412A76811C006ABF84 /* Extensions */,
+				71D36C492A88EDD200D89CD5 /* Swizzling */,
+				71D36C522A89443800D89CD5 /* Views */,
 				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
 				7166833F2A76811C006ABF84 /* DictionarySerialization.swift */,
 			);
@@ -203,6 +212,22 @@
 				716683512A76820A006ABF84 /* ControlItem.swift */,
 			);
 			path = StatusBar;
+			sourceTree = "<group>";
+		};
+		71D36C492A88EDD200D89CD5 /* Swizzling */ = {
+			isa = PBXGroup;
+			children = (
+				71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */,
+			);
+			path = Swizzling;
+			sourceTree = "<group>";
+		};
+		71D36C522A89443800D89CD5 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				71D36C532A89445C00D89CD5 /* VisualEffectView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -275,6 +300,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
 				7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
 				71EA649A2A84C65B009CE77F /* Defaults.swift in Sources */,
@@ -290,6 +316,8 @@
 				7166834B2A76811C006ABF84 /* Logger.swift in Sources */,
 				714752372A86D9420096B2CA /* MenuBuilder.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsItem.swift in Sources */,
+				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
+				71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
 				714752392A86DF8A0096B2CA /* MenuItem.swift in Sources */,

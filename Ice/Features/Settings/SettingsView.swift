@@ -5,6 +5,8 @@
 
 import SwiftUI
 
+// MARK: - SettingsView
+
 struct SettingsView: View {
     private static let items: [SettingsItem] = [
         SettingsItem(
@@ -26,17 +28,19 @@ struct SettingsView: View {
     var body: some View {
         NavigationSplitView {
             List(Self.items, selection: $selection) { item in
-                SettingsSidebarItem(item: item)
+                SettingsSidebarView(item: item)
             }
             .navigationSplitViewColumnWidth(225)
             .padding(.top, 5)
         } detail: {
-            Text(selection.name.localized).font(.title)
+            SettingsDetailView(item: selection)
         }
     }
 }
 
-struct SettingsSidebarItem: View {
+// MARK: - SettingsSidebarView
+
+struct SettingsSidebarView: View {
     let item: SettingsItem
 
     var body: some View {
@@ -61,16 +65,33 @@ struct SettingsSidebarItem: View {
                 .padding(6)
                 .foregroundColor(item.primaryColor)
                 .frame(width: 32, height: 32)
-                .background(
-                    Circle().fill(item.secondaryColor)
-                )
+                .background(item.secondaryColor, in: Circle())
                 .shadow(color: .black.opacity(0.25), radius: 1)
             }
-            .padding(.leading, 6)
+            .padding(.leading, 8)
             .frame(height: 50)
         }
     }
 }
+
+// MARK: - SettingsDetailView
+
+struct SettingsDetailView: View {
+    let item: SettingsItem
+
+    var body: some View {
+        switch item.name {
+        case .general:
+            GeneralSettingsView()
+        case .menuBarLayout:
+            Text(item.name.localized).font(.title)
+        case .about:
+            Text(item.name.localized).font(.title)
+        }
+    }
+}
+
+// MARK: - Previews
 
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {

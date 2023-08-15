@@ -4,6 +4,7 @@
 //
 
 import Cocoa
+import SwiftKeys
 
 // MARK: - MenuItem
 
@@ -154,6 +155,11 @@ extension MenuItems {
 
         func add(to menu: NSMenu) {
             menu.addItem(base)
+        }
+
+        func keyCommand(name: KeyCommand.Name) -> Self {
+            base.keyCommand = KeyCommand(name: name)
+            return self
         }
     }
 }

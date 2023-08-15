@@ -71,6 +71,7 @@ struct SettingsWindow: Scene {
                 .frame(minWidth: 700, minHeight: 400)
                 .toolbar(.hidden, for: .windowToolbar)
                 .background(Material.thin)
+                .buttonStyle(SettingsButtonStyle())
         }
         .commandsRemoved()
         .defaultSize(width: 1080, height: 720)

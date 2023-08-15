@@ -6,6 +6,7 @@
 import Cocoa
 import Combine
 import OSLog
+import SwiftKeys
 
 /// Manages the state of the items in the status bar.
 class StatusBar: ObservableObject {
@@ -76,6 +77,7 @@ class StatusBar: ObservableObject {
                 MenuItems.Item(title: "\(actionString) \(sectionString)") { [weak self] in
                     self?.toggle(section: .hidden)
                 }
+                .keyCommand(name: .toggle(.hidden))
             }
             if controlItem(forSection: .alwaysHidden) != nil {
                 let actionString = isSectionHidden(.alwaysHidden) ? "Show" : "Hide"
@@ -83,6 +85,7 @@ class StatusBar: ObservableObject {
                 MenuItems.Item(title: "\(actionString) \(sectionString)") { [weak self] in
                     self?.toggle(section: .alwaysHidden)
                 }
+                .keyCommand(name: .toggle(.alwaysHidden))
             }
         }
         MenuComponents.ItemGroup(separatorPlacement: [.before, .after]) {
@@ -105,6 +108,7 @@ class StatusBar: ObservableObject {
 
     private init() {
         configureCancellables()
+        configureKeyCommands(for: [.hidden, .alwaysHidden])
     }
 
     /// Performs the initial setup of the status bar's control item list.
@@ -119,7 +123,7 @@ class StatusBar: ObservableObject {
             return
         }
 
-        controlItems = Defaults.serializedControlItems.enumerated().map { index, entry in
+        controlItems = Defaults[.serializedControlItems].enumerated().map { index, entry in
             do {
                 let dictionary = [entry.key: entry.value]
                 return try dictionaryDecoder.decode(ControlItem.self, from: dictionary)
@@ -141,7 +145,7 @@ class StatusBar: ObservableObject {
             return
         }
         do {
-            Defaults.serializedControlItems = try controlItems.reduce(into: [:]) { serialized, item in
+            Defaults[.serializedControlItems] = try controlItems.reduce(into: [:]) { serialized, item in
                 let dictionary = try dictionaryEncoder.encode(item)
                 serialized.merge(dictionary, uniquingKeysWith: { $1 })
             }
@@ -156,7 +160,7 @@ class StatusBar: ObservableObject {
     /// removing items as needed, and returns a Boolean value indicating
     /// whether the count was valid.
     private func validateControlItemCount() -> Bool {
-        let enableAlwaysHidden = Defaults.enableAlwaysHidden
+        let enableAlwaysHidden = Defaults[.enableAlwaysHidden]
         if controlItems.isEmpty {
             // fast path; don't do work if we don't have to
             var items = [
@@ -237,6 +241,17 @@ class StatusBar: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+    }
+
+    /// Set up key commands (and their observations) for the given sections.
+    private func configureKeyCommands(for sections: [Section]) {
+        for section in sections {
+            let keyCommand = KeyCommand(name: .toggle(section))
+            keyCommand.disablesOnMenuOpen = true
+            keyCommand.observe(.keyDown) { [weak self] in
+                self?.toggle(section: section)
+            }
+        }
     }
 
     /// Returns the status bar section for the given control item.

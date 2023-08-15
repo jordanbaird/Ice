@@ -14,6 +14,10 @@ private class SettingsWindowObserver: ObservableObject {
     /// the window itself.
     @Published private(set) var titlebarHeight: CGFloat = 0
 
+    /// A Boolean value indicating whether the observed window is
+    /// the app's current key window.
+    @Published private(set) var isKeyWindow: Bool = false
+
     private var window: NSWindow? {
         didSet {
             configureCancellables()
@@ -51,13 +55,30 @@ private class SettingsWindowObserver: ObservableObject {
             .store(in: &cancellables)
 
         if let window {
-            // we have a window; observe its frame and publish a new title
-            // bar height when the frame changes
+            // we have a window; subscribe to changes to its state across
+            // several publishers and update the corresponding @Published
+            // property when a change occurs
             window.publisher(for: \.frame)
                 .combineLatest(window.publisher(for: \.contentLayoutRect))
                 .map { $0.height - $1.height }
                 .sink { [weak self] titlebarHeight in
                     self?.titlebarHeight = titlebarHeight
+                }
+                .store(in: &cancellables)
+
+            NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)
+                .sink { [weak self, weak window] notification in
+                    if notification.object as? NSWindow === window {
+                        self?.isKeyWindow = true
+                    }
+                }
+                .store(in: &cancellables)
+
+            NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)
+                .sink { [weak self, weak window] notification in
+                    if notification.object as? NSWindow === window {
+                        self?.isKeyWindow = false
+                    }
                 }
                 .store(in: &cancellables)
         }
@@ -73,7 +94,10 @@ struct SettingsWindow: Scene {
                 .safeAreaInset(edge: .top, spacing: 0) { titlebar }
                 .frame(minWidth: 700, minHeight: 400)
                 .toolbar(.hidden, for: .windowToolbar)
-                .background(Material.thin)
+                .background(
+                    Color.clear
+                        .overlay(Material.thin)
+                )
                 .buttonStyle(SettingsButtonStyle())
         }
         .commandsRemoved()
@@ -81,9 +105,15 @@ struct SettingsWindow: Scene {
     }
 
     private var titlebar: some View {
-        VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
-            .shadow(radius: 2.5)
+        VisualEffectView(material: .titlebar, blendingMode: .withinWindow)
             .frame(height: observer.titlebarHeight)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                EnvironmentReader(\.colorScheme) { colorScheme in
+                    Color(white: colorScheme == .dark ? 0 : 0.7)
+                        .opacity(observer.isKeyWindow ? 1 : 0.5)
+                }
+                .frame(height: 1)
+            }
             .edgesIgnoringSafeArea(.top)
     }
 }

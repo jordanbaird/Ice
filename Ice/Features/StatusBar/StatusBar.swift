@@ -221,7 +221,7 @@ class StatusBar: ObservableObject {
     }
 
     /// Returns the control item for the given status bar section.
-    func controlItem(forSection section: Section) -> ControlItem? {
+    func controlItem(for section: Section) -> ControlItem? {
         let index = section.rawValue
         guard index < controlItems.count else {
             return nil
@@ -232,7 +232,7 @@ class StatusBar: ObservableObject {
     /// Returns a Boolean value that indicates whether the given section
     /// is hidden by its control item.
     func isSectionHidden(_ section: Section) -> Bool {
-        guard let item = controlItem(forSection: section) else {
+        guard let item = controlItem(for: section) else {
             return false
         }
         switch item.state {
@@ -245,11 +245,11 @@ class StatusBar: ObservableObject {
     func show(section: Section) {
         switch section {
         case .alwaysVisible, .hidden:
-            controlItem(forSection: .alwaysVisible)?.state = .showItems
-            controlItem(forSection: .hidden)?.state = .showItems
+            controlItem(for: .alwaysVisible)?.state = .showItems
+            controlItem(for: .hidden)?.state = .showItems
         case .alwaysHidden:
             show(section: .hidden)
-            controlItem(forSection: .alwaysHidden)?.state = .showItems
+            controlItem(for: .alwaysHidden)?.state = .showItems
         }
     }
 
@@ -257,17 +257,17 @@ class StatusBar: ObservableObject {
     func hide(section: Section) {
         switch section {
         case .alwaysVisible, .hidden:
-            controlItem(forSection: .alwaysVisible)?.state = .hideItems(isExpanded: false)
-            controlItem(forSection: .hidden)?.state = .hideItems(isExpanded: true)
+            controlItem(for: .alwaysVisible)?.state = .hideItems(isExpanded: false)
+            controlItem(for: .hidden)?.state = .hideItems(isExpanded: true)
             hide(section: .alwaysHidden)
         case .alwaysHidden:
-            controlItem(forSection: .alwaysHidden)?.state = .hideItems(isExpanded: true)
+            controlItem(for: .alwaysHidden)?.state = .hideItems(isExpanded: true)
         }
     }
 
     /// Toggles the visibility of the status items in the given section.
     func toggle(section: Section) {
-        guard let item = controlItem(forSection: section) else {
+        guard let item = controlItem(for: section) else {
             return
         }
         switch item.state {

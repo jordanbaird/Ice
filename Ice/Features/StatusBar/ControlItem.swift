@@ -8,6 +8,31 @@ import Combine
 import SwiftKeys
 
 final class ControlItem: ObservableObject {
+    /// A value representing the hiding state of a control item.
+    enum State: RawRepresentable, Hashable, Codable {
+        /// Status items in the control item's section are hidden.
+        case hideItems(isExpanded: Bool)
+        /// Status items in the control item's section are visible.
+        case showItems
+
+        var rawValue: Int {
+            switch self {
+            case .hideItems(isExpanded: false): return 0
+            case .hideItems(isExpanded: true): return 1
+            case .showItems: return 2
+            }
+        }
+
+        init?(rawValue: Int) {
+            switch rawValue {
+            case 0: self = .hideItems(isExpanded: false)
+            case 1: self = .hideItems(isExpanded: true)
+            case 2: self = .showItems
+            default: return nil
+            }
+        }
+    }
+
     static let standardLength: CGFloat = 25
 
     static let expandedLength: CGFloat = 10_000
@@ -189,10 +214,10 @@ final class ControlItem: ObservableObject {
 
         // add menu items to toggle the hidden and always-hidden sections,
         // assuming the sections each have a control item
-        for section: Section in [.hidden, .alwaysHidden] where statusBar.controlItem(forSection: section) != nil {
+        for section: Section in [.hidden, .alwaysHidden] where statusBar.controlItem(for: section) != nil {
             let item = NSMenuItem(
                 title: (statusBar.isSectionHidden(section) ? "Show" : "Hide") + " \"\(section.name)\" Section",
-                action: #selector(runKeyCommandHandlersForMenuItem),
+                action: #selector(runKeyCommandHandlers),
                 keyEquivalent: ""
             )
             item.target = self
@@ -224,8 +249,8 @@ final class ControlItem: ObservableObject {
     }
 
     /// Action for a menu item in the control item's menu to perform.
-    @objc private func runKeyCommandHandlersForMenuItem(sender: NSMenuItem) {
-        sender.keyCommand?.runHandlers(for: .keyDown)
+    @objc private func runKeyCommandHandlers(for menuItem: NSMenuItem) {
+        menuItem.keyCommand?.runHandlers(for: .keyDown)
     }
 
     deinit {
@@ -315,33 +340,6 @@ extension ControlItem: Hashable {
         hasher.combine(position)
         hasher.combine(autosaveName)
         hasher.combine(state)
-    }
-}
-
-// MARK: - State
-extension ControlItem {
-    enum State: RawRepresentable, Hashable, Codable {
-        /// Hide all status items in the section.
-        case hideItems(isExpanded: Bool)
-        /// Show all status items in the section.
-        case showItems
-
-        var rawValue: Int {
-            switch self {
-            case .hideItems(isExpanded: false): return 0
-            case .hideItems(isExpanded: true): return 1
-            case .showItems: return 2
-            }
-        }
-
-        init?(rawValue: Int) {
-            switch rawValue {
-            case 0: self = .hideItems(isExpanded: false)
-            case 1: self = .hideItems(isExpanded: true)
-            case 2: self = .showItems
-            default: return nil
-            }
-        }
     }
 }
 

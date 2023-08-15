@@ -19,18 +19,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.close()
         }
 
-        // hide the main menu so that the user has more space to work with when
-        // configuring their menu bar layout
+        // hide the main menu to give the user more space to configure their menu bar
         if let mainMenu = NSApp.mainMenu {
             for item in mainMenu.items {
                 item.isHidden = true
             }
         }
 
-        // initialize the status bar ONLY IF we aren't running in a SwiftUI preview;
-        // otherwise, a new set of control items would be added every time the
-        // preview reloads, and since Xcode doesn't seem to be very good at cleaning
-        // up its old previews, the old items could stick around, too
+        // only initialize control items if we aren't running as a preview
         if !ProcessInfo.processInfo.isPreview {
             StatusBar.shared.initializeControlItems()
         }
@@ -39,14 +35,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let settingsWindow {
             settingsWindow.backgroundColor = NSColor(named: "SettingsWindowBackgroundColor")
 
+            // hide the default titlebar
             settingsWindow.titlebarAppearsTransparent = true
             settingsWindow.titleVisibility = .hidden
 
+            // create a custom text field for the title
             let titleTextField = NSTextField(labelWithString: settingsWindow.title)
             titleTextField.textColor = .secondaryLabelColor
             titleTextField.font = .titleBarFont(ofSize: 0)
             titleTextField.alignment = .center
 
+            // changing the position of an accessory view breaks the layout; use
+            // a separate container view as the accessory view, and position the
+            // title text inside it
             let titleContainer = NSView()
             titleContainer.addSubview(titleTextField)
 
@@ -57,6 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             let titleController = NSTitlebarAccessoryViewController()
             titleController.view = titleContainer
+            // place the accessory view above the (now hidden) title bar
             titleController.layoutAttribute = .top
 
             settingsWindow.addTitlebarAccessoryViewController(titleController)

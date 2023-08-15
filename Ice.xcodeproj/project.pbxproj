@@ -31,6 +31,7 @@
 		71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */; };
 		71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */; };
 		71EA649A2A84C65B009CE77F /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71EA64992A84C65B009CE77F /* Defaults.swift */; };
+		71FEA24E2A8C96680048341A /* EnvironmentReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA24D2A8C96680048341A /* EnvironmentReader.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -59,6 +60,7 @@
 		71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryEncoder.swift; sourceTree = "<group>"; };
 		71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryDecoder.swift; sourceTree = "<group>"; };
 		71EA64992A84C65B009CE77F /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
+		71FEA24D2A8C96680048341A /* EnvironmentReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentReader.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -219,6 +221,7 @@
 			isa = PBXGroup;
 			children = (
 				71D36C532A89445C00D89CD5 /* VisualEffectView.swift */,
+				71FEA24D2A8C96680048341A /* EnvironmentReader.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -326,6 +329,7 @@
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
 				71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
+				71FEA24E2A8C96680048341A /* EnvironmentReader.swift in Sources */,
 				71623BCB2A8B0A8C002FD331 /* Defaults+Key.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
 				71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */,

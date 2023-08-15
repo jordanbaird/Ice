@@ -65,47 +65,6 @@ class StatusBar: ObservableObject {
         }
     }
 
-    /// Dynamically constructed menu to show when a control item belonging to
-    /// the status bar is right-clicked.
-    @MenuBuilder
-    var menu: NSMenu {
-        MenuComponents.Title(Constants.appName)
-        MenuComponents.ItemGroup {
-            if controlItem(forSection: .hidden) != nil {
-                let actionString = isSectionHidden(.hidden) ? "Show" : "Hide"
-                let sectionString = "\"\(Section.hidden.name)\" Section"
-                MenuItems.Item(title: "\(actionString) \(sectionString)") { [weak self] in
-                    self?.toggle(section: .hidden)
-                }
-                .keyCommand(name: .toggle(.hidden))
-            }
-            if controlItem(forSection: .alwaysHidden) != nil {
-                let actionString = isSectionHidden(.alwaysHidden) ? "Show" : "Hide"
-                let sectionString = "\"\(Section.alwaysHidden.name)\" Section"
-                MenuItems.Item(title: "\(actionString) \(sectionString)") { [weak self] in
-                    self?.toggle(section: .alwaysHidden)
-                }
-                .keyCommand(name: .toggle(.alwaysHidden))
-            }
-        }
-        MenuComponents.ItemGroup(separatorPlacement: [.before, .after]) {
-            MenuItems.Item(
-                title: "Settings…",
-                key: ",",
-                modifiers: .command,
-                action: #selector(AppDelegate.openSettingsWindow)
-            )
-        }
-        MenuComponents.ItemGroup {
-            MenuItems.Item(
-                title: "Quit \(Constants.appName)",
-                key: "q",
-                modifiers: .command,
-                action: #selector(NSApp.terminate)
-            )
-        }
-    }
-
     private init() {
         configureCancellables()
         configureKeyCommands(for: [.hidden, .alwaysHidden])

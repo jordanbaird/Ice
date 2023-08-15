@@ -5,6 +5,7 @@
 
 import Cocoa
 import Combine
+import SwiftKeys
 
 final class ControlItem: ObservableObject {
     static let standardLength: CGFloat = 25
@@ -35,8 +36,8 @@ final class ControlItem: ObservableObject {
         }
     }
 
-    /// The index of the control item in relation to the other control
-    /// items in the status bar.
+    /// The index of the control item in relation to the other
+    /// control items in the status bar.
     var index: Int? {
         statusBar?.sortedControlItems.firstIndex(of: self)
     }
@@ -173,10 +174,58 @@ final class ControlItem: ObservableObject {
             }
             statusBar.toggle(section: section)
         case .rightMouseUp:
-            statusItem.showMenu(statusBar.menu)
+            statusItem.showMenu(createMenu(with: statusBar))
         default:
             break
         }
+    }
+
+    /// Creates and returns a menu to show when the control item is
+    /// right-clicked.
+    private func createMenu(with statusBar: StatusBar) -> NSMenu {
+        typealias Section = StatusBar.Section
+
+        let menu = NSMenu(title: Constants.appName)
+
+        // add menu items to toggle the hidden and always-hidden sections,
+        // assuming the sections each have a control item
+        for section: Section in [.hidden, .alwaysHidden] where statusBar.controlItem(forSection: section) != nil {
+            let item = NSMenuItem(
+                title: (statusBar.isSectionHidden(section) ? "Show" : "Hide") + " \"\(section.name)\" Section",
+                action: #selector(runKeyCommandHandlersForMenuItem),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.keyCommand = KeyCommand(name: .toggle(section))
+            menu.addItem(item)
+        }
+
+        menu.addItem(.separator())
+
+        let settingsItem = NSMenuItem(
+            title: "Settings…",
+            action: #selector(AppDelegate.openSettingsWindow),
+            keyEquivalent: ","
+        )
+        settingsItem.keyEquivalentModifierMask = .command
+        menu.addItem(settingsItem)
+
+        menu.addItem(.separator())
+
+        let quitItem = NSMenuItem(
+            title: "Quit \(Constants.appName)",
+            action: #selector(NSApp.terminate),
+            keyEquivalent: "q"
+        )
+        quitItem.keyEquivalentModifierMask = .command
+        menu.addItem(quitItem)
+
+        return menu
+    }
+
+    /// Action for a menu item in the control item's menu to perform.
+    @objc private func runKeyCommandHandlersForMenuItem(sender: NSMenuItem) {
+        sender.keyCommand?.runHandlers(for: .keyDown)
     }
 
     deinit {

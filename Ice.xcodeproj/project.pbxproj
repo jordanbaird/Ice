@@ -12,9 +12,6 @@
 		7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */; };
 		7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED692A85870E000A7E1B /* SettingsView.swift */; };
 		7133ED712A85AE6A000A7E1B /* SettingsItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED702A85AE6A000A7E1B /* SettingsItem.swift */; };
-		714752352A86C4770096B2CA /* MenuComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 714752342A86C4770096B2CA /* MenuComponent.swift */; };
-		714752372A86D9420096B2CA /* MenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 714752362A86D9420096B2CA /* MenuBuilder.swift */; };
-		714752392A86DF8A0096B2CA /* MenuItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 714752382A86DF8A0096B2CA /* MenuItem.swift */; };
 		71623BBC2A8AD27B002FD331 /* SwiftKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 71623BBB2A8AD27A002FD331 /* SwiftKeys */; };
 		71623BBF2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BBE2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift */; };
 		71623BC72A8B0961002FD331 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BC62A8B0961002FD331 /* GeneralSettingsView.swift */; };
@@ -43,9 +40,6 @@
 		7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+windowWithIdentifier.swift"; sourceTree = "<group>"; };
 		7133ED692A85870E000A7E1B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7133ED702A85AE6A000A7E1B /* SettingsItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsItem.swift; sourceTree = "<group>"; };
-		714752342A86C4770096B2CA /* MenuComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuComponent.swift; sourceTree = "<group>"; };
-		714752362A86D9420096B2CA /* MenuBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBuilder.swift; sourceTree = "<group>"; };
-		714752382A86DF8A0096B2CA /* MenuItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuItem.swift; sourceTree = "<group>"; };
 		71623BBE2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyCommand.Name+toggle.swift"; sourceTree = "<group>"; };
 		71623BC62A8B0961002FD331 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
 		71623BCA2A8B0A8C002FD331 /* Defaults+Key.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Defaults+Key.swift"; sourceTree = "<group>"; };
@@ -109,16 +103,6 @@
 				71623BCA2A8B0A8C002FD331 /* Defaults+Key.swift */,
 			);
 			path = Defaults;
-			sourceTree = "<group>";
-		};
-		714752312A86C4410096B2CA /* MenuBuilder */ = {
-			isa = PBXGroup;
-			children = (
-				714752362A86D9420096B2CA /* MenuBuilder.swift */,
-				714752342A86C4770096B2CA /* MenuComponent.swift */,
-				714752382A86DF8A0096B2CA /* MenuItem.swift */,
-			);
-			path = MenuBuilder;
 			sourceTree = "<group>";
 		};
 		71623BBD2A8AD4D1002FD331 /* KeyCommand.Name */ = {
@@ -219,7 +203,6 @@
 		7166834D2A768184006ABF84 /* Features */ = {
 			isa = PBXGroup;
 			children = (
-				714752312A86C4410096B2CA /* MenuBuilder */,
 				7133ED662A858230000A7E1B /* Settings */,
 				7166834E2A768190006ABF84 /* StatusBar */,
 			);
@@ -343,7 +326,6 @@
 				71EA649A2A84C65B009CE77F /* Defaults.swift in Sources */,
 				71623BBF2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift in Sources */,
 				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
-				714752352A86C4770096B2CA /* MenuComponent.swift in Sources */,
 				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
@@ -351,7 +333,6 @@
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
 				71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */,
 				7166834B2A76811C006ABF84 /* Logger.swift in Sources */,
-				714752372A86D9420096B2CA /* MenuBuilder.swift in Sources */,
 				71623BD32A8B6744002FD331 /* SettingsButtonStyle.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsItem.swift in Sources */,
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
@@ -360,7 +341,6 @@
 				71623BCB2A8B0A8C002FD331 /* Defaults+Key.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
 				71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */,
-				714752392A86DF8A0096B2CA /* MenuItem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

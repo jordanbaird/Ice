@@ -37,7 +37,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // make some adjustments to the window that can't be done in SwiftUI
         if let settingsWindow {
-            settingsWindow.isMovableByWindowBackground = true
             settingsWindow.backgroundColor = NSColor(named: "SettingsWindowBackgroundColor")
 
             settingsWindow.titlebarAppearsTransparent = true

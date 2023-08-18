@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/jordanbaird/SwiftKeys",
       "state" : {
-        "revision" : "af9a8a71124170e6fcc4a488d8be1937f0ed938f",
-        "version" : "0.1.9"
+        "revision" : "42fb3709f772e80909b55007015744bf2fe81ee8",
+        "version" : "0.2.0"
       }
     }
   ],

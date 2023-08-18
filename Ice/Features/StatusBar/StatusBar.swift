@@ -24,6 +24,14 @@ class StatusBar: ObservableObject {
             case .alwaysHidden: return "Always Hidden"
             }
         }
+
+        var identifier: String {
+            switch self {
+            case .alwaysVisible: return "AlwaysVisible"
+            case .hidden: return "Hidden"
+            case .alwaysHidden: return "AlwaysHidden"
+            }
+        }
     }
 
     /// The shared status bar singleton.
@@ -204,6 +212,9 @@ class StatusBar: ObservableObject {
 
     /// Set up key commands (and their observations) for the given sections.
     private func configureKeyCommands(for sections: [Section]) {
+        guard !ProcessInfo.processInfo.isPreview else {
+            return
+        }
         for section in sections {
             let keyCommand = KeyCommand(name: .toggle(section))
             keyCommand.disablesOnMenuOpen = true

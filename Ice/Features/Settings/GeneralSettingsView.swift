@@ -21,7 +21,7 @@ struct GeneralSettingsView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     controlStack
                     Divider()
-                    keyCommandStack
+                    hotkeyStack
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -71,9 +71,9 @@ struct GeneralSettingsView: View {
         .padding()
     }
 
-    var keyCommandStack: some View {
+    var hotkeyStack: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Key Commands")
+            Text("Hotkeys")
                 .font(.system(size: 20, weight: .thin))
 
             VStack(spacing: enableAlwaysHidden ? 5 : 0) {
@@ -110,13 +110,15 @@ struct LabeledKeyRecorder: View {
         HStack {
             Text("Toggle the \"\(section.name)\" menu bar section")
             Spacer()
-            KeyRecorderView(name: .toggle(section))
+            SettingsKeyRecorder(name: .toggle(section))
         }
     }
 }
 
 struct GeneralSettingsView_Previews: PreviewProvider {
     static var previews: some View {
-        GeneralSettingsView().fixedSize()
+        GeneralSettingsView()
+            .fixedSize()
+            .buttonStyle(SettingsButtonStyle())
     }
 }

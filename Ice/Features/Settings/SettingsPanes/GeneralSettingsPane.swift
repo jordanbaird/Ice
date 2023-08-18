@@ -1,14 +1,13 @@
 //
-//  GeneralSettingsView.swift
+//  GeneralSettingsPane.swift
 //  Ice
 //
 
 import SwiftKeys
 import SwiftUI
 
-struct GeneralSettingsView: View {
-    @AppStorage(key: .enableAlwaysHidden)
-    private var enableAlwaysHidden: Bool
+struct GeneralSettingsPane: View {
+    @EnvironmentObject var statusBar: StatusBar
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -25,10 +24,19 @@ struct GeneralSettingsView: View {
                 }
             }
             .scrollBounceBehavior(.basedOnSize)
+            .mask(scrollViewMask)
 
             VStack(alignment: .leading, spacing: 20) {
                 Divider()
                 footerView
+            }
+        }
+        .onChange(of: statusBar.isAlwaysHiddenSectionEnabled) { newValue in
+            statusBar.controlItem(for: .alwaysHidden)?.isVisible = newValue
+            if newValue {
+                KeyCommand(name: .toggle(.alwaysHidden)).enable()
+            } else {
+                KeyCommand(name: .toggle(.alwaysHidden)).disable()
             }
         }
         .padding()
@@ -65,7 +73,7 @@ struct GeneralSettingsView: View {
         VStack(alignment: .leading, spacing: 20) {
             Toggle(
                 "Enable the \"Always Hidden\" menu bar section",
-                isOn: $enableAlwaysHidden
+                isOn: $statusBar.isAlwaysHiddenSectionEnabled
             )
         }
         .padding()
@@ -74,51 +82,69 @@ struct GeneralSettingsView: View {
     var hotkeyStack: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Hotkeys")
-                .font(.system(size: 20, weight: .thin))
+                .font(.system(size: 20, weight: .light))
 
-            VStack(spacing: enableAlwaysHidden ? 5 : 0) {
-                LabeledKeyRecorder(
-                    section: .hidden,
-                    enabled: true
-                )
-                LabeledKeyRecorder(
-                    section: .alwaysHidden,
-                    enabled: enableAlwaysHidden
-                )
+            Grid {
+                LabeledKeyRecorder(section: .hidden)
+                LabeledKeyRecorder(section: .alwaysHidden)
             }
-            .fixedSize()
         }
         .padding()
+    }
+
+    var scrollViewMask: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [.clear, .black],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 10)
+
+            Rectangle().fill(.black)
+
+            LinearGradient(
+                colors: [.black, .clear],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 10)
+        }
     }
 }
 
 struct LabeledKeyRecorder: View {
+    @EnvironmentObject var statusBar: StatusBar
+
     let section: StatusBar.Section
-    let enabled: Bool
 
     var body: some View {
-        if enabled {
-            labeledContent
+        if statusBar.isSectionEnabled(section) {
+            gridRow
         } else {
-            labeledContent
+            gridRow
                 .frame(height: 0)
                 .hidden()
         }
     }
 
-    private var labeledContent: some View {
-        HStack {
+    private var gridRow: some View {
+        GridRow {
             Text("Toggle the \"\(section.name)\" menu bar section")
-            Spacer()
-            SettingsKeyRecorder(name: .toggle(section))
+            KeyRecorder(name: .toggle(section))
         }
+        .gridColumnAlignment(.leading)
     }
 }
 
-struct GeneralSettingsView_Previews: PreviewProvider {
+struct GeneralSettingsPane_Previews: PreviewProvider {
+    @StateObject private static var statusBar = StatusBar()
+
     static var previews: some View {
-        GeneralSettingsView()
+        GeneralSettingsPane()
             .fixedSize()
             .buttonStyle(SettingsButtonStyle())
+            .toggleStyle(SettingsToggleStyle())
+            .environmentObject(statusBar)
     }
 }

@@ -8,15 +8,15 @@ import Combine
 import OSLog
 import SwiftKeys
 
-/// Manages the state of the items in the status bar.
+/// Manager for the state of items in the status bar.
 class StatusBar: ObservableObject {
-    /// A representation of a section in a status bar.
+    /// Representation of a section in the status bar.
     enum Section: Int {
         case alwaysVisible
         case hidden
         case alwaysHidden
 
-        /// A user-visible name that describes the section.
+        /// User-visible name that describes the section.
         var name: String {
             switch self {
             case .alwaysVisible: return "Always Visible"
@@ -24,25 +24,12 @@ class StatusBar: ObservableObject {
             case .alwaysHidden: return "Always Hidden"
             }
         }
-
-        var identifier: String {
-            switch self {
-            case .alwaysVisible: return "AlwaysVisible"
-            case .hidden: return "Hidden"
-            case .alwaysHidden: return "AlwaysHidden"
-            }
-        }
     }
 
-    /// The shared status bar singleton.
-    static let shared = StatusBar()
-
-    private let dictionaryEncoder = DictionaryEncoder()
-
-    private let dictionaryDecoder = DictionaryDecoder()
+    private let encoder = DictionaryEncoder()
+    private let decoder = DictionaryDecoder()
 
     private var cancellables = Set<AnyCancellable>()
-
     private var lastSavedControlItemsHash: Int?
 
     /// Set to `true` to tell the status bar to save its control items.
@@ -73,7 +60,12 @@ class StatusBar: ObservableObject {
         }
     }
 
-    private init() {
+    var isAlwaysHiddenSectionEnabled: Bool {
+        get { controlItem(for: .alwaysHidden)?.isVisible ?? false }
+        set { controlItem(for: .alwaysHidden)?.isVisible = newValue }
+    }
+
+    init() {
         configureCancellables()
         configureKeyCommands(for: [.hidden, .alwaysHidden])
     }
@@ -93,7 +85,7 @@ class StatusBar: ObservableObject {
         controlItems = Defaults[.serializedControlItems].enumerated().map { index, entry in
             do {
                 let dictionary = [entry.key: entry.value]
-                return try dictionaryDecoder.decode(ControlItem.self, from: dictionary)
+                return try decoder.decode(ControlItem.self, from: dictionary)
             } catch {
                 Logger.statusBar.error("Error decoding control item: \(error)")
                 return ControlItem(autosaveName: entry.key, position: CGFloat(index))
@@ -107,14 +99,13 @@ class StatusBar: ObservableObject {
             let lastSavedControlItemsHash,
             controlItems.hashValue == lastSavedControlItemsHash
         {
-            // control items haven't changed; no need to save
+            // items haven't changed, no need to save
             needsSaveControlItems = false
             return
         }
         do {
             Defaults[.serializedControlItems] = try controlItems.reduce(into: [:]) { serialized, item in
-                let dictionary = try dictionaryEncoder.encode(item)
-                serialized.merge(dictionary, uniquingKeysWith: { $1 })
+                try serialized.merge(encoder.encode(item), uniquingKeysWith: { $1 })
             }
             lastSavedControlItemsHash = controlItems.hashValue
             needsSaveControlItems = false
@@ -127,54 +118,17 @@ class StatusBar: ObservableObject {
     /// removing items as needed, and returns a Boolean value indicating
     /// whether the count was valid.
     private func validateControlItemCount() -> Bool {
-        let enableAlwaysHidden = Defaults[.enableAlwaysHidden]
-        if controlItems.isEmpty {
-            // fast path; don't do work if we don't have to
-            var items = [
+        if controlItems.count != 3 {
+            controlItems = [
                 ControlItem(position: 0),
                 ControlItem(position: 1),
+                // don't give the always-hidden item an initial position;
+                // this will place it at the far end of the status bar
+                ControlItem(),
             ]
-            if enableAlwaysHidden {
-                items.append(ControlItem())
-            }
-            controlItems = items
             return false // count was invalid
         }
-        // expected count varies based on whether the user has enabled
-        // the always-hidden section
-        let expectedCount = enableAlwaysHidden ? 3 : 2
-        let actualCount = controlItems.count
-        if actualCount == expectedCount {
-            // count is already valid, so no need to do anything more
-            return true
-        }
-        if actualCount < expectedCount {
-            // add new items up to the expected count
-            if enableAlwaysHidden {
-                // subtract 1 from expected count and handle always-hidden
-                // item separately
-                controlItems += {
-                    var items = (actualCount..<(expectedCount - 1)).map { index in
-                        ControlItem(position: CGFloat(index))
-                    }
-                    // don't assign an initial position so that the item gets
-                    // placed at the far end of the status bar
-                    items.append(ControlItem())
-                    return items
-                }()
-            } else {
-                // always-hidden section is disabled, so don't worry about
-                // separate handling
-                controlItems += (actualCount..<expectedCount).map { index in
-                    ControlItem(position: CGFloat(index))
-                }
-            }
-        } else if actualCount > expectedCount {
-            // remove extra items down to the expected count
-            controlItems = Array(controlItems[..<expectedCount])
-        }
-        // if we made it this far, count was invalid
-        return false
+        return true // count was valid
     }
 
     /// Set up a series of cancellables to respond to key changes in the
@@ -226,7 +180,10 @@ class StatusBar: ObservableObject {
 
     /// Returns the status bar section for the given control item.
     func section(for controlItem: ControlItem) -> Section? {
-        sortedControlItems.enumerated().first { $0.element == controlItem }.flatMap { pair in
+        guard controlItem.isVisible else {
+            return nil
+        }
+        return sortedControlItems.enumerated().first { $0.element == controlItem }.flatMap { pair in
             Section(rawValue: pair.offset)
         }
     }
@@ -250,6 +207,15 @@ class StatusBar: ObservableObject {
         case .hideItems: return true
         case .showItems: return false
         }
+    }
+
+    /// Returns a Boolean value that indicates whether the item for the
+    /// given section is currently visible.
+    func isSectionEnabled(_ section: Section) -> Bool {
+        guard let item = controlItem(for: section) else {
+            return false
+        }
+        return item.isVisible
     }
 
     /// Shows the status items in the given section.

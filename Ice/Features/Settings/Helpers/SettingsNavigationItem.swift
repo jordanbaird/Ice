@@ -1,11 +1,11 @@
 //
-//  SettingsItem.swift
+//  SettingsNavigationItem.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct SettingsItem: Hashable, Identifiable {
+struct SettingsNavigationItem: Hashable, Identifiable {
     let name: Name
     let icon: IconResource
     let primaryColor: Color
@@ -25,7 +25,7 @@ struct SettingsItem: Hashable, Identifiable {
     }
 }
 
-extension SettingsItem {
+extension SettingsNavigationItem {
     enum Name: String {
         case general = "General"
         case menuBarLayout = "Menu Bar Layout"
@@ -37,7 +37,7 @@ extension SettingsItem {
     }
 }
 
-extension SettingsItem {
+extension SettingsNavigationItem {
     enum IconResource: Hashable {
         case systemSymbol(_ name: String)
         case assetCatalog(_ name: String)

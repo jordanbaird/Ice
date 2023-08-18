@@ -87,6 +87,7 @@ private class SettingsWindowObserver: ObservableObject {
 
 struct SettingsWindow: Scene {
     @StateObject private var observer = SettingsWindowObserver()
+    @StateObject private var statusBar = StatusBar()
 
     var body: some Scene {
         Window(Constants.appName, id: Constants.settingsWindowID) {
@@ -99,6 +100,13 @@ struct SettingsWindow: Scene {
                         .overlay(Material.thin)
                 )
                 .buttonStyle(SettingsButtonStyle())
+                .toggleStyle(SettingsToggleStyle())
+                .environmentObject(statusBar)
+                .task {
+                    if !ProcessInfo.processInfo.isPreview {
+                        statusBar.initializeControlItems()
+                    }
+                }
         }
         .commandsRemoved()
         .defaultSize(width: 1080, height: 720)
@@ -111,8 +119,8 @@ struct SettingsWindow: Scene {
                 EnvironmentReader(\.colorScheme) { colorScheme in
                     Color(white: colorScheme == .dark ? 0 : 0.7)
                         .opacity(observer.isKeyWindow ? 1 : 0.5)
+                        .frame(height: 1)
                 }
-                .frame(height: 1)
             }
             .edgesIgnoringSafeArea(.top)
     }

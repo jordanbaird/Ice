@@ -26,11 +26,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // only initialize control items if we aren't running as a preview
-        if !ProcessInfo.processInfo.isPreview {
-            StatusBar.shared.initializeControlItems()
-        }
-
         // make some adjustments to the window that can't be done in SwiftUI
         if let settingsWindow {
             settingsWindow.backgroundColor = NSColor(named: "SettingsWindowBackgroundColor")

@@ -8,16 +8,16 @@ import SwiftUI
 // MARK: - SettingsView
 
 struct SettingsView: View {
-    private static let items: [SettingsItem] = [
-        SettingsItem(
+    private static let items: [SettingsNavigationItem] = [
+        SettingsNavigationItem(
             name: .general,
             icon: .systemSymbol("gearshape")
         ),
-        SettingsItem(
+        SettingsNavigationItem(
             name: .menuBarLayout,
             icon: .systemSymbol("menubar.rectangle")
         ),
-        SettingsItem(
+        SettingsNavigationItem(
             name: .about,
             icon: .assetCatalog("IceCube")
         ),
@@ -41,7 +41,7 @@ struct SettingsView: View {
 // MARK: - SettingsSidebarView
 
 struct SettingsSidebarView: View {
-    let item: SettingsItem
+    let item: SettingsNavigationItem
 
     var body: some View {
         NavigationLink(value: item) {
@@ -77,12 +77,12 @@ struct SettingsSidebarView: View {
 // MARK: - SettingsDetailView
 
 struct SettingsDetailView: View {
-    let item: SettingsItem
+    let item: SettingsNavigationItem
 
     var body: some View {
         switch item.name {
         case .general:
-            GeneralSettingsView()
+            GeneralSettingsPane()
         case .menuBarLayout:
             Text(item.name.localized).font(.title)
         case .about:
@@ -94,8 +94,12 @@ struct SettingsDetailView: View {
 // MARK: - Previews
 
 struct SettingsView_Previews: PreviewProvider {
+    @StateObject private static var statusBar = StatusBar()
+
     static var previews: some View {
         SettingsView()
             .buttonStyle(SettingsButtonStyle())
+            .toggleStyle(SettingsToggleStyle())
+            .environmentObject(statusBar)
     }
 }

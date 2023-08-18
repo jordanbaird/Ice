@@ -15,7 +15,6 @@ enum Defaults {
 }
 
 extension Defaults.Keys {
-    static let enableAlwaysHidden = Key("EnableAlwaysHidden", default: true)
     static let serializedControlItems = Key("ControlItems", default: [String: Any]())
 }
 

@@ -6,103 +6,140 @@
 import SwiftKeys
 import SwiftUI
 
-// MARK: - KeyRecorderModel
-
 private class KeyRecorderModel: ObservableObject {
+    /// The key command managed by the model.
     @Published var keyCommand: KeyCommand
 
-    @Published var frame: CGRect = .zero
+    /// A Boolean value that indicates whether the key recorder
+    /// is currently recording.
+    @Published private(set) var isRecording = false
 
-    @Published var isRecording = false
+    /// The currently pressed modifiers when the key recorder
+    /// is recording. Empty if the key recorder is not recording.
+    @Published var pressedModifiers = [KeyCommand.Modifier]()
 
-    private var keyDownMonitor: LocalEventMonitor?
+    /// Local event monitor that listens for key down events and
+    /// modifier flag changes.
+    private var monitor: LocalEventMonitor?
 
+    /// Canonically ordered mapping between SwiftKeys modifiers
+    /// and NSEvent modifier flags.
+    private let modifierMapping: KeyValuePairs<KeyCommand.Modifier, NSEvent.ModifierFlags> = [
+        .control: .control,
+        .option: .option,
+        .shift: .shift,
+        .command: .command,
+    ]
+
+    /// Creates a model for a key recorder that records user-chosen
+    /// key combinations for a key command with the given name.
     init(name: KeyCommand.Name) {
         self.keyCommand = KeyCommand(name: name)
         guard !ProcessInfo.processInfo.isPreview else {
             return
         }
         self.keyCommand.enable()
-        self.keyDownMonitor = LocalEventMonitor(mask: .keyDown) { [weak self] event in
+        self.monitor = LocalEventMonitor(mask: [.keyDown, .flagsChanged]) { [weak self] event in
             guard let self else {
                 return event
             }
-            handleKeyDown(event: event)
+            switch event.type {
+            case .keyDown:
+                handleKeyDown(event: event)
+            case .flagsChanged:
+                handleFlagsChanged(event: event)
+            default:
+                return event
+            }
             return nil
         }
     }
 
-    /// Disables the key command and starts monitoring for
-    /// key down events.
+    /// Disables the key command and starts monitoring for events.
     func startRecording() {
-        objectWillChange.send()
+        guard !isRecording else {
+            return
+        }
+        isRecording = true
         keyCommand.disable()
-        keyDownMonitor?.start()
+        monitor?.start()
+        pressedModifiers.removeAll()
     }
 
-    /// Enables the key command and stops monitoring for
-    /// key down events.
+    /// Enables the key command and stops monitoring for events.
     func stopRecording() {
-        objectWillChange.send()
-        keyDownMonitor?.stop()
+        guard isRecording else {
+            return
+        }
+        isRecording = false
+        monitor?.stop()
         keyCommand.enable()
+        pressedModifiers.removeAll()
     }
 
-    /// Handles key down events for the model's local event monitor.
+    /// Converts the given event's modifier flags into an array
+    /// of canonically ordered SwiftKeys modifiers.
+    private func modifiers(for event: NSEvent) -> [KeyCommand.Modifier] {
+        modifierMapping.compactMap {
+            event.modifierFlags.contains($0.value) ? $0.key : nil
+        }
+    }
+
+    /// Handles local key down events when the key recorder
+    /// is recording.
     private func handleKeyDown(event: NSEvent) {
+        // convert the event's key code into a SwiftKeys key
         guard let key = KeyCommand.Key(rawValue: Int(event.keyCode)) else {
             NSSound.beep()
             return
         }
-        let modifiers: [KeyCommand.Modifier] = {
-            var modifiers = [KeyCommand.Modifier]()
-            if event.modifierFlags.contains(.control) {
-                modifiers.append(.control)
-            }
-            if event.modifierFlags.contains(.option) {
-                modifiers.append(.option)
-            }
-            if event.modifierFlags.contains(.shift) {
-                modifiers.append(.shift)
-            }
-            if event.modifierFlags.contains(.command) {
-                modifiers.append(.command)
-            }
-            return modifiers
-        }()
+        let modifiers = modifiers(for: event)
         guard !modifiers.isEmpty else {
             if key == .escape {
-                // escape was pressed with no modifiers; cancel recording
-                isRecording = false
+                // escape was pressed with no modifiers;
+                // cancel recording
+                stopRecording()
             } else {
-                // TODO: Alert the user that they need to use at least one modifier key
+                // at least one modifier key is required
+                // TODO: alert the user of the error
                 NSSound.beep()
             }
             return
         }
         guard modifiers != [.shift] else {
-            // TODO: Alert the user that shift by itself can't be used as a modifier key
+            // shift by itself can't be used as a modifier key
+            // TODO: alert the user of the error
             NSSound.beep()
             return
         }
         guard !KeyCommand.isReservedBySystem(key: key, modifiers: modifiers) else {
-            // TODO: Alert the user that the key command is reserved by the system
+            // key command is reserved by the system
+            // TODO: alert the user of the error
             NSSound.beep()
             return
         }
-        // if we made it this far, all checks passed; assign the new key
-        // and modifiers and stop recording
-        (keyCommand.key, keyCommand.modifiers) = (key, modifiers)
-        isRecording = false
+        // if we made it this far, all checks passed; assign the
+        // new key and modifiers and stop recording
+        keyCommand.key = key
+        keyCommand.modifiers = modifiers
+        stopRecording()
+    }
+
+    /// Handles live modifier flag changes when the key recorder
+    /// is recording.
+    private func handleFlagsChanged(event: NSEvent) {
+        pressedModifiers = modifiers(for: event)
     }
 }
 
-// MARK: - KeyRecorder
-
+/// A view that records user-chosen key combinations for a key command.
 struct KeyRecorder: View {
     @StateObject private var model: KeyRecorderModel
+    @State private var frame: CGRect = .zero
     @State private var isInsideSegment2 = false
 
+    /// Creates a key recorder that records user-chosen key combinations
+    /// for a key command with the given name.
     init(name: KeyCommand.Name) {
         let model = KeyRecorderModel(name: name)
         self._model = StateObject(wrappedValue: model)
@@ -114,19 +151,12 @@ struct KeyRecorder: View {
             segment2
         }
         .frame(width: 160, height: 24)
-        .onFrameChange(update: $model.frame)
-        .onChange(of: model.isRecording) { newValue in
-            if newValue {
-                model.startRecording()
-            } else {
-                model.stopRecording()
-            }
-        }
+        .onFrameChange(update: $frame)
     }
 
     private var segment1: some View {
         Button {
-            model.isRecording = true
+            model.startRecording()
         } label: {
             segment1Label
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -138,12 +168,12 @@ struct KeyRecorder: View {
     private var segment2: some View {
         Button {
             if model.isRecording {
-                model.isRecording = false
+                model.stopRecording()
             } else if model.keyCommand.isEnabled {
                 model.keyCommand.key = nil
                 model.keyCommand.modifiers.removeAll()
             } else {
-                model.isRecording = true
+                model.startRecording()
             }
         } label: {
             Color.clear
@@ -154,7 +184,7 @@ struct KeyRecorder: View {
                         .padding(3)
                 )
         }
-        .frame(width: model.frame.height)
+        .frame(width: frame.height)
         .onHover { isInside in
             isInsideSegment2 = isInside
         }
@@ -167,6 +197,15 @@ struct KeyRecorder: View {
         if model.isRecording {
             if isInsideSegment2 {
                 Text("Cancel")
+            } else if !model.pressedModifiers.isEmpty {
+                HStack(spacing: 1) {
+                    ForEach(model.pressedModifiers, id: \.self) { modifier in
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(.background.opacity(0.5))
+                            .aspectRatio(1, contentMode: .fit)
+                            .overlay(Text(modifier.stringValue))
+                    }
+                }
             } else {
                 Text("Type Hotkey")
             }

@@ -268,7 +268,7 @@ struct KeyRecorder: View {
 
 struct KeyRecorder_Previews: PreviewProvider {
     static var previews: some View {
-        KeyRecorder(name: .toggle(.hidden))
+        KeyRecorder(name: .toggleSection(withName: .hidden))
             .padding()
             .buttonStyle(SettingsButtonStyle())
     }

@@ -17,6 +17,7 @@
 		71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */; };
 		71623BCB2A8B0A8C002FD331 /* Defaults+Key.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BCA2A8B0A8C002FD331 /* Defaults+Key.swift */; };
 		71623BD32A8B6744002FD331 /* SettingsStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BD22A8B6744002FD331 /* SettingsStyles.swift */; };
+		7162406F2AA0A323003EC671 /* StatusBarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7162406E2AA0A323003EC671 /* StatusBarSection.swift */; };
 		7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166832D2A767E6A006ABF84 /* IceApp.swift */; };
 		716683322A767E6B006ABF84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 716683312A767E6B006ABF84 /* Assets.xcassets */; };
 		7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166833C2A7680CE006ABF84 /* AppDelegate.swift */; };
@@ -51,6 +52,7 @@
 		71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsPane.swift; sourceTree = "<group>"; };
 		71623BCA2A8B0A8C002FD331 /* Defaults+Key.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Defaults+Key.swift"; sourceTree = "<group>"; };
 		71623BD22A8B6744002FD331 /* SettingsStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStyles.swift; sourceTree = "<group>"; };
+		7162406E2AA0A323003EC671 /* StatusBarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarSection.swift; sourceTree = "<group>"; };
 		7166832A2A767E6A006ABF84 /* Ice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7166832D2A767E6A006ABF84 /* IceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceApp.swift; sourceTree = "<group>"; };
 		716683312A767E6B006ABF84 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -238,6 +240,7 @@
 			children = (
 				716683512A76820A006ABF84 /* ControlItem.swift */,
 				7166834F2A7681AF006ABF84 /* StatusBar.swift */,
+				7162406E2AA0A323003EC671 /* StatusBarSection.swift */,
 			);
 			path = StatusBar;
 			sourceTree = "<group>";
@@ -373,6 +376,7 @@
 			files = (
 				71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */,
 				71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
+				7162406F2AA0A323003EC671 /* StatusBarSection.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,
 				7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,

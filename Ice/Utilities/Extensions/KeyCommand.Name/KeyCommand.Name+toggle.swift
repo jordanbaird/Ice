@@ -6,7 +6,7 @@
 import SwiftKeys
 
 extension KeyCommand.Name {
-    static func toggle(_ section: StatusBar.Section) -> Self {
-        Self("Hotkey-Toggle-Section-\(section.rawValue)")
+    static func toggleSection(withName name: StatusBarSection.Name) -> Self {
+        Self("Hotkey-Toggle-Section-\(name.rawValue.filter { !$0.isWhitespace })")
     }
 }

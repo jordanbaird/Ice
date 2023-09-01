@@ -32,11 +32,11 @@ struct GeneralSettingsPane: View {
             }
         }
         .onChange(of: statusBar.isAlwaysHiddenSectionEnabled) { newValue in
-            statusBar.controlItem(for: .alwaysHidden)?.isVisible = newValue
+            statusBar.section(withName: .alwaysHidden)?.controlItem.isVisible = newValue
             if newValue {
-                KeyCommand(name: .toggle(.alwaysHidden)).enable()
+                KeyCommand(name: .toggleSection(withName: .alwaysHidden)).enable()
             } else {
-                KeyCommand(name: .toggle(.alwaysHidden)).disable()
+                KeyCommand(name: .toggleSection(withName: .alwaysHidden)).disable()
             }
         }
         .padding()
@@ -85,8 +85,8 @@ struct GeneralSettingsPane: View {
                 .font(.system(size: 20, weight: .light))
 
             Grid {
-                LabeledKeyRecorder(section: .hidden)
-                LabeledKeyRecorder(section: .alwaysHidden)
+                LabeledKeyRecorder(name: .hidden)
+                LabeledKeyRecorder(name: .alwaysHidden)
             }
         }
         .padding()
@@ -116,10 +116,13 @@ struct GeneralSettingsPane: View {
 struct LabeledKeyRecorder: View {
     @EnvironmentObject var statusBar: StatusBar
 
-    let section: StatusBar.Section
+    let name: StatusBarSection.Name
 
     var body: some View {
-        if statusBar.isSectionEnabled(section) {
+        if
+            let section = statusBar.section(withName: name),
+            statusBar.isSectionEnabled(section)
+        {
             gridRow
         } else {
             gridRow
@@ -130,8 +133,8 @@ struct LabeledKeyRecorder: View {
 
     private var gridRow: some View {
         GridRow {
-            Text("Toggle the \"\(section.name)\" menu bar section")
-            KeyRecorder(name: .toggle(section))
+            Text("Toggle the \"\(name.rawValue)\" menu bar section")
+            KeyRecorder(name: .toggleSection(withName: name))
         }
         .gridColumnAlignment(.leading)
     }

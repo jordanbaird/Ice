@@ -104,7 +104,7 @@ struct SettingsWindow: Scene {
                 .environmentObject(statusBar)
                 .task {
                     if !ProcessInfo.processInfo.isPreview {
-                        statusBar.initializeControlItems()
+                        statusBar.initializeSections()
                     }
                 }
         }

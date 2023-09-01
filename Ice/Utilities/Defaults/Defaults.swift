@@ -15,7 +15,7 @@ enum Defaults {
 }
 
 extension Defaults.Keys {
-    static let serializedControlItems = Key("ControlItems", default: [String: Any]())
+    static let serializedSections = Key("Sections", default: [[String: Any]]())
 }
 
 extension AppStorage {

@@ -54,14 +54,8 @@ final class ControlItem: ObservableObject {
         }
     }
 
-    /// The index of the control item in relation to the other
-    /// control items in the status bar.
-    var index: Int? {
-        statusBar?.sortedControlItems.firstIndex(of: self)
-    }
-
     /// The control item's section in the status bar.
-    var section: StatusBar.Section? {
+    var section: StatusBarSection? {
         statusBar?.section(for: self)
     }
 
@@ -87,8 +81,8 @@ final class ControlItem: ObservableObject {
     init(
         autosaveName: String? = nil,
         position: CGFloat? = nil,
-        state: State? = nil,
-        isVisible: Bool = true
+        isVisible: Bool = true,
+        state: State? = nil
     ) {
         let autosaveName = autosaveName ?? UUID().uuidString
         if isVisible {
@@ -176,7 +170,7 @@ final class ControlItem: ObservableObject {
                     PreferredPosition[autosaveName] = cached
                 }
                 statusItem.isVisible = isVisible
-                statusBar?.needsSaveControlItems = true
+                statusBar?.needsSave = true
             }
             .store(in: &cancellables)
 
@@ -189,8 +183,8 @@ final class ControlItem: ObservableObject {
 
     /// Updates the control item's status item to match its current state.
     func updateStatusItem() {
-        func updateLength(section: StatusBar.Section) {
-            if section == .alwaysVisible {
+        func updateLength(section: StatusBarSection) {
+            if section.name == .alwaysVisible {
                 // item for always-visible section should never be expanded
                 statusItem.length = Self.standardLength
                 return
@@ -203,7 +197,7 @@ final class ControlItem: ObservableObject {
             }
         }
 
-        func updateButton(section: StatusBar.Section) {
+        func updateButton(section: StatusBarSection) {
             guard let button = statusItem.button else {
                 return
             }
@@ -219,7 +213,7 @@ final class ControlItem: ObservableObject {
             // enable the cell, as it may have been previously disabled
             button.cell?.isEnabled = true
             // set the image based on section and state
-            switch section {
+            switch section.name {
             case .hidden:
                 button.image = Images.largeChevron
             case .alwaysHidden:
@@ -231,6 +225,8 @@ final class ControlItem: ObservableObject {
                 case .showItems:
                     button.image = Images.circleStroked
                 }
+            default:
+                break
             }
         }
 
@@ -241,7 +237,7 @@ final class ControlItem: ObservableObject {
         updateLength(section: section)
         updateButton(section: section)
 
-        statusBar?.needsSaveControlItems = true
+        statusBar?.needsSave = true
     }
 
     @objc private func performAction() {
@@ -253,12 +249,12 @@ final class ControlItem: ObservableObject {
         }
         switch event.type {
         case .leftMouseDown where NSEvent.modifierFlags == .option:
-            statusBar.show(section: .alwaysHidden)
+            statusBar.showSection(withName: .alwaysHidden)
         case .leftMouseDown:
             guard let section else {
                 return
             }
-            statusBar.toggle(section: section)
+            statusBar.toggleSection(withName: section.name)
         case .rightMouseUp:
             statusItem.showMenu(createMenu(with: statusBar))
         default:
@@ -272,16 +268,22 @@ final class ControlItem: ObservableObject {
         let menu = NSMenu(title: Constants.appName)
 
         // add menu items to toggle the hidden and always-hidden sections,
-        // assuming the sections each have a control item that is visible
-        let sections: [StatusBar.Section] = [.hidden, .alwaysHidden]
-        for section in sections where statusBar.controlItem(for: section)?.isVisible == true {
+        // assuming each section is enabled
+        let sectionNames: [StatusBarSection.Name] = [.hidden, .alwaysHidden]
+        for name in sectionNames {
+            guard
+                let section = statusBar.section(withName: name),
+                statusBar.isSectionEnabled(section)
+            else {
+                continue
+            }
             let item = NSMenuItem(
-                title: (statusBar.isSectionHidden(section) ? "Show" : "Hide") + " \"\(section.name)\" Section",
+                title: (statusBar.isSectionHidden(section) ? "Show" : "Hide") + " \"\(name.rawValue)\" Section",
                 action: #selector(runKeyCommandHandlers),
                 keyEquivalent: ""
             )
             item.target = self
-            item.keyCommand = KeyCommand(name: .toggle(section))
+            item.keyCommand = KeyCommand(name: .toggleSection(withName: name))
             menu.addItem(item)
         }
 
@@ -327,73 +329,38 @@ final class ControlItem: ObservableObject {
 
 // MARK: ControlItem: Codable
 extension ControlItem: Codable {
-    private struct AutosaveNameCodingKey: CodingKey {
-        let stringValue: String
-        let intValue: Int?
-
-        init(stringValue: String) {
-            self.stringValue = stringValue
-            self.intValue = Int(stringValue)
-        }
-
-        init(intValue: Int) {
-            self.stringValue = String(intValue)
-            self.intValue = intValue
-        }
-    }
-
-    private enum PropertiesCodingKeys: String, CodingKey {
+    private enum CodingKeys: String, CodingKey {
+        case autosaveName = "AutosaveName"
         case position = "Position"
         case state = "State"
         case isVisible = "Visible"
     }
 
     convenience init(from decoder: Decoder) throws {
-        let topLevelContainer = try decoder.container(keyedBy: AutosaveNameCodingKey.self)
-        var keys = topLevelContainer.allKeys
-        guard
-            let key = keys.popLast(),
-            keys.isEmpty
-        else {
-            let keyCount = topLevelContainer.allKeys.count
-            throw DecodingError.dataCorrupted(
-                DecodingError.Context(
-                    codingPath: decoder.codingPath,
-                    debugDescription: "Expected a single keyed value but found \(keyCount)."
-                )
-            )
-        }
-        let propertiesContainer = try topLevelContainer.nestedContainer(
-            keyedBy: PropertiesCodingKeys.self,
-            forKey: key
-        )
+        let container = try decoder.container(keyedBy: CodingKeys.self)
         try self.init(
-            autosaveName: key.stringValue,
-            position: propertiesContainer.decode(CGFloat.self, forKey: .position),
-            state: propertiesContainer.decode(State.self, forKey: .state),
-            isVisible: propertiesContainer.decode(Bool.self, forKey: .isVisible)
+            autosaveName: container.decode(String.self, forKey: .autosaveName),
+            position: container.decode(CGFloat.self, forKey: .position),
+            isVisible: container.decode(Bool.self, forKey: .isVisible),
+            state: container.decode(State.self, forKey: .state)
         )
     }
 
     func encode(to encoder: Encoder) throws {
-        var topLevelContainer = encoder.container(keyedBy: AutosaveNameCodingKey.self)
-        var propertiesContainer = topLevelContainer.nestedContainer(
-            keyedBy: PropertiesCodingKeys.self,
-            forKey: AutosaveNameCodingKey(stringValue: autosaveName)
-        )
-        try propertiesContainer.encode(position, forKey: .position)
-        try propertiesContainer.encode(state, forKey: .state)
-        try propertiesContainer.encode(isVisible, forKey: .isVisible)
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(autosaveName, forKey: .autosaveName)
+        try container.encode(position, forKey: .position)
+        try container.encode(isVisible, forKey: .isVisible)
+        try container.encode(state, forKey: .state)
     }
 }
 
 // MARK: ControlItem: Equatable
 extension ControlItem: Equatable {
     static func == (lhs: ControlItem, rhs: ControlItem) -> Bool {
-        lhs.statusItem == rhs.statusItem &&
+        lhs.autosaveName == rhs.autosaveName &&
         lhs.position == rhs.position &&
         lhs.isVisible == rhs.isVisible &&
-        lhs.autosaveName == rhs.autosaveName &&
         lhs.state == rhs.state
     }
 }
@@ -401,10 +368,9 @@ extension ControlItem: Equatable {
 // MARK: ControlItem: Hashable
 extension ControlItem: Hashable {
     func hash(into hasher: inout Hasher) {
-        hasher.combine(statusItem)
+        hasher.combine(autosaveName)
         hasher.combine(position)
         hasher.combine(isVisible)
-        hasher.combine(autosaveName)
         hasher.combine(state)
     }
 }

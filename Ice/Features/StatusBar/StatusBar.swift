@@ -10,59 +10,35 @@ import SwiftKeys
 
 /// Manager for the state of items in the status bar.
 class StatusBar: ObservableObject {
-    /// Representation of a section in the status bar.
-    enum Section: Int {
-        case alwaysVisible
-        case hidden
-        case alwaysHidden
-
-        /// User-visible name that describes the section.
-        var name: String {
-            switch self {
-            case .alwaysVisible: return "Always Visible"
-            case .hidden: return "Hidden"
-            case .alwaysHidden: return "Always Hidden"
-            }
-        }
-    }
-
     private let encoder = DictionaryEncoder()
     private let decoder = DictionaryDecoder()
 
     private var cancellables = Set<AnyCancellable>()
-    private var lastSavedControlItemsHash: Int?
+    private var lastSavedSectionsHash: Int?
 
-    /// Set to `true` to tell the status bar to save its control items.
-    @Published var needsSaveControlItems = false
+    /// Set to `true` to tell the status bar to save its sections.
+    @Published var needsSave = false
 
-    /// The current control items, unsorted.
-    private(set) var controlItems = [ControlItem]() {
+    private(set) var sections = [StatusBarSection]() {
         willSet {
-            for controlItem in controlItems {
-                controlItem.statusBar = nil
+            for section in sections {
+                section.statusBar = nil
             }
         }
         didSet {
-            if validateControlItemCount() {
-                for controlItem in controlItems {
-                    controlItem.statusBar = self
+            if validateSectionCount() {
+                for section in sections {
+                    section.statusBar = self
                 }
             }
             configureCancellables()
-            needsSaveControlItems = true
-        }
-    }
-
-    /// The current control items, sorted by their position in the status bar.
-    var sortedControlItems: [ControlItem] {
-        controlItems.sorted {
-            ($0.position ?? 0) < ($1.position ?? 0)
+            needsSave = true
         }
     }
 
     var isAlwaysHiddenSectionEnabled: Bool {
-        get { controlItem(for: .alwaysHidden)?.isVisible ?? false }
-        set { controlItem(for: .alwaysHidden)?.isVisible = newValue }
+        get { section(withName: .alwaysHidden)?.controlItem.isVisible ?? false }
+        set { section(withName: .alwaysHidden)?.controlItem.isVisible = newValue }
     }
 
     init() {
@@ -71,60 +47,59 @@ class StatusBar: ObservableObject {
     }
 
     /// Performs the initial setup of the status bar's control item list.
-    func initializeControlItems() {
+    func initializeSections() {
         defer {
-            if lastSavedControlItemsHash == nil {
-                lastSavedControlItemsHash = controlItems.hashValue
+            if lastSavedSectionsHash == nil {
+                lastSavedSectionsHash = sections.hashValue
             }
         }
 
-        guard controlItems.isEmpty else {
+        guard sections.isEmpty else {
             return
         }
 
-        controlItems = Defaults[.serializedControlItems].enumerated().map { index, entry in
+        sections = Defaults[.serializedSections].compactMap { entry in
             do {
-                let dictionary = [entry.key: entry.value]
-                return try decoder.decode(ControlItem.self, from: dictionary)
+                return try decoder.decode(StatusBarSection.self, from: entry)
             } catch {
                 Logger.statusBar.error("Error decoding control item: \(error)")
-                return ControlItem(autosaveName: entry.key, position: CGFloat(index))
+                return nil
             }
         }
     }
 
     /// Save all control items in the status bar to persistent storage.
-    func saveControlItems() {
+    func saveSections() {
         if
-            let lastSavedControlItemsHash,
-            controlItems.hashValue == lastSavedControlItemsHash
+            let lastSavedSectionsHash,
+            sections.hashValue == lastSavedSectionsHash
         {
             // items haven't changed, no need to save
-            needsSaveControlItems = false
+            needsSave = false
             return
         }
         do {
-            Defaults[.serializedControlItems] = try controlItems.reduce(into: [:]) { serialized, item in
-                try serialized.merge(encoder.encode(item), uniquingKeysWith: { $1 })
+            Defaults[.serializedSections] = try sections.map { section in
+                try encoder.encode(section)
             }
-            lastSavedControlItemsHash = controlItems.hashValue
-            needsSaveControlItems = false
+            lastSavedSectionsHash = sections.hashValue
+            needsSave = false
         } catch {
             Logger.statusBar.error("Error encoding control item: \(error)")
         }
     }
 
-    /// Performs validation on the current control item count, adding or
-    /// removing items as needed, and returns a Boolean value indicating
-    /// whether the count was valid.
-    private func validateControlItemCount() -> Bool {
-        if controlItems.count != 3 {
-            controlItems = [
-                ControlItem(position: 0),
-                ControlItem(position: 1),
-                // don't give the always-hidden item an initial position;
-                // this will place it at the far end of the status bar
-                ControlItem(),
+    /// Performs validation on the current section count, adding or removing
+    /// sections as needed, and returns a Boolean value indicating whether
+    /// the count was valid.
+    private func validateSectionCount() -> Bool {
+        if sections.count != 3 {
+            sections = [
+                StatusBarSection(name: .alwaysVisible, controlItem: ControlItem(position: 0)),
+                StatusBarSection(name: .hidden, controlItem: ControlItem(position: 1)),
+                // don't give the item for the always-hidden section an initial
+                // position; this will place it at the far end of the status bar
+                StatusBarSection(name: .alwaysHidden, controlItem: ControlItem()),
             ]
             return false // count was invalid
         }
@@ -141,69 +116,81 @@ class StatusBar: ObservableObject {
         cancellables.removeAll()
 
         // update all control items when the position of one changes
-        Publishers.MergeMany(controlItems.map { $0.$position })
+        Publishers.MergeMany(sections.map { $0.controlItem.$position })
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] _ in
                 guard let self else {
                     return
                 }
-                for controlItem in controlItems {
-                    controlItem.updateStatusItem()
+                for section in sections {
+                    section.controlItem.updateStatusItem()
                 }
             }
             .store(in: &cancellables)
 
         // save control items when a flag is set, avoiding rapid resaves
-        $needsSaveControlItems
+        $needsSave
             .debounce(for: 1, scheduler: DispatchQueue.main)
             .sink { [weak self] needsSave in
                 if needsSave {
-                    self?.saveControlItems()
+                    self?.saveSections()
                 }
             }
             .store(in: &cancellables)
     }
 
     /// Set up key commands (and their observations) for the given sections.
-    private func configureKeyCommands(for sections: [Section]) {
+    private func configureKeyCommands(for sectionNames: [StatusBarSection.Name]) {
         guard !ProcessInfo.processInfo.isPreview else {
             return
         }
-        for section in sections {
-            let keyCommand = KeyCommand(name: .toggle(section))
+        for name in sectionNames {
+            let keyCommand = KeyCommand(name: .toggleSection(withName: name))
             keyCommand.disablesOnMenuOpen = true
             keyCommand.observe(.keyDown) { [weak self] in
-                self?.toggle(section: section)
+                self?.toggleSection(withName: name)
             }
         }
     }
 
+    func section(withName name: StatusBarSection.Name) -> StatusBarSection? {
+        return sections.first { $0.name == name }
+    }
+
     /// Returns the status bar section for the given control item.
-    func section(for controlItem: ControlItem) -> Section? {
+    func section(for controlItem: ControlItem) -> StatusBarSection? {
         guard controlItem.isVisible else {
             return nil
         }
-        return sortedControlItems.enumerated().first { $0.element == controlItem }.flatMap { pair in
-            Section(rawValue: pair.offset)
-        }
+        return sections.first { $0.controlItem == controlItem }
     }
 
-    /// Returns the control item for the given status bar section.
-    func controlItem(for section: Section) -> ControlItem? {
-        let index = section.rawValue
-        guard index < controlItems.count else {
+    func section(after other: StatusBarSection) -> StatusBarSection? {
+        guard let index = sections.firstIndex(of: other) else {
             return nil
         }
-        return sortedControlItems[index]
+        let nextIndex = sections.index(after: index)
+        guard sections.indices.contains(nextIndex) else {
+            return nil
+        }
+        return sections[nextIndex]
+    }
+
+    func section(before other: StatusBarSection) -> StatusBarSection? {
+        guard let index = sections.firstIndex(of: other) else {
+            return nil
+        }
+        let previousIndex = sections.index(before: index)
+        guard sections.indices.contains(previousIndex) else {
+            return nil
+        }
+        return sections[previousIndex]
     }
 
     /// Returns a Boolean value that indicates whether the given section
     /// is hidden by its control item.
-    func isSectionHidden(_ section: Section) -> Bool {
-        guard let item = controlItem(for: section) else {
-            return false
-        }
-        switch item.state {
+    func isSectionHidden(_ section: StatusBarSection) -> Bool {
+        switch section.controlItem.state {
         case .hideItems: return true
         case .showItems: return false
         }
@@ -211,47 +198,51 @@ class StatusBar: ObservableObject {
 
     /// Returns a Boolean value that indicates whether the item for the
     /// given section is currently visible.
-    func isSectionEnabled(_ section: Section) -> Bool {
-        guard let item = controlItem(for: section) else {
-            return false
-        }
-        return item.isVisible
+    func isSectionEnabled(_ section: StatusBarSection) -> Bool {
+        return section.controlItem.isVisible
     }
 
     /// Shows the status items in the given section.
-    func show(section: Section) {
-        switch section {
+    func showSection(withName name: StatusBarSection.Name) {
+        switch name {
         case .alwaysVisible, .hidden:
-            controlItem(for: .alwaysVisible)?.state = .showItems
-            controlItem(for: .hidden)?.state = .showItems
+            section(withName: .alwaysVisible)?.controlItem.state = .showItems
+            section(withName: .hidden)?.controlItem.state = .showItems
         case .alwaysHidden:
-            show(section: .hidden)
-            controlItem(for: .alwaysHidden)?.state = .showItems
+            showSection(withName: .hidden)
+            section(withName: .alwaysHidden)?.controlItem.state = .showItems
+        default:
+            Logger.statusBar.warning("\(#function) is not implemented for section name \(name.rawValue)")
+            break
         }
     }
 
     /// Hides the status items in the given section.
-    func hide(section: Section) {
-        switch section {
+    func hideSection(withName name: StatusBarSection.Name) {
+        switch name {
         case .alwaysVisible, .hidden:
-            controlItem(for: .alwaysVisible)?.state = .hideItems(isExpanded: false)
-            controlItem(for: .hidden)?.state = .hideItems(isExpanded: true)
-            hide(section: .alwaysHidden)
+            section(withName: .alwaysVisible)?.controlItem.state = .hideItems(isExpanded: false)
+            section(withName: .hidden)?.controlItem.state = .hideItems(isExpanded: true)
+            hideSection(withName: .alwaysHidden)
         case .alwaysHidden:
-            controlItem(for: .alwaysHidden)?.state = .hideItems(isExpanded: true)
+            section(withName: .alwaysHidden)?.controlItem.state = .hideItems(isExpanded: true)
+        default:
+            Logger.statusBar.warning("\(#function) is not implemented for section name \(name.rawValue)")
+            break
         }
     }
 
     /// Toggles the visibility of the status items in the given section.
-    func toggle(section: Section) {
-        guard let item = controlItem(for: section) else {
+    func toggleSection(withName name: StatusBarSection.Name) {
+        guard let section = section(withName: name) else {
+            Logger.statusBar.warning("Missing section for name \(name.rawValue)")
             return
         }
-        switch item.state {
+        switch section.controlItem.state {
         case .hideItems:
-            show(section: section)
+            showSection(withName: section.name)
         case .showItems:
-            hide(section: section)
+            hideSection(withName: section.name)
         }
     }
 }

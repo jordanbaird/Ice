@@ -89,21 +89,31 @@ class StatusBar: ObservableObject {
         }
     }
 
-    /// Performs validation on the current section count, adding or removing
-    /// sections as needed, and returns a Boolean value indicating whether
-    /// the count was valid.
+    /// Performs validation on the current section count, reinitializing
+    /// the sections if needed.
+    ///
+    /// - Returns: A Boolean value indicating whether the count was valid.
     private func validateSectionCount() -> Bool {
         if sections.count != 3 {
             sections = [
-                StatusBarSection(name: .alwaysVisible, controlItem: ControlItem(position: 0)),
-                StatusBarSection(name: .hidden, controlItem: ControlItem(position: 1)),
+                StatusBarSection(
+                    name: .alwaysVisible,
+                    controlItem: ControlItem(position: 0)
+                ),
+                StatusBarSection(
+                    name: .hidden,
+                    controlItem: ControlItem(position: 1)
+                ),
                 // don't give the item for the always-hidden section an initial
                 // position; this will place it at the far end of the status bar
-                StatusBarSection(name: .alwaysHidden, controlItem: ControlItem()),
+                StatusBarSection(
+                    name: .alwaysHidden,
+                    controlItem: ControlItem()
+                ),
             ]
-            return false // count was invalid
+            return false
         }
-        return true // count was valid
+        return true
     }
 
     /// Set up a series of cancellables to respond to key changes in the
@@ -117,13 +127,28 @@ class StatusBar: ObservableObject {
 
         // update all control items when the position of one changes
         Publishers.MergeMany(sections.map { $0.controlItem.$position })
-            .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
+            .throttle(for: 0.25, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] _ in
                 guard let self else {
                     return
                 }
-                for section in sections {
-                    section.controlItem.updateStatusItem()
+                // expanded control items should preserve their ordering
+                let sortedControlItems = sections.lazy
+                    .map { section in
+                        section.controlItem
+                    }
+                    .sorted { first, second in
+                        switch (first.state, second.state) {
+                        case (.showItems, .showItems):
+                            return (first.position ?? 0) < (second.position ?? 0)
+                        case (.hideItems(let isExpanded), _):
+                            return !isExpanded
+                        case (_, .hideItems(let isExpanded)):
+                            return isExpanded
+                        }
+                    }
+                for index in 0..<sections.count {
+                    sections[index].controlItem = sortedControlItems[index]
                 }
             }
             .store(in: &cancellables)

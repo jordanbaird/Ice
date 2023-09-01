@@ -21,7 +21,11 @@ final class StatusBarSection: ObservableObject {
     @Published var name: Name
 
     /// The control item that manages the visibility of the section.
-    @Published var controlItem: ControlItem
+    @Published var controlItem: ControlItem {
+        didSet {
+            controlItem.updateStatusItem()
+        }
+    }
 
     /// The section's persistent unique identifier.
     let uuid: UUID

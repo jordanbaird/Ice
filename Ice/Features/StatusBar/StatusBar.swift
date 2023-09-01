@@ -3,7 +3,6 @@
 //  Ice
 //
 
-import Cocoa
 import Combine
 import OSLog
 import SwiftKeys
@@ -19,6 +18,7 @@ class StatusBar: ObservableObject {
     /// Set to `true` to tell the status bar to save its sections.
     @Published var needsSave = false
 
+    /// The sections currently in the status bar.
     private(set) var sections = [StatusBarSection]() {
         willSet {
             for section in sections {
@@ -36,6 +36,8 @@ class StatusBar: ObservableObject {
         }
     }
 
+    /// A Boolean value that indicates whether the always-hidden
+    /// section is enabled.
     var isAlwaysHiddenSectionEnabled: Bool {
         get { section(withName: .alwaysHidden)?.controlItem.isVisible ?? false }
         set { section(withName: .alwaysHidden)?.controlItem.isVisible = newValue }
@@ -178,6 +180,7 @@ class StatusBar: ObservableObject {
         }
     }
 
+    /// Returns the status bar section with the given name.
     func section(withName name: StatusBarSection.Name) -> StatusBarSection? {
         return sections.first { $0.name == name }
     }
@@ -190,6 +193,7 @@ class StatusBar: ObservableObject {
         return sections.first { $0.controlItem == controlItem }
     }
 
+    /// Returns the status bar section after the given section.
     func section(after other: StatusBarSection) -> StatusBarSection? {
         guard let index = sections.firstIndex(of: other) else {
             return nil
@@ -201,6 +205,7 @@ class StatusBar: ObservableObject {
         return sections[nextIndex]
     }
 
+    /// Returns the status bar section before the given section.
     func section(before other: StatusBarSection) -> StatusBarSection? {
         guard let index = sections.firstIndex(of: other) else {
             return nil

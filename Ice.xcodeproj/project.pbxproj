@@ -15,7 +15,6 @@
 		71623BBC2A8AD27B002FD331 /* SwiftKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 71623BBB2A8AD27A002FD331 /* SwiftKeys */; };
 		71623BBF2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BBE2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift */; };
 		71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */; };
-		71623BCB2A8B0A8C002FD331 /* Defaults+Key.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BCA2A8B0A8C002FD331 /* Defaults+Key.swift */; };
 		71623BD32A8B6744002FD331 /* SettingsStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BD22A8B6744002FD331 /* SettingsStyles.swift */; };
 		7162406F2AA0A323003EC671 /* StatusBarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7162406E2AA0A323003EC671 /* StatusBarSection.swift */; };
 		7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166832D2A767E6A006ABF84 /* IceApp.swift */; };
@@ -36,7 +35,6 @@
 		71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C532A89445C00D89CD5 /* VisualEffectView.swift */; };
 		71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */; };
 		71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */; };
-		71EA649A2A84C65B009CE77F /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71EA64992A84C65B009CE77F /* Defaults.swift */; };
 		71FEA24E2A8C96680048341A /* EnvironmentReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA24D2A8C96680048341A /* EnvironmentReader.swift */; };
 		71FEA2502A8D5D590048341A /* KeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA24F2A8D5D590048341A /* KeyRecorder.swift */; };
 		71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */; };
@@ -50,7 +48,6 @@
 		7133ED702A85AE6A000A7E1B /* SettingsNavigationItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNavigationItem.swift; sourceTree = "<group>"; };
 		71623BBE2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyCommand.Name+toggle.swift"; sourceTree = "<group>"; };
 		71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsPane.swift; sourceTree = "<group>"; };
-		71623BCA2A8B0A8C002FD331 /* Defaults+Key.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Defaults+Key.swift"; sourceTree = "<group>"; };
 		71623BD22A8B6744002FD331 /* SettingsStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStyles.swift; sourceTree = "<group>"; };
 		7162406E2AA0A323003EC671 /* StatusBarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarSection.swift; sourceTree = "<group>"; };
 		7166832A2A767E6A006ABF84 /* Ice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ice.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -73,7 +70,6 @@
 		71D36C532A89445C00D89CD5 /* VisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryEncoder.swift; sourceTree = "<group>"; };
 		71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryDecoder.swift; sourceTree = "<group>"; };
-		71EA64992A84C65B009CE77F /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
 		71FEA24D2A8C96680048341A /* EnvironmentReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentReader.swift; sourceTree = "<group>"; };
 		71FEA24F2A8D5D590048341A /* KeyRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyRecorder.swift; sourceTree = "<group>"; };
 		71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalEventMonitor.swift; sourceTree = "<group>"; };
@@ -109,15 +105,6 @@
 				71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */,
 			);
 			path = Settings;
-			sourceTree = "<group>";
-		};
-		714458942A82F54700A2632F /* Defaults */ = {
-			isa = PBXGroup;
-			children = (
-				71EA64992A84C65B009CE77F /* Defaults.swift */,
-				71623BCA2A8B0A8C002FD331 /* Defaults+Key.swift */,
-			);
-			path = Defaults;
 			sourceTree = "<group>";
 		};
 		71623BBD2A8AD4D1002FD331 /* KeyCommand.Name */ = {
@@ -178,7 +165,6 @@
 		7166833E2A76811C006ABF84 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				714458942A82F54700A2632F /* Defaults */,
 				71D36C562A896ED700D89CD5 /* DictionarySerialization */,
 				716683412A76811C006ABF84 /* Extensions */,
 				71FEA25A2A8DA1D60048341A /* Misc */,
@@ -381,7 +367,6 @@
 				7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
 				71839C162A9B6A0D00250044 /* View+onFrameChange.swift in Sources */,
-				71EA649A2A84C65B009CE77F /* Defaults.swift in Sources */,
 				71623BBF2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift in Sources */,
 				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
 				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
@@ -401,7 +386,6 @@
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				71FEA24E2A8C96680048341A /* EnvironmentReader.swift in Sources */,
 				71FEA2502A8D5D590048341A /* KeyRecorder.swift in Sources */,
-				71623BCB2A8B0A8C002FD331 /* Defaults+Key.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
 				71839BE52A9A0A6100250044 /* PressActions.swift in Sources */,
 				71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */,

@@ -13,7 +13,7 @@ class StatusBar: ObservableObject {
     private let decoder = DictionaryDecoder()
 
     private var cancellables = Set<AnyCancellable>()
-    private var lastSavedSectionsHash: Int?
+    private var lastSavedHash: Int?
 
     /// Set to `true` to tell the status bar to save its sections.
     @Published var needsSave = false
@@ -36,8 +36,8 @@ class StatusBar: ObservableObject {
         }
     }
 
-    /// A Boolean value that indicates whether the always-hidden
-    /// section is enabled.
+    /// A Boolean value that indicates whether the always-hidden section
+    /// is enabled.
     var isAlwaysHiddenSectionEnabled: Bool {
         get { section(withName: .alwaysHidden)?.controlItem.isVisible ?? false }
         set { section(withName: .alwaysHidden)?.controlItem.isVisible = newValue }
@@ -51,8 +51,8 @@ class StatusBar: ObservableObject {
     /// Performs the initial setup of the status bar's control item list.
     func initializeSections() {
         defer {
-            if lastSavedSectionsHash == nil {
-                lastSavedSectionsHash = sections.hashValue
+            if lastSavedHash == nil {
+                lastSavedHash = sections.hashValue
             }
         }
 
@@ -60,9 +60,13 @@ class StatusBar: ObservableObject {
             return
         }
 
-        sections = Defaults[.serializedSections].compactMap { entry in
+        sections = (UserDefaults.standard.array(forKey: "Sections") ?? []).compactMap { entry in
+            guard let dictionary = entry as? [String: Any] else {
+                Logger.statusBar.error("Entry not convertible to dictionary")
+                return nil
+            }
             do {
-                return try decoder.decode(StatusBarSection.self, from: entry)
+                return try decoder.decode(StatusBarSection.self, from: dictionary)
             } catch {
                 Logger.statusBar.error("Error decoding control item: \(error)")
                 return nil
@@ -73,18 +77,19 @@ class StatusBar: ObservableObject {
     /// Save all control items in the status bar to persistent storage.
     func saveSections() {
         if
-            let lastSavedSectionsHash,
-            sections.hashValue == lastSavedSectionsHash
+            let lastSavedHash,
+            sections.hashValue == lastSavedHash
         {
             // items haven't changed, no need to save
             needsSave = false
             return
         }
         do {
-            Defaults[.serializedSections] = try sections.map { section in
+            let serializedSections = try sections.map { section in
                 try encoder.encode(section)
             }
-            lastSavedSectionsHash = sections.hashValue
+            UserDefaults.standard.set(serializedSections, forKey: "Sections")
+            lastSavedHash = sections.hashValue
             needsSave = false
         } catch {
             Logger.statusBar.error("Error encoding control item: \(error)")
@@ -106,8 +111,8 @@ class StatusBar: ObservableObject {
                     name: .hidden,
                     controlItem: ControlItem(position: 1)
                 ),
-                // don't give the item for the always-hidden section an initial
-                // position; this will place it at the far end of the status bar
+                // don't give the always-hidden item an initial position;
+                // this will place it at the far end of the status bar
                 StatusBarSection(
                     name: .alwaysHidden,
                     controlItem: ControlItem()
@@ -118,8 +123,8 @@ class StatusBar: ObservableObject {
         return true
     }
 
-    /// Set up a series of cancellables to respond to key changes in the
-    /// status bar's state.
+    /// Set up a series of cancellables to respond to important changes
+    /// in the status bar's state.
     private func configureCancellables() {
         // cancel and remove all current cancellables
         for cancellable in cancellables {
@@ -129,7 +134,7 @@ class StatusBar: ObservableObject {
 
         // update all control items when the position of one changes
         Publishers.MergeMany(sections.map { $0.controlItem.$position })
-            .throttle(for: 0.25, scheduler: DispatchQueue.main, latest: true)
+            .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] _ in
                 guard let self else {
                     return
@@ -166,7 +171,7 @@ class StatusBar: ObservableObject {
             .store(in: &cancellables)
     }
 
-    /// Set up key commands (and their observations) for the given sections.
+    /// Set up key commands for the sections with the given names.
     private func configureKeyCommands(for sectionNames: [StatusBarSection.Name]) {
         guard !ProcessInfo.processInfo.isPreview else {
             return
@@ -226,14 +231,17 @@ class StatusBar: ObservableObject {
         }
     }
 
-    /// Returns a Boolean value that indicates whether the item for the
-    /// given section is currently visible.
+    /// Returns a Boolean value that indicates whether the control item
+    /// for the given section is currently visible.
     func isSectionEnabled(_ section: StatusBarSection) -> Bool {
         return section.controlItem.isVisible
     }
 
     /// Shows the status items in the given section.
     func showSection(withName name: StatusBarSection.Name) {
+        // FIXME: Make this work for more than just the currently defined sections.
+        // The user should be able to define their own sections, and this function
+        // needs to be able to support them.
         switch name {
         case .alwaysVisible, .hidden:
             section(withName: .alwaysVisible)?.controlItem.state = .showItems
@@ -249,6 +257,9 @@ class StatusBar: ObservableObject {
 
     /// Hides the status items in the given section.
     func hideSection(withName name: StatusBarSection.Name) {
+        // FIXME: Make this work for more than just the currently defined sections.
+        // The user should be able to define their own sections, and this function
+        // needs to be able to support them.
         switch name {
         case .alwaysVisible, .hidden:
             section(withName: .alwaysVisible)?.controlItem.state = .hideItems(isExpanded: false)

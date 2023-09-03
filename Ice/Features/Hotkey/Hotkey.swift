@@ -1,11 +1,11 @@
 //
-//  HotKey.swift
+//  Hotkey.swift
 //  Ice
 //
 
 /// A combination of keys that can be used to listen for system-wide key
 /// events, triggering an action whenever the combination is pressed.
-struct HotKey: Codable, Hashable {
+struct Hotkey: Codable, Hashable {
     /// The key component of the hot key.
     var key: Key
     /// The modifiers component of the hot key.
@@ -21,23 +21,23 @@ struct HotKey: Codable, Hashable {
     }
 }
 
-extension HotKey {
+extension Hotkey {
     /// Registers the hot key to observe system-wide key down events and
     /// returns a listener that manages the lifetime of the observation.
     func onKeyDown(_ body: @escaping () -> Void) -> Listener {
-        let id = HotKeyRegistry.register(self, eventKind: .keyDown, handler: body)
+        let id = HotkeyRegistry.register(self, eventKind: .keyDown, handler: body)
         return Listener(id: id)
     }
 
     /// Registers the hot key to observe system-wide key up events and
     /// returns a listener that manages the lifetime of the observation.
     func onKeyUp(_ body: @escaping () -> Void) -> Listener {
-        let id = HotKeyRegistry.register(self, eventKind: .keyUp, handler: body)
+        let id = HotkeyRegistry.register(self, eventKind: .keyUp, handler: body)
         return Listener(id: id)
     }
 }
 
-extension HotKey {
+extension Hotkey {
     /// A type that manges the lifetime of hot key observations.
     struct Listener {
         private class Context {
@@ -51,7 +51,7 @@ extension HotKey {
 
             func invalidate() {
                 defer { id = nil }
-                if let id { HotKeyRegistry.unregister(id) }
+                if let id { HotkeyRegistry.unregister(id) }
             }
 
             deinit { invalidate() }

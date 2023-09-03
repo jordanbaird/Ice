@@ -5,39 +5,94 @@
 
 import SwiftUI
 
-// MARK: - SettingsButtonID
+// MARK: - SettingsButtonConfiguration
 
-/// An identifier that determines the shape that a settings
-/// button is rendered with.
-struct SettingsButtonID {
-    fileprivate let flattenedEdges: Edge.Set
+/// A configuration that determines the appearance and behavior of a
+/// settings button.
+struct SettingsButtonConfiguration {
+    /// The shape of the buttons that use this configuration.
+    var buttonShape: ButtonShape
 
-    /// An identifier that will render a settings button with
-    /// the default shape.
-    static let `default` = SettingsButtonID(flattenedEdges: [])
-    /// An identifier that will render a settings button with
-    /// the shape of a leading segment in a segmented control.
-    static let leadingSegment = SettingsButtonID(flattenedEdges: .trailing)
-    /// An identifier that will render a settings button with
-    /// the shape of a trailing segment in a segmented control.
-    static let trailingSegment = SettingsButtonID(flattenedEdges: .leading)
+    /// A Boolean value that indicates whether the button is drawn with
+    /// a highlighted style.
+    ///
+    /// This value is distinct from the button's pressed state; that is,
+    /// the button can be pressed, highlighted, or both.
+    var isHighlighted: Bool
+
+    /// Creates a configuration with the given parameters.
+    ///
+    /// - Parameters:
+    ///   - buttonShape: The shape of the buttons that use this configuration.
+    ///   - isHighlighted: A Boolean value that indicates whether the button
+    ///     is drawn with a highlighted style.
+    init(
+        buttonShape: ButtonShape = ButtonShape(),
+        isHighlighted: Bool = false
+    ) {
+        self.buttonShape = buttonShape
+        self.isHighlighted = isHighlighted
+    }
+}
+
+// MARK: ShapeConfiguration
+extension SettingsButtonConfiguration {
+    /// A configuration that determines the shape of a settings button.
+    struct ButtonShape {
+        /// The flattened edges of the buttons that use this configuration.
+        let flattenedEdges: Edge.Set
+
+        /// Creates a configuration with the given flattened edges.
+        init(flattenedEdges: Edge.Set = []) {
+            self.flattenedEdges = flattenedEdges
+        }
+
+        /// A configuration for a settings button with the shape of a
+        /// leading segment in a segmented control.
+        static let leadingSegment = ButtonShape(flattenedEdges: .trailing)
+
+        /// A configuration for a settings button with the shape of a
+        /// trailing segment in a segmented control.
+        static let trailingSegment = ButtonShape(flattenedEdges: .leading)
+    }
 }
 
 private extension EnvironmentValues {
-    struct SettingsButtonIDKey: EnvironmentKey {
-        static let defaultValue: SettingsButtonID = .default
+    struct SettingsButtonConfigurationKey: EnvironmentKey {
+        static let defaultValue = SettingsButtonConfiguration()
     }
 
-    var settingsButtonID: SettingsButtonID {
-        get { self[SettingsButtonIDKey.self] }
-        set { self[SettingsButtonIDKey.self] = newValue }
+    var settingsButtonConfiguration: SettingsButtonConfiguration {
+        get { self[SettingsButtonConfigurationKey.self] }
+        set { self[SettingsButtonConfigurationKey.self] = newValue }
     }
 }
 
 extension View {
-    /// Sets the identifier for settings buttons in this view.
-    func settingsButtonID(_ id: SettingsButtonID) -> some View {
-        environment(\.settingsButtonID, id)
+    /// Sets the configuration for settings buttons in this view.
+    ///
+    /// - Parameter configuration: The configuration to set.
+    func settingsButtonConfiguration(_ configuration: SettingsButtonConfiguration) -> some View {
+        environment(\.settingsButtonConfiguration, configuration)
+    }
+
+    /// Sets the shape for settings buttons in this view.
+    ///
+    /// - Parameter buttonShape: The shape of the buttons that use this
+    ///   configuration.
+    func settingsButtonShape(_ buttonShape: SettingsButtonConfiguration.ButtonShape) -> some View {
+        environment(\.settingsButtonConfiguration.buttonShape, buttonShape)
+    }
+
+    /// Sets the highlight state for settings buttons in this view.
+    ///
+    /// The `isHighlighted` value is distinct from the button's pressed
+    /// state; that is, the button can be pressed, highlighted, or both.
+    ///
+    /// - Parameter isHighlighted: A Boolean value that indicates whether
+    ///   the button is drawn with a highlighted style.
+    func settingsButtonIsHighlighted(_ isHighlighted: Bool) -> some View {
+        environment(\.settingsButtonConfiguration.isHighlighted, isHighlighted)
     }
 }
 
@@ -49,19 +104,19 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
     /// sides flattened according to the given id.
     private struct ClipShape: Shape {
         let cornerRadius: CGFloat
-        let id: SettingsButtonID
+        let buttonShape: SettingsButtonConfiguration.ButtonShape
 
         func path(in rect: CGRect) -> Path {
-            if id.flattenedEdges == .all {
+            if buttonShape.flattenedEdges == .all {
                 // fast path (pun not intended)
                 return Path(rect)
             }
             var path = Path(roundedRect: rect, cornerRadius: cornerRadius, style: .continuous)
-            if id.flattenedEdges.isEmpty {
+            if buttonShape.flattenedEdges.isEmpty {
                 // fast path MkII
                 return path
             }
-            for edge in Edge.allCases where id.flattenedEdges.contains(Edge.Set(edge)) {
+            for edge in Edge.allCases where buttonShape.flattenedEdges.contains(Edge.Set(edge)) {
                 flatten(edge: edge, of: &path)
             }
             return path
@@ -86,7 +141,7 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
                     font = .body.weight(.medium)
                 }
             }
-            .backgroundEnvironmentValue(\.settingsButtonID) { id in
+            .backgroundEnvironmentValue(\.settingsButtonConfiguration) { configuration in
                 VisualEffectView(
                     material: .contentBackground,
                     blendingMode: .withinWindow,
@@ -94,7 +149,12 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
                 )
                 .opacity(0.5)
                 .background(isPressed ? .secondary : .tertiary)
-                .clipShape(ClipShape(cornerRadius: 5, id: id))
+                .overlay(
+                    Color.primary
+                        .opacity(configuration.isHighlighted ? 0.2 : 0)
+                        .blendMode(.overlay)
+                )
+                .clipShape(ClipShape(cornerRadius: 5, buttonShape: configuration.buttonShape))
             }
             .interceptMouseDown()
             .onContinuousPress { info in

@@ -25,7 +25,7 @@ final class StatusBarSection: ObservableObject {
         static let alwaysHidden = Name(rawValue: "Always Hidden")
     }
 
-    private var listener: HotKey.Listener?
+    private var listener: Hotkey.Listener?
 
     /// User-visible name that describes the section.
     @Published var name: Name
@@ -37,11 +37,12 @@ final class StatusBarSection: ObservableObject {
         }
     }
 
-    @Published var hotKey: HotKey? {
+    @Published var hotkey: Hotkey? {
         didSet {
             if listener != nil {
-                enableHotKey()
+                enableHotkey()
             }
+            statusBar?.needsSave = true
         }
     }
 
@@ -60,19 +61,20 @@ final class StatusBarSection: ObservableObject {
         controlItem.isVisible
     }
 
-    var hotKeyIsEnabled: Bool {
+    var hotkeyIsEnabled: Bool {
         listener != nil
     }
 
-    init(name: Name, controlItem: ControlItem, hotKey: HotKey? = nil, uuid: UUID = UUID()) {
+    init(name: Name, controlItem: ControlItem, hotkey: Hotkey? = nil, uuid: UUID = UUID()) {
         self.name = name
         self.controlItem = controlItem
-        self.hotKey = hotKey
+        self.hotkey = hotkey
         self.uuid = uuid
+        enableHotkey()
     }
 
-    func enableHotKey() {
-        listener = hotKey?.onKeyDown { [weak self] in
+    func enableHotkey() {
+        listener = hotkey?.onKeyDown { [weak self] in
             guard let self else {
                 return
             }
@@ -80,7 +82,7 @@ final class StatusBarSection: ObservableObject {
         }
     }
 
-    func disableHotKey() {
+    func disableHotkey() {
         listener?.invalidate()
         listener = nil
     }
@@ -90,7 +92,7 @@ extension StatusBarSection: Codable {
     private enum CodingKeys: String, CodingKey {
         case name
         case controlItem
-        case hotKey
+        case hotkey
         case uuid
     }
 
@@ -99,7 +101,7 @@ extension StatusBarSection: Codable {
         try self.init(
             name: container.decode(Name.self, forKey: .name),
             controlItem: container.decode(ControlItem.self, forKey: .controlItem),
-            hotKey: container.decode(HotKey.self, forKey: .hotKey),
+            hotkey: container.decodeIfPresent(Hotkey.self, forKey: .hotkey),
             uuid: container.decode(UUID.self, forKey: .uuid)
         )
     }
@@ -108,7 +110,7 @@ extension StatusBarSection: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(name, forKey: .name)
         try container.encode(controlItem, forKey: .controlItem)
-        try container.encode(hotKey, forKey: .hotKey)
+        try container.encodeIfPresent(hotkey, forKey: .hotkey)
         try container.encode(uuid, forKey: .uuid)
     }
 }
@@ -117,7 +119,7 @@ extension StatusBarSection: Equatable {
     static func == (lhs: StatusBarSection, rhs: StatusBarSection) -> Bool {
         lhs.name == rhs.name &&
         lhs.controlItem == rhs.controlItem &&
-        lhs.hotKey == rhs.hotKey &&
+        lhs.hotkey == rhs.hotkey &&
         lhs.uuid == rhs.uuid
     }
 }
@@ -126,7 +128,7 @@ extension StatusBarSection: Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(name)
         hasher.combine(controlItem)
-        hasher.combine(hotKey)
+        hasher.combine(hotkey)
         hasher.combine(uuid)
     }
 }

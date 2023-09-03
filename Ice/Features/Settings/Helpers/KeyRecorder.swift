@@ -3,9 +3,12 @@
 //  Ice
 //
 
+import Combine
 import SwiftUI
 
 private class KeyRecorderModel: ObservableObject {
+    private var cancellables = Set<AnyCancellable>()
+
     /// The section managed by the model.
     let section: StatusBarSection?
 
@@ -16,21 +19,22 @@ private class KeyRecorderModel: ObservableObject {
     /// Strings representing the currently pressed modifiers when
     /// the key recorder is recording. Empty if the key recorder
     /// is not recording.
-    @Published var pressedModifierStrings = [String]()
+    @Published private(set) var pressedModifierStrings = [String]()
 
     /// Local event monitor that listens for key down events and
     /// modifier flag changes.
     private var monitor: LocalEventMonitor?
 
-    /// A Boolean value that indicates whether the key command is
+    /// A Boolean value that indicates whether the hotkey is
     /// currently enabled.
-    var isEnabled: Bool {
-        section?.hotKeyIsEnabled ?? false
-    }
+    var isEnabled: Bool { section?.hotkeyIsEnabled ?? false }
 
     /// Creates a model for a key recorder that records user-chosen
-    /// key combinations for a key command with the given name.
+    /// key combinations for the given section's hotkey.
     init(section: StatusBarSection?) {
+        defer {
+            configureCancellables()
+        }
         self.section = section
         guard !ProcessInfo.processInfo.isPreview else {
             return
@@ -51,33 +55,43 @@ private class KeyRecorderModel: ObservableObject {
         }
     }
 
-    /// Disables the key command and starts monitoring for events.
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+        if let section {
+            c.insert(section.$hotkey.sink { [weak self] _ in
+                self?.objectWillChange.send()
+            })
+        }
+        cancellables = c
+    }
+
+    /// Disables the hotkey and starts monitoring for events.
     func startRecording() {
         guard !isRecording else {
             return
         }
         isRecording = true
-        section?.disableHotKey()
+        section?.disableHotkey()
         monitor?.start()
         pressedModifierStrings = []
     }
 
-    /// Enables the key command and stops monitoring for events.
+    /// Enables the hotkey and stops monitoring for events.
     func stopRecording() {
         guard isRecording else {
             return
         }
         isRecording = false
         monitor?.stop()
-        section?.enableHotKey()
+        section?.enableHotkey()
         pressedModifierStrings = []
     }
 
     /// Handles local key down events when the key recorder is recording.
     private func handleKeyDown(event: NSEvent) {
         // convert the event's key code and modifiers
-        let key = HotKey.Key(rawValue: Int(event.keyCode))
-        let modifiers = HotKey.Modifiers(nsEventFlags: event.modifierFlags)
+        let key = Hotkey.Key(rawValue: Int(event.keyCode))
+        let modifiers = Hotkey.Modifiers(nsEventFlags: event.modifierFlags)
         guard !modifiers.isEmpty else {
             if key == .escape {
                 // escape was pressed with no modifiers; cancel recording
@@ -96,26 +110,26 @@ private class KeyRecorderModel: ObservableObject {
             return
         }
         // guard !HotKey.isReservedBySystem(key: key, modifiers: modifiers) else {
-        //     // key command is reserved by the system
+        //     // hotkey is reserved by the system
         //     // TODO: alert the user of the error
         //     NSSound.beep()
         //     return
         // }
         // if we made it this far, all checks passed; assign the
         // new hotkey and stop recording
-        section?.hotKey = HotKey(key: key, modifiers: modifiers)
+        section?.hotkey = Hotkey(key: key, modifiers: modifiers)
         stopRecording()
     }
 
     /// Handles modifier flag changes when the key recorder is recording.
     private func handleFlagsChanged(event: NSEvent) {
-        pressedModifierStrings = HotKey.Modifiers.canonicalOrder.compactMap {
+        pressedModifierStrings = Hotkey.Modifiers.canonicalOrder.compactMap {
             event.modifierFlags.contains($0.nsEventFlags) ? $0.stringValue : nil
         }
     }
 }
 
-/// A view that records user-chosen key combinations for a key command.
+/// A view that records user-chosen key combinations for a hotkey.
 struct KeyRecorder: View {
     @StateObject private var model: KeyRecorderModel
     @State private var frame: CGRect = .zero
@@ -145,7 +159,8 @@ struct KeyRecorder: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .help(segment1HelpString)
-        .settingsButtonID(.leadingSegment)
+        .settingsButtonShape(.leadingSegment)
+        .settingsButtonIsHighlighted(model.isRecording)
     }
 
     private var segment2: some View {
@@ -153,7 +168,7 @@ struct KeyRecorder: View {
             if model.isRecording {
                 model.stopRecording()
             } else if model.isEnabled {
-                model.section?.hotKey = nil
+                model.section?.hotkey = nil
             } else {
                 model.startRecording()
             }
@@ -171,7 +186,7 @@ struct KeyRecorder: View {
             isInsideSegment2 = isInside
         }
         .help(segment2HelpString)
-        .settingsButtonID(.trailingSegment)
+        .settingsButtonShape(.trailingSegment)
     }
 
     @ViewBuilder
@@ -182,7 +197,7 @@ struct KeyRecorder: View {
             } else if !model.pressedModifierStrings.isEmpty {
                 HStack(spacing: 1) {
                     ForEach(model.pressedModifierStrings, id: \.self) { string in
-                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
                             .fill(.background.opacity(0.5))
                             .aspectRatio(1, contentMode: .fit)
                             .overlay(Text(string))
@@ -202,11 +217,11 @@ struct KeyRecorder: View {
     }
 
     private var modifiersString: String {
-        model.section?.hotKey?.modifiers.stringValue ?? ""
+        model.section?.hotkey?.modifiers.stringValue ?? ""
     }
 
     private var keyString: String {
-        guard let key = model.section?.hotKey?.key else {
+        guard let key = model.section?.hotkey?.key else {
             return ""
         }
         return key.stringValue.capitalized

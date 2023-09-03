@@ -282,9 +282,9 @@ final class ControlItem: ObservableObject {
                 keyEquivalent: ""
             )
             item.target = self
-            if let hotKey = section.hotKey {
-                item.keyEquivalent = hotKey.key.keyEquivalent
-                item.keyEquivalentModifierMask = hotKey.modifiers.nsEventFlags
+            if let hotkey = section.hotkey {
+                item.keyEquivalent = hotkey.key.keyEquivalent
+                item.keyEquivalentModifierMask = hotkey.modifiers.nsEventFlags
             }
             menu.addItem(item)
         }

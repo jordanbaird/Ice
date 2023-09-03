@@ -1,12 +1,12 @@
 //
-//  HotKey+Modifiers.swift
+//  Hotkey+Modifiers.swift
 //  Ice
 //
 
 import Carbon.HIToolbox
 import Cocoa
 
-extension HotKey {
+extension Hotkey {
     /// A bit mask containing the modifier keys for a hot key.
     struct Modifiers: OptionSet, Codable, Hashable {
         let rawValue: Int
@@ -31,7 +31,7 @@ extension HotKey {
 }
 
 // MARK: Flag Conversions
-extension HotKey.Modifiers {
+extension Hotkey.Modifiers {
 
     // MARK: Conversion Properties
 

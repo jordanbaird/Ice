@@ -1,11 +1,11 @@
 //
-//  HotKey+Key.swift
+//  Hotkey+Key.swift
 //  Ice
 //
 
 import Carbon.HIToolbox
 
-extension HotKey {
+extension Hotkey {
     /// A representation of a physical key on a keyboard.
     struct Key: Codable, Hashable, RawRepresentable {
         let rawValue: Int
@@ -157,7 +157,7 @@ extension HotKey {
 }
 
 // MARK: Custom String Mapping
-extension HotKey.Key {
+extension Hotkey.Key {
     /// A dictionary that maps arbitrary keys to custom string representations,
     /// giving them priority over their canonical system representations.
     ///
@@ -172,9 +172,9 @@ extension HotKey.Key {
     ///
     /// The space key's custom string mapping spells out the word "Space", which
     /// is how macOS represents the key in its user interface.
-    static let customStringMapping: [HotKey.Key: String] = {
+    static let customStringMapping: [Self: String] = {
         // standard mappings; nothing special here
-        let standardKeys: [HotKey.Key: String] = [
+        let standardKeys: [Self: String] = [
             .space: "Space",
             .tab: "⇥",
             .return: "⏎",
@@ -222,14 +222,14 @@ extension HotKey.Key {
             .keypadEnter: "⌤",
         ]
         // media key mappings using unicode code points
-        let mediaKeys: [HotKey.Key: String] = [
+        let mediaKeys: [Self: String] = [
             .volumeUp: "\u{1F50A}",   // U+1F50A 'SPEAKER WITH THREE SOUND WAVES'
             .volumeDown: "\u{1F509}", // U+1F509 'SPEAKER WITH ONE SOUND WAVE'
             .mute: "\u{1F507}",       // U+1F507 'SPEAKER WITH CANCELLATION STROKE'
         ]
         // keypad key mappings whose strings are enclosed with
         // U+20E3 'COMBINING ENCLOSING KEYCAP'
-        let enclosedKeypadKeys: [HotKey.Key: String] = [
+        let enclosedKeypadKeys: [Self: String] = [
             .keypad0: "0\u{20E3}",
             .keypad1: "1\u{20E3}",
             .keypad2: "2\u{20E3}",
@@ -248,7 +248,7 @@ extension HotKey.Key {
             .keypadPlus: "+\u{20E3}",
         ]
         // other key mappings that include unicode code points
-        let unicodeKeys: [HotKey.Key: String] = [
+        let unicodeKeys: [Self: String] = [
             .function: "\u{1F310}\u{FE0E}", // U+1F310 'GLOBE WITH MERIDIANS'
             .help: "?\u{20DD}",             // U+20DD  'COMBINING ENCLOSING CIRCLE'
         ]
@@ -260,7 +260,7 @@ extension HotKey.Key {
 }
 
 // MARK: Key Equivalent
-extension HotKey.Key {
+extension Hotkey.Key {
     /// The system representation of the key.
     ///
     /// You can use this property to set the key equivalent of a menu item or
@@ -305,7 +305,7 @@ extension HotKey.Key {
 }
 
 // MARK: String Value
-extension HotKey.Key {
+extension Hotkey.Key {
     /// A string representation for the key, preferring values from the
     /// ``customStringMapping`` dictionary.
     ///

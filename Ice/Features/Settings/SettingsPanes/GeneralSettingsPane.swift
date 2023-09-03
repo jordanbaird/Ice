@@ -37,9 +37,9 @@ struct GeneralSettingsPane: View {
             }
             section.controlItem.isVisible = isEnabled
             if isEnabled {
-                section.enableHotKey()
+                section.enableHotkey()
             } else {
-                section.disableHotKey()
+                section.disableHotkey()
             }
         }
         .padding()

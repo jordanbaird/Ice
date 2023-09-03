@@ -1,12 +1,12 @@
 //
-//  HotKeyRegistry.swift
+//  HotkeyRegistry.swift
 //  Ice
 //
 
 import Carbon.HIToolbox
 import OSLog
 
-enum HotKeyRegistry {
+enum HotkeyRegistry {
     enum EventKind {
         case keyUp
         case keyDown
@@ -67,7 +67,7 @@ enum HotKeyRegistry {
         )
     }
 
-    static func register(_ hotKey: HotKey, eventKind: EventKind, handler: @escaping () -> Void) -> UInt32? {
+    static func register(_ hotkey: Hotkey, eventKind: EventKind, handler: @escaping () -> Void) -> UInt32? {
         enum Context {
             static var currentID: UInt32 = 0
         }
@@ -78,21 +78,21 @@ enum HotKeyRegistry {
         var status = installIfNeeded()
 
         guard status == noErr else {
-            Logger.hotKey.hotKeyError(.installationFailed.status(status))
+            Logger.hotkey.hotkeyError(.installationFailed.status(status))
             return nil
         }
 
         let id = Context.currentID
 
         guard eventHandlers[id] == nil else {
-            Logger.hotKey.hotKeyError(.registrationFailed.reason("Event handler already stored for id \(id)"))
+            Logger.hotkey.hotkeyError(.registrationFailed.reason("Event handler already stored for id \(id)"))
             return nil
         }
 
         var hotKeyRef: EventHotKeyRef?
         status = RegisterEventHotKey(
-            UInt32(hotKey.key.rawValue),
-            UInt32(hotKey.modifiers.carbonFlags),
+            UInt32(hotkey.key.rawValue),
+            UInt32(hotkey.modifiers.carbonFlags),
             EventHotKeyID(signature: signature, id: id),
             GetEventDispatcherTarget(),
             0,
@@ -100,12 +100,12 @@ enum HotKeyRegistry {
         )
 
         guard status == noErr else {
-            Logger.hotKey.hotKeyError(.registrationFailed.status(status))
+            Logger.hotkey.hotkeyError(.registrationFailed.status(status))
             return nil
         }
 
         guard let hotKeyRef else {
-            Logger.hotKey.hotKeyError(.registrationFailed.reason("Invalid EventHotKeyRef"))
+            Logger.hotkey.hotkeyError(.registrationFailed.reason("Invalid EventHotKeyRef"))
             return nil
         }
 
@@ -125,7 +125,7 @@ enum HotKeyRegistry {
         }
         let status = UnregisterEventHotKey(eventHandler.hotKeyRef)
         if status != noErr {
-            Logger.hotKey.hotKeyError(.unregistrationFailed.status(status))
+            Logger.hotkey.hotkeyError(.unregistrationFailed.status(status))
         }
     }
 

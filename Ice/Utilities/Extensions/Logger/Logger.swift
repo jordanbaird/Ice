@@ -13,5 +13,5 @@ extension Logger {
     static let statusBar = Logger(subsystem: subsystem, category: "StatusBar")
 
     /// The logger that handles logging for hotkeys.
-    static let hotKey = Logger(subsystem: subsystem, category: "HotKey")
+    static let hotkey = Logger(subsystem: subsystem, category: "Hotkey")
 }

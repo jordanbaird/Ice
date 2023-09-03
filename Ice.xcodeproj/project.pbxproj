@@ -12,11 +12,11 @@
 		7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */; };
 		7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED692A85870E000A7E1B /* SettingsView.swift */; };
 		7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED702A85AE6A000A7E1B /* SettingsNavigationItem.swift */; };
-		7150A7AD2AA4265F0045EA68 /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7AC2AA4265F0045EA68 /* HotKey.swift */; };
-		7150A7AF2AA426C60045EA68 /* HotKeyRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7AE2AA426C60045EA68 /* HotKeyRegistry.swift */; };
-		7150A7B12AA427F80045EA68 /* HotKey+Key.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B02AA427F80045EA68 /* HotKey+Key.swift */; };
-		7150A7B32AA42B640045EA68 /* HotKey+Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B22AA42B640045EA68 /* HotKey+Modifiers.swift */; };
-		7150A7B52AA42BEA0045EA68 /* HotKeyError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B42AA42BEA0045EA68 /* HotKeyError.swift */; };
+		7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7AC2AA4265F0045EA68 /* Hotkey.swift */; };
+		7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */; };
+		7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B02AA427F80045EA68 /* Hotkey+Key.swift */; };
+		7150A7B32AA42B640045EA68 /* Hotkey+Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B22AA42B640045EA68 /* Hotkey+Modifiers.swift */; };
+		7150A7B52AA42BEA0045EA68 /* HotkeyError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B42AA42BEA0045EA68 /* HotkeyError.swift */; };
 		71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */; };
 		71623BD32A8B6744002FD331 /* SettingsStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BD22A8B6744002FD331 /* SettingsStyles.swift */; };
 		7162406F2AA0A323003EC671 /* StatusBarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7162406E2AA0A323003EC671 /* StatusBarSection.swift */; };
@@ -48,11 +48,11 @@
 		7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+windowWithIdentifier.swift"; sourceTree = "<group>"; };
 		7133ED692A85870E000A7E1B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7133ED702A85AE6A000A7E1B /* SettingsNavigationItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNavigationItem.swift; sourceTree = "<group>"; };
-		7150A7AC2AA4265F0045EA68 /* HotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKey.swift; sourceTree = "<group>"; };
-		7150A7AE2AA426C60045EA68 /* HotKeyRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyRegistry.swift; sourceTree = "<group>"; };
-		7150A7B02AA427F80045EA68 /* HotKey+Key.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HotKey+Key.swift"; sourceTree = "<group>"; };
-		7150A7B22AA42B640045EA68 /* HotKey+Modifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HotKey+Modifiers.swift"; sourceTree = "<group>"; };
-		7150A7B42AA42BEA0045EA68 /* HotKeyError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyError.swift; sourceTree = "<group>"; };
+		7150A7AC2AA4265F0045EA68 /* Hotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hotkey.swift; sourceTree = "<group>"; };
+		7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRegistry.swift; sourceTree = "<group>"; };
+		7150A7B02AA427F80045EA68 /* Hotkey+Key.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Hotkey+Key.swift"; sourceTree = "<group>"; };
+		7150A7B22AA42B640045EA68 /* Hotkey+Modifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Hotkey+Modifiers.swift"; sourceTree = "<group>"; };
+		7150A7B42AA42BEA0045EA68 /* HotkeyError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyError.swift; sourceTree = "<group>"; };
 		71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsPane.swift; sourceTree = "<group>"; };
 		71623BD22A8B6744002FD331 /* SettingsStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStyles.swift; sourceTree = "<group>"; };
 		7162406E2AA0A323003EC671 /* StatusBarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarSection.swift; sourceTree = "<group>"; };
@@ -111,16 +111,16 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		7150A7AB2AA4262F0045EA68 /* HotKey */ = {
+		7150A7AB2AA4262F0045EA68 /* Hotkey */ = {
 			isa = PBXGroup;
 			children = (
-				7150A7AC2AA4265F0045EA68 /* HotKey.swift */,
-				7150A7B02AA427F80045EA68 /* HotKey+Key.swift */,
-				7150A7B22AA42B640045EA68 /* HotKey+Modifiers.swift */,
-				7150A7B42AA42BEA0045EA68 /* HotKeyError.swift */,
-				7150A7AE2AA426C60045EA68 /* HotKeyRegistry.swift */,
+				7150A7AC2AA4265F0045EA68 /* Hotkey.swift */,
+				7150A7B02AA427F80045EA68 /* Hotkey+Key.swift */,
+				7150A7B22AA42B640045EA68 /* Hotkey+Modifiers.swift */,
+				7150A7B42AA42BEA0045EA68 /* HotkeyError.swift */,
+				7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */,
 			);
-			path = HotKey;
+			path = Hotkey;
 			sourceTree = "<group>";
 		};
 		7162406A2A9F1565003EC671 /* Helpers */ = {
@@ -222,7 +222,7 @@
 		7166834D2A768184006ABF84 /* Features */ = {
 			isa = PBXGroup;
 			children = (
-				7150A7AB2AA4262F0045EA68 /* HotKey */,
+				7150A7AB2AA4262F0045EA68 /* Hotkey */,
 				7133ED662A858230000A7E1B /* Settings */,
 				7166834E2A768190006ABF84 /* StatusBar */,
 			);
@@ -368,23 +368,23 @@
 			files = (
 				71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */,
 				71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
-				7150A7AF2AA426C60045EA68 /* HotKeyRegistry.swift in Sources */,
+				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
 				7162406F2AA0A323003EC671 /* StatusBarSection.swift in Sources */,
-				7150A7B52AA42BEA0045EA68 /* HotKeyError.swift in Sources */,
+				7150A7B52AA42BEA0045EA68 /* HotkeyError.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,
 				7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
-				7150A7AD2AA4265F0045EA68 /* HotKey.swift in Sources */,
+				7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */,
 				71839C162A9B6A0D00250044 /* View+onFrameChange.swift in Sources */,
 				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
 				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
-				7150A7B12AA427F80045EA68 /* HotKey+Key.swift in Sources */,
+				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
 				71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */,
-				7150A7B32AA42B640045EA68 /* HotKey+Modifiers.swift in Sources */,
+				7150A7B32AA42B640045EA68 /* Hotkey+Modifiers.swift in Sources */,
 				7166834B2A76811C006ABF84 /* Logger.swift in Sources */,
 				71839BD82A997DC200250044 /* Edge+cgRectEdge.swift in Sources */,
 				71623BD32A8B6744002FD331 /* SettingsStyles.swift in Sources */,

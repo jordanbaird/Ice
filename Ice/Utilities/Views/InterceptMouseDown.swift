@@ -17,7 +17,9 @@ struct InterceptMouseDown: View {
         let shouldIntercept: Bool
 
         func makeNSView(context: Context) -> NSView {
-            inject(Represented()) { $0.shouldIntercept = shouldIntercept }
+            let view = Represented()
+            view.shouldIntercept = shouldIntercept
+            return view
         }
 
         func updateNSView(_: NSView, context: Context) { }

@@ -9,8 +9,16 @@ import Foundation
 /// A representation of a section in a status bar.
 final class StatusBarSection: ObservableObject {
     /// User-visible name that describes a status bar section.
-    struct Name: Codable, Hashable, RawRepresentable {
+    struct Name: Codable, ExpressibleByStringInterpolation, Hashable, RawRepresentable {
         var rawValue: String
+
+        init(rawValue: String) {
+            self.rawValue = rawValue
+        }
+
+        init(stringLiteral value: String) {
+            self.init(rawValue: value)
+        }
 
         static let alwaysVisible = Name(rawValue: "Always Visible")
         static let hidden = Name(rawValue: "Hidden")
@@ -35,6 +43,11 @@ final class StatusBarSection: ObservableObject {
         didSet {
             controlItem.statusBar = statusBar
         }
+    }
+
+    /// A Boolean value that indicates whether the section is enabled.
+    var isEnabled: Bool {
+        controlItem.isVisible
     }
 
     init(name: Name, controlItem: ControlItem, uuid: UUID = UUID()) {

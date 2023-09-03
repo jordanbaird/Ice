@@ -8,7 +8,7 @@ import SwiftUI
 
 private class KeyRecorderModel: ObservableObject {
     /// The key command managed by the model.
-    @Published var keyCommand: KeyCommand
+    @Published var keyCommand: KeyCommand?
 
     /// A Boolean value that indicates whether the key recorder
     /// is currently recording.
@@ -31,14 +31,20 @@ private class KeyRecorderModel: ObservableObject {
         .command: .command,
     ]
 
+    /// A Boolean value that indicates whether the key command
+    /// is currently enabled.
+    var isEnabled: Bool {
+        keyCommand?.isEnabled ?? false
+    }
+
     /// Creates a model for a key recorder that records user-chosen
     /// key combinations for a key command with the given name.
-    init(name: KeyCommand.Name) {
-        self.keyCommand = KeyCommand(name: name)
+    init(name: KeyCommand.Name?) {
+        self.keyCommand = name.map { KeyCommand(name: $0) }
         guard !ProcessInfo.processInfo.isPreview else {
             return
         }
-        self.keyCommand.enable()
+        self.keyCommand?.enable()
         self.monitor = LocalEventMonitor(mask: [.keyDown, .flagsChanged]) { [weak self] event in
             guard let self else {
                 return event
@@ -61,7 +67,7 @@ private class KeyRecorderModel: ObservableObject {
             return
         }
         isRecording = true
-        keyCommand.disable()
+        keyCommand?.disable()
         monitor?.start()
         pressedModifiers.removeAll()
     }
@@ -73,7 +79,7 @@ private class KeyRecorderModel: ObservableObject {
         }
         isRecording = false
         monitor?.stop()
-        keyCommand.enable()
+        keyCommand?.enable()
         pressedModifiers.removeAll()
     }
 
@@ -120,8 +126,8 @@ private class KeyRecorderModel: ObservableObject {
         }
         // if we made it this far, all checks passed; assign the
         // new key and modifiers and stop recording
-        keyCommand.key = key
-        keyCommand.modifiers = modifiers
+        keyCommand?.key = key
+        keyCommand?.modifiers = modifiers
         stopRecording()
     }
 
@@ -140,7 +146,7 @@ struct KeyRecorder: View {
 
     /// Creates a key recorder that records user-chosen key combinations
     /// for a key command with the given name.
-    init(name: KeyCommand.Name) {
+    init(name: KeyCommand.Name?) {
         let model = KeyRecorderModel(name: name)
         self._model = StateObject(wrappedValue: model)
     }
@@ -169,9 +175,9 @@ struct KeyRecorder: View {
         Button {
             if model.isRecording {
                 model.stopRecording()
-            } else if model.keyCommand.isEnabled {
-                model.keyCommand.key = nil
-                model.keyCommand.modifiers.removeAll()
+            } else if model.isEnabled {
+                model.keyCommand?.key = nil
+                model.keyCommand?.modifiers.removeAll()
             } else {
                 model.startRecording()
             }
@@ -209,7 +215,7 @@ struct KeyRecorder: View {
             } else {
                 Text("Type Hotkey")
             }
-        } else if model.keyCommand.isEnabled {
+        } else if model.isEnabled {
             HStack {
                 Text(modifiersString)
                 Text(keyString)
@@ -220,13 +226,13 @@ struct KeyRecorder: View {
     }
 
     private var modifiersString: String {
-        model.keyCommand.modifiers.lazy
+        model.keyCommand?.modifiers.lazy
             .map { $0.stringValue }
-            .joined()
+            .joined() ?? ""
     }
 
     private var keyString: String {
-        guard let key = model.keyCommand.key else {
+        guard let key = model.keyCommand?.key else {
             return ""
         }
         if key == .space {
@@ -239,7 +245,7 @@ struct KeyRecorder: View {
         if model.isRecording {
             return "escape"
         }
-        if model.keyCommand.isEnabled {
+        if model.isEnabled {
             return "xmark.circle.fill"
         }
         return "record.circle"
@@ -249,7 +255,7 @@ struct KeyRecorder: View {
         if model.isRecording {
             return ""
         }
-        if model.keyCommand.isEnabled {
+        if model.isEnabled {
             return "Click to record new hotkey"
         }
         return "Click to record hotkey"
@@ -259,7 +265,7 @@ struct KeyRecorder: View {
         if model.isRecording {
             return "Cancel recording"
         }
-        if model.keyCommand.isEnabled {
+        if model.isEnabled {
             return "Delete hotkey"
         }
         return "Click to record hotkey"
@@ -268,8 +274,15 @@ struct KeyRecorder: View {
 
 struct KeyRecorder_Previews: PreviewProvider {
     static var previews: some View {
-        KeyRecorder(name: .toggleSection(withName: .hidden))
-            .padding()
-            .buttonStyle(SettingsButtonStyle())
+        KeyRecorder(
+            name: .toggle(
+                section: StatusBarSection(
+                    name: "",
+                    controlItem: ControlItem()
+                )
+            )
+        )
+        .padding()
+        .buttonStyle(SettingsButtonStyle())
     }
 }

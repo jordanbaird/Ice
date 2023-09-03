@@ -45,7 +45,6 @@ class StatusBar: ObservableObject {
 
     init() {
         configureCancellables()
-        configureKeyCommands(for: [.hidden, .alwaysHidden])
     }
 
     /// Performs the initial setup of the status bar's control item list.
@@ -72,6 +71,8 @@ class StatusBar: ObservableObject {
                 return nil
             }
         }
+
+        configureKeyCommands(for: [.hidden, .alwaysHidden])
     }
 
     /// Save all control items in the status bar to persistent storage.
@@ -177,7 +178,10 @@ class StatusBar: ObservableObject {
             return
         }
         for name in sectionNames {
-            let keyCommand = KeyCommand(name: .toggleSection(withName: name))
+            guard let section = section(withName: name) else {
+                continue
+            }
+            let keyCommand = KeyCommand(name: .toggle(section: section))
             keyCommand.disablesOnMenuOpen = true
             keyCommand.observe(.keyDown) { [weak self] in
                 self?.toggleSection(withName: name)

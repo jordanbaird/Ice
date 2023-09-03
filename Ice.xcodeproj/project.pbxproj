@@ -28,7 +28,6 @@
 		71839BD82A997DC200250044 /* Edge+cgRectEdge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839BD72A997DC200250044 /* Edge+cgRectEdge.swift */; };
 		71839BE52A9A0A6100250044 /* PressActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839BE42A9A0A6100250044 /* PressActions.swift */; };
 		71839C072A9B4E2600250044 /* InterceptMouseDown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C062A9B4E2600250044 /* InterceptMouseDown.swift */; };
-		71839C092A9B527200250044 /* Injection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C082A9B527200250044 /* Injection.swift */; };
 		71839C162A9B6A0D00250044 /* View+onFrameChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C152A9B6A0D00250044 /* View+onFrameChange.swift */; };
 		71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */; };
 		71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */; };
@@ -63,7 +62,6 @@
 		71839BD72A997DC200250044 /* Edge+cgRectEdge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Edge+cgRectEdge.swift"; sourceTree = "<group>"; };
 		71839BE42A9A0A6100250044 /* PressActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PressActions.swift; sourceTree = "<group>"; };
 		71839C062A9B4E2600250044 /* InterceptMouseDown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterceptMouseDown.swift; sourceTree = "<group>"; };
-		71839C082A9B527200250044 /* Injection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Injection.swift; sourceTree = "<group>"; };
 		71839C152A9B6A0D00250044 /* View+onFrameChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+onFrameChange.swift"; sourceTree = "<group>"; };
 		71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSSplitViewItem+swizzledCanCollapse.swift"; sourceTree = "<group>"; };
 		71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
@@ -279,7 +277,6 @@
 			isa = PBXGroup;
 			children = (
 				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
-				71839C082A9B527200250044 /* Injection.swift */,
 				71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */,
 			);
 			path = Misc;
@@ -371,7 +368,6 @@
 				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
 				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
-				71839C092A9B527200250044 /* Injection.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,

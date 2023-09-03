@@ -283,7 +283,7 @@ final class ControlItem: ObservableObject {
                 keyEquivalent: ""
             )
             item.target = self
-            item.keyCommand = KeyCommand(name: .toggleSection(withName: name))
+            item.keyCommand = KeyCommand(name: .toggle(section: section))
             menu.addItem(item)
         }
 

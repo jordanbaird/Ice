@@ -31,12 +31,16 @@ struct GeneralSettingsPane: View {
                 footerView
             }
         }
-        .onChange(of: statusBar.isAlwaysHiddenSectionEnabled) { newValue in
-            statusBar.section(withName: .alwaysHidden)?.controlItem.isVisible = newValue
-            if newValue {
-                KeyCommand(name: .toggleSection(withName: .alwaysHidden)).enable()
+        .onChange(of: statusBar.section(withName: .alwaysHidden)?.isEnabled) { newValue in
+            let isEnabled = newValue ?? false
+            guard let section = statusBar.section(withName: .alwaysHidden) else {
+                return
+            }
+            section.controlItem.isVisible = isEnabled
+            if isEnabled {
+                KeyCommand(name: .toggle(section: section)).enable()
             } else {
-                KeyCommand(name: .toggleSection(withName: .alwaysHidden)).disable()
+                KeyCommand(name: .toggle(section: section)).disable()
             }
         }
         .padding()
@@ -85,8 +89,8 @@ struct GeneralSettingsPane: View {
                 .font(.system(size: 20, weight: .light))
 
             Grid {
-                LabeledKeyRecorder(name: .hidden)
-                LabeledKeyRecorder(name: .alwaysHidden)
+                LabeledKeyRecorder(sectionName: .hidden)
+                LabeledKeyRecorder(sectionName: .alwaysHidden)
             }
         }
         .padding()
@@ -116,11 +120,18 @@ struct GeneralSettingsPane: View {
 struct LabeledKeyRecorder: View {
     @EnvironmentObject var statusBar: StatusBar
 
-    let name: StatusBarSection.Name
+    let sectionName: StatusBarSection.Name
+
+    var keyCommandName: KeyCommand.Name? {
+        guard let section = statusBar.section(withName: sectionName) else {
+            return nil
+        }
+        return .toggle(section: section)
+    }
 
     var body: some View {
         if
-            let section = statusBar.section(withName: name),
+            let section = statusBar.section(withName: sectionName),
             statusBar.isSectionEnabled(section)
         {
             gridRow
@@ -133,8 +144,8 @@ struct LabeledKeyRecorder: View {
 
     private var gridRow: some View {
         GridRow {
-            Text("Toggle the \"\(name.rawValue)\" menu bar section")
-            KeyRecorder(name: .toggleSection(withName: name))
+            Text("Toggle the \"\(sectionName.rawValue)\" menu bar section")
+            KeyRecorder(name: keyCommandName)
         }
         .gridColumnAlignment(.leading)
     }

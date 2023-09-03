@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import SwiftKeys
 
 final class ControlItem: ObservableObject {
     /// A value representing the hiding state of a control item.
@@ -254,7 +253,7 @@ final class ControlItem: ObservableObject {
             guard let section else {
                 return
             }
-            statusBar.toggleSection(withName: section.name)
+            statusBar.toggle(section: section)
         case .rightMouseUp:
             statusItem.showMenu(createMenu(with: statusBar))
         default:
@@ -283,7 +282,10 @@ final class ControlItem: ObservableObject {
                 keyEquivalent: ""
             )
             item.target = self
-            item.keyCommand = KeyCommand(name: .toggle(section: section))
+            if let hotKey = section.hotKey {
+                item.keyEquivalent = hotKey.key.keyEquivalent
+                item.keyEquivalentModifierMask = hotKey.modifiers.nsEventFlags
+            }
             menu.addItem(item)
         }
 
@@ -312,7 +314,13 @@ final class ControlItem: ObservableObject {
 
     /// Action for a menu item in the control item's menu to perform.
     @objc private func runKeyCommandHandlers(for menuItem: NSMenuItem) {
-        menuItem.keyCommand?.runHandlers(for: .keyDown)
+        guard
+            let statusBar,
+            let section
+        else {
+            return
+        }
+        statusBar.toggle(section: section)
     }
 
     deinit {
@@ -330,10 +338,10 @@ final class ControlItem: ObservableObject {
 // MARK: ControlItem: Codable
 extension ControlItem: Codable {
     private enum CodingKeys: String, CodingKey {
-        case autosaveName = "AutosaveName"
-        case position = "Position"
-        case state = "State"
-        case isVisible = "Visible"
+        case autosaveName
+        case position
+        case state
+        case isVisible
     }
 
     convenience init(from decoder: Decoder) throws {

@@ -3,7 +3,6 @@
 //  Ice
 //
 
-import SwiftKeys
 import SwiftUI
 
 struct GeneralSettingsPane: View {
@@ -38,9 +37,9 @@ struct GeneralSettingsPane: View {
             }
             section.controlItem.isVisible = isEnabled
             if isEnabled {
-                KeyCommand(name: .toggle(section: section)).enable()
+                section.enableHotKey()
             } else {
-                KeyCommand(name: .toggle(section: section)).disable()
+                section.disableHotKey()
             }
         }
         .padding()
@@ -122,13 +121,6 @@ struct LabeledKeyRecorder: View {
 
     let sectionName: StatusBarSection.Name
 
-    var keyCommandName: KeyCommand.Name? {
-        guard let section = statusBar.section(withName: sectionName) else {
-            return nil
-        }
-        return .toggle(section: section)
-    }
-
     var body: some View {
         if
             let section = statusBar.section(withName: sectionName),
@@ -145,7 +137,7 @@ struct LabeledKeyRecorder: View {
     private var gridRow: some View {
         GridRow {
             Text("Toggle the \"\(sectionName.rawValue)\" menu bar section")
-            KeyRecorder(name: keyCommandName)
+            KeyRecorder(section: statusBar.section(withName: sectionName))
         }
         .gridColumnAlignment(.leading)
     }

@@ -12,8 +12,11 @@
 		7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */; };
 		7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED692A85870E000A7E1B /* SettingsView.swift */; };
 		7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED702A85AE6A000A7E1B /* SettingsNavigationItem.swift */; };
-		71623BBC2A8AD27B002FD331 /* SwiftKeys in Frameworks */ = {isa = PBXBuildFile; productRef = 71623BBB2A8AD27A002FD331 /* SwiftKeys */; };
-		71623BBF2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BBE2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift */; };
+		7150A7AD2AA4265F0045EA68 /* HotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7AC2AA4265F0045EA68 /* HotKey.swift */; };
+		7150A7AF2AA426C60045EA68 /* HotKeyRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7AE2AA426C60045EA68 /* HotKeyRegistry.swift */; };
+		7150A7B12AA427F80045EA68 /* HotKey+Key.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B02AA427F80045EA68 /* HotKey+Key.swift */; };
+		7150A7B32AA42B640045EA68 /* HotKey+Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B22AA42B640045EA68 /* HotKey+Modifiers.swift */; };
+		7150A7B52AA42BEA0045EA68 /* HotKeyError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B42AA42BEA0045EA68 /* HotKeyError.swift */; };
 		71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */; };
 		71623BD32A8B6744002FD331 /* SettingsStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BD22A8B6744002FD331 /* SettingsStyles.swift */; };
 		7162406F2AA0A323003EC671 /* StatusBarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7162406E2AA0A323003EC671 /* StatusBarSection.swift */; };
@@ -45,7 +48,11 @@
 		7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+windowWithIdentifier.swift"; sourceTree = "<group>"; };
 		7133ED692A85870E000A7E1B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7133ED702A85AE6A000A7E1B /* SettingsNavigationItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNavigationItem.swift; sourceTree = "<group>"; };
-		71623BBE2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyCommand.Name+toggle.swift"; sourceTree = "<group>"; };
+		7150A7AC2AA4265F0045EA68 /* HotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKey.swift; sourceTree = "<group>"; };
+		7150A7AE2AA426C60045EA68 /* HotKeyRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyRegistry.swift; sourceTree = "<group>"; };
+		7150A7B02AA427F80045EA68 /* HotKey+Key.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HotKey+Key.swift"; sourceTree = "<group>"; };
+		7150A7B22AA42B640045EA68 /* HotKey+Modifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HotKey+Modifiers.swift"; sourceTree = "<group>"; };
+		7150A7B42AA42BEA0045EA68 /* HotKeyError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyError.swift; sourceTree = "<group>"; };
 		71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsPane.swift; sourceTree = "<group>"; };
 		71623BD22A8B6744002FD331 /* SettingsStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStyles.swift; sourceTree = "<group>"; };
 		7162406E2AA0A323003EC671 /* StatusBarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarSection.swift; sourceTree = "<group>"; };
@@ -78,7 +85,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71623BBC2A8AD27B002FD331 /* SwiftKeys in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,12 +111,16 @@
 			path = Settings;
 			sourceTree = "<group>";
 		};
-		71623BBD2A8AD4D1002FD331 /* KeyCommand.Name */ = {
+		7150A7AB2AA4262F0045EA68 /* HotKey */ = {
 			isa = PBXGroup;
 			children = (
-				71623BBE2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift */,
+				7150A7AC2AA4265F0045EA68 /* HotKey.swift */,
+				7150A7B02AA427F80045EA68 /* HotKey+Key.swift */,
+				7150A7B22AA42B640045EA68 /* HotKey+Modifiers.swift */,
+				7150A7B42AA42BEA0045EA68 /* HotKeyError.swift */,
+				7150A7AE2AA426C60045EA68 /* HotKeyRegistry.swift */,
 			);
-			path = KeyCommand.Name;
+			path = HotKey;
 			sourceTree = "<group>";
 		};
 		7162406A2A9F1565003EC671 /* Helpers */ = {
@@ -176,7 +186,6 @@
 			isa = PBXGroup;
 			children = (
 				71839BD62A997DA300250044 /* Edge */,
-				71623BBD2A8AD4D1002FD331 /* KeyCommand.Name */,
 				716683442A76811C006ABF84 /* Logger */,
 				7133ED5F2A855ADA000A7E1B /* NSApplication */,
 				716683462A76811C006ABF84 /* NSStatusItem */,
@@ -213,6 +222,7 @@
 		7166834D2A768184006ABF84 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				7150A7AB2AA4262F0045EA68 /* HotKey */,
 				7133ED662A858230000A7E1B /* Settings */,
 				7166834E2A768190006ABF84 /* StatusBar */,
 			);
@@ -299,7 +309,6 @@
 			);
 			name = Ice;
 			packageProductDependencies = (
-				71623BBB2A8AD27A002FD331 /* SwiftKeys */,
 			);
 			productName = Ice;
 			productReference = 7166832A2A767E6A006ABF84 /* Ice.app */;
@@ -359,19 +368,23 @@
 			files = (
 				71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */,
 				71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
+				7150A7AF2AA426C60045EA68 /* HotKeyRegistry.swift in Sources */,
 				7162406F2AA0A323003EC671 /* StatusBarSection.swift in Sources */,
+				7150A7B52AA42BEA0045EA68 /* HotKeyError.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,
 				7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
+				7150A7AD2AA4265F0045EA68 /* HotKey.swift in Sources */,
 				71839C162A9B6A0D00250044 /* View+onFrameChange.swift in Sources */,
-				71623BBF2A8AD4F6002FD331 /* KeyCommand.Name+toggle.swift in Sources */,
 				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
 				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
+				7150A7B12AA427F80045EA68 /* HotKey+Key.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
 				71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */,
+				7150A7B32AA42B640045EA68 /* HotKey+Modifiers.swift in Sources */,
 				7166834B2A76811C006ABF84 /* Logger.swift in Sources */,
 				71839BD82A997DC200250044 /* Edge+cgRectEdge.swift in Sources */,
 				71623BD32A8B6744002FD331 /* SettingsStyles.swift in Sources */,
@@ -591,14 +604,6 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		71623BBB2A8AD27A002FD331 /* SwiftKeys */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 71623BBA2A8AD27A002FD331 /* XCRemoteSwiftPackageReference "SwiftKeys" */;
-			productName = SwiftKeys;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 716683222A767E6A006ABF84 /* Project object */;
 }

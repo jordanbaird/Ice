@@ -5,7 +5,6 @@
 
 import Combine
 import OSLog
-import SwiftKeys
 
 /// Manager for the state of items in the status bar.
 class StatusBar: ObservableObject {
@@ -71,8 +70,6 @@ class StatusBar: ObservableObject {
                 return nil
             }
         }
-
-        configureKeyCommands(for: [.hidden, .alwaysHidden])
     }
 
     /// Save all control items in the status bar to persistent storage.
@@ -172,23 +169,6 @@ class StatusBar: ObservableObject {
             .store(in: &cancellables)
     }
 
-    /// Set up key commands for the sections with the given names.
-    private func configureKeyCommands(for sectionNames: [StatusBarSection.Name]) {
-        guard !ProcessInfo.processInfo.isPreview else {
-            return
-        }
-        for name in sectionNames {
-            guard let section = section(withName: name) else {
-                continue
-            }
-            let keyCommand = KeyCommand(name: .toggle(section: section))
-            keyCommand.disablesOnMenuOpen = true
-            keyCommand.observe(.keyDown) { [weak self] in
-                self?.toggleSection(withName: name)
-            }
-        }
-    }
-
     /// Returns the status bar section with the given name.
     func section(withName name: StatusBarSection.Name) -> StatusBarSection? {
         return sections.first { $0.name == name }
@@ -278,11 +258,7 @@ class StatusBar: ObservableObject {
     }
 
     /// Toggles the visibility of the status items in the given section.
-    func toggleSection(withName name: StatusBarSection.Name) {
-        guard let section = section(withName: name) else {
-            Logger.statusBar.warning("Missing section for name \(name.rawValue)")
-            return
-        }
+    func toggle(section: StatusBarSection) {
         switch section.controlItem.state {
         case .hideItems:
             showSection(withName: section.name)

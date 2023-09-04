@@ -177,7 +177,7 @@
 				716683412A76811C006ABF84 /* Extensions */,
 				71FEA25A2A8DA1D60048341A /* Misc */,
 				71D36C492A88EDD200D89CD5 /* Swizzling */,
-				71D36C522A89443800D89CD5 /* Views */,
+				71D36C522A89443800D89CD5 /* UI */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -263,7 +263,7 @@
 			path = Swizzling;
 			sourceTree = "<group>";
 		};
-		71D36C522A89443800D89CD5 /* Views */ = {
+		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
 				71FEA24D2A8C96680048341A /* EnvironmentReader.swift */,
@@ -271,7 +271,7 @@
 				71839BE42A9A0A6100250044 /* PressActions.swift */,
 				71D36C532A89445C00D89CD5 /* VisualEffectView.swift */,
 			);
-			path = Views;
+			path = UI;
 			sourceTree = "<group>";
 		};
 		71D36C562A896ED700D89CD5 /* DictionarySerialization */ = {

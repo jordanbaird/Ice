@@ -119,6 +119,7 @@
 				7150A7B22AA42B640045EA68 /* Hotkey+Modifiers.swift */,
 				7150A7B42AA42BEA0045EA68 /* HotkeyError.swift */,
 				7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */,
+				71FEA24F2A8D5D590048341A /* KeyRecorder.swift */,
 			);
 			path = Hotkey;
 			sourceTree = "<group>";
@@ -126,7 +127,6 @@
 		7162406A2A9F1565003EC671 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
-				71FEA24F2A8D5D590048341A /* KeyRecorder.swift */,
 				7133ED702A85AE6A000A7E1B /* SettingsNavigationItem.swift */,
 				71623BD22A8B6744002FD331 /* SettingsStyles.swift */,
 			);

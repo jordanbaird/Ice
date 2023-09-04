@@ -3,6 +3,9 @@
 //  Ice
 //
 
+import Carbon.HIToolbox
+import OSLog
+
 /// A combination of keys that can be used to listen for system-wide key
 /// events, triggering an action whenever the combination is pressed.
 struct Hotkey: Codable, Hashable {
@@ -11,6 +14,10 @@ struct Hotkey: Codable, Hashable {
     /// The modifiers component of the hot key.
     var modifiers: Modifiers
 
+    var stringValue: String {
+        key.stringValue + modifiers.stringValue
+    }
+
     /// Creates a hot key with the given key and modifiers.
     /// - Parameters:
     ///   - key: The key component of the hot key.
@@ -18,6 +25,55 @@ struct Hotkey: Codable, Hashable {
     init(key: Key, modifiers: Modifiers) {
         self.key = key
         self.modifiers = modifiers
+    }
+}
+
+extension Hotkey {
+    static var reservedHotkeys: [Hotkey] {
+        var symbolicHotkeys: Unmanaged<CFArray>?
+        let status = CopySymbolicHotKeys(&symbolicHotkeys)
+        guard status == noErr else {
+            Logger.hotkey.hotkeyError(
+                HotkeyError.systemRetrievalFailed
+                    .reason("CopySymbolicHotKeys returned invalid status")
+                    .status(status)
+            )
+            return []
+        }
+        guard let reservedHotkeys = symbolicHotkeys?.takeRetainedValue() as? [[String: Any]] else {
+            Logger.hotkey.hotkeyError(
+                HotkeyError.systemRetrievalFailed
+                    .reason("Failed to serialize symbolic hotkeys")
+            )
+            return []
+        }
+        return reservedHotkeys.compactMap { hotkey in
+            guard
+                hotkey[kHISymbolicHotKeyEnabled] as? Bool == true,
+                let keyCode = hotkey[kHISymbolicHotKeyCode] as? Int,
+                let carbonModifiers = hotkey[kHISymbolicHotKeyModifiers] as? Int
+            else {
+                return nil
+            }
+            return Hotkey(
+                key: Key(rawValue: keyCode),
+                modifiers: Modifiers(carbonFlags: carbonModifiers)
+            )
+        }
+    }
+
+    /// Returns a Boolean value that indicates whether the given key-modifier
+    /// combination is reserved for system use.
+    ///
+    /// - Parameters:
+    ///   - key: The key to look for in the system.
+    ///   - modifiers: The modifiers to look for in the system.
+    ///
+    /// - Returns: `true` if the system reserves the given key-modifier combination
+    ///   for its own use. `false` otherwise.
+    static func isReservedBySystem(key: Key, modifiers: Modifiers) -> Bool {
+        let hotkey = Hotkey(key: key, modifiers: modifiers)
+        return reservedHotkeys.contains(hotkey)
     }
 }
 

@@ -92,29 +92,29 @@ private class KeyRecorderModel: ObservableObject {
         // convert the event's key code and modifiers
         let key = Hotkey.Key(rawValue: Int(event.keyCode))
         let modifiers = Hotkey.Modifiers(nsEventFlags: event.modifierFlags)
-        guard !modifiers.isEmpty else {
+        if modifiers.isEmpty {
             if key == .escape {
-                // escape was pressed with no modifiers; cancel recording
+                // cancel when escape is pressed with no modifiers
                 stopRecording()
             } else {
-                // at least one modifier key is required
+                // require at least one modifier
                 // TODO: alert the user of the error
                 NSSound.beep()
             }
             return
         }
-        guard modifiers != [.shift] else {
-            // shift by itself can't be used as a modifier key
+        if modifiers == .shift {
+            // shift can't be the only modifier
             // TODO: alert the user of the error
             NSSound.beep()
             return
         }
-        // guard !HotKey.isReservedBySystem(key: key, modifiers: modifiers) else {
-        //     // hotkey is reserved by the system
-        //     // TODO: alert the user of the error
-        //     NSSound.beep()
-        //     return
-        // }
+        if Hotkey.isReservedBySystem(key: key, modifiers: modifiers) {
+            // hotkey is reserved by the system
+            // TODO: alert the user of the error
+            NSSound.beep()
+            return
+        }
         // if we made it this far, all checks passed; assign the
         // new hotkey and stop recording
         section?.hotkey = Hotkey(key: key, modifiers: modifiers)

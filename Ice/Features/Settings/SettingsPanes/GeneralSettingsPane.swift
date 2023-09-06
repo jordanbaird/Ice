@@ -7,7 +7,7 @@ import SwiftUI
 
 struct GeneralSettingsPane: View {
     @EnvironmentObject var statusBar: StatusBar
-    @State private var failureReason: KeyRecorder.FailureReason?
+    @State private var failureReason: HotkeyRecorder.FailureReason?
 
     var body: some View {
         ZStack {
@@ -96,8 +96,14 @@ struct GeneralSettingsPane: View {
                 .font(.system(size: 20, weight: .light))
 
             Grid {
-                LabeledKeyRecorder(sectionName: .hidden, failureReason: $failureReason)
-                LabeledKeyRecorder(sectionName: .alwaysHidden, failureReason: $failureReason)
+                LabeledHotkeyRecorder(
+                    sectionName: .hidden,
+                    failureReason: $failureReason
+                )
+                LabeledHotkeyRecorder(
+                    sectionName: .alwaysHidden,
+                    failureReason: $failureReason
+                )
             }
         }
         .padding()
@@ -163,14 +169,18 @@ struct GeneralSettingsPane: View {
     }
 }
 
-struct LabeledKeyRecorder: View {
+struct LabeledHotkeyRecorder: View {
+    typealias FailureReason = HotkeyRecorder.FailureReason
+
     @EnvironmentObject var statusBar: StatusBar
-    @Binding var failureReason: KeyRecorder.FailureReason?
+
+    @Binding var failureReason: FailureReason?
+
     @State private var timer: Timer?
 
     let sectionName: StatusBarSection.Name
 
-    init(sectionName: StatusBarSection.Name, failureReason: Binding<KeyRecorder.FailureReason?>) {
+    init(sectionName: StatusBarSection.Name, failureReason: Binding<FailureReason?>) {
         self.sectionName = sectionName
         self._failureReason = failureReason
     }
@@ -202,7 +212,7 @@ struct LabeledKeyRecorder: View {
         GridRow {
             Text("Toggle the \"\(sectionName.rawValue)\" menu bar section")
 
-            KeyRecorder(section: statusBar.section(withName: sectionName)) { failureReason in
+            HotkeyRecorder(section: statusBar.section(withName: sectionName)) { failureReason in
                 if self.failureReason == nil {
                     withAnimation {
                         self.failureReason = failureReason

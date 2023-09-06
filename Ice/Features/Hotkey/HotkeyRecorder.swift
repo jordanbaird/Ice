@@ -1,16 +1,16 @@
 //
-//  KeyRecorder.swift
+//  HotkeyRecorder.swift
 //  Ice
 //
 
 import Combine
 import SwiftUI
 
-/// Model for a key recorder's state.
-private class KeyRecorderModel: ObservableObject {
+/// Model for a hotkey recorder's state.
+private class HotkeyRecorderModel: ObservableObject {
     /// An alias for a type that describes the reason why recording
     /// a hotkey failed.
-    typealias FailureReason = KeyRecorder.FailureReason
+    typealias FailureReason = HotkeyRecorder.FailureReason
 
     /// Retained observers to help manage the state of the model.
     private var cancellables = Set<AnyCancellable>()
@@ -18,17 +18,17 @@ private class KeyRecorderModel: ObservableObject {
     /// The section managed by the model.
     let section: StatusBarSection?
 
-    /// A Boolean value that indicates whether the key recorder
+    /// A Boolean value that indicates whether the hotkey recorder
     /// is currently recording.
     @Published private(set) var isRecording = false
 
-    /// Strings representing the currently pressed modifiers when
-    /// the key recorder is recording. Empty if the key recorder
-    /// is not recording.
+    /// Strings representing the currently pressed modifiers when the
+    /// hotkey recorder is recording. Empty if the hotkey recorder is
+    /// not recording.
     @Published private(set) var pressedModifierStrings = [String]()
 
     /// A closure that handles recording failures.
-    private let handleFailure: (KeyRecorderModel, FailureReason) -> Void
+    private let handleFailure: (HotkeyRecorderModel, FailureReason) -> Void
 
     /// Local event monitor that listens for key down events and
     /// modifier flag changes.
@@ -38,7 +38,7 @@ private class KeyRecorderModel: ObservableObject {
     /// currently enabled.
     var isEnabled: Bool { section?.hotkeyIsEnabled ?? false }
 
-    /// Creates a model for a key recorder that records user-chosen
+    /// Creates a model for a hotkey recorder that records user-chosen
     /// key combinations for the given section's hotkey.
     init(section: StatusBarSection?, onFailure: @escaping (FailureReason) -> Void) {
         defer {
@@ -48,8 +48,8 @@ private class KeyRecorderModel: ObservableObject {
         self.handleFailure = { model, failureReason in
             // immediately remove the modifier strings, before the failure
             // handler is even performed; it looks weird to have the pressed
-            // modifiers displayed in the key recorder at the same time as
-            // a failure
+            // modifiers displayed in the hotkey recorder at the same time
+            // as a failure
             model.pressedModifierStrings.removeAll()
             onFailure(failureReason)
         }
@@ -106,7 +106,7 @@ private class KeyRecorderModel: ObservableObject {
         pressedModifierStrings = []
     }
 
-    /// Handles local key down events when the key recorder is recording.
+    /// Handles local key down events when the hotkey recorder is recording.
     private func handleKeyDown(event: NSEvent) {
         // convert the event's key code and modifiers
         let key = Hotkey.Key(rawValue: Int(event.keyCode))
@@ -138,7 +138,7 @@ private class KeyRecorderModel: ObservableObject {
         stopRecording()
     }
 
-    /// Handles modifier flag changes when the key recorder is recording.
+    /// Handles modifier flag changes when the hotkey recorder is recording.
     private func handleFlagsChanged(event: NSEvent) {
         pressedModifierStrings = Hotkey.Modifiers.canonicalOrder.compactMap {
             event.modifierFlags.contains($0.nsEventFlags) ? $0.stringValue : nil
@@ -147,7 +147,7 @@ private class KeyRecorderModel: ObservableObject {
 }
 
 /// A view that records user-chosen key combinations for a hotkey.
-struct KeyRecorder: View {
+struct HotkeyRecorder: View {
     /// A type that describes the reason why recording a hotkey failed.
     enum FailureReason: Hashable {
         case emptyModifiers
@@ -167,20 +167,20 @@ struct KeyRecorder: View {
         }
     }
 
-    /// The model that manages the recorder.
-    @StateObject private var model: KeyRecorderModel
+    /// The model that manages the hotkey recorder.
+    @StateObject private var model: HotkeyRecorderModel
 
-    /// The key recorder's frame.
+    /// The hotkey recorder's frame.
     @State private var frame: CGRect = .zero
 
     /// A Boolean value that indicates whether the mouse is currently
-    /// inside the bounds of the key recorder's second segment.
+    /// inside the bounds of the hotkey recorder's second segment.
     @State private var isInsideSegment2 = false
 
-    /// Creates a key recorder that records user-chosen key combinations
-    /// for the given section.
+    /// Creates a hotkey recorder that records user-chosen key
+    /// combinations for the given section.
     init(section: StatusBarSection?, onFailure: @escaping (FailureReason) -> Void) {
-        let model = KeyRecorderModel(section: section, onFailure: onFailure)
+        let model = HotkeyRecorderModel(section: section, onFailure: onFailure)
         self._model = StateObject(wrappedValue: model)
     }
 
@@ -300,9 +300,9 @@ struct KeyRecorder: View {
     }
 }
 
-struct KeyRecorder_Previews: PreviewProvider {
+struct HotkeyRecorder_Previews: PreviewProvider {
     static var previews: some View {
-        KeyRecorder(section: nil) { _ in }
+        HotkeyRecorder(section: nil) { _ in }
             .padding()
             .buttonStyle(SettingsButtonStyle())
     }

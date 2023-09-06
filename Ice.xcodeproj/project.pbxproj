@@ -38,7 +38,7 @@
 		71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */; };
 		71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */; };
 		71FEA24E2A8C96680048341A /* EnvironmentReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA24D2A8C96680048341A /* EnvironmentReader.swift */; };
-		71FEA2502A8D5D590048341A /* KeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA24F2A8D5D590048341A /* KeyRecorder.swift */; };
+		71FEA2502A8D5D590048341A /* HotkeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */; };
 		71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */; };
 /* End PBXBuildFile section */
 
@@ -76,7 +76,7 @@
 		71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryEncoder.swift; sourceTree = "<group>"; };
 		71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryDecoder.swift; sourceTree = "<group>"; };
 		71FEA24D2A8C96680048341A /* EnvironmentReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentReader.swift; sourceTree = "<group>"; };
-		71FEA24F2A8D5D590048341A /* KeyRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyRecorder.swift; sourceTree = "<group>"; };
+		71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorder.swift; sourceTree = "<group>"; };
 		71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalEventMonitor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -119,7 +119,7 @@
 				7150A7B22AA42B640045EA68 /* Hotkey+Modifiers.swift */,
 				7150A7B42AA42BEA0045EA68 /* HotkeyError.swift */,
 				7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */,
-				71FEA24F2A8D5D590048341A /* KeyRecorder.swift */,
+				71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */,
 			);
 			path = Hotkey;
 			sourceTree = "<group>";
@@ -394,7 +394,7 @@
 				71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				71FEA24E2A8C96680048341A /* EnvironmentReader.swift in Sources */,
-				71FEA2502A8D5D590048341A /* KeyRecorder.swift in Sources */,
+				71FEA2502A8D5D590048341A /* HotkeyRecorder.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
 				71839BE52A9A0A6100250044 /* PressActions.swift in Sources */,
 				71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */,

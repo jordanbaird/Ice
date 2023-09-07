@@ -192,13 +192,6 @@ final class ControlItem: ObservableObject {
                 statusBar?.needsSave = true
             }
             .store(in: &cancellables)
-
-        // TODO: This should probably live in the status bar, not here.
-        objectWillChange
-            .sink { [weak statusBar] in
-                statusBar?.objectWillChange.send()
-            }
-            .store(in: &cancellables)
     }
 
     /// Updates the control item's status item to match its current state.

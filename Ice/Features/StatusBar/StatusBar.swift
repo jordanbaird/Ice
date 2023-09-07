@@ -11,7 +11,10 @@ class StatusBar: ObservableObject {
     private let encoder = DictionaryEncoder()
     private let decoder = DictionaryDecoder()
 
+    /// Observers that manage the key state of the status bar.
     private var cancellables = Set<AnyCancellable>()
+
+    /// Combined hash of the most recently saved sections.
     private var lastSavedHash: Int?
 
     /// Set to `true` to tell the status bar to save its sections.
@@ -42,6 +45,7 @@ class StatusBar: ObservableObject {
         set { section(withName: .alwaysHidden)?.controlItem.isVisible = newValue }
     }
 
+    /// Initializes a new status bar instance.
     init() {
         configureCancellables()
     }
@@ -167,6 +171,14 @@ class StatusBar: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        // propagate changes up from each section
+        for section in sections {
+            section.objectWillChange.sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+        }
     }
 
     /// Returns the status bar section with the given name.

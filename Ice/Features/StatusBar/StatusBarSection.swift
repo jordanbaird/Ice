@@ -8,6 +8,9 @@ import Foundation
 
 /// A representation of a section in a status bar.
 final class StatusBarSection: ObservableObject {
+
+    // MARK: Name
+
     /// User-visible name that describes a status bar section.
     struct Name: Codable, ExpressibleByStringInterpolation, Hashable, RawRepresentable {
         var rawValue: String
@@ -20,11 +23,20 @@ final class StatusBarSection: ObservableObject {
             self.init(rawValue: value)
         }
 
+        /// The name for the always-visible section.
         static let alwaysVisible = Name(rawValue: "Always Visible")
+
+        /// The name for the hidden section.
         static let hidden = Name(rawValue: "Hidden")
+
+        /// The name for the always-hidden section.
         static let alwaysHidden = Name(rawValue: "Always Hidden")
     }
 
+    /// Observers that manage the key state of the section.
+    private var cancellables = Set<AnyCancellable>()
+
+    /// A value that manages the lifetime of the hotkey's observation.
     private var listener: Hotkey.Listener?
 
     /// User-visible name that describes the section.
@@ -34,9 +46,11 @@ final class StatusBarSection: ObservableObject {
     @Published var controlItem: ControlItem {
         didSet {
             controlItem.updateStatusItem()
+            configureCancellables()
         }
     }
 
+    /// The hotkey associated with the section.
     @Published var hotkey: Hotkey? {
         didSet {
             if listener != nil {
@@ -61,18 +75,37 @@ final class StatusBarSection: ObservableObject {
         controlItem.isVisible
     }
 
+    /// A Boolean value that indicates whether the section's hotkey is
+    /// enabled.
     var hotkeyIsEnabled: Bool {
         listener != nil
     }
 
+    /// Creates a status bar section with the given name, control item,
+    /// hotkey, and unique identifier.
     init(name: Name, controlItem: ControlItem, hotkey: Hotkey? = nil, uuid: UUID = UUID()) {
         self.name = name
         self.controlItem = controlItem
         self.hotkey = hotkey
         self.uuid = uuid
         enableHotkey()
+        configureCancellables()
     }
 
+    /// Set up a series of cancellables to respond to important changes
+    /// in the section's state.
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        // propagate changes from the section's control item
+        c.insert(controlItem.objectWillChange.sink { [weak self] in
+            self?.objectWillChange.send()
+        })
+
+        cancellables = c
+    }
+
+    /// Enables the hotkey associated with the section.
     func enableHotkey() {
         listener = hotkey?.onKeyDown { [weak self] in
             guard let self else {
@@ -82,12 +115,14 @@ final class StatusBarSection: ObservableObject {
         }
     }
 
+    /// Disables the hotkey associated with the section.
     func disableHotkey() {
         listener?.invalidate()
         listener = nil
     }
 }
 
+// MARK: StatusBarSection: Codable
 extension StatusBarSection: Codable {
     private enum CodingKeys: String, CodingKey {
         case name
@@ -115,6 +150,7 @@ extension StatusBarSection: Codable {
     }
 }
 
+// MARK: StatusBarSection: Equatable
 extension StatusBarSection: Equatable {
     static func == (lhs: StatusBarSection, rhs: StatusBarSection) -> Bool {
         lhs.name == rhs.name &&
@@ -124,6 +160,7 @@ extension StatusBarSection: Equatable {
     }
 }
 
+// MARK: StatusBarSection: Hashable
 extension StatusBarSection: Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(name)

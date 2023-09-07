@@ -6,11 +6,15 @@
 import Foundation
 import OSLog
 
+/// An error that can occur during hotkey operations.
 struct HotkeyError: Error, CustomStringConvertible {
+    /// The message associated with the error.
     let message: String
 
+    /// The status code associated with the error.
     let status: OSStatus?
 
+    /// The failure reason associated with the error.
     let reason: String?
 
     var description: String {
@@ -24,16 +28,25 @@ struct HotkeyError: Error, CustomStringConvertible {
         return components.joined(separator: " ")
     }
 
+    /// Creates a hotkey error with the given message, status code,
+    /// and failure reason.
+    ///
+    /// - Parameters:
+    ///   - message: The message associated with the error.
+    ///   - status: The status code associated with the error.
+    ///   - reason: The failure reason associated with the error.
     init(message: String, status: OSStatus? = nil, reason: String? = nil) {
         self.message = message
         self.status = status
         self.reason = reason
     }
 
+    /// Returns a hotkey error with the given status code.
     func status(_ status: OSStatus) -> HotkeyError {
         HotkeyError(message: message, status: status, reason: reason)
     }
 
+    /// Returns a hotkey error with the given failure reason.
     func reason(_ reason: String) -> HotkeyError {
         HotkeyError(message: message, status: status, reason: reason)
     }

@@ -29,6 +29,7 @@ struct Hotkey: Codable, Hashable {
 }
 
 extension Hotkey {
+    /// An array hotkeys reserved by the system.
     static var reservedHotkeys: [Hotkey] {
         var symbolicHotkeys: Unmanaged<CFArray>?
         let status = CopySymbolicHotKeys(&symbolicHotkeys)

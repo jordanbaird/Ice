@@ -6,12 +6,16 @@
 import Cocoa
 import Combine
 
+/// A box around a status item that controls the visibility of a
+/// status bar section.
 final class ControlItem: ObservableObject {
     /// A value representing the hiding state of a control item.
-    enum State: RawRepresentable, Hashable, Codable {
-        /// Status items in the control item's section are hidden.
+    enum HidingState: RawRepresentable, Hashable, Codable {
+        /// Status items in the control item's status bar section
+        /// are hidden.
         case hideItems(isExpanded: Bool)
-        /// Status items in the control item's section are visible.
+        /// Status items in the control item's status bar section
+        /// are visible.
         case showItems
 
         var rawValue: Int {
@@ -32,13 +36,18 @@ final class ControlItem: ObservableObject {
         }
     }
 
+    /// The length of a control item that is not currently hiding
+    /// its status bar section.
     static let standardLength: CGFloat = 25
 
+    /// The length of a control item that is currently hiding its
+    /// status bar section.
     static let expandedLength: CGFloat = 10_000
 
     /// The underlying status item associated with the control item.
     private let statusItem: NSStatusItem
 
+    /// Observers that manage the key state of the control item.
     private var cancellables = Set<AnyCancellable>()
 
     /// The control item's autosave name.
@@ -53,7 +62,7 @@ final class ControlItem: ObservableObject {
         }
     }
 
-    /// The control item's section in the status bar.
+    /// The status bar section associated with the control item.
     var section: StatusBarSection? {
         statusBar?.section(for: self)
     }
@@ -68,20 +77,29 @@ final class ControlItem: ObservableObject {
     /// is enabled.
     @Published var isVisible: Bool
 
-    /// The state of the control item.
+    /// The hiding state of the control item.
     ///
     /// Setting this value marks the item as needing an update.
-    @Published var state: State {
+    @Published var state: HidingState {
         didSet {
             updateStatusItem()
         }
     }
 
+    /// Creates a control item with the given autosave name, position,
+    /// visibility, and hiding state.
+    ///
+    /// - Parameters:
+    ///   - autosaveName: The control item's autosave name.
+    ///   - position: The position of the control item in the status bar.
+    ///   - isVisible: A Boolean value that indicates whether the control
+    ///     item is visible.
+    ///   - state: The hiding state of the control item.
     init(
         autosaveName: String? = nil,
         position: CGFloat? = nil,
         isVisible: Bool = true,
-        state: State? = nil
+        state: HidingState? = nil
     ) {
         let autosaveName = autosaveName ?? UUID().uuidString
         if isVisible {
@@ -120,6 +138,8 @@ final class ControlItem: ObservableObject {
         button.sendAction(on: [.leftMouseDown, .rightMouseUp])
     }
 
+    /// Set up a series of observers to respond to important changes
+    /// in the control item's state.
     private func configureCancellables() {
         // cancel and remove all current cancellables
         for cancellable in cancellables {
@@ -173,6 +193,7 @@ final class ControlItem: ObservableObject {
             }
             .store(in: &cancellables)
 
+        // TODO: This should probably live in the status bar, not here.
         objectWillChange
             .sink { [weak statusBar] in
                 statusBar?.objectWillChange.send()
@@ -277,8 +298,8 @@ final class ControlItem: ObservableObject {
                 continue
             }
             let item = NSMenuItem(
-                title: (statusBar.isSectionHidden(section) ? "Show" : "Hide") + " \"\(name.rawValue)\" Section",
-                action: #selector(runKeyCommandHandlers),
+                title: "\(statusBar.isSectionHidden(section) ? "Show" : "Hide") \"\(name.rawValue)\" Section",
+                action: #selector(toggleStatusBarSection),
                 keyEquivalent: ""
             )
             item.target = self
@@ -313,7 +334,7 @@ final class ControlItem: ObservableObject {
     }
 
     /// Action for a menu item in the control item's menu to perform.
-    @objc private func runKeyCommandHandlers(for menuItem: NSMenuItem) {
+    @objc private func toggleStatusBarSection(for menuItem: NSMenuItem) {
         guard
             let statusBar,
             let section
@@ -350,7 +371,7 @@ extension ControlItem: Codable {
             autosaveName: container.decode(String.self, forKey: .autosaveName),
             position: container.decode(CGFloat.self, forKey: .position),
             isVisible: container.decode(Bool.self, forKey: .isVisible),
-            state: container.decode(State.self, forKey: .state)
+            state: container.decode(HidingState.self, forKey: .state)
         )
     }
 

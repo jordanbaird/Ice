@@ -34,7 +34,7 @@ struct VisualEffectView: NSViewRepresentable {
         self.isEmphasized = isEmphasized
     }
 
-    func makeNSView(context: Context) -> NSVisualEffectView {
+    func makeNSView(context: Context) -> NSView {
         let nsView = NSVisualEffectView()
         nsView.material = material
         nsView.blendingMode = blendingMode
@@ -43,5 +43,5 @@ struct VisualEffectView: NSViewRepresentable {
         return nsView
     }
 
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) { }
+    func updateNSView(_: NSView, context: Context) { }
 }

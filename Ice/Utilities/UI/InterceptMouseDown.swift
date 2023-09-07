@@ -8,7 +8,7 @@ import SwiftUI
 /// A view that prevents mouse down events from being passed
 /// down to its superviews.
 struct InterceptMouseDown: View {
-    private class Represented: NSView {
+    private class MouseDownInterceptorView: NSView {
         var shouldIntercept = true
         override var mouseDownCanMoveWindow: Bool { !shouldIntercept }
     }
@@ -17,7 +17,7 @@ struct InterceptMouseDown: View {
         let shouldIntercept: Bool
 
         func makeNSView(context: Context) -> NSView {
-            let view = Represented()
+            let view = MouseDownInterceptorView()
             view.shouldIntercept = shouldIntercept
             return view
         }

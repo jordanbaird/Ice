@@ -97,7 +97,7 @@ extension Hotkey {
 extension Hotkey {
     /// A type that manges the lifetime of hot key observations.
     struct Listener {
-        private class Context {
+        private class HotkeyListenerContext {
             private var id: UInt32?
 
             var isValid: Bool { id != nil }
@@ -114,14 +114,14 @@ extension Hotkey {
             deinit { invalidate() }
         }
 
-        private let context: Context
+        private let context: HotkeyListenerContext
 
         /// A Boolean value that indicates whether the listener is
         /// currently valid.
         var isValid: Bool { context.isValid }
 
         fileprivate init(id: UInt32?) {
-            self.context = Context(id: id)
+            self.context = HotkeyListenerContext(id: id)
         }
 
         /// Invalidates the listener, stopping the observation.

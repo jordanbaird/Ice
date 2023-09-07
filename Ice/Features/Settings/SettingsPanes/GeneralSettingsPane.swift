@@ -86,7 +86,10 @@ struct GeneralSettingsPane: View {
         VStack(alignment: .leading, spacing: 20) {
             Toggle(
                 "Enable the \"Always Hidden\" menu bar section",
-                isOn: $statusBar.isAlwaysHiddenSectionEnabled
+                isOn: Binding(
+                    get: { statusBar.section(withName: .alwaysHidden)?.isEnabled ?? false },
+                    set: { statusBar.section(withName: .alwaysHidden)?.isEnabled = $0 }
+                )
             )
         }
         .padding()

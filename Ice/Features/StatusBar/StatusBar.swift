@@ -38,13 +38,6 @@ class StatusBar: ObservableObject {
         }
     }
 
-    /// A Boolean value that indicates whether the always-hidden section
-    /// is enabled.
-    var isAlwaysHiddenSectionEnabled: Bool {
-        get { section(withName: .alwaysHidden)?.controlItem.isVisible ?? false }
-        set { section(withName: .alwaysHidden)?.controlItem.isVisible = newValue }
-    }
-
     /// Initializes a new status bar instance.
     init() {
         configureCancellables()

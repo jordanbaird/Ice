@@ -72,7 +72,8 @@ final class StatusBarSection: ObservableObject {
 
     /// A Boolean value that indicates whether the section is enabled.
     var isEnabled: Bool {
-        controlItem.isVisible
+        get { controlItem.isVisible }
+        set { controlItem.isVisible = newValue }
     }
 
     /// A Boolean value that indicates whether the section's hotkey is

@@ -12,7 +12,9 @@ struct GeneralSettingsPane: View {
     var body: some View {
         ZStack {
             settingsPaneBody
-            failureOverlay
+            if failureReason != nil {
+                failureOverlay
+            }
         }
         .onChange(of: statusBar.section(withName: .alwaysHidden)?.isEnabled) { newValue in
             let isEnabled = newValue ?? false
@@ -157,7 +159,6 @@ struct GeneralSettingsPane: View {
                 )
             )
             .shadow(color: .black.opacity(0.25), radius: 1)
-            .opacity(failureReason != nil ? 1 : 0)
             .onHover { isInside in
                 if isInside {
                     withAnimation {
@@ -165,7 +166,6 @@ struct GeneralSettingsPane: View {
                     }
                 }
             }
-            .allowsHitTesting(failureReason != nil)
     }
 }
 

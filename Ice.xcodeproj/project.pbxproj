@@ -339,7 +339,6 @@
 			);
 			mainGroup = 716683212A767E6A006ABF84;
 			packageReferences = (
-				71623BBA2A8AD27A002FD331 /* XCRemoteSwiftPackageReference "SwiftKeys" */,
 			);
 			productRefGroup = 7166832B2A767E6A006ABF84 /* Products */;
 			projectDirPath = "";
@@ -593,17 +592,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		71623BBA2A8AD27A002FD331 /* XCRemoteSwiftPackageReference "SwiftKeys" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/jordanbaird/SwiftKeys";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.9;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = 716683222A767E6A006ABF84 /* Project object */;
 }

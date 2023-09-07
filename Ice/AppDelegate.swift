@@ -29,15 +29,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // make some adjustments to the window that can't be done in SwiftUI
         if let settingsWindow {
             settingsWindow.backgroundColor = NSColor(named: "SettingsWindowBackgroundColor")
+            settingsWindow.isMovableByWindowBackground = true
 
-            // hide the default titlebar
-            settingsWindow.titlebarAppearsTransparent = true
-            settingsWindow.titleVisibility = .hidden
+            // title position is offset by the sidebar in SwiftUI windows; instead,
+            // we'll make our own title and center it relative to the window frame
 
             // create a custom text field for the title
             let titleTextField = NSTextField(labelWithString: settingsWindow.title)
             titleTextField.textColor = .secondaryLabelColor
-            titleTextField.font = .titleBarFont(ofSize: 0)
+            titleTextField.font = .titleBarFont(ofSize: 0) // 0 uses default size
             titleTextField.alignment = .center
 
             // changing the position of an accessory view breaks the layout; use
@@ -51,9 +51,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let yConstraint = titleTextField.centerYAnchor.constraint(equalTo: titleContainer.centerYAnchor)
             NSLayoutConstraint.activate([xConstraint, yConstraint])
 
+            // hide the default titlebar
+            settingsWindow.titlebarAppearsTransparent = true
+            settingsWindow.titleVisibility = .hidden
+
             let titleController = NSTitlebarAccessoryViewController()
             titleController.view = titleContainer
-            // place the accessory view above the (now hidden) title bar
+            // place the accessory view vertically above the (now hidden) title bar
             titleController.layoutAttribute = .top
 
             settingsWindow.addTitlebarAccessoryViewController(titleController)

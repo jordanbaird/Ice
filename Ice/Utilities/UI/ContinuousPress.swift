@@ -1,5 +1,5 @@
 //
-//  PressActions.swift
+//  ContinuousPress.swift
 //  Ice
 //
 

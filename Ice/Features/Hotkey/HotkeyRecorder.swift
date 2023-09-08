@@ -144,6 +144,10 @@ private class HotkeyRecorderModel: ObservableObject {
             event.modifierFlags.contains($0.nsEventFlags) ? $0.stringValue : nil
         }
     }
+
+    deinit {
+        stopRecording()
+    }
 }
 
 /// A view that records user-chosen key combinations for a hotkey.

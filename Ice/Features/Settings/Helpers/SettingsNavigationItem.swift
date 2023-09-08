@@ -8,21 +8,7 @@ import SwiftUI
 struct SettingsNavigationItem: Hashable, Identifiable {
     let name: Name
     let icon: IconResource
-    let primaryColor: Color
-    let secondaryColor: Color
     var id: Int { name.hashValue }
-
-    init(
-        name: Name,
-        icon: IconResource,
-        primaryColor: Color? = nil,
-        secondaryColor: Color? = nil
-    ) {
-        self.name = name
-        self.icon = icon
-        self.primaryColor = primaryColor ?? Color(.linkColor)
-        self.secondaryColor = secondaryColor ?? Color(.windowBackgroundColor)
-    }
 }
 
 extension SettingsNavigationItem {
@@ -41,5 +27,23 @@ extension SettingsNavigationItem {
     enum IconResource: Hashable {
         case systemSymbol(_ name: String)
         case assetCatalog(_ name: String)
+
+        var view: some View {
+            image
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+        }
+
+        private var image: Image {
+            // returning the image explicitly instead of using a @ViewBuilder
+            // lets us apply the resizable() modifier just once, in the `view`
+            // property above
+            switch self {
+            case .systemSymbol(let name):
+                return Image(systemName: name)
+            case .assetCatalog(let name):
+                return Image(name)
+            }
+        }
     }
 }

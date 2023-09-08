@@ -3,204 +3,166 @@
 //  Ice
 //
 
+import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsPane: View {
     @EnvironmentObject var statusBar: StatusBar
-    @State private var failureReason: HotkeyRecorder.FailureReason?
 
-    private var failureOverlayIsVisible: Binding<Bool> {
-        Binding(
-            get: { failureReason != nil },
-            set: { failureReason = $0 ? failureReason : nil }
+    @AppStorage("enableToggleOnMouseEnterExit")
+    var enableToggleOnMouseEnterExit = true
+    @AppStorage("enableTimedRehide")
+    var enableTimedRehide = false
+    @AppStorage("rehideInterval")
+    var rehideInterval = 10.0
+    @AppStorage("enableOutsideInteractionChecks")
+    var enableOutsideInteractionChecks = true
+
+    var body: some View {
+        Form {
+            Section {
+                launchAtLogin
+            }
+            Section {
+                toggleOnMouseEnterExit
+                timedRehideOptions
+                outsideInteractionChecks
+                enableAlwaysHidden
+            }
+            Section("Hotkeys") {
+                hiddenRecorder
+                alwaysHiddenRecorder
+            }
+        }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .frame(maxHeight: .infinity)
+        .overlayErrors(HotkeyRecorder.Failure.self)
+        .bottomBar {
+            HStack {
+                Button("Reset") {
+                    print("RESET")
+                }
+                Spacer()
+                Button("Quit \(Constants.appName)") {
+                    NSApp.terminate(nil)
+                }
+            }
+            .padding()
+        }
+    }
+
+    @ViewBuilder
+    private var launchAtLogin: some View {
+        LaunchAtLogin.Toggle()
+    }
+
+    @ViewBuilder
+    private var toggleOnMouseEnterExit: some View {
+        Toggle(
+            "Toggle when mouse enters and exits the menu bar",
+            isOn: $enableToggleOnMouseEnterExit
         )
     }
 
-    var body: some View {
-        ZStack {
-            settingsPaneBody
-            OverlayView(isVisible: failureOverlayIsVisible) {
-                Text(failureReason?.message ?? "")
-                    .font(.system(size: 18, weight: .light))
-                    .padding()
-            }
-        }
-        .onChange(of: statusBar.section(withName: .alwaysHidden)?.isEnabled) { newValue in
-            let isEnabled = newValue ?? false
-            guard let section = statusBar.section(withName: .alwaysHidden) else {
-                return
-            }
-            section.controlItem.isVisible = isEnabled
-            if isEnabled {
-                section.enableHotkey()
-            } else {
-                section.disableHotkey()
-            }
-        }
-        .padding()
-    }
+    @ViewBuilder
+    private var timedRehideOptions: some View {
+        Group {
+            Toggle(
+                "Automatically rehide menu bar items",
+                isOn: $enableTimedRehide
+            )
 
-    var settingsPaneBody: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 20) {
-                headerView
-                Divider()
-            }
-
-            ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 20) {
-                    controlStack
-                    Divider()
-                    hotkeyStack
+            if enableTimedRehide {
+                HStack(alignment: .firstTextBaseline) {
+                    Stepper(
+                        "Rehide interval",
+                        value: $rehideInterval,
+                        in: 0...300,
+                        step: 1,
+                        format: .number
+                    )
+                    Text("seconds")
+                        .foregroundColor(.secondary)
                 }
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .mask(scrollViewMask)
-
-            VStack(alignment: .leading, spacing: 20) {
-                Divider()
-                footerView
-            }
         }
     }
 
-    var headerView: some View {
-        HStack(spacing: 15) {
-            Image("IceCube")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 50, height: 50)
-                .fixedSize()
-
-            Text("Ice - Menu Bar Manipulator")
-                .font(.system(size: 30, weight: .thin))
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal)
+    @ViewBuilder
+    private var outsideInteractionChecks: some View {
+        Toggle(
+            "Interacting with other apps hides all menu bar items",
+            isOn: $enableOutsideInteractionChecks
+        )
     }
 
-    var footerView: some View {
-        HStack {
-            Button("Reset") {
-                print("RESET")
-            }
-            Spacer()
-            Button("Quit \(Constants.appName)") {
-                NSApp.terminate(nil)
-            }
-        }
-    }
-
-    var controlStack: some View {
-        VStack(alignment: .leading, spacing: 20) {
+    @ViewBuilder
+    private var enableAlwaysHidden: some View {
+        if let section = statusBar.section(withName: .alwaysHidden) {
             Toggle(
-                "Enable the \"Always Hidden\" menu bar section",
+                "Enable the \"\(section.name.rawValue)\" menu bar section",
                 isOn: Binding(
-                    get: { statusBar.section(withName: .alwaysHidden)?.isEnabled ?? false },
-                    set: { statusBar.section(withName: .alwaysHidden)?.isEnabled = $0 }
+                    get: { section.isEnabled },
+                    set: { section.isEnabled = $0 }
                 )
             )
-        }
-        .padding()
-    }
-
-    var hotkeyStack: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Hotkeys")
-                .font(.system(size: 20, weight: .light))
-
-            Grid {
-                LabeledHotkeyRecorder(
-                    sectionName: .hidden,
-                    failureReason: $failureReason
-                )
-                LabeledHotkeyRecorder(
-                    sectionName: .alwaysHidden,
-                    failureReason: $failureReason
-                )
+            .onChange(of: section.isEnabled) { newValue in
+                section.controlItem.isVisible = newValue
+                if newValue {
+                    section.enableHotkey()
+                } else {
+                    section.disableHotkey()
+                }
             }
         }
-        .padding()
     }
 
-    var scrollViewMask: some View {
-        VStack(spacing: 0) {
-            LinearGradient(
-                colors: [.clear, .black],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 10)
+    @ViewBuilder
+    private var hiddenRecorder: some View {
+        LabeledHotkeyRecorder(sectionName: .hidden)
+    }
 
-            Rectangle().fill(.black)
-
-            LinearGradient(
-                colors: [.black, .clear],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 10)
-        }
+    @ViewBuilder
+    private var alwaysHiddenRecorder: some View {
+        LabeledHotkeyRecorder(sectionName: .alwaysHidden)
     }
 }
 
 struct LabeledHotkeyRecorder: View {
-    typealias FailureReason = HotkeyRecorder.FailureReason
-
     @EnvironmentObject var statusBar: StatusBar
-
-    @Binding var failureReason: FailureReason?
-
+    @State private var failure: HotkeyRecorder.Failure?
     @State private var timer: Timer?
 
     let sectionName: StatusBarSection.Name
 
-    init(sectionName: StatusBarSection.Name, failureReason: Binding<FailureReason?>) {
-        self.sectionName = sectionName
-        self._failureReason = failureReason
+    private var section: StatusBarSection? {
+        statusBar.section(withName: sectionName)
+    }
+
+    private var localizedLabel: LocalizedStringKey {
+        "Toggle the \"\(sectionName.rawValue)\" menu bar section"
     }
 
     var body: some View {
-        conditionalGridRow
-            .onChange(of: failureReason) { newValue in
-                if newValue == nil {
-                    timer?.invalidate()
-                }
-            }
-    }
-
-    @ViewBuilder
-    private var conditionalGridRow: some View {
         if
-            let section = statusBar.section(withName: sectionName),
-            statusBar.isSectionEnabled(section)
+            let section,
+            section.isEnabled
         {
-            gridRow
-        } else {
-            gridRow
-                .frame(height: 0)
-                .hidden()
-        }
-    }
-
-    private var gridRow: some View {
-        GridRow {
-            Text("Toggle the \"\(sectionName.rawValue)\" menu bar section")
-
-            HotkeyRecorder(section: statusBar.section(withName: sectionName)) { reason in
-                failureReason = reason
+            LabeledContent {
+                HotkeyRecorder(section: section, failure: $failure)
+            } label: {
+                Text(localizedLabel)
+            }
+            .onChange(of: failure) {
                 timer?.invalidate()
-                timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { _ in
-                    failureReason = nil
+                if $0 != nil {
+                    timer = .scheduledTimer(withTimeInterval: 3, repeats: false) { _ in
+                        failure = nil
+                    }
                 }
-            } removeFailureWarning: {
-                timer?.invalidate()
-                // FIXME: Failure warning shouldn't animate out when force removing,
-                // but withAnimation(nil) { ... } doesn't seem to work for this
-                failureReason = nil
             }
         }
-        .gridColumnAlignment(.leading)
     }
 }
 
@@ -211,7 +173,6 @@ struct GeneralSettingsPane_Previews: PreviewProvider {
         GeneralSettingsPane()
             .fixedSize()
             .buttonStyle(SettingsButtonStyle())
-            .toggleStyle(SettingsToggleStyle())
             .environmentObject(statusBar)
     }
 }

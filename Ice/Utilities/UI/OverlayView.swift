@@ -5,36 +5,27 @@
 
 import SwiftUI
 
-struct OverlayView<Content: View>: View {
-    @Binding var isVisible: Bool
-
-    private let content: Content
-
-    init(isVisible: Binding<Bool>, @ViewBuilder content: () -> Content) {
-        self._isVisible = isVisible
-        self.content = content()
-    }
+struct OverlayView<Content: View, Overlay: View>: View {
+    @Binding var showOverlay: Bool
+    @ViewBuilder var content: Content
+    @ViewBuilder var overlay: Overlay
 
     var body: some View {
-        GeometryReader { proxy in
-            overlay
-                .frame(
-                    maxWidth: proxy.size.width * 0.75,
-                    maxHeight: proxy.size.height * 0.75
-                )
-                .position(
-                    x: proxy.size.width / 2,
-                    y: proxy.size.height / 2
-                )
+        ZStack {
+            content
+            GeometryReader { proxy in
+                overlay(in: proxy.frame(in: .local))
+            }
+            .animation(.default, value: showOverlay)
+            .transition(.opacity)
         }
-        .animation(.default, value: isVisible)
-        .transition(.opacity)
     }
 
     @ViewBuilder
-    private var overlay: some View {
-        if isVisible {
-            content
+    private func overlay(in frame: CGRect) -> some View {
+        if showOverlay {
+            overlay
+                .padding()
                 .background(
                     VisualEffectView(
                         material: .toolTip,
@@ -42,7 +33,9 @@ struct OverlayView<Content: View>: View {
                         state: .active,
                         isEmphasized: true
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .clipShape(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    )
                     .overlayEnvironmentValue(\.colorScheme) { colorScheme in
                         VisualEffectView(
                             material: .selection,
@@ -57,12 +50,18 @@ struct OverlayView<Content: View>: View {
                         )
                     }
                 )
-                .shadow(color: .black.opacity(0.25), radius: 1)
-                .onHover { isInside in
-                    if isInside {
-                        isVisible = false
-                    }
-                }
+                .shadow(
+                    color: .black.opacity(0.25),
+                    radius: 1
+                )
+                .frame(
+                    maxWidth: frame.width * 0.75,
+                    maxHeight: frame.height * 0.75
+                )
+                .position(
+                    x: frame.width / 2,
+                    y: frame.height / 2
+                )
         }
     }
 }

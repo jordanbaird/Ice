@@ -4,27 +4,40 @@
 //
 
 import Carbon.HIToolbox
+import Cocoa
 import OSLog
 
-/// A combination of keys that can be used to listen for system-wide key
-/// events, triggering an action whenever the combination is pressed.
+/// A combination of keys that can be used to trigger actions
+/// on system-wide key-up or key-down events.
 struct Hotkey: Codable, Hashable {
-    /// The key component of the hot key.
+    /// The key component of the hotkey.
     var key: Key
-    /// The modifiers component of the hot key.
+
+    /// The modifiers component of the hotkey.
     var modifiers: Modifiers
 
+    /// A string representation of the hotkey.
     var stringValue: String {
         key.stringValue + modifiers.stringValue
     }
 
-    /// Creates a hot key with the given key and modifiers.
+    /// Creates a hotkey with the given key and modifiers.
+    ///
     /// - Parameters:
-    ///   - key: The key component of the hot key.
-    ///   - modifiers: The modifiers component of the hot key.
+    ///   - key: The key component of the hotkey.
+    ///   - modifiers: The modifiers component of the hotkey.
     init(key: Key, modifiers: Modifiers) {
         self.key = key
         self.modifiers = modifiers
+    }
+
+    /// Creates a hotkey from the key code and modifier flags
+    /// in the given event.
+    init(event: NSEvent) {
+        self.init(
+            key: Key(rawValue: Int(event.keyCode)),
+            modifiers: Modifiers(nsEventFlags: event.modifierFlags)
+        )
     }
 }
 
@@ -63,30 +76,22 @@ extension Hotkey {
         }
     }
 
-    /// Returns a Boolean value that indicates whether the given key-modifier
-    /// combination is reserved for system use.
-    ///
-    /// - Parameters:
-    ///   - key: The key to look for in the system.
-    ///   - modifiers: The modifiers to look for in the system.
-    ///
-    /// - Returns: `true` if the system reserves the given key-modifier combination
-    ///   for its own use. `false` otherwise.
-    static func isReservedBySystem(key: Key, modifiers: Modifiers) -> Bool {
-        let hotkey = Hotkey(key: key, modifiers: modifiers)
-        return reservedHotkeys.contains(hotkey)
+    /// Returns a Boolean value that indicates whether this hotkey
+    /// is reserved for system use.
+    var isReservedBySystem: Bool {
+        Self.reservedHotkeys.contains(self)
     }
 }
 
 extension Hotkey {
-    /// Registers the hot key to observe system-wide key down events and
+    /// Registers the hotkey to observe system-wide key down events and
     /// returns a listener that manages the lifetime of the observation.
     func onKeyDown(_ body: @escaping () -> Void) -> Listener {
         let id = HotkeyRegistry.register(self, eventKind: .keyDown, handler: body)
         return Listener(id: id)
     }
 
-    /// Registers the hot key to observe system-wide key up events and
+    /// Registers the hotkey to observe system-wide key up events and
     /// returns a listener that manages the lifetime of the observation.
     func onKeyUp(_ body: @escaping () -> Void) -> Listener {
         let id = HotkeyRegistry.register(self, eventKind: .keyUp, handler: body)
@@ -95,7 +100,7 @@ extension Hotkey {
 }
 
 extension Hotkey {
-    /// A type that manges the lifetime of hot key observations.
+    /// A type that manges the lifetime of hotkey observations.
     struct Listener {
         private class HotkeyListenerContext {
             private var id: UInt32?

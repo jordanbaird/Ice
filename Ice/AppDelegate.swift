@@ -7,8 +7,11 @@ import Combine
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    private var cancellables = Set<AnyCancellable>()
+    /// A Boolean value that indicates whether the delegate is
+    /// allowed to deactivate the app.
+    private var canDeactivateApp = true
 
+    /// The window that contains the settings interface.
     private var settingsWindow: NSWindow? {
         NSApp.window(withIdentifier: Constants.settingsWindowID)
     }
@@ -30,54 +33,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let settingsWindow {
             settingsWindow.backgroundColor = NSColor(named: "SettingsWindowBackgroundColor")
             settingsWindow.isMovableByWindowBackground = true
-
-            // title position is offset by the sidebar in SwiftUI windows; instead,
-            // we'll make our own title and center it relative to the window frame
-
-            // create a custom text field for the title
-            let titleTextField = NSTextField(labelWithString: settingsWindow.title)
-            titleTextField.textColor = .secondaryLabelColor
-            titleTextField.font = .titleBarFont(ofSize: 0) // 0 uses default size
-            titleTextField.alignment = .center
-
-            // changing the position of an accessory view breaks the layout; use
-            // a separate container view as the accessory view, and position the
-            // title text inside it
-            let titleContainer = NSView()
-            titleContainer.addSubview(titleTextField)
-
-            titleTextField.translatesAutoresizingMaskIntoConstraints = false
-            let xConstraint = titleTextField.centerXAnchor.constraint(equalTo: titleContainer.centerXAnchor)
-            let yConstraint = titleTextField.centerYAnchor.constraint(equalTo: titleContainer.centerYAnchor)
-            NSLayoutConstraint.activate([xConstraint, yConstraint])
-
-            // hide the default titlebar
-            settingsWindow.titlebarAppearsTransparent = true
             settingsWindow.titleVisibility = .hidden
-
-            let titleController = NSTitlebarAccessoryViewController()
-            titleController.view = titleContainer
-            // place the accessory view vertically above the (now hidden) title bar
-            titleController.layoutAttribute = .top
-
-            settingsWindow.addTitlebarAccessoryViewController(titleController)
-
-            // the window buttons (close, minimize, zoom) prevent the title container
-            // from taking the full width of the window; offset the text field by the
-            // half the remaining space to center the title
-            titleContainer.publisher(for: \.frame)
-                .combineLatest(settingsWindow.publisher(for: \.frame))
-                .sink { [weak xConstraint] containerFrame, windowFrame in
-                    xConstraint?.constant = -(windowFrame.width - containerFrame.width) / 2
-                }
-                .store(in: &cancellables)
-
-            // keep the text field up to date when the title changes
-            settingsWindow.publisher(for: \.title)
-                .sink { [weak titleTextField] title in
-                    titleTextField?.stringValue = title
-                }
-                .store(in: &cancellables)
         }
     }
 
@@ -86,16 +42,53 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        sender.deactivate(withPolicy: .accessory)
+        deactivate(sender, withPolicy: .accessory)
         return false
     }
 
+    /// Deactivates the specified app instance and sets its activation
+    /// policy to the given value.
+    ///
+    /// - Parameters:
+    ///   - app: The app instance to deactivate.
+    ///   - policy: The activation policy to switch to.
+    ///
+    /// - Returns: `true` if the policy switch succeeded; otherwise `false`.
+    @discardableResult
+    private func deactivate(
+        _ app: NSApplication,
+        withPolicy policy: NSApplication.ActivationPolicy
+    ) -> Bool {
+        guard canDeactivateApp else {
+            return false
+        }
+        return app.deactivate(withPolicy: policy)
+    }
+
+    /// Opens the settings window and activates the app.
+    ///
+    /// The app will automatically deactivate once all of its windows
+    /// are closed.
     @objc func openSettingsWindow() {
         guard let settingsWindow else {
             return
         }
+        // if this is the first time the app is activated, the window needs a chance
+        // to perform some initial layout, which, unfortunately, is visible to the user
+        // if the window is ordered to the front at the same time as app activation;
+        // the workaround is to activate the app and wait until the next run loop pass
+        // to order the window to the front
+
+        // since opening the window is being delayed, don't allow the delegate to
+        // deactivate the app until it finishes
+        canDeactivateApp = false
+
         NSApp.activate(withPolicy: .regular)
-        settingsWindow.center()
-        settingsWindow.makeKeyAndOrderFront(self)
+
+        DispatchQueue.main.async {
+            settingsWindow.center()
+            settingsWindow.makeKeyAndOrderFront(self)
+            self.canDeactivateApp = true
+        }
     }
 }

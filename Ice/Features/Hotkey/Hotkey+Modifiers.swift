@@ -7,7 +7,7 @@ import Carbon.HIToolbox
 import Cocoa
 
 extension Hotkey {
-    /// A bit mask containing the modifier keys for a hot key.
+    /// A bit mask containing the modifier keys for a hotkey.
     struct Modifiers: OptionSet, Codable, Hashable {
         let rawValue: Int
 

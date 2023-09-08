@@ -8,9 +8,8 @@ import SwiftUI
 
 /// Model for a hotkey recorder's state.
 private class HotkeyRecorderModel: ObservableObject {
-    /// An alias for a type that describes the reason why recording
-    /// a hotkey failed.
-    typealias FailureReason = HotkeyRecorder.FailureReason
+    /// An alias for a type that describes a recording failure.
+    typealias Failure = HotkeyRecorder.Failure
 
     /// Retained observers to help manage the state of the model.
     private var cancellables = Set<AnyCancellable>()
@@ -28,11 +27,11 @@ private class HotkeyRecorderModel: ObservableObject {
     @Published private(set) var pressedModifierStrings = [String]()
 
     /// A closure that handles recording failures.
-    private let handleFailure: (HotkeyRecorderModel, FailureReason) -> Void
+    private let handleFailure: (HotkeyRecorderModel, Failure) -> Void
 
-    /// A closure that removes the failure warning associated with
-    /// the hotkey recorder.
-    private let removeFailureWarning: () -> Void
+    /// A closure that removes the failure associated with the
+    /// hotkey recorder.
+    private let removeFailure: () -> Void
 
     /// Local event monitor that listens for key down events and
     /// modifier flag changes.
@@ -46,22 +45,22 @@ private class HotkeyRecorderModel: ObservableObject {
     /// key combinations for the given section's hotkey.
     init(
         section: StatusBarSection?,
-        onFailure: @escaping (FailureReason) -> Void,
-        removeFailureWarning: @escaping () -> Void
+        onFailure: @escaping (Failure) -> Void,
+        removeFailure: @escaping () -> Void
     ) {
         defer {
             configureCancellables()
         }
         self.section = section
-        self.handleFailure = { model, failureReason in
+        self.handleFailure = { model, failure in
             // immediately remove the modifier strings, before the failure
             // handler is even performed; it looks weird to have the pressed
             // modifiers displayed in the hotkey recorder at the same time
             // as a failure
             model.pressedModifierStrings.removeAll()
-            onFailure(failureReason)
+            onFailure(failure)
         }
-        self.removeFailureWarning = removeFailureWarning
+        self.removeFailure = removeFailure
         guard !ProcessInfo.processInfo.isPreview else {
             return
         }
@@ -79,6 +78,10 @@ private class HotkeyRecorderModel: ObservableObject {
             }
             return nil
         }
+    }
+
+    deinit {
+        stopRecording()
     }
 
     /// Sets up a series of observers to respond to important changes
@@ -113,33 +116,27 @@ private class HotkeyRecorderModel: ObservableObject {
         monitor?.stop()
         section?.enableHotkey()
         pressedModifierStrings = []
-        removeFailureWarning()
+        removeFailure()
     }
 
     /// Handles local key down events when the hotkey recorder is recording.
     private func handleKeyDown(event: NSEvent) {
-        // convert the event's key code and modifiers
-        let key = Hotkey.Key(rawValue: Int(event.keyCode))
-        let modifiers = Hotkey.Modifiers(nsEventFlags: event.modifierFlags)
-        if modifiers.isEmpty {
-            if key == .escape {
+        let hotkey = Hotkey(event: event)
+        if hotkey.modifiers.isEmpty {
+            if hotkey.key == .escape {
                 // cancel when escape is pressed with no modifiers
                 stopRecording()
             } else {
-                // require at least one modifier
-                handleFailure(self, .emptyModifiers)
+                handleFailure(self, .noModifiers)
             }
             return
         }
-        if modifiers == .shift {
-            // shift can't be the only modifier
+        if hotkey.modifiers == .shift {
             handleFailure(self, .onlyShift)
             return
         }
-        let hotkey = Hotkey(key: key, modifiers: modifiers)
-        if Hotkey.isReservedBySystem(key: key, modifiers: modifiers) {
-            // hotkey is reserved by the system
-            handleFailure(self, .systemReserved(hotkey))
+        if hotkey.isReservedBySystem {
+            handleFailure(self, .reserved(hotkey))
             return
         }
         // if we made it this far, all checks passed; assign the
@@ -153,37 +150,28 @@ private class HotkeyRecorderModel: ObservableObject {
         pressedModifierStrings = Hotkey.Modifiers.canonicalOrder.compactMap {
             event.modifierFlags.contains($0.nsEventFlags) ? $0.stringValue : nil
         }
-        // ensure the failure warning is removed if any modifiers are
-        // currently being pressed; use pressedModifierStrings here;
-        // `event.modifierFlags.isEmpty` doesn't seem to be a reliable
-        // indicator of state for this purpose
-        if !pressedModifierStrings.isEmpty {
-            removeFailureWarning()
-        }
-    }
-
-    deinit {
-        stopRecording()
     }
 }
 
 /// A view that records user-chosen key combinations for a hotkey.
 struct HotkeyRecorder: View {
-    /// A type that describes the reason why recording a hotkey failed.
-    enum FailureReason: Hashable {
-        case emptyModifiers
+    /// An error type that describes a recording failure.
+    enum Failure: LocalizedError, Hashable {
+        /// No modifiers were pressed.
+        case noModifiers
+        /// Shift was the only modifier being pressed.
         case onlyShift
-        case systemReserved(Hotkey)
+        /// The given hotkey is reserved by macOS.
+        case reserved(Hotkey)
 
-        /// Message to display to the user when recording fails.
-        var message: String {
+        var errorDescription: String? {
             switch self {
-            case .emptyModifiers:
-                return "Hotkey must include at least one modifier."
+            case .noModifiers:
+                return "Hotkey should include at least one modifier"
             case .onlyShift:
-                return "Shift cannot be a hotkey's only modifier."
-            case .systemReserved(let hotkey):
-                return "\"\(hotkey.stringValue)\" is reserved system-wide."
+                return "Shift (⇧) cannot be a hotkey's only modifier"
+            case .reserved(let hotkey):
+                return "Hotkey \(hotkey.stringValue) is reserved by macOS"
             }
         }
     }
@@ -195,30 +183,28 @@ struct HotkeyRecorder: View {
     @State private var frame: CGRect = .zero
 
     /// A Boolean value that indicates whether the mouse is currently
-    /// inside the bounds of the hotkey recorder's second segment.
+    /// inside the bounds of the recorder's second segment.
     @State private var isInsideSegment2 = false
+
+    /// A binding that holds information about the current recording
+    /// failure on behalf of the recorder.
+    @Binding var failure: Failure?
 
     /// Creates a hotkey recorder that records user-chosen key
     /// combinations for the given section.
     ///
     /// - Parameters:
-    ///   - section: The section that the hotkey recorder records a
-    ///     hotkey for.
-    ///   - onFailure: A closure that handles recording failures on
-    ///     behalf of the hotkey recorder.
-    ///   - removeFailureWarning: A closure that removes any failure
-    ///     indications presented on behalf of the hotkey recorder.
-    init(
-        section: StatusBarSection?,
-        onFailure: @escaping (FailureReason) -> Void,
-        removeFailureWarning: @escaping () -> Void
-    ) {
-        let model = HotkeyRecorderModel(
-            section: section,
-            onFailure: onFailure,
-            removeFailureWarning: removeFailureWarning
-        )
+    ///   - section: The section that the recorder records hotkeys for.
+    ///   - failure: A binding to a property that holds information about
+    ///     the current recording failure on behalf of the recorder.
+    init(section: StatusBarSection?, failure: Binding<Failure?>) {
+        let model = HotkeyRecorderModel(section: section) {
+            failure.wrappedValue = $0
+        } removeFailure: {
+            failure.wrappedValue = nil
+        }
         self._model = StateObject(wrappedValue: model)
+        self._failure = failure
     }
 
     var body: some View {
@@ -226,22 +212,34 @@ struct HotkeyRecorder: View {
             segment1
             segment2
         }
+        .foregroundColor(.primary)
         .frame(width: 160, height: 24)
         .onFrameChange(update: $frame)
+        .error(failure)
     }
 
+    @ViewBuilder
     private var segment1: some View {
         Button {
             model.startRecording()
         } label: {
-            segment1Label
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Color.clear
+                .overlay(
+                    segment1Label
+                        .frame(
+                            maxWidth: .infinity,
+                            maxHeight: .infinity
+                        )
+                )
         }
         .help(segment1HelpString)
-        .settingsButtonShape(.leadingSegment)
-        .settingsButtonIsHighlighted(model.isRecording)
+        .configureSettingsButtons {
+            $0.shape = .leadingSegment
+            $0.isHighlighted = model.isRecording
+        }
     }
 
+    @ViewBuilder
     private var segment2: some View {
         Button {
             if model.isRecording {
@@ -254,10 +252,7 @@ struct HotkeyRecorder: View {
         } label: {
             Color.clear
                 .overlay(
-                    Image(systemName: symbolString)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .padding(3)
+                    segment2Label
                 )
         }
         .frame(width: frame.height)
@@ -265,7 +260,9 @@ struct HotkeyRecorder: View {
             isInsideSegment2 = isInside
         }
         .help(segment2HelpString)
-        .settingsButtonShape(.trailingSegment)
+        .configureSettingsButtons {
+            $0.shape = .trailingSegment
+        }
     }
 
     @ViewBuilder
@@ -293,6 +290,14 @@ struct HotkeyRecorder: View {
         } else {
             Text("Record Hotkey")
         }
+    }
+
+    @ViewBuilder
+    private var segment2Label: some View {
+        Image(systemName: symbolString)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .padding(3)
     }
 
     private var modifierString: String {
@@ -339,7 +344,7 @@ struct HotkeyRecorder: View {
 
 struct HotkeyRecorder_Previews: PreviewProvider {
     static var previews: some View {
-        HotkeyRecorder(section: nil, onFailure: { _ in }, removeFailureWarning: { })
+        HotkeyRecorder(section: nil, failure: .constant(nil))
             .padding()
             .buttonStyle(SettingsButtonStyle())
     }

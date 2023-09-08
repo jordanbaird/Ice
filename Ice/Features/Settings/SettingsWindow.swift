@@ -18,7 +18,6 @@ struct SettingsWindow: Scene {
                         .overlay(Material.thin)
                 )
                 .buttonStyle(SettingsButtonStyle())
-                .toggleStyle(SettingsToggleStyle())
                 .environmentObject(statusBar)
                 .task {
                     if !ProcessInfo.processInfo.isPreview {
@@ -27,6 +26,7 @@ struct SettingsWindow: Scene {
                 }
         }
         .commandsRemoved()
-        .defaultSize(width: 1080, height: 720)
+        .defaultSize(width: 900, height: 600)
+        .windowStyle(.hiddenTitleBar)
     }
 }

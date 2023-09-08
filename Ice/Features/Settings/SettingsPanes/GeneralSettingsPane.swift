@@ -9,11 +9,20 @@ struct GeneralSettingsPane: View {
     @EnvironmentObject var statusBar: StatusBar
     @State private var failureReason: HotkeyRecorder.FailureReason?
 
+    private var failureOverlayIsVisible: Binding<Bool> {
+        Binding(
+            get: { failureReason != nil },
+            set: { failureReason = $0 ? failureReason : nil }
+        )
+    }
+
     var body: some View {
         ZStack {
             settingsPaneBody
-            if failureReason != nil {
-                failureOverlay
+            OverlayView(isVisible: failureOverlayIsVisible) {
+                Text(failureReason?.message ?? "")
+                    .font(.system(size: 18, weight: .light))
+                    .padding()
             }
         }
         .onChange(of: statusBar.section(withName: .alwaysHidden)?.isEnabled) { newValue in
@@ -133,43 +142,6 @@ struct GeneralSettingsPane: View {
             .frame(height: 10)
         }
     }
-
-    var failureOverlay: some View {
-        Text(failureReason?.message ?? "")
-            .font(.system(size: 18, weight: .light))
-            .padding()
-            .frame(width: 250, height: 75)
-            .background(
-                VisualEffectView(
-                    material: .hudWindow,
-                    blendingMode: .withinWindow,
-                    state: .active,
-                    isEmphasized: true
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .overlayEnvironmentValue(\.colorScheme) { colorScheme in
-                    VisualEffectView(
-                        material: .selection,
-                        blendingMode: .withinWindow,
-                        state: .active,
-                        isEmphasized: true
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .inset(by: colorScheme == .dark ? 1 : 0)
-                            .stroke(lineWidth: 0.5)
-                    )
-                }
-            )
-            .shadow(color: .black.opacity(0.25), radius: 1)
-            .onHover { isInside in
-                if isInside {
-                    withAnimation {
-                        failureReason = nil
-                    }
-                }
-            }
-    }
 }
 
 struct LabeledHotkeyRecorder: View {
@@ -215,20 +187,11 @@ struct LabeledHotkeyRecorder: View {
         GridRow {
             Text("Toggle the \"\(sectionName.rawValue)\" menu bar section")
 
-            HotkeyRecorder(section: statusBar.section(withName: sectionName)) { failureReason in
-                if self.failureReason == nil {
-                    withAnimation {
-                        self.failureReason = failureReason
-                    }
-                } else {
-                    // don't animate between different failure reasons
-                    self.failureReason = failureReason
-                }
+            HotkeyRecorder(section: statusBar.section(withName: sectionName)) { reason in
+                failureReason = reason
                 timer?.invalidate()
                 timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { _ in
-                    withAnimation {
-                        self.failureReason = nil
-                    }
+                    failureReason = nil
                 }
             }
         }

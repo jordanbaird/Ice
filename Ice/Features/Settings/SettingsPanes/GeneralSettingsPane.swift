@@ -147,7 +147,7 @@ struct GeneralSettingsPane: View {
                     isEmphasized: true
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .overlay(
+                .overlayEnvironmentValue(\.colorScheme) { colorScheme in
                     VisualEffectView(
                         material: .selection,
                         blendingMode: .withinWindow,
@@ -156,10 +156,10 @@ struct GeneralSettingsPane: View {
                     )
                     .clipShape(
                         RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .inset(by: 1)
+                            .inset(by: colorScheme == .dark ? 1 : 0)
                             .stroke(lineWidth: 0.5)
                     )
-                )
+                }
             )
             .shadow(color: .black.opacity(0.25), radius: 1)
             .onHover { isInside in

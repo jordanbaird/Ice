@@ -187,11 +187,11 @@ struct SettingsToggleStyle: ToggleStyle {
                         .fontWeight(.heavy)
                         .padding(3)
                 )
-                .background(
+                .backgroundEnvironmentValue(\.colorScheme) { colorScheme in
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(.selection)
-                        .opacity(isPressed ? 0.5 : 0)
-                )
+                        .fill(colorScheme == .dark ? AnyShapeStyle(.selection) : AnyShapeStyle(.quaternary))
+                        .opacity(isPressed ? 1 : 0)
+                }
                 .frame(width: 14, height: 14)
 
             configuration.label

@@ -266,9 +266,9 @@
 		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				71839BE42A9A0A6100250044 /* ContinuousPress.swift */,
 				71FEA24D2A8C96680048341A /* EnvironmentReader.swift */,
 				71839C062A9B4E2600250044 /* InterceptMouseDown.swift */,
-				71839BE42A9A0A6100250044 /* ContinuousPress.swift */,
 				71D36C532A89445C00D89CD5 /* VisualEffectView.swift */,
 			);
 			path = UI;

@@ -17,7 +17,13 @@ struct ContinuousPressInfo {
     /// The coordinate space used to create the gesture.
     let coordinateSpace: CoordinateSpace
 
-    fileprivate init(frame: CGRect, location: CGPoint, coordinateSpace: CoordinateSpace) {
+    /// Creates an instance with the given frame, location,
+    /// and coordinate space.
+    fileprivate init(
+        frame: CGRect,
+        location: CGPoint,
+        coordinateSpace: CoordinateSpace
+    ) {
         self.frame = frame
         self.location = location
         self.coordinateSpace = coordinateSpace
@@ -43,43 +49,44 @@ private struct ContinuousPress: ViewModifier {
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0, coordinateSpace: coordinateSpace)
                     .onChanged { value in
-                        onChanged(
-                            ContinuousPressInfo(
-                                frame: frame,
-                                location: value.location,
-                                coordinateSpace: coordinateSpace
-                            )
-                        )
+                        call(onChanged, with: value.location)
                     }
                     .onEnded { value in
-                        onEnded(
-                            ContinuousPressInfo(
-                                frame: frame,
-                                location: value.location,
-                                coordinateSpace: coordinateSpace
-                            )
-                        )
+                        call(onEnded, with: value.location)
                     }
             )
             .onFrameChange(in: coordinateSpace, update: $frame)
+    }
+
+    /// Calls the given handler, using the specified location to
+    /// construct its parameter.
+    func call(_ handler: (ContinuousPressInfo) -> Void, with location: CGPoint) {
+        let info = ContinuousPressInfo(
+            frame: frame,
+            location: location,
+            coordinateSpace: coordinateSpace
+        )
+        handler(info)
     }
 }
 
 extension View {
     /// Adds a continuous press gesture to the view.
     ///
-    /// A continuous press gesture is similar to a drag gesture with a minimum
-    /// distance of `0`. The most important difference is the value passed into
-    /// the `onChanged` and `onEnded` closures; it contains two fields -- the
-    /// frame of the view, and the current location of the drag or press relative
-    /// to the coordinate space passed to the `coordinateSpace` parameter.
+    /// A continuous press gesture is similar to a drag gesture with
+    /// a minimum distance of `0`. The most important difference is
+    /// the value passed into the `onChanged` and `onEnded` closures;
+    /// it contains two fields -- the frame of the view, and the current
+    /// location of the drag or press relative to the coordinate space
+    /// passed to the `coordinateSpace` parameter.
     ///
     /// - Parameters:
     ///   - coordinateSpace: The coordinate space of the gesture.
     ///   - onChanged: A closure to perform when the gesture's value changes.
     ///   - onEnded: A closure to perform when the gesture ends.
     ///
-    /// - Returns: A view that adds a continuous press gesture to the current view.
+    /// - Returns: A view that adds a continuous press gesture to the
+    ///   current view.
     func onContinuousPress(
         in coordinateSpace: CoordinateSpace = .local,
         onChanged: @escaping (ContinuousPressInfo) -> Void,

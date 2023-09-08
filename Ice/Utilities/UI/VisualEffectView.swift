@@ -12,16 +12,17 @@ struct VisualEffectView: NSViewRepresentable {
     private let state: NSVisualEffectView.State
     private let isEmphasized: Bool
 
-    /// Creates a visual effect view with the given material, blending mode, and
-    /// state, setting whether the view is displayed with an emphasized appearance
-    /// based on the value of a Boolean flag.
+    /// Creates a visual effect view with the given material, blending
+    /// mode, and state, setting whether the view is displayed with an
+    /// emphasized appearance based on the value of a Boolean flag.
     ///
     /// - Parameters:
     ///   - material: The material of the view.
     ///   - blendingMode: The blending mode of the view.
-    ///   - state: A value that determines when the view should appear active.
-    ///   - isEmphasized: A Boolean value that indicates whether the view should
-    ///     be displayed with an emphasized appearance.
+    ///   - state: A value that determines when the view should appear
+    ///     active.
+    ///   - isEmphasized: A Boolean value that indicates whether the
+    ///     view should be displayed with an emphasized appearance.
     init(
         material: NSVisualEffectView.Material,
         blendingMode: NSVisualEffectView.BlendingMode = .behindWindow,

@@ -193,6 +193,11 @@ struct LabeledHotkeyRecorder: View {
                 timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { _ in
                     failureReason = nil
                 }
+            } removeFailureWarning: {
+                timer?.invalidate()
+                // FIXME: Failure warning shouldn't animate out when force removing,
+                // but withAnimation(nil) { ... } doesn't seem to work for this
+                failureReason = nil
             }
         }
         .gridColumnAlignment(.leading)

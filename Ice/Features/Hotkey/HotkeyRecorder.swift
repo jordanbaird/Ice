@@ -30,6 +30,10 @@ private class HotkeyRecorderModel: ObservableObject {
     /// A closure that handles recording failures.
     private let handleFailure: (HotkeyRecorderModel, FailureReason) -> Void
 
+    /// A closure that removes the failure warning associated with
+    /// the hotkey recorder.
+    private let removeFailureWarning: () -> Void
+
     /// Local event monitor that listens for key down events and
     /// modifier flag changes.
     private var monitor: LocalEventMonitor?
@@ -40,7 +44,11 @@ private class HotkeyRecorderModel: ObservableObject {
 
     /// Creates a model for a hotkey recorder that records user-chosen
     /// key combinations for the given section's hotkey.
-    init(section: StatusBarSection?, onFailure: @escaping (FailureReason) -> Void) {
+    init(
+        section: StatusBarSection?,
+        onFailure: @escaping (FailureReason) -> Void,
+        removeFailureWarning: @escaping () -> Void
+    ) {
         defer {
             configureCancellables()
         }
@@ -53,6 +61,7 @@ private class HotkeyRecorderModel: ObservableObject {
             model.pressedModifierStrings.removeAll()
             onFailure(failureReason)
         }
+        self.removeFailureWarning = removeFailureWarning
         guard !ProcessInfo.processInfo.isPreview else {
             return
         }
@@ -104,6 +113,7 @@ private class HotkeyRecorderModel: ObservableObject {
         monitor?.stop()
         section?.enableHotkey()
         pressedModifierStrings = []
+        removeFailureWarning()
     }
 
     /// Handles local key down events when the hotkey recorder is recording.
@@ -142,6 +152,13 @@ private class HotkeyRecorderModel: ObservableObject {
     private func handleFlagsChanged(event: NSEvent) {
         pressedModifierStrings = Hotkey.Modifiers.canonicalOrder.compactMap {
             event.modifierFlags.contains($0.nsEventFlags) ? $0.stringValue : nil
+        }
+        // ensure the failure warning is removed if any modifiers are
+        // currently being pressed; use pressedModifierStrings here;
+        // `event.modifierFlags.isEmpty` doesn't seem to be a reliable
+        // indicator of state for this purpose
+        if !pressedModifierStrings.isEmpty {
+            removeFailureWarning()
         }
     }
 
@@ -183,8 +200,24 @@ struct HotkeyRecorder: View {
 
     /// Creates a hotkey recorder that records user-chosen key
     /// combinations for the given section.
-    init(section: StatusBarSection?, onFailure: @escaping (FailureReason) -> Void) {
-        let model = HotkeyRecorderModel(section: section, onFailure: onFailure)
+    ///
+    /// - Parameters:
+    ///   - section: The section that the hotkey recorder records a
+    ///     hotkey for.
+    ///   - onFailure: A closure that handles recording failures on
+    ///     behalf of the hotkey recorder.
+    ///   - removeFailureWarning: A closure that removes any failure
+    ///     indications presented on behalf of the hotkey recorder.
+    init(
+        section: StatusBarSection?,
+        onFailure: @escaping (FailureReason) -> Void,
+        removeFailureWarning: @escaping () -> Void
+    ) {
+        let model = HotkeyRecorderModel(
+            section: section,
+            onFailure: onFailure,
+            removeFailureWarning: removeFailureWarning
+        )
         self._model = StateObject(wrappedValue: model)
     }
 
@@ -306,7 +339,7 @@ struct HotkeyRecorder: View {
 
 struct HotkeyRecorder_Previews: PreviewProvider {
     static var previews: some View {
-        HotkeyRecorder(section: nil) { _ in }
+        HotkeyRecorder(section: nil, onFailure: { _ in }, removeFailureWarning: { })
             .padding()
             .buttonStyle(SettingsButtonStyle())
     }

@@ -39,6 +39,8 @@
 		71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C152A9B6A0D00250044 /* OnFrameChange.swift */; };
 		71C400302AAD1C35006FDB1C /* SettingsButtonConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C4002F2AAD1C35006FDB1C /* SettingsButtonConfiguration.swift */; };
 		71C400322AAD76A8006FDB1C /* WindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C400312AAD76A8006FDB1C /* WindowReader.swift */; };
+		71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */; };
+		71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */; };
 		71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */; };
 		71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */; };
 		71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C532A89445C00D89CD5 /* VisualEffectView.swift */; };
@@ -84,6 +86,8 @@
 		71839C152A9B6A0D00250044 /* OnFrameChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnFrameChange.swift; sourceTree = "<group>"; };
 		71C4002F2AAD1C35006FDB1C /* SettingsButtonConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsButtonConfiguration.swift; sourceTree = "<group>"; };
 		71C400312AAD76A8006FDB1C /* WindowReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowReader.swift; sourceTree = "<group>"; };
+		71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+displayName.swift"; sourceTree = "<group>"; };
+		71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+versionString.swift"; sourceTree = "<group>"; };
 		71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSSplitViewItem+swizzledCanCollapse.swift"; sourceTree = "<group>"; };
 		71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
 		71D36C532A89445C00D89CD5 /* VisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
@@ -204,6 +208,7 @@
 		716683412A76811C006ABF84 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				71D2B02A2AAFD88E0002B6C8 /* Bundle */,
 				71839BD62A997DA300250044 /* Edge */,
 				716683442A76811C006ABF84 /* Logger */,
 				7133ED5F2A855ADA000A7E1B /* NSApplication */,
@@ -263,6 +268,15 @@
 				71839BD72A997DC200250044 /* Edge+cgRectEdge.swift */,
 			);
 			path = Edge;
+			sourceTree = "<group>";
+		};
+		71D2B02A2AAFD88E0002B6C8 /* Bundle */ = {
+			isa = PBXGroup;
+			children = (
+				71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */,
+				71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */,
+			);
+			path = Bundle;
 			sourceTree = "<group>";
 		};
 		71D36C492A88EDD200D89CD5 /* Swizzling */ = {
@@ -389,6 +403,7 @@
 				7162406F2AA0A323003EC671 /* StatusBarSection.swift in Sources */,
 				7150A7B52AA42BEA0045EA68 /* HotkeyError.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,
+				71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */,
 				7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
 				7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */,
@@ -405,6 +420,7 @@
 				71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */,
 				7150A7B32AA42B640045EA68 /* Hotkey+Modifiers.swift in Sources */,
 				71C400322AAD76A8006FDB1C /* WindowReader.swift in Sources */,
+				71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */,
 				7166834B2A76811C006ABF84 /* Logger.swift in Sources */,
 				71839BD82A997DC200250044 /* Edge+cgRectEdge.swift in Sources */,
 				71C400302AAD1C35006FDB1C /* SettingsButtonConfiguration.swift in Sources */,

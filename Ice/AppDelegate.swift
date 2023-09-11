@@ -10,10 +10,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// Observers that manage the key state of the delegate.
     private var cancellables = Set<AnyCancellable>()
 
-    /// A Boolean value that indicates whether the delegate is
-    /// allowed to deactivate the app.
+    /// A Boolean value that indicates whether the delegate is allowed
+    /// to deactivate the app.
     private var canDeactivateApp = true
 
+    /// Toolbar to use as a replacement for the default SwiftUI toolbar
+    /// in the settings window.
     private let replacementToolbar = NSToolbar()
 
     /// The window that contains the settings interface.
@@ -37,7 +39,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // make some adjustments to the window that can't be done in SwiftUI
         if let settingsWindow {
             settingsWindow.backgroundColor = NSColor(named: "SettingsWindowBackgroundColor")
-            settingsWindow.isMovableByWindowBackground = true
+
+            // SwiftUI seems to constantly try to update the toolbar, so listen for
+            // changes and make sure our toolbar is used instead
             settingsWindow.publisher(for: \.toolbar)
                 .sink { [weak self, weak settingsWindow] toolbar in
                     if toolbar !== self?.replacementToolbar {

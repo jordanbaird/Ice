@@ -7,9 +7,14 @@ import Combine
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    /// Observers that manage the key state of the delegate.
+    private var cancellables = Set<AnyCancellable>()
+
     /// A Boolean value that indicates whether the delegate is
     /// allowed to deactivate the app.
     private var canDeactivateApp = true
+
+    private let replacementToolbar = NSToolbar()
 
     /// The window that contains the settings interface.
     private var settingsWindow: NSWindow? {
@@ -33,7 +38,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let settingsWindow {
             settingsWindow.backgroundColor = NSColor(named: "SettingsWindowBackgroundColor")
             settingsWindow.isMovableByWindowBackground = true
-            settingsWindow.titleVisibility = .hidden
+            settingsWindow.publisher(for: \.toolbar)
+                .sink { [weak self, weak settingsWindow] toolbar in
+                    if toolbar !== self?.replacementToolbar {
+                        settingsWindow?.toolbar = self?.replacementToolbar
+                    }
+                }
+                .store(in: &cancellables)
         }
     }
 

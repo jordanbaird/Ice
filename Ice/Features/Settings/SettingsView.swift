@@ -3,7 +3,6 @@
 //  Ice
 //
 
-import Combine
 import SwiftUI
 
 struct SettingsView: View {
@@ -22,44 +21,16 @@ struct SettingsView: View {
         ),
     ]
 
-    @Environment(\.colorScheme)
-    private var colorScheme: ColorScheme
-
-    @State private var window: NSWindow?
-    @State private var title = ""
-    @State private var isKeyWindow = false
     @State private var selection = Self.items[0]
-
-    private var keyWindowPublisher: AnyPublisher<Bool, Never> {
-        let nc = NotificationCenter.default
-        let didBecomeKey = NSWindow.didBecomeKeyNotification
-        let didResignKey = NSWindow.didResignKeyNotification
-        return Publishers.Merge(
-            nc.publisher(for: didBecomeKey),
-            nc.publisher(for: didResignKey)
-        )
-        .map { [weak window] notif in
-            guard notif.object as? NSWindow === window else {
-                return false
-            }
-            return notif.name == didBecomeKey
-        }
-        .eraseToAnyPublisher()
-    }
 
     var body: some View {
         NavigationSplitView {
             sidebar
-                .safeAreaInset(edge: .top, spacing: 0) { topPadding }
-                .edgesIgnoringSafeArea(.top)
         } detail: {
             detailView
                 .frame(maxHeight: .infinity)
-                .safeAreaInset(edge: .top, spacing: 0) { titlebar }
-                .edgesIgnoringSafeArea(.top)
                 .navigationTitle(selection.name.localized)
         }
-        .readWindow(window: $window)
     }
 
     @ViewBuilder
@@ -74,13 +45,13 @@ struct SettingsView: View {
                     Image("IceCube")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 30, height: 30)
 
                     Text(Constants.appName)
-                        .font(.system(size: 32, weight: .medium))
+                        .font(.system(size: 30, weight: .medium))
                 }
                 .foregroundColor(.primary)
-                .padding(.horizontal)
+                .padding(.leading, 5)
                 .padding(.bottom, 18)
             }
             .collapsible(false)
@@ -101,42 +72,6 @@ struct SettingsView: View {
             MenuBarLayoutSettingsPane()
         case .about:
             AboutSettingsPane()
-        }
-    }
-
-    @ViewBuilder
-    private var topPadding: some View {
-        Color.clear
-            .frame(height: 50)
-    }
-
-    @ViewBuilder
-    private var titlebar: some View {
-        if let window {
-            topPadding
-                .overlay {
-                    VisualEffectView(
-                        material: .titlebar,
-                        blendingMode: .withinWindow
-                    )
-                    .overlay(alignment: .leading) {
-                        Text(title)
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(isKeyWindow ? .primary : .secondary)
-                            .padding()
-                    }
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        Color(white: colorScheme == .dark ? 0 : 0.7)
-                            .frame(height: 1)
-                    }
-                    .edgesIgnoringSafeArea(.top)
-                    .onReceive(window.publisher(for: \.title)) { title in
-                        self.title = title
-                    }
-                    .onReceive(keyWindowPublisher) { isKeyWindow in
-                        self.isKeyWindow = isKeyWindow
-                    }
-                }
         }
     }
 

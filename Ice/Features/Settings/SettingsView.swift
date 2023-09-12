@@ -51,8 +51,9 @@ struct SettingsView: View {
                         .font(.system(size: 30, weight: .medium))
                 }
                 .foregroundColor(.primary)
-                .padding(.leading, 5)
-                .padding(.bottom, 18)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 10)
+                .padding(.bottom, 8)
             }
             .collapsible(false)
         }

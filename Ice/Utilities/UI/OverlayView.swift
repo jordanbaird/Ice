@@ -51,8 +51,8 @@ struct OverlayView<Content: View, Overlay: View>: View {
                     }
                 )
                 .shadow(
-                    color: .black.opacity(0.25),
-                    radius: 1
+                    color: .black.opacity(0.5),
+                    radius: 10
                 )
                 .frame(
                     maxWidth: frame.width * 0.75,

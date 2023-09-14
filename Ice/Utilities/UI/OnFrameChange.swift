@@ -27,7 +27,7 @@ extension View {
         in coordinateSpace: CoordinateSpace = .local,
         perform action: @escaping (CGRect) -> Void
     ) -> some View {
-        background(
+        background {
             GeometryReader { proxy in
                 Color.clear
                     .preference(
@@ -36,7 +36,7 @@ extension View {
                     )
                     .onPreferenceChange(FramePreferenceKey.self, perform: action)
             }
-        )
+        }
     }
 
     /// Returns a version of this view that updates the given binding

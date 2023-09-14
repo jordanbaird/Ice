@@ -12,10 +12,10 @@ struct SettingsWindow: Scene {
         Window(Constants.appName, id: Constants.settingsWindowID) {
             SettingsView()
                 .frame(minWidth: 700, minHeight: 400)
-                .background(
+                .background {
                     Color.clear
                         .overlay(Material.thin)
-                )
+                }
                 .buttonStyle(SettingsButtonStyle())
                 .environmentObject(statusBar)
                 .task {

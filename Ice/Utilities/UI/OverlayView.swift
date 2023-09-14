@@ -26,7 +26,7 @@ struct OverlayView<Content: View, Overlay: View>: View {
         if showOverlay {
             overlay
                 .padding()
-                .background(
+                .background {
                     VisualEffectView(
                         material: .toolTip,
                         blendingMode: .withinWindow,
@@ -49,7 +49,7 @@ struct OverlayView<Content: View, Overlay: View>: View {
                                 .stroke(lineWidth: 0.5)
                         )
                     }
-                )
+                }
                 .shadow(
                     color: .black.opacity(0.5),
                     radius: 10

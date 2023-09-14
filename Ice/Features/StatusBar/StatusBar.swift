@@ -8,9 +8,6 @@ import OSLog
 
 /// Manager for the state of items in the status bar.
 class StatusBar: ObservableObject {
-    private let encoder = DictionaryEncoder()
-    private let decoder = DictionaryDecoder()
-
     /// Observers that manage the key state of the status bar.
     private var cancellables = Set<AnyCancellable>()
 
@@ -61,7 +58,7 @@ class StatusBar: ObservableObject {
                 return nil
             }
             do {
-                return try decoder.decode(StatusBarSection.self, from: dictionary)
+                return try DictionaryDecoder().decode(StatusBarSection.self, from: dictionary)
             } catch {
                 Logger.statusBar.error("Error decoding control item: \(error)")
                 return nil
@@ -81,7 +78,7 @@ class StatusBar: ObservableObject {
         }
         do {
             let serializedSections = try sections.map { section in
-                try encoder.encode(section)
+                try DictionaryEncoder().encode(section)
             }
             UserDefaults.standard.set(serializedSections, forKey: "Sections")
             lastSavedHash = sections.hashValue

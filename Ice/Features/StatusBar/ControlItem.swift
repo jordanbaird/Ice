@@ -228,15 +228,15 @@ final class ControlItem: ObservableObject {
             // set the image based on section and state
             switch section.name {
             case .hidden:
-                button.image = Images.largeChevron
+                button.image = ControlItemImages.largeChevron
             case .alwaysHidden:
-                button.image = Images.smallChevron
+                button.image = ControlItemImages.smallChevron
             case .alwaysVisible:
                 switch state {
                 case .hideItems:
-                    button.image = Images.circleFilled
+                    button.image = ControlItemImages.circleFilled
                 case .showItems:
-                    button.image = Images.circleStroked
+                    button.image = ControlItemImages.circleStroked
                 }
             default:
                 break
@@ -398,75 +398,72 @@ extension ControlItem: Hashable {
 }
 
 // MARK: - PreferredPosition
-extension ControlItem {
-    /// A proxy getter and setter for a control item's preferred position.
-    enum PreferredPosition {
-        private static func key(for autosaveName: String) -> String {
-            return "NSStatusItem Preferred Position \(autosaveName)"
-        }
+/// A proxy getter and setter for a control item's preferred position.
+private enum PreferredPosition {
+    private static func key(for autosaveName: String) -> String {
+        return "NSStatusItem Preferred Position \(autosaveName)"
+    }
 
-        /// Accesses the preferred position associated with the specified autosave name.
-        static subscript(autosaveName: String) -> CGFloat? {
-            get {
-                // use object(forKey:) because double(forKey:) returns 0 if no value
-                // is stored; we need to differentiate between "a stored value of 0"
-                // and "no stored value"
-                UserDefaults.standard.object(forKey: key(for: autosaveName)) as? CGFloat
-            }
-            set {
-                UserDefaults.standard.set(newValue, forKey: key(for: autosaveName))
-            }
+    /// Accesses the preferred position associated with the specified autosave name.
+    static subscript(autosaveName: String) -> CGFloat? {
+        get {
+            // use object(forKey:) because double(forKey:) returns 0 if no value
+            // is stored; we need to differentiate between "a stored value of 0"
+            // and "no stored value"
+            UserDefaults.standard.object(forKey: key(for: autosaveName)) as? CGFloat
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: key(for: autosaveName))
         }
     }
 }
 
-// MARK: - Images
-extension ControlItem {
-    /// Namespace for control item images.
-    enum Images {
-        static let circleFilled: NSImage = {
-            let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { bounds in
-                NSColor.black.setFill()
-                NSBezierPath(ovalIn: bounds).fill()
-                return true
-            }
-            image.isTemplate = true
-            return image
-        }()
+// MARK: - ControlItemImages
 
-        static let circleStroked: NSImage = {
-            let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { bounds in
-                let lineWidth: CGFloat = 1.5
-                let path = NSBezierPath(ovalIn: bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2))
+/// Namespace for control item images.
+enum ControlItemImages {
+    static let circleFilled: NSImage = {
+        let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { bounds in
+            NSColor.black.setFill()
+            NSBezierPath(ovalIn: bounds).fill()
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }()
+
+    static let circleStroked: NSImage = {
+        let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { bounds in
+            let lineWidth: CGFloat = 1.5
+            let path = NSBezierPath(ovalIn: bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2))
+            path.lineWidth = lineWidth
+            NSColor.black.setStroke()
+            path.stroke()
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }()
+
+    static let (largeChevron, smallChevron): (NSImage, NSImage) = {
+        func chevron(size: NSSize, lineWidth: CGFloat = 2) -> NSImage {
+            let image = NSImage(size: size, flipped: false) { bounds in
+                let insetBounds = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
+                let path = NSBezierPath()
+                path.move(to: NSPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.maxY))
+                path.line(to: NSPoint(x: (insetBounds.minX + insetBounds.midX) / 2, y: insetBounds.midY))
+                path.line(to: NSPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.minY))
                 path.lineWidth = lineWidth
+                path.lineCapStyle = .butt
                 NSColor.black.setStroke()
                 path.stroke()
                 return true
             }
             image.isTemplate = true
             return image
-        }()
-
-        static let (largeChevron, smallChevron): (NSImage, NSImage) = {
-            func chevron(size: NSSize, lineWidth: CGFloat = 2) -> NSImage {
-                let image = NSImage(size: size, flipped: false) { bounds in
-                    let insetBounds = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
-                    let path = NSBezierPath()
-                    path.move(to: NSPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.maxY))
-                    path.line(to: NSPoint(x: (insetBounds.minX + insetBounds.midX) / 2, y: insetBounds.midY))
-                    path.line(to: NSPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.minY))
-                    path.lineWidth = lineWidth
-                    path.lineCapStyle = .butt
-                    NSColor.black.setStroke()
-                    path.stroke()
-                    return true
-                }
-                image.isTemplate = true
-                return image
-            }
-            let largeChevron = chevron(size: NSSize(width: 12, height: 12))
-            let smallChevron = chevron(size: NSSize(width: 7, height: 7))
-            return (largeChevron, smallChevron)
-        }()
-    }
+        }
+        let largeChevron = chevron(size: NSSize(width: 12, height: 12))
+        let smallChevron = chevron(size: NSSize(width: 7, height: 7))
+        return (largeChevron, smallChevron)
+    }()
 }

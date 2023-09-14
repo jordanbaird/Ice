@@ -88,11 +88,11 @@ struct SettingsView: View {
                     .padding(6)
                     .foregroundColor(Color(nsColor: .linkColor))
                     .frame(width: 32, height: 32)
-                    .background(
+                    .background {
                         VisualEffectView(material: .sidebar, isEmphasized: true)
                             .brightness(0.05)
                             .clipShape(Circle())
-                    )
+                    }
                     .shadow(color: .black.opacity(0.25), radius: 1)
             }
             .padding(.leading, 8)

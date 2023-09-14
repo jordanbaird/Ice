@@ -87,14 +87,22 @@ extension Hotkey {
     /// Registers the hotkey to observe system-wide key down events and
     /// returns a listener that manages the lifetime of the observation.
     func onKeyDown(_ body: @escaping () -> Void) -> Listener {
-        let id = HotkeyRegistry.register(self, eventKind: .keyDown, handler: body)
+        let id = HotkeyRegistry.register(
+            hotkey: self,
+            eventKind: .keyDown,
+            handler: body
+        )
         return Listener(id: id)
     }
 
     /// Registers the hotkey to observe system-wide key up events and
     /// returns a listener that manages the lifetime of the observation.
     func onKeyUp(_ body: @escaping () -> Void) -> Listener {
-        let id = HotkeyRegistry.register(self, eventKind: .keyUp, handler: body)
+        let id = HotkeyRegistry.register(
+            hotkey: self,
+            eventKind: .keyUp,
+            handler: body
+        )
         return Listener(id: id)
     }
 }

@@ -8,9 +8,6 @@ import Foundation
 
 /// A representation of a section in a status bar.
 final class StatusBarSection: ObservableObject {
-
-    // MARK: Name
-
     /// User-visible name that describes a status bar section.
     struct Name: Codable, ExpressibleByStringInterpolation, Hashable, RawRepresentable {
         var rawValue: String

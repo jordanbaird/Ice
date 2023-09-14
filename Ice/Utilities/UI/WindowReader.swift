@@ -44,6 +44,8 @@ struct WindowReader: View {
 
 extension View {
     func readWindow(window: Binding<NSWindow?>) -> some View {
-        background(WindowReader(window: window))
+        background {
+            WindowReader(window: window)
+        }
     }
 }

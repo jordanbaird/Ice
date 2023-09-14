@@ -62,6 +62,8 @@ extension View {
     ///   passed up into its superviews, based on the value passed to
     ///   `shouldIntercept`.
     func interceptMouseDown(_ shouldIntercept: Bool = true) -> some View {
-        background(InterceptMouseDown(shouldIntercept))
+        background {
+            InterceptMouseDown(shouldIntercept)
+        }
     }
 }

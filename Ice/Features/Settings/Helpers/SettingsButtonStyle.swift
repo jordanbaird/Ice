@@ -56,11 +56,11 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
                 )
                 .opacity(0.5)
                 .background(isPressed ? .secondary : .tertiary)
-                .overlay(
+                .overlay {
                     Color.primary
                         .opacity(configuration.isHighlighted ? 0.2 : 0)
                         .blendMode(.overlay)
-                )
+                }
                 .clipShape(ClipShape(cornerRadius: 5, shape: configuration.shape))
             }
             .interceptMouseDown()

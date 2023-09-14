@@ -58,12 +58,11 @@ extension View {
         alignment: Alignment = .center,
         @ViewBuilder _ transform: @escaping (Value) -> Background
     ) -> some View {
-        background(
+        background(alignment: alignment) {
             EnvironmentReader(keyPath) { value in
                 transform(value)
-            },
-            alignment: alignment
-        )
+            }
+        }
     }
 
     /// Reads the specified environment value from the view, using it
@@ -83,11 +82,10 @@ extension View {
         alignment: Alignment = .center,
         @ViewBuilder _ transform: @escaping (Value) -> Overlay
     ) -> some View {
-        overlay(
+        overlay(alignment: alignment) {
             EnvironmentReader(keyPath) { value in
                 transform(value)
-            },
-            alignment: alignment
-        )
+            }
+        }
     }
 }

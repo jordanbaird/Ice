@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7112D0D52AB882D300F27889 /* Annotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7112D0D42AB882D300F27889 /* Annotation.swift */; };
+		7112D0D92AB883AC00F27889 /* ColorAverageCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7112D0D82AB883AC00F27889 /* ColorAverageCalculator.swift */; };
 		7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED5D2A853FCF000A7E1B /* Constants.swift */; };
 		7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED602A855B07000A7E1B /* NSApplication+Activation.swift */; };
 		7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */; };
@@ -56,6 +57,7 @@
 
 /* Begin PBXFileReference section */
 		7112D0D42AB882D300F27889 /* Annotation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Annotation.swift; sourceTree = "<group>"; };
+		7112D0D82AB883AC00F27889 /* ColorAverageCalculator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ColorAverageCalculator.swift; sourceTree = "<group>"; };
 		7133ED5D2A853FCF000A7E1B /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		7133ED602A855B07000A7E1B /* NSApplication+Activation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+Activation.swift"; sourceTree = "<group>"; };
 		7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+windowWithIdentifier.swift"; sourceTree = "<group>"; };
@@ -115,6 +117,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		7112D0D72AB8839200F27889 /* ImageAnalysis */ = {
+			isa = PBXGroup;
+			children = (
+				7112D0D82AB883AC00F27889 /* ColorAverageCalculator.swift */,
+			);
+			path = ImageAnalysis;
+			sourceTree = "<group>";
+		};
 		7133ED5F2A855ADA000A7E1B /* NSApplication */ = {
 			isa = PBXGroup;
 			children = (
@@ -203,6 +213,7 @@
 			children = (
 				71D36C562A896ED700D89CD5 /* DictionarySerialization */,
 				716683412A76811C006ABF84 /* Extensions */,
+				7112D0D72AB8839200F27889 /* ImageAnalysis */,
 				71FEA25A2A8DA1D60048341A /* Misc */,
 				71D36C492A88EDD200D89CD5 /* Swizzling */,
 				71D36C522A89443800D89CD5 /* UI */,
@@ -421,6 +432,7 @@
 				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
+				7112D0D92AB883AC00F27889 /* ColorAverageCalculator.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				71DF79442AAACE10007D9BAD /* OverlayView.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,

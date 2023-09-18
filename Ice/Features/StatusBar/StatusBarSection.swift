@@ -5,32 +5,17 @@
 
 import Combine
 import Foundation
+import OSLog
 
 /// A representation of a section in a status bar.
 final class StatusBarSection: ObservableObject {
     /// User-visible name that describes a status bar section.
-    struct Name: Codable, ExpressibleByStringInterpolation, Hashable, RawRepresentable {
-        var rawValue: String
-
-        init(rawValue: String) {
-            self.rawValue = rawValue
-        }
-
-        init(stringLiteral value: String) {
-            self.init(rawValue: value)
-        }
-
-        /// The name for the always-visible section.
-        static let alwaysVisible = Name(rawValue: "Always Visible")
-
-        /// The name for the hidden section.
-        static let hidden = Name(rawValue: "Hidden")
-
-        /// The name for the always-hidden section.
-        static let alwaysHidden = Name(rawValue: "Always Hidden")
+    enum Name: String, Codable, Hashable {
+        case alwaysVisible = "Always Visible"
+        case hidden = "Hidden"
+        case alwaysHidden = "Always Hidden"
     }
 
-    /// Observers that manage the key state of the section.
     private var cancellables = Set<AnyCancellable>()
 
     /// A value that manages the lifetime of the hotkey's observation.
@@ -57,9 +42,6 @@ final class StatusBarSection: ObservableObject {
         }
     }
 
-    /// The section's persistent unique identifier.
-    let uuid: UUID
-
     /// The status bar associated with the section.
     weak var statusBar: StatusBar? {
         didSet {
@@ -73,6 +55,14 @@ final class StatusBarSection: ObservableObject {
         set { controlItem.isVisible = newValue }
     }
 
+    /// A Boolean value that indicates whether the section is hidden.
+    var isHidden: Bool {
+        switch controlItem.state {
+        case .hideItems: true
+        case .showItems: false
+        }
+    }
+
     /// A Boolean value that indicates whether the section's hotkey is
     /// enabled.
     var hotkeyIsEnabled: Bool {
@@ -81,11 +71,10 @@ final class StatusBarSection: ObservableObject {
 
     /// Creates a status bar section with the given name, control item,
     /// hotkey, and unique identifier.
-    init(name: Name, controlItem: ControlItem, hotkey: Hotkey? = nil, uuid: UUID = UUID()) {
+    init(name: Name, controlItem: ControlItem, hotkey: Hotkey? = nil) {
         self.name = name
         self.controlItem = controlItem
         self.hotkey = hotkey
-        self.uuid = uuid
         enableHotkey()
         configureCancellables()
     }
@@ -106,10 +95,7 @@ final class StatusBarSection: ObservableObject {
     /// Enables the hotkey associated with the section.
     func enableHotkey() {
         listener = hotkey?.onKeyDown { [weak self] in
-            guard let self else {
-                return
-            }
-            statusBar?.toggle(section: self)
+            self?.toggle()
         }
     }
 
@@ -117,6 +103,66 @@ final class StatusBarSection: ObservableObject {
     func disableHotkey() {
         listener?.invalidate()
         listener = nil
+    }
+
+    /// Shows the status items in the section.
+    func show() {
+        guard let statusBar else {
+            return
+        }
+        switch name {
+        case .alwaysVisible, .hidden:
+            guard
+                let section1 = statusBar.section(withName: .alwaysVisible),
+                let section2 = statusBar.section(withName: .hidden)
+            else {
+                return
+            }
+            section1.controlItem.state = .showItems
+            section2.controlItem.state = .showItems
+        case .alwaysHidden:
+            guard
+                let section1 = statusBar.section(withName: .hidden),
+                let section2 = statusBar.section(withName: .alwaysHidden)
+            else {
+                return
+            }
+            section1.show() // uses other branch
+            section2.controlItem.state = .showItems
+        }
+    }
+
+    /// Hides the status items in the section.
+    func hide() {
+        guard let statusBar else {
+            return
+        }
+        switch name {
+        case .alwaysVisible, .hidden:
+            guard
+                let section1 = statusBar.section(withName: .alwaysVisible),
+                let section2 = statusBar.section(withName: .hidden),
+                let section3 = statusBar.section(withName: .alwaysHidden)
+            else {
+                return
+            }
+            section1.controlItem.state = .hideItems(isExpanded: false)
+            section2.controlItem.state = .hideItems(isExpanded: true)
+            section3.hide() // uses other branch
+        case .alwaysHidden:
+            guard let section = statusBar.section(withName: .alwaysHidden) else {
+                return
+            }
+            section.controlItem.state = .hideItems(isExpanded: true)
+        }
+    }
+
+    /// Toggles the visibility of the status items in the section.
+    func toggle() {
+        switch controlItem.state {
+        case .hideItems: show()
+        case .showItems: hide()
+        }
     }
 }
 
@@ -126,7 +172,6 @@ extension StatusBarSection: Codable {
         case name
         case controlItem
         case hotkey
-        case uuid
     }
 
     convenience init(from decoder: Decoder) throws {
@@ -134,8 +179,7 @@ extension StatusBarSection: Codable {
         try self.init(
             name: container.decode(Name.self, forKey: .name),
             controlItem: container.decode(ControlItem.self, forKey: .controlItem),
-            hotkey: container.decodeIfPresent(Hotkey.self, forKey: .hotkey),
-            uuid: container.decode(UUID.self, forKey: .uuid)
+            hotkey: container.decodeIfPresent(Hotkey.self, forKey: .hotkey)
         )
     }
 
@@ -144,7 +188,6 @@ extension StatusBarSection: Codable {
         try container.encode(name, forKey: .name)
         try container.encode(controlItem, forKey: .controlItem)
         try container.encodeIfPresent(hotkey, forKey: .hotkey)
-        try container.encode(uuid, forKey: .uuid)
     }
 }
 
@@ -153,8 +196,7 @@ extension StatusBarSection: Equatable {
     static func == (lhs: StatusBarSection, rhs: StatusBarSection) -> Bool {
         lhs.name == rhs.name &&
         lhs.controlItem == rhs.controlItem &&
-        lhs.hotkey == rhs.hotkey &&
-        lhs.uuid == rhs.uuid
+        lhs.hotkey == rhs.hotkey
     }
 }
 
@@ -164,6 +206,8 @@ extension StatusBarSection: Hashable {
         hasher.combine(name)
         hasher.combine(controlItem)
         hasher.combine(hotkey)
-        hasher.combine(uuid)
     }
 }
+
+// MARK: StatusBarSection: BindingExposable
+extension StatusBarSection: BindingExposable { }

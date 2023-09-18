@@ -7,8 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */; };
 		7112D0D52AB882D300F27889 /* Annotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7112D0D42AB882D300F27889 /* Annotation.swift */; };
 		7112D0D92AB883AC00F27889 /* ColorAverageCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7112D0D82AB883AC00F27889 /* ColorAverageCalculator.swift */; };
+		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
 		7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED5D2A853FCF000A7E1B /* Constants.swift */; };
 		7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED602A855B07000A7E1B /* NSApplication+Activation.swift */; };
 		7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */; };
@@ -55,8 +57,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectAssociation.swift; sourceTree = "<group>"; };
 		7112D0D42AB882D300F27889 /* Annotation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Annotation.swift; sourceTree = "<group>"; };
 		7112D0D82AB883AC00F27889 /* ColorAverageCalculator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ColorAverageCalculator.swift; sourceTree = "<group>"; };
+		711535F12AB9F6C1003193AD /* BindingExposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingExposable.swift; sourceTree = "<group>"; };
 		7133ED5D2A853FCF000A7E1B /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		7133ED602A855B07000A7E1B /* NSApplication+Activation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+Activation.swift"; sourceTree = "<group>"; };
 		7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+windowWithIdentifier.swift"; sourceTree = "<group>"; };
@@ -329,8 +333,10 @@
 		71FEA25A2A8DA1D60048341A /* Misc */ = {
 			isa = PBXGroup;
 			children = (
+				711535F12AB9F6C1003193AD /* BindingExposable.swift */,
 				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
 				71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */,
+				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
 			);
 			path = Misc;
 			sourceTree = "<group>";
@@ -429,6 +435,7 @@
 				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
+				711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */,
 				7112D0D92AB883AC00F27889 /* ColorAverageCalculator.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				71DF79442AAACE10007D9BAD /* OverlayView.swift in Sources */,
@@ -444,6 +451,7 @@
 				714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */,
 				71623BD32A8B6744002FD331 /* SettingsButtonStyle.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */,
+				71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */,
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
 				71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */,
 				71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */,

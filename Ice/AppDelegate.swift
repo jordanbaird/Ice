@@ -7,7 +7,6 @@ import Combine
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    /// Observers that manage the key state of the delegate.
     private var cancellables = Set<AnyCancellable>()
 
     /// A Boolean value that indicates whether the delegate is allowed

@@ -20,9 +20,9 @@ final class ControlItem: ObservableObject {
 
         var rawValue: Int {
             switch self {
-            case .hideItems(isExpanded: false): return 0
-            case .hideItems(isExpanded: true): return 1
-            case .showItems: return 2
+            case .hideItems(isExpanded: false): 0
+            case .hideItems(isExpanded: true): 1
+            case .showItems: 2
             }
         }
 
@@ -44,10 +44,11 @@ final class ControlItem: ObservableObject {
     /// status bar section.
     static let expandedLength: CGFloat = 10_000
 
+    private static let storage = ObjectAssociation<StatusBarSection>()
+
     /// The underlying status item associated with the control item.
     private let statusItem: NSStatusItem
 
-    /// Observers that manage the key state of the control item.
     private var cancellables = Set<AnyCancellable>()
 
     /// The control item's autosave name.
@@ -64,7 +65,13 @@ final class ControlItem: ObservableObject {
 
     /// The status bar section associated with the control item.
     var section: StatusBarSection? {
-        statusBar?.section(for: self)
+        guard 
+            isVisible,
+            let statusBar
+        else {
+            return nil
+        }
+        return statusBar.sections.first { $0.controlItem == self }
     }
 
     /// The position of the control item in the status bar.
@@ -75,7 +82,21 @@ final class ControlItem: ObservableObject {
     ///
     /// This value corresponds to whether the item's section
     /// is enabled.
-    @Published var isVisible: Bool
+    var isVisible: Bool {
+        get {
+            statusItem.isVisible
+        }
+        set {
+            objectWillChange.send()
+            let autosaveName = autosaveName
+            let cached = PreferredPosition[autosaveName]
+            defer {
+                PreferredPosition[autosaveName] = cached
+            }
+            statusItem.isVisible = newValue
+            statusBar?.needsSave = true
+        }
+    }
 
     /// The hiding state of the control item.
     ///
@@ -87,39 +108,25 @@ final class ControlItem: ObservableObject {
     }
 
     /// Creates a control item with the given autosave name, position,
-    /// visibility, and hiding state.
+    /// and hiding state.
     ///
     /// - Parameters:
     ///   - autosaveName: The control item's autosave name.
     ///   - position: The position of the control item in the status bar.
-    ///   - isVisible: A Boolean value that indicates whether the control
-    ///     item is visible.
     ///   - state: The hiding state of the control item.
     init(
-        autosaveName: String? = nil,
-        position: CGFloat? = nil,
-        isVisible: Bool = true,
+        autosaveName: String,
+        position: CGFloat?,
         state: HidingState? = nil
     ) {
-        let autosaveName = autosaveName ?? UUID().uuidString
-        if isVisible {
-            // set the preferred position first; the status item won't
-            // recognize when it's been set otherwise
-            PreferredPosition[autosaveName] = position
-            self.statusItem = NSStatusBar.system.statusItem(withLength: 0)
-            self.statusItem.autosaveName = autosaveName
-            self.statusItem.isVisible = true
-        } else {
-            self.statusItem = NSStatusBar.system.statusItem(withLength: 0)
-            self.statusItem.autosaveName = autosaveName
-            self.statusItem.isVisible = false
-            // set the preferred position last; setting the status item
-            // to invisible will have removed its preferred position if
-            // it already had one stored stored in UserDefaults
+        if let position {
+            // set the preferred position first to ensure that
+            // the status item appears in the correct position
             PreferredPosition[autosaveName] = position
         }
+        self.statusItem = NSStatusBar.system.statusItem(withLength: 0)
+        self.statusItem.autosaveName = autosaveName
         self.position = position
-        self.isVisible = isVisible
         self.state = state ?? .showItems
         configureStatusItem()
     }
@@ -169,29 +176,6 @@ final class ControlItem: ObservableObject {
                 }
                 .store(in: &cancellables)
         }
-
-        statusItem.publisher(for: \.isVisible)
-            .removeDuplicates()
-            .sink { [weak self] isVisible in
-                self?.isVisible = isVisible
-            }
-            .store(in: &cancellables)
-
-        $isVisible
-            .removeDuplicates()
-            .sink { [weak self] isVisible in
-                guard let self else {
-                    return
-                }
-                let autosaveName = autosaveName
-                let cached = PreferredPosition[autosaveName]
-                defer {
-                    PreferredPosition[autosaveName] = cached
-                }
-                statusItem.isVisible = isVisible
-                statusBar?.needsSave = true
-            }
-            .store(in: &cancellables)
     }
 
     /// Updates the control item's status item to match its current state.
@@ -238,8 +222,6 @@ final class ControlItem: ObservableObject {
                 case .showItems:
                     button.image = ControlItemImages.circleStroked
                 }
-            default:
-                break
             }
         }
 
@@ -262,12 +244,9 @@ final class ControlItem: ObservableObject {
         }
         switch event.type {
         case .leftMouseDown where NSEvent.modifierFlags == .option:
-            statusBar.showSection(withName: .alwaysHidden)
+            statusBar.section(withName: .alwaysHidden)?.show()
         case .leftMouseDown:
-            guard let section else {
-                return
-            }
-            statusBar.toggle(section: section)
+            section?.toggle()
         case .rightMouseUp:
             statusItem.showMenu(createMenu(with: statusBar))
         default:
@@ -286,16 +265,17 @@ final class ControlItem: ObservableObject {
         for name in sectionNames {
             guard
                 let section = statusBar.section(withName: name),
-                statusBar.isSectionEnabled(section)
+                section.isEnabled
             else {
                 continue
             }
             let item = NSMenuItem(
-                title: "\(statusBar.isSectionHidden(section) ? "Show" : "Hide") \"\(name.rawValue)\" Section",
+                title: "\(section.isHidden ? "Show" : "Hide") \"\(name.rawValue)\" Section",
                 action: #selector(toggleStatusBarSection),
                 keyEquivalent: ""
             )
             item.target = self
+            Self.storage[item] = section
             if let hotkey = section.hotkey {
                 item.keyEquivalent = hotkey.key.keyEquivalent
                 item.keyEquivalentModifierMask = hotkey.modifiers.nsEventFlags
@@ -328,13 +308,7 @@ final class ControlItem: ObservableObject {
 
     /// Action for a menu item in the control item's menu to perform.
     @objc private func toggleStatusBarSection(for menuItem: NSMenuItem) {
-        guard
-            let statusBar,
-            let section
-        else {
-            return
-        }
-        statusBar.toggle(section: section)
+        Self.storage[menuItem]?.toggle()
     }
 
     deinit {
@@ -353,17 +327,14 @@ final class ControlItem: ObservableObject {
 extension ControlItem: Codable {
     private enum CodingKeys: String, CodingKey {
         case autosaveName
-        case position
         case state
-        case isVisible
     }
 
     convenience init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try self.init(
             autosaveName: container.decode(String.self, forKey: .autosaveName),
-            position: container.decode(CGFloat.self, forKey: .position),
-            isVisible: container.decode(Bool.self, forKey: .isVisible),
+            position: nil,
             state: container.decode(HidingState.self, forKey: .state)
         )
     }
@@ -371,8 +342,6 @@ extension ControlItem: Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(autosaveName, forKey: .autosaveName)
-        try container.encode(position, forKey: .position)
-        try container.encode(isVisible, forKey: .isVisible)
         try container.encode(state, forKey: .state)
     }
 }
@@ -380,9 +349,9 @@ extension ControlItem: Codable {
 // MARK: ControlItem: Equatable
 extension ControlItem: Equatable {
     static func == (lhs: ControlItem, rhs: ControlItem) -> Bool {
+        lhs.statusItem == rhs.statusItem &&
         lhs.autosaveName == rhs.autosaveName &&
         lhs.position == rhs.position &&
-        lhs.isVisible == rhs.isVisible &&
         lhs.state == rhs.state
     }
 }
@@ -390,9 +359,9 @@ extension ControlItem: Equatable {
 // MARK: ControlItem: Hashable
 extension ControlItem: Hashable {
     func hash(into hasher: inout Hasher) {
+        hasher.combine(statusItem)
         hasher.combine(autosaveName)
         hasher.combine(position)
-        hasher.combine(isVisible)
         hasher.combine(state)
     }
 }

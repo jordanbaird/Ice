@@ -57,6 +57,7 @@ struct SettingsView: View {
             }
             .collapsible(false)
         }
+        .scrollBounceBehavior(.basedOnSize)
         .navigationSplitViewColumnWidth(
             min: 220,
             ideal: 0,

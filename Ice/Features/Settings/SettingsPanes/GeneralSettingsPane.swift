@@ -36,6 +36,7 @@ struct GeneralSettingsPane: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
+        .scrollBounceBehavior(.basedOnSize)
         .frame(maxHeight: .infinity)
         .errorOverlay(HotkeyRecorder.Failure.self)
         .bottomBar {

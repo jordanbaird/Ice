@@ -47,30 +47,32 @@ extension Hotkey {
         var symbolicHotkeys: Unmanaged<CFArray>?
         let status = CopySymbolicHotKeys(&symbolicHotkeys)
         guard status == noErr else {
-            Logger.hotkey.hotkeyError(
-                HotkeyError.systemRetrievalFailed
-                    .reason("CopySymbolicHotKeys returned invalid status")
-                    .status(status)
-            )
+            Logger.hotkey
+                .hotkeyError(
+                    HotkeyError.systemRetrievalFailed
+                        .reason("CopySymbolicHotKeys returned invalid status")
+                        .status(status)
+                )
             return []
         }
         guard let reservedHotkeys = symbolicHotkeys?.takeRetainedValue() as? [[String: Any]] else {
-            Logger.hotkey.hotkeyError(
-                HotkeyError.systemRetrievalFailed
-                    .reason("Failed to serialize symbolic hotkeys")
-            )
+            Logger.hotkey
+                .hotkeyError(
+                    HotkeyError.systemRetrievalFailed
+                        .reason("Failed to serialize symbolic hotkeys")
+                )
             return []
         }
         return reservedHotkeys.compactMap { hotkey in
             guard
                 hotkey[kHISymbolicHotKeyEnabled] as? Bool == true,
-                let keyCode = hotkey[kHISymbolicHotKeyCode] as? Int,
+                let carbonKeyCode = hotkey[kHISymbolicHotKeyCode] as? Int,
                 let carbonModifiers = hotkey[kHISymbolicHotKeyModifiers] as? Int
             else {
                 return nil
             }
             return Hotkey(
-                key: Key(rawValue: keyCode),
+                key: Key(rawValue: carbonKeyCode),
                 modifiers: Modifiers(carbonFlags: carbonModifiers)
             )
         }

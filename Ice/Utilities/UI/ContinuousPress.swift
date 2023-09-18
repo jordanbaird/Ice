@@ -31,7 +31,7 @@ struct ContinuousPressInfo {
 }
 
 /// A view modifier that adds a continuous press gesture to a view.
-private struct ContinuousPress: ViewModifier {
+private struct ContinuousPressModifier: ViewModifier {
     /// The view's frame.
     @State private var frame = CGRect.zero
 
@@ -93,7 +93,7 @@ extension View {
         onEnded: @escaping (ContinuousPressInfo) -> Void
     ) -> some View {
         modifier(
-            ContinuousPress(
+            ContinuousPressModifier(
                 coordinateSpace: coordinateSpace,
                 onChanged: onChanged,
                 onEnded: onEnded

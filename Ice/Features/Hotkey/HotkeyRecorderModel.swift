@@ -124,7 +124,7 @@ class HotkeyRecorderModel: ObservableObject {
         let hotkey = Hotkey(event: event)
         if hotkey.modifiers.isEmpty {
             if hotkey.key == .escape {
-                // cancel when escape is pressed with no modifiers
+                // escape was pressed with no modifiers
                 stopRecording()
             } else {
                 handleFailure(self, .noModifiers)

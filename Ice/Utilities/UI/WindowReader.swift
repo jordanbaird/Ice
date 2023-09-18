@@ -7,7 +7,7 @@ import Combine
 import SwiftUI
 
 struct WindowReader: View {
-    private class Coordinator: ObservableObject {
+    private class WindowObserver: ObservableObject {
         private var cancellable: AnyCancellable?
 
         func configure(for view: NSView, onWindowChange: @escaping (NSWindow?) -> Void) {
@@ -28,8 +28,8 @@ struct WindowReader: View {
             return view
         }
 
-        func makeCoordinator() -> Coordinator {
-            Coordinator()
+        func makeCoordinator() -> WindowObserver {
+            WindowObserver()
         }
 
         func updateNSView(_: NSView, context: Context) { }
@@ -43,6 +43,9 @@ struct WindowReader: View {
 }
 
 extension View {
+    /// Reads the window of this view, assigning it to the given binding.
+    ///
+    /// - Parameter window: A binding to use to store the view's window.
     func readWindow(window: Binding<NSWindow?>) -> some View {
         background {
             WindowReader(window: window)

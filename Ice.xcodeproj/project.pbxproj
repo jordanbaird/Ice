@@ -37,7 +37,6 @@
 		716683522A76820A006ABF84 /* ControlItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683512A76820A006ABF84 /* ControlItem.swift */; };
 		71839BD82A997DC200250044 /* Edge+cgRectEdge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839BD72A997DC200250044 /* Edge+cgRectEdge.swift */; };
 		71839BE52A9A0A6100250044 /* ContinuousPress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839BE42A9A0A6100250044 /* ContinuousPress.swift */; };
-		71839C072A9B4E2600250044 /* InterceptMouseDown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C062A9B4E2600250044 /* InterceptMouseDown.swift */; };
 		71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C152A9B6A0D00250044 /* OnFrameChange.swift */; };
 		718AFF2C2AB360AD00BC49CB /* HotkeyRecorderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */; };
 		71C400302AAD1C35006FDB1C /* SettingsButtonConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C4002F2AAD1C35006FDB1C /* SettingsButtonConfiguration.swift */; };
@@ -87,7 +86,6 @@
 		716683512A76820A006ABF84 /* ControlItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItem.swift; sourceTree = "<group>"; };
 		71839BD72A997DC200250044 /* Edge+cgRectEdge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Edge+cgRectEdge.swift"; sourceTree = "<group>"; };
 		71839BE42A9A0A6100250044 /* ContinuousPress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuousPress.swift; sourceTree = "<group>"; };
-		71839C062A9B4E2600250044 /* InterceptMouseDown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterceptMouseDown.swift; sourceTree = "<group>"; };
 		71839C152A9B6A0D00250044 /* OnFrameChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnFrameChange.swift; sourceTree = "<group>"; };
 		718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderModel.swift; sourceTree = "<group>"; };
 		71C4002F2AAD1C35006FDB1C /* SettingsButtonConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsButtonConfiguration.swift; sourceTree = "<group>"; };
@@ -311,7 +309,6 @@
 				71839BE42A9A0A6100250044 /* ContinuousPress.swift */,
 				71FEA24D2A8C96680048341A /* EnvironmentReader.swift */,
 				71604D622AAE84ED002FE96F /* ErrorOverlay.swift */,
-				71839C062A9B4E2600250044 /* InterceptMouseDown.swift */,
 				71839C152A9B6A0D00250044 /* OnFrameChange.swift */,
 				71DF79432AAACE10007D9BAD /* OverlayView.swift */,
 				71D36C532A89445C00D89CD5 /* VisualEffectView.swift */,
@@ -446,7 +443,6 @@
 				71C400302AAD1C35006FDB1C /* SettingsButtonConfiguration.swift in Sources */,
 				714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */,
 				71623BD32A8B6744002FD331 /* SettingsButtonStyle.swift in Sources */,
-				71839C072A9B4E2600250044 /* InterceptMouseDown.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */,
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
 				71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */,

@@ -103,6 +103,7 @@ enum HotkeyRegistry {
         enum Context {
             static var currentID: UInt32 = 0
         }
+
         defer {
             Context.currentID += 1
         }
@@ -110,20 +111,22 @@ enum HotkeyRegistry {
         var status = installIfNeeded()
 
         guard status == noErr else {
-            Logger.hotkey.hotkeyError(
-                HotkeyError.installationFailed
-                    .status(status)
-            )
+            Logger.hotkey
+                .hotkeyError(
+                    HotkeyError.installationFailed
+                        .status(status)
+                )
             return nil
         }
 
         let id = Context.currentID
 
         guard eventHandlers[id] == nil else {
-            Logger.hotkey.hotkeyError(
-                HotkeyError.registrationFailed
-                    .reason("An event handler is already stored for id \(id)")
-            )
+            Logger.hotkey
+                .hotkeyError(
+                    HotkeyError.registrationFailed
+                        .reason("An event handler is already stored for id \(id)")
+                )
             return nil
         }
 
@@ -138,18 +141,20 @@ enum HotkeyRegistry {
         )
 
         guard status == noErr else {
-            Logger.hotkey.hotkeyError(
-                HotkeyError.registrationFailed
-                    .status(status)
-            )
+            Logger.hotkey
+                .hotkeyError(
+                    HotkeyError.registrationFailed
+                        .status(status)
+                )
             return nil
         }
 
         guard let hotKeyRef else {
-            Logger.hotkey.hotkeyError(
-                HotkeyError.registrationFailed
-                    .reason("Invalid EventHotKeyRef")
-            )
+            Logger.hotkey
+                .hotkeyError(
+                    HotkeyError.registrationFailed
+                        .reason("Invalid EventHotKeyRef")
+                )
             return nil
         }
 
@@ -173,10 +178,11 @@ enum HotkeyRegistry {
         }
         let status = UnregisterEventHotKey(eventHandler.hotKeyRef)
         if status != noErr {
-            Logger.hotkey.hotkeyError(
-                HotkeyError.unregistrationFailed
-                    .status(status)
-            )
+            Logger.hotkey
+                .hotkeyError(
+                    HotkeyError.unregistrationFailed
+                        .status(status)
+                )
         }
     }
 
@@ -205,7 +211,7 @@ enum HotkeyRegistry {
         }
 
         // make sure the event signature matches our signature and
-        // check that an event handler is registered for the event
+        // that an event handler is registered for the event
         guard
             hotKeyID.signature == signature,
             let eventHandler = eventHandlers[hotKeyID.id],

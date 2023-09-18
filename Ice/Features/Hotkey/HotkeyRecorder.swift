@@ -16,6 +16,7 @@ struct HotkeyRecorder: View {
         /// The given hotkey is reserved by macOS.
         case reserved(Hotkey)
 
+        /// Description of the failure.
         var errorDescription: String? {
             switch self {
             case .noModifiers:

@@ -17,6 +17,7 @@ struct HotkeyError: Error, CustomStringConvertible {
     /// The failure reason associated with the error.
     let reason: String?
 
+    /// Description of the error.
     var description: String {
         var components = ["[message: \(message)]"]
         if let status {
@@ -53,22 +54,32 @@ struct HotkeyError: Error, CustomStringConvertible {
 }
 
 extension HotkeyError {
+    /// A hotkey error that indicates that installing an event
+    /// handler has failed.
     static var installationFailed: HotkeyError {
         HotkeyError(message: "Event handler installation failed")
     }
 
+    /// A hotkey error that indicates that uninstalling an event
+    /// handler has failed.
     static var uninstallationFailed: HotkeyError {
         HotkeyError(message: "Event handler uninstallation failed")
     }
 
+    /// A hotkey error that indicates that registering a hotkey
+    /// has failed.
     static var registrationFailed: HotkeyError {
         HotkeyError(message: "Hot key registration failed")
     }
 
+    /// A hotkey error that indicates that unregistering a hotkey
+    /// has failed.
     static var unregistrationFailed: HotkeyError {
         HotkeyError(message: "Hot key unregistration failed")
     }
 
+    /// A hotkey error that indicates that retrieving the system
+    /// reserved hotkey has failed.
     static var systemRetrievalFailed: HotkeyError {
         HotkeyError(message: "System reserved hot key retrieval failed")
     }

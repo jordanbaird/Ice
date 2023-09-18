@@ -37,7 +37,7 @@ struct GeneralSettingsPane: View {
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .frame(maxHeight: .infinity)
-        .overlayErrors(HotkeyRecorder.Failure.self)
+        .errorOverlay(HotkeyRecorder.Failure.self)
         .bottomBar {
             HStack {
                 Button("Reset") {

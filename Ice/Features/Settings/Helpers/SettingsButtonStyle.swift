@@ -7,6 +7,20 @@ import SwiftUI
 
 /// The button style to use in the "Settings" interface.
 struct SettingsButtonStyle: PrimitiveButtonStyle {
+    /// Custom view that prevents mouse down messages from passing
+    /// through to the button's window.
+    private struct MouseDownInterceptor: NSViewRepresentable {
+        private class SettingsButtonMouseDownInterceptorView: NSView {
+            override var mouseDownCanMoveWindow: Bool { false }
+        }
+
+        func makeNSView(context: Context) -> NSView {
+            SettingsButtonMouseDownInterceptorView()
+        }
+
+        func updateNSView(_: NSView, context: Context) { }
+    }
+
     /// Custom shape that draws a rounded rectangle with some of its
     /// sides flattened according to the given button shape.
     private struct ClipShape: Shape {
@@ -61,9 +75,11 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
                         .opacity(configuration.isHighlighted ? 0.2 : 0)
                         .blendMode(.overlay)
                 }
+                .background {
+                    MouseDownInterceptor()
+                }
                 .clipShape(ClipShape(cornerRadius: 5, shape: configuration.shape))
             }
-            .interceptMouseDown()
             .onContinuousPress { info in
                 isPressed = info.frame.contains(info.location)
             } onEnded: { info in

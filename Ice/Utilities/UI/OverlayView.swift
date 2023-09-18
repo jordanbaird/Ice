@@ -5,6 +5,10 @@
 
 import SwiftUI
 
+/// A view that layers an overlay view on top of a content view.
+///
+/// The overlay view is presented inside of a tooltip-like container
+/// centered within the content view.
 struct OverlayView<Content: View, Overlay: View>: View {
     @Binding var showOverlay: Bool
     @ViewBuilder var content: Content

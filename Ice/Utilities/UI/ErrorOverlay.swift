@@ -13,13 +13,13 @@ private struct ErrorPreferenceKey<E: Error & Equatable>: PreferenceKey {
     }
 }
 
-private struct ErrorOverlay<E: Error & Equatable, Content: View>: View {
+private struct ErrorOverlayView<E: Error & Equatable, Content: View>: View {
     @State private var showOverlay = false
     @State private var error: E?
     private let content: Content
 
-    init(type: E.Type, @ViewBuilder content: () -> Content) {
-        self.content = content()
+    init(type: E.Type, content: Content) {
+        self.content = content
     }
 
     var body: some View {
@@ -46,12 +46,12 @@ extension View {
     ///
     /// - Parameter type: The type of error to display a descriptive
     ///   overlay for.
-    func overlayErrors<E: Error & Equatable>(_ type: E.Type) -> some View {
-        ErrorOverlay(type: type) { self }
+    func errorOverlay<E: Error & Equatable>(_ type: E.Type) -> some View {
+        ErrorOverlayView(type: type, content: self)
     }
 
     /// Sets an error to be displayed over the top of any view that has
-    /// applied the ``overlayErrors(_:)`` modifier for the same error
+    /// applied the ``errorOverlay(_:)`` modifier for the same error
     /// type as the provided error.
     ///
     /// - Parameter error: An error to display a descriptive overlay for.

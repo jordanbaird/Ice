@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7112D0D52AB882D300F27889 /* Annotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7112D0D42AB882D300F27889 /* Annotation.swift */; };
 		7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED5D2A853FCF000A7E1B /* Constants.swift */; };
 		7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED602A855B07000A7E1B /* NSApplication+Activation.swift */; };
 		7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */; };
@@ -54,6 +55,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		7112D0D42AB882D300F27889 /* Annotation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Annotation.swift; sourceTree = "<group>"; };
 		7133ED5D2A853FCF000A7E1B /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		7133ED602A855B07000A7E1B /* NSApplication+Activation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+Activation.swift"; sourceTree = "<group>"; };
 		7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+windowWithIdentifier.swift"; sourceTree = "<group>"; };
@@ -293,6 +295,7 @@
 		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				7112D0D42AB882D300F27889 /* Annotation.swift */,
 				71604D602AAE62DA002FE96F /* BottomBar.swift */,
 				71839BE42A9A0A6100250044 /* ContinuousPress.swift */,
 				71FEA24D2A8C96680048341A /* EnvironmentReader.swift */,
@@ -404,6 +407,7 @@
 				71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
 				7162406F2AA0A323003EC671 /* StatusBarSection.swift in Sources */,
+				7112D0D52AB882D300F27889 /* Annotation.swift in Sources */,
 				7150A7B52AA42BEA0045EA68 /* HotkeyError.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,
 				718AFF2C2AB360AD00BC49CB /* HotkeyRecorderModel.swift in Sources */,

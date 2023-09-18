@@ -76,12 +76,14 @@ struct GeneralSettingsPane: View {
             if enableTimedRehide {
                 HStack(alignment: .firstTextBaseline) {
                     Stepper(
-                        "Rehide interval",
                         value: $rehideInterval,
                         in: 0...300,
                         step: 1,
                         format: .number
-                    )
+                    ) {
+                        Text("Rehide interval")
+                        Text("Time interval to wait before rehiding")
+                    }
                     Text("seconds")
                         .foregroundColor(.secondary)
                 }
@@ -101,12 +103,14 @@ struct GeneralSettingsPane: View {
     private var enableAlwaysHidden: some View {
         if let section = statusBar.section(withName: .alwaysHidden) {
             Toggle(
-                "Enable the \"\(section.name.rawValue)\" menu bar section",
                 isOn: Binding(
                     get: { section.isEnabled },
                     set: { section.isEnabled = $0 }
                 )
-            )
+            ) {
+                Text("Enable the \"\(section.name.rawValue)\" menu bar section")
+                Text("⌥ (Option) + clicking either control item will temporarily show the section")
+            }
             .onChange(of: section.isEnabled) { newValue in
                 section.controlItem.isVisible = newValue
                 if newValue {

@@ -44,23 +44,25 @@ final class ControlItem: ObservableObject {
     /// status bar section.
     static let expandedLength: CGFloat = 10_000
 
-    private static let storage = ObjectAssociation<StatusBarSection>()
-
-    /// The underlying status item associated with the control item.
-    private let statusItem: NSStatusItem
+    /// Storage to temporarily associate status bar sections with
+    /// specific menu items.
+    private static let sectionStorage = ObjectAssociation<StatusBarSection>()
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// The control item's autosave name.
-    var autosaveName: String {
-        statusItem.autosaveName
-    }
+    /// The underlying status item associated with the control item.
+    private let statusItem: NSStatusItem
 
     /// The status bar associated with the control item.
     weak var statusBar: StatusBar? {
         didSet {
             updateStatusItem()
         }
+    }
+
+    /// The control item's autosave name.
+    var autosaveName: String {
+        statusItem.autosaveName
     }
 
     /// The status bar section associated with the control item.
@@ -73,9 +75,6 @@ final class ControlItem: ObservableObject {
         }
         return statusBar.sections.first { $0.controlItem == self }
     }
-
-    /// The position of the control item in the status bar.
-    @Published private(set) var position: CGFloat?
 
     /// A Boolean value that indicates whether the control
     /// item is visible.
@@ -97,6 +96,9 @@ final class ControlItem: ObservableObject {
             statusBar?.needsSave = true
         }
     }
+
+    /// The position of the control item in the status bar.
+    @Published private(set) var position: CGFloat?
 
     /// The hiding state of the control item.
     ///
@@ -129,6 +131,17 @@ final class ControlItem: ObservableObject {
         self.position = position
         self.state = state ?? .showItems
         configureStatusItem()
+    }
+
+    deinit {
+        // removing the status item has the unwanted side effect of deleting
+        // the preferred position; cache and restore after removing
+        let autosaveName = autosaveName
+        let cached = PreferredPosition[autosaveName]
+        defer {
+            PreferredPosition[autosaveName] = cached
+        }
+        NSStatusBar.system.removeStatusItem(statusItem)
     }
 
     /// Sets the initial configuration for the status item.
@@ -180,8 +193,8 @@ final class ControlItem: ObservableObject {
 
     /// Updates the control item's status item to match its current state.
     func updateStatusItem() {
-        func updateLength(section: StatusBarSection) {
-            if section.name == .alwaysVisible {
+        func updateLength(name: StatusBarSection.Name) {
+            if name == .alwaysVisible {
                 // item for always-visible section should never be expanded
                 statusItem.length = Self.standardLength
                 return
@@ -194,43 +207,43 @@ final class ControlItem: ObservableObject {
             }
         }
 
-        func updateButton(section: StatusBarSection) {
+        func updateButton(name: StatusBarSection.Name) {
             guard let button = statusItem.button else {
                 return
             }
             if state == .hideItems(isExpanded: true) {
                 // prevent the cell from highlighting while expanded
                 button.cell?.isEnabled = false
-                // cell still sometimes briefly flashes during expansion;
-                // manually unhighlighting seems to mitigate it
+                // cell still sometimes briefly flashes on expansion
+                // unless manually unhighlighted
                 button.isHighlighted = false
                 button.image = nil
                 return
             }
             // enable the cell, as it may have been previously disabled
             button.cell?.isEnabled = true
-            // set the image based on section and state
-            switch section.name {
+            // set the image based on section name and state
+            switch name {
             case .hidden:
-                button.image = ControlItemImages.largeChevron
+                button.image = ControlItemImages.Chevron.large
             case .alwaysHidden:
-                button.image = ControlItemImages.smallChevron
+                button.image = ControlItemImages.Chevron.small
             case .alwaysVisible:
                 switch state {
                 case .hideItems:
-                    button.image = ControlItemImages.circleFilled
+                    button.image = ControlItemImages.Circle.filled
                 case .showItems:
-                    button.image = ControlItemImages.circleStroked
+                    button.image = ControlItemImages.Circle.stroked
                 }
             }
         }
 
-        guard let section else {
+        guard let name = section?.name else {
             return
         }
 
-        updateLength(section: section)
-        updateButton(section: section)
+        updateLength(name: name)
+        updateButton(name: name)
 
         statusBar?.needsSave = true
     }
@@ -275,7 +288,7 @@ final class ControlItem: ObservableObject {
                 keyEquivalent: ""
             )
             item.target = self
-            Self.storage[item] = section
+            Self.sectionStorage[item] = section
             if let hotkey = section.hotkey {
                 item.keyEquivalent = hotkey.key.keyEquivalent
                 item.keyEquivalentModifierMask = hotkey.modifiers.nsEventFlags
@@ -308,18 +321,7 @@ final class ControlItem: ObservableObject {
 
     /// Action for a menu item in the control item's menu to perform.
     @objc private func toggleStatusBarSection(for menuItem: NSMenuItem) {
-        Self.storage[menuItem]?.toggle()
-    }
-
-    deinit {
-        // removing the status item has the unwanted side effect of deleting
-        // the preferred position; cache and restore after removing
-        let autosaveName = autosaveName
-        let cached = PreferredPosition[autosaveName]
-        defer {
-            PreferredPosition[autosaveName] = cached
-        }
-        NSStatusBar.system.removeStatusItem(statusItem)
+        Self.sectionStorage[menuItem]?.toggle()
     }
 }
 
@@ -367,6 +369,7 @@ extension ControlItem: Hashable {
 }
 
 // MARK: - PreferredPosition
+
 /// A proxy getter and setter for a control item's preferred position.
 private enum PreferredPosition {
     private static func key(for autosaveName: String) -> String {
@@ -389,39 +392,44 @@ private enum PreferredPosition {
 
 // MARK: - ControlItemImages
 
-/// Namespace for control item images.
+/// Namespaces for control item images.
 enum ControlItemImages {
-    static let circleFilled: NSImage = {
-        let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { bounds in
-            NSColor.black.setFill()
-            NSBezierPath(ovalIn: bounds).fill()
-            return true
-        }
-        image.isTemplate = true
-        return image
-    }()
+    /// Namespace for circle-shaped control item images.
+    enum Circle {
+        static let filled: NSImage = {
+            let image = NSImage(size: CGSize(width: 8, height: 8), flipped: false) { bounds in
+                NSColor.black.setFill()
+                NSBezierPath(ovalIn: bounds).fill()
+                return true
+            }
+            image.isTemplate = true
+            return image
+        }()
 
-    static let circleStroked: NSImage = {
-        let image = NSImage(size: NSSize(width: 8, height: 8), flipped: false) { bounds in
-            let lineWidth: CGFloat = 1.5
-            let path = NSBezierPath(ovalIn: bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2))
-            path.lineWidth = lineWidth
-            NSColor.black.setStroke()
-            path.stroke()
-            return true
-        }
-        image.isTemplate = true
-        return image
-    }()
+        static let stroked: NSImage = {
+            let image = NSImage(size: CGSize(width: 8, height: 8), flipped: false) { bounds in
+                let lineWidth: CGFloat = 1.5
+                let insetBounds = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
+                let path = NSBezierPath(ovalIn: insetBounds)
+                path.lineWidth = lineWidth
+                NSColor.black.setStroke()
+                path.stroke()
+                return true
+            }
+            image.isTemplate = true
+            return image
+        }()
+    }
 
-    static let (largeChevron, smallChevron): (NSImage, NSImage) = {
-        func chevron(size: NSSize, lineWidth: CGFloat = 2) -> NSImage {
+    /// Namespace for chevron-shaped control item images.
+    enum Chevron {
+        private static func chevron(size: CGSize, lineWidth: CGFloat) -> NSImage {
             let image = NSImage(size: size, flipped: false) { bounds in
                 let insetBounds = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
                 let path = NSBezierPath()
-                path.move(to: NSPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.maxY))
-                path.line(to: NSPoint(x: (insetBounds.minX + insetBounds.midX) / 2, y: insetBounds.midY))
-                path.line(to: NSPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.minY))
+                path.move(to: CGPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.maxY))
+                path.line(to: CGPoint(x: (insetBounds.minX + insetBounds.midX) / 2, y: insetBounds.midY))
+                path.line(to: CGPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.minY))
                 path.lineWidth = lineWidth
                 path.lineCapStyle = .butt
                 NSColor.black.setStroke()
@@ -431,8 +439,9 @@ enum ControlItemImages {
             image.isTemplate = true
             return image
         }
-        let largeChevron = chevron(size: NSSize(width: 12, height: 12))
-        let smallChevron = chevron(size: NSSize(width: 9, height: 9))
-        return (largeChevron, smallChevron)
-    }()
+
+        static let large = chevron(size: CGSize(width: 12, height: 12), lineWidth: 2)
+
+        static let small = chevron(size: CGSize(width: 9, height: 9), lineWidth: 2)
+    }
 }

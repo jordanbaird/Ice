@@ -432,7 +432,7 @@ enum ControlItemImages {
             return image
         }
         let largeChevron = chevron(size: NSSize(width: 12, height: 12))
-        let smallChevron = chevron(size: NSSize(width: 7, height: 7))
+        let smallChevron = chevron(size: NSSize(width: 9, height: 9))
         return (largeChevron, smallChevron)
     }()
 }

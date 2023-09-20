@@ -142,13 +142,13 @@ class StatusBar: ObservableObject {
                         section.controlItem
                     }
                     .sorted { first, second in
-                        switch (first.state, second.state) {
-                        case (.showItems, .showItems):
+                        switch (first.state, first.expandsOnHide, second.state, second.expandsOnHide) {
+                        case (.showItems, _, .showItems, _):
                             return (first.position ?? 0) < (second.position ?? 0)
-                        case (.hideItems(let isExpanded), _):
-                            return !isExpanded
-                        case (_, .hideItems(let isExpanded)):
-                            return isExpanded
+                        case (.hideItems, let expandsOnHide, _, _):
+                            return !expandsOnHide
+                        case (_, _, .hideItems, let expandsOnHide):
+                            return expandsOnHide
                         }
                     }
                 for index in 0..<sections.count {

@@ -10,30 +10,13 @@ import Combine
 /// status bar section.
 final class ControlItem: ObservableObject {
     /// A value representing the hiding state of a control item.
-    enum HidingState: RawRepresentable, Hashable, Codable {
+    enum HidingState: Int, Hashable, Codable {
         /// Status items in the control item's status bar section
         /// are hidden.
-        case hideItems(isExpanded: Bool)
+        case hideItems
         /// Status items in the control item's status bar section
         /// are visible.
         case showItems
-
-        var rawValue: Int {
-            switch self {
-            case .hideItems(isExpanded: false): 0
-            case .hideItems(isExpanded: true): 1
-            case .showItems: 2
-            }
-        }
-
-        init?(rawValue: Int) {
-            switch rawValue {
-            case 0: self = .hideItems(isExpanded: false)
-            case 1: self = .hideItems(isExpanded: true)
-            case 2: self = .showItems
-            default: return nil
-            }
-        }
     }
 
     /// The length of a control item that is not currently hiding
@@ -76,7 +59,19 @@ final class ControlItem: ObservableObject {
         return statusBar.sections.first { $0.controlItem == self }
     }
 
-    /// A Boolean value that indicates whether the control
+    /// A Boolean value indicating whether the control item 
+    /// expands when hiding its section.
+    var expandsOnHide: Bool {
+        guard
+            let section,
+            let index = statusBar?.sections.firstIndex(of: section)
+        else {
+            return false
+        }
+        return index != 0
+    }
+
+    /// A Boolean value that indicates whether the control 
     /// item is visible.
     ///
     /// This value corresponds to whether the item's section
@@ -134,8 +129,9 @@ final class ControlItem: ObservableObject {
     }
 
     deinit {
-        // removing the status item has the unwanted side effect of deleting
-        // the preferred position; cache and restore after removing
+        // removing the status item has the unwanted side effect 
+        // of deleting the preferred position; cache and restore
+        // after removing
         let autosaveName = autosaveName
         let cached = PreferredPosition[autosaveName]
         defer {
@@ -191,18 +187,14 @@ final class ControlItem: ObservableObject {
         }
     }
 
-    /// Updates the control item's status item to match its current state.
+    /// Updates the control item's status item to match its current 
+    /// state.
     func updateStatusItem() {
-        func updateLength(name: StatusBarSection.Name) {
-            if name == .alwaysVisible {
-                // item for always-visible section should never be expanded
+        func updateLength() {
+            switch (state, expandsOnHide) {
+            case (.showItems, _), (.hideItems, false):
                 statusItem.length = Self.standardLength
-                return
-            }
-            switch state {
-            case .showItems, .hideItems(isExpanded: false):
-                statusItem.length = Self.standardLength
-            case .hideItems(isExpanded: true):
+            case (.hideItems, _):
                 statusItem.length = Self.expandedLength
             }
         }
@@ -211,7 +203,7 @@ final class ControlItem: ObservableObject {
             guard let button = statusItem.button else {
                 return
             }
-            if state == .hideItems(isExpanded: true) {
+            if state == .hideItems && expandsOnHide {
                 // prevent the cell from highlighting while expanded
                 button.cell?.isEnabled = false
                 // cell still sometimes briefly flashes on expansion
@@ -239,10 +231,11 @@ final class ControlItem: ObservableObject {
         }
 
         guard let name = section?.name else {
+            // don't continue if no name
             return
         }
 
-        updateLength(name: name)
+        updateLength()
         updateButton(name: name)
 
         statusBar?.needsSave = true
@@ -272,8 +265,8 @@ final class ControlItem: ObservableObject {
     private func createMenu(with statusBar: StatusBar) -> NSMenu {
         let menu = NSMenu(title: Constants.appName)
 
-        // add menu items to toggle the hidden and always-hidden sections,
-        // assuming each section is enabled
+        // add menu items to toggle the hidden and always-hidden 
+        // sections, if each section is enabled
         let sectionNames: [StatusBarSection.Name] = [.hidden, .alwaysHidden]
         for name in sectionNames {
             guard

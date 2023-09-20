@@ -146,14 +146,14 @@ final class StatusBarSection: ObservableObject {
             else {
                 return
             }
-            section1.controlItem.state = .hideItems(isExpanded: false)
-            section2.controlItem.state = .hideItems(isExpanded: true)
+            section1.controlItem.state = .hideItems
+            section2.controlItem.state = .hideItems
             section3.hide() // uses other branch
         case .alwaysHidden:
             guard let section = statusBar.section(withName: .alwaysHidden) else {
                 return
             }
-            section.controlItem.state = .hideItems(isExpanded: true)
+            section.controlItem.state = .hideItems
         }
     }
 

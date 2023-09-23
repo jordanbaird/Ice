@@ -9,11 +9,16 @@ import SwiftUI
 struct GeneralSettingsPane: View {
     @EnvironmentObject var statusBar: StatusBar
 
+    @AppStorage("alwaysHiddenModifier")
+    var alwaysHiddenModifier: Hotkey.Modifiers = .option
+
     var body: some View {
         Form {
             Section {
                 launchAtLogin
-                enableAlwaysHidden
+            }
+            Section {
+                alwaysHiddenOptions
             }
             Section("Hotkeys") {
                 hiddenRecorder
@@ -42,11 +47,10 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private var enableAlwaysHidden: some View {
+    private var alwaysHiddenOptions: some View {
         if let section = statusBar.section(withName: .alwaysHidden) {
             Toggle(isOn: section.bindings.isEnabled) {
-                Text("Enable the \"\(section.name.rawValue)\" menu bar section")
-                Text("⌥ (Option) + clicking either of \(Constants.appName)'s menu bar items will temporarily show the section")
+                Text("Enable \"\(section.name.rawValue)\" section")
             }
             .onChange(of: section.isEnabled) { newValue in
                 section.controlItem.isVisible = newValue
@@ -54,6 +58,17 @@ struct GeneralSettingsPane: View {
                     section.enableHotkey()
                 } else {
                     section.disableHotkey()
+                }
+            }
+
+            if section.isEnabled {
+                Picker(selection: $alwaysHiddenModifier) {
+                    ForEach(Hotkey.Modifiers.canonicalOrder, id: \.self) { modifier in
+                        Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
+                    }
+                } label: {
+                    Text("Modifier")
+                    Text("\(alwaysHiddenModifier.label) (\(alwaysHiddenModifier.stringValue)) + clicking either of \(Constants.appName)'s menu bar items will temporarily show the section")
                 }
             }
         }

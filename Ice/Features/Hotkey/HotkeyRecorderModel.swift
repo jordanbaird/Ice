@@ -11,6 +11,7 @@ class HotkeyRecorderModel: ObservableObject {
     /// An alias for a type that describes a recording failure.
     typealias Failure = HotkeyRecorder.Failure
 
+    /// Observers for important aspects of state.
     private var cancellables = Set<AnyCancellable>()
 
     /// The section managed by the model.

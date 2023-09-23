@@ -21,8 +21,8 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
         func updateNSView(_: NSView, context: Context) { }
     }
 
-    /// Custom shape that draws a rounded rectangle with some of its
-    /// sides flattened according to the given button shape.
+    /// Custom shape that draws a rounded rectangle with some of 
+    /// its sides flattened according to the given button shape.
     private struct ClipShape: Shape {
         let cornerRadius: CGFloat
         let shape: SettingsButtonConfiguration.ButtonShape
@@ -51,9 +51,20 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
     }
 
     @State private var isPressed = false
+    @State private var frame = CGRect.zero
+
+    @Environment(\.settingsButtonConfiguration.bezelOpacity)
+    private var bezelOpacity
+    @Environment(\.settingsButtonConfiguration.isHighlighted)
+    private var isHighlighted
+    @Environment(\.settingsButtonConfiguration.labelForegroundColor)
+    private var labelForegroundColor
+    @Environment(\.settingsButtonConfiguration.shape)
+    private var shape
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .foregroundStyle(labelForegroundColor)
             .padding(.horizontal, 10)
             .padding(.vertical, 2.5)
             .baselineOffset(1)
@@ -62,7 +73,7 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
                     font = .body.weight(.medium)
                 }
             }
-            .backgroundEnvironmentValue(\.settingsButtonConfiguration) { configuration in
+            .background {
                 VisualEffectView(
                     material: .contentBackground,
                     blendingMode: .withinWindow,
@@ -72,21 +83,27 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
                 .background(isPressed ? .secondary : .tertiary)
                 .overlay {
                     Color.primary
-                        .opacity(configuration.isHighlighted ? 0.2 : 0)
+                        .opacity(isHighlighted ? 0.2 : 0)
                         .blendMode(.overlay)
                 }
                 .background {
                     MouseDownInterceptor()
                 }
-                .clipShape(ClipShape(cornerRadius: 5, shape: configuration.shape))
+                .clipShape(ClipShape(cornerRadius: 5, shape: shape))
+                .opacity(bezelOpacity)
             }
-            .onContinuousPress { info in
-                isPressed = info.frame.contains(info.location)
-            } onEnded: { info in
-                isPressed = false
-                if info.frame.contains(info.location) {
-                    configuration.trigger()
-                }
-            }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        isPressed = frame.contains(value.location)
+                    }
+                    .onEnded { value in
+                        isPressed = false
+                        if frame.contains(value.location) {
+                            configuration.trigger()
+                        }
+                    }
+            )
+            .onFrameChange(update: $frame)
     }
 }

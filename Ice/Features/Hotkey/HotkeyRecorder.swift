@@ -65,7 +65,6 @@ struct HotkeyRecorder: View {
             segment1
             segment2
         }
-        .foregroundColor(.primary)
         .frame(width: 160, height: 24)
         .onFrameChange(update: $frame)
         .error(failure)
@@ -83,7 +82,7 @@ struct HotkeyRecorder: View {
                 }
         }
         .help(segment1HelpString)
-        .configureSettingsButtons {
+        .settingsButtonConfiguration {
             $0.shape = .leadingSegment
             $0.isHighlighted = model.isRecording
         }
@@ -110,7 +109,7 @@ struct HotkeyRecorder: View {
             isInsideSegment2 = isInside
         }
         .help(segment2HelpString)
-        .configureSettingsButtons {
+        .settingsButtonConfiguration {
             $0.shape = .trailingSegment
         }
     }
@@ -125,10 +124,26 @@ struct HotkeyRecorder: View {
                     ForEach(model.pressedModifierStrings, id: \.self) { string in
                         RoundedRectangle(cornerRadius: 5, style: .continuous)
                             .fill(.background.opacity(0.5))
-                            .aspectRatio(1, contentMode: .fit)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                    .inset(by: -2)
+                                    .offset(y: -2)
+                                    .strokeBorder(.background.opacity(0.5))
+                                    .clipShape(
+                                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                    )
+                            }
                             .overlay {
                                 Text(string)
                             }
+                            .shadow(
+                                color: .black.opacity(0.25),
+                                radius: 1
+                            )
+                            .frame(
+                                width: frame.height - 2,
+                                height: frame.height - 2
+                            )
                     }
                 }
             } else {

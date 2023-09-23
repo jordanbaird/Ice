@@ -5,6 +5,7 @@
 
 import Cocoa
 import Combine
+import OSLog
 
 /// A box around a status item that controls the visibility of a
 /// status bar section.
@@ -31,6 +32,7 @@ final class ControlItem: ObservableObject {
     /// specific menu items.
     private static let sectionStorage = ObjectAssociation<StatusBarSection>()
 
+    /// Observers for important aspects of state.
     private var cancellables = Set<AnyCancellable>()
 
     /// The underlying status item associated with the control item.
@@ -50,13 +52,7 @@ final class ControlItem: ObservableObject {
 
     /// The status bar section associated with the control item.
     var section: StatusBarSection? {
-        guard 
-            isVisible,
-            let statusBar
-        else {
-            return nil
-        }
-        return statusBar.sections.first { $0.controlItem == self }
+        statusBar?.sections.first { $0.controlItem == self }
     }
 
     /// A Boolean value indicating whether the control item 
@@ -71,24 +67,51 @@ final class ControlItem: ObservableObject {
         return index != 0
     }
 
-    /// A Boolean value that indicates whether the control 
-    /// item is visible.
+    /// A Boolean value that indicates whether the control item
+    /// is visible.
     ///
-    /// This value corresponds to whether the item's section
-    /// is enabled.
+    /// This value corresponds to whether the item's section is
+    /// enabled.
     var isVisible: Bool {
         get {
             statusItem.isVisible
         }
         set {
             objectWillChange.send()
-            let autosaveName = autosaveName
-            let cached = PreferredPosition[autosaveName]
-            defer {
-                PreferredPosition[autosaveName] = cached
+            var deferredBlock: (() -> Void)?
+            if !newValue {
+                // setting the status item to invisible has the unwanted
+                // side effect of deleting the preferred position; cache
+                // and restore afterwards
+                let autosaveName = autosaveName
+                let cached = StatusItemDefaults[.preferredPosition, autosaveName]
+                deferredBlock = {
+                    StatusItemDefaults[.preferredPosition, autosaveName] = cached
+                }
             }
             statusItem.isVisible = newValue
             statusBar?.needsSave = true
+            deferredBlock?()
+        }
+    }
+
+    /// A Boolean value that indicates whether the control item
+    /// is expanded.
+    ///
+    /// Expanded control items have a length that is equal to 
+    /// ``expandedLength``, while non-expanded control items have
+    /// a length that is equal to ``standardLength``.
+    var isExpanded: Bool {
+        get {
+            statusItem.length == Self.expandedLength
+        }
+        set {
+            objectWillChange.send()
+            if newValue {
+                statusItem.length = Self.expandedLength
+            } else {
+                statusItem.length = Self.standardLength
+            }
         }
     }
 
@@ -116,15 +139,32 @@ final class ControlItem: ObservableObject {
         position: CGFloat?,
         state: HidingState? = nil
     ) {
+        // if the isVisible property has been previously set, it will have
+        // been stored in user defaults; if a status item is created in an
+        // invisible state, its preferred position is deleted; to prevent
+        // this, cache the current visibility, if any, and delete it from
+        // defaults; then, initialize the status item and set its visibility
+        // to the cached value
+        let cachedIsVisible = StatusItemDefaults[.isVisible, autosaveName]
+        StatusItemDefaults[.isVisible, autosaveName] = nil
+
         if let position {
             // set the preferred position first to ensure that
             // the status item appears in the correct position
-            PreferredPosition[autosaveName] = position
+            StatusItemDefaults[.preferredPosition, autosaveName] = position
         }
-        self.statusItem = NSStatusBar.system.statusItem(withLength: 0)
+
+        self.statusItem = NSStatusBar.system.statusItem(withLength: Self.standardLength)
         self.statusItem.autosaveName = autosaveName
         self.position = position
         self.state = state ?? .showItems
+
+        // NOTE: this needs to happen after the status item is
+        // created, but before the call to configureStatusItem()
+        if let cachedIsVisible {
+            self.isVisible = cachedIsVisible
+        }
+
         configureStatusItem()
     }
 
@@ -133,9 +173,9 @@ final class ControlItem: ObservableObject {
         // of deleting the preferred position; cache and restore
         // after removing
         let autosaveName = autosaveName
-        let cached = PreferredPosition[autosaveName]
+        let cached = StatusItemDefaults[.preferredPosition, autosaveName]
         defer {
-            PreferredPosition[autosaveName] = cached
+            StatusItemDefaults[.preferredPosition, autosaveName] = cached
         }
         NSStatusBar.system.removeStatusItem(statusItem)
     }
@@ -166,11 +206,11 @@ final class ControlItem: ObservableObject {
         if let window = statusItem.button?.window {
             window.publisher(for: \.frame)
                 .combineLatest(window.publisher(for: \.screen))
-                .compactMap { [weak statusItem] frame, screen in
-                    // only publish when status item has a standard length and
+                .compactMap { [weak self] frame, screen in
+                    // only publish when the item is not expanded and the
                     // window is at least partially onscreen
                     guard
-                        statusItem?.length == Self.standardLength,
+                        self?.isExpanded == false,
                         let screenFrame = screen?.frame,
                         screenFrame.intersects(frame)
                     else {
@@ -190,55 +230,45 @@ final class ControlItem: ObservableObject {
     /// Updates the control item's status item to match its current 
     /// state.
     func updateStatusItem() {
-        func updateLength() {
-            switch (state, expandsOnHide) {
-            case (.showItems, _), (.hideItems, false):
-                statusItem.length = Self.standardLength
-            case (.hideItems, _):
-                statusItem.length = Self.expandedLength
-            }
-        }
-
-        func updateButton(name: StatusBarSection.Name) {
-            guard let button = statusItem.button else {
-                return
-            }
-            if state == .hideItems && expandsOnHide {
-                // prevent the cell from highlighting while expanded
-                button.cell?.isEnabled = false
-                // cell still sometimes briefly flashes on expansion
-                // unless manually unhighlighted
-                button.isHighlighted = false
-                button.image = nil
-                return
-            }
-            // enable the cell, as it may have been previously disabled
-            button.cell?.isEnabled = true
-            // set the image based on section name and state
-            switch name {
-            case .hidden:
-                button.image = ControlItemImages.Chevron.large
-            case .alwaysHidden:
-                button.image = ControlItemImages.Chevron.small
-            case .alwaysVisible:
-                switch state {
-                case .hideItems:
-                    button.image = ControlItemImages.Circle.filled
-                case .showItems:
-                    button.image = ControlItemImages.Circle.stroked
-                }
-            }
-        }
-
-        guard let name = section?.name else {
-            // don't continue if no name
+        guard 
+            let name = section?.name,
+            let button = statusItem.button
+        else {
             return
         }
 
-        updateLength()
-        updateButton(name: name)
+        defer {
+            statusBar?.needsSave = true
+        }
 
-        statusBar?.needsSave = true
+        switch state {
+        case .hideItems where expandsOnHide:
+            isExpanded = true
+            // prevent the cell from highlighting while expanded
+            button.cell?.isEnabled = false
+            // cell still sometimes briefly flashes on expansion
+            // unless manually unhighlighted
+            button.isHighlighted = false
+            button.image = nil
+        case .hideItems, .showItems:
+            isExpanded = false
+            // enable cell, as it may have been previously disabled
+            button.cell?.isEnabled = true
+            // set the image based on section name and state
+            button.image = switch name {
+            case .alwaysVisible:
+                switch state {
+                case .hideItems:
+                    ControlItemImages.Circle.filled
+                case .showItems:
+                    ControlItemImages.Circle.stroked
+                }
+            case .hidden:
+                ControlItemImages.Chevron.large
+            case .alwaysHidden:
+                ControlItemImages.Chevron.small
+            }
+        }
     }
 
     @objc private func performAction() {
@@ -248,8 +278,10 @@ final class ControlItem: ObservableObject {
         else {
             return
         }
+        let modifier = (UserDefaults.standard.object(forKey: "alwaysHiddenModifier") as? Int)
+            .map { Hotkey.Modifiers(rawValue: $0).nsEventFlags } ?? .option
         switch event.type {
-        case .leftMouseDown where NSEvent.modifierFlags == .option:
+        case .leftMouseDown where NSEvent.modifierFlags == modifier:
             statusBar.section(withName: .alwaysHidden)?.show()
         case .leftMouseDown:
             section?.toggle()
@@ -361,24 +393,47 @@ extension ControlItem: Hashable {
     }
 }
 
-// MARK: - PreferredPosition
+// MARK: - StatusItemDefaultsKey
 
-/// A proxy getter and setter for a control item's preferred position.
-private enum PreferredPosition {
-    private static func key(for autosaveName: String) -> String {
-        return "NSStatusItem Preferred Position \(autosaveName)"
+struct StatusItemDefaultsKey<Value> {
+    let rawValue: String
+}
+
+extension StatusItemDefaultsKey<CGFloat> {
+    static let preferredPosition = StatusItemDefaultsKey(rawValue: "Preferred Position")
+}
+
+extension StatusItemDefaultsKey<Bool> {
+    static let isVisible = StatusItemDefaultsKey(rawValue: "Visible")
+}
+
+// MARK: - StatusItemDefaults
+
+/// Proxy getters and setters for a status item's user default values.
+private enum StatusItemDefaults {
+    private static func stringKey<Value>(
+        forKey key: StatusItemDefaultsKey<Value>,
+        autosaveName: String
+    ) -> String {
+        return "NSStatusItem \(key.rawValue) \(autosaveName)"
     }
 
-    /// Accesses the preferred position associated with the specified autosave name.
-    static subscript(autosaveName: String) -> CGFloat? {
+    /// Accesses the preferred position associated with the specified 
+    /// key and autosave name.
+    static subscript<Value>(
+        key: StatusItemDefaultsKey<Value>, 
+        autosaveName: String
+    ) -> Value? {
         get {
             // use object(forKey:) because double(forKey:) returns 0 if no value
             // is stored; we need to differentiate between "a stored value of 0"
             // and "no stored value"
-            UserDefaults.standard.object(forKey: key(for: autosaveName)) as? CGFloat
+            let key = stringKey(forKey: key, autosaveName: autosaveName)
+            return UserDefaults.standard.object(forKey: key) as? Value
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: key(for: autosaveName))
+            let key = stringKey(forKey: key, autosaveName: autosaveName)
+            UserDefaults.standard.set(newValue, forKey: key)
         }
     }
 }

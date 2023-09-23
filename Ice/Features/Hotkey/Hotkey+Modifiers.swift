@@ -53,6 +53,24 @@ extension Hotkey.Modifiers {
         return result
     }
 
+    /// The bit mask's secondary string representation.
+    var label: String {
+        var result = [String]()
+        if contains(.control) {
+            result.append("Control")
+        }
+        if contains(.option) {
+            result.append("Option")
+        }
+        if contains(.shift) {
+            result.append("Shift")
+        }
+        if contains(.command) {
+            result.append("Command")
+        }
+        return result.joined(separator: " + ")
+    }
+
     /// The bit mask's equivalent `NSEvent` modifier flags.
     var nsEventFlags: NSEvent.ModifierFlags {
         var result: NSEvent.ModifierFlags = []

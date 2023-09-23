@@ -16,6 +16,7 @@ final class StatusBarSection: ObservableObject {
         case alwaysHidden = "Always Hidden"
     }
 
+    /// Observers for important aspects of state.
     private var cancellables = Set<AnyCancellable>()
 
     /// A value that manages the lifetime of the hotkey's observation.
@@ -77,6 +78,26 @@ final class StatusBarSection: ObservableObject {
         self.hotkey = hotkey
         enableHotkey()
         configureCancellables()
+    }
+
+    /// Creates a status bar section with the given name, control item
+    /// autosave name, control item position, and control item hiding
+    /// state.
+    convenience init(
+        name: Name,
+        autosaveName: String,
+        position: CGFloat? = nil,
+        state: ControlItem.HidingState? = nil
+    ) {
+        self.init(
+            name: name,
+            controlItem: ControlItem(
+                autosaveName: autosaveName,
+                position: position,
+                state: state
+            ),
+            hotkey: nil
+        )
     }
 
     /// Set up a series of cancellables to respond to important changes

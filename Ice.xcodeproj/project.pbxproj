@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1707F9C62AC07368003725AF /* NSView+frameConvertedToWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1707F9C52AC07368003725AF /* NSView+frameConvertedToWindow.swift */; };
+		170DE5F02AC4D02000D989B8 /* WindowCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170DE5EF2AC4D02000D989B8 /* WindowCaptureManager.swift */; };
+		176A25182AC3703A00834C35 /* MenuBarStyleReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176A25172AC3703A00834C35 /* MenuBarStyleReader.swift */; };
 		71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */; };
 		7112D0D52AB882D300F27889 /* Annotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7112D0D42AB882D300F27889 /* Annotation.swift */; };
 		7112D0D92AB883AC00F27889 /* ColorAverageCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7112D0D82AB883AC00F27889 /* ColorAverageCalculator.swift */; };
@@ -41,6 +44,9 @@
 		71839BD82A997DC200250044 /* Edge+cgRectEdge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839BD72A997DC200250044 /* Edge+cgRectEdge.swift */; };
 		71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C152A9B6A0D00250044 /* OnFrameChange.swift */; };
 		718AFF2C2AB360AD00BC49CB /* HotkeyRecorderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */; };
+		71A7D6D62ABEF3E5000768B8 /* MenuBarLayoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A7D6D52ABEF3E5000768B8 /* MenuBarLayoutView.swift */; };
+		71A7D6D82ABEF40F000768B8 /* MenuBarLayoutCocoaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A7D6D72ABEF40F000768B8 /* MenuBarLayoutCocoaView.swift */; };
+		71A7D6DC2ABEF667000768B8 /* MenuBarLayoutItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A7D6DB2ABEF667000768B8 /* MenuBarLayoutItem.swift */; };
 		71C400302AAD1C35006FDB1C /* SettingsButtonConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C4002F2AAD1C35006FDB1C /* SettingsButtonConfiguration.swift */; };
 		71C400322AAD76A8006FDB1C /* WindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C400312AAD76A8006FDB1C /* WindowReader.swift */; };
 		71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */; };
@@ -57,6 +63,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1707F9C52AC07368003725AF /* NSView+frameConvertedToWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSView+frameConvertedToWindow.swift"; sourceTree = "<group>"; };
+		170DE5EF2AC4D02000D989B8 /* WindowCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCaptureManager.swift; sourceTree = "<group>"; };
+		176A25172AC3703A00834C35 /* MenuBarStyleReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStyleReader.swift; sourceTree = "<group>"; };
 		71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectAssociation.swift; sourceTree = "<group>"; };
 		7112D0D42AB882D300F27889 /* Annotation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Annotation.swift; sourceTree = "<group>"; };
 		7112D0D82AB883AC00F27889 /* ColorAverageCalculator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ColorAverageCalculator.swift; sourceTree = "<group>"; };
@@ -92,6 +101,9 @@
 		71839BD72A997DC200250044 /* Edge+cgRectEdge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Edge+cgRectEdge.swift"; sourceTree = "<group>"; };
 		71839C152A9B6A0D00250044 /* OnFrameChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnFrameChange.swift; sourceTree = "<group>"; };
 		718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderModel.swift; sourceTree = "<group>"; };
+		71A7D6D52ABEF3E5000768B8 /* MenuBarLayoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLayoutView.swift; sourceTree = "<group>"; };
+		71A7D6D72ABEF40F000768B8 /* MenuBarLayoutCocoaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLayoutCocoaView.swift; sourceTree = "<group>"; };
+		71A7D6DB2ABEF667000768B8 /* MenuBarLayoutItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLayoutItem.swift; sourceTree = "<group>"; };
 		71C4002F2AAD1C35006FDB1C /* SettingsButtonConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsButtonConfiguration.swift; sourceTree = "<group>"; };
 		71C400312AAD76A8006FDB1C /* WindowReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowReader.swift; sourceTree = "<group>"; };
 		71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+displayName.swift"; sourceTree = "<group>"; };
@@ -119,12 +131,12 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		7112D0D72AB8839200F27889 /* ImageAnalysis */ = {
+		1707F9C42AC07357003725AF /* NSView */ = {
 			isa = PBXGroup;
 			children = (
-				7112D0D82AB883AC00F27889 /* ColorAverageCalculator.swift */,
+				1707F9C52AC07368003725AF /* NSView+frameConvertedToWindow.swift */,
 			);
-			path = ImageAnalysis;
+			path = NSView;
 			sourceTree = "<group>";
 		};
 		7133ED5F2A855ADA000A7E1B /* NSApplication */ = {
@@ -215,7 +227,6 @@
 			children = (
 				71D36C562A896ED700D89CD5 /* DictionarySerialization */,
 				716683412A76811C006ABF84 /* Extensions */,
-				7112D0D72AB8839200F27889 /* ImageAnalysis */,
 				71FEA25A2A8DA1D60048341A /* Misc */,
 				71D36C492A88EDD200D89CD5 /* Swizzling */,
 				71D36C522A89443800D89CD5 /* UI */,
@@ -226,6 +237,7 @@
 		716683412A76811C006ABF84 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				1707F9C42AC07357003725AF /* NSView */,
 				71D2B02A2AAFD88E0002B6C8 /* Bundle */,
 				71839BD62A997DA300250044 /* Edge */,
 				716683442A76811C006ABF84 /* Logger */,
@@ -264,6 +276,7 @@
 			isa = PBXGroup;
 			children = (
 				7150A7AB2AA4262F0045EA68 /* Hotkey */,
+				71A7D6D42ABEF3DC000768B8 /* MenuBarLayout */,
 				7133ED662A858230000A7E1B /* Settings */,
 				7166834E2A768190006ABF84 /* StatusBar */,
 			);
@@ -286,6 +299,17 @@
 				71839BD72A997DC200250044 /* Edge+cgRectEdge.swift */,
 			);
 			path = Edge;
+			sourceTree = "<group>";
+		};
+		71A7D6D42ABEF3DC000768B8 /* MenuBarLayout */ = {
+			isa = PBXGroup;
+			children = (
+				71A7D6D72ABEF40F000768B8 /* MenuBarLayoutCocoaView.swift */,
+				71A7D6DB2ABEF667000768B8 /* MenuBarLayoutItem.swift */,
+				71A7D6D52ABEF3E5000768B8 /* MenuBarLayoutView.swift */,
+				176A25172AC3703A00834C35 /* MenuBarStyleReader.swift */,
+			);
+			path = MenuBarLayout;
 			sourceTree = "<group>";
 		};
 		71D2B02A2AAFD88E0002B6C8 /* Bundle */ = {
@@ -334,9 +358,11 @@
 			isa = PBXGroup;
 			children = (
 				711535F12AB9F6C1003193AD /* BindingExposable.swift */,
+				7112D0D82AB883AC00F27889 /* ColorAverageCalculator.swift */,
 				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
 				71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
+				170DE5EF2AC4D02000D989B8 /* WindowCaptureManager.swift */,
 			);
 			path = Misc;
 			sourceTree = "<group>";
@@ -428,12 +454,16 @@
 				71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */,
 				7133ED612A855B07000A7E1B /* NSApplication+Activation.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
+				1707F9C62AC07368003725AF /* NSView+frameConvertedToWindow.swift in Sources */,
 				7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */,
+				71A7D6D82ABEF40F000768B8 /* MenuBarLayoutCocoaView.swift in Sources */,
 				71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */,
 				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
 				71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */,
 				716683502A7681AF006ABF84 /* StatusBar.swift in Sources */,
+				71A7D6D62ABEF3E5000768B8 /* MenuBarLayoutView.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
+				170DE5F02AC4D02000D989B8 /* WindowCaptureManager.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
 				711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */,
 				7112D0D92AB883AC00F27889 /* ColorAverageCalculator.swift in Sources */,
@@ -450,9 +480,11 @@
 				71C400302AAD1C35006FDB1C /* SettingsButtonConfiguration.swift in Sources */,
 				714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */,
 				71623BD32A8B6744002FD331 /* SettingsButtonStyle.swift in Sources */,
+				71A7D6DC2ABEF667000768B8 /* MenuBarLayoutItem.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */,
 				711AD0EB2ABD616700258639 /* CustomTabView.swift in Sources */,
 				71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */,
+				176A25182AC3703A00834C35 /* MenuBarStyleReader.swift in Sources */,
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
 				71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */,
 				71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */,
@@ -592,6 +624,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ice/Ice.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -621,6 +654,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Ice/Ice.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;

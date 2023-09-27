@@ -122,15 +122,15 @@ struct HotkeyRecorder: View {
             } else if !model.pressedModifierStrings.isEmpty {
                 HStack(spacing: 1) {
                     ForEach(model.pressedModifierStrings, id: \.self) { string in
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        RoundedRectangle(cornerRadius: 5)
                             .fill(.background.opacity(0.5))
                             .overlay {
-                                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                RoundedRectangle(cornerRadius: 5)
                                     .inset(by: -2)
                                     .offset(y: -2)
                                     .strokeBorder(.background.opacity(0.5))
                                     .clipShape(
-                                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                        RoundedRectangle(cornerRadius: 5)
                                     )
                             }
                             .overlay {

@@ -32,7 +32,7 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
                 // fast path (pun not intended)
                 return Path(rect)
             }
-            var path = Path(roundedRect: rect, cornerRadius: cornerRadius, style: .continuous)
+            var path = Path(roundedRect: rect, cornerRadius: cornerRadius)
             if shape.flattenedEdges.isEmpty {
                 // fast path MkII
                 return path

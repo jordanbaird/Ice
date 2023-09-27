@@ -38,7 +38,7 @@ struct OverlayView<Content: View, Overlay: View>: View {
                         isEmphasized: true
                     )
                     .clipShape(
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        RoundedRectangle(cornerRadius: 9)
                     )
                     .overlayEnvironmentValue(\.colorScheme) { colorScheme in
                         VisualEffectView(
@@ -48,7 +48,7 @@ struct OverlayView<Content: View, Overlay: View>: View {
                             isEmphasized: true
                         )
                         .clipShape(
-                            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            RoundedRectangle(cornerRadius: 9)
                                 .inset(by: colorScheme == .dark ? 1 : 0)
                                 .stroke(lineWidth: 0.5)
                         )

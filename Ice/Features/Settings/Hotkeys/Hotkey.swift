@@ -47,20 +47,11 @@ extension Hotkey {
         var symbolicHotkeys: Unmanaged<CFArray>?
         let status = CopySymbolicHotKeys(&symbolicHotkeys)
         guard status == noErr else {
-            Logger.hotkey
-                .hotkeyError(
-                    HotkeyError.systemRetrievalFailed
-                        .reason("CopySymbolicHotKeys returned invalid status")
-                        .status(status)
-                )
+            Logger.hotkey.error("\(#function) CopySymbolicHotKeys returned invalid status \(status)")
             return []
         }
         guard let reservedHotkeys = symbolicHotkeys?.takeRetainedValue() as? [[String: Any]] else {
-            Logger.hotkey
-                .hotkeyError(
-                    HotkeyError.systemRetrievalFailed
-                        .reason("Failed to serialize symbolic hotkeys")
-                )
+            Logger.hotkey.error("\(#function) Failed to serialize symbolic hotkeys")
             return []
         }
         return reservedHotkeys.compactMap { hotkey in
@@ -144,4 +135,8 @@ extension Hotkey {
             context.invalidate()
         }
     }
+}
+
+extension Logger {
+    static let hotkey = mainSubsystem(category: "Hotkey")
 }

@@ -111,22 +111,14 @@ enum HotkeyRegistry {
         var status = installIfNeeded()
 
         guard status == noErr else {
-            Logger.hotkey
-                .hotkeyError(
-                    HotkeyError.installationFailed
-                        .status(status)
-                )
+            Logger.hotkey.error("\(#function) Hotkey event handler installation failed with status \(status)")
             return nil
         }
 
         let id = Context.currentID
 
         guard eventHandlers[id] == nil else {
-            Logger.hotkey
-                .hotkeyError(
-                    HotkeyError.registrationFailed
-                        .reason("An event handler is already stored for id \(id)")
-                )
+            Logger.hotkey.error("\(#function) Hotkey event handler already stored for id \(id)")
             return nil
         }
 
@@ -141,20 +133,12 @@ enum HotkeyRegistry {
         )
 
         guard status == noErr else {
-            Logger.hotkey
-                .hotkeyError(
-                    HotkeyError.registrationFailed
-                        .status(status)
-                )
+            Logger.hotkey.error("\(#function) Hotkey registration failed with status \(status)")
             return nil
         }
 
         guard let hotKeyRef else {
-            Logger.hotkey
-                .hotkeyError(
-                    HotkeyError.registrationFailed
-                        .reason("Invalid EventHotKeyRef")
-                )
+            Logger.hotkey.error("\(#function) Hotkey registration failed due to invalid EventHotKeyRef")
             return nil
         }
 
@@ -178,11 +162,7 @@ enum HotkeyRegistry {
         }
         let status = UnregisterEventHotKey(eventHandler.hotKeyRef)
         if status != noErr {
-            Logger.hotkey
-                .hotkeyError(
-                    HotkeyError.unregistrationFailed
-                        .status(status)
-                )
+            Logger.hotkey.error("\(#function) Hotkey unregistration failed with status \(status)")
         }
     }
 

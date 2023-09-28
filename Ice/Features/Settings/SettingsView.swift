@@ -17,10 +17,11 @@ struct SettingsView: View {
         ),
         SettingsNavigationItem(
             name: .about,
-            icon: .assetCatalog("IceCube")
+            icon: .assetCatalog(.iceCube)
         ),
     ]
 
+    @StateObject private var styleReader = LayoutBarStyleReader(windowList: .shared)
     @State private var selection = Self.items[0]
 
     var body: some View {
@@ -31,18 +32,19 @@ struct SettingsView: View {
                 .frame(maxHeight: .infinity)
                 .navigationTitle(selection.name.localized)
         }
+        .environmentObject(styleReader)
     }
 
     @ViewBuilder
     private var sidebar: some View {
         List(selection: $selection) {
             Section {
-                ForEach(Self.items) { item in
+                ForEach(Self.items, id: \.self) { item in
                     sidebarItem(item: item)
                 }
             } header: {
                 HStack {
-                    Image("IceCube")
+                    Image(.iceCube)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 30, height: 30)
@@ -58,6 +60,7 @@ struct SettingsView: View {
             .collapsible(false)
         }
         .scrollBounceBehavior(.basedOnSize)
+        .removeSidebarToggle()
         .navigationSplitViewColumnWidth(
             min: 220,
             ideal: 0,
@@ -79,35 +82,39 @@ struct SettingsView: View {
 
     @ViewBuilder
     private func sidebarItem(item: SettingsNavigationItem) -> some View {
-        NavigationLink(value: item) {
-            Label {
-                Text(item.name.localized)
-                    .font(.title3)
-                    .padding(.leading, 6)
-            } icon: {
-                item.icon.view
-                    .padding(6)
-                    .foregroundColor(Color(nsColor: .linkColor))
-                    .frame(width: 32, height: 32)
-                    .background {
-                        VisualEffectView(material: .sidebar, isEmphasized: true)
-                            .brightness(0.05)
-                            .clipShape(Circle())
-                    }
-                    .shadow(color: .black.opacity(0.25), radius: 1)
-            }
-            .padding(.leading, 8)
-            .frame(height: 50)
+        Label {
+            Text(item.name.localized)
+                .font(.title3)
+                .padding(.leading, 6)
+        } icon: {
+            item.icon.view
+                .padding(6)
+                .foregroundStyle(Color(nsColor: .linkColor))
+                .frame(width: 32, height: 32)
+                .background {
+                    VisualEffectView(
+                        material: .sidebar,
+                        isEmphasized: true
+                    )
+                    .brightness(0.05)
+                    .clipShape(Circle())
+                }
+                .shadow(
+                    color: .black.opacity(0.25),
+                    radius: 1
+                )
         }
+        .padding(.leading, 8)
+        .frame(height: 50)
     }
 }
 
 struct SettingsView_Previews: PreviewProvider {
-    @StateObject private static var statusBar = StatusBar()
+    @StateObject private static var menuBar = MenuBar()
 
     static var previews: some View {
         SettingsView()
             .buttonStyle(SettingsButtonStyle())
-            .environmentObject(statusBar)
+            .environmentObject(menuBar)
     }
 }

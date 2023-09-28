@@ -7,41 +7,28 @@ import Cocoa
 import Combine
 import OSLog
 
-/// A box around a status item that controls the visibility of a
-/// status bar section.
+/// A status item that controls the visibility of a section
+/// in the menu bar.
 final class ControlItem: ObservableObject {
-    /// A value representing the hiding state of a control item.
     enum HidingState: Int, Hashable, Codable {
-        /// Status items in the control item's status bar section
-        /// are hidden.
         case hideItems
-        /// Status items in the control item's status bar section
-        /// are visible.
         case showItems
     }
 
-    /// The length of a control item that is not currently hiding
-    /// its status bar section.
     static let standardLength: CGFloat = 25
-
-    /// The length of a control item that is currently hiding its
-    /// status bar section.
     static let expandedLength: CGFloat = 10_000
 
-    /// Storage to temporarily associate status bar sections with
-    /// specific menu items.
-    private static let sectionStorage = ObjectAssociation<StatusBarSection>()
+    static let clickModifiers: [Hotkey.Modifiers] = [.control, .option, .shift]
+    private static let sectionStorage = ObjectAssociation<MenuBarSection>()
 
-    /// Observers for important aspects of state.
     private var cancellables = Set<AnyCancellable>()
 
-    /// The underlying status item associated with the control item.
     private let statusItem: NSStatusItem
 
-    /// The status bar associated with the control item.
-    weak var statusBar: StatusBar? {
+    /// The menu bar associated with the control item.
+    weak var menuBar: MenuBar? {
         didSet {
-            updateStatusItem()
+            updateStatusItem(with: state)
         }
     }
 
@@ -50,9 +37,9 @@ final class ControlItem: ObservableObject {
         statusItem.autosaveName
     }
 
-    /// The status bar section associated with the control item.
-    var section: StatusBarSection? {
-        statusBar?.sections.first { $0.controlItem == self }
+    /// The menu bar section associated with the control item.
+    var section: MenuBarSection? {
+        menuBar?.sections.first { $0.controlItem == self }
     }
 
     /// A Boolean value indicating whether the control item 
@@ -60,47 +47,20 @@ final class ControlItem: ObservableObject {
     var expandsOnHide: Bool {
         guard
             let section,
-            let index = statusBar?.sections.firstIndex(of: section)
+            let index = menuBar?.sections.firstIndex(of: section)
         else {
             return false
         }
+        // all items except for the first one expand on hide
         return index != 0
-    }
-
-    /// A Boolean value that indicates whether the control item
-    /// is visible.
-    ///
-    /// This value corresponds to whether the item's section is
-    /// enabled.
-    var isVisible: Bool {
-        get {
-            statusItem.isVisible
-        }
-        set {
-            objectWillChange.send()
-            var deferredBlock: (() -> Void)?
-            if !newValue {
-                // setting the status item to invisible has the unwanted
-                // side effect of deleting the preferred position; cache
-                // and restore afterwards
-                let autosaveName = autosaveName
-                let cached = StatusItemDefaults[.preferredPosition, autosaveName]
-                deferredBlock = {
-                    StatusItemDefaults[.preferredPosition, autosaveName] = cached
-                }
-            }
-            statusItem.isVisible = newValue
-            statusBar?.needsSave = true
-            deferredBlock?()
-        }
     }
 
     /// A Boolean value that indicates whether the control item
     /// is expanded.
     ///
     /// Expanded control items have a length that is equal to 
-    /// ``expandedLength``, while non-expanded control items have
-    /// a length that is equal to ``standardLength``.
+    /// ``expandedLength``, while non-expanded control items
+    /// have a length that is equal to ``standardLength``.
     var isExpanded: Bool {
         get {
             statusItem.length == Self.expandedLength
@@ -115,24 +75,27 @@ final class ControlItem: ObservableObject {
         }
     }
 
-    /// The position of the control item in the status bar.
+    /// The position of the control item in the menu bar.
     @Published private(set) var position: CGFloat?
+
+    /// A Boolean value that indicates whether the control item
+    /// is visible.
+    ///
+    /// This value corresponds to whether the item's section is
+    /// enabled.
+    @Published var isVisible: Bool
 
     /// The hiding state of the control item.
     ///
     /// Setting this value marks the item as needing an update.
-    @Published var state: HidingState {
-        didSet {
-            updateStatusItem()
-        }
-    }
+    @Published var state: HidingState
 
     /// Creates a control item with the given autosave name, position,
     /// and hiding state.
     ///
     /// - Parameters:
     ///   - autosaveName: The control item's autosave name.
-    ///   - position: The position of the control item in the status bar.
+    ///   - position: The position of the control item in the menu bar.
     ///   - state: The hiding state of the control item.
     init(
         autosaveName: String,
@@ -157,6 +120,7 @@ final class ControlItem: ObservableObject {
         self.statusItem = NSStatusBar.system.statusItem(withLength: Self.standardLength)
         self.statusItem.autosaveName = autosaveName
         self.position = position
+        self.isVisible = statusItem.isVisible
         self.state = state ?? .showItems
 
         // NOTE: this needs to happen after the status item is
@@ -184,7 +148,7 @@ final class ControlItem: ObservableObject {
     private func configureStatusItem() {
         defer {
             configureCancellables()
-            updateStatusItem()
+            updateStatusItem(with: state)
         }
         guard let button = statusItem.button else {
             return
@@ -194,14 +158,46 @@ final class ControlItem: ObservableObject {
         button.sendAction(on: [.leftMouseDown, .rightMouseUp])
     }
 
-    /// Set up a series of observers to respond to important changes
-    /// in the control item's state.
+    /// Sets up a series of cancellables to respond to important
+    /// changes in the control item's state.
     private func configureCancellables() {
-        // cancel and remove all current cancellables
-        for cancellable in cancellables {
-            cancellable.cancel()
-        }
-        cancellables.removeAll()
+        var c = Set<AnyCancellable>()
+
+        $state
+            .sink { [weak self] state in
+                self?.updateStatusItem(with: state)
+            }
+            .store(in: &c)
+
+        $isVisible
+            .removeDuplicates()
+            .sink { [weak self] isVisible in
+                guard let self else {
+                    return
+                }
+                var deferredBlock: (() -> Void)?
+                if !isVisible {
+                    // setting the status item to invisible has the unwanted
+                    // side effect of deleting the preferred position; cache
+                    // and restore afterwards
+                    let autosaveName = autosaveName
+                    let cached = StatusItemDefaults[.preferredPosition, autosaveName]
+                    deferredBlock = {
+                        StatusItemDefaults[.preferredPosition, autosaveName] = cached
+                    }
+                }
+                statusItem.isVisible = isVisible
+                menuBar?.needsSave = true
+                deferredBlock?()
+            }
+            .store(in: &c)
+
+        statusItem.publisher(for: \.isVisible)
+            .removeDuplicates()
+            .sink { [weak self] isVisible in
+                self?.isVisible = isVisible
+            }
+            .store(in: &c)
 
         if let window = statusItem.button?.window {
             window.publisher(for: \.frame)
@@ -223,14 +219,16 @@ final class ControlItem: ObservableObject {
                 .sink { [weak self] position in
                     self?.position = position
                 }
-                .store(in: &cancellables)
+                .store(in: &c)
         }
+
+        cancellables = c
     }
 
-    /// Updates the control item's status item to match its current 
+    /// Updates the control item's status item to match the given
     /// state.
-    func updateStatusItem() {
-        guard 
+    func updateStatusItem(with state: HidingState) {
+        guard
             let name = section?.name,
             let button = statusItem.button
         else {
@@ -238,7 +236,7 @@ final class ControlItem: ObservableObject {
         }
 
         defer {
-            statusBar?.needsSave = true
+            menuBar?.needsSave = true
         }
 
         switch state {
@@ -273,20 +271,20 @@ final class ControlItem: ObservableObject {
 
     @objc private func performAction() {
         guard
-            let statusBar,
+            let menuBar,
             let event = NSApp.currentEvent
         else {
             return
         }
-        let modifier = (UserDefaults.standard.object(forKey: "alwaysHiddenModifier") as? Int)
+        let modifier = (UserDefaults.standard.object(forKey: Defaults.alwaysHiddenModifier) as? Int)
             .map { Hotkey.Modifiers(rawValue: $0).nsEventFlags } ?? .option
         switch event.type {
         case .leftMouseDown where NSEvent.modifierFlags == modifier:
-            statusBar.section(withName: .alwaysHidden)?.show()
+            menuBar.section(withName: .alwaysHidden)?.show()
         case .leftMouseDown:
             section?.toggle()
         case .rightMouseUp:
-            statusItem.showMenu(createMenu(with: statusBar))
+            statusItem.showMenu(createMenu(with: menuBar))
         default:
             break
         }
@@ -294,22 +292,22 @@ final class ControlItem: ObservableObject {
 
     /// Creates and returns a menu to show when the control item is
     /// right-clicked.
-    private func createMenu(with statusBar: StatusBar) -> NSMenu {
+    private func createMenu(with menuBar: MenuBar) -> NSMenu {
         let menu = NSMenu(title: Constants.appName)
 
         // add menu items to toggle the hidden and always-hidden 
         // sections, if each section is enabled
-        let sectionNames: [StatusBarSection.Name] = [.hidden, .alwaysHidden]
+        let sectionNames: [MenuBarSection.Name] = [.hidden, .alwaysHidden]
         for name in sectionNames {
             guard
-                let section = statusBar.section(withName: name),
+                let section = menuBar.section(withName: name),
                 section.isEnabled
             else {
                 continue
             }
             let item = NSMenuItem(
                 title: "\(section.isHidden ? "Show" : "Hide") \"\(name.rawValue)\" Section",
-                action: #selector(toggleStatusBarSection),
+                action: #selector(toggleMenuBarSection),
                 keyEquivalent: ""
             )
             item.target = self
@@ -345,7 +343,7 @@ final class ControlItem: ObservableObject {
     }
 
     /// Action for a menu item in the control item's menu to perform.
-    @objc private func toggleStatusBarSection(for menuItem: NSMenuItem) {
+    @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
         Self.sectionStorage[menuItem]?.toggle()
     }
 }
@@ -395,7 +393,7 @@ extension ControlItem: Hashable {
 
 // MARK: - StatusItemDefaultsKey
 
-struct StatusItemDefaultsKey<Value> {
+private struct StatusItemDefaultsKey<Value> {
     let rawValue: String
 }
 
@@ -492,4 +490,9 @@ enum ControlItemImages {
 
         static let small = chevron(size: CGSize(width: 9, height: 9), lineWidth: 2)
     }
+}
+
+// MARK: - Logger
+extension Logger {
+    static let controlItem = mainSubsystem(category: "ControlItem")
 }

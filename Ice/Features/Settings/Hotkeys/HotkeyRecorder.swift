@@ -50,7 +50,7 @@ struct HotkeyRecorder: View {
     ///   - section: The section that the recorder records hotkeys for.
     ///   - failure: A binding to a property that holds information about
     ///     the current recording failure on behalf of the recorder.
-    init(section: StatusBarSection?, failure: Binding<Failure?>) {
+    init(section: MenuBarSection?, failure: Binding<Failure?>) {
         let model = HotkeyRecorderModel(section: section) {
             failure.wrappedValue = $0
         } removeFailure: {
@@ -65,7 +65,7 @@ struct HotkeyRecorder: View {
             segment1
             segment2
         }
-        .frame(width: 160, height: 24)
+        .frame(width: 130, height: 21)
         .onFrameChange(update: $frame)
         .error(failure)
     }
@@ -75,11 +75,8 @@ struct HotkeyRecorder: View {
         Button {
             model.startRecording()
         } label: {
-            Color.clear
-                .overlay {
-                    segment1Label
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+            segment1Label
+                .frame(maxWidth: .infinity)
         }
         .help(segment1HelpString)
         .settingsButtonConfiguration {
@@ -100,9 +97,7 @@ struct HotkeyRecorder: View {
             }
         } label: {
             Color.clear
-                .overlay {
-                    segment2Label
-                }
+                .overlay { segment2Label }
         }
         .frame(width: frame.height)
         .onHover { isInside in
@@ -122,35 +117,16 @@ struct HotkeyRecorder: View {
             } else if !model.pressedModifierStrings.isEmpty {
                 HStack(spacing: 1) {
                     ForEach(model.pressedModifierStrings, id: \.self) { string in
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(.background.opacity(0.5))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 5)
-                                    .inset(by: -2)
-                                    .offset(y: -2)
-                                    .strokeBorder(.background.opacity(0.5))
-                                    .clipShape(
-                                        RoundedRectangle(cornerRadius: 5)
-                                    )
-                            }
-                            .overlay {
-                                Text(string)
-                            }
-                            .shadow(
-                                color: .black.opacity(0.25),
-                                radius: 1
-                            )
-                            .frame(
-                                width: frame.height - 2,
-                                height: frame.height - 2
-                            )
+                        Text(string)
+                            .frame(width: frame.height - 2)
+                            .background { keyCap }
                     }
                 }
             } else {
                 Text("Type Hotkey")
             }
         } else if model.isEnabled {
-            HStack {
+            HStack(spacing: 0) {
                 Text(modifierString)
                 Text(keyString)
             }
@@ -164,7 +140,28 @@ struct HotkeyRecorder: View {
         Image(systemName: symbolString)
             .resizable()
             .aspectRatio(contentMode: .fill)
-            .padding(3)
+            .padding(2)
+    }
+
+    @ViewBuilder
+    private var keyCap: some View {
+        RoundedRectangle(cornerRadius: 5)
+            .fill(.background.opacity(0.5))
+            .overlay {
+                RoundedRectangle(cornerRadius: 5)
+                    .inset(by: -2)
+                    .offset(y: -2)
+                    .strokeBorder(.background.opacity(0.5))
+                    .clipShape(RoundedRectangle(cornerRadius: 5))
+            }
+            .shadow(
+                color: .black.opacity(0.25),
+                radius: 1
+            )
+            .frame(
+                width: frame.height - 2,
+                height: frame.height - 2
+            )
     }
 
     private var modifierString: String {

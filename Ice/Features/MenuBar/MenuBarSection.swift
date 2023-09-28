@@ -1,5 +1,5 @@
 //
-//  StatusBarSection.swift
+//  MenuBarSection.swift
 //  Ice
 //
 
@@ -7,9 +7,9 @@ import Combine
 import Foundation
 import OSLog
 
-/// A representation of a section in a status bar.
-final class StatusBarSection: ObservableObject {
-    /// User-visible name that describes a status bar section.
+/// A representation of a section in a menu bar.
+final class MenuBarSection: ObservableObject {
+    /// User-visible name that describes a menu bar section.
     enum Name: String, Codable, Hashable {
         case alwaysVisible = "Always Visible"
         case hidden = "Hidden"
@@ -28,7 +28,7 @@ final class StatusBarSection: ObservableObject {
     /// The control item that manages the visibility of the section.
     @Published var controlItem: ControlItem {
         didSet {
-            controlItem.updateStatusItem()
+            controlItem.updateStatusItem(with: controlItem.state)
             configureCancellables()
         }
     }
@@ -39,21 +39,18 @@ final class StatusBarSection: ObservableObject {
             if listener != nil {
                 enableHotkey()
             }
-            statusBar?.needsSave = true
-        }
-    }
-
-    /// The status bar associated with the section.
-    weak var statusBar: StatusBar? {
-        didSet {
-            controlItem.statusBar = statusBar
+            menuBar?.needsSave = true
         }
     }
 
     /// A Boolean value that indicates whether the section is enabled.
-    var isEnabled: Bool {
-        get { controlItem.isVisible }
-        set { controlItem.isVisible = newValue }
+    @Published var isEnabled: Bool
+
+    /// The menu bar associated with the section.
+    weak var menuBar: MenuBar? {
+        didSet {
+            controlItem.menuBar = menuBar
+        }
     }
 
     /// A Boolean value that indicates whether the section is hidden.
@@ -70,17 +67,18 @@ final class StatusBarSection: ObservableObject {
         listener != nil
     }
 
-    /// Creates a status bar section with the given name, control item,
+    /// Creates a menu bar section with the given name, control item,
     /// hotkey, and unique identifier.
     init(name: Name, controlItem: ControlItem, hotkey: Hotkey? = nil) {
         self.name = name
         self.controlItem = controlItem
         self.hotkey = hotkey
+        self.isEnabled = controlItem.isVisible
         enableHotkey()
         configureCancellables()
     }
 
-    /// Creates a status bar section with the given name, control item
+    /// Creates a menu bar section with the given name, control item
     /// autosave name, control item position, and control item hiding
     /// state.
     convenience init(
@@ -100,15 +98,48 @@ final class StatusBarSection: ObservableObject {
         )
     }
 
-    /// Set up a series of cancellables to respond to important changes
-    /// in the section's state.
+    /// Sets up a series of cancellables to respond to important
+    /// changes in the section's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
         // propagate changes from the section's control item
-        c.insert(controlItem.objectWillChange.sink { [weak self] in
-            self?.objectWillChange.send()
-        })
+        controlItem.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
+
+        controlItem.$isVisible
+            .removeDuplicates()
+            .sink { [weak self] isVisible in
+                guard 
+                    let self,
+                    isEnabled != isVisible
+                else {
+                    return
+                }
+                isEnabled = isVisible
+            }
+            .store(in: &c)
+
+        $isEnabled
+            .removeDuplicates()
+            .sink { [weak self] isEnabled in
+                guard 
+                    let self,
+                    controlItem.isVisible != isEnabled
+                else {
+                    return
+                }
+                controlItem.isVisible = isEnabled
+                if isEnabled {
+                    enableHotkey()
+                } else {
+                    disableHotkey()
+                }
+            }
+            .store(in: &c)
 
         cancellables = c
     }
@@ -128,14 +159,14 @@ final class StatusBarSection: ObservableObject {
 
     /// Shows the status items in the section.
     func show() {
-        guard let statusBar else {
+        guard let menuBar else {
             return
         }
         switch name {
         case .alwaysVisible, .hidden:
             guard
-                let section1 = statusBar.section(withName: .alwaysVisible),
-                let section2 = statusBar.section(withName: .hidden)
+                let section1 = menuBar.section(withName: .alwaysVisible),
+                let section2 = menuBar.section(withName: .hidden)
             else {
                 return
             }
@@ -143,8 +174,8 @@ final class StatusBarSection: ObservableObject {
             section2.controlItem.state = .showItems
         case .alwaysHidden:
             guard
-                let section1 = statusBar.section(withName: .hidden),
-                let section2 = statusBar.section(withName: .alwaysHidden)
+                let section1 = menuBar.section(withName: .hidden),
+                let section2 = menuBar.section(withName: .alwaysHidden)
             else {
                 return
             }
@@ -155,15 +186,15 @@ final class StatusBarSection: ObservableObject {
 
     /// Hides the status items in the section.
     func hide() {
-        guard let statusBar else {
+        guard let menuBar else {
             return
         }
         switch name {
         case .alwaysVisible, .hidden:
             guard
-                let section1 = statusBar.section(withName: .alwaysVisible),
-                let section2 = statusBar.section(withName: .hidden),
-                let section3 = statusBar.section(withName: .alwaysHidden)
+                let section1 = menuBar.section(withName: .alwaysVisible),
+                let section2 = menuBar.section(withName: .hidden),
+                let section3 = menuBar.section(withName: .alwaysHidden)
             else {
                 return
             }
@@ -171,7 +202,7 @@ final class StatusBarSection: ObservableObject {
             section2.controlItem.state = .hideItems
             section3.hide() // uses other branch
         case .alwaysHidden:
-            guard let section = statusBar.section(withName: .alwaysHidden) else {
+            guard let section = menuBar.section(withName: .alwaysHidden) else {
                 return
             }
             section.controlItem.state = .hideItems
@@ -187,8 +218,8 @@ final class StatusBarSection: ObservableObject {
     }
 }
 
-// MARK: StatusBarSection: Codable
-extension StatusBarSection: Codable {
+// MARK: MenuBarSection: Codable
+extension MenuBarSection: Codable {
     private enum CodingKeys: String, CodingKey {
         case name
         case controlItem
@@ -212,17 +243,17 @@ extension StatusBarSection: Codable {
     }
 }
 
-// MARK: StatusBarSection: Equatable
-extension StatusBarSection: Equatable {
-    static func == (lhs: StatusBarSection, rhs: StatusBarSection) -> Bool {
+// MARK: MenuBarSection: Equatable
+extension MenuBarSection: Equatable {
+    static func == (lhs: MenuBarSection, rhs: MenuBarSection) -> Bool {
         lhs.name == rhs.name &&
         lhs.controlItem == rhs.controlItem &&
         lhs.hotkey == rhs.hotkey
     }
 }
 
-// MARK: StatusBarSection: Hashable
-extension StatusBarSection: Hashable {
+// MARK: MenuBarSection: Hashable
+extension MenuBarSection: Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(name)
         hasher.combine(controlItem)
@@ -230,5 +261,5 @@ extension StatusBarSection: Hashable {
     }
 }
 
-// MARK: StatusBarSection: BindingExposable
-extension StatusBarSection: BindingExposable { }
+// MARK: MenuBarSection: BindingExposable
+extension MenuBarSection: BindingExposable { }

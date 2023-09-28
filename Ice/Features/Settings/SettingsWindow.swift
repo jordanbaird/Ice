@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct SettingsWindow: Scene {
-    @StateObject private var statusBar = StatusBar()
+    @StateObject private var menuBar = MenuBar()
 
     var body: some Scene {
         Window(Constants.appName, id: Constants.settingsWindowID) {
@@ -16,13 +16,14 @@ struct SettingsWindow: Scene {
                     Color.clear
                         .overlay(Material.thin)
                 }
-                .buttonStyle(SettingsButtonStyle())
-                .environmentObject(statusBar)
                 .task {
                     if !ProcessInfo.processInfo.isPreview {
-                        statusBar.initializeSections()
+                        menuBar.initializeSections()
                     }
                 }
+                .environmentObject(menuBar)
+                .environmentObject(menuBar.itemManager)
+                .buttonStyle(SettingsButtonStyle())
         }
         .commandsRemoved()
         .defaultSize(width: 900, height: 600)

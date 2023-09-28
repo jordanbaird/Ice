@@ -1,33 +1,57 @@
 //
-//  MenuBarLayoutItem.swift
+//  LayoutBarItem.swift
 //  Ice
 //
 
 import Cocoa
 
-// MARK: - MenuBarLayoutItem
+// MARK: - LayoutBarItem
 
 /// A type that produces a view for display in a menu bar
 /// layout view.
-struct MenuBarLayoutItem: Hashable, Identifiable {
+struct LayoutBarItem: Hashable, Identifiable {
     /// The item's displayed image.
-    let image: NSImage
+    var image: NSImage
+
+    /// The tool tip that should be displayed for the item.
+    var toolTip: String
+
+    /// A Boolean value that indicates whether the item is enabled.
+    var isEnabled: Bool
 
     var id: Int {
         image.hashValue
     }
 
+    init(image: NSImage, toolTip: String, isEnabled: Bool) {
+        self.image = image
+        self.toolTip = toolTip
+        self.isEnabled = isEnabled
+    }
+
+    init(image: CGImage, size: CGSize, toolTip: String, isEnabled: Bool) {
+        self.init(
+            image: NSImage(cgImage: image, size: size), 
+            toolTip: toolTip,
+            isEnabled: isEnabled
+        )
+    }
+
     /// Creates and returns a view for display in a menu
     /// bar layout view.
-    func makeItemView() -> MenuBarLayoutItemView {
-        MenuBarLayoutItemView(image: image)
+    func makeItemView() -> LayoutBarItemView {
+        LayoutBarItemView(
+            image: image,
+            toolTip: toolTip,
+            isEnabled: isEnabled
+        )
     }
 }
 
-// MARK: - MenuBarLayoutItemView
+// MARK: - LayoutBarItemView
 
 /// A view that displays an image in a menu bar layout view.
-class MenuBarLayoutItemView: NSView {
+class LayoutBarItemView: NSControl {
     /// Temporary information that the item view retains when it is
     /// moved outside of a layout view.
     ///
@@ -38,7 +62,11 @@ class MenuBarLayoutItemView: NSView {
     /// values are removed. If the item is dropped outside of a layout
     /// view, these values are used to reinsert the item view in its
     /// original layout view.
-    var oldContainerInfo: (container: MenuBarLayoutContainer, index: Int)?
+    var oldContainerInfo: (container: LayoutBarContainer, index: Int)?
+
+    /// A Boolean value that indicates whether the item view is
+    /// currently inside a container.
+    var hasContainer = false
 
     /// The image displayed inside the view.
     let image: NSImage
@@ -54,9 +82,11 @@ class MenuBarLayoutItemView: NSView {
     }
 
     /// Creates an item view that displays the given image.
-    init(image: NSImage) {
+    init(image: NSImage, toolTip: String, isEnabled: Bool) {
         self.image = image
         super.init(frame: NSRect(origin: .zero, size: image.size))
+        self.toolTip = toolTip
+        self.isEnabled = isEnabled
         unregisterDraggedTypes()
     }
 
@@ -67,19 +97,28 @@ class MenuBarLayoutItemView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         if !isDraggingPlaceholder {
-            image.draw(in: bounds)
+            image.draw(
+                in: bounds,
+                from: .zero,
+                operation: .sourceOver,
+                fraction: isEnabled ? 1 : 0.5
+            )
         }
     }
 
-    override func mouseDown(with event: NSEvent) {
-        super.mouseDown(with: event)
+    override func mouseDragged(with event: NSEvent) {
+        super.mouseDragged(with: event)
+
+        guard isEnabled else {
+            return
+        }
 
         let pasteboardItem = NSPasteboardItem()
         // contents of the pasteboard item don't matter here, as all needed
         // information is available directly from the dragging session; what
-        // matters is that the type is set to `layoutItem`, as that is what
-        // the layout view registers for
-        pasteboardItem.setData(Data(), forType: .layoutItem)
+        // matters is that the type is set to `layoutBarItem`, as that is
+        // what the layout bar registers for
+        pasteboardItem.setData(Data(), forType: .layoutBarItem)
 
         let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
         draggingItem.setDraggingFrame(bounds, contents: image)
@@ -88,8 +127,8 @@ class MenuBarLayoutItemView: NSView {
     }
 }
 
-// MARK: MenuBarLayoutItemView: NSDraggingSource
-extension MenuBarLayoutItemView: NSDraggingSource {
+// MARK: LayoutBarItemView: NSDraggingSource
+extension LayoutBarItemView: NSDraggingSource {
     func draggingSession(
         _ session: NSDraggingSession,
         sourceOperationMaskFor context: NSDraggingContext
@@ -116,6 +155,10 @@ extension MenuBarLayoutItemView: NSDraggingSource {
         endedAt screenPoint: NSPoint,
         operation: NSDragOperation
     ) {
+        defer {
+            // always remove container info at the end of a session
+            oldContainerInfo = nil
+        }
         // since the session's `animatesToStartingPositionsOnCancelOrFail`
         // property was set to false when the session began (above), there
         // is no delay between the user releasing the dragging item and
@@ -124,15 +167,19 @@ extension MenuBarLayoutItemView: NSDraggingSource {
         // it may also need to be updated inside `performDragOperation(_:)`
         // on `MenuBarLayoutCocoaView`
         isDraggingPlaceholder = false
-        // reinsert the view if dropped outside of a layout view
-        if let (container, index) = oldContainerInfo {
+        // if the drop occurs outside of a container, reinsert the view
+        // into its original container at its original index
+        if !hasContainer {
+            guard let (container, index) = oldContainerInfo else {
+                return
+            }
+            container.shouldAnimateNextLayoutPass = false
             container.arrangedViews.insert(self, at: index)
-            oldContainerInfo = nil
         }
     }
 }
 
 // MARK: Layout Item Pasteboard Type
 extension NSPasteboard.PasteboardType {
-    static let layoutItem = Self("\(Bundle.main.bundleIdentifier!).layout-item")
+    static let layoutBarItem = Self("\(Bundle.main.bundleIdentifier!).layout-bar-item")
 }

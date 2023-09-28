@@ -7,15 +7,19 @@ import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsPane: View {
-    @EnvironmentObject var statusBar: StatusBar
+    @EnvironmentObject var styleReader: LayoutBarStyleReader
+    @EnvironmentObject var menuBar: MenuBar
 
-    @AppStorage("alwaysHiddenModifier")
-    var alwaysHiddenModifier: Hotkey.Modifiers = .option
+    @AppStorage(Defaults.usesTintedLayoutBars)
+    var usesTintedLayoutBars = true
+    @AppStorage(Defaults.alwaysHiddenModifier)
+    var alwaysHiddenModifier = Hotkey.Modifiers.option
 
     var body: some View {
         Form {
             Section {
                 launchAtLogin
+                coloredLayoutBars
             }
             Section {
                 alwaysHiddenOptions
@@ -47,28 +51,28 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
+    private var coloredLayoutBars: some View {
+        Toggle(isOn: $usesTintedLayoutBars) {
+            Text("Use tinted layout bars")
+            Text("When enabled, layout bars in the Menu Bar Layout tab are tinted to match the color of the actual menu bar. Disabling this setting can improve performance.")
+        }
+    }
+
+    @ViewBuilder
     private var alwaysHiddenOptions: some View {
-        if let section = statusBar.section(withName: .alwaysHidden) {
+        if let section = menuBar.section(withName: .alwaysHidden) {
             Toggle(isOn: section.bindings.isEnabled) {
                 Text("Enable \"\(section.name.rawValue)\" section")
-            }
-            .onChange(of: section.isEnabled) { newValue in
-                section.controlItem.isVisible = newValue
-                if newValue {
-                    section.enableHotkey()
-                } else {
-                    section.disableHotkey()
-                }
             }
 
             if section.isEnabled {
                 Picker(selection: $alwaysHiddenModifier) {
-                    ForEach(Hotkey.Modifiers.canonicalOrder, id: \.self) { modifier in
+                    ForEach(ControlItem.clickModifiers, id: \.self) { modifier in
                         Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
                     }
                 } label: {
                     Text("Modifier")
-                    Text("\(alwaysHiddenModifier.label) (\(alwaysHiddenModifier.stringValue)) + clicking either of \(Constants.appName)'s menu bar items will temporarily show the section")
+                    Text("\(alwaysHiddenModifier.label) (\(alwaysHiddenModifier.stringValue)) + clicking either of \(Constants.appName)'s menu bar items will temporarily show this section")
                 }
             }
         }
@@ -76,25 +80,25 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var hiddenRecorder: some View {
-        if let section = statusBar.section(withName: .hidden) {
+        if let section = menuBar.section(withName: .hidden) {
             LabeledHotkeyRecorder(section: section)
         }
     }
 
     @ViewBuilder
     private var alwaysHiddenRecorder: some View {
-        if let section = statusBar.section(withName: .alwaysHidden) {
+        if let section = menuBar.section(withName: .alwaysHidden) {
             LabeledHotkeyRecorder(section: section)
         }
     }
 }
 
 struct LabeledHotkeyRecorder: View {
-    @EnvironmentObject var statusBar: StatusBar
+    @EnvironmentObject var menuBar: MenuBar
     @State private var failure: HotkeyRecorder.Failure?
     @State private var timer: Timer?
 
-    let section: StatusBarSection
+    let section: MenuBarSection
 
     private var localizedLabel: LocalizedStringKey {
         "Toggle the \"\(section.name.rawValue)\" menu bar section"
@@ -120,12 +124,12 @@ struct LabeledHotkeyRecorder: View {
 }
 
 struct GeneralSettingsPane_Previews: PreviewProvider {
-    @StateObject private static var statusBar = StatusBar()
+    @StateObject private static var menuBar = MenuBar()
 
     static var previews: some View {
         GeneralSettingsPane()
             .fixedSize()
             .buttonStyle(SettingsButtonStyle())
-            .environmentObject(statusBar)
+            .environmentObject(menuBar)
     }
 }

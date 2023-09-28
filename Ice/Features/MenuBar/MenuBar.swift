@@ -1,13 +1,13 @@
 //
-//  StatusBar.swift
+//  MenuBar.swift
 //  Ice
 //
 
 import Combine
 import OSLog
 
-/// Manager for the state of items in the status bar.
-class StatusBar: ObservableObject {
+/// Manager for the state of items in the menu bar.
+class MenuBar: ObservableObject {
     /// Observers for important aspects of state.
     private var cancellables = Set<AnyCancellable>()
 
@@ -19,20 +19,23 @@ class StatusBar: ObservableObject {
     /// Codable objects.
     private let decoder = DictionaryDecoder()
 
-    /// Set to `true` to tell the status bar to save its sections.
+    /// A manager for the items in the menu bar.
+    private(set) lazy var itemManager = MenuBarItemManager(menuBar: self)
+
+    /// Set to `true` to tell the menu bar to save its sections.
     @Published var needsSave = false
 
-    /// The sections currently in the status bar.
-    @Published private(set) var sections = [StatusBarSection]() {
+    /// The sections currently in the menu bar.
+    @Published private(set) var sections = [MenuBarSection]() {
         willSet {
             for section in sections {
-                section.statusBar = nil
+                section.menuBar = nil
             }
         }
         didSet {
             if validateSectionCountOrReinitialize() {
                 for section in sections {
-                    section.statusBar = self
+                    section.menuBar = self
                 }
             }
             configureCancellables()
@@ -40,43 +43,43 @@ class StatusBar: ObservableObject {
         }
     }
 
-    /// Initializes a new status bar instance.
+    /// Initializes a new menu bar instance.
     init() {
         configureCancellables()
     }
 
-    /// Performs the initial setup of the status bar's section list.
+    /// Performs the initial setup of the menu bar's section list.
     func initializeSections() {
         guard sections.isEmpty else {
-            Logger.statusBar.info("Sections already initialized")
+            Logger.menuBar.info("Sections already initialized")
             return
         }
 
         // load sections from persistent storage
-        sections = (UserDefaults.standard.array(forKey: "Sections") ?? []).compactMap { entry in
+        sections = (UserDefaults.standard.array(forKey: Defaults.sections) ?? []).compactMap { entry in
             guard let dictionary = entry as? [String: Any] else {
-                Logger.statusBar.error("Entry not convertible to dictionary")
+                Logger.menuBar.error("Entry not convertible to dictionary")
                 return nil
             }
             do {
-                return try decoder.decode(StatusBarSection.self, from: dictionary)
+                return try decoder.decode(MenuBarSection.self, from: dictionary)
             } catch {
-                Logger.statusBar.error("Error decoding control item: \(error)")
+                Logger.menuBar.error("Decoding error: \(error)")
                 return nil
             }
         }
     }
 
-    /// Save all control items in the status bar to persistent storage.
+    /// Save all control items in the menu bar to persistent storage.
     func saveSections() {
         do {
             let serializedSections = try sections.map { section in
                 try encoder.encode(section)
             }
-            UserDefaults.standard.set(serializedSections, forKey: "Sections")
+            UserDefaults.standard.set(serializedSections, forKey: Defaults.sections)
             needsSave = false
         } catch {
-            Logger.statusBar.error("Error encoding control item: \(error)")
+            Logger.menuBar.error("Encoding error: \(error)")
         }
     }
 
@@ -87,27 +90,23 @@ class StatusBar: ObservableObject {
     private func validateSectionCountOrReinitialize() -> Bool {
         if sections.count != 3 {
             sections = [
-                StatusBarSection(name: .alwaysVisible, autosaveName: "Item-1", position: 0),
-                StatusBarSection(name: .hidden, autosaveName: "Item-2", position: 1),
-                // don't give the always-hidden section an initial position; 
-                // this will place its item at the far end of the status bar
-                StatusBarSection(name: .alwaysHidden, autosaveName: "Item-3", state: .hideItems),
+                MenuBarSection(name: .alwaysVisible, autosaveName: "Item-1", position: 0),
+                MenuBarSection(name: .hidden, autosaveName: "Item-2", position: 1),
+                // don't give the always-hidden section an initial position,
+                // so that its item is placed at the far end of the menu bar
+                MenuBarSection(name: .alwaysHidden, autosaveName: "Item-3", state: .hideItems),
             ]
             return false
         }
         return true
     }
 
-    /// Set up a series of cancellables to respond to important 
-    /// changes in the status bar's state.
+    /// Sets up a series of cancellables to respond to important
+    /// changes in the menu bar's state.
     private func configureCancellables() {
-        // cancel and remove all current cancellables
-        for cancellable in cancellables {
-            cancellable.cancel()
-        }
-        cancellables.removeAll()
+        var c = Set<AnyCancellable>()
 
-        // update the control item for every section when the 
+        // update the control item for every section when the
         // position of one item changes
         Publishers.MergeMany(sections.map { $0.controlItem.$position })
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
@@ -142,10 +141,10 @@ class StatusBar: ObservableObject {
                     sections[index].controlItem = sortedControlItems[index]
                 }
             }
-            .store(in: &cancellables)
+            .store(in: &c)
 
-        // save control items when needsSave is set to true, 
-        // with a reasonable delay to avoid saving too often
+        // save control items when needsSave is set to true,
+        // debounced to avoid saving too often
         $needsSave
             .debounce(for: 1, scheduler: DispatchQueue.main)
             .sink { [weak self] needsSave in
@@ -153,19 +152,34 @@ class StatusBar: ObservableObject {
                     self?.saveSections()
                 }
             }
-            .store(in: &cancellables)
+            .store(in: &c)
+
+        itemManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
 
         // propagate changes up from each section
         for section in sections {
             section.objectWillChange.sink { [weak self] in
-                self?.objectWillChange.send()
+                DispatchQueue.main.async {
+                    self?.objectWillChange.send()
+                }
             }
-            .store(in: &cancellables)
+            .store(in: &c)
         }
+
+        cancellables = c
     }
 
-    /// Returns the status bar section with the given name.
-    func section(withName name: StatusBarSection.Name) -> StatusBarSection? {
+    /// Returns the menu bar section with the given name.
+    func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
     }
+}
+
+// MARK: - Logger
+extension Logger {
+    static let menuBar = mainSubsystem(category: "MenuBar")
 }

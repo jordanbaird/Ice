@@ -26,7 +26,7 @@ extension SettingsNavigationItem {
 extension SettingsNavigationItem {
     enum IconResource: Hashable {
         case systemSymbol(_ name: String)
-        case assetCatalog(_ name: String)
+        case assetCatalog(_ resource: ImageResource)
 
         var view: some View {
             image
@@ -41,8 +41,8 @@ extension SettingsNavigationItem {
             switch self {
             case .systemSymbol(let name):
                 return Image(systemName: name)
-            case .assetCatalog(let name):
-                return Image(name)
+            case .assetCatalog(let resource):
+                return Image(resource)
             }
         }
     }

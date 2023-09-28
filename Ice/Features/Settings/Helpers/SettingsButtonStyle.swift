@@ -10,12 +10,12 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
     /// Custom view that prevents mouse down messages from passing
     /// through to the button's window.
     private struct MouseDownInterceptor: NSViewRepresentable {
-        private class SettingsButtonMouseDownInterceptorView: NSView {
+        private class Represented: NSView {
             override var mouseDownCanMoveWindow: Bool { false }
         }
 
         func makeNSView(context: Context) -> NSView {
-            SettingsButtonMouseDownInterceptorView()
+            Represented()
         }
 
         func updateNSView(_: NSView, context: Context) { }
@@ -65,12 +65,12 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(labelForegroundColor)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 2.5)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
             .baselineOffset(1)
             .transformEnvironment(\.font) { font in
                 if font == nil {
-                    font = .body.weight(.medium)
+                    font = .body.weight(.regular)
                 }
             }
             .background {

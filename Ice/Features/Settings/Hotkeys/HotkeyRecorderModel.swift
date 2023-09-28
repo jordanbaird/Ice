@@ -15,7 +15,7 @@ class HotkeyRecorderModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     /// The section managed by the model.
-    let section: StatusBarSection?
+    let section: MenuBarSection?
 
     /// A Boolean value that indicates whether the hotkey recorder
     /// is currently recording.
@@ -44,7 +44,7 @@ class HotkeyRecorderModel: ObservableObject {
     /// Creates a model for a hotkey recorder that records user-chosen
     /// key combinations for the given section's hotkey.
     init(
-        section: StatusBarSection?,
+        section: MenuBarSection?,
         onFailure: @escaping (Failure) -> Void,
         removeFailure: @escaping () -> Void
     ) {
@@ -84,15 +84,19 @@ class HotkeyRecorderModel: ObservableObject {
         stopRecording()
     }
 
-    /// Sets up a series of observers to respond to important changes
-    /// in the model's state.
+    /// Sets up a series of cancellables to respond to important
+    /// changes in the model's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
+
         if let section {
-            c.insert(section.$hotkey.sink { [weak self] _ in
-                self?.objectWillChange.send()
-            })
+            section.$hotkey
+                .sink { [weak self] _ in
+                    self?.objectWillChange.send()
+                }
+                .store(in: &c)
         }
+
         cancellables = c
     }
 

@@ -21,7 +21,7 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
         func updateNSView(_: NSView, context: Context) { }
     }
 
-    /// Custom shape that draws a rounded rectangle with some of 
+    /// Custom shape that draws a rounded rectangle with some of
     /// its sides flattened according to the given button shape.
     private struct ClipShape: Shape {
         let cornerRadius: CGFloat
@@ -74,23 +74,15 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
                 }
             }
             .background {
-                VisualEffectView(
-                    material: .contentBackground,
-                    blendingMode: .withinWindow,
-                    isEmphasized: true
-                )
-                .opacity(0.5)
-                .background(isPressed ? .secondary : .tertiary)
-                .overlay {
-                    Color.primary
-                        .opacity(isHighlighted ? 0.2 : 0)
-                        .blendMode(.overlay)
-                }
-                .background {
-                    MouseDownInterceptor()
-                }
-                .clipShape(ClipShape(cornerRadius: 5, shape: shape))
-                .opacity(bezelOpacity)
+                Color.primary
+                    .opacity(isHighlighted ? 0.2 : 0)
+                    .blendMode(.overlay)
+                    .background(isPressed ? .tertiary : .quaternary)
+                    .background {
+                        MouseDownInterceptor()
+                    }
+                    .clipShape(ClipShape(cornerRadius: 5, shape: shape))
+                    .opacity(bezelOpacity)
             }
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)

@@ -7,23 +7,56 @@ import Cocoa
 import Combine
 import OSLog
 
-/// A status item that controls the visibility of a section
-/// in the menu bar.
+/// A status item that controls the visibility of a section in
+/// the menu bar.
 final class ControlItem: ObservableObject {
+    /// A value representing the hiding state of a control item.
     enum HidingState: Int, Hashable, Codable {
+        /// Status items in the control item's section are hidden.
         case hideItems
+        /// Status items in the control item's section are visible.
         case showItems
     }
 
-    static let standardLength: CGFloat = 25
-    static let expandedLength: CGFloat = 10_000
+    /// Possible lengths of a control item.
+    enum Lengths {
+        /// The length of a control item when its section is visible.
+        static let standard: CGFloat = 25
+        /// The length of a control item when its section is hidden.
+        static let expanded: CGFloat = 10_000
+    }
 
+    /// Valid modifiers that can be used to trigger the control
+    /// item's secondary action.
+    ///
+    /// The user chooses which of these they would like to use
+    /// in the app's settings.
     static let clickModifiers: [Hotkey.Modifiers] = [.control, .option, .shift]
+
+    /// Storage to temporarily associate menu bar sections with
+    /// specific menu items.
     private static let sectionStorage = ObjectAssociation<MenuBarSection>()
 
+    /// Observers for key aspects of the control item's state.
     private var cancellables = Set<AnyCancellable>()
 
+    /// The control item's underlying status item.
     private let statusItem: NSStatusItem
+
+    /// The position of the control item in the menu bar.
+    @Published private(set) var position: CGFloat?
+
+    /// A Boolean value that indicates whether the control item
+    /// is visible.
+    ///
+    /// This value corresponds to whether the item's section is
+    /// enabled.
+    @Published var isVisible: Bool
+
+    /// The hiding state of the control item.
+    ///
+    /// Setting this value marks the item as needing an update.
+    @Published var state: HidingState
 
     /// The menu bar associated with the control item.
     weak var menuBar: MenuBar? {
@@ -35,6 +68,17 @@ final class ControlItem: ObservableObject {
     /// The control item's autosave name.
     var autosaveName: String {
         statusItem.autosaveName
+    }
+
+    var windowID: CGWindowID? {
+        guard let windowNumber = statusItem.button?.window?.windowNumber else {
+            return nil
+        }
+        return CGWindowID(windowNumber)
+    }
+
+    var windowFrame: CGRect? {
+        statusItem.button?.window?.frame
     }
 
     /// The menu bar section associated with the control item.
@@ -58,37 +102,23 @@ final class ControlItem: ObservableObject {
     /// A Boolean value that indicates whether the control item
     /// is expanded.
     ///
-    /// Expanded control items have a length that is equal to 
-    /// ``expandedLength``, while non-expanded control items
-    /// have a length that is equal to ``standardLength``.
+    /// Expanded control items have a length that is equal to the
+    /// ``Lengths/expanded`` constant, while non-expanded control
+    /// items have a length that is equal to the ``Lengths/standard``
+    /// constant.
     var isExpanded: Bool {
         get {
-            statusItem.length == Self.expandedLength
+            statusItem.length == Lengths.expanded
         }
         set {
             objectWillChange.send()
             if newValue {
-                statusItem.length = Self.expandedLength
+                statusItem.length = Lengths.expanded
             } else {
-                statusItem.length = Self.standardLength
+                statusItem.length = Lengths.standard
             }
         }
     }
-
-    /// The position of the control item in the menu bar.
-    @Published private(set) var position: CGFloat?
-
-    /// A Boolean value that indicates whether the control item
-    /// is visible.
-    ///
-    /// This value corresponds to whether the item's section is
-    /// enabled.
-    @Published var isVisible: Bool
-
-    /// The hiding state of the control item.
-    ///
-    /// Setting this value marks the item as needing an update.
-    @Published var state: HidingState
 
     /// Creates a control item with the given autosave name, position,
     /// and hiding state.
@@ -117,7 +147,7 @@ final class ControlItem: ObservableObject {
             StatusItemDefaults[.preferredPosition, autosaveName] = position
         }
 
-        self.statusItem = NSStatusBar.system.statusItem(withLength: Self.standardLength)
+        self.statusItem = NSStatusBar.system.statusItem(withLength: Lengths.standard)
         self.statusItem.autosaveName = autosaveName
         self.position = position
         self.isVisible = statusItem.isVisible

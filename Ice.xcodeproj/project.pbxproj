@@ -16,6 +16,7 @@
 		17C9EB722AC9078F00141043 /* WindowList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C9EB712AC9078F00141043 /* WindowList.swift */; };
 		17C9EB7D2AC9FD0600141043 /* QueuedTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C9EB7C2AC9FD0600141043 /* QueuedTimer.swift */; };
 		17DFF4952ACF7F6300B5177A /* TrimTransparency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4942ACF7F6300B5177A /* TrimTransparency.swift */; };
+		17DFF4992AD04AC200B5177A /* MenuBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4982AD04AC200B5177A /* MenuBarItem.swift */; };
 		17FE8E842AC73EBF006C6579 /* MenuBarItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE8E832AC73EBF006C6579 /* MenuBarItemManager.swift */; };
 		17FE8E862AC767F4006C6579 /* LayoutBarContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE8E852AC767F4006C6579 /* LayoutBarContainer.swift */; };
 		17FE8E882AC76842006C6579 /* LayoutBarScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE8E872AC76842006C6579 /* LayoutBarScrollView.swift */; };
@@ -79,6 +80,7 @@
 		17C9EB712AC9078F00141043 /* WindowList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowList.swift; sourceTree = "<group>"; };
 		17C9EB7C2AC9FD0600141043 /* QueuedTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueuedTimer.swift; sourceTree = "<group>"; };
 		17DFF4942ACF7F6300B5177A /* TrimTransparency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrimTransparency.swift; sourceTree = "<group>"; };
+		17DFF4982AD04AC200B5177A /* MenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItem.swift; sourceTree = "<group>"; };
 		17FE8E832AC73EBF006C6579 /* MenuBarItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemManager.swift; sourceTree = "<group>"; };
 		17FE8E852AC767F4006C6579 /* LayoutBarContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarContainer.swift; sourceTree = "<group>"; };
 		17FE8E872AC76842006C6579 /* LayoutBarScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarScrollView.swift; sourceTree = "<group>"; };
@@ -320,6 +322,7 @@
 				716683512A76820A006ABF84 /* ControlItem.swift */,
 				7166834F2A7681AF006ABF84 /* MenuBar.swift */,
 				17FE8E832AC73EBF006C6579 /* MenuBarItemManager.swift */,
+				17DFF4982AD04AC200B5177A /* MenuBarItem.swift */,
 				7162406E2AA0A323003EC671 /* MenuBarSection.swift */,
 			);
 			path = MenuBar;
@@ -520,6 +523,7 @@
 				714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */,
 				17FE8E882AC76842006C6579 /* LayoutBarScrollView.swift in Sources */,
 				71623BD32A8B6744002FD331 /* SettingsButtonStyle.swift in Sources */,
+				17DFF4992AD04AC200B5177A /* MenuBarItem.swift in Sources */,
 				71A7D6DC2ABEF667000768B8 /* LayoutBarItem.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */,
 				711AD0EB2ABD616700258639 /* CustomTabView.swift in Sources */,

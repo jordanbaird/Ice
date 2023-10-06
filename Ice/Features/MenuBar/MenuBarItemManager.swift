@@ -6,82 +6,15 @@
 import Combine
 import ScreenCaptureKit
 
-/// Constants that represent the titles of windows.
-private enum WindowTitles {
-    /// The title of the Control Center menu bar item.
-    static let controlCenter: String = "BentoBox"
-
-    /// The title of the menu bar.
-    static let menuBar: String = "Menubar"
-
-    /// The title of the Time Machine menu bar item.
-    static let timeMachine: String = {
-        if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 14 {
-            "TimeMachine.TMMenuExtraHost"
-        } else {
-            "TMMenuExtra"
-        }
-    }()
-}
-
-/// An item in a menu bar.
-struct MenuBarItem: Hashable {
-    /// The window containing the menu bar item.
-    let window: SCWindow
-
-    /// The menu bar item's title.
-    var title: String {
-        if let owningApplication = window.owningApplication {
-            // we have an owning application; by default, use
-            // its name, but handle a couple of special cases
-            switch owningApplication.bundleIdentifier {
-            case "com.apple.controlcenter":
-                // icons such as Battery, WiFi, Bluetooth, etc.
-                // are all owned by the Control Center process
-                if window.title == WindowTitles.controlCenter {
-                    // actual Control Center icon should use the
-                    // application name
-                    owningApplication.applicationName
-                } else {
-                    // default to window title for other icons
-                    window.title ?? owningApplication.applicationName
-                }
-            case "com.apple.systemuiserver":
-                if window.title == WindowTitles.timeMachine {
-                    "Time Machine"
-                } else {
-                    window.title ?? owningApplication.applicationName
-                }
-            default:
-                owningApplication.applicationName
-            }
-        } else if let title = window.title {
-            // no owning application; default to window title
-            title
-        } else {
-            // no owning application or window title; use empty
-            // string as fallback
-            String()
-        }
-    }
-
-    /// A Boolean value indicating whether the menu bar item's
-    /// window is on screen.
-    var isOnScreen: Bool {
-        window.isOnScreen
-    }
-
-    init(window: SCWindow) {
-        self.window = window
-    }
-}
-
 class MenuBarItemManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     private(set) weak var menuBar: MenuBar?
 
     @Published var items = [MenuBarItem]()
+    @Published var alwaysVisibleItems = [MenuBarItem]()
+    @Published var hiddenItems = [MenuBarItem]()
+    @Published var alwaysHiddenItems = [MenuBarItem]()
 
     init(menuBar: MenuBar) {
         self.menuBar = menuBar
@@ -95,7 +28,9 @@ class MenuBarItemManager: ObservableObject {
 
     func deactivate() {
         cancellables.removeAll()
-        items.removeAll()
+        alwaysVisibleItems.removeAll()
+        hiddenItems.removeAll()
+        alwaysHiddenItems.removeAll()
     }
 
     /// Sets up a series of cancellables to respond to important
@@ -114,14 +49,15 @@ class MenuBarItemManager: ObservableObject {
     }
 
     private func updateMenuBarItems(windows: [SCWindow]) {
-        let menuBarWindow = windows.first { window in
-            self.windowIsMenuBar(window)
-        }
-        guard let menuBarWindow else {
-            // TODO: log the error
+        guard
+            let menuBar,
+            let menuBarWindow = windows.first(where: windowIsMenuBar),
+            let alwaysVisibleSection = menuBar.section(withName: .alwaysVisible),
+            let hiddenSection = menuBar.section(withName: .hidden)
+        else {
             return
         }
-        items = windows
+        let sortedWindows = windows
             .filter { window in
                 self.windowIsMenuBarItem(window, in: menuBarWindow) &&
                 !self.windowIsControlItem(window, in: menuBarWindow)
@@ -129,16 +65,55 @@ class MenuBarItemManager: ObservableObject {
             .sorted { first, second in
                 first.frame.minX < second.frame.minX
             }
+        alwaysVisibleItems = sortedWindows
+            .filter { window in
+                window.frame.midX > (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                window.windowID != alwaysVisibleSection.controlItem.windowID
+            }
             .map { window in
                 MenuBarItem(window: window)
             }
+        if let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden) {
+            if alwaysHiddenSection.isEnabled {
+                hiddenItems = sortedWindows
+                    .filter { window in
+                        window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                        window.frame.midX > (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                        window.windowID != hiddenSection.controlItem.windowID &&
+                        window.windowID != alwaysHiddenSection.controlItem.windowID
+                    }
+                    .map { window in
+                        MenuBarItem(window: window)
+                    }
+                alwaysHiddenItems = sortedWindows
+                    .filter { window in
+                        window.frame.midX < (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                        window.windowID != alwaysHiddenSection.controlItem.windowID
+                    }
+                    .map { window in
+                        MenuBarItem(window: window)
+                    }
+            } else {
+                hiddenItems = sortedWindows
+                    .filter { window in
+                        window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                        window.windowID != hiddenSection.controlItem.windowID
+                    }
+                    .map { window in
+                        MenuBarItem(window: window)
+                    }
+            }
+        }
+        items = sortedWindows.map { window in
+            MenuBarItem(window: window)
+        }
     }
 
     /// Returns a Boolean value indicating whether the given window
     /// is a menu bar.
     private func windowIsMenuBar(_ window: SCWindow) -> Bool {
         window.windowLayer == kCGMainMenuWindowLevel &&
-        window.title == WindowTitles.menuBar
+        window.title == "Menubar"
     }
 
     /// Returns a Boolean value indicating whether the given window

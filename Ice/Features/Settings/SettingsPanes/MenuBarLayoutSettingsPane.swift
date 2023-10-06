@@ -13,7 +13,9 @@ struct MenuBarLayoutSettingsPane: View {
     @AppStorage(Defaults.usesTintedLayoutBars)
     var usesTintedLayoutBars = true
 
-    @State private var allItems = [LayoutBarItem]()
+    @State private var alwaysVisibleItems = [LayoutBarItem]()
+    @State private var hiddenItems = [LayoutBarItem]()
+    @State private var alwaysHiddenItems = [LayoutBarItem]()
 
     var body: some View {
         ScrollView {
@@ -31,8 +33,8 @@ struct MenuBarLayoutSettingsPane: View {
         .onDisappear {
             handleDisappear()
         }
-        .onChange(of: itemManager.items) { items in
-            updateAllItems(items)
+        .onChange(of: itemManager.items) { _ in
+            updateItems()
         }
     }
 
@@ -49,7 +51,7 @@ struct MenuBarLayoutSettingsPane: View {
     private var layoutViews: some View {
         Form {
             Section("Always Visible") {
-                LayoutBar(spacing: 15, layoutItems: $allItems)
+                LayoutBar(layoutItems: $alwaysVisibleItems)
                     .annotation {
                         Text("Drag menu bar items to this section if you want them to always be visible.")
                     }
@@ -57,7 +59,7 @@ struct MenuBarLayoutSettingsPane: View {
             Spacer()
                 .frame(maxHeight: 25)
             Section("Hidden") {
-                LayoutBar(spacing: 15, layoutItems: .constant([]))
+                LayoutBar(layoutItems: $hiddenItems)
                     .annotation {
                         Text("Drag menu bar items to this section if you want to hide them.")
                     }
@@ -65,7 +67,7 @@ struct MenuBarLayoutSettingsPane: View {
             Spacer()
                 .frame(maxHeight: 25)
             Section("Always Hidden") {
-                LayoutBar(spacing: 15, layoutItems: .constant([]))
+                LayoutBar(layoutItems: $alwaysHiddenItems)
                     .annotation {
                         Text("Drag menu bar items to this section if you want them to always be hidden.")
                     }
@@ -80,7 +82,7 @@ struct MenuBarLayoutSettingsPane: View {
             styleReader.deactivate()
         }
         itemManager.activate()
-        updateAllItems(itemManager.items)
+        updateItems()
     }
 
     private func handleDisappear() {
@@ -88,25 +90,42 @@ struct MenuBarLayoutSettingsPane: View {
         itemManager.deactivate()
     }
 
-    @MainActor
-    private func updateAllItems(_ items: [MenuBarItem]) {
-        allItems = items.compactMap { item in
-            WindowCaptureManager.captureImage(window: item.window).flatMap { image in
-                guard let trimmed = image.trimmingTransparentPixels(edges: [.minXEdge, .maxXEdge], maxAlpha: 10) else {
-                    return nil
-                }
-                let widthRatio = CGFloat(trimmed.width) / CGFloat(image.width)
-                let heightRatio = CGFloat(trimmed.height) / CGFloat(image.height)
-                let originalSize = item.window.frame.size
-                let trimmedSize = CGSize(
-                    width: originalSize.width * widthRatio,
-                    height: originalSize.height * heightRatio
-                )
-                return LayoutBarItem(
-                    image: trimmed,
-                    size: trimmedSize,
+    private func updateItems() {
+        let disabledItemTitles = [
+            "Clock",
+            "Siri",
+            "Control Center",
+        ]
+
+        alwaysVisibleItems = itemManager.alwaysVisibleItems.compactMap { item in
+            WindowCaptureManager.captureImage(window: item.window).map { image in
+                LayoutBarItem(
+                    image: image,
+                    size: item.window.frame.size,
                     toolTip: item.title,
-                    isEnabled: !["Clock", "Siri", "Control Center"].contains(item.title)
+                    isEnabled: !disabledItemTitles.contains(item.title)
+                )
+            }
+        }
+
+        hiddenItems = itemManager.hiddenItems.compactMap { item in
+            WindowCaptureManager.captureImage(window: item.window).map { image in
+                LayoutBarItem(
+                    image: image,
+                    size: item.window.frame.size,
+                    toolTip: item.title,
+                    isEnabled: true
+                )
+            }
+        }
+
+        alwaysHiddenItems = itemManager.alwaysHiddenItems.compactMap { item in
+            WindowCaptureManager.captureImage(window: item.window).map { image in
+                LayoutBarItem(
+                    image: image,
+                    size: item.window.frame.size,
+                    toolTip: item.title,
+                    isEnabled: true
                 )
             }
         }

@@ -47,10 +47,10 @@ class LayoutBarCocoaView: NSView {
                 equalTo: self.centerYAnchor
             ),
 
-            // give the container 20 points of trailing spacing
+            // give the container a few points of trailing space
             self.trailingAnchor.constraint(
                 equalTo: self.container.trailingAnchor,
-                constant: 20
+                constant: 7.5
             ),
 
             // allow variable spacing between leading anchors to let the view stretch
@@ -59,7 +59,7 @@ class LayoutBarCocoaView: NSView {
             // has to expand to a larger size, it can be clipped
             self.leadingAnchor.constraint(
                 lessThanOrEqualTo: self.container.leadingAnchor,
-                constant: -20
+                constant: -7.5
             ),
         ])
 

@@ -3,7 +3,7 @@
 //  Ice
 //
 
-import CoreGraphics
+import Cocoa
 
 // MARK: - TransparencyContext
 
@@ -230,5 +230,32 @@ extension CGImage {
     ) -> CGImage? {
         let context = TransparencyContext(image: self)
         return context?.trim(edges: edges, maxAlpha: maxAlpha)
+    }
+}
+
+extension NSImage {
+    /// Returns a version of this image whose edges have been cropped
+    /// to the insets defined by the transparent pixels around the image.
+    ///
+    /// - Parameters:
+    ///   - edges: The edges to trim from the image.
+    ///   - maxAlpha: The maximum alpha value to consider transparent, and
+    ///     thus crop. Alpha values that are greater than this value are
+    ///     considered opaque, and will remain part of the resulting image.
+    func trimmingTransparentPixels(
+        edges: Set<CGRectEdge> = [.minXEdge, .maxXEdge, .minYEdge, .maxYEdge],
+        maxAlpha: UInt8 = 0
+    ) -> NSImage? {
+        guard
+            let cgImage = cgImage(forProposedRect: nil, context: nil, hints: nil),
+            let trimmed = cgImage.trimmingTransparentPixels(edges: edges, maxAlpha: maxAlpha)
+        else {
+            return nil
+        }
+        let scale = recommendedLayerContentsScale(0)
+        let scaledSize = CGSize(width: CGFloat(trimmed.width) / scale, height: CGFloat(trimmed.height) / scale)
+        let image = NSImage(cgImage: trimmed, size: scaledSize)
+        image.isTemplate = isTemplate
+        return image
     }
 }

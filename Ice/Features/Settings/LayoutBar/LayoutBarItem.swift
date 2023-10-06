@@ -83,7 +83,12 @@ class LayoutBarItemView: NSControl {
 
     /// Creates an item view that displays the given image.
     init(image: NSImage, toolTip: String, isEnabled: Bool) {
-        self.image = image
+        // only trim horizontal edges to maintain proper vertical
+        // centering due to status item shadow offsetting the trim
+        let trimmedImage = image.trimmingTransparentPixels(edges: [.minXEdge, .maxXEdge])
+        self.image = trimmedImage ?? image
+        // set the frame to the full image size; the trimmed image
+        // will be centered within the full bounds when displayed
         super.init(frame: NSRect(origin: .zero, size: image.size))
         self.toolTip = toolTip
         self.isEnabled = isEnabled
@@ -95,13 +100,27 @@ class LayoutBarItemView: NSControl {
         fatalError("init(coder:) has not been implemented")
     }
 
+    private func createImageForDisplay(from image: NSImage) -> NSImage {
+        NSImage(size: bounds.size, flipped: false) { bounds in
+            let rect = CGRect(
+                x: bounds.midX - (image.size.width / 2),
+                y: bounds.midY - (image.size.height / 2),
+                width: image.size.width,
+                height: image.size.height
+            )
+            image.draw(in: rect)
+            return true
+        }
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         if !isDraggingPlaceholder {
-            image.draw(
+            let displayImage = createImageForDisplay(from: image)
+            displayImage.draw(
                 in: bounds,
                 from: .zero,
                 operation: .sourceOver,
-                fraction: isEnabled ? 1 : 0.5
+                fraction: isEnabled ? 1.0 : (2 / 3)
             )
         }
     }
@@ -121,7 +140,7 @@ class LayoutBarItemView: NSControl {
         pasteboardItem.setData(Data(), forType: .layoutBarItem)
 
         let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
-        draggingItem.setDraggingFrame(bounds, contents: image)
+        draggingItem.setDraggingFrame(bounds, contents: createImageForDisplay(from: image))
 
         beginDraggingSession(with: [draggingItem], event: event, source: self)
     }

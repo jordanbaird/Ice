@@ -186,31 +186,27 @@ class LayoutBarContainer: NSView {
                 arrangedViews.append(sourceView)
                 return .move
             }
-            draggingInfo.enumerateDraggingItems(
-                for: self,
-                classes: [NSPasteboardItem.self]
-            ) { [unowned self] draggingItem, _, stop in
-                stop.pointee = true // only need the first item
-                guard
-                    let destinationView = arrangedView(nearestTo: draggingItem.draggingFrame.midX),
-                    destinationView.isEnabled,
-                    let destinationIndex = arrangedViews.firstIndex(of: destinationView)
-                else {
-                    return
+            // convert dragging location from window coordinate space
+            let draggingLocation = convert(draggingInfo.draggingLocation, from: nil)
+            guard
+                let destinationView = arrangedView(nearestTo: draggingLocation.x),
+                destinationView.isEnabled, // don't rearrange if destination is disabled
+                let destinationIndex = arrangedViews.firstIndex(of: destinationView)
+            else {
+                return .move
+            }
+            if let sourceIndex = arrangedViews.firstIndex(of: sourceView) {
+                // source view is already inside this container, so move
+                // it from its old index to the new one
+                var targetIndex = destinationIndex
+                if destinationIndex > sourceIndex {
+                    targetIndex += 1
                 }
-                if let sourceIndex = arrangedViews.firstIndex(of: sourceView) {
-                    // source view is already inside this container, so move
-                    // it from its old index to the new one
-                    var targetIndex = destinationIndex
-                    if destinationIndex > sourceIndex {
-                        targetIndex += 1
-                    }
-                    arrangedViews.move(fromOffsets: [sourceIndex], toOffset: targetIndex)
-                } else {
-                    // source view is being dragged into this container from
-                    // another container, so just insert it
-                    arrangedViews.insert(sourceView, at: destinationIndex)
-                }
+                arrangedViews.move(fromOffsets: [sourceIndex], toOffset: targetIndex)
+            } else {
+                // source view is being dragged into this container from
+                // another container, so just insert it
+                arrangedViews.insert(sourceView, at: destinationIndex)
             }
             return .move
         }

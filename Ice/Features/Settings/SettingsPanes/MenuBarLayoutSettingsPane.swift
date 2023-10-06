@@ -49,7 +49,7 @@ struct MenuBarLayoutSettingsPane: View {
     private var layoutViews: some View {
         Form {
             Section("Always Visible") {
-                LayoutBar(layoutItems: $allItems)
+                LayoutBar(spacing: 15, layoutItems: $allItems)
                     .annotation {
                         Text("Drag menu bar items to this section if you want them to always be visible.")
                     }
@@ -57,7 +57,7 @@ struct MenuBarLayoutSettingsPane: View {
             Spacer()
                 .frame(maxHeight: 25)
             Section("Hidden") {
-                LayoutBar(layoutItems: .constant([]))
+                LayoutBar(spacing: 15, layoutItems: .constant([]))
                     .annotation {
                         Text("Drag menu bar items to this section if you want to hide them.")
                     }
@@ -65,7 +65,7 @@ struct MenuBarLayoutSettingsPane: View {
             Spacer()
                 .frame(maxHeight: 25)
             Section("Always Hidden") {
-                LayoutBar(layoutItems: .constant([]))
+                LayoutBar(spacing: 15, layoutItems: .constant([]))
                     .annotation {
                         Text("Drag menu bar items to this section if you want them to always be hidden.")
                     }
@@ -91,10 +91,20 @@ struct MenuBarLayoutSettingsPane: View {
     @MainActor
     private func updateAllItems(_ items: [MenuBarItem]) {
         allItems = items.compactMap { item in
-            WindowCaptureManager.captureImage(window: item.window).map { image in
-                LayoutBarItem(
-                    image: image,
-                    size: item.window.frame.size,
+            WindowCaptureManager.captureImage(window: item.window).flatMap { image in
+                guard let trimmed = image.trimmingTransparentPixels(edges: [.minXEdge, .maxXEdge], maxAlpha: 10) else {
+                    return nil
+                }
+                let widthRatio = CGFloat(trimmed.width) / CGFloat(image.width)
+                let heightRatio = CGFloat(trimmed.height) / CGFloat(image.height)
+                let originalSize = item.window.frame.size
+                let trimmedSize = CGSize(
+                    width: originalSize.width * widthRatio,
+                    height: originalSize.height * heightRatio
+                )
+                return LayoutBarItem(
+                    image: trimmed,
+                    size: trimmedSize,
                     toolTip: item.title,
                     isEnabled: !["Clock", "Siri", "Control Center"].contains(item.title)
                 )

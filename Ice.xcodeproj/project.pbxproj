@@ -15,6 +15,7 @@
 		17C9EB6D2AC8C2DD00141043 /* NSScreen+screenContainingPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C9EB6C2AC8C2DD00141043 /* NSScreen+screenContainingPoint.swift */; };
 		17C9EB722AC9078F00141043 /* WindowList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C9EB712AC9078F00141043 /* WindowList.swift */; };
 		17C9EB7D2AC9FD0600141043 /* QueuedTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C9EB7C2AC9FD0600141043 /* QueuedTimer.swift */; };
+		17DFF4952ACF7F6300B5177A /* TrimTransparency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4942ACF7F6300B5177A /* TrimTransparency.swift */; };
 		17FE8E842AC73EBF006C6579 /* MenuBarItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE8E832AC73EBF006C6579 /* MenuBarItemManager.swift */; };
 		17FE8E862AC767F4006C6579 /* LayoutBarContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE8E852AC767F4006C6579 /* LayoutBarContainer.swift */; };
 		17FE8E882AC76842006C6579 /* LayoutBarScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE8E872AC76842006C6579 /* LayoutBarScrollView.swift */; };
@@ -77,6 +78,7 @@
 		17C9EB6C2AC8C2DD00141043 /* NSScreen+screenContainingPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+screenContainingPoint.swift"; sourceTree = "<group>"; };
 		17C9EB712AC9078F00141043 /* WindowList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowList.swift; sourceTree = "<group>"; };
 		17C9EB7C2AC9FD0600141043 /* QueuedTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueuedTimer.swift; sourceTree = "<group>"; };
+		17DFF4942ACF7F6300B5177A /* TrimTransparency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrimTransparency.swift; sourceTree = "<group>"; };
 		17FE8E832AC73EBF006C6579 /* MenuBarItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemManager.swift; sourceTree = "<group>"; };
 		17FE8E852AC767F4006C6579 /* LayoutBarContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarContainer.swift; sourceTree = "<group>"; };
 		17FE8E872AC76842006C6579 /* LayoutBarScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarScrollView.swift; sourceTree = "<group>"; };
@@ -397,6 +399,7 @@
 				71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
 				17C9EB7C2AC9FD0600141043 /* QueuedTimer.swift */,
+				17DFF4942ACF7F6300B5177A /* TrimTransparency.swift */,
 			);
 			path = Misc;
 			sourceTree = "<group>";
@@ -529,6 +532,7 @@
 				71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				71FEA24E2A8C96680048341A /* EnvironmentReader.swift in Sources */,
+				17DFF4952ACF7F6300B5177A /* TrimTransparency.swift in Sources */,
 				17FE8E862AC767F4006C6579 /* LayoutBarContainer.swift in Sources */,
 				71FEA2502A8D5D590048341A /* HotkeyRecorder.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,

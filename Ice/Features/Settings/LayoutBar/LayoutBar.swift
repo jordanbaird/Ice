@@ -8,14 +8,13 @@ import SwiftUI
 /// A view that manages the layout of menu bar items.
 struct LayoutBar: View {
     private struct Representable: NSViewRepresentable {
-        @State private var cachedViews = [Int: LayoutBarItemView]()
         @Binding var layoutItems: [LayoutBarItem]
         let spacing: CGFloat
 
         func makeNSView(context: Context) -> LayoutBarScrollView {
             LayoutBarScrollView(
                 spacing: spacing,
-                arrangedViews: views(from: layoutItems)
+                arrangedViews: layoutItems.map { $0.view }
             )
         }
 
@@ -23,23 +22,7 @@ struct LayoutBar: View {
             _ nsView: LayoutBarScrollView,
             context: Context
         ) {
-            nsView.arrangedViews = views(from: layoutItems)
-        }
-
-        func views(from layoutItems: [LayoutBarItem]) -> [LayoutBarItemView] {
-            var views = [LayoutBarItemView]()
-            for layoutItem in layoutItems {
-                if let view = cachedViews[layoutItem.id] {
-                    views.append(view)
-                } else {
-                    let view = layoutItem.makeItemView()
-                    DispatchQueue.main.async {
-                        cachedViews[layoutItem.id] = view
-                    }
-                    views.append(view)
-                }
-            }
-            return views
+            nsView.arrangedViews = layoutItems.map { $0.view }
         }
     }
 

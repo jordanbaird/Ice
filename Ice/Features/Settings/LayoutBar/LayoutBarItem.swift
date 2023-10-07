@@ -10,38 +10,23 @@ import Cocoa
 /// A type that produces a view for display in a menu bar
 /// layout view.
 struct LayoutBarItem: Hashable, Identifiable {
-    /// The item's displayed image.
-    var image: NSImage
-
-    /// The tool tip that should be displayed for the item.
-    var toolTip: String
-
-    /// A Boolean value that indicates whether the item is enabled.
-    var isEnabled: Bool
+    let view: LayoutBarItemView
 
     var id: Int {
-        image.hashValue
+        view.image.hashValue
     }
 
     init(image: NSImage, toolTip: String, isEnabled: Bool) {
-        self.image = image
-        self.toolTip = toolTip
-        self.isEnabled = isEnabled
-    }
-
-    init(image: CGImage, size: CGSize, toolTip: String, isEnabled: Bool) {
-        self.init(
-            image: NSImage(cgImage: image, size: size), 
+        self.view = LayoutBarItemView(
+            image: image,
             toolTip: toolTip,
             isEnabled: isEnabled
         )
     }
 
-    /// Creates and returns a view for display in a menu
-    /// bar layout view.
-    func makeItemView() -> LayoutBarItemView {
-        LayoutBarItemView(
-            image: image,
+    init(image: CGImage, size: CGSize, toolTip: String, isEnabled: Bool) {
+        self.init(
+            image: NSImage(cgImage: image, size: size), 
             toolTip: toolTip,
             isEnabled: isEnabled
         )

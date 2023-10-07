@@ -82,7 +82,10 @@ class WindowCaptureManager {
             }
             semaphore.signal()
         }
-        semaphore.wait()
+        let result = semaphore.wait(timeout: .now() + 1)
+        if case .timedOut = result {
+            Logger.windowCapture.error("WindowCaptureManager: Timed out")
+        }
 
         return capturedImage
     }

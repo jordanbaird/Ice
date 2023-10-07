@@ -4,6 +4,8 @@
 //
 
 import Carbon.HIToolbox
+import Cocoa
+import Combine
 import OSLog
 
 /// A namespace for the registration, storage, and unregistration
@@ -30,10 +32,29 @@ enum HotkeyRegistry {
 
     /// Storable event handler containing the information needed
     /// to cancel a hotkey registration.
-    private struct EventHandler {
+    private class EventHandler {
         let eventKind: EventKind
-        let hotKeyRef: EventHotKeyRef
+        let key: Hotkey.Key
+        let modifiers: Hotkey.Modifiers
+        let hotKeyID: UInt32
+        var hotKeyRef: EventHotKeyRef?
         let handler: () -> Void
+
+        init(
+            eventKind: EventKind,
+            key: Hotkey.Key,
+            modifiers: Hotkey.Modifiers,
+            hotKeyID: UInt32,
+            hotKeyRef: EventHotKeyRef,
+            handler: @escaping () -> Void
+        ) {
+            self.eventKind = eventKind
+            self.key = key
+            self.modifiers = modifiers
+            self.hotKeyID = hotKeyID
+            self.hotKeyRef = hotKeyRef
+            self.handler = handler
+        }
     }
 
     /// Registered event handlers.
@@ -41,6 +62,8 @@ enum HotkeyRegistry {
 
     /// The globally installed event handler reference.
     private static var eventHandlerRef: EventHandlerRef?
+
+    private static var cancellables = Set<AnyCancellable>()
 
     /// The event types that the registry handles.
     private static let eventTypes: [EventTypeSpec] = [
@@ -67,6 +90,21 @@ enum HotkeyRegistry {
         guard eventHandlerRef == nil else {
             return noErr
         }
+
+        NotificationCenter.default
+            .publisher(for: NSMenu.didBeginTrackingNotification)
+            .sink { _ in
+                unregisterAndRetainAll()
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default
+            .publisher(for: NSMenu.didEndTrackingNotification)
+            .sink { _ in
+                registerAllRetained()
+            }
+            .store(in: &cancellables)
+
         let handler: EventHandlerUPP = { _, event, _ in
             Self.performEventHandler(for: event)
         }
@@ -144,6 +182,9 @@ enum HotkeyRegistry {
 
         let eventHandler = EventHandler(
             eventKind: eventKind,
+            key: hotkey.key,
+            modifiers: hotkey.modifiers,
+            hotKeyID: id,
             hotKeyRef: hotKeyRef,
             handler: handler
         )
@@ -163,6 +204,46 @@ enum HotkeyRegistry {
         let status = UnregisterEventHotKey(eventHandler.hotKeyRef)
         if status != noErr {
             Logger.hotkey.error("\(#function) Hotkey unregistration failed with status \(status)")
+        }
+    }
+
+    private static func unregisterAndRetainAll() {
+        for eventHandler in eventHandlers.values {
+            let status = UnregisterEventHotKey(eventHandler.hotKeyRef)
+            guard status == noErr else {
+                Logger.hotkey.error("\(#function) Hotkey unregistration failed with status \(status)")
+                continue
+            }
+            eventHandler.hotKeyRef = nil
+        }
+    }
+
+    private static func registerAllRetained() {
+        for eventHandler in eventHandlers.values {
+            guard eventHandler.hotKeyRef == nil else {
+                continue
+            }
+
+            var hotKeyRef: EventHotKeyRef?
+            let status = RegisterEventHotKey(
+                UInt32(eventHandler.key.rawValue),
+                UInt32(eventHandler.modifiers.carbonFlags),
+                EventHotKeyID(signature: signature, id: eventHandler.hotKeyID),
+                GetEventDispatcherTarget(),
+                0,
+                &hotKeyRef
+            )
+
+            guard
+                status == noErr,
+                let hotKeyRef
+            else {
+                eventHandlers.removeValue(forKey: eventHandler.hotKeyID)
+                Logger.hotkey.error("\(#function) Hotkey registration failed with status \(status)")
+                continue
+            }
+
+            eventHandler.hotKeyRef = hotKeyRef
         }
     }
 

@@ -9,6 +9,7 @@ import SwiftUI
 struct LayoutBar: View {
     private struct Representable: NSViewRepresentable {
         @Binding var layoutItems: [LayoutBarItem]
+
         let spacing: CGFloat
 
         func makeNSView(context: Context) -> LayoutBarScrollView {
@@ -18,10 +19,7 @@ struct LayoutBar: View {
             )
         }
 
-        func updateNSView(
-            _ nsView: LayoutBarScrollView,
-            context: Context
-        ) {
+        func updateNSView(_ nsView: LayoutBarScrollView, context: Context) {
             nsView.arrangedViews = layoutItems.map { $0.view }
         }
     }
@@ -33,7 +31,7 @@ struct LayoutBar: View {
 
     /// The amount of spacing between each layout item.
     let spacing: CGFloat
-    
+
     /// Creates a layout bar with the given spacing and layout items.
     ///
     /// - Parameters:
@@ -43,19 +41,16 @@ struct LayoutBar: View {
         spacing: CGFloat = 0,
         layoutItems: Binding<[LayoutBarItem]>
     ) {
-        self.spacing = spacing
         self._layoutItems = layoutItems
+        self.spacing = spacing
     }
 
     var body: some View {
-        Representable(
-            layoutItems: $layoutItems,
-            spacing: spacing
-        )
-        .background {
-            RoundedRectangle(cornerRadius: 9)
-                .fill(styleReader.style)
-        }
+        Representable(layoutItems: $layoutItems, spacing: spacing)
+            .background {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(styleReader.style)
+            }
     }
 }
 

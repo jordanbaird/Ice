@@ -6,16 +6,21 @@
 import SwiftUI
 
 struct MenuBarLayoutSettingsPane: View {
-    @EnvironmentObject var styleReader: LayoutBarStyleReader
+    @StateObject private var styleReader: LayoutBarStyleReader
+
     @EnvironmentObject var menuBar: MenuBar
     @EnvironmentObject var itemManager: MenuBarItemManager
 
-    @AppStorage(Defaults.usesTintedLayoutBars)
-    var usesTintedLayoutBars = true
+    @AppStorage(Defaults.usesTintedLayoutBars) var usesTintedLayoutBars = true
 
     @State private var alwaysVisibleItems = [LayoutBarItem]()
     @State private var hiddenItems = [LayoutBarItem]()
     @State private var alwaysHiddenItems = [LayoutBarItem]()
+
+    init() {
+        let styleReader = LayoutBarStyleReader(windowList: .shared)
+        self._styleReader = StateObject(wrappedValue: styleReader)
+    }
 
     var body: some View {
         ScrollView {
@@ -33,9 +38,16 @@ struct MenuBarLayoutSettingsPane: View {
         .onDisappear {
             handleDisappear()
         }
-        .onChange(of: itemManager.items) { _ in
-            updateItems()
+        .onReceive(itemManager.$alwaysVisibleItems) { items in
+            updateAlwaysVisibleItems(items)
         }
+        .onReceive(itemManager.$hiddenItems) { items in
+            updateHiddenItems(items)
+        }
+        .onReceive(itemManager.$alwaysHiddenItems) { items in
+            updateAlwaysHiddenItems(items)
+        }
+        .environmentObject(styleReader)
     }
 
     @ViewBuilder
@@ -56,16 +68,20 @@ struct MenuBarLayoutSettingsPane: View {
                         Text("Drag menu bar items to this section if you want them to always be visible.")
                     }
             }
+
             Spacer()
                 .frame(maxHeight: 25)
+
             Section("Hidden") {
                 LayoutBar(layoutItems: $hiddenItems)
                     .annotation {
                         Text("Drag menu bar items to this section if you want to hide them.")
                     }
             }
+
             Spacer()
                 .frame(maxHeight: 25)
+
             Section("Always Hidden") {
                 LayoutBar(layoutItems: $alwaysHiddenItems)
                     .annotation {
@@ -82,7 +98,6 @@ struct MenuBarLayoutSettingsPane: View {
             styleReader.deactivate()
         }
         itemManager.activate()
-        updateItems()
     }
 
     private func handleDisappear() {
@@ -90,14 +105,14 @@ struct MenuBarLayoutSettingsPane: View {
         itemManager.deactivate()
     }
 
-    private func updateItems() {
+    private func updateAlwaysVisibleItems(_ items: [MenuBarItem]) {
         let disabledItemTitles = [
             "Clock",
             "Siri",
             "Control Center",
         ]
 
-        alwaysVisibleItems = itemManager.alwaysVisibleItems.compactMap { item in
+        alwaysVisibleItems = items.compactMap { item in
             WindowCaptureManager.captureImage(window: item.window).map { image in
                 LayoutBarItem(
                     image: image,
@@ -107,8 +122,10 @@ struct MenuBarLayoutSettingsPane: View {
                 )
             }
         }
+    }
 
-        hiddenItems = itemManager.hiddenItems.compactMap { item in
+    private func updateHiddenItems(_ items: [MenuBarItem]) {
+        hiddenItems = items.compactMap { item in
             WindowCaptureManager.captureImage(window: item.window).map { image in
                 LayoutBarItem(
                     image: image,
@@ -118,8 +135,10 @@ struct MenuBarLayoutSettingsPane: View {
                 )
             }
         }
+    }
 
-        alwaysHiddenItems = itemManager.alwaysHiddenItems.compactMap { item in
+    private func updateAlwaysHiddenItems(_ items: [MenuBarItem]) {
+        alwaysHiddenItems = items.compactMap { item in
             WindowCaptureManager.captureImage(window: item.window).map { image in
                 LayoutBarItem(
                     image: image,

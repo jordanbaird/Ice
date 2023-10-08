@@ -7,13 +7,10 @@ import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsPane: View {
-    @EnvironmentObject var styleReader: LayoutBarStyleReader
     @EnvironmentObject var menuBar: MenuBar
 
-    @AppStorage(Defaults.usesTintedLayoutBars)
-    var usesTintedLayoutBars = true
-    @AppStorage(Defaults.alwaysHiddenModifier)
-    var alwaysHiddenModifier = Hotkey.Modifiers.option
+    @AppStorage(Defaults.usesTintedLayoutBars) var usesTintedLayoutBars = true
+    @AppStorage(Defaults.alwaysHiddenModifier) var alwaysHiddenModifier = Hotkey.Modifiers.option
 
     var body: some View {
         Form {

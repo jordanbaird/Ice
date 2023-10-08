@@ -11,7 +11,6 @@ class MenuBarItemManager: ObservableObject {
 
     private(set) weak var menuBar: MenuBar?
 
-    @Published var items = [MenuBarItem]()
     @Published var alwaysVisibleItems = [MenuBarItem]()
     @Published var hiddenItems = [MenuBarItem]()
     @Published var alwaysHiddenItems = [MenuBarItem]()
@@ -103,9 +102,6 @@ class MenuBarItemManager: ObservableObject {
                         MenuBarItem(window: window)
                     }
             }
-        }
-        items = sortedWindows.map { window in
-            MenuBarItem(window: window)
         }
     }
 

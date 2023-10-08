@@ -21,7 +21,6 @@ struct SettingsView: View {
         ),
     ]
 
-    @StateObject private var styleReader = LayoutBarStyleReader(windowList: .shared)
     @State private var selection = Self.items[0]
 
     var body: some View {
@@ -32,7 +31,6 @@ struct SettingsView: View {
                 .frame(maxHeight: .infinity)
                 .navigationTitle(selection.name.localized)
         }
-        .environmentObject(styleReader)
     }
 
     @ViewBuilder

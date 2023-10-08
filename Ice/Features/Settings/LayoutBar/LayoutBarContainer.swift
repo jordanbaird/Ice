@@ -180,32 +180,44 @@ class LayoutBarContainer: NSView {
             {
                 sourceView.oldContainerInfo = (self, sourceIndex)
             }
-            // updating normally relies on the presence of other arranged
-            // views; handle the special case of an empty container here
+            // updating normally relies on the presence of other
+            // arranged views, but if the container is empty, it
+            // needs to be handled separately
             guard !arrangedViews.isEmpty else {
                 arrangedViews.append(sourceView)
                 return .move
             }
-            // convert dragging location from window coordinate space
+            // convert dragging location from window coordinates
             let draggingLocation = convert(draggingInfo.draggingLocation, from: nil)
             guard
                 let destinationView = arrangedView(nearestTo: draggingLocation.x),
-                destinationView.isEnabled, // don't rearrange if destination is disabled
+                // don't rearrange if destination is disabled
+                destinationView.isEnabled,
+                // don't rearrange if in the middle of an animation
+                destinationView.layer?.animationKeys() == nil,
                 let destinationIndex = arrangedViews.firstIndex(of: destinationView)
             else {
                 return .move
             }
+            if destinationView.frame.contains(draggingLocation) {
+                // if drag is inside the destination view, it must
+                // be near the horizontal center to trigger a swap
+                let midX = destinationView.frame.midX
+                if !((midX - 5)...(midX + 5)).contains(draggingLocation.x) {
+                    return .move
+                }
+            }
             if let sourceIndex = arrangedViews.firstIndex(of: sourceView) {
-                // source view is already inside this container, so move
-                // it from its old index to the new one
+                // source view is already inside this container, so
+                // move it from its old index to the new one
                 var targetIndex = destinationIndex
                 if destinationIndex > sourceIndex {
                     targetIndex += 1
                 }
                 arrangedViews.move(fromOffsets: [sourceIndex], toOffset: targetIndex)
             } else {
-                // source view is being dragged into this container from
-                // another container, so just insert it
+                // source view is being dragged into the container
+                // from another container, so just insert it
                 arrangedViews.insert(sourceView, at: destinationIndex)
             }
             return .move

@@ -7,38 +7,25 @@ import Combine
 import ScreenCaptureKit
 
 class MenuBarItemManager: ObservableObject {
+    @Published var visibleItems = [MenuBarItem]()
+    @Published var hiddenItems = [MenuBarItem]()
+    @Published var alwaysHiddenItems = [MenuBarItem]()
+
     private var cancellables = Set<AnyCancellable>()
 
     private(set) weak var menuBar: MenuBar?
 
-    @Published var alwaysVisibleItems = [MenuBarItem]()
-    @Published var hiddenItems = [MenuBarItem]()
-    @Published var alwaysHiddenItems = [MenuBarItem]()
-
     init(menuBar: MenuBar) {
         self.menuBar = menuBar
+        updateMenuBarItems(windows: menuBar.sharedContent.windows)
         configureCancellables()
     }
 
-    func activate() {
-        updateMenuBarItems(windows: WindowList.shared.windows)
-        configureCancellables()
-    }
-
-    func deactivate() {
-        cancellables.removeAll()
-        alwaysVisibleItems.removeAll()
-        hiddenItems.removeAll()
-        alwaysHiddenItems.removeAll()
-    }
-
-    /// Sets up a series of cancellables to respond to important
-    /// changes in the menu bar item manager's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        WindowList.shared.$windows
-            .receive(on: RunLoop.main)
+        menuBar?.sharedContent.$windows
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] windows in
                 self?.updateMenuBarItems(windows: windows)
             }
@@ -51,62 +38,66 @@ class MenuBarItemManager: ObservableObject {
         guard
             let menuBar,
             let menuBarWindow = windows.first(where: windowIsMenuBar),
-            let alwaysVisibleSection = menuBar.section(withName: .alwaysVisible),
+            let visibleSection = menuBar.section(withName: .visible),
             let hiddenSection = menuBar.section(withName: .hidden)
         else {
             return
         }
         let sortedWindows = windows
             .filter { window in
-                self.windowIsMenuBarItem(window, in: menuBarWindow) &&
-                !self.windowIsControlItem(window, in: menuBarWindow)
+                windowIsMenuBarItem(window, in: menuBarWindow) &&
+                !windowIsControlItem(window, in: menuBarWindow) &&
+                !windowIsHiddenMenuBarItem(window, in: menuBarWindow)
             }
             .sorted { first, second in
                 first.frame.minX < second.frame.minX
             }
-        alwaysVisibleItems = sortedWindows
+        visibleItems = sortedWindows
             .filter { window in
                 window.frame.midX > (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                window.windowID != alwaysVisibleSection.controlItem.windowID
+                window.windowID != visibleSection.controlItem.windowID
             }
             .map { window in
                 MenuBarItem(window: window)
             }
-        if let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden) {
-            if alwaysHiddenSection.isEnabled {
-                hiddenItems = sortedWindows
-                    .filter { window in
-                        window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                        window.frame.midX > (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                        window.windowID != hiddenSection.controlItem.windowID &&
-                        window.windowID != alwaysHiddenSection.controlItem.windowID
-                    }
-                    .map { window in
-                        MenuBarItem(window: window)
-                    }
-                alwaysHiddenItems = sortedWindows
-                    .filter { window in
-                        window.frame.midX < (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                        window.windowID != alwaysHiddenSection.controlItem.windowID
-                    }
-                    .map { window in
-                        MenuBarItem(window: window)
-                    }
-            } else {
-                hiddenItems = sortedWindows
-                    .filter { window in
-                        window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                        window.windowID != hiddenSection.controlItem.windowID
-                    }
-                    .map { window in
-                        MenuBarItem(window: window)
-                    }
-            }
+        guard let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden) else {
+            return
+        }
+        if alwaysHiddenSection.isEnabled {
+            hiddenItems = sortedWindows
+                .filter { window in
+                    window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                    window.frame.midX > (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                    window.windowID != hiddenSection.controlItem.windowID &&
+                    window.windowID != alwaysHiddenSection.controlItem.windowID
+                }
+                .map { window in
+                    MenuBarItem(window: window)
+                }
+            alwaysHiddenItems = sortedWindows
+                .filter { window in
+                    window.frame.midX < (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                    window.windowID != alwaysHiddenSection.controlItem.windowID
+                }
+                .map { window in
+                    MenuBarItem(window: window)
+                }
+        } else {
+            hiddenItems = sortedWindows
+                .filter { window in
+                    window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                    window.windowID != hiddenSection.controlItem.windowID
+                }
+                .map { window in
+                    MenuBarItem(window: window)
+                }
         }
     }
 
     /// Returns a Boolean value indicating whether the given window
     /// is a menu bar.
+    ///
+    /// - Parameter window: The window to check.
     private func windowIsMenuBar(_ window: SCWindow) -> Bool {
         window.windowLayer == kCGMainMenuWindowLevel &&
         window.title == "Menubar"
@@ -128,6 +119,12 @@ class MenuBarItemManager: ObservableObject {
 
     /// Returns a Boolean value indicating whether the given window
     /// is a control item.
+    ///
+    /// - Parameters:
+    ///   - window: The window to check.
+    ///   - menuBarWindow: A window to treat as a menu bar when determining
+    ///     if `window` is one of its items. This window must return `true`
+    ///     when passed to a call to ``windowIsMenuBar(_:)``.
     private func windowIsControlItem(_ window: SCWindow, in menuBarWindow: SCWindow) -> Bool {
         guard
             windowIsMenuBarItem(window, in: menuBarWindow),
@@ -139,5 +136,34 @@ class MenuBarItemManager: ObservableObject {
         return menuBar.sections.contains { section in
             section.controlItem.autosaveName == window.title
         }
+    }
+
+    /// Returns a Boolean value indicating whether the given window
+    /// is a hidden menu bar item.
+    ///
+    /// - Parameters:
+    ///   - window: The window to check.
+    ///   - menuBarWindow: A window to treat as a menu bar when determining
+    ///     if `window` is one of its items. This window must return `true`
+    ///     when passed to a call to ``windowIsMenuBar(_:)``.
+    private func windowIsHiddenMenuBarItem(_ window: SCWindow, in menuBarWindow: SCWindow) -> Bool {
+        guard windowIsMenuBarItem(window, in: menuBarWindow) else {
+            return false
+        }
+        var isOnAnotherDesktop: Bool {
+            // offscreen windows with empty titles likely belong to another
+            // desktop; if a desktop's wallpaper causes the items to invert
+            // their colors, two sets of items are created and the ones not
+            // currently in use are kept offscreen
+            (window.title ?? "").isEmpty && !window.isOnScreen
+        }
+        var isAudioVideoModule: Bool {
+            window.owningApplication?.bundleIdentifier == "com.apple.controlcenter" &&
+            window.title == "AudioVideoModule"
+        }
+        var isTextInputMenuAgent: Bool {
+            window.owningApplication?.bundleIdentifier == "com.apple.TextInputMenuAgent"
+        }
+        return isOnAnotherDesktop || isAudioVideoModule || isTextInputMenuAgent
     }
 }

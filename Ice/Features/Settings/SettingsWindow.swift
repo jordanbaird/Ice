@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct SettingsWindow: Scene {
-    @StateObject private var menuBar = MenuBar()
+    let menuBar: MenuBar
 
     var body: some Scene {
         Window(Constants.appName, id: Constants.settingsWindowID) {
@@ -22,7 +22,6 @@ struct SettingsWindow: Scene {
                     }
                 }
                 .environmentObject(menuBar)
-                .environmentObject(menuBar.itemManager)
                 .buttonStyle(SettingsButtonStyle())
         }
         .commandsRemoved()

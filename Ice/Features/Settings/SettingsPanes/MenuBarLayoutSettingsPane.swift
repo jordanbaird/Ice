@@ -6,21 +6,13 @@
 import SwiftUI
 
 struct MenuBarLayoutSettingsPane: View {
-    @StateObject private var styleReader: LayoutBarStyleReader
-
     @EnvironmentObject var menuBar: MenuBar
-    @EnvironmentObject var itemManager: MenuBarItemManager
 
     @AppStorage(Defaults.usesTintedLayoutBars) var usesTintedLayoutBars = true
 
-    @State private var alwaysVisibleItems = [LayoutBarItem]()
+    @State private var visibleItems = [LayoutBarItem]()
     @State private var hiddenItems = [LayoutBarItem]()
     @State private var alwaysHiddenItems = [LayoutBarItem]()
-
-    init() {
-        let styleReader = LayoutBarStyleReader(windowList: .shared)
-        self._styleReader = StateObject(wrappedValue: styleReader)
-    }
 
     var body: some View {
         ScrollView {
@@ -38,16 +30,15 @@ struct MenuBarLayoutSettingsPane: View {
         .onDisappear {
             handleDisappear()
         }
-        .onReceive(itemManager.$alwaysVisibleItems) { items in
+        .onReceive(menuBar.itemManager.$visibleItems) { items in
             updateAlwaysVisibleItems(items)
         }
-        .onReceive(itemManager.$hiddenItems) { items in
+        .onReceive(menuBar.itemManager.$hiddenItems) { items in
             updateHiddenItems(items)
         }
-        .onReceive(itemManager.$alwaysHiddenItems) { items in
+        .onReceive(menuBar.itemManager.$alwaysHiddenItems) { items in
             updateAlwaysHiddenItems(items)
         }
-        .environmentObject(styleReader)
     }
 
     @ViewBuilder
@@ -63,46 +54,53 @@ struct MenuBarLayoutSettingsPane: View {
     private var layoutViews: some View {
         Form {
             Section("Always Visible") {
-                LayoutBar(layoutItems: $alwaysVisibleItems)
-                    .annotation {
-                        Text("Drag menu bar items to this section if you want them to always be visible.")
-                    }
+                LayoutBar(
+                    backgroundColor: menuBar.colorReader.color,
+                    layoutItems: $visibleItems
+                )
+                .annotation {
+                    Text("Drag menu bar items to this section if you want them to always be visible.")
+                }
             }
 
             Spacer()
                 .frame(maxHeight: 25)
 
             Section("Hidden") {
-                LayoutBar(layoutItems: $hiddenItems)
-                    .annotation {
-                        Text("Drag menu bar items to this section if you want to hide them.")
-                    }
+                LayoutBar(
+                    backgroundColor: menuBar.colorReader.color,
+                    layoutItems: $hiddenItems
+                )
+                .annotation {
+                    Text("Drag menu bar items to this section if you want to hide them.")
+                }
             }
 
             Spacer()
                 .frame(maxHeight: 25)
 
             Section("Always Hidden") {
-                LayoutBar(layoutItems: $alwaysHiddenItems)
-                    .annotation {
-                        Text("Drag menu bar items to this section if you want them to always be hidden.")
-                    }
+                LayoutBar(
+                    backgroundColor: menuBar.colorReader.color,
+                    layoutItems: $alwaysHiddenItems
+                )
+                .annotation {
+                    Text("Drag menu bar items to this section if you want them to always be hidden.")
+                }
             }
         }
     }
 
     private func handleAppear() {
         if usesTintedLayoutBars {
-            styleReader.activate()
+            menuBar.colorReader.activate()
         } else {
-            styleReader.deactivate()
+            menuBar.colorReader.deactivate()
         }
-        itemManager.activate()
     }
 
     private func handleDisappear() {
-        styleReader.deactivate()
-        itemManager.deactivate()
+        menuBar.colorReader.deactivate()
     }
 
     private func updateAlwaysVisibleItems(_ items: [MenuBarItem]) {
@@ -112,52 +110,64 @@ struct MenuBarLayoutSettingsPane: View {
             "Control Center",
         ]
 
-        alwaysVisibleItems = items.compactMap { item in
-            WindowCaptureManager.captureImage(window: item.window).map { image in
-                LayoutBarItem(
-                    image: image,
-                    size: item.window.frame.size,
-                    toolTip: item.title,
-                    isEnabled: !disabledItemTitles.contains(item.title)
+        visibleItems = items.compactMap { item in
+            WindowCaptureManager
+                .captureImage(
+                    windows: [item.window],
+                    options: .ignoreFraming
                 )
-            }
+                .map { image in
+                    LayoutBarItem(
+                        image: image,
+                        size: item.window.frame.size,
+                        toolTip: item.title,
+                        isEnabled: !disabledItemTitles.contains(item.title)
+                    )
+                }
         }
     }
 
     private func updateHiddenItems(_ items: [MenuBarItem]) {
         hiddenItems = items.compactMap { item in
-            WindowCaptureManager.captureImage(window: item.window).map { image in
-                LayoutBarItem(
-                    image: image,
-                    size: item.window.frame.size,
-                    toolTip: item.title,
-                    isEnabled: true
+            WindowCaptureManager
+                .captureImage(
+                    windows: [item.window],
+                    options: .ignoreFraming
                 )
-            }
+                .map { image in
+                    LayoutBarItem(
+                        image: image,
+                        size: item.window.frame.size,
+                        toolTip: item.title,
+                        isEnabled: true
+                    )
+                }
         }
     }
 
     private func updateAlwaysHiddenItems(_ items: [MenuBarItem]) {
         alwaysHiddenItems = items.compactMap { item in
-            WindowCaptureManager.captureImage(window: item.window).map { image in
-                LayoutBarItem(
-                    image: image,
-                    size: item.window.frame.size,
-                    toolTip: item.title,
-                    isEnabled: true
+            WindowCaptureManager
+                .captureImage(
+                    windows: [item.window],
+                    options: .ignoreFraming
                 )
-            }
+                .map { image in
+                    LayoutBarItem(
+                        image: image,
+                        size: item.window.frame.size,
+                        toolTip: item.title,
+                        isEnabled: true
+                    )
+                }
         }
     }
 }
 
 #Preview {
-    let styleReader = LayoutBarStyleReader(windowList: .shared)
     let menuBar = MenuBar()
 
     return MenuBarLayoutSettingsPane()
         .fixedSize()
-        .environmentObject(styleReader)
         .environmentObject(menuBar)
-        .environmentObject(menuBar.itemManager)
 }

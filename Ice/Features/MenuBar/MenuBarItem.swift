@@ -63,8 +63,4 @@ struct MenuBarItem: Hashable {
     var isOnScreen: Bool {
         window.isOnScreen
     }
-
-    init(window: SCWindow) {
-        self.window = window
-    }
 }

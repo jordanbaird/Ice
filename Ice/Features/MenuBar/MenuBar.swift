@@ -8,18 +8,13 @@ import OSLog
 
 /// Manager for the state of items in the menu bar.
 class MenuBar: ObservableObject {
-    /// Observers for important aspects of state.
     private var cancellables = Set<AnyCancellable>()
 
-    /// Encoder for serialization of Codable objects into
-    /// a dictionary format.
     private let encoder = DictionaryEncoder()
-
-    /// Decoder for deserialization of dictionaries into
-    /// Codable objects.
     private let decoder = DictionaryDecoder()
 
-    /// A manager for the items in the menu bar.
+    let sharedContent = SharedContent(maxInterval: 1, queue: .global(qos: .utility))
+    private(set) lazy var colorReader = MenuBarColorReader(menuBar: self)
     private(set) lazy var itemManager = MenuBarItemManager(menuBar: self)
 
     /// Set to `true` to tell the menu bar to save its sections.
@@ -90,7 +85,7 @@ class MenuBar: ObservableObject {
     private func validateSectionCountOrReinitialize() -> Bool {
         if sections.count != 3 {
             sections = [
-                MenuBarSection(name: .alwaysVisible, autosaveName: "Item-1", position: 0),
+                MenuBarSection(name: .visible, autosaveName: "Item-1", position: 0),
                 MenuBarSection(name: .hidden, autosaveName: "Item-2", position: 1),
                 // don't give the always-hidden section an initial position,
                 // so that its item is placed at the far end of the menu bar
@@ -101,13 +96,13 @@ class MenuBar: ObservableObject {
         return true
     }
 
-    /// Sets up a series of cancellables to respond to important
-    /// changes in the menu bar's state.
+    /// Sets up a series of cancellables to respond to changes in the
+    /// menu bar's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // update the control item for every section when the
-        // position of one item changes
+        // update the control item for each section when the
+        // position of one changes
         Publishers.MergeMany(sections.map { $0.controlItem.$position })
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] _ in
@@ -143,8 +138,8 @@ class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
-        // save control items when needsSave is set to true,
-        // debounced to avoid saving too often
+        // save sections when needsSave is set to true, debounced
+        // to a reasonable timeframe
         $needsSave
             .debounce(for: 1, scheduler: DispatchQueue.main)
             .sink { [weak self] needsSave in
@@ -154,20 +149,29 @@ class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
+        // propagate changes up from child observable objects
+        sharedContent.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
+        colorReader.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
         itemManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }
             .store(in: &c)
-
-        // propagate changes up from each section
         for section in sections {
-            section.objectWillChange.sink { [weak self] in
-                DispatchQueue.main.async {
+            section.objectWillChange
+                .sink { [weak self] in
                     self?.objectWillChange.send()
                 }
-            }
-            .store(in: &c)
+                .store(in: &c)
         }
 
         cancellables = c

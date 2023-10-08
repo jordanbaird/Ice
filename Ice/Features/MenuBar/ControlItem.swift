@@ -37,6 +37,19 @@ final class ControlItem: ObservableObject {
     /// specific menu items.
     private static let sectionStorage = ObjectAssociation<MenuBarSection>()
 
+    /// The modifier that the user has selected from the various
+    /// options in ``clickModifiers`` to trigger the control item's
+    /// secondary action.
+    ///
+    /// Defaults to ``Hotkey/Modifiers-swift.struct/option`` if
+    /// the user has not made a selection.
+    private static var userSelectedClickModifier: Hotkey.Modifiers {
+        guard let rawValue = UserDefaults.standard.object(forKey: Defaults.alwaysHiddenModifier) as? Int else {
+            return .option
+        }
+        return Hotkey.Modifiers(rawValue: rawValue)
+    }
+
     /// Observers for key aspects of the control item's state.
     private var cancellables = Set<AnyCancellable>()
 
@@ -70,6 +83,7 @@ final class ControlItem: ObservableObject {
         statusItem.autosaveName
     }
 
+    /// The identifier of the control item's window.
     var windowID: CGWindowID? {
         guard let windowNumber = statusItem.button?.window?.windowNumber else {
             return nil
@@ -77,6 +91,7 @@ final class ControlItem: ObservableObject {
         return CGWindowID(windowNumber)
     }
 
+    /// The frame of the control item's window.
     var windowFrame: CGRect? {
         statusItem.button?.window?.frame
     }
@@ -188,8 +203,8 @@ final class ControlItem: ObservableObject {
         button.sendAction(on: [.leftMouseDown, .rightMouseUp])
     }
 
-    /// Sets up a series of cancellables to respond to important
-    /// changes in the control item's state.
+    /// Sets up a series of cancellables to respond to changes in
+    /// the control item's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -284,7 +299,7 @@ final class ControlItem: ObservableObject {
             button.cell?.isEnabled = true
             // set the image based on section name and state
             button.image = switch name {
-            case .alwaysVisible:
+            case .visible:
                 switch state {
                 case .hideItems:
                     ControlItemImages.Circle.filled
@@ -306,13 +321,17 @@ final class ControlItem: ObservableObject {
         else {
             return
         }
-        let modifier = (UserDefaults.standard.object(forKey: Defaults.alwaysHiddenModifier) as? Int)
-            .map { Hotkey.Modifiers(rawValue: $0).nsEventFlags } ?? .option
         switch event.type {
-        case .leftMouseDown where NSEvent.modifierFlags == modifier:
-            menuBar.section(withName: .alwaysHidden)?.show()
         case .leftMouseDown:
-            section?.toggle()
+            if
+                let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden),
+                alwaysHiddenSection.isEnabled,
+                NSEvent.modifierFlags == Self.userSelectedClickModifier.nsEventFlags
+            {
+                alwaysHiddenSection.show()
+            } else {
+                section?.toggle()
+            }
         case .rightMouseUp:
             statusItem.showMenu(createMenu(with: menuBar))
         default:

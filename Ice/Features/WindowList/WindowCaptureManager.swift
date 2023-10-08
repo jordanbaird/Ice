@@ -3,127 +3,79 @@
 //  Ice
 //
 
-import OSLog
 import ScreenCaptureKit
 
 /// A type that manages the capturing of window images.
 class WindowCaptureManager {
+    /// The resolution at which to capture a window or group of windows.
+    enum CaptureResolution {
+        /// Windows are captured at the best possible resolution.
+        case best
+        /// Windows are captured at the nominal resolution.
+        case nominal
+        /// Capture resolution is determined automatically.
+        case automatic
+    }
 
-    // MARK: Capture Image
+    /// Options that affect the image or images returned from a window capture.
+    struct CaptureOptions: OptionSet {
+        let rawValue: Int
 
-    /// Captures a portion of a window as an image.
+        /// If the `screenBounds` parameter of the capture is `nil`, captures only
+        /// the window area and ignores the area occupied by any framing effects.
+        static let ignoreFraming = CaptureOptions(rawValue: 1 << 0)
+        /// Captures only the shadow effects of the provided windows.
+        static let onlyShadows = CaptureOptions(rawValue: 1 << 1)
+        /// Fills the partially or fully transparent areas of the capture with a
+        /// solid white backing color, resulting in an image that is fully opaque.
+        static let opaque = CaptureOptions(rawValue: 1 << 2)
+    }
+
+    /// Captures the given windows as a composite image.
     ///
     /// - Parameters:
-    ///   - window: The window to capture.
-    ///   - bounds: A rectangle within the coordinate space of `window` to capture.
-    ///     Pass `nil` to capture the entire window.
-    ///
-    /// - Returns: An image that contains the area of `window` inside of `bounds`.
-    static func captureImage(window: SCWindow, bounds: CGRect? = nil) -> CGImage? {
-        if !window.isOnScreen && !window.isActive {
+    ///   - windows: The windows to capture as a composite image.
+    ///   - screenBounds: The bounds to capture, specified in screen coordinates,
+    ///     with the origin at the upper left corner of the main display. Pass `nil`
+    ///     to capture the minimum area enclosing `windows`.
+    ///   - resolution: The resolution at which to capture the windows.
+    ///   - options: Options that affect the image returned from the capture.
+    static func captureImage(
+        windows: [SCWindow],
+        screenBounds: CGRect? = nil,
+        resolution: CaptureResolution = .automatic,
+        options: CaptureOptions = []
+    ) -> CGImage? {
+        let count = windows.count
+        let pointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: count)
+        for (index, window) in windows.enumerated() {
+            pointer[index] = UnsafeRawPointer(bitPattern: UInt(window.windowID))
+        }
+        guard let windowArray = CFArrayCreate(kCFAllocatorDefault, pointer, count, nil) else {
             return nil
         }
-        if #available(macOS 14.0, *) {
-            return captureImageScreenCaptureKit(window: window, bounds: bounds)
-        } else {
-            return captureImageCoreGraphics(window: window, bounds: bounds)
+        var imageOption: CGWindowImageOption = []
+        switch resolution {
+        case .best:
+            imageOption.insert(.bestResolution)
+        case .nominal:
+            imageOption.insert(.nominalResolution)
+        case .automatic:
+            break
         }
+        if options.contains(.ignoreFraming) {
+            imageOption.insert(.boundsIgnoreFraming)
+        }
+        if options.contains(.onlyShadows) {
+            imageOption.insert(.onlyShadows)
+        }
+        if options.contains(.opaque) {
+            imageOption.insert(.shouldBeOpaque)
+        }
+        return CGImage(
+            windowListFromArrayScreenBounds: screenBounds ?? .null,
+            windowArray: windowArray,
+            imageOption: imageOption
+        )
     }
-
-    // MARK: ScreenCaptureKit
-
-    @available(macOS 14.0, *)
-    private static func captureImageScreenCaptureKit(window: SCWindow, bounds: CGRect?) -> CGImage? {
-        let contentFilter = SCContentFilter(desktopIndependentWindow: window)
-
-        let windowBounds = CGRect(origin: .zero, size: window.frame.size)
-        let sourceRect = if let bounds {
-            if bounds.isEmpty {
-                windowBounds
-            } else {
-                bounds
-            }
-        } else {
-            windowBounds
-        }
-
-        guard windowBounds.contains(sourceRect) else {
-            // return early, as SCScreenshotManager never finishes
-            // if sourceRect isn't inside windowBounds
-            return nil
-        }
-
-        // scale sourceRect by the scale factor of the screen
-        let scale = getDisplayScaleFactor(CGMainDisplayID())
-        let scaledSourceRect = sourceRect.applying(CGAffineTransform(scaleX: scale, y: scale))
-
-        let configuration = SCStreamConfiguration()
-        configuration.sourceRect = scaledSourceRect
-        configuration.width = Int(scaledSourceRect.width)
-        configuration.height = Int(scaledSourceRect.height)
-        configuration.showsCursor = false
-
-        var capturedImage: CGImage?
-
-        let semaphore = DispatchSemaphore(value: 0)
-        SCScreenshotManager.captureImage(
-            contentFilter: contentFilter,
-            configuration: configuration
-        ) { image, error in
-            capturedImage = image
-            if let error {
-                Logger.windowCapture.error(
-                    """
-                    WindowCaptureManager\
-                    \(window.title.map { $0.isEmpty ? $0 : " (" + $0 + ")" } ?? ""): \
-                    \(error.localizedDescription)
-                    """
-                )
-            }
-            semaphore.signal()
-        }
-        let result = semaphore.wait(timeout: .now() + 1)
-        if case .timedOut = result {
-            Logger.windowCapture.error("WindowCaptureManager: Timed out")
-        }
-
-        return capturedImage
-    }
-
-    // MARK: CoreGraphics
-
-    @available(macOS, deprecated: 14.0)
-    private static func captureImageCoreGraphics(window: SCWindow, bounds: CGRect?) -> CGImage? {
-        // CGWindowListCreateImage captures the window bounds
-        // if bounds is a null rectangle
-        var sourceRect = bounds ?? .null
-        if !sourceRect.isNull {
-            let windowBounds = CGRect(origin: .zero, size: window.frame.size)
-            guard windowBounds.contains(sourceRect) else {
-                // return early to match the behavior of captureImageScreenCaptureKit
-                return nil
-            }
-            // offset sourceRect into the coordinate space of the window
-            sourceRect.origin.x += window.frame.origin.x
-            sourceRect.origin.y += window.frame.origin.y
-        }
-        let listOption = CGWindowListOption.optionIncludingWindow
-        let imageOption = CGWindowImageOption.boundsIgnoreFraming
-        return CGWindowListCreateImage(sourceRect, listOption, window.windowID, imageOption)
-    }
-
-    // MARK: Helpers
-
-    /// Returns the scale factor of the display with the given identifier.
-    private static func getDisplayScaleFactor(_ displayID: CGDirectDisplayID) -> CGFloat {
-        guard let mode = CGDisplayCopyDisplayMode(displayID) else {
-            return 1
-        }
-        return CGFloat(mode.pixelWidth) / CGFloat(mode.width)
-    }
-}
-
-// MARK: - Logger
-extension Logger {
-    static let windowCapture = Logger.mainSubsystem(category: "WindowCapture")
 }

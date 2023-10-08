@@ -211,7 +211,7 @@ enum HotkeyRegistry {
     /// Unregisters the hotkey with the given identifier.
     ///
     /// - Parameter id: An identifier returned from a call to
-    ///   the ``register(_:eventKind:handler:)`` function.
+    ///   the ``register(hotkey:eventKind:handler:)`` function.
     static func unregister(_ id: UInt32) {
         retainedUnregister(id)
         registrations.removeValue(forKey: id)

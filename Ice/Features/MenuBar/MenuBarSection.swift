@@ -11,7 +11,7 @@ import OSLog
 final class MenuBarSection: ObservableObject {
     /// User-visible name that describes a menu bar section.
     enum Name: String, Codable, Hashable {
-        case alwaysVisible = "Always Visible"
+        case visible = "Visible"
         case hidden = "Hidden"
         case alwaysHidden = "Always Hidden"
     }
@@ -98,8 +98,8 @@ final class MenuBarSection: ObservableObject {
         )
     }
 
-    /// Sets up a series of cancellables to respond to important
-    /// changes in the section's state.
+    /// Sets up a series of cancellables to respond to changes in
+    /// the section's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -163,9 +163,9 @@ final class MenuBarSection: ObservableObject {
             return
         }
         switch name {
-        case .alwaysVisible, .hidden:
+        case .visible, .hidden:
             guard
-                let section1 = menuBar.section(withName: .alwaysVisible),
+                let section1 = menuBar.section(withName: .visible),
                 let section2 = menuBar.section(withName: .hidden)
             else {
                 return
@@ -190,9 +190,9 @@ final class MenuBarSection: ObservableObject {
             return
         }
         switch name {
-        case .alwaysVisible, .hidden:
+        case .visible, .hidden:
             guard
-                let section1 = menuBar.section(withName: .alwaysVisible),
+                let section1 = menuBar.section(withName: .visible),
                 let section2 = menuBar.section(withName: .hidden),
                 let section3 = menuBar.section(withName: .alwaysHidden)
             else {

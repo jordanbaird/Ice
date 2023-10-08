@@ -24,32 +24,36 @@ struct LayoutBar: View {
         }
     }
 
-    @EnvironmentObject var styleReader: LayoutBarStyleReader
-
     /// The items displayed in the layout bar.
     @Binding var layoutItems: [LayoutBarItem]
 
     /// The amount of spacing between each layout item.
     let spacing: CGFloat
 
-    /// Creates a layout bar with the given spacing and layout items.
+    /// The color of the layout bar's background.
+    let backgroundColor: Color
+
+    /// Creates a layout bar with the given spacing, background color, and layout items.
     ///
     /// - Parameters:
     ///   - spacing: The amount of spacing between each layout item.
+    ///   - backgroundColor: The color of the layout bar's background.
     ///   - layoutItems: The items displayed in the layout bar.
     init(
         spacing: CGFloat = 0,
+        backgroundColor: Color,
         layoutItems: Binding<[LayoutBarItem]>
     ) {
         self._layoutItems = layoutItems
         self.spacing = spacing
+        self.backgroundColor = backgroundColor
     }
 
     var body: some View {
         Representable(layoutItems: $layoutItems, spacing: spacing)
             .background {
                 RoundedRectangle(cornerRadius: 9)
-                    .fill(styleReader.style)
+                    .fill(backgroundColor)
             }
     }
 }
@@ -86,6 +90,7 @@ private struct PreviewLayoutBar: View {
     var body: some View {
         LayoutBar(
             spacing: 5,
+            backgroundColor: .defaultLayoutBar,
             layoutItems: $layoutItems
         )
     }
@@ -115,13 +120,10 @@ private struct PreviewLayoutBar: View {
 }
 
 #Preview {
-    let styleReader = LayoutBarStyleReader(windowList: .shared)
-
-    return VStack {
+    VStack {
         PreviewLayoutBar()
         PreviewLayoutBar()
         PreviewLayoutBar()
     }
     .padding()
-    .environmentObject(styleReader)
 }

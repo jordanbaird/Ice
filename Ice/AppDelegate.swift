@@ -6,6 +6,8 @@
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    let menuBar = MenuBar()
+
     /// The window that contains the settings interface.
     private var settingsWindow: NSWindow? {
         NSApp.window(withIdentifier: Constants.settingsWindowID)
@@ -51,7 +53,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.deactivate()
         }
         NSApp.setActivationPolicy(policy)
-        WindowList.shared.deactivate()
+        menuBar.sharedContent.deactivate()
     }
 
     /// Opens the settings window and activates the app.
@@ -69,6 +71,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         settingsWindow.center()
         settingsWindow.makeKeyAndOrderFront(self)
-        WindowList.shared.activate()
+        menuBar.sharedContent.activate()
     }
 }

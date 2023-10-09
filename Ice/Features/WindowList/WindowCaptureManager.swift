@@ -48,6 +48,10 @@ class WindowCaptureManager {
     ) -> CGImage? {
         let count = windows.count
         let pointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: count)
+        defer {
+            pointer.deinitialize(count: count)
+            pointer.deallocate()
+        }
         for (index, window) in windows.enumerated() {
             pointer[index] = UnsafeRawPointer(bitPattern: UInt(window.windowID))
         }

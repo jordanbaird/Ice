@@ -13,7 +13,7 @@ class MenuBar: ObservableObject {
     private let encoder = DictionaryEncoder()
     private let decoder = DictionaryDecoder()
 
-    let sharedContent = SharedContent(maxInterval: 1, queue: .global(qos: .utility))
+    let sharedContent = SharedContent(interval: 1, queue: .global(qos: .utility))
     private(set) lazy var colorReader = MenuBarColorReader(menuBar: self)
     private(set) lazy var itemManager = MenuBarItemManager(menuBar: self)
 

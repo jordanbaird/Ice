@@ -6,7 +6,7 @@
 import ScreenCaptureKit
 
 /// An item in the menu bar.
-struct MenuBarItem: Hashable {
+struct MenuBarItem {
     /// The title of the Control Center menu bar item.
     private static let controlCenterWindowTitle: String = "BentoBox"
 
@@ -65,5 +65,21 @@ struct MenuBarItem: Hashable {
     /// window is on screen.
     var isOnScreen: Bool {
         window.isOnScreen
+    }
+}
+
+// MARK: MenuBarItem: Equatable
+extension MenuBarItem: Equatable {
+    static func == (lhs: MenuBarItem, rhs: MenuBarItem) -> Bool {
+        lhs.window == rhs.window &&
+        lhs.image.dataProvider?.data == rhs.image.dataProvider?.data
+    }
+}
+
+// MARK: MenuBarItem: Hashable
+extension MenuBarItem: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(window)
+        hasher.combine(image.dataProvider?.data)
     }
 }

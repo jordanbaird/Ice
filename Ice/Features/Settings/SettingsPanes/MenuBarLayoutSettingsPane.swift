@@ -30,13 +30,13 @@ struct MenuBarLayoutSettingsPane: View {
         .onDisappear {
             handleDisappear()
         }
-        .onReceive(menuBar.itemManager.$visibleItems) { items in
-            updateAlwaysVisibleItems(items)
+        .onChange(of: menuBar.itemManager.visibleItems) { items in
+            updateVisibleItems(items)
         }
-        .onReceive(menuBar.itemManager.$hiddenItems) { items in
+        .onChange(of: menuBar.itemManager.hiddenItems) { items in
             updateHiddenItems(items)
         }
-        .onReceive(menuBar.itemManager.$alwaysHiddenItems) { items in
+        .onChange(of: menuBar.itemManager.alwaysHiddenItems) { items in
             updateAlwaysHiddenItems(items)
         }
     }
@@ -97,69 +97,50 @@ struct MenuBarLayoutSettingsPane: View {
         } else {
             menuBar.colorReader.deactivate()
         }
+        updateVisibleItems(menuBar.itemManager.visibleItems)
+        updateHiddenItems(menuBar.itemManager.hiddenItems)
+        updateAlwaysHiddenItems(menuBar.itemManager.alwaysHiddenItems)
     }
 
     private func handleDisappear() {
         menuBar.colorReader.deactivate()
     }
 
-    private func updateAlwaysVisibleItems(_ items: [MenuBarItem]) {
+    private func updateVisibleItems(_ items: [MenuBarItem]) {
         let disabledItemTitles = [
             "Clock",
             "Siri",
             "Control Center",
         ]
-
-        visibleItems = items.compactMap { item in
-            WindowCaptureManager
-                .captureImage(
-                    windows: [item.window],
-                    options: .ignoreFraming
-                )
-                .map { image in
-                    LayoutBarItem(
-                        image: image,
-                        size: item.window.frame.size,
-                        toolTip: item.title,
-                        isEnabled: !disabledItemTitles.contains(item.title)
-                    )
-                }
+        visibleItems = items.map { item in
+            LayoutBarItem(
+                image: item.image,
+                size: item.window.frame.size,
+                toolTip: item.title,
+                isEnabled: !disabledItemTitles.contains(item.title)
+            )
         }
     }
 
     private func updateHiddenItems(_ items: [MenuBarItem]) {
-        hiddenItems = items.compactMap { item in
-            WindowCaptureManager
-                .captureImage(
-                    windows: [item.window],
-                    options: .ignoreFraming
-                )
-                .map { image in
-                    LayoutBarItem(
-                        image: image,
-                        size: item.window.frame.size,
-                        toolTip: item.title,
-                        isEnabled: true
-                    )
-                }
+        hiddenItems = items.map { item in
+            LayoutBarItem(
+                image: item.image,
+                size: item.window.frame.size,
+                toolTip: item.title,
+                isEnabled: true
+            )
         }
     }
 
     private func updateAlwaysHiddenItems(_ items: [MenuBarItem]) {
-        alwaysHiddenItems = items.compactMap { item in
-            WindowCaptureManager
-                .captureImage(
-                    windows: [item.window],
-                    options: .ignoreFraming
-                )
-                .map { image in
-                    LayoutBarItem(
-                        image: image,
-                        size: item.window.frame.size,
-                        toolTip: item.title,
-                        isEnabled: true
-                    )
-                }
+        alwaysHiddenItems = items.map { item in
+            LayoutBarItem(
+                image: item.image,
+                size: item.window.frame.size,
+                toolTip: item.title,
+                isEnabled: true
+            )
         }
     }
 }

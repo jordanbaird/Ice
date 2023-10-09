@@ -22,6 +22,9 @@ struct MenuBarItem: Hashable {
     /// The window containing the menu bar item.
     let window: SCWindow
 
+    /// An image representation of the menu bar item.
+    let image: CGImage
+
     /// The menu bar item's title.
     var title: String {
         if let owningApplication = window.owningApplication {

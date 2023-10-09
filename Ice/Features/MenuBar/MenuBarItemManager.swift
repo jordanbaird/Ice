@@ -57,8 +57,12 @@ class MenuBarItemManager: ObservableObject {
                 window.frame.midX > (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
                 window.windowID != visibleSection.controlItem.windowID
             }
-            .map { window in
-                MenuBarItem(window: window)
+            .compactMap { window in
+                WindowCaptureManager
+                    .captureImage(windows: [window], options: .ignoreFraming)
+                    .map { image in
+                        MenuBarItem(window: window, image: image)
+                    }
             }
         guard let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden) else {
             return
@@ -71,16 +75,24 @@ class MenuBarItemManager: ObservableObject {
                     window.windowID != hiddenSection.controlItem.windowID &&
                     window.windowID != alwaysHiddenSection.controlItem.windowID
                 }
-                .map { window in
-                    MenuBarItem(window: window)
+                .compactMap { window in
+                    WindowCaptureManager
+                        .captureImage(windows: [window], options: .ignoreFraming)
+                        .map { image in
+                            MenuBarItem(window: window, image: image)
+                        }
                 }
             alwaysHiddenItems = sortedWindows
                 .filter { window in
                     window.frame.midX < (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
                     window.windowID != alwaysHiddenSection.controlItem.windowID
                 }
-                .map { window in
-                    MenuBarItem(window: window)
+                .compactMap { window in
+                    WindowCaptureManager
+                        .captureImage(windows: [window], options: .ignoreFraming)
+                        .map { image in
+                            MenuBarItem(window: window, image: image)
+                        }
                 }
         } else {
             hiddenItems = sortedWindows
@@ -88,8 +100,12 @@ class MenuBarItemManager: ObservableObject {
                     window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
                     window.windowID != hiddenSection.controlItem.windowID
                 }
-                .map { window in
-                    MenuBarItem(window: window)
+                .compactMap { window in
+                    WindowCaptureManager
+                        .captureImage(windows: [window], options: .ignoreFraming)
+                        .map { image in
+                            MenuBarItem(window: window, image: image)
+                        }
                 }
         }
     }

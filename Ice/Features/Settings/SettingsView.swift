@@ -12,7 +12,7 @@ struct SettingsView: View {
             icon: .systemSymbol("gearshape")
         ),
         SettingsNavigationItem(
-            name: .menuBarLayout,
+            name: .menuBar,
             icon: .systemSymbol("menubar.rectangle")
         ),
         SettingsNavigationItem(
@@ -60,9 +60,9 @@ struct SettingsView: View {
         .scrollBounceBehavior(.basedOnSize)
         .removeSidebarToggle()
         .navigationSplitViewColumnWidth(
-            min: 220,
+            min: 200,
             ideal: 0,
-            max: 320
+            max: 300
         )
     }
 
@@ -71,8 +71,8 @@ struct SettingsView: View {
         switch selection.name {
         case .general:
             GeneralSettingsPane()
-        case .menuBarLayout:
-            MenuBarLayoutSettingsPane()
+        case .menuBar:
+            MenuBarSettingsPane()
         case .about:
             AboutSettingsPane()
         }

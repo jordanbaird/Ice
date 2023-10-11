@@ -46,7 +46,7 @@ class MenuBarItemManager: ObservableObject {
         let sortedWindows = windows
             .filter { window in
                 windowIsMenuBarItem(window, in: menuBarWindow) &&
-                !windowIsControlItem(window, in: menuBarWindow) &&
+                !windowIsOwnedByIce(window) &&
                 !windowIsHiddenMenuBarItem(window, in: menuBarWindow)
             }
             .sorted { first, second in
@@ -134,24 +134,11 @@ class MenuBarItemManager: ObservableObject {
     }
 
     /// Returns a Boolean value indicating whether the given window
-    /// is a control item.
+    /// is owned by the app.
     ///
-    /// - Parameters:
-    ///   - window: The window to check.
-    ///   - menuBarWindow: A window to treat as a menu bar when determining
-    ///     if `window` is one of its items. This window must return `true`
-    ///     when passed to a call to ``windowIsMenuBar(_:)``.
-    private func windowIsControlItem(_ window: SCWindow, in menuBarWindow: SCWindow) -> Bool {
-        guard
-            windowIsMenuBarItem(window, in: menuBarWindow),
-            window.owningApplication?.processID == ProcessInfo.processInfo.processIdentifier,
-            let menuBar
-        else {
-            return false
-        }
-        return menuBar.sections.contains { section in
-            section.controlItem.autosaveName == window.title
-        }
+    /// - Parameter window: The window to check.
+    private func windowIsOwnedByIce(_ window: SCWindow) -> Bool {
+        window.owningApplication?.processID == ProcessInfo.processInfo.processIdentifier
     }
 
     /// Returns a Boolean value indicating whether the given window

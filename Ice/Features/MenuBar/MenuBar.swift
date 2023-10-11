@@ -5,6 +5,8 @@
 
 import Combine
 import OSLog
+import ScreenCaptureKit
+import SwiftUI
 
 /// Manager for the state of items in the menu bar.
 class MenuBar: ObservableObject {
@@ -16,9 +18,12 @@ class MenuBar: ObservableObject {
     let sharedContent = SharedContent(interval: 1, queue: .global(qos: .utility))
     private(set) lazy var colorReader = MenuBarColorReader(menuBar: self)
     private(set) lazy var itemManager = MenuBarItemManager(menuBar: self)
+    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBar: self)
 
     /// Set to `true` to tell the menu bar to save its sections.
     @Published var needsSave = false
+
+    @Published var window: SCWindow?
 
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
@@ -149,6 +154,19 @@ class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
+        sharedContent.$windows
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] windows in
+                self?.window = windows.first {
+                    // menu bar window belongs to the WindowServer process
+                    // (identified by an empty string)
+                    $0.owningApplication?.bundleIdentifier == "" &&
+                    $0.windowLayer == kCGMainMenuWindowLevel &&
+                    $0.title == "Menubar"
+                }
+            }
+            .store(in: &c)
+
         // propagate changes up from child observable objects
         sharedContent.objectWillChange
             .receive(on: DispatchQueue.main)
@@ -162,6 +180,11 @@ class MenuBar: ObservableObject {
             }
             .store(in: &c)
         itemManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
+        appearanceManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }

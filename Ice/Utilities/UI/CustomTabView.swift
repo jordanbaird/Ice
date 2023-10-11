@@ -8,20 +8,21 @@ import SwiftUI
 /// A tab view that displays its tabs with Ice's ``SettingsButtonStyle``.
 struct CustomTabView: View {
     /// Index of the currently selected tab.
-    @State private var selection: Int = 0
+    @Binding var selection: Int
 
     /// All tabs in the tab view.
     let tabs: [Tab]
 
     /// Creates a tab view with the given tabs.
-    init(@TabBuilder tabs: () -> [Tab]) {
+    init(selection: Binding<Int>, @TabBuilder tabs: () -> [Tab]) {
+        self._selection = selection
         self.tabs = tabs()
     }
 
     /// The tab view's body.
     var body: some View {
-        VStack(spacing: 5) {
-            HStack(spacing: 1) {
+        VStack(spacing: 0) {
+            HStack(spacing: 5) {
                 ForEach(0..<tabs.count, id: \.self) { index in
                     TabButton(
                         selection: $selection,
@@ -30,14 +31,31 @@ struct CustomTabView: View {
                     )
                 }
             }
-            .padding(.top, 5)
+            .padding(.vertical, 5)
 
             Divider()
 
-            tabs[selection].content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            GeometryReader { proxy in
+                selectedTabContent
+                    .frame(
+                        width: proxy.size.width,
+                        height: proxy.size.height
+                    )
+            }
+        }
+        .onAppear {
+            if !tabs.indices.contains(selection) {
+                selection = 0
+            }
         }
         .buttonStyle(SettingsButtonStyle())
+    }
+
+    @ViewBuilder
+    private var selectedTabContent: some View {
+        if tabs.indices.contains(selection) {
+            tabs[selection].content
+        }
     }
 }
 
@@ -109,7 +127,7 @@ enum TabBuilder {
 }
 
 #Preview {
-    CustomTabView {
+    CustomTabView(selection: .constant(0)) {
         Tab {
             Text("Tab 1")
         } content: {

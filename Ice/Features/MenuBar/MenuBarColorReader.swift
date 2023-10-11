@@ -74,17 +74,10 @@ class MenuBarColorReader: ObservableObject {
             $0.isOnScreen &&
             $0.title?.hasPrefix(namePrefix) == true
         }
-        let menuBarWindow = windows.first {
-            // menu bar window belongs to the WindowServer process
-            // (identified by an empty string)
-            $0.owningApplication?.bundleIdentifier == "" &&
-            $0.windowLayer == kCGMainMenuWindowLevel &&
-            $0.title == "Menubar"
-        }
 
         guard
             let wallpaperWindow,
-            let menuBarWindow,
+            let menuBarWindow = menuBar?.window,
             let image = WindowCaptureManager.captureImage(
                 windows: [wallpaperWindow],
                 screenBounds: menuBarWindow.frame,

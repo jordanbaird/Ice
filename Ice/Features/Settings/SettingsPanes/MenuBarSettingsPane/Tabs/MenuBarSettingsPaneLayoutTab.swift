@@ -1,14 +1,14 @@
 //
-//  MenuBarLayoutSettingsPane.swift
+//  MenuBarSettingsPaneLayoutTab.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct MenuBarLayoutSettingsPane: View {
+struct MenuBarSettingsPaneLayoutTab: View {
     @EnvironmentObject var menuBar: MenuBar
 
-    @AppStorage(Defaults.usesTintedLayoutBars) var usesTintedLayoutBars = true
+    @AppStorage(Defaults.usesColoredLayoutBars) var usesColoredLayoutBars = true
 
     @State private var visibleItems = [LayoutBarItem]()
     @State private var hiddenItems = [LayoutBarItem]()
@@ -92,7 +92,7 @@ struct MenuBarLayoutSettingsPane: View {
     }
 
     private func handleAppear() {
-        if usesTintedLayoutBars {
+        if usesColoredLayoutBars {
             menuBar.colorReader.activate()
         } else {
             menuBar.colorReader.deactivate()
@@ -148,7 +148,7 @@ struct MenuBarLayoutSettingsPane: View {
 #Preview {
     let menuBar = MenuBar()
 
-    return MenuBarLayoutSettingsPane()
+    return MenuBarSettingsPaneLayoutTab()
         .fixedSize()
         .environmentObject(menuBar)
 }

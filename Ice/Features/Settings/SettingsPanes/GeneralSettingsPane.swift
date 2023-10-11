@@ -9,7 +9,7 @@ import SwiftUI
 struct GeneralSettingsPane: View {
     @EnvironmentObject var menuBar: MenuBar
 
-    @AppStorage(Defaults.usesTintedLayoutBars) var usesTintedLayoutBars = true
+    @AppStorage(Defaults.usesColoredLayoutBars) var usesColoredLayoutBars = true
     @AppStorage(Defaults.alwaysHiddenModifier) var alwaysHiddenModifier = Hotkey.Modifiers.option
 
     var body: some View {
@@ -49,8 +49,8 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var coloredLayoutBars: some View {
-        Toggle(isOn: $usesTintedLayoutBars) {
-            Text("Use tinted layout bars")
+        Toggle(isOn: $usesColoredLayoutBars) {
+            Text("Use colored layout bars")
             Text("When enabled, layout bars in the Menu Bar Layout tab are tinted to match the color of the actual menu bar. Disabling this setting can improve performance.")
         }
     }

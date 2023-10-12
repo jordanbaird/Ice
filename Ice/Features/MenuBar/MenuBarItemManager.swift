@@ -130,7 +130,8 @@ class MenuBarItemManager: ObservableObject {
     private func windowIsMenuBarItem(_ window: SCWindow, in menuBarWindow: SCWindow) -> Bool {
         windowIsMenuBar(menuBarWindow) &&
         window.windowLayer == kCGStatusWindowLevel &&
-        window.frame.height == menuBarWindow.frame.height
+        window.frame.height == menuBarWindow.frame.height &&
+        window.frame.width < menuBarWindow.frame.width
     }
 
     /// Returns a Boolean value indicating whether the given window

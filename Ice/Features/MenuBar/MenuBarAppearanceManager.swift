@@ -169,6 +169,9 @@ private class MenuBarTintPanel: NSPanel {
     }
 
     func show() {
+        guard !ProcessInfo.processInfo.isPreview else {
+            return
+        }
         guard let screen = NSScreen.main else {
             Logger.appearanceManager.info("No screen")
             return

@@ -58,6 +58,7 @@ struct LayoutBar: View {
     }
 }
 
+#if DEBUG
 private struct PreviewLayoutBar: View {
     @State private var layoutItems = [
         LayoutBarItem(
@@ -127,3 +128,4 @@ private struct PreviewLayoutBar: View {
     }
     .padding()
 }
+#endif

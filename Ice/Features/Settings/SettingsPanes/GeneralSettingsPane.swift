@@ -120,13 +120,11 @@ struct LabeledHotkeyRecorder: View {
     }
 }
 
-struct GeneralSettingsPane_Previews: PreviewProvider {
-    @StateObject private static var menuBar = MenuBar()
+#Preview {
+    let menuBar = MenuBar()
 
-    static var previews: some View {
-        GeneralSettingsPane()
-            .fixedSize()
-            .buttonStyle(SettingsButtonStyle())
-            .environmentObject(menuBar)
-    }
+    return GeneralSettingsPane()
+        .fixedSize()
+        .buttonStyle(SettingsButtonStyle())
+        .environmentObject(menuBar)
 }

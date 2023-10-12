@@ -206,10 +206,8 @@ struct HotkeyRecorder: View {
     }
 }
 
-struct HotkeyRecorder_Previews: PreviewProvider {
-    static var previews: some View {
-        HotkeyRecorder(section: nil, failure: .constant(nil))
-            .padding()
-            .buttonStyle(SettingsButtonStyle())
-    }
+#Preview {
+    HotkeyRecorder(section: nil, failure: .constant(nil))
+        .padding()
+        .buttonStyle(SettingsButtonStyle())
 }

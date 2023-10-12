@@ -64,9 +64,7 @@ struct AboutSettingsPane: View {
     }
 }
 
-struct AboutSettingsPane_Previews: PreviewProvider {
-    static var previews: some View {
-        AboutSettingsPane()
-            .buttonStyle(SettingsButtonStyle())
-    }
+#Preview {
+    AboutSettingsPane()
+        .buttonStyle(SettingsButtonStyle())
 }

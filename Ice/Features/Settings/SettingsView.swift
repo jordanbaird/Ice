@@ -107,12 +107,10 @@ struct SettingsView: View {
     }
 }
 
-struct SettingsView_Previews: PreviewProvider {
-    @StateObject private static var menuBar = MenuBar()
+#Preview {
+    let menuBar = MenuBar()
 
-    static var previews: some View {
-        SettingsView()
-            .buttonStyle(SettingsButtonStyle())
-            .environmentObject(menuBar)
-    }
+    return SettingsView()
+        .buttonStyle(SettingsButtonStyle())
+        .environmentObject(menuBar)
 }

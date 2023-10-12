@@ -23,6 +23,7 @@ struct CustomTabView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 5) {
+                Spacer()
                 ForEach(0..<tabs.count, id: \.self) { index in
                     TabButton(
                         selection: $selection,
@@ -30,8 +31,10 @@ struct CustomTabView: View {
                         index: index
                     )
                 }
+                Spacer()
             }
             .padding(.vertical, 5)
+            .background(Material.regular)
 
             Divider()
 

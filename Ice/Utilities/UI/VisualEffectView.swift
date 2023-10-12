@@ -39,8 +39,8 @@ struct VisualEffectView: NSViewRepresentable {
         let nsView = NSVisualEffectView()
         nsView.material = material
         nsView.blendingMode = blendingMode
-        nsView.isEmphasized = isEmphasized
         nsView.state = state
+        nsView.isEmphasized = isEmphasized
         return nsView
     }
 

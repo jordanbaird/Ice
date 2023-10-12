@@ -10,7 +10,7 @@ struct GeneralSettingsPane: View {
     @EnvironmentObject var menuBar: MenuBar
 
     @AppStorage(Defaults.usesColoredLayoutBars) var usesColoredLayoutBars = true
-    @AppStorage(Defaults.alwaysHiddenModifier) var alwaysHiddenModifier = Hotkey.Modifiers.option
+    @AppStorage(Defaults.secondaryActionModifier) var alwaysHiddenModifier = Hotkey.Modifiers.option
 
     var body: some View {
         Form {
@@ -64,7 +64,7 @@ struct GeneralSettingsPane: View {
 
             if section.isEnabled {
                 Picker(selection: $alwaysHiddenModifier) {
-                    ForEach(ControlItem.clickModifiers, id: \.self) { modifier in
+                    ForEach(ControlItem.secondaryActionModifiers, id: \.self) { modifier in
                         Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
                     }
                 } label: {

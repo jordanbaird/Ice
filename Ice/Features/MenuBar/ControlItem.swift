@@ -10,7 +10,7 @@ import OSLog
 /// A status item that controls the visibility of a section in
 /// the menu bar.
 final class ControlItem: ObservableObject {
-    /// A value representing the hiding state of a control item.
+    /// Hiding state of a control item.
     enum HidingState: Int, Hashable, Codable {
         /// Status items in the control item's section are hidden.
         case hideItems
@@ -18,7 +18,7 @@ final class ControlItem: ObservableObject {
         case showItems
     }
 
-    /// Possible lengths of a control item.
+    /// Lengths for a control item.
     enum Lengths {
         /// The length of a control item when its section is visible.
         static let standard: CGFloat = 25
@@ -31,24 +31,11 @@ final class ControlItem: ObservableObject {
     ///
     /// The user chooses which of these they would like to use
     /// in the app's settings.
-    static let clickModifiers: [Hotkey.Modifiers] = [.control, .option, .shift]
+    static let secondaryActionModifiers: [Hotkey.Modifiers] = [.control, .option, .shift]
 
     /// Storage to temporarily associate menu bar sections with
     /// specific menu items.
     private static let sectionStorage = ObjectAssociation<MenuBarSection>()
-
-    /// The modifier that the user has selected from the various
-    /// options in ``clickModifiers`` to trigger the control item's
-    /// secondary action.
-    ///
-    /// Defaults to ``Hotkey/Modifiers-swift.struct/option`` if
-    /// the user has not made a selection.
-    private static var userSelectedClickModifier: Hotkey.Modifiers {
-        guard let rawValue = UserDefaults.standard.object(forKey: Defaults.alwaysHiddenModifier) as? Int else {
-            return .option
-        }
-        return Hotkey.Modifiers(rawValue: rawValue)
-    }
 
     /// Observers for key aspects of the control item's state.
     private var cancellables = Set<AnyCancellable>()
@@ -133,6 +120,19 @@ final class ControlItem: ObservableObject {
                 statusItem.length = Lengths.standard
             }
         }
+    }
+
+    /// The modifier that the user has selected from the various options
+    /// in ``secondaryActionModifiers`` to trigger the control item's
+    /// secondary action.
+    ///
+    /// Defaults to ``Hotkey/Modifiers-swift.struct/option`` if the user
+    /// has not made a selection.
+    private var secondaryActionModifier: Hotkey.Modifiers {
+        guard let rawValue = UserDefaults.standard.object(forKey: Defaults.secondaryActionModifier) as? Int else {
+            return .option
+        }
+        return Hotkey.Modifiers(rawValue: rawValue)
     }
 
     /// Creates a control item with the given autosave name, position,
@@ -326,7 +326,7 @@ final class ControlItem: ObservableObject {
             if
                 let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden),
                 alwaysHiddenSection.isEnabled,
-                NSEvent.modifierFlags == Self.userSelectedClickModifier.nsEventFlags
+                NSEvent.modifierFlags == secondaryActionModifier.nsEventFlags
             {
                 alwaysHiddenSection.show()
             } else {

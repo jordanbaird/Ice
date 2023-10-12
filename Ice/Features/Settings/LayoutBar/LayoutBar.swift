@@ -33,7 +33,8 @@ struct LayoutBar: View {
     /// The color of the layout bar's background.
     let backgroundColor: Color
 
-    /// Creates a layout bar with the given spacing, background color, and layout items.
+    /// Creates a layout bar with the given spacing, background color, 
+    /// and layout items.
     ///
     /// - Parameters:
     ///   - spacing: The amount of spacing between each layout item.
@@ -50,11 +51,14 @@ struct LayoutBar: View {
     }
 
     var body: some View {
-        Representable(layoutItems: $layoutItems, spacing: spacing)
-            .background {
-                RoundedRectangle(cornerRadius: 9)
-                    .fill(backgroundColor)
-            }
+        Representable(
+            layoutItems: $layoutItems,
+            spacing: spacing
+        )
+        .background(
+            backgroundColor,
+            in: RoundedRectangle(cornerRadius: 9)
+        )
     }
 }
 

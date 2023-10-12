@@ -14,25 +14,71 @@ private struct ErrorPreferenceKey<E: Error & Equatable>: PreferenceKey {
 }
 
 private struct ErrorOverlayView<E: Error & Equatable, Content: View>: View {
-    @State private var showOverlay = false
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
     @State private var error: E?
     private let content: Content
 
-    init(type: E.Type, content: Content) {
+    init(type _: E.Type, content: Content) {
         self.content = content
     }
 
     var body: some View {
-        OverlayView(showOverlay: $showOverlay) {
+        ZStack {
             content
-        } overlay: {
-            Text(error?.localizedDescription ?? "")
-                .font(.system(size: 18, weight: .light))
+            GeometryReader { proxy in
+                if error != nil {
+                    overlay(in: proxy.frame(in: .local))
+                }
+            }
+            .animation(.default, value: error)
+            .transition(.opacity)
         }
-        .onPreferenceChange(ErrorPreferenceKey<E>.self) {
-            showOverlay = $0 != nil
-            error = $0
+        .onPreferenceChange(ErrorPreferenceKey<E>.self) { error in
+            self.error = error
         }
+    }
+
+    @ViewBuilder
+    private func overlay(in frame: CGRect) -> some View {
+        Text(error?.localizedDescription ?? "")
+            .font(.system(size: 18, weight: .light))
+            .padding()
+            .background {
+                VisualEffectView(
+                    material: .toolTip,
+                    blendingMode: .withinWindow,
+                    state: .active,
+                    isEmphasized: true
+                )
+                .clipShape(
+                    RoundedRectangle(cornerRadius: 9)
+                )
+                .overlay {
+                    VisualEffectView(
+                        material: .selection,
+                        blendingMode: .withinWindow,
+                        state: .active,
+                        isEmphasized: true
+                    )
+                    .clipShape(
+                        RoundedRectangle(cornerRadius: 9)
+                            .inset(by: colorScheme == .dark ? 1 : 0)
+                            .stroke(lineWidth: 0.5)
+                    )
+                }
+            }
+            .shadow(
+                color: .black.opacity(0.5),
+                radius: 10
+            )
+            .frame(
+                maxWidth: frame.width * 0.75,
+                maxHeight: frame.height * 0.75
+            )
+            .position(
+                x: frame.width / 2,
+                y: frame.height / 2
+            )
     }
 }
 
@@ -56,6 +102,6 @@ extension View {
     ///
     /// - Parameter error: An error to display a descriptive overlay for.
     func error<E: Error & Equatable>(_ error: E?) -> some View {
-        preference(key: ErrorPreferenceKey.self, value: error)
+        preference(key: ErrorPreferenceKey<E>.self, value: error)
     }
 }

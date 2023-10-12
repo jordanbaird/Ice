@@ -23,7 +23,6 @@ struct MenuBarSettingsPaneAppearanceTab: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
-        .background(.ultraThinMaterial)
     }
 
     @ViewBuilder

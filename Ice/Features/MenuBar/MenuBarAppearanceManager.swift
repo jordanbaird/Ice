@@ -13,7 +13,7 @@ class MenuBarAppearanceManager: ObservableObject {
 
     private(set) weak var menuBar: MenuBar?
 
-    private lazy var colorPanel = MenuBarTintPanel(appearanceManager: self)
+    private lazy var overlayPanel = MenuBarOverlayPanel(appearanceManager: self)
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -45,9 +45,9 @@ class MenuBarAppearanceManager: ObservableObject {
                     Logger.appearanceManager.error("MenuBarAppearanceManager: \(error.localizedDescription)")
                 }
                 if tint != nil {
-                    colorPanel.show()
+                    overlayPanel.show()
                 } else {
-                    colorPanel.hide()
+                    overlayPanel.hide()
                 }
             }
             .store(in: &c)
@@ -114,7 +114,7 @@ extension CodableColor: Codable {
 
 extension CodableColor: DictionaryRepresentable { }
 
-private class MenuBarTintPanel: NSPanel {
+private class MenuBarOverlayPanel: NSPanel {
     private static let defaultAlphaValue = 0.2
     private var cancellables = Set<AnyCancellable>()
     private(set) weak var appearanceManager: MenuBarAppearanceManager?
@@ -131,7 +131,7 @@ private class MenuBarTintPanel: NSPanel {
             defer: false
         )
         self.appearanceManager = appearanceManager
-        self.title = "Menu Bar Tint"
+        self.title = "Menu Bar Overlay"
         self.level = .statusBar
         self.collectionBehavior = [
             .fullScreenNone,

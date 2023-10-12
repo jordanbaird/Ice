@@ -33,21 +33,26 @@ struct LayoutBar: View {
     /// The color of the layout bar's background.
     let backgroundColor: Color
 
-    /// Creates a layout bar with the given spacing, background color, 
-    /// and layout items.
+    let tint: Color?
+
+    /// Creates a layout bar with the given spacing, background color,
+    /// tint color, and layout items.
     ///
     /// - Parameters:
     ///   - spacing: The amount of spacing between each layout item.
     ///   - backgroundColor: The color of the layout bar's background.
+    ///   - tint: A color to tint the layout bar.
     ///   - layoutItems: The items displayed in the layout bar.
     init(
         spacing: CGFloat = 0,
         backgroundColor: Color,
+        tint: Color?,
         layoutItems: Binding<[LayoutBarItem]>
     ) {
         self._layoutItems = layoutItems
         self.spacing = spacing
         self.backgroundColor = backgroundColor
+        self.tint = tint
     }
 
     var body: some View {
@@ -55,10 +60,17 @@ struct LayoutBar: View {
             layoutItems: $layoutItems,
             spacing: spacing
         )
-        .background(
-            backgroundColor,
-            in: RoundedRectangle(cornerRadius: 9)
-        )
+        .background {
+            RoundedRectangle(cornerRadius: 9)
+                .fill(backgroundColor)
+        }
+        .overlay {
+            if let tint {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(tint.opacity(0.2))
+                    .allowsHitTesting(false)
+            }
+        }
     }
 }
 
@@ -96,6 +108,7 @@ private struct PreviewLayoutBar: View {
         LayoutBar(
             spacing: 5,
             backgroundColor: .defaultLayoutBar,
+            tint: nil,
             layoutItems: $layoutItems
         )
     }

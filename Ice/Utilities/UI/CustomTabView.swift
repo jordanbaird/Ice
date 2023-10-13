@@ -10,7 +10,7 @@ struct CustomTabView: View {
     /// Index of the currently selected tab.
     @Binding var selection: Int
 
-    /// All tabs in the tab view.
+    /// The tabs in the tab view.
     let tabs: [Tab]
 
     /// Creates a tab view with the given tabs.
@@ -19,11 +19,9 @@ struct CustomTabView: View {
         self.tabs = tabs()
     }
 
-    /// The tab view's body.
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 5) {
-                Spacer()
                 ForEach(0..<tabs.count, id: \.self) { index in
                     TabButton(
                         selection: $selection,
@@ -31,9 +29,9 @@ struct CustomTabView: View {
                         index: index
                     )
                 }
-                Spacer()
             }
             .padding(.vertical, 5)
+            .frame(maxWidth: .infinity)
             .background(Material.regular)
 
             Divider()
@@ -82,27 +80,16 @@ struct Tab {
 
 /// Custom button to display as a tab above a tab view.
 private struct TabButton: View {
-    /// A Boolean value indicating whether the button is
-    /// being hovered over.
     @State private var isHovering = false
-
-    /// A binding to the index of the currently selected
-    /// tab.
     @Binding var selection: Int
 
-    /// The button's tab representation.
     let tab: Tab
-
-    /// The index of this button in the tab view.
     let index: Int
 
-    /// A Boolean value indicating whether the tab button
-    /// is selected.
-    private var isSelected: Bool {
+    var isSelected: Bool {
         selection == index
     }
 
-    /// The button's body.
     var body: some View {
         Button {
             selection = index

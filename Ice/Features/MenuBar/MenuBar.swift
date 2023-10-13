@@ -16,13 +16,26 @@ class MenuBar: ObservableObject {
     private let decoder = DictionaryDecoder()
 
     let sharedContent = SharedContent(interval: 1, queue: .global(qos: .utility))
-    private(set) lazy var colorReader = MenuBarColorReader(menuBar: self)
     private(set) lazy var itemManager = MenuBarItemManager(menuBar: self)
     private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBar: self)
 
     /// Set to `true` to tell the menu bar to save its sections.
     @Published var needsSave = false
 
+    /// A Boolean value that indicates whether the menu bar should
+    /// actively publish its average color.
+    ///
+    /// If this property is `false`, the menu bar's ``averageColor``
+    /// property is set to `nil`.
+    @Published var publishesAverageColor = false
+
+    /// The average color of the menu bar.
+    ///
+    /// If ``publishesAverageColor`` is `false`, this property is
+    /// set to `nil`.
+    @Published var averageColor: Color?
+
+    /// The menu bar's window.
     @Published var window: SCWindow?
 
     /// The sections currently in the menu bar.
@@ -143,8 +156,6 @@ class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
-        // save sections when needsSave is set to true, debounced
-        // to a reasonable timeframe
         $needsSave
             .debounce(for: 1, scheduler: DispatchQueue.main)
             .sink { [weak self] needsSave in
@@ -154,15 +165,35 @@ class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
+        $publishesAverageColor
+            .sink { [weak self] publishesAverageColor in
+                guard let self else {
+                    return
+                }
+                // immediately update the average color
+                if publishesAverageColor {
+                    readAndUpdateAverageColor(windows: sharedContent.windows)
+                } else {
+                    averageColor = nil
+                }
+            }
+            .store(in: &c)
+
         sharedContent.$windows
             .receive(on: DispatchQueue.main)
             .sink { [weak self] windows in
-                self?.window = windows.first {
+                guard let self else {
+                    return
+                }
+                window = windows.first {
                     // menu bar window belongs to the WindowServer process
                     // (identified by an empty string)
                     $0.owningApplication?.bundleIdentifier == "" &&
                     $0.windowLayer == kCGMainMenuWindowLevel &&
                     $0.title == "Menubar"
+                }
+                if publishesAverageColor {
+                    readAndUpdateAverageColor(windows: windows)
                 }
             }
             .store(in: &c)
@@ -170,11 +201,6 @@ class MenuBar: ObservableObject {
         // propagate changes up from child observable objects
         sharedContent.objectWillChange
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] in
-                self?.objectWillChange.send()
-            }
-            .store(in: &c)
-        colorReader.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }
@@ -204,9 +230,47 @@ class MenuBar: ObservableObject {
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
     }
+
+    private func readAndUpdateAverageColor(windows: [SCWindow]) {
+        // macOS 14 uses a different title for the wallpaper window
+        let namePrefix = if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 14 {
+            "Wallpaper-"
+        } else {
+            "Desktop Picture"
+        }
+
+        let wallpaperWindow = windows.first {
+            // wallpaper window belongs to the Dock process
+            $0.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            $0.isOnScreen &&
+            $0.title?.hasPrefix(namePrefix) == true
+        }
+
+        guard
+            let wallpaperWindow,
+            let window,
+            let image = WindowCaptureManager.captureImage(
+                windows: [wallpaperWindow],
+                screenBounds: window.frame,
+                options: .ignoreFraming
+            ),
+            let components = image.averageColor(
+                accuracy: .low,
+                algorithm: .simple
+            )
+        else {
+            return
+        }
+
+        averageColor = Color(
+            red: components.red,
+            green: components.green,
+            blue: components.blue
+        )
+    }
 }
 
 // MARK: - Logger
-extension Logger {
+private extension Logger {
     static let menuBar = mainSubsystem(category: "MenuBar")
 }

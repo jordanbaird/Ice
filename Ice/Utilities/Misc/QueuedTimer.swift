@@ -6,6 +6,9 @@
 import Foundation
 
 /// A timer that is scheduled on a dispatch queue.
+///
+/// Unlike the `Timer` type from Foundation, this timer type does not
+/// rely on a run loop to operate.
 class QueuedTimer {
     /// The interval at which the timer repeats.
     let interval: TimeInterval

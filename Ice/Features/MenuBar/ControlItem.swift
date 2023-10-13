@@ -542,6 +542,6 @@ enum ControlItemImages {
 }
 
 // MARK: - Logger
-extension Logger {
+private extension Logger {
     static let controlItem = mainSubsystem(category: "ControlItem")
 }

@@ -31,8 +31,9 @@ struct LayoutBar: View {
     let spacing: CGFloat
 
     /// The color of the layout bar's background.
-    let backgroundColor: Color
+    let backgroundColor: Color?
 
+    /// A color to tint the layout bar.
     let tint: Color?
 
     /// Creates a layout bar with the given spacing, background color,
@@ -45,7 +46,7 @@ struct LayoutBar: View {
     ///   - layoutItems: The items displayed in the layout bar.
     init(
         spacing: CGFloat = 0,
-        backgroundColor: Color,
+        backgroundColor: Color?,
         tint: Color?,
         layoutItems: Binding<[LayoutBarItem]>
     ) {
@@ -62,10 +63,13 @@ struct LayoutBar: View {
         )
         .background {
             RoundedRectangle(cornerRadius: 9)
-                .fill(backgroundColor)
+                .fill(backgroundColor ?? .defaultLayoutBar)
         }
         .overlay {
-            if let tint {
+            if
+                let tint,
+                backgroundColor != nil
+            {
                 RoundedRectangle(cornerRadius: 9)
                     .fill(tint.opacity(0.2))
                     .allowsHitTesting(false)

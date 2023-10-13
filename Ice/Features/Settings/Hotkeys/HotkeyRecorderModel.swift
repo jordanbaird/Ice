@@ -8,41 +8,27 @@ import Combine
 
 /// Model for a hotkey recorder's state.
 class HotkeyRecorderModel: ObservableObject {
-    /// An alias for a type that describes a recording failure.
     typealias Failure = HotkeyRecorder.Failure
 
-    /// Observers for important aspects of state.
-    private var cancellables = Set<AnyCancellable>()
-
-    /// The section managed by the model.
-    let section: MenuBarSection?
-
-    /// A Boolean value that indicates whether the hotkey recorder
-    /// is currently recording.
     @Published private(set) var isRecording = false
-
-    /// Strings representing the currently pressed modifiers when the
-    /// hotkey recorder is recording. Empty if the hotkey recorder is
-    /// not recording.
     @Published private(set) var pressedModifierStrings = [String]()
 
-    /// A closure that handles recording failures.
+    let section: MenuBarSection?
+
     private let handleFailure: (HotkeyRecorderModel, Failure) -> Void
-
-    /// A closure that removes the failure associated with the
-    /// hotkey recorder.
     private let removeFailure: () -> Void
-
-    /// Local event monitor that listens for key down events and
-    /// modifier flag changes.
     private var monitor: LocalEventMonitor?
+
+    private var cancellables = Set<AnyCancellable>()
 
     /// A Boolean value that indicates whether the hotkey is
     /// currently enabled.
-    var isEnabled: Bool { section?.hotkeyIsEnabled ?? false }
+    var isEnabled: Bool {
+        section?.hotkeyIsEnabled ?? false
+    }
 
-    /// Creates a model for a hotkey recorder that records user-chosen
-    /// key combinations for the given section's hotkey.
+    /// Creates a model for a hotkey recorder that records key
+    /// combinations for the given section's hotkey.
     init(
         section: MenuBarSection?,
         onFailure: @escaping (Failure) -> Void,
@@ -53,10 +39,8 @@ class HotkeyRecorderModel: ObservableObject {
         }
         self.section = section
         self.handleFailure = { model, failure in
-            // immediately remove the modifier strings, before the failure
-            // handler is even performed; it looks weird to have the pressed
-            // modifiers displayed in the hotkey recorder at the same time
-            // as a failure
+            // remove the modifier strings so the pressed modifiers
+            // aren't being displayed at the same time as a failure
             model.pressedModifierStrings.removeAll()
             onFailure(failure)
         }
@@ -84,8 +68,8 @@ class HotkeyRecorderModel: ObservableObject {
         stopRecording()
     }
 
-    /// Sets up a series of cancellables to respond to important
-    /// changes in the model's state.
+    /// Sets up a series of cancellables to respond to changes
+    /// in the model's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -123,7 +107,8 @@ class HotkeyRecorderModel: ObservableObject {
         removeFailure()
     }
 
-    /// Handles local key down events when the hotkey recorder is recording.
+    /// Handles local key down events when the hotkey recorder
+    /// is recording.
     private func handleKeyDown(event: NSEvent) {
         let hotkey = Hotkey(event: event)
         if hotkey.modifiers.isEmpty {
@@ -149,7 +134,8 @@ class HotkeyRecorderModel: ObservableObject {
         stopRecording()
     }
 
-    /// Handles modifier flag changes when the hotkey recorder is recording.
+    /// Handles modifier flag changes when the hotkey recorder
+    /// is recording.
     private func handleFlagsChanged(event: NSEvent) {
         pressedModifierStrings = Hotkey.Modifiers.canonicalOrder.compactMap {
             event.modifierFlags.contains($0.nsEventFlags) ? $0.stringValue : nil

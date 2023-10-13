@@ -221,17 +221,21 @@ extension CGImage {
     ///
     /// - Parameters:
     ///   - edges: The edges to trim from the image.
-    ///   - maxAlpha: The maximum alpha value to consider transparent, and
-    ///     thus crop. Alpha values that are greater than this value are
-    ///     considered opaque, and will remain part of the resulting image.
+    ///   - maxAlpha: The maximum alpha value between 0 and 1 to consider
+    ///     transparent, and thus crop. Alpha values that are greater than
+    ///     this value are considered opaque, and will remain part of the
+    ///     resulting image.
     func trimmingTransparentPixels(
         edges: Set<CGRectEdge> = [.minXEdge, .maxXEdge, .minYEdge, .maxYEdge],
-        maxAlpha: UInt8 = 0
+        maxAlpha: CGFloat = 0
     ) -> CGImage? {
+        let maxAlpha = max(UInt8(maxAlpha * 255), 255)
         let context = TransparencyContext(image: self)
         return context?.trim(edges: edges, maxAlpha: maxAlpha)
     }
 }
+
+// MARK: - NSImage
 
 extension NSImage {
     /// Returns a version of this image whose edges have been cropped
@@ -239,12 +243,13 @@ extension NSImage {
     ///
     /// - Parameters:
     ///   - edges: The edges to trim from the image.
-    ///   - maxAlpha: The maximum alpha value to consider transparent, and
-    ///     thus crop. Alpha values that are greater than this value are
-    ///     considered opaque, and will remain part of the resulting image.
+    ///   - maxAlpha: The maximum alpha value between 0 and 1 to consider
+    ///     transparent, and thus crop. Alpha values that are greater than
+    ///     this value are considered opaque, and will remain part of the
+    ///     resulting image.
     func trimmingTransparentPixels(
         edges: Set<CGRectEdge> = [.minXEdge, .maxXEdge, .minYEdge, .maxYEdge],
-        maxAlpha: UInt8 = 0
+        maxAlpha: CGFloat = 0
     ) -> NSImage? {
         guard
             let cgImage = cgImage(forProposedRect: nil, context: nil, hints: nil),

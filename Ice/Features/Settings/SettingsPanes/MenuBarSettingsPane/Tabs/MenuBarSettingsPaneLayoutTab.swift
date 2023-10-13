@@ -6,10 +6,8 @@
 import SwiftUI
 
 struct MenuBarSettingsPaneLayoutTab: View {
-    @EnvironmentObject var menuBar: MenuBar
-
     @AppStorage(Defaults.usesColoredLayoutBars) var usesColoredLayoutBars = true
-
+    @EnvironmentObject var menuBar: MenuBar
     @State private var visibleItems = [LayoutBarItem]()
     @State private var hiddenItems = [LayoutBarItem]()
     @State private var alwaysHiddenItems = [LayoutBarItem]()
@@ -21,9 +19,9 @@ struct MenuBarSettingsPaneLayoutTab: View {
                 layoutViews
                 Spacer()
             }
+            .padding()
         }
         .scrollBounceBehavior(.basedOnSize)
-        .padding()
         .onAppear {
             handleAppear()
         }
@@ -55,7 +53,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
         Form {
             Section("Always Visible") {
                 LayoutBar(
-                    backgroundColor: menuBar.colorReader.color,
+                    backgroundColor: menuBar.averageColor,
                     tint: menuBar.appearanceManager.tint.map { Color(cgColor: $0) },
                     layoutItems: $visibleItems
                 )
@@ -69,7 +67,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
 
             Section("Hidden") {
                 LayoutBar(
-                    backgroundColor: menuBar.colorReader.color,
+                    backgroundColor: menuBar.averageColor,
                     tint: menuBar.appearanceManager.tint.map { Color(cgColor: $0) },
                     layoutItems: $hiddenItems
                 )
@@ -83,7 +81,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
 
             Section("Always Hidden") {
                 LayoutBar(
-                    backgroundColor: menuBar.colorReader.color,
+                    backgroundColor: menuBar.averageColor,
                     tint: menuBar.appearanceManager.tint.map { Color(cgColor: $0) },
                     layoutItems: $alwaysHiddenItems
                 )
@@ -95,18 +93,14 @@ struct MenuBarSettingsPaneLayoutTab: View {
     }
 
     private func handleAppear() {
-        if usesColoredLayoutBars {
-            menuBar.colorReader.activate()
-        } else {
-            menuBar.colorReader.deactivate()
-        }
+        menuBar.publishesAverageColor = usesColoredLayoutBars
         updateVisibleItems(menuBar.itemManager.visibleItems)
         updateHiddenItems(menuBar.itemManager.hiddenItems)
         updateAlwaysHiddenItems(menuBar.itemManager.alwaysHiddenItems)
     }
 
     private func handleDisappear() {
-        menuBar.colorReader.deactivate()
+        menuBar.publishesAverageColor = false
     }
 
     private func updateVisibleItems(_ items: [MenuBarItem]) {

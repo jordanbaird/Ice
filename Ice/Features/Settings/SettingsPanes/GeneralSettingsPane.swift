@@ -7,10 +7,9 @@ import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsPane: View {
-    @EnvironmentObject var menuBar: MenuBar
-
     @AppStorage(Defaults.usesColoredLayoutBars) var usesColoredLayoutBars = true
-    @AppStorage(Defaults.secondaryActionModifier) var alwaysHiddenModifier = Hotkey.Modifiers.option
+    @AppStorage(Defaults.secondaryActionModifier) var secondaryActionModifier = Hotkey.Modifiers.option
+    @EnvironmentObject var menuBar: MenuBar
 
     var body: some View {
         Form {
@@ -51,7 +50,7 @@ struct GeneralSettingsPane: View {
     private var coloredLayoutBars: some View {
         Toggle(isOn: $usesColoredLayoutBars) {
             Text("Use colored layout bars")
-            Text("When enabled, layout bars in the Menu Bar Layout tab are tinted to match the color of the actual menu bar. Disabling this setting can improve performance.")
+            Text("When enabled, the bars in \(Constants.appName)'s Layout settings take on the color of the actual menu bar. Disabling this setting can improve performance.")
         }
     }
 
@@ -63,13 +62,13 @@ struct GeneralSettingsPane: View {
             }
 
             if section.isEnabled {
-                Picker(selection: $alwaysHiddenModifier) {
+                Picker(selection: $secondaryActionModifier) {
                     ForEach(ControlItem.secondaryActionModifiers, id: \.self) { modifier in
                         Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
                     }
                 } label: {
                     Text("Modifier")
-                    Text("\(alwaysHiddenModifier.label) (\(alwaysHiddenModifier.stringValue)) + clicking either of \(Constants.appName)'s menu bar items will temporarily show this section")
+                    Text("\(secondaryActionModifier.label) (\(secondaryActionModifier.stringValue)) + clicking either of \(Constants.appName)'s menu bar items will temporarily show this section")
                 }
             }
         }

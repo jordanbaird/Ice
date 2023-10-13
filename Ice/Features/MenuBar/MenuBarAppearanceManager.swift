@@ -8,6 +8,8 @@ import Cocoa
 import Combine
 import OSLog
 
+// MARK: - MenuBarAppearanceManager
+
 class MenuBarAppearanceManager: ObservableObject {
     @Published var tint: CGColor?
 
@@ -20,7 +22,11 @@ class MenuBarAppearanceManager: ObservableObject {
     init(menuBar: MenuBar) {
         self.menuBar = menuBar
         if let dictionary = UserDefaults.standard.dictionary(forKey: Defaults.menuBarTint) {
-            self.tint = try? CodableColor(dictionaryValue: dictionary).cgColor
+            do {
+                self.tint = try DictionaryDecoder().decode(CodableColor.self, from: dictionary).cgColor
+            } catch {
+                Logger.appearanceManager.error("Error decoding color: \(error.localizedDescription)")
+            }
         }
         configureCancellables()
     }
@@ -34,19 +40,17 @@ class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                do {
-                    if let tint {
-                        let dictionary = try CodableColor(cgColor: tint).dictionaryValue
+                if let tint {
+                    do {
+                        let dictionary = try DictionaryEncoder().encode(CodableColor(cgColor: tint))
                         UserDefaults.standard.set(dictionary, forKey: Defaults.menuBarTint)
-                    } else {
-                        UserDefaults.standard.removeObject(forKey: Defaults.menuBarTint)
+                        overlayPanel.show()
+                    } catch {
+                        Logger.appearanceManager.error("Error encoding color: \(error.localizedDescription)")
+                        overlayPanel.hide()
                     }
-                } catch {
-                    Logger.appearanceManager.error("MenuBarAppearanceManager: \(error.localizedDescription)")
-                }
-                if tint != nil {
-                    overlayPanel.show()
                 } else {
+                    UserDefaults.standard.removeObject(forKey: Defaults.menuBarTint)
                     overlayPanel.hide()
                 }
             }
@@ -56,68 +60,14 @@ class MenuBarAppearanceManager: ObservableObject {
     }
 }
 
-struct CodableColor {
-    var cgColor: CGColor
-}
-
-extension CodableColor: Codable {
-    enum CodingKeys: CodingKey {
-        case components
-        case colorSpace
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        guard let components = cgColor.components else {
-            throw EncodingError.invalidValue(
-                cgColor,
-                EncodingError.Context(
-                    codingPath: encoder.codingPath,
-                    debugDescription: "Missing color components"
-                )
-            )
-        }
-        guard let colorSpaceData = cgColor.colorSpace?.copyICCData() else {
-            throw EncodingError.invalidValue(
-                cgColor,
-                EncodingError.Context(
-                    codingPath: encoder.codingPath,
-                    debugDescription: "Missing or invalid color space"
-                )
-            )
-        }
-        try container.encode(components, forKey: .components)
-        try container.encode(colorSpaceData as Data, forKey: .colorSpace)
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        var components = try container.decode([CGFloat].self, forKey: .components)
-        let colorSpaceData = try container.decode(Data.self, forKey: .colorSpace) as CFData
-        guard let colorSpace = CGColorSpace(iccData: colorSpaceData) else {
-            throw DecodingError.dataCorruptedError(
-                forKey: .colorSpace,
-                in: container, debugDescription: "Cannot decode ICC profile data"
-            )
-        }
-        guard let cgColor = CGColor(colorSpace: colorSpace, components: &components) else {
-            throw DecodingError.dataCorrupted(
-                DecodingError.Context(
-                    codingPath: decoder.codingPath,
-                    debugDescription: "Cannot decode color"
-                )
-            )
-        }
-        self.cgColor = cgColor
-    }
-}
-
-extension CodableColor: DictionaryRepresentable { }
+// MARK: - MenuBarOverlayPanel
 
 private class MenuBarOverlayPanel: NSPanel {
     private static let defaultAlphaValue = 0.2
-    private var cancellables = Set<AnyCancellable>()
+
     private(set) weak var appearanceManager: MenuBarAppearanceManager?
+
+    private var cancellables = Set<AnyCancellable>()
 
     init(appearanceManager: MenuBarAppearanceManager) {
         super.init(
@@ -200,6 +150,7 @@ private class MenuBarOverlayPanel: NSPanel {
     }
 }
 
+// MARK: - Logger
 private extension Logger {
     static let appearanceManager = mainSubsystem(category: "MenuBarAppearanceManager")
 }

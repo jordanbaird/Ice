@@ -29,19 +29,10 @@ struct HotkeyRecorder: View {
         }
     }
 
-    /// The model that manages the hotkey recorder.
-    @StateObject private var model: HotkeyRecorderModel
-
-    /// The hotkey recorder's frame.
-    @State private var frame: CGRect = .zero
-
-    /// A Boolean value that indicates whether the mouse is currently
-    /// inside the bounds of the recorder's second segment.
-    @State private var isInsideSegment2 = false
-
-    /// A binding that holds information about the current recording
-    /// failure on behalf of the recorder.
     @Binding var failure: Failure?
+    @StateObject private var model: HotkeyRecorderModel
+    @State private var frame: CGRect = .zero
+    @State private var isInsideSegment2 = false
 
     /// Creates a hotkey recorder that records user-chosen key
     /// combinations for the given section.

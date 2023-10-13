@@ -1,12 +1,12 @@
 //
-//  SettingsButtonStyle.swift
+//  IceButtonStyle.swift
 //  Ice
 //
 
 import SwiftUI
 
-/// The button style to use in the "Settings" interface.
-struct SettingsButtonStyle: PrimitiveButtonStyle {
+/// The main button style to use in Ice's interface.
+struct IceButtonStyle: PrimitiveButtonStyle {
     /// Custom view that prevents mouse down messages from passing
     /// through to the button's window.
     private struct MouseDownInterceptor: NSViewRepresentable {
@@ -25,7 +25,7 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
     /// its sides flattened according to the given button shape.
     private struct ClipShape: Shape {
         let cornerRadius: CGFloat
-        let shape: SettingsButtonConfiguration.ButtonShape
+        let shape: IceButtonConfiguration.ButtonShape
 
         func path(in rect: CGRect) -> Path {
             if shape.flattenedEdges == .all {
@@ -50,17 +50,12 @@ struct SettingsButtonStyle: PrimitiveButtonStyle {
         }
     }
 
+    @Environment(\.iceButtonConfiguration.bezelOpacity) private var bezelOpacity
+    @Environment(\.iceButtonConfiguration.isHighlighted) private var isHighlighted
+    @Environment(\.iceButtonConfiguration.labelForegroundColor) private var labelForegroundColor
+    @Environment(\.iceButtonConfiguration.shape) private var shape
     @State private var isPressed = false
     @State private var frame = CGRect.zero
-
-    @Environment(\.settingsButtonConfiguration.bezelOpacity)
-    private var bezelOpacity
-    @Environment(\.settingsButtonConfiguration.isHighlighted)
-    private var isHighlighted
-    @Environment(\.settingsButtonConfiguration.labelForegroundColor)
-    private var labelForegroundColor
-    @Environment(\.settingsButtonConfiguration.shape)
-    private var shape
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

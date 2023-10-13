@@ -22,7 +22,7 @@ struct SettingsWindow: Scene {
                     }
                 }
                 .environmentObject(menuBar)
-                .buttonStyle(SettingsButtonStyle())
+                .buttonStyle(IceButtonStyle())
         }
         .commandsRemoved()
         .defaultSize(width: 900, height: 600)

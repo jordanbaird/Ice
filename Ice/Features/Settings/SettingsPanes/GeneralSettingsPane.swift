@@ -124,6 +124,6 @@ struct LabeledHotkeyRecorder: View {
 
     return GeneralSettingsPane()
         .fixedSize()
-        .buttonStyle(SettingsButtonStyle())
+        .buttonStyle(IceButtonStyle())
         .environmentObject(menuBar)
 }

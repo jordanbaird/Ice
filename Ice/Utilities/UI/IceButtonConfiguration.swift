@@ -1,13 +1,13 @@
 //
-//  SettingsButtonConfiguration.swift
+//  IceButtonConfiguration.swift
 //  Ice
 //
 
 import SwiftUI
 
-/// A configuration that determines the appearance and behavior of
-/// a settings button.
-struct SettingsButtonConfiguration {
+/// A configuration that determines the appearance and behavior
+/// of a button in Ice's interface.
+struct IceButtonConfiguration {
     /// The opacity of the button's bezel.
     var bezelOpacity: CGFloat = 1
 
@@ -25,8 +25,9 @@ struct SettingsButtonConfiguration {
     var shape = ButtonShape()
 }
 
-extension SettingsButtonConfiguration {
-    /// A configuration that determines the shape of a settings button.
+extension IceButtonConfiguration {
+    /// A configuration that determines the shape of a button in
+    /// Ice's interface.
     struct ButtonShape {
         /// The flattened edges of the buttons that use this configuration.
         var flattenedEdges: Edge.Set = []
@@ -42,25 +43,25 @@ extension SettingsButtonConfiguration {
 }
 
 extension EnvironmentValues {
-    private struct SettingsButtonConfigurationKey: EnvironmentKey {
-        static let defaultValue = SettingsButtonConfiguration()
+    private struct IceButtonConfigurationKey: EnvironmentKey {
+        static let defaultValue = IceButtonConfiguration()
     }
 
-    var settingsButtonConfiguration: SettingsButtonConfiguration {
-        get { self[SettingsButtonConfigurationKey.self] }
-        set { self[SettingsButtonConfigurationKey.self] = newValue }
+    var iceButtonConfiguration: IceButtonConfiguration {
+        get { self[IceButtonConfigurationKey.self] }
+        set { self[IceButtonConfigurationKey.self] = newValue }
     }
 }
 
 extension View {
-    /// Configures the properties of settings buttons in this view
-    /// using the given closure.
+    /// Configures the properties of buttons in this view using
+    /// the given closure.
     ///
     /// - Parameter configure: A closure that updates the current
-    ///   environment's settings button configuration with new values.
-    func settingsButtonConfiguration(
-        configure: @escaping (inout SettingsButtonConfiguration) -> Void
+    ///   environment's configuration with new values.
+    func iceButtonConfiguration(
+        configure: @escaping (inout IceButtonConfiguration) -> Void
     ) -> some View {
-        transformEnvironment(\.settingsButtonConfiguration, transform: configure)
+        transformEnvironment(\.iceButtonConfiguration, transform: configure)
     }
 }

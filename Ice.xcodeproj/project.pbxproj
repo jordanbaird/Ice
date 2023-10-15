@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		170DE5F02AC4D02000D989B8 /* WindowCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170DE5EF2AC4D02000D989B8 /* WindowCaptureManager.swift */; };
+		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
 		17928F1A2AC5DF9C0016C615 /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17928F192AC5DF9C0016C615 /* Defaults.swift */; };
 		179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */; };
 		17C9EB7D2AC9FD0600141043 /* QueuedTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C9EB7C2AC9FD0600141043 /* QueuedTimer.swift */; };
@@ -71,6 +72,7 @@
 
 /* Begin PBXFileReference section */
 		170DE5EF2AC4D02000D989B8 /* WindowCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCaptureManager.swift; sourceTree = "<group>"; };
+		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
 		17928F192AC5DF9C0016C615 /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
 		179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveSidebarToggle.swift; sourceTree = "<group>"; };
 		17C9EB7C2AC9FD0600141043 /* QueuedTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueuedTimer.swift; sourceTree = "<group>"; };
@@ -367,6 +369,7 @@
 			children = (
 				7112D0D42AB882D300F27889 /* Annotation.swift */,
 				71604D602AAE62DA002FE96F /* BottomBar.swift */,
+				176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */,
 				71604D622AAE84ED002FE96F /* ErrorOverlay.swift */,
 				71C4002F2AAD1C35006FDB1C /* IceButtonConfiguration.swift */,
 				71623BD22A8B6744002FD331 /* IceButtonStyle.swift */,
@@ -498,6 +501,7 @@
 				71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */,
 				716683502A7681AF006ABF84 /* MenuBar.swift in Sources */,
 				71A7D6D62ABEF3E5000768B8 /* LayoutBar.swift in Sources */,
+				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
 				170DE5F02AC4D02000D989B8 /* WindowCaptureManager.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,

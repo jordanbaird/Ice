@@ -8,9 +8,9 @@ import SwiftUI
 struct MenuBarSettingsPaneAppearanceTab: View {
     @EnvironmentObject var menuBar: MenuBar
 
-    private var tint: Binding<CGColor> {
+    private var tint: Binding<CGColor?> {
         Binding(
-            get: { menuBar.appearanceManager.tint ?? .black },
+            get: { menuBar.appearanceManager.tint },
             set: { menuBar.appearanceManager.tint = $0 }
         )
     }
@@ -41,12 +41,11 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                     }
                 }
 
-            ColorPicker(
-                "Menu Bar Tint",
+            CustomColorPicker(
                 selection: tint,
-                supportsOpacity: false
+                supportsOpacity: false,
+                mode: .crayon
             )
-            .labelsHidden()
         }
     }
 }

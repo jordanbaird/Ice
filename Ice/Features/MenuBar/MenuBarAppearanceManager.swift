@@ -3,15 +3,22 @@
 //  Ice
 //
 
-import CoreImage.CIFilterBuiltins
 import Cocoa
 import Combine
 import OSLog
 
 // MARK: - MenuBarAppearanceManager
 
-class MenuBarAppearanceManager: ObservableObject {
-    @Published var tint: CGColor?
+final class MenuBarAppearanceManager: ObservableObject {
+    enum TintKind: Int {
+        case none
+        case solid
+        case gradient
+    }
+
+    @Published var tintKind: TintKind
+    @Published var tintColor: CGColor?
+    @Published var tintGradient: CustomGradient?
 
     private(set) weak var menuBar: MenuBar?
 
@@ -20,37 +27,96 @@ class MenuBarAppearanceManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     init(menuBar: MenuBar) {
-        self.menuBar = menuBar
-        if let dictionary = UserDefaults.standard.dictionary(forKey: Defaults.menuBarTint) {
+        self.tintKind = TintKind(rawValue: UserDefaults.standard.integer(forKey: Defaults.menuBarTintKind)) ?? .none
+        if let tintColorDictionary = UserDefaults.standard.dictionary(forKey: Defaults.menuBarTintColor) {
             do {
-                self.tint = try DictionaryDecoder().decode(CodableColor.self, from: dictionary).cgColor
+                self.tintColor = try DictionaryDecoder().decode(CodableColor.self, from: tintColorDictionary).cgColor
             } catch {
-                Logger.appearanceManager.error("Error decoding color: \(error.localizedDescription)")
+                Logger.appearanceManager.error("Error decoding color: \(error)")
             }
         }
+        if let tintGradientDictionary = UserDefaults.standard.dictionary(forKey: Defaults.menuBarTintGradient) {
+            do {
+                self.tintGradient = try DictionaryDecoder().decode(CustomGradient.self, from: tintGradientDictionary)
+            } catch {
+                Logger.appearanceManager.error("Error decoding gradient: \(error)")
+            }
+        }
+        self.menuBar = menuBar
         configureCancellables()
     }
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        $tint
+        $tintKind
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] tint in
+            .sink { [weak self] tintKind in
                 guard let self else {
                     return
                 }
-                if let tint {
+                UserDefaults.standard.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
+                switch tintKind {
+                case .none:
+                    overlayPanel.hide()
+                case .solid, .gradient:
+                    overlayPanel.show()
+                }
+            }
+            .store(in: &c)
+
+        $tintColor
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] tintColor in
+                guard
+                    let self,
+                    tintKind == .solid
+                else {
+                    return
+                }
+                if let tintColor {
                     do {
-                        let dictionary = try DictionaryEncoder().encode(CodableColor(cgColor: tint))
-                        UserDefaults.standard.set(dictionary, forKey: Defaults.menuBarTint)
-                        overlayPanel.show()
+                        let dictionary = try DictionaryEncoder().encode(CodableColor(cgColor: tintColor))
+                        UserDefaults.standard.set(dictionary, forKey: Defaults.menuBarTintColor)
+                        if case .solid = tintKind {
+                            overlayPanel.show()
+                        }
                     } catch {
-                        Logger.appearanceManager.error("Error encoding color: \(error.localizedDescription)")
+                        Logger.appearanceManager.error("Error encoding color: \(error)")
                         overlayPanel.hide()
                     }
                 } else {
-                    UserDefaults.standard.removeObject(forKey: Defaults.menuBarTint)
+                    UserDefaults.standard.removeObject(forKey: Defaults.menuBarTintColor)
+                    overlayPanel.hide()
+                }
+            }
+            .store(in: &c)
+
+        $tintGradient
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] tintGradient in
+                guard
+                    let self,
+                    tintKind == .gradient
+                else {
+                    return
+                }
+                if
+                    let tintGradient,
+                    !tintGradient.stops.isEmpty
+                {
+                    do {
+                        let dictionary = try DictionaryEncoder().encode(tintGradient)
+                        UserDefaults.standard.set(dictionary, forKey: Defaults.menuBarTintGradient)
+                        if case .gradient = tintKind {
+                            overlayPanel.show()
+                        }
+                    } catch {
+                        Logger.appearanceManager.error("Error encoding gradient: \(error)")
+                        overlayPanel.hide()
+                    }
+                } else {
+                    UserDefaults.standard.removeObject(forKey: Defaults.menuBarTintGradient)
                     overlayPanel.hide()
                 }
             }
@@ -59,6 +125,8 @@ class MenuBarAppearanceManager: ObservableObject {
         cancellables = c
     }
 }
+
+extension MenuBarAppearanceManager: BindingExposable { }
 
 // MARK: - MenuBarOverlayPanel
 
@@ -88,18 +156,26 @@ private class MenuBarOverlayPanel: NSPanel {
             .ignoresCycle,
         ]
         self.ignoresMouseEvents = true
+        self.contentView?.wantsLayer = true
         configureCancellables()
     }
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        appearanceManager?.$tint
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] tint in
-                self?.backgroundColor = tint.map { NSColor(cgColor: $0) } ?? .clear
+        if let appearanceManager {
+            Publishers.CombineLatest3(
+                appearanceManager.$tintKind,
+                appearanceManager.$tintColor,
+                appearanceManager.$tintGradient
+            )
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.updateTint()
+                }
             }
             .store(in: &c)
+        }
 
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
@@ -109,7 +185,10 @@ private class MenuBarOverlayPanel: NSPanel {
                     return
                 }
                 hide()
-                if appearanceManager?.tint != nil {
+                if
+                    let appearanceManager,
+                    appearanceManager.tintKind != .none
+                {
                     show()
                 }
             }
@@ -147,6 +226,53 @@ private class MenuBarOverlayPanel: NSPanel {
 
     func hide() {
         orderOut(nil)
+    }
+
+    /// Updates the tint of the panel according to the appearance
+    /// manager's tint kind.
+    func updateTint() {
+        backgroundColor = .clear
+        contentView?.layer = CALayer()
+
+        guard let appearanceManager else {
+            return
+        }
+
+        switch appearanceManager.tintKind {
+        case .none:
+            break
+        case .solid:
+            guard
+                let tintColor = appearanceManager.tintColor,
+                let nsColor = NSColor(cgColor: tintColor)
+            else {
+                return
+            }
+            backgroundColor = nsColor
+        case .gradient:
+            guard
+                let tintGradient = appearanceManager.tintGradient,
+                !tintGradient.stops.isEmpty
+            else {
+                return
+            }
+            let gradientLayer = CAGradientLayer()
+            gradientLayer.startPoint = CGPoint(x: 0, y: 0)
+            gradientLayer.endPoint = CGPoint(x: 1, y: 0)
+            if tintGradient.stops.count == 1 {
+                // gradient layer needs at least two stops to render correctly;
+                // convert the single stop into two and place them on opposite
+                // ends of the layer
+                let color = tintGradient.stops[0].color
+                gradientLayer.colors = [color, color]
+                gradientLayer.locations = [0, 1]
+            } else {
+                let sortedStops = tintGradient.stops.sorted { $0.location < $1.location }
+                gradientLayer.colors = sortedStops.map { $0.color }
+                gradientLayer.locations = sortedStops.map { $0.location } as [NSNumber]
+            }
+            contentView?.layer = gradientLayer
+        }
     }
 }
 

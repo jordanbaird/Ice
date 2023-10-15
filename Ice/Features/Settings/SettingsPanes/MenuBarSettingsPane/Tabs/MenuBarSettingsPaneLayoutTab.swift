@@ -54,7 +54,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
             Section("Always Visible") {
                 LayoutBar(
                     backgroundColor: menuBar.averageColor,
-                    tint: menuBar.appearanceManager.tint.map { Color(cgColor: $0) },
+                    tint: menuBar.appearanceManager.tintColor.map { Color(cgColor: $0) },
                     layoutItems: $visibleItems
                 )
                 .annotation {
@@ -68,7 +68,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
             Section("Hidden") {
                 LayoutBar(
                     backgroundColor: menuBar.averageColor,
-                    tint: menuBar.appearanceManager.tint.map { Color(cgColor: $0) },
+                    tint: menuBar.appearanceManager.tintColor.map { Color(cgColor: $0) },
                     layoutItems: $hiddenItems
                 )
                 .annotation {
@@ -82,7 +82,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
             Section("Always Hidden") {
                 LayoutBar(
                     backgroundColor: menuBar.averageColor,
-                    tint: menuBar.appearanceManager.tint.map { Color(cgColor: $0) },
+                    tint: menuBar.appearanceManager.tintColor.map { Color(cgColor: $0) },
                     layoutItems: $alwaysHiddenItems
                 )
                 .annotation {

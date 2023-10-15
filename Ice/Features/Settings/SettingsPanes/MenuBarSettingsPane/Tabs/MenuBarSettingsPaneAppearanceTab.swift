@@ -6,19 +6,14 @@
 import SwiftUI
 
 struct MenuBarSettingsPaneAppearanceTab: View {
-    @EnvironmentObject var menuBar: MenuBar
+    typealias TintKind = MenuBarAppearanceManager.TintKind
 
-    private var tint: Binding<CGColor?> {
-        Binding(
-            get: { menuBar.appearanceManager.tint },
-            set: { menuBar.appearanceManager.tint = $0 }
-        )
-    }
+    @EnvironmentObject var menuBar: MenuBar
 
     var body: some View {
         Form {
             Section {
-                tintColorPicker
+                tintPicker
             }
         }
         .formStyle(.grouped)
@@ -26,26 +21,48 @@ struct MenuBarSettingsPaneAppearanceTab: View {
     }
 
     @ViewBuilder
-    private var tintColorPicker: some View {
+    private var tintPicker: some View {
         LabeledContent("Menu Bar Tint") {
-            Color.clear
-                .overlay(alignment: .trailing) {
-                    if menuBar.appearanceManager.tint != nil {
-                        Button {
-                            menuBar.appearanceManager.tint = nil
-                        } label: {
-                            Image(systemName: "arrow.counterclockwise")
-                        }
-                        .help("Reset")
-                        .buttonStyle(.borderless)
-                    }
+            HStack {
+                Picker("Menu Bar Tint", selection: menuBar.appearanceManager.bindings.tintKind) {
+                    Text("None")
+                        .tag(TintKind.none)
+                    Text("Solid")
+                        .tag(TintKind.solid)
+                    Text("Gradient")
+                        .tag(TintKind.gradient)
                 }
+                .labelsHidden()
 
-            CustomColorPicker(
-                selection: tint,
-                supportsOpacity: false,
-                mode: .crayon
-            )
+                switch menuBar.appearanceManager.tintKind {
+                case .none:
+                    EmptyView()
+                case .solid:
+                    CustomColorPicker(
+                        selection: menuBar.appearanceManager.bindings.tintColor,
+                        supportsOpacity: false,
+                        mode: .crayon
+                    )
+                case .gradient:
+                    GradientPicker(
+                        gradient: Binding(
+                            get: {
+                                menuBar.appearanceManager.tintGradient ?? CustomGradient()
+                            },
+                            set: { gradient in
+                                if gradient.stops.isEmpty {
+                                    menuBar.appearanceManager.tintGradient = nil
+                                } else {
+                                    menuBar.appearanceManager.tintGradient = gradient
+                                }
+                            }
+                        ),
+                        supportsOpacity: false,
+                        mode: .crayon
+                    )
+                }
+            }
+            .frame(height: 24)
         }
     }
 }

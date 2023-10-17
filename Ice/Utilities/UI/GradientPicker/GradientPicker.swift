@@ -6,11 +6,6 @@
 import Combine
 import SwiftUI
 
-private class GradientPickerModel: ObservableObject {
-    @Published var selectedStop: ColorStop?
-    var cancellables = [ColorStop: Set<AnyCancellable>]()
-}
-
 struct GradientPicker: View {
     @Binding var gradient: CustomGradient
     @StateObject private var model = GradientPickerModel()
@@ -177,7 +172,6 @@ private struct GradientPickerHandle: View {
     let geometry: GeometryProxy
     let width: CGFloat = 8
     let height: CGFloat = 22
-    private var selectedStopCancellable: Cancellable?
 
     var stroke: AnyShapeStyle {
         if model.selectedStop == stop {
@@ -185,33 +179,6 @@ private struct GradientPickerHandle: View {
         } else {
             AnyShapeStyle(.secondary.opacity(0.75))
         }
-    }
-
-    init(
-        gradient: Binding<CustomGradient>,
-        stop: Binding<ColorStop>,
-        zOrderedStops: Binding<[ColorStop]>,
-        model: GradientPickerModel,
-        supportsOpacity: Bool,
-        mode: NSColorPanel.Mode,
-        geometry: GeometryProxy
-    ) {
-        self._gradient = gradient
-        self._stop = stop
-        self._zOrderedStops = zOrderedStops
-        self.model = model
-        self.supportsOpacity = supportsOpacity
-        self.mode = mode
-        self.geometry = geometry
-        self.selectedStopCancellable = model.$selectedStop
-            .sink { selectedStop in
-                if selectedStop != stop.wrappedValue {
-                    for cancellable in model.cancellables[stop.wrappedValue] ?? [] {
-                        cancellable.cancel()
-                    }
-                    model.cancellables[stop.wrappedValue]?.removeAll()
-                }
-            }
     }
 
     var body: some View {
@@ -254,13 +221,18 @@ private struct GradientPickerHandle: View {
                         }
                     }
             )
-            .simultaneousGesture(
-                TapGesture(count: 1)
-                    .onEnded {
+            .onTapGesture {
+                model.selectedStop = stop
+            }
+            .zIndex(Double(zOrderedStops.firstIndex(of: stop) ?? 0))
+            .onReceive(model.$selectedStop) { _ in
+                deactivate()
+                DispatchQueue.main.async {
+                    if model.selectedStop == stop {
                         activate()
                     }
-            )
-            .zIndex(Double(zOrderedStops.firstIndex(of: stop) ?? 0))
+                }
+            }
     }
 
     private func update(with location: CGFloat, snap: Bool) {
@@ -296,12 +268,11 @@ private struct GradientPickerHandle: View {
         deactivate()
 
         NSColorPanel.shared.showsAlpha = supportsOpacity
+        NSColorPanel.shared.mode = mode
         if let color = NSColor(cgColor: stop.color) {
             NSColorPanel.shared.color = color
         }
-        NSColorPanel.shared.mode = mode
-        NSColorPanel.shared.makeKeyAndOrderFront(self)
-        model.selectedStop = stop
+        NSColorPanel.shared.orderFrontRegardless()
 
         var c = Set<AnyCancellable>()
 
@@ -318,20 +289,19 @@ private struct GradientPickerHandle: View {
         NSColorPanel.shared.publisher(for: \.isVisible)
             .sink { isVisible in
                 if !isVisible {
-                    deactivate()
+                    model.selectedStop = nil
                 }
             }
             .store(in: &c)
 
-        model.cancellables[stop] = c
+        model.cancellables = c
     }
 
     private func deactivate() {
-        for cancellable in model.cancellables[stop] ?? [] {
+        for cancellable in model.cancellables {
             cancellable.cancel()
         }
-        model.cancellables[stop]?.removeAll()
-        model.selectedStop = nil
+        model.cancellables.removeAll()
     }
 }
 

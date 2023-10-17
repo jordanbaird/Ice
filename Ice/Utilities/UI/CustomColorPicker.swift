@@ -29,17 +29,27 @@ struct CustomColorPicker: View {
         }
     }
 
+    private var stroke: AnyShapeStyle {
+        if isActive {
+            AnyShapeStyle(.primary)
+        } else {
+            AnyShapeStyle(.secondary.opacity(0.75))
+        }
+    }
+
     var body: some View {
         RoundedRectangle(cornerRadius: 5)
             .fill(fill)
-            .shadow(radius: 1)
             .overlay {
                 RoundedRectangle(cornerRadius: 5)
-                    .stroke(isActive ? .primary : .secondary)
-                    .blendMode(selection == nil ? .normal : .overlay)
+                    .stroke()
+                    .foregroundStyle(stroke)
+                    .blendMode(.softLight)
             }
             .frame(width: 40, height: 24)
+            .shadow(radius: 1)
             .contentShape(Rectangle())
+            .foregroundStyle(Color(white: 0.9))
             .help("Select a color")
             .onTapGesture {
                 activate()
@@ -50,14 +60,14 @@ struct CustomColorPicker: View {
         deactivate()
 
         NSColorPanel.shared.showsAlpha = supportsOpacity
+        NSColorPanel.shared.mode = mode
         if
             let selection,
             let color = NSColor(cgColor: selection)
         {
             NSColorPanel.shared.color = color
         }
-        NSColorPanel.shared.mode = mode
-        NSColorPanel.shared.makeKeyAndOrderFront(self)
+        NSColorPanel.shared.orderFrontRegardless()
 
         NSColorPanel.shared.publisher(for: \.color)
             .dropFirst()

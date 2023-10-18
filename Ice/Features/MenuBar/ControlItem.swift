@@ -37,9 +37,6 @@ final class ControlItem: ObservableObject {
     /// specific menu items.
     private static let sectionStorage = ObjectAssociation<MenuBarSection>()
 
-    /// Observers for key aspects of the control item's state.
-    private var cancellables = Set<AnyCancellable>()
-
     /// The control item's underlying status item.
     private let statusItem: NSStatusItem
 
@@ -57,6 +54,8 @@ final class ControlItem: ObservableObject {
     ///
     /// Setting this value marks the item as needing an update.
     @Published var state: HidingState
+
+    private var cancellables = Set<AnyCancellable>()
 
     /// The menu bar associated with the control item.
     weak var menuBar: MenuBar? {
@@ -203,8 +202,6 @@ final class ControlItem: ObservableObject {
         button.sendAction(on: [.leftMouseDown, .rightMouseUp])
     }
 
-    /// Sets up a series of cancellables to respond to changes in
-    /// the control item's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 

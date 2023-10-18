@@ -9,13 +9,13 @@ struct MenuBarSettingsPane: View {
     @AppStorage(Defaults.menuBarSettingsPaneSelectedTab) var selection: Int = 0
 
     var body: some View {
-        IceTabView(selection: $selection) {
-            IceTab {
+        CustomTabView(selection: $selection) {
+            CustomTab {
                 Text("Layout")
             } content: {
                 MenuBarSettingsPaneLayoutTab()
             }
-            IceTab {
+            CustomTab {
                 Text("Appearance")
             } content: {
                 MenuBarSettingsPaneAppearanceTab()

@@ -12,6 +12,13 @@ struct CustomGradient: View {
     /// The color stops in the gradient.
     var stops: [ColorStop]
 
+    /// The color stops in the gradient, sorted by location.
+    var sortedStops: [ColorStop] {
+        stops.sorted { lhs, rhs in
+            lhs.location < rhs.location
+        }
+    }
+
     /// A Cocoa representation of this gradient.
     var nsGradient: NSGradient? {
         let colors = stops.compactMap { stop in

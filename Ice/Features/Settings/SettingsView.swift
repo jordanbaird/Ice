@@ -111,6 +111,6 @@ struct SettingsView: View {
     let menuBar = MenuBar()
 
     return SettingsView()
-        .buttonStyle(IceButtonStyle())
+        .buttonStyle(CustomButtonStyle())
         .environmentObject(menuBar)
 }

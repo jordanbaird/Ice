@@ -22,9 +22,9 @@ struct MenuBarSettingsPaneAppearanceTab: View {
 
     @ViewBuilder
     private var tintPicker: some View {
-        LabeledContent("Menu Bar Tint") {
+        LabeledContent("Menu bar tint") {
             HStack {
-                Picker("Menu Bar Tint", selection: menuBar.appearanceManager.bindings.tintKind) {
+                Picker("Menu bar tint", selection: menuBar.appearanceManager.bindings.tintKind) {
                     Text("None")
                         .tag(TintKind.none)
                     Text("Solid")
@@ -38,13 +38,31 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                 case .none:
                     EmptyView()
                 case .solid:
+                    if menuBar.appearanceManager.tintColor != nil {
+                        Button {
+                            menuBar.appearanceManager.tintColor = nil
+                        } label: {
+                            Image(systemName: "arrow.counterclockwise")
+                        }
+                        .help("Reset")
+                        .buttonStyle(.plain)
+                    }
                     CustomColorPicker(
                         selection: menuBar.appearanceManager.bindings.tintColor,
                         supportsOpacity: false,
                         mode: .crayon
                     )
                 case .gradient:
-                    GradientPicker(
+                    if menuBar.appearanceManager.tintGradient != nil {
+                        Button {
+                            menuBar.appearanceManager.tintGradient = nil
+                        } label: {
+                            Image(systemName: "arrow.counterclockwise")
+                        }
+                        .help("Reset")
+                        .buttonStyle(.plain)
+                    }
+                    CustomGradientPicker(
                         gradient: Binding(
                             get: {
                                 menuBar.appearanceManager.tintGradient ?? CustomGradient()

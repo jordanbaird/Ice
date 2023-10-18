@@ -24,36 +24,36 @@ struct LayoutBar: View {
         }
     }
 
-    /// The items displayed in the layout bar.
     @Binding var layoutItems: [LayoutBarItem]
+    @ObservedObject var appearanceManager: MenuBarAppearanceManager
 
     /// The amount of spacing between each layout item.
     let spacing: CGFloat
 
     /// The color of the layout bar's background.
-    let backgroundColor: Color?
+    var backgroundColor: Color? {
+        guard let averageColor = appearanceManager.averageColor else {
+            return nil
+        }
+        return Color(cgColor: averageColor)
+    }
 
-    /// A color to tint the layout bar.
-    let tint: Color?
-
-    /// Creates a layout bar with the given spacing, background color,
-    /// tint color, and layout items.
+    /// Creates a layout bar with the given spacing, appearance manager,
+    /// and layout items.
     ///
     /// - Parameters:
     ///   - spacing: The amount of spacing between each layout item.
-    ///   - backgroundColor: The color of the layout bar's background.
-    ///   - tint: A color to tint the layout bar.
+    ///   - appearanceManager: The appearance manager that manages the
+    ///     menu bar, to synchronize the appearance of the layout bar.
     ///   - layoutItems: The items displayed in the layout bar.
     init(
         spacing: CGFloat = 0,
-        backgroundColor: Color?,
-        tint: Color?,
+        appearanceManager: MenuBarAppearanceManager,
         layoutItems: Binding<[LayoutBarItem]>
     ) {
         self._layoutItems = layoutItems
         self.spacing = spacing
-        self.backgroundColor = backgroundColor
-        self.tint = tint
+        self.appearanceManager = appearanceManager
     }
 
     var body: some View {
@@ -62,17 +62,41 @@ struct LayoutBar: View {
             spacing: spacing
         )
         .background {
-            RoundedRectangle(cornerRadius: 9)
-                .fill(backgroundColor ?? .defaultLayoutBar)
+            if let backgroundColor {
+                backgroundColor
+                    .overlay(
+                        Material.bar
+                            .opacity(0.2)
+                            .blendMode(.multiply)
+                    )
+                    .clipShape(
+                        RoundedRectangle(cornerRadius: 9)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(.defaultLayoutBar)
+            }
         }
         .overlay {
-            if
-                let tint,
-                backgroundColor != nil
-            {
-                RoundedRectangle(cornerRadius: 9)
-                    .fill(tint.opacity(0.2))
-                    .allowsHitTesting(false)
+            if backgroundColor != nil {
+                switch appearanceManager.tintKind {
+                case .none:
+                    EmptyView()
+                case .solid:
+                    if let tintColor = appearanceManager.tintColor {
+                        RoundedRectangle(cornerRadius: 9)
+                            .fill(Color(cgColor: tintColor))
+                            .opacity(0.2)
+                            .allowsHitTesting(false)
+                    }
+                case .gradient:
+                    if let tintGradient = appearanceManager.tintGradient {
+                        tintGradient
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+                            .opacity(0.2)
+                            .allowsHitTesting(false)
+                    }
+                }
             }
         }
     }
@@ -108,11 +132,12 @@ private struct PreviewLayoutBar: View {
         ),
     ]
 
+    @StateObject private var appearanceManager = MenuBarAppearanceManager(menuBar: MenuBar())
+
     var body: some View {
         LayoutBar(
             spacing: 5,
-            backgroundColor: .defaultLayoutBar,
-            tint: nil,
+            appearanceManager: appearanceManager,
             layoutItems: $layoutItems
         )
     }

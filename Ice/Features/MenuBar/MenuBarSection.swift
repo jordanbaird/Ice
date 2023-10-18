@@ -16,14 +16,11 @@ final class MenuBarSection: ObservableObject {
         case alwaysHidden = "Always Hidden"
     }
 
-    /// Observers for important aspects of state.
-    private var cancellables = Set<AnyCancellable>()
-
-    /// A value that manages the lifetime of the hotkey's observation.
-    private var listener: Hotkey.Listener?
-
     /// User-visible name that describes the section.
     @Published var name: Name
+
+    /// A Boolean value that indicates whether the section is enabled.
+    @Published var isEnabled: Bool
 
     /// The control item that manages the visibility of the section.
     @Published var controlItem: ControlItem {
@@ -43,8 +40,8 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    /// A Boolean value that indicates whether the section is enabled.
-    @Published var isEnabled: Bool
+    private var listener: Hotkey.Listener?
+    private var cancellables = Set<AnyCancellable>()
 
     /// The menu bar associated with the section.
     weak var menuBar: MenuBar? {
@@ -98,8 +95,6 @@ final class MenuBarSection: ObservableObject {
         )
     }
 
-    /// Sets up a series of cancellables to respond to changes in
-    /// the section's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 

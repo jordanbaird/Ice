@@ -52,7 +52,7 @@ class LayoutBarContainer: NSView {
     /// After each layout pass, this value is reset to `true`.
     var shouldAnimateNextLayoutPass = true
 
-    /// The amount of spacing between each arranged view.
+    /// The amount of space between each arranged view.
     var spacing: CGFloat {
         didSet {
             layoutArrangedViews()

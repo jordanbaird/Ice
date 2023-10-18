@@ -8,8 +8,8 @@ import SwiftUI
 
 struct CustomColorPicker: View {
     @Binding var selection: CGColor?
+    @StateObject private var model = CustomColorPickerModel()
     @State private var isActive = false
-    @State private var cancellables = Set<AnyCancellable>()
 
     let supportsOpacity: Bool
     let mode: NSColorPanel.Mode
@@ -54,6 +54,9 @@ struct CustomColorPicker: View {
             .onTapGesture {
                 activate()
             }
+            .onDisappear {
+                deactivate()
+            }
     }
 
     private func activate() {
@@ -69,6 +72,8 @@ struct CustomColorPicker: View {
         }
         NSColorPanel.shared.orderFrontRegardless()
 
+        var c = Set<AnyCancellable>()
+
         NSColorPanel.shared.publisher(for: \.color)
             .dropFirst()
             .sink { color in
@@ -76,7 +81,7 @@ struct CustomColorPicker: View {
                     selection = color.cgColor
                 }
             }
-            .store(in: &cancellables)
+            .store(in: &c)
 
         NSColorPanel.shared.publisher(for: \.isVisible)
             .sink { isVisible in
@@ -84,16 +89,18 @@ struct CustomColorPicker: View {
                     deactivate()
                 }
             }
-            .store(in: &cancellables)
+            .store(in: &c)
+
+        model.cancellables = c
 
         isActive = true
     }
 
     private func deactivate() {
-        for cancellable in cancellables {
+        for cancellable in model.cancellables {
             cancellable.cancel()
         }
-        cancellables.removeAll()
+        model.cancellables.removeAll()
         isActive = false
     }
 }

@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		170DE5F02AC4D02000D989B8 /* WindowCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170DE5EF2AC4D02000D989B8 /* WindowCaptureManager.swift */; };
-		1736F77C2ADBBF340073428E /* GradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* GradientPicker.swift */; };
+		1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */; };
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
 		1736F7832ADBCAFD0073428E /* CGColor+blended.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F7822ADBCAFD0073428E /* CGColor+blended.swift */; };
 		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
@@ -16,7 +16,7 @@
 		179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */; };
 		17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */; };
 		17B380F52ADCBE090002C9C3 /* LocalEventMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F42ADCBE090002C9C3 /* LocalEventMonitorView.swift */; };
-		17C209B22ADF4A3100F68623 /* GradientPickerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C209B12ADF4A3100F68623 /* GradientPickerModel.swift */; };
+		17C209B22ADF4A3100F68623 /* CustomGradientPickerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C209B12ADF4A3100F68623 /* CustomGradientPickerModel.swift */; };
 		17C9EB7D2AC9FD0600141043 /* QueuedTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C9EB7C2AC9FD0600141043 /* QueuedTimer.swift */; };
 		17DFF4952ACF7F6300B5177A /* TrimTransparency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4942ACF7F6300B5177A /* TrimTransparency.swift */; };
 		17DFF4992AD04AC200B5177A /* MenuBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4982AD04AC200B5177A /* MenuBarItem.swift */; };
@@ -25,6 +25,8 @@
 		17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPaneAppearanceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPaneAppearanceTab.swift */; };
 		17DFF4B02AD601FE00B5177A /* MenuBarAppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AF2AD601FE00B5177A /* MenuBarAppearanceManager.swift */; };
 		17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */; };
+		17EC6B552AE0C0DE0065F260 /* CustomColorPickerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EC6B542AE0C0DE0065F260 /* CustomColorPickerModel.swift */; };
+		17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */; };
 		17FE8E842AC73EBF006C6579 /* MenuBarItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE8E832AC73EBF006C6579 /* MenuBarItemManager.swift */; };
 		17FE8E862AC767F4006C6579 /* LayoutBarContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE8E852AC767F4006C6579 /* LayoutBarContainer.swift */; };
 		17FE8E882AC76842006C6579 /* LayoutBarScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE8E872AC76842006C6579 /* LayoutBarScrollView.swift */; };
@@ -32,7 +34,7 @@
 		7112D0D52AB882D300F27889 /* Annotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7112D0D42AB882D300F27889 /* Annotation.swift */; };
 		7112D0D92AB883AC00F27889 /* ColorAverage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7112D0D82AB883AC00F27889 /* ColorAverage.swift */; };
 		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
-		711AD0EB2ABD616700258639 /* IceTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711AD0EA2ABD616700258639 /* IceTabView.swift */; };
+		711AD0EB2ABD616700258639 /* CustomTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711AD0EA2ABD616700258639 /* CustomTabView.swift */; };
 		7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED5D2A853FCF000A7E1B /* Constants.swift */; };
 		7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */; };
 		7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED692A85870E000A7E1B /* SettingsView.swift */; };
@@ -47,7 +49,7 @@
 		71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71604D622AAE84ED002FE96F /* ErrorOverlay.swift */; };
 		71604D662AAEAB0D002FE96F /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 71604D652AAEAB0D002FE96F /* LaunchAtLogin */; };
 		71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */; };
-		71623BD32A8B6744002FD331 /* IceButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BD22A8B6744002FD331 /* IceButtonStyle.swift */; };
+		71623BD32A8B6744002FD331 /* CustomButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BD22A8B6744002FD331 /* CustomButtonStyle.swift */; };
 		7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7162406E2AA0A323003EC671 /* MenuBarSection.swift */; };
 		7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166832D2A767E6A006ABF84 /* IceApp.swift */; };
 		716683322A767E6B006ABF84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 716683312A767E6B006ABF84 /* Assets.xcassets */; };
@@ -63,7 +65,7 @@
 		71A7D6D62ABEF3E5000768B8 /* LayoutBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A7D6D52ABEF3E5000768B8 /* LayoutBar.swift */; };
 		71A7D6D82ABEF40F000768B8 /* LayoutBarCocoaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A7D6D72ABEF40F000768B8 /* LayoutBarCocoaView.swift */; };
 		71A7D6DC2ABEF667000768B8 /* LayoutBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A7D6DB2ABEF667000768B8 /* LayoutBarItem.swift */; };
-		71C400302AAD1C35006FDB1C /* IceButtonConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C4002F2AAD1C35006FDB1C /* IceButtonConfiguration.swift */; };
+		71C400302AAD1C35006FDB1C /* CustomButtonConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C4002F2AAD1C35006FDB1C /* CustomButtonConfiguration.swift */; };
 		71C400322AAD76A8006FDB1C /* WindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C400312AAD76A8006FDB1C /* WindowReader.swift */; };
 		71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */; };
 		71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */; };
@@ -78,7 +80,7 @@
 
 /* Begin PBXFileReference section */
 		170DE5EF2AC4D02000D989B8 /* WindowCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCaptureManager.swift; sourceTree = "<group>"; };
-		1736F77B2ADBBF340073428E /* GradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientPicker.swift; sourceTree = "<group>"; };
+		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
 		1736F7822ADBCAFD0073428E /* CGColor+blended.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGColor+blended.swift"; sourceTree = "<group>"; };
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
@@ -86,7 +88,7 @@
 		179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveSidebarToggle.swift; sourceTree = "<group>"; };
 		17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnKeyDown.swift; sourceTree = "<group>"; };
 		17B380F42ADCBE090002C9C3 /* LocalEventMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalEventMonitorView.swift; sourceTree = "<group>"; };
-		17C209B12ADF4A3100F68623 /* GradientPickerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientPickerModel.swift; sourceTree = "<group>"; };
+		17C209B12ADF4A3100F68623 /* CustomGradientPickerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPickerModel.swift; sourceTree = "<group>"; };
 		17C9EB7C2AC9FD0600141043 /* QueuedTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueuedTimer.swift; sourceTree = "<group>"; };
 		17DFF4942ACF7F6300B5177A /* TrimTransparency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrimTransparency.swift; sourceTree = "<group>"; };
 		17DFF4982AD04AC200B5177A /* MenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItem.swift; sourceTree = "<group>"; };
@@ -95,6 +97,8 @@
 		17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPaneAppearanceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsPaneAppearanceTab.swift; sourceTree = "<group>"; };
 		17DFF4AF2AD601FE00B5177A /* MenuBarAppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceManager.swift; sourceTree = "<group>"; };
 		17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableColor.swift; sourceTree = "<group>"; };
+		17EC6B542AE0C0DE0065F260 /* CustomColorPickerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPickerModel.swift; sourceTree = "<group>"; };
+		17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+clamped.swift"; sourceTree = "<group>"; };
 		17FE8E832AC73EBF006C6579 /* MenuBarItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemManager.swift; sourceTree = "<group>"; };
 		17FE8E852AC767F4006C6579 /* LayoutBarContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarContainer.swift; sourceTree = "<group>"; };
 		17FE8E872AC76842006C6579 /* LayoutBarScrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarScrollView.swift; sourceTree = "<group>"; };
@@ -102,7 +106,7 @@
 		7112D0D42AB882D300F27889 /* Annotation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Annotation.swift; sourceTree = "<group>"; };
 		7112D0D82AB883AC00F27889 /* ColorAverage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ColorAverage.swift; sourceTree = "<group>"; };
 		711535F12AB9F6C1003193AD /* BindingExposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingExposable.swift; sourceTree = "<group>"; };
-		711AD0EA2ABD616700258639 /* IceTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceTabView.swift; sourceTree = "<group>"; };
+		711AD0EA2ABD616700258639 /* CustomTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTabView.swift; sourceTree = "<group>"; };
 		7133ED5D2A853FCF000A7E1B /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+windowWithIdentifier.swift"; sourceTree = "<group>"; };
 		7133ED692A85870E000A7E1B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -116,7 +120,7 @@
 		71604D602AAE62DA002FE96F /* BottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBar.swift; sourceTree = "<group>"; };
 		71604D622AAE84ED002FE96F /* ErrorOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorOverlay.swift; sourceTree = "<group>"; };
 		71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsPane.swift; sourceTree = "<group>"; };
-		71623BD22A8B6744002FD331 /* IceButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceButtonStyle.swift; sourceTree = "<group>"; };
+		71623BD22A8B6744002FD331 /* CustomButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomButtonStyle.swift; sourceTree = "<group>"; };
 		7162406E2AA0A323003EC671 /* MenuBarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSection.swift; sourceTree = "<group>"; };
 		7166832A2A767E6A006ABF84 /* Ice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ice.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7166832D2A767E6A006ABF84 /* IceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceApp.swift; sourceTree = "<group>"; };
@@ -134,7 +138,7 @@
 		71A7D6D52ABEF3E5000768B8 /* LayoutBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBar.swift; sourceTree = "<group>"; };
 		71A7D6D72ABEF40F000768B8 /* LayoutBarCocoaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarCocoaView.swift; sourceTree = "<group>"; };
 		71A7D6DB2ABEF667000768B8 /* LayoutBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarItem.swift; sourceTree = "<group>"; };
-		71C4002F2AAD1C35006FDB1C /* IceButtonConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceButtonConfiguration.swift; sourceTree = "<group>"; };
+		71C4002F2AAD1C35006FDB1C /* CustomButtonConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomButtonConfiguration.swift; sourceTree = "<group>"; };
 		71C400312AAD76A8006FDB1C /* WindowReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowReader.swift; sourceTree = "<group>"; };
 		71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+displayName.swift"; sourceTree = "<group>"; };
 		71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+versionString.swift"; sourceTree = "<group>"; };
@@ -159,14 +163,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		1736F7762ADBBEF10073428E /* GradientPicker */ = {
+		1736F7762ADBBEF10073428E /* CustomGradientPicker */ = {
 			isa = PBXGroup;
 			children = (
 				1736F77F2ADBC02B0073428E /* CustomGradient.swift */,
-				1736F77B2ADBBF340073428E /* GradientPicker.swift */,
-				17C209B12ADF4A3100F68623 /* GradientPickerModel.swift */,
+				1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */,
+				17C209B12ADF4A3100F68623 /* CustomGradientPickerModel.swift */,
 			);
-			path = GradientPicker;
+			path = CustomGradientPicker;
 			sourceTree = "<group>";
 		};
 		1736F7812ADBCA900073428E /* CGColor */ = {
@@ -202,6 +206,32 @@
 				71604D5E2AAE5E7D002FE96F /* MenuBarSettingsPaneLayoutTab.swift */,
 			);
 			path = Tabs;
+			sourceTree = "<group>";
+		};
+		17EC6B522AE0C09F0065F260 /* Pickers */ = {
+			isa = PBXGroup;
+			children = (
+				17EC6B532AE0C0C50065F260 /* CustomColorPicker */,
+				1736F7762ADBBEF10073428E /* CustomGradientPicker */,
+			);
+			path = Pickers;
+			sourceTree = "<group>";
+		};
+		17EC6B532AE0C0C50065F260 /* CustomColorPicker */ = {
+			isa = PBXGroup;
+			children = (
+				176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */,
+				17EC6B542AE0C0DE0065F260 /* CustomColorPickerModel.swift */,
+			);
+			path = CustomColorPicker;
+			sourceTree = "<group>";
+		};
+		17EC6B562AE0C3340065F260 /* Comparable */ = {
+			isa = PBXGroup;
+			children = (
+				17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */,
+			);
+			path = Comparable;
 			sourceTree = "<group>";
 		};
 		7133ED5F2A855ADA000A7E1B /* NSApplication */ = {
@@ -302,6 +332,7 @@
 			children = (
 				71D2B02A2AAFD88E0002B6C8 /* Bundle */,
 				1736F7812ADBCA900073428E /* CGColor */,
+				17EC6B562AE0C3340065F260 /* Comparable */,
 				71839BD62A997DA300250044 /* Edge */,
 				716683442A76811C006ABF84 /* Logger */,
 				7133ED5F2A855ADA000A7E1B /* NSApplication */,
@@ -400,15 +431,14 @@
 			children = (
 				7112D0D42AB882D300F27889 /* Annotation.swift */,
 				71604D602AAE62DA002FE96F /* BottomBar.swift */,
-				176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */,
+				71C4002F2AAD1C35006FDB1C /* CustomButtonConfiguration.swift */,
+				71623BD22A8B6744002FD331 /* CustomButtonStyle.swift */,
+				711AD0EA2ABD616700258639 /* CustomTabView.swift */,
 				71604D622AAE84ED002FE96F /* ErrorOverlay.swift */,
-				1736F7762ADBBEF10073428E /* GradientPicker */,
-				71C4002F2AAD1C35006FDB1C /* IceButtonConfiguration.swift */,
-				71623BD22A8B6744002FD331 /* IceButtonStyle.swift */,
-				711AD0EA2ABD616700258639 /* IceTabView.swift */,
 				17B380F42ADCBE090002C9C3 /* LocalEventMonitorView.swift */,
 				71839C152A9B6A0D00250044 /* OnFrameChange.swift */,
 				17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */,
+				17EC6B522AE0C09F0065F260 /* Pickers */,
 				179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */,
 				71D36C532A89445C00D89CD5 /* VisualEffectView.swift */,
 				71C400312AAD76A8006FDB1C /* WindowReader.swift */,
@@ -523,10 +553,11 @@
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
 				7112D0D52AB882D300F27889 /* Annotation.swift in Sources */,
+				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,
 				718AFF2C2AB360AD00BC49CB /* HotkeyRecorderModel.swift in Sources */,
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,
-				1736F77C2ADBBF340073428E /* GradientPicker.swift in Sources */,
+				1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */,
 				71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
 				7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */,
@@ -550,7 +581,7 @@
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
 				71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */,
 				7150A7B32AA42B640045EA68 /* Hotkey+Modifiers.swift in Sources */,
-				17C209B22ADF4A3100F68623 /* GradientPickerModel.swift in Sources */,
+				17C209B22ADF4A3100F68623 /* CustomGradientPickerModel.swift in Sources */,
 				71C400322AAD76A8006FDB1C /* WindowReader.swift in Sources */,
 				71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */,
 				17C9EB7D2AC9FD0600141043 /* QueuedTimer.swift in Sources */,
@@ -558,22 +589,23 @@
 				17B380F52ADCBE090002C9C3 /* LocalEventMonitorView.swift in Sources */,
 				17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */,
 				71839BD82A997DC200250044 /* Edge+cgRectEdge.swift in Sources */,
-				71C400302AAD1C35006FDB1C /* IceButtonConfiguration.swift in Sources */,
+				71C400302AAD1C35006FDB1C /* CustomButtonConfiguration.swift in Sources */,
 				714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */,
 				17FE8E882AC76842006C6579 /* LayoutBarScrollView.swift in Sources */,
-				71623BD32A8B6744002FD331 /* IceButtonStyle.swift in Sources */,
+				71623BD32A8B6744002FD331 /* CustomButtonStyle.swift in Sources */,
 				17DFF4B02AD601FE00B5177A /* MenuBarAppearanceManager.swift in Sources */,
 				17DFF4992AD04AC200B5177A /* MenuBarItem.swift in Sources */,
 				17DFF4A82AD5BF7D00B5177A /* MenuBarSettingsPane.swift in Sources */,
 				71A7D6DC2ABEF667000768B8 /* LayoutBarItem.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */,
-				711AD0EB2ABD616700258639 /* IceTabView.swift in Sources */,
+				711AD0EB2ABD616700258639 /* CustomTabView.swift in Sources */,
 				1736F7832ADBCAFD0073428E /* CGColor+blended.swift in Sources */,
 				71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */,
 				179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */,
 				17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPaneAppearanceTab.swift in Sources */,
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
 				71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */,
+				17EC6B552AE0C0DE0065F260 /* CustomColorPickerModel.swift in Sources */,
 				71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				17DFF4952ACF7F6300B5177A /* TrimTransparency.swift in Sources */,

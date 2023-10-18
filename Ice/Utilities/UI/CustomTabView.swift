@@ -1,20 +1,23 @@
 //
-//  IceTabView.swift
+//  CustomTabView.swift
 //  Ice
 //
 
 import SwiftUI
 
-/// A tab view that displays its tabs with the ``IceButtonStyle``.
-struct IceTabView: View {
+/// A tab view that displays its tabs with the ``CustomButtonStyle``.
+struct CustomTabView: View {
     /// Index of the currently selected tab.
     @Binding var selection: Int
 
     /// The tabs in the tab view.
-    let tabs: [IceTab]
+    let tabs: [CustomTab]
 
-    /// Creates a tab view with the given tabs.
-    init(selection: Binding<Int>, @IceTabBuilder tabs: () -> [IceTab]) {
+    /// Creates a tab view with the given selection and tabs.
+    init(
+        selection: Binding<Int>,
+        @CustomTabBuilder tabs: () -> [CustomTab]
+    ) {
         self._selection = selection
         self.tabs = tabs()
     }
@@ -23,7 +26,7 @@ struct IceTabView: View {
         VStack(spacing: 0) {
             HStack(spacing: 5) {
                 ForEach(0..<tabs.count, id: \.self) { index in
-                    IceTabButton(
+                    CustomTabButton(
                         selection: $selection,
                         tab: tabs[index],
                         index: index
@@ -49,7 +52,7 @@ struct IceTabView: View {
                 selection = 0
             }
         }
-        .buttonStyle(IceButtonStyle())
+        .buttonStyle(CustomButtonStyle())
     }
 
     @ViewBuilder
@@ -60,8 +63,9 @@ struct IceTabView: View {
     }
 }
 
-/// A type that contains the to construct a tab in an ``IceTabView``.
-struct IceTab {
+/// A type that contains the information to construct a
+/// tab in a ``CustomTabView``.
+struct CustomTab {
     /// The tab's label view.
     let label: AnyView
 
@@ -79,11 +83,11 @@ struct IceTab {
 }
 
 /// Custom button to display as a tab above a tab view.
-private struct IceTabButton: View {
+private struct CustomTabButton: View {
     @State private var isHovering = false
     @Binding var selection: Int
 
-    let tab: IceTab
+    let tab: CustomTab
     let index: Int
 
     var isSelected: Bool {
@@ -96,7 +100,7 @@ private struct IceTabButton: View {
         } label: {
             tab.label
         }
-        .iceButtonConfiguration {
+        .customButtonConfiguration {
             $0.bezelOpacity = isSelected ? 1 : isHovering ? 0.5 : 0
             $0.isHighlighted = isSelected
             $0.labelForegroundColor = .primary.opacity(isSelected ? 1 : 0.75)
@@ -110,25 +114,25 @@ private struct IceTabButton: View {
 /// A result builder type that builds an array of tabs
 /// for a custom tab view.
 @resultBuilder
-enum IceTabBuilder {
-    static func buildBlock(_ components: IceTab...) -> [IceTab] {
+enum CustomTabBuilder {
+    static func buildBlock(_ components: CustomTab...) -> [CustomTab] {
         components
     }
 }
 
 #Preview {
-    IceTabView(selection: .constant(0)) {
-        IceTab {
+    CustomTabView(selection: .constant(0)) {
+        CustomTab {
             Text("Tab 1")
         } content: {
             Text("Tab 1 Content")
         }
-        IceTab {
+        CustomTab {
             Text("Tab 2")
         } content: {
             Text("Tab 2 Content")
         }
-        IceTab {
+        CustomTab {
             Text("Tab 3")
         } content: {
             Text("Tab 3 Content")

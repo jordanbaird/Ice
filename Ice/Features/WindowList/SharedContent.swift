@@ -7,20 +7,9 @@ import Combine
 import OSLog
 import ScreenCaptureKit
 
-/// An `ObservableObject` that routinely publishes the displays,
-/// apps, and windows that are available for capture.
+/// An object that routinely publishes the displays, apps, and
+/// windows that are available for capture.
 class SharedContent: ObservableObject {
-    /// The interval at which the content is published.
-    let interval: TimeInterval
-
-    /// The dispatch queue to use to determine the timing with
-    /// which to publish the content.
-    let queue: DispatchQueue
-
-    /// Timer that manages the publishing of the shared content
-    /// using the instance's ``interval`` and ``queue``.
-    private var timer: QueuedTimer?
-
     /// The most recently published windows.
     @Published private(set) var windows = [SCWindow]()
 
@@ -30,20 +19,44 @@ class SharedContent: ObservableObject {
     /// The most recently published applications.
     @Published private(set) var applications = [SCRunningApplication]()
 
-    /// Creates an instance that publishes its content using the
-    /// given interval and dispatch queue.
+    /// The time interval at which the content is published.
     ///
-    /// - Parameters:
-    ///   - interval: The interval at which the content is published.
-    ///   - queue: The dispatch queue to use to determine the timing
-    ///     with which to publish the content.
-    init(interval: TimeInterval, queue: DispatchQueue) {
-        self.interval = interval
-        self.queue = queue
+    /// - Note: Setting this value immediately publishes the content.
+    ///   The content will then be published using the new interval.
+    var interval: TimeInterval {
+        didSet {
+            let isActive = isActive
+            deactivate()
+            if isActive {
+                activate()
+            }
+        }
     }
 
-    /// Starts publishing the content using the instance's ``interval``
-    /// and ``queue`` properties.
+    /// A Boolean value that indicates whether the content is
+    /// actively being published.
+    var isActive: Bool {
+        timer != nil
+    }
+
+    /// The dispatch queue used to determine the timing with
+    /// which to publish the content.
+    private let queue = DispatchQueue.global(qos: .utility)
+
+    /// Timer that manages the publishing of the shared content
+    /// using the instance's ``interval`` and ``queue``.
+    private var timer: QueuedTimer?
+
+    /// Creates an instance that publishes its content using the
+    /// given time interval.
+    ///
+    /// - Parameter interval: The time interval at which the content
+    ///   is published.
+    init(interval: TimeInterval = 1.0) {
+        self.interval = interval
+    }
+
+    /// Starts publishing the content using the instance's ``interval``.
     ///
     /// The first changes are published immediately when this function
     /// is called. If the instance is already active, it is deactivated
@@ -61,7 +74,7 @@ class SharedContent: ObservableObject {
                     applications = content.applications
                 }
                 if let error {
-                    Logger.sharedContent.error("Error retrieving shared content: \(error.localizedDescription)")
+                    Logger.sharedContent.error("Error retrieving shared content: \(error)")
                 }
             }
         }

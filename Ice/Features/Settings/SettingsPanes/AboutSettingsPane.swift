@@ -66,5 +66,5 @@ struct AboutSettingsPane: View {
 
 #Preview {
     AboutSettingsPane()
-        .buttonStyle(IceButtonStyle())
+        .buttonStyle(CustomButtonStyle())
 }

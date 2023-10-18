@@ -6,7 +6,7 @@
 
 ## About
 
-Ice is a powerful menu bar management tool. It aims to cover a wide array of features, while remaining free and open source.
+Ice is a powerful menu bar management tool. It aims to cover a wide variety of features, while remaining free and open source.
 
 ## Roadmap/Features
 
@@ -20,5 +20,7 @@ Ice is a powerful menu bar management tool. It aims to cover a wide array of fea
   - [ ] Drag and drop interface
   - [ ] Select/drag multiple items at once
   - [ ] Hotkeys to temporarily show individual menu bar items
+- [x] Menu bar appearance
+  - [x] Tint menu bar (solid color and gradient)
 - [ ] Custom menu bar widgets
 - [ ] Custom panel that displays menu bar icons as an alternative to the menu bar

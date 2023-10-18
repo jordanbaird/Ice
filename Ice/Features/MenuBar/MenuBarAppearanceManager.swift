@@ -6,38 +6,60 @@
 import Cocoa
 import Combine
 import OSLog
+import ScreenCaptureKit
 
 // MARK: - MenuBarAppearanceManager
 
 final class MenuBarAppearanceManager: ObservableObject {
+    /// A type that specifies how the menu bar is tinted.
     enum TintKind: Int {
+        /// The menu bar is not tinted.
         case none
+        /// The menu bar is tinted with a solid color.
         case solid
+        /// The menu bar is tinted with a gradient.
         case gradient
     }
 
+    /// The tint kind currently in use.
     @Published var tintKind: TintKind
+
+    /// The user's currently chosen tint color.
     @Published var tintColor: CGColor?
+
+    /// The user's currently chosen tint gradient.
     @Published var tintGradient: CustomGradient?
 
-    private(set) weak var menuBar: MenuBar?
+    /// A Boolean value that indicates whether the average color of
+    /// the menu bar should be actively published.
+    ///
+    /// If this property is `false`, the ``averageColor`` property
+    /// is set to `nil`.
+    @Published var publishesAverageColor = false
 
+    /// The average color of the menu bar.
+    ///
+    /// If ``publishesAverageColor`` is `false`, this property is
+    /// set to `nil`.
+    @Published var averageColor: CGColor?
+
+    private(set) weak var menuBar: MenuBar?
     private lazy var overlayPanel = MenuBarOverlayPanel(appearanceManager: self)
 
     private var cancellables = Set<AnyCancellable>()
 
     init(menuBar: MenuBar) {
         self.tintKind = TintKind(rawValue: UserDefaults.standard.integer(forKey: Defaults.menuBarTintKind)) ?? .none
-        if let tintColorDictionary = UserDefaults.standard.dictionary(forKey: Defaults.menuBarTintColor) {
+        if let tintColorData = UserDefaults.standard.data(forKey: Defaults.menuBarTintColor) {
             do {
-                self.tintColor = try DictionaryDecoder().decode(CodableColor.self, from: tintColorDictionary).cgColor
+                self.tintColor = try JSONDecoder().decode(CodableColor.self, from: tintColorData).cgColor
             } catch {
                 Logger.appearanceManager.error("Error decoding color: \(error)")
             }
         }
-        if let tintGradientDictionary = UserDefaults.standard.dictionary(forKey: Defaults.menuBarTintGradient) {
+        if let tintGradientData = UserDefaults.standard.data(forKey: Defaults.menuBarTintGradient) {
             do {
-                self.tintGradient = try DictionaryDecoder().decode(CustomGradient.self, from: tintGradientDictionary)
+                self.tintGradient = try JSONDecoder().decode(CustomGradient.self, from: tintGradientData)
             } catch {
                 Logger.appearanceManager.error("Error decoding gradient: \(error)")
             }
@@ -76,8 +98,8 @@ final class MenuBarAppearanceManager: ObservableObject {
                 }
                 if let tintColor {
                     do {
-                        let dictionary = try DictionaryEncoder().encode(CodableColor(cgColor: tintColor))
-                        UserDefaults.standard.set(dictionary, forKey: Defaults.menuBarTintColor)
+                        let data = try JSONEncoder().encode(CodableColor(cgColor: tintColor))
+                        UserDefaults.standard.set(data, forKey: Defaults.menuBarTintColor)
                         if case .solid = tintKind {
                             overlayPanel.show()
                         }
@@ -106,8 +128,8 @@ final class MenuBarAppearanceManager: ObservableObject {
                     !tintGradient.stops.isEmpty
                 {
                     do {
-                        let dictionary = try DictionaryEncoder().encode(tintGradient)
-                        UserDefaults.standard.set(dictionary, forKey: Defaults.menuBarTintGradient)
+                        let data = try JSONEncoder().encode(tintGradient)
+                        UserDefaults.standard.set(data, forKey: Defaults.menuBarTintGradient)
                         if case .gradient = tintKind {
                             overlayPanel.show()
                         }
@@ -122,10 +144,79 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
             .store(in: &c)
 
+        $publishesAverageColor
+            .sink { [weak self] publishesAverageColor in
+                guard let self else {
+                    return
+                }
+                // immediately update the average color
+                if 
+                    publishesAverageColor,
+                    let sharedContent = menuBar?.sharedContent
+                {
+                    readAndUpdateAverageColor(windows: sharedContent.windows)
+                } else {
+                    averageColor = nil
+                }
+            }
+            .store(in: &c)
+
+        menuBar?.sharedContent.$windows
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] windows in
+                guard let self else {
+                    return
+                }
+                if publishesAverageColor {
+                    readAndUpdateAverageColor(windows: windows)
+                }
+            }
+            .store(in: &c)
+
         cancellables = c
+    }
+
+    private func readAndUpdateAverageColor(windows: [SCWindow]) {
+        // macOS 14 uses a different title for the wallpaper window
+        let namePrefix = if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 14 {
+            "Wallpaper-"
+        } else {
+            "Desktop Picture"
+        }
+
+        let wallpaperWindow = windows.first {
+            // wallpaper window belongs to the Dock process
+            $0.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            $0.isOnScreen &&
+            $0.title?.hasPrefix(namePrefix) == true
+        }
+
+        guard
+            let wallpaperWindow,
+            let menuBarWindow = menuBar?.window,
+            let image = WindowCaptureManager.captureImage(
+                windows: [wallpaperWindow],
+                screenBounds: menuBarWindow.frame,
+                options: .ignoreFraming
+            ),
+            let components = image.averageColor(
+                accuracy: .low,
+                algorithm: .simple
+            )
+        else {
+            return
+        }
+
+        averageColor = CGColor(
+            red: components.red,
+            green: components.green,
+            blue: components.blue,
+            alpha: 1
+        )
     }
 }
 
+// MARK: MenuBarAppearanceManager: BindingExposable
 extension MenuBarAppearanceManager: BindingExposable { }
 
 // MARK: - MenuBarOverlayPanel

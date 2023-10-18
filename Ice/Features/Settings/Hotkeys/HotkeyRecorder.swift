@@ -70,7 +70,7 @@ struct HotkeyRecorder: View {
                 .frame(maxWidth: .infinity)
         }
         .help(segment1HelpString)
-        .iceButtonConfiguration {
+        .customButtonConfiguration {
             $0.shape = .leadingSegment
             $0.isHighlighted = model.isRecording
         }
@@ -95,7 +95,7 @@ struct HotkeyRecorder: View {
             isInsideSegment2 = isInside
         }
         .help(segment2HelpString)
-        .iceButtonConfiguration {
+        .customButtonConfiguration {
             $0.shape = .trailingSegment
         }
     }
@@ -200,5 +200,5 @@ struct HotkeyRecorder: View {
 #Preview {
     HotkeyRecorder(section: nil, failure: .constant(nil))
         .padding()
-        .buttonStyle(IceButtonStyle())
+        .buttonStyle(CustomButtonStyle())
 }

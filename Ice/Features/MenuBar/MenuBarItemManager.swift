@@ -11,9 +11,9 @@ class MenuBarItemManager: ObservableObject {
     @Published var hiddenItems = [MenuBarItem]()
     @Published var alwaysHiddenItems = [MenuBarItem]()
 
-    private var cancellables = Set<AnyCancellable>()
-
     private(set) weak var menuBar: MenuBar?
+
+    private var cancellables = Set<AnyCancellable>()
 
     init(menuBar: MenuBar) {
         self.menuBar = menuBar
@@ -39,7 +39,8 @@ class MenuBarItemManager: ObservableObject {
             let menuBar,
             let menuBarWindow = windows.first(where: windowIsMenuBar),
             let visibleSection = menuBar.section(withName: .visible),
-            let hiddenSection = menuBar.section(withName: .hidden)
+            let hiddenSection = menuBar.section(withName: .hidden),
+            let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden)
         else {
             return
         }
@@ -64,9 +65,6 @@ class MenuBarItemManager: ObservableObject {
                         MenuBarItem(window: window, image: image)
                     }
             }
-        guard let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden) else {
-            return
-        }
         if alwaysHiddenSection.isEnabled {
             hiddenItems = sortedWindows
                 .filter { window in
@@ -107,6 +105,7 @@ class MenuBarItemManager: ObservableObject {
                             MenuBarItem(window: window, image: image)
                         }
                 }
+            alwaysHiddenItems = []
         }
     }
 

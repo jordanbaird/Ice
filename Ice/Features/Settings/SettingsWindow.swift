@@ -16,13 +16,8 @@ struct SettingsWindow: Scene {
                     Color.clear
                         .overlay(Material.thin)
                 }
-                .task {
-                    if !ProcessInfo.processInfo.isPreview {
-                        menuBar.initializeSections()
-                    }
-                }
                 .environmentObject(menuBar)
-                .buttonStyle(IceButtonStyle())
+                .buttonStyle(CustomButtonStyle())
         }
         .commandsRemoved()
         .defaultSize(width: 900, height: 600)

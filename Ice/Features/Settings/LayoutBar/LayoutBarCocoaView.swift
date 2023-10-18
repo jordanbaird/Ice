@@ -9,7 +9,7 @@ import Cocoa
 class LayoutBarCocoaView: NSView {
     private let container: LayoutBarContainer
 
-    /// The amount of spacing between each arranged view.
+    /// The amount of space between each arranged view.
     var spacing: CGFloat {
         get { container.spacing }
         set { container.spacing = newValue }

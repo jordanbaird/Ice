@@ -8,7 +8,7 @@ import Cocoa
 class LayoutBarScrollView: NSScrollView {
     private let layoutBarView: LayoutBarCocoaView
 
-    /// The amount of spacing between each arranged view.
+    /// The amount of space between each arranged view.
     var spacing: CGFloat {
         get { layoutBarView.spacing }
         set { layoutBarView.spacing = newValue }

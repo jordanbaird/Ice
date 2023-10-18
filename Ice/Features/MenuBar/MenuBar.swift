@@ -10,30 +10,8 @@ import SwiftUI
 
 /// Manager for the state of items in the menu bar.
 class MenuBar: ObservableObject {
-    private var cancellables = Set<AnyCancellable>()
-
-    private let encoder = DictionaryEncoder()
-    private let decoder = DictionaryDecoder()
-
-    let sharedContent = SharedContent(interval: 1, queue: .global(qos: .utility))
-    private(set) lazy var itemManager = MenuBarItemManager(menuBar: self)
-    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBar: self)
-
     /// Set to `true` to tell the menu bar to save its sections.
     @Published var needsSave = false
-
-    /// A Boolean value that indicates whether the menu bar should
-    /// actively publish its average color.
-    ///
-    /// If this property is `false`, the menu bar's ``averageColor``
-    /// property is set to `nil`.
-    @Published var publishesAverageColor = false
-
-    /// The average color of the menu bar.
-    ///
-    /// If ``publishesAverageColor`` is `false`, this property is
-    /// set to `nil`.
-    @Published var averageColor: Color?
 
     /// The menu bar's window.
     @Published var window: SCWindow?
@@ -56,6 +34,12 @@ class MenuBar: ObservableObject {
         }
     }
 
+    let sharedContent = SharedContent()
+    private(set) lazy var itemManager = MenuBarItemManager(menuBar: self)
+    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBar: self)
+
+    private var cancellables = Set<AnyCancellable>()
+
     /// Initializes a new menu bar instance.
     init() {
         configureCancellables()
@@ -75,7 +59,7 @@ class MenuBar: ObservableObject {
                 return nil
             }
             do {
-                return try decoder.decode(MenuBarSection.self, from: dictionary)
+                return try DictionaryDecoder().decode(MenuBarSection.self, from: dictionary)
             } catch {
                 Logger.menuBar.error("Decoding error: \(error)")
                 return nil
@@ -87,7 +71,7 @@ class MenuBar: ObservableObject {
     func saveSections() {
         do {
             let serializedSections = try sections.map { section in
-                try encoder.encode(section)
+                try DictionaryEncoder().encode(section)
             }
             UserDefaults.standard.set(serializedSections, forKey: Defaults.sections)
             needsSave = false
@@ -114,8 +98,6 @@ class MenuBar: ObservableObject {
         return true
     }
 
-    /// Sets up a series of cancellables to respond to changes in the
-    /// menu bar's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -165,20 +147,6 @@ class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
-        $publishesAverageColor
-            .sink { [weak self] publishesAverageColor in
-                guard let self else {
-                    return
-                }
-                // immediately update the average color
-                if publishesAverageColor {
-                    readAndUpdateAverageColor(windows: sharedContent.windows)
-                } else {
-                    averageColor = nil
-                }
-            }
-            .store(in: &c)
-
         sharedContent.$windows
             .receive(on: DispatchQueue.main)
             .sink { [weak self] windows in
@@ -191,9 +159,6 @@ class MenuBar: ObservableObject {
                     $0.owningApplication?.bundleIdentifier == "" &&
                     $0.windowLayer == kCGMainMenuWindowLevel &&
                     $0.title == "Menubar"
-                }
-                if publishesAverageColor {
-                    readAndUpdateAverageColor(windows: windows)
                 }
             }
             .store(in: &c)
@@ -229,44 +194,6 @@ class MenuBar: ObservableObject {
     /// Returns the menu bar section with the given name.
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
-    }
-
-    private func readAndUpdateAverageColor(windows: [SCWindow]) {
-        // macOS 14 uses a different title for the wallpaper window
-        let namePrefix = if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 14 {
-            "Wallpaper-"
-        } else {
-            "Desktop Picture"
-        }
-
-        let wallpaperWindow = windows.first {
-            // wallpaper window belongs to the Dock process
-            $0.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            $0.isOnScreen &&
-            $0.title?.hasPrefix(namePrefix) == true
-        }
-
-        guard
-            let wallpaperWindow,
-            let window,
-            let image = WindowCaptureManager.captureImage(
-                windows: [wallpaperWindow],
-                screenBounds: window.frame,
-                options: .ignoreFraming
-            ),
-            let components = image.averageColor(
-                accuracy: .low,
-                algorithm: .simple
-            )
-        else {
-            return
-        }
-
-        averageColor = Color(
-            red: components.red,
-            green: components.green,
-            blue: components.blue
-        )
     }
 }
 

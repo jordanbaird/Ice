@@ -1,21 +1,21 @@
 //
-//  GradientPicker.swift
+//  CustomGradientPicker.swift
 //  Ice
 //
 
 import Combine
 import SwiftUI
 
-struct GradientPicker: View {
+struct CustomGradientPicker: View {
     @Binding var gradient: CustomGradient
-    @StateObject private var model = GradientPickerModel()
-    @State private var zOrderedStops: [ColorStop]
+    @StateObject private var model: CustomGradientPickerModel
     @State private var window: NSWindow?
 
     let supportsOpacity: Bool
     let mode: NSColorPanel.Mode
 
     /// Creates a new gradient picker.
+    ///
     /// - Parameters:
     ///   - gradient: A binding to a gradient.
     ///   - supportsOpacity: A Boolean value indicating whether the
@@ -27,8 +27,9 @@ struct GradientPicker: View {
         supportsOpacity: Bool,
         mode: NSColorPanel.Mode
     ) {
+        let model = CustomGradientPickerModel(zOrderedStops: gradient.wrappedValue.stops)
+        self._model = StateObject(wrappedValue: model)
         self._gradient = gradient
-        self.zOrderedStops = gradient.wrappedValue.stops
         self.supportsOpacity = supportsOpacity
         self.mode = mode
     }
@@ -39,6 +40,10 @@ struct GradientPicker: View {
             .overlay {
                 RoundedRectangle(cornerRadius: 5)
                     .stroke()
+                    .overlay {
+                        Rectangle()
+                            .frame(width: 1, height: 6)
+                    }
                     .foregroundStyle(.secondary.opacity(0.75))
                     .blendMode(.softLight)
             }
@@ -46,57 +51,9 @@ struct GradientPicker: View {
             .frame(width: 200, height: 18)
             .overlay {
                 GeometryReader { geometry in
-                    Color.clear
-                        .contentShape(RoundedRectangle(cornerRadius: 5))
-                        .simultaneousGesture(
-                            DragGesture(
-                                minimumDistance: 0,
-                                coordinateSpace: .local
-                            )
-                            .onEnded { value in
-                                let frame = geometry.frame(in: .local)
-                                guard frame.contains(value.location) else {
-                                    return
-                                }
-                                let x = value.location.x
-                                let width = frame.width - 10
-                                let location = (x / width) - (6 / width)
-                                insertStop(at: location)
-                            }
-                        )
-                        .localEventMonitor(mask: .leftMouseDown) { event in
-                            guard
-                                let window = event.window,
-                                self.window === window
-                            else {
-                                return event
-                            }
-                            let globalFrame = geometry.frame(in: .global)
-                            let locationInWindow = event.locationInWindow
-                            let flippedLocation = CGPoint(
-                                x: locationInWindow.x,
-                                y: window.frame.height - locationInWindow.y
-                            )
-                            if
-                                window.contentLayoutRect.contains(locationInWindow),
-                                !globalFrame.contains(flippedLocation)
-                            {
-                                model.selectedStop = nil
-                            }
-                            return event
-                        }
-
-                    ForEach(gradient.stops.indices, id: \.self) { index in
-                        GradientPickerHandle(
-                            gradient: $gradient,
-                            stop: $gradient.stops[index],
-                            zOrderedStops: $zOrderedStops,
-                            model: model,
-                            supportsOpacity: supportsOpacity,
-                            mode: mode,
-                            geometry: geometry
-                        )
-                    }
+                    selectionReader(geometry: geometry)
+                    insertionReader(geometry: geometry)
+                    handles(geometry: geometry)
                 }
             }
             .foregroundStyle(Color(white: 0.9))
@@ -104,12 +61,14 @@ struct GradientPicker: View {
                 model.selectedStop = nil
             }
             .onKeyDown(key: .delete) {
-                guard let selectedStop = model.selectedStop else {
+                guard
+                    let selectedStop = model.selectedStop,
+                    let index = gradient.stops.firstIndex(of: selectedStop)
+                else {
                     return
                 }
-                if let index = gradient.stops.firstIndex(of: selectedStop) {
-                    gradient.stops.remove(at: index)
-                }
+                gradient.stops.remove(at: index)
+                model.selectedStop = nil
             }
             .readWindow(window: $window)
     }
@@ -125,9 +84,78 @@ struct GradientPicker: View {
         }
     }
 
+    @ViewBuilder
+    private func selectionReader(geometry: GeometryProxy) -> some View {
+        Color.clear
+            .localEventMonitor(mask: .leftMouseDown) { event in
+                guard
+                    let window = event.window,
+                    self.window === window
+                else {
+                    return event
+                }
+                let locationInWindow = event.locationInWindow
+                guard window.contentLayoutRect.contains(locationInWindow) else {
+                    return event
+                }
+                let globalFrame = geometry.frame(in: .global)
+                let flippedLocation = CGPoint(
+                    x: locationInWindow.x,
+                    y: window.frame.height - locationInWindow.y
+                )
+                if !globalFrame.contains(flippedLocation) {
+                    model.selectedStop = nil
+                }
+                return event
+            }
+    }
+
+    @ViewBuilder
+    private func insertionReader(geometry: GeometryProxy) -> some View {
+        Color.clear
+            .contentShape(RoundedRectangle(cornerRadius: 5))
+            .gesture(
+                DragGesture(
+                    minimumDistance: 0,
+                    coordinateSpace: .local
+                )
+                .onEnded { value in
+                    guard abs(value.translation.width) <= 2 else {
+                        return
+                    }
+                    let frame = geometry.frame(in: .local)
+                    guard frame.contains(value.location) else {
+                        return
+                    }
+                    let x = value.location.x
+                    let width = frame.width - 10
+                    let location = (x / width) - (6 / width)
+                    insertStop(at: location)
+                }
+            )
+    }
+
+    @ViewBuilder
+    private func handles(geometry: GeometryProxy) -> some View {
+        ForEach(gradient.stops.indices, id: \.self) { index in
+            CustomGradientPickerHandle(
+                gradient: $gradient,
+                model: model,
+                index: index,
+                supportsOpacity: supportsOpacity,
+                mode: mode,
+                geometry: geometry
+            )
+        }
+    }
+
     /// Inserts a new stop with the appropriate color
     /// at the given location in the gradient.
     private func insertStop(at location: CGFloat) {
+        var location = location.clamped(to: 0...1)
+        if (0.48...0.52).contains(location) {
+            location = 0.5
+        }
         let newStop: ColorStop
         if
             !gradient.stops.isEmpty,
@@ -149,23 +177,43 @@ struct GradientPicker: View {
             )
         }
         gradient.stops.append(newStop)
-        model.selectedStop = newStop
+        DispatchQueue.main.async {
+            model.selectedStop = newStop
+        }
     }
 }
 
-private struct GradientPickerHandle: View {
+private struct CustomGradientPickerHandle: View {
     @Binding var gradient: CustomGradient
-    @Binding var stop: ColorStop
-    @Binding var zOrderedStops: [ColorStop]
-    @ObservedObject var model: GradientPickerModel
+    @ObservedObject var model: CustomGradientPickerModel
 
+    let index: Int
     let supportsOpacity: Bool
     let mode: NSColorPanel.Mode
     let geometry: GeometryProxy
     let width: CGFloat = 8
     let height: CGFloat = 22
 
-    var stroke: AnyShapeStyle {
+    private var stop: ColorStop? {
+        get {
+            guard gradient.stops.indices.contains(index) else {
+                return nil
+            }
+            return gradient.stops[index]
+        }
+        nonmutating set {
+            guard gradient.stops.indices.contains(index) else {
+                return
+            }
+            if let newValue {
+                gradient.stops[index] = newValue
+            } else {
+                gradient.stops.remove(at: index)
+            }
+        }
+    }
+
+    private var stroke: AnyShapeStyle {
         if model.selectedStop == stop {
             AnyShapeStyle(.primary)
         } else {
@@ -174,6 +222,13 @@ private struct GradientPickerHandle: View {
     }
 
     var body: some View {
+        if let stop {
+            gradientPickerHandle(with: stop)
+        }
+    }
+
+    @ViewBuilder
+    private func gradientPickerHandle(with stop: ColorStop) -> some View {
         Capsule()
             .inset(by: -1)
             .fill(Color(cgColor: stop.color))
@@ -190,70 +245,75 @@ private struct GradientPickerHandle: View {
                 y: (geometry.size.height - height) / 2
             )
             .shadow(radius: 1)
-            .simultaneousGesture(
+            .gesture(
                 DragGesture(minimumDistance: 5)
                     .onChanged { value in
                         update(
                             with: value.location.x,
-                            snap: abs(value.velocity.width) <= 75
+                            shouldSnap: abs(value.velocity.width) <= 75
                         )
                     }
                     .onEnded { value in
                         update(
                             with: value.location.x,
-                            snap: true
+                            shouldSnap: true
                         )
                     }
             )
-            .simultaneousGesture(
-                TapGesture(count: 2)
-                    .onEnded {
-                        if let index = gradient.stops.firstIndex(of: stop) {
-                            gradient.stops.remove(at: index)
+            .onTapGesture(count: 2) {
+                if gradient.stops.count == 1 {
+                    gradient.stops[0].location = 0.5
+                } else {
+                    let last = CGFloat(gradient.stops.count - 1)
+                    gradient.stops = gradient.sortedStops
+                        .enumerated()
+                        .map { n, stop in
+                            var stop = stop
+                            stop.location = CGFloat(n) / last
+                            return stop
                         }
-                    }
-            )
+                }
+            }
             .onTapGesture {
                 model.selectedStop = stop
             }
-            .zIndex(Double(zOrderedStops.firstIndex(of: stop) ?? 0))
+            .zIndex(Double(model.zOrderedStops.firstIndex(of: stop) ?? 0))
             .onReceive(model.$selectedStop) { _ in
                 deactivate()
                 DispatchQueue.main.async {
-                    if model.selectedStop == stop {
+                    if model.selectedStop == self.stop {
                         activate()
                     }
                 }
             }
     }
 
-    private func update(with location: CGFloat, snap: Bool) {
+    private func update(with location: CGFloat, shouldSnap: Bool) {
+        guard var stop else {
+            return
+        }
         let newLocation = (
             location - (width / 2)
         ) / (
             geometry.size.width - width
         )
-        if let index = zOrderedStops.firstIndex(of: stop) {
-            zOrderedStops.remove(at: index)
+        if let index = model.zOrderedStops.firstIndex(of: stop) {
+            model.zOrderedStops.remove(at: index)
         }
         let isSelected = model.selectedStop == stop
-        if snap {
-            if (0.23...0.27).contains(newLocation) {
-                stop.location = 0.25
-            } else if (0.48...0.52).contains(newLocation) {
-                stop.location = 0.5
-            } else if (0.73...0.77).contains(newLocation) {
-                stop.location = 0.75
-            } else {
-                stop.location = min(1, max(0, newLocation))
-            }
+        if
+            shouldSnap,
+            (0.48...0.52).contains(newLocation)
+        {
+            stop.location = 0.5
         } else {
             stop.location = min(1, max(0, newLocation))
         }
+        self.stop = stop
         if isSelected {
             model.selectedStop = stop
         }
-        zOrderedStops.append(stop)
+        model.zOrderedStops.append(stop)
     }
 
     private func activate() {
@@ -261,7 +321,7 @@ private struct GradientPickerHandle: View {
 
         NSColorPanel.shared.showsAlpha = supportsOpacity
         NSColorPanel.shared.mode = mode
-        if let color = NSColor(cgColor: stop.color) {
+        if let color = stop.flatMap({ NSColor(cgColor: $0.color) }) {
             NSColorPanel.shared.color = color
         }
         NSColorPanel.shared.orderFrontRegardless()
@@ -271,8 +331,8 @@ private struct GradientPickerHandle: View {
         NSColorPanel.shared.publisher(for: \.color)
             .dropFirst()
             .sink { color in
-                if stop.color != color.cgColor {
-                    stop.color = color.cgColor
+                if stop?.color != color.cgColor {
+                    stop?.color = color.cgColor
                     model.selectedStop = stop
                 }
             }
@@ -298,7 +358,7 @@ private struct GradientPickerHandle: View {
 }
 
 #if DEBUG
-struct GradientPickerPreview: View {
+private struct CustomGradientPickerPreview: View {
     @State private var gradient = CustomGradient(unsortedStops: [
         ColorStop(color: NSColor.systemRed.cgColor, location: 0),
         ColorStop(color: NSColor.systemBlue.cgColor, location: 1 / 3),
@@ -307,15 +367,16 @@ struct GradientPickerPreview: View {
     ])
 
     var body: some View {
-        GradientPicker(
+        CustomGradientPicker(
             gradient: $gradient,
             supportsOpacity: false,
             mode: .crayon
         )
     }
 }
+
 #Preview {
-    GradientPickerPreview()
+    CustomGradientPickerPreview()
         .padding()
 }
 #endif

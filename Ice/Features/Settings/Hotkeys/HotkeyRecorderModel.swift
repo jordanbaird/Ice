@@ -68,8 +68,6 @@ class HotkeyRecorderModel: ObservableObject {
         stopRecording()
     }
 
-    /// Sets up a series of cancellables to respond to changes
-    /// in the model's state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 

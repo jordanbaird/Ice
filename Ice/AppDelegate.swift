@@ -6,10 +6,11 @@
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    /// The shared menu bar.
     let menuBar = MenuBar()
 
     /// The window that contains the settings interface.
-    private var settingsWindow: NSWindow? {
+    var settingsWindow: NSWindow? {
         NSApp.window(withIdentifier: Constants.settingsWindowID)
     }
 
@@ -30,6 +31,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let settingsWindow {
             settingsWindow.backgroundColor = .settingsWindowBackground
         }
+
+        // initialize the menu bar's sections
+        if !ProcessInfo.processInfo.isPreview {
+            menuBar.initializeSections()
+        }
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
@@ -41,8 +47,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    /// Activates the app and sets its activation policy to the given value.
+    func activate(withPolicy policy: NSApplication.ActivationPolicy) {
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        NSApp.setActivationPolicy(policy)
+        menuBar.sharedContent.activate()
+    }
+
     /// Deactivates the app and sets its activation policy to the given value.
-    private func deactivate(withPolicy policy: NSApplication.ActivationPolicy) {
+    func deactivate(withPolicy policy: NSApplication.ActivationPolicy) {
         if #available(macOS 14.0, *) {
             // FIXME: Seems like there should be a better way to simply deactivate and yield
             // to the next available app, but I'm not seeing one. Yielding to an empty bundle
@@ -63,14 +80,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let settingsWindow else {
             return
         }
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
-        NSApp.setActivationPolicy(.regular)
+        activate(withPolicy: .regular)
         settingsWindow.center()
         settingsWindow.makeKeyAndOrderFront(self)
-        menuBar.sharedContent.activate()
     }
 }

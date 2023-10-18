@@ -1,13 +1,13 @@
 //
-//  IceButtonConfiguration.swift
+//  CustomButtonConfiguration.swift
 //  Ice
 //
 
 import SwiftUI
 
 /// A configuration that determines the appearance and behavior
-/// of a button in Ice's interface.
-struct IceButtonConfiguration {
+/// of a custom button.
+struct CustomButtonConfiguration {
     /// The opacity of the button's bezel.
     var bezelOpacity: CGFloat = 1
 
@@ -25,9 +25,8 @@ struct IceButtonConfiguration {
     var shape = ButtonShape()
 }
 
-extension IceButtonConfiguration {
-    /// A configuration that determines the shape of a button in
-    /// Ice's interface.
+extension CustomButtonConfiguration {
+    /// A configuration that determines the shape of a custom button.
     struct ButtonShape {
         /// The flattened edges of the buttons that use this configuration.
         var flattenedEdges: Edge.Set = []
@@ -43,13 +42,13 @@ extension IceButtonConfiguration {
 }
 
 extension EnvironmentValues {
-    private struct IceButtonConfigurationKey: EnvironmentKey {
-        static let defaultValue = IceButtonConfiguration()
+    private struct CustomButtonConfigurationKey: EnvironmentKey {
+        static let defaultValue = CustomButtonConfiguration()
     }
 
-    var iceButtonConfiguration: IceButtonConfiguration {
-        get { self[IceButtonConfigurationKey.self] }
-        set { self[IceButtonConfigurationKey.self] = newValue }
+    var customButtonConfiguration: CustomButtonConfiguration {
+        get { self[CustomButtonConfigurationKey.self] }
+        set { self[CustomButtonConfigurationKey.self] = newValue }
     }
 }
 
@@ -58,10 +57,10 @@ extension View {
     /// the given closure.
     ///
     /// - Parameter configure: A closure that updates the current
-    ///   environment's configuration with new values.
-    func iceButtonConfiguration(
-        configure: @escaping (inout IceButtonConfiguration) -> Void
+    ///   environment's custom button configuration with new values.
+    func customButtonConfiguration(
+        configure: @escaping (inout CustomButtonConfiguration) -> Void
     ) -> some View {
-        transformEnvironment(\.iceButtonConfiguration, transform: configure)
+        transformEnvironment(\.customButtonConfiguration, transform: configure)
     }
 }

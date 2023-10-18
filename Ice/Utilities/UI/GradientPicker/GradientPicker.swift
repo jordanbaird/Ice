@@ -34,103 +34,95 @@ struct GradientPicker: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            if gradient.stops.isEmpty {
-                Rectangle()
-                    .fill(.white.gradient.opacity(0.1))
+        gradientView
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .overlay {
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke()
+                    .foregroundStyle(.secondary.opacity(0.75))
                     .blendMode(.softLight)
-            } else {
-                Image(
-                    nsImage: NSImage(
-                        size: geometry.size,
-                        flipped: false
-                    ) { bounds in
-                        guard let nsGradient = gradient.nsGradient else {
-                            return false
-                        }
-                        nsGradient.draw(in: bounds, angle: 0)
-                        return true
-                    }
-                )
             }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 5))
-        .overlay {
-            RoundedRectangle(cornerRadius: 5)
-                .stroke()
-                .foregroundStyle(.secondary.opacity(0.75))
-                .blendMode(.softLight)
-        }
-        .shadow(radius: 1)
-        .frame(width: 200, height: 18)
-        .overlay {
-            GeometryReader { geometry in
-                Color.clear
-                    .contentShape(RoundedRectangle(cornerRadius: 5))
-                    .simultaneousGesture(
-                        DragGesture(
-                            minimumDistance: 0,
-                            coordinateSpace: .local
-                        )
-                        .onEnded { value in
-                            let frame = geometry.frame(in: .local)
-                            guard frame.contains(value.location) else {
-                                return
+            .shadow(radius: 1)
+            .frame(width: 200, height: 18)
+            .overlay {
+                GeometryReader { geometry in
+                    Color.clear
+                        .contentShape(RoundedRectangle(cornerRadius: 5))
+                        .simultaneousGesture(
+                            DragGesture(
+                                minimumDistance: 0,
+                                coordinateSpace: .local
+                            )
+                            .onEnded { value in
+                                let frame = geometry.frame(in: .local)
+                                guard frame.contains(value.location) else {
+                                    return
+                                }
+                                let x = value.location.x
+                                let width = frame.width - 10
+                                let location = (x / width) - (6 / width)
+                                insertStop(at: location)
                             }
-                            let x = value.location.x
-                            let width = frame.width - 10
-                            let location = (x / width) - (6 / width)
-                            insertStop(at: location)
-                        }
-                    )
-                    .localEventMonitor(mask: .leftMouseDown) { event in
-                        guard
-                            let window = event.window,
-                            self.window === window
-                        else {
+                        )
+                        .localEventMonitor(mask: .leftMouseDown) { event in
+                            guard
+                                let window = event.window,
+                                self.window === window
+                            else {
+                                return event
+                            }
+                            let globalFrame = geometry.frame(in: .global)
+                            let locationInWindow = event.locationInWindow
+                            let flippedLocation = CGPoint(
+                                x: locationInWindow.x,
+                                y: window.frame.height - locationInWindow.y
+                            )
+                            if
+                                window.contentLayoutRect.contains(locationInWindow),
+                                !globalFrame.contains(flippedLocation)
+                            {
+                                model.selectedStop = nil
+                            }
                             return event
                         }
-                        let globalFrame = geometry.frame(in: .global)
-                        let locationInWindow = event.locationInWindow
-                        let flippedLocation = CGPoint(
-                            x: locationInWindow.x,
-                            y: window.frame.height - locationInWindow.y
-                        )
-                        if
-                            window.contentLayoutRect.contains(locationInWindow),
-                            !globalFrame.contains(flippedLocation)
-                        {
-                            model.selectedStop = nil
-                        }
-                        return event
-                    }
 
-                ForEach(gradient.stops.indices, id: \.self) { index in
-                    GradientPickerHandle(
-                        gradient: $gradient,
-                        stop: $gradient.stops[index],
-                        zOrderedStops: $zOrderedStops,
-                        model: model,
-                        supportsOpacity: supportsOpacity,
-                        mode: mode,
-                        geometry: geometry
-                    )
+                    ForEach(gradient.stops.indices, id: \.self) { index in
+                        GradientPickerHandle(
+                            gradient: $gradient,
+                            stop: $gradient.stops[index],
+                            zOrderedStops: $zOrderedStops,
+                            model: model,
+                            supportsOpacity: supportsOpacity,
+                            mode: mode,
+                            geometry: geometry
+                        )
+                    }
                 }
             }
-        }
-        .foregroundStyle(Color(white: 0.9))
-        .onKeyDown(key: .escape) {
-            model.selectedStop = nil
-        }
-        .onKeyDown(key: .delete) {
-            guard let selectedStop = model.selectedStop else {
-                return
+            .foregroundStyle(Color(white: 0.9))
+            .onKeyDown(key: .escape) {
+                model.selectedStop = nil
             }
-            if let index = gradient.stops.firstIndex(of: selectedStop) {
-                gradient.stops.remove(at: index)
+            .onKeyDown(key: .delete) {
+                guard let selectedStop = model.selectedStop else {
+                    return
+                }
+                if let index = gradient.stops.firstIndex(of: selectedStop) {
+                    gradient.stops.remove(at: index)
+                }
             }
+            .readWindow(window: $window)
+    }
+
+    @ViewBuilder
+    private var gradientView: some View {
+        if gradient.stops.isEmpty {
+            Rectangle()
+                .fill(.white.gradient.opacity(0.1))
+                .blendMode(.softLight)
+        } else {
+            gradient
         }
-        .readWindow(window: $window)
     }
 
     /// Inserts a new stop with the appropriate color

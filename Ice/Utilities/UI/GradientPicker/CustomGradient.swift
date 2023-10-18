@@ -8,7 +8,7 @@ import SwiftUI
 // MARK: - CustomGradient
 
 /// A custom gradient for use with a ``GradientPicker``.
-struct CustomGradient: Hashable {
+struct CustomGradient: View {
     /// The color stops in the gradient.
     var stops: [ColorStop]
 
@@ -28,6 +28,27 @@ struct CustomGradient: Hashable {
             atLocations: &locations,
             colorSpace: .sRGB
         )
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            if stops.isEmpty {
+                Color.clear
+            } else {
+                Image(
+                    nsImage: NSImage(
+                        size: geometry.size,
+                        flipped: false
+                    ) { bounds in
+                        guard let nsGradient else {
+                            return false
+                        }
+                        nsGradient.draw(in: bounds, angle: 0)
+                        return true
+                    }
+                )
+            }
+        }
     }
 
     /// Creates a gradient with the given unsorted stops.
@@ -63,6 +84,9 @@ struct CustomGradient: Hashable {
 
 // MARK: CustomGradient: Codable
 extension CustomGradient: Codable { }
+
+// MARK: CustomGradient: Hashable
+extension CustomGradient: Hashable { }
 
 // MARK: - ColorStop
 

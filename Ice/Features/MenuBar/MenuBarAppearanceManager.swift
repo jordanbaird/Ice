@@ -43,12 +43,12 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// set to `nil`.
     @Published var averageColor: CGColor?
 
-    private(set) weak var menuBar: MenuBar?
+    private(set) weak var menuBarManager: MenuBarManager?
     private lazy var overlayPanel = MenuBarOverlayPanel(appearanceManager: self)
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(menuBar: MenuBar) {
+    init(menuBarManager: MenuBarManager) {
         self.tintKind = TintKind(rawValue: UserDefaults.standard.integer(forKey: Defaults.menuBarTintKind)) ?? .none
         if let tintColorData = UserDefaults.standard.data(forKey: Defaults.menuBarTintColor) {
             do {
@@ -64,7 +64,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 Logger.appearanceManager.error("Error decoding gradient: \(error)")
             }
         }
-        self.menuBar = menuBar
+        self.menuBarManager = menuBarManager
         configureCancellables()
     }
 
@@ -152,7 +152,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 // immediately update the average color
                 if 
                     publishesAverageColor,
-                    let sharedContent = menuBar?.sharedContent
+                    let sharedContent = menuBarManager?.sharedContent
                 {
                     readAndUpdateAverageColor(windows: sharedContent.windows)
                 } else {
@@ -161,7 +161,7 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
             .store(in: &c)
 
-        menuBar?.sharedContent.$windows
+        menuBarManager?.sharedContent.$windows
             .receive(on: DispatchQueue.main)
             .sink { [weak self] windows in
                 guard let self else {
@@ -193,7 +193,7 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         guard
             let wallpaperWindow,
-            let menuBarWindow = menuBar?.window,
+            let menuBarWindow = menuBarManager?.window,
             let image = WindowCaptureManager.captureImage(
                 windows: [wallpaperWindow],
                 screenBounds: menuBarWindow.frame,

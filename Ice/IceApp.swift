@@ -10,7 +10,7 @@ struct IceApp: App {
     @NSApplicationDelegateAdaptor var appDelegate: AppDelegate
 
     var body: some Scene {
-        SettingsWindow(menuBar: appDelegate.menuBar)
+        SettingsWindow(menuBarManager: appDelegate.menuBarManager)
     }
 
     init() {

@@ -8,7 +8,7 @@ import SwiftUI
 struct MenuBarSettingsPaneAppearanceTab: View {
     typealias TintKind = MenuBarAppearanceManager.TintKind
 
-    @EnvironmentObject var menuBar: MenuBar
+    @EnvironmentObject var menuBarManager: MenuBarManager
 
     var body: some View {
         Form {
@@ -24,7 +24,7 @@ struct MenuBarSettingsPaneAppearanceTab: View {
     private var tintPicker: some View {
         LabeledContent("Menu bar tint") {
             HStack {
-                Picker("Menu bar tint", selection: menuBar.appearanceManager.bindings.tintKind) {
+                Picker("Menu bar tint", selection: menuBarManager.appearanceManager.bindings.tintKind) {
                     Text("None")
                         .tag(TintKind.none)
                     Text("Solid")
@@ -34,13 +34,13 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                 }
                 .labelsHidden()
 
-                switch menuBar.appearanceManager.tintKind {
+                switch menuBarManager.appearanceManager.tintKind {
                 case .none:
                     EmptyView()
                 case .solid:
-                    if menuBar.appearanceManager.tintColor != nil {
+                    if menuBarManager.appearanceManager.tintColor != nil {
                         Button {
-                            menuBar.appearanceManager.tintColor = nil
+                            menuBarManager.appearanceManager.tintColor = nil
                         } label: {
                             Image(systemName: "arrow.counterclockwise")
                         }
@@ -48,14 +48,14 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                         .buttonStyle(.plain)
                     }
                     CustomColorPicker(
-                        selection: menuBar.appearanceManager.bindings.tintColor,
+                        selection: menuBarManager.appearanceManager.bindings.tintColor,
                         supportsOpacity: false,
                         mode: .crayon
                     )
                 case .gradient:
-                    if menuBar.appearanceManager.tintGradient != nil {
+                    if menuBarManager.appearanceManager.tintGradient != nil {
                         Button {
-                            menuBar.appearanceManager.tintGradient = nil
+                            menuBarManager.appearanceManager.tintGradient = nil
                         } label: {
                             Image(systemName: "arrow.counterclockwise")
                         }
@@ -65,13 +65,13 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                     CustomGradientPicker(
                         gradient: Binding(
                             get: {
-                                menuBar.appearanceManager.tintGradient ?? CustomGradient()
+                                menuBarManager.appearanceManager.tintGradient ?? CustomGradient()
                             },
                             set: { gradient in
                                 if gradient.stops.isEmpty {
-                                    menuBar.appearanceManager.tintGradient = nil
+                                    menuBarManager.appearanceManager.tintGradient = nil
                                 } else {
-                                    menuBar.appearanceManager.tintGradient = gradient
+                                    menuBarManager.appearanceManager.tintGradient = gradient
                                 }
                             }
                         ),
@@ -86,9 +86,9 @@ struct MenuBarSettingsPaneAppearanceTab: View {
 }
 
 #Preview {
-    let menuBar = MenuBar()
+    let menuBarManager = MenuBarManager()
 
     return MenuBarSettingsPaneAppearanceTab()
-        .environmentObject(menuBar)
+        .environmentObject(menuBarManager)
         .frame(width: 500, height: 300)
 }

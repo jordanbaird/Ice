@@ -6,8 +6,8 @@
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    /// The shared menu bar.
-    let menuBar = MenuBar()
+    /// The shared menu bar manager.
+    let menuBarManager = MenuBarManager()
 
     /// The window that contains the settings interface.
     var settingsWindow: NSWindow? {
@@ -34,7 +34,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // initialize the menu bar's sections
         if !ProcessInfo.processInfo.isPreview {
-            menuBar.initializeSections()
+            menuBarManager.initializeSections()
         }
     }
 
@@ -55,7 +55,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
         }
         NSApp.setActivationPolicy(policy)
-        menuBar.sharedContent.activate()
+        menuBarManager.sharedContent.activate()
     }
 
     /// Deactivates the app and sets its activation policy to the given value.
@@ -70,7 +70,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.deactivate()
         }
         NSApp.setActivationPolicy(policy)
-        menuBar.sharedContent.deactivate()
+        menuBarManager.sharedContent.deactivate()
     }
 
     /// Opens the settings window and activates the app.

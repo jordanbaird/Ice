@@ -108,9 +108,9 @@ struct SettingsView: View {
 }
 
 #Preview {
-    let menuBar = MenuBar()
+    let menuBarManager = MenuBarManager()
 
     return SettingsView()
         .buttonStyle(CustomButtonStyle())
-        .environmentObject(menuBar)
+        .environmentObject(menuBarManager)
 }

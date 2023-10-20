@@ -9,7 +9,7 @@ import SwiftUI
 struct GeneralSettingsPane: View {
     @AppStorage(Defaults.usesColoredLayoutBars) var usesColoredLayoutBars = true
     @AppStorage(Defaults.secondaryActionModifier) var secondaryActionModifier = Hotkey.Modifiers.option
-    @EnvironmentObject var menuBar: MenuBar
+    @EnvironmentObject var menuBarManager: MenuBarManager
 
     var body: some View {
         Form {
@@ -56,7 +56,7 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var alwaysHiddenOptions: some View {
-        if let section = menuBar.section(withName: .alwaysHidden) {
+        if let section = menuBarManager.section(withName: .alwaysHidden) {
             Toggle(isOn: section.bindings.isEnabled) {
                 Text("Enable \"\(section.name.rawValue)\" section")
             }
@@ -76,21 +76,21 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var hiddenRecorder: some View {
-        if let section = menuBar.section(withName: .hidden) {
+        if let section = menuBarManager.section(withName: .hidden) {
             LabeledHotkeyRecorder(section: section)
         }
     }
 
     @ViewBuilder
     private var alwaysHiddenRecorder: some View {
-        if let section = menuBar.section(withName: .alwaysHidden) {
+        if let section = menuBarManager.section(withName: .alwaysHidden) {
             LabeledHotkeyRecorder(section: section)
         }
     }
 }
 
 struct LabeledHotkeyRecorder: View {
-    @EnvironmentObject var menuBar: MenuBar
+    @EnvironmentObject var menuBarManager: MenuBarManager
     @State private var failure: HotkeyRecorder.Failure?
     @State private var timer: Timer?
 
@@ -120,10 +120,10 @@ struct LabeledHotkeyRecorder: View {
 }
 
 #Preview {
-    let menuBar = MenuBar()
+    let menuBarManager = MenuBarManager()
 
     return GeneralSettingsPane()
         .fixedSize()
         .buttonStyle(CustomButtonStyle())
-        .environmentObject(menuBar)
+        .environmentObject(menuBarManager)
 }

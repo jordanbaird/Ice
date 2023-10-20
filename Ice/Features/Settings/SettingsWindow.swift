@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct SettingsWindow: Scene {
-    let menuBar: MenuBar
+    let menuBarManager: MenuBarManager
 
     var body: some Scene {
         Window(Constants.appName, id: Constants.settingsWindowID) {
@@ -16,7 +16,7 @@ struct SettingsWindow: Scene {
                     Color.clear
                         .overlay(Material.thin)
                 }
-                .environmentObject(menuBar)
+                .environmentObject(menuBarManager)
                 .buttonStyle(CustomButtonStyle())
         }
         .commandsRemoved()

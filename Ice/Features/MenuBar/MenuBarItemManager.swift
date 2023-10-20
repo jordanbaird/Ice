@@ -11,20 +11,20 @@ class MenuBarItemManager: ObservableObject {
     @Published var hiddenItems = [MenuBarItem]()
     @Published var alwaysHiddenItems = [MenuBarItem]()
 
-    private(set) weak var menuBar: MenuBar?
+    private(set) weak var menuBarManager: MenuBarManager?
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(menuBar: MenuBar) {
-        self.menuBar = menuBar
-        updateMenuBarItems(windows: menuBar.sharedContent.windows)
+    init(menuBarManager: MenuBarManager) {
+        self.menuBarManager = menuBarManager
+        updateMenuBarItems(windows: menuBarManager.sharedContent.windows)
         configureCancellables()
     }
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        menuBar?.sharedContent.$windows
+        menuBarManager?.sharedContent.$windows
             .receive(on: DispatchQueue.main)
             .sink { [weak self] windows in
                 self?.updateMenuBarItems(windows: windows)
@@ -36,11 +36,11 @@ class MenuBarItemManager: ObservableObject {
 
     private func updateMenuBarItems(windows: [SCWindow]) {
         guard
-            let menuBar,
+            let menuBarManager,
             let menuBarWindow = windows.first(where: windowIsMenuBar),
-            let visibleSection = menuBar.section(withName: .visible),
-            let hiddenSection = menuBar.section(withName: .hidden),
-            let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden)
+            let visibleSection = menuBarManager.section(withName: .visible),
+            let hiddenSection = menuBarManager.section(withName: .hidden),
+            let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
         else {
             return
         }

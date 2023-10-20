@@ -1,5 +1,5 @@
 //
-//  MenuBar.swift
+//  MenuBarManager.swift
 //  Ice
 //
 
@@ -8,8 +8,8 @@ import OSLog
 import ScreenCaptureKit
 import SwiftUI
 
-/// Manager for the state of items in the menu bar.
-class MenuBar: ObservableObject {
+/// Manager for the state of the menu bar.
+class MenuBarManager: ObservableObject {
     /// Set to `true` to tell the menu bar to save its sections.
     @Published var needsSave = false
 
@@ -20,13 +20,13 @@ class MenuBar: ObservableObject {
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
             for section in sections {
-                section.menuBar = nil
+                section.menuBarManager = nil
             }
         }
         didSet {
             if validateSectionCountOrReinitialize() {
                 for section in sections {
-                    section.menuBar = self
+                    section.menuBarManager = self
                 }
             }
             configureCancellables()
@@ -35,8 +35,8 @@ class MenuBar: ObservableObject {
     }
 
     let sharedContent = SharedContent()
-    private(set) lazy var itemManager = MenuBarItemManager(menuBar: self)
-    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBar: self)
+    private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
+    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBarManager: self)
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -48,20 +48,20 @@ class MenuBar: ObservableObject {
     /// Performs the initial setup of the menu bar's section list.
     func initializeSections() {
         guard sections.isEmpty else {
-            Logger.menuBar.info("Sections already initialized")
+            Logger.menuBarManager.info("Sections already initialized")
             return
         }
 
         // load sections from persistent storage
         sections = (UserDefaults.standard.array(forKey: Defaults.sections) ?? []).compactMap { entry in
             guard let dictionary = entry as? [String: Any] else {
-                Logger.menuBar.error("Entry not convertible to dictionary")
+                Logger.menuBarManager.error("Entry not convertible to dictionary")
                 return nil
             }
             do {
                 return try DictionaryDecoder().decode(MenuBarSection.self, from: dictionary)
             } catch {
-                Logger.menuBar.error("Decoding error: \(error)")
+                Logger.menuBarManager.error("Decoding error: \(error)")
                 return nil
             }
         }
@@ -76,7 +76,7 @@ class MenuBar: ObservableObject {
             UserDefaults.standard.set(serializedSections, forKey: Defaults.sections)
             needsSave = false
         } catch {
-            Logger.menuBar.error("Encoding error: \(error)")
+            Logger.menuBarManager.error("Encoding error: \(error)")
         }
     }
 
@@ -199,5 +199,5 @@ class MenuBar: ObservableObject {
 
 // MARK: - Logger
 private extension Logger {
-    static let menuBar = mainSubsystem(category: "MenuBar")
+    static let menuBarManager = mainSubsystem(category: "MenuBarManager")
 }

@@ -25,14 +25,14 @@ struct LayoutBar: View {
     }
 
     @Binding var layoutItems: [LayoutBarItem]
-    @ObservedObject var appearanceManager: MenuBarAppearanceManager
+    @ObservedObject var menuBarManager: MenuBarManager
 
     /// The amount of spacing between each layout item.
     let spacing: CGFloat
 
     /// The color of the layout bar's background.
     var backgroundColor: Color? {
-        guard let averageColor = appearanceManager.averageColor else {
+        guard let averageColor = menuBarManager.averageColor else {
             return nil
         }
         return Color(cgColor: averageColor)
@@ -43,17 +43,16 @@ struct LayoutBar: View {
     ///
     /// - Parameters:
     ///   - spacing: The amount of spacing between each layout item.
-    ///   - appearanceManager: The appearance manager that manages the
-    ///     menu bar, to synchronize the appearance of the layout bar.
+    ///   - menuBarManager: The manager that manages the menu bar.
     ///   - layoutItems: The items displayed in the layout bar.
     init(
         spacing: CGFloat = 0,
-        appearanceManager: MenuBarAppearanceManager,
+        menuBarManager: MenuBarManager,
         layoutItems: Binding<[LayoutBarItem]>
     ) {
         self._layoutItems = layoutItems
         self.spacing = spacing
-        self.appearanceManager = appearanceManager
+        self.menuBarManager = menuBarManager
     }
 
     var body: some View {
@@ -79,18 +78,18 @@ struct LayoutBar: View {
         }
         .overlay {
             if backgroundColor != nil {
-                switch appearanceManager.tintKind {
+                switch menuBarManager.tintKind {
                 case .none:
                     EmptyView()
                 case .solid:
-                    if let tintColor = appearanceManager.tintColor {
+                    if let tintColor = menuBarManager.tintColor {
                         RoundedRectangle(cornerRadius: 9)
                             .fill(Color(cgColor: tintColor))
                             .opacity(0.2)
                             .allowsHitTesting(false)
                     }
                 case .gradient:
-                    if let tintGradient = appearanceManager.tintGradient {
+                    if let tintGradient = menuBarManager.tintGradient {
                         tintGradient
                             .clipShape(RoundedRectangle(cornerRadius: 9))
                             .opacity(0.2)
@@ -132,12 +131,12 @@ private struct PreviewLayoutBar: View {
         ),
     ]
 
-    @StateObject private var appearanceManager = MenuBarAppearanceManager(menuBarManager: MenuBarManager())
+    @StateObject private var menuBarManager = MenuBarManager()
 
     var body: some View {
         LayoutBar(
             spacing: 5,
-            appearanceManager: appearanceManager,
+            menuBarManager: menuBarManager,
             layoutItems: $layoutItems
         )
     }

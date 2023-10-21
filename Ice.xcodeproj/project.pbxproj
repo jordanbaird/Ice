@@ -23,7 +23,6 @@
 		17DFF4A62AD3954B00B5177A /* SharedContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4A52AD3954B00B5177A /* SharedContent.swift */; };
 		17DFF4A82AD5BF7D00B5177A /* MenuBarSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4A72AD5BF7D00B5177A /* MenuBarSettingsPane.swift */; };
 		17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPaneAppearanceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPaneAppearanceTab.swift */; };
-		17DFF4B02AD601FE00B5177A /* MenuBarAppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AF2AD601FE00B5177A /* MenuBarAppearanceManager.swift */; };
 		17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */; };
 		17EC6B552AE0C0DE0065F260 /* CustomColorPickerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EC6B542AE0C0DE0065F260 /* CustomColorPickerModel.swift */; };
 		17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */; };
@@ -95,7 +94,6 @@
 		17DFF4A52AD3954B00B5177A /* SharedContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedContent.swift; sourceTree = "<group>"; };
 		17DFF4A72AD5BF7D00B5177A /* MenuBarSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsPane.swift; sourceTree = "<group>"; };
 		17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPaneAppearanceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsPaneAppearanceTab.swift; sourceTree = "<group>"; };
-		17DFF4AF2AD601FE00B5177A /* MenuBarAppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceManager.swift; sourceTree = "<group>"; };
 		17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableColor.swift; sourceTree = "<group>"; };
 		17EC6B542AE0C0DE0065F260 /* CustomColorPickerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPickerModel.swift; sourceTree = "<group>"; };
 		17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+clamped.swift"; sourceTree = "<group>"; };
@@ -380,7 +378,6 @@
 			isa = PBXGroup;
 			children = (
 				716683512A76820A006ABF84 /* ControlItem.swift */,
-				17DFF4AF2AD601FE00B5177A /* MenuBarAppearanceManager.swift */,
 				17DFF4982AD04AC200B5177A /* MenuBarItem.swift */,
 				17FE8E832AC73EBF006C6579 /* MenuBarItemManager.swift */,
 				7166834F2A7681AF006ABF84 /* MenuBarManager.swift */,
@@ -593,7 +590,6 @@
 				714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */,
 				17FE8E882AC76842006C6579 /* LayoutBarScrollView.swift in Sources */,
 				71623BD32A8B6744002FD331 /* CustomButtonStyle.swift in Sources */,
-				17DFF4B02AD601FE00B5177A /* MenuBarAppearanceManager.swift in Sources */,
 				17DFF4992AD04AC200B5177A /* MenuBarItem.swift in Sources */,
 				17DFF4A82AD5BF7D00B5177A /* MenuBarSettingsPane.swift in Sources */,
 				71A7D6DC2ABEF667000768B8 /* LayoutBarItem.swift in Sources */,

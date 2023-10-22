@@ -278,7 +278,7 @@ private struct CustomGradientPickerHandle: View {
                 model.selectedStop = stop
             }
             .zIndex(Double(model.zOrderedStops.firstIndex(of: stop) ?? 0))
-            .onReceive(model.$selectedStop) { _ in
+            .onChange(of: model.selectedStop == stop) { _ in
                 deactivate()
                 DispatchQueue.main.async {
                     if model.selectedStop == self.stop {

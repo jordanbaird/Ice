@@ -8,8 +8,10 @@ import SwiftUI
 
 struct CustomGradientPicker: View {
     @Binding var gradient: CustomGradient
-    @StateObject private var model: CustomGradientPickerModel
+    @State private var selectedStop: ColorStop?
+    @State private var zOrderedStops: [ColorStop]
     @State private var window: NSWindow?
+    @State private var cancellables = Set<AnyCancellable>()
 
     let supportsOpacity: Bool
     let mode: NSColorPanel.Mode
@@ -27,9 +29,8 @@ struct CustomGradientPicker: View {
         supportsOpacity: Bool,
         mode: NSColorPanel.Mode
     ) {
-        let model = CustomGradientPickerModel(zOrderedStops: gradient.wrappedValue.stops)
-        self._model = StateObject(wrappedValue: model)
         self._gradient = gradient
+        self.zOrderedStops = gradient.wrappedValue.stops
         self.supportsOpacity = supportsOpacity
         self.mode = mode
     }
@@ -58,17 +59,17 @@ struct CustomGradientPicker: View {
             }
             .foregroundStyle(Color(white: 0.9))
             .onKeyDown(key: .escape) {
-                model.selectedStop = nil
+                selectedStop = nil
             }
             .onKeyDown(key: .delete) {
                 guard
-                    let selectedStop = model.selectedStop,
+                    let selectedStop,
                     let index = gradient.stops.firstIndex(of: selectedStop)
                 else {
                     return
                 }
                 gradient.stops.remove(at: index)
-                model.selectedStop = nil
+                self.selectedStop = nil
             }
             .readWindow(window: $window)
     }
@@ -104,7 +105,7 @@ struct CustomGradientPicker: View {
                     y: window.frame.height - locationInWindow.y
                 )
                 if !globalFrame.contains(flippedLocation) {
-                    model.selectedStop = nil
+                    selectedStop = nil
                 }
                 return event
             }
@@ -140,7 +141,9 @@ struct CustomGradientPicker: View {
         ForEach(gradient.stops.indices, id: \.self) { index in
             CustomGradientPickerHandle(
                 gradient: $gradient,
-                model: model,
+                selectedStop: $selectedStop,
+                zOrderedStops: $zOrderedStops,
+                cancellables: $cancellables,
                 index: index,
                 supportsOpacity: supportsOpacity,
                 mode: mode,
@@ -173,14 +176,16 @@ struct CustomGradientPicker: View {
         }
         gradient.stops.append(newStop)
         DispatchQueue.main.async {
-            model.selectedStop = newStop
+            self.selectedStop = newStop
         }
     }
 }
 
 private struct CustomGradientPickerHandle: View {
     @Binding var gradient: CustomGradient
-    @ObservedObject var model: CustomGradientPickerModel
+    @Binding var selectedStop: ColorStop?
+    @Binding var zOrderedStops: [ColorStop]
+    @Binding var cancellables: Set<AnyCancellable>
 
     let index: Int
     let supportsOpacity: Bool
@@ -228,7 +233,7 @@ private struct CustomGradientPickerHandle: View {
             }
             .frame(width: width, height: height)
             .background {
-                if model.selectedStop == stop {
+                if selectedStop == stop {
                     Capsule()
                         .inset(by: -2)
                         .fill(.primary)
@@ -269,13 +274,13 @@ private struct CustomGradientPickerHandle: View {
                 }
             }
             .onTapGesture {
-                model.selectedStop = stop
+                selectedStop = stop
             }
-            .zIndex(Double(model.zOrderedStops.firstIndex(of: stop) ?? 0))
-            .onChange(of: model.selectedStop == stop) { _ in
+            .zIndex(Double(zOrderedStops.firstIndex(of: stop) ?? 0))
+            .onChange(of: selectedStop == stop) { _ in
                 deactivate()
                 DispatchQueue.main.async {
-                    if model.selectedStop == self.stop {
+                    if self.selectedStop == stop {
                         activate()
                     }
                 }
@@ -291,10 +296,10 @@ private struct CustomGradientPickerHandle: View {
         ) / (
             geometry.size.width - width
         )
-        if let index = model.zOrderedStops.firstIndex(of: stop) {
-            model.zOrderedStops.remove(at: index)
+        if let index = zOrderedStops.firstIndex(of: stop) {
+            zOrderedStops.remove(at: index)
         }
-        let isSelected = model.selectedStop == stop
+        let isSelected = selectedStop == stop
         if
             shouldSnap,
             (0.48...0.52).contains(newLocation)
@@ -305,9 +310,9 @@ private struct CustomGradientPickerHandle: View {
         }
         self.stop = stop
         if isSelected {
-            model.selectedStop = stop
+            selectedStop = stop
         }
-        model.zOrderedStops.append(stop)
+        zOrderedStops.append(stop)
     }
 
     private func activate() {
@@ -320,6 +325,10 @@ private struct CustomGradientPickerHandle: View {
         }
         NSColorPanel.shared.orderFrontRegardless()
 
+        if let index = stop.flatMap(zOrderedStops.firstIndex) {
+            zOrderedStops.append(zOrderedStops.remove(at: index))
+        }
+
         var c = Set<AnyCancellable>()
 
         NSColorPanel.shared.publisher(for: \.color)
@@ -327,7 +336,7 @@ private struct CustomGradientPickerHandle: View {
             .sink { color in
                 if stop?.color != color.cgColor {
                     stop?.color = color.cgColor
-                    model.selectedStop = stop
+                    selectedStop = stop
                 }
             }
             .store(in: &c)
@@ -335,19 +344,19 @@ private struct CustomGradientPickerHandle: View {
         NSColorPanel.shared.publisher(for: \.isVisible)
             .sink { isVisible in
                 if !isVisible {
-                    model.selectedStop = nil
+                    selectedStop = nil
                 }
             }
             .store(in: &c)
 
-        model.cancellables = c
+        cancellables = c
     }
 
     private func deactivate() {
-        for cancellable in model.cancellables {
+        for cancellable in cancellables {
             cancellable.cancel()
         }
-        model.cancellables.removeAll()
+        cancellables.removeAll()
     }
 }
 

@@ -226,7 +226,7 @@ final class MenuBarManager: ObservableObject {
                 case .none:
                     overlayPanel.hide()
                 case .solid, .gradient:
-                    overlayPanel.show()
+                    overlayPanel.showIfAble(fadeIn: true)
                 }
             }
             .store(in: &c)
@@ -245,7 +245,7 @@ final class MenuBarManager: ObservableObject {
                         let data = try JSONEncoder().encode(CodableColor(cgColor: tintColor))
                         UserDefaults.standard.set(data, forKey: Defaults.menuBarTintColor)
                         if case .solid = tintKind {
-                            overlayPanel.show()
+                            overlayPanel.showIfAble(fadeIn: true)
                         }
                     } catch {
                         Logger.menuBarManager.error("Error encoding color: \(error)")
@@ -271,7 +271,7 @@ final class MenuBarManager: ObservableObject {
                 do {
                     let data = try JSONEncoder().encode(tintGradient)
                     UserDefaults.standard.set(data, forKey: Defaults.menuBarTintGradient)
-                    overlayPanel.show()
+                    overlayPanel.showIfAble(fadeIn: true)
                 } catch {
                     Logger.menuBarManager.error("Error encoding gradient: \(error)")
                     overlayPanel.hide()
@@ -363,150 +363,6 @@ final class MenuBarManager: ObservableObject {
 
 // MARK: MenuBarManager: BindingExposable
 extension MenuBarManager: BindingExposable { }
-
-// MARK: - MenuBarOverlayPanel
-private class MenuBarOverlayPanel: NSPanel {
-    private static let defaultAlphaValue = 0.2
-
-    private(set) weak var menuBarManager: MenuBarManager?
-
-    private var cancellables = Set<AnyCancellable>()
-
-    init(menuBarManager: MenuBarManager) {
-        super.init(
-            contentRect: .zero,
-            styleMask: [
-                .borderless,
-                .fullSizeContentView,
-                .nonactivatingPanel,
-            ],
-            backing: .buffered,
-            defer: false
-        )
-        self.menuBarManager = menuBarManager
-        self.title = "Menu Bar Overlay"
-        self.level = .statusBar
-        self.collectionBehavior = [
-            .fullScreenNone,
-            .ignoresCycle,
-        ]
-        self.ignoresMouseEvents = true
-        self.contentView?.wantsLayer = true
-        configureCancellables()
-    }
-
-    private func configureCancellables() {
-        var c = Set<AnyCancellable>()
-
-        if let menuBarManager {
-            Publishers.CombineLatest3(
-                menuBarManager.$tintKind,
-                menuBarManager.$tintColor,
-                menuBarManager.$tintGradient
-            )
-            .sink { [weak self] _ in
-                DispatchQueue.main.async {
-                    self?.updateTint()
-                }
-            }
-            .store(in: &c)
-        }
-
-        NSWorkspace.shared.notificationCenter
-            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                hide()
-                if
-                    let menuBarManager,
-                    menuBarManager.tintKind != .none
-                {
-                    show()
-                }
-            }
-            .store(in: &c)
-
-        cancellables = c
-    }
-
-    func show() {
-        guard !ProcessInfo.processInfo.isPreview else {
-            return
-        }
-        guard let screen = NSScreen.main else {
-            Logger.menuBarManager.info("No screen")
-            return
-        }
-        setFrame(
-            CGRect(
-                x: screen.frame.minX,
-                y: screen.visibleFrame.maxY + 1,
-                width: screen.frame.width,
-                height: (screen.frame.height - screen.visibleFrame.height) - 1
-            ),
-            display: true
-        )
-        let isVisible = isVisible
-        if !isVisible {
-            alphaValue = 0
-        }
-        orderFrontRegardless()
-        if !isVisible {
-            animator().alphaValue = Self.defaultAlphaValue
-        }
-    }
-
-    func hide() {
-        orderOut(nil)
-    }
-
-    /// Updates the tint of the panel according to the appearance
-    /// manager's tint kind.
-    func updateTint() {
-        backgroundColor = .clear
-        contentView?.layer = CALayer()
-
-        guard let menuBarManager else {
-            return
-        }
-
-        switch menuBarManager.tintKind {
-        case .none:
-            break
-        case .solid:
-            guard
-                let tintColor = menuBarManager.tintColor,
-                let nsColor = NSColor(cgColor: tintColor)
-            else {
-                return
-            }
-            backgroundColor = nsColor
-        case .gradient:
-            guard !menuBarManager.tintGradient.stops.isEmpty else {
-                return
-            }
-            let gradientLayer = CAGradientLayer()
-            gradientLayer.startPoint = CGPoint(x: 0, y: 0)
-            gradientLayer.endPoint = CGPoint(x: 1, y: 0)
-            if menuBarManager.tintGradient.stops.count == 1 {
-                // gradient layer needs at least two stops to render correctly;
-                // convert the single stop into two and place them on opposite
-                // ends of the layer
-                let color = menuBarManager.tintGradient.stops[0].color
-                gradientLayer.colors = [color, color]
-                gradientLayer.locations = [0, 1]
-            } else {
-                let sortedStops = menuBarManager.tintGradient.stops.sorted { $0.location < $1.location }
-                gradientLayer.colors = sortedStops.map { $0.color }
-                gradientLayer.locations = sortedStops.map { $0.location } as [NSNumber]
-            }
-            contentView?.layer = gradientLayer
-        }
-    }
-}
 
 // MARK: - Logger
 private extension Logger {

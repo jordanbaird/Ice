@@ -12,6 +12,7 @@
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
 		1736F7832ADBCAFD0073428E /* CGColor+blended.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F7822ADBCAFD0073428E /* CGColor+blended.swift */; };
 		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
+		178B36692AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178B36682AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift */; };
 		17928F1A2AC5DF9C0016C615 /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17928F192AC5DF9C0016C615 /* Defaults.swift */; };
 		179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */; };
 		17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */; };
@@ -82,6 +83,7 @@
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
 		1736F7822ADBCAFD0073428E /* CGColor+blended.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGColor+blended.swift"; sourceTree = "<group>"; };
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
+		178B36682AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearancePanel.swift; sourceTree = "<group>"; };
 		17928F192AC5DF9C0016C615 /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
 		179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveSidebarToggle.swift; sourceTree = "<group>"; };
 		17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnKeyDown.swift; sourceTree = "<group>"; };
@@ -375,6 +377,7 @@
 			isa = PBXGroup;
 			children = (
 				716683512A76820A006ABF84 /* ControlItem.swift */,
+				178B36682AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift */,
 				17DFF4982AD04AC200B5177A /* MenuBarItem.swift */,
 				17FE8E832AC73EBF006C6579 /* MenuBarItemManager.swift */,
 				7166834F2A7681AF006ABF84 /* MenuBarManager.swift */,
@@ -565,6 +568,7 @@
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
 				170DE5F02AC4D02000D989B8 /* WindowCaptureManager.swift in Sources */,
+				178B36692AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift in Sources */,
 				1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
 				711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */,

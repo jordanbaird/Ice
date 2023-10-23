@@ -89,12 +89,10 @@ struct LayoutBar: View {
                             .allowsHitTesting(false)
                     }
                 case .gradient:
-                    if let tintGradient = menuBarManager.tintGradient {
-                        tintGradient
-                            .clipShape(RoundedRectangle(cornerRadius: 9))
-                            .opacity(0.2)
-                            .allowsHitTesting(false)
-                    }
+                    menuBarManager.tintGradient
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                        .opacity(0.2)
+                        .allowsHitTesting(false)
                 }
             }
         }

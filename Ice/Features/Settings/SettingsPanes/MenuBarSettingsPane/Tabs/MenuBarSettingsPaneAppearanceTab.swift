@@ -47,29 +47,31 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                         .help("Reset")
                         .buttonStyle(.plain)
                     }
+
                     CustomColorPicker(
                         selection: menuBarManager.bindings.tintColor,
                         supportsOpacity: false,
                         mode: .crayon
                     )
                 case .gradient:
-                    if menuBarManager.tintGradient != nil {
+                    if menuBarManager.tintGradient != .defaultMenuBarTint {
                         Button {
-                            menuBarManager.tintGradient = nil
+                            menuBarManager.tintGradient = .defaultMenuBarTint
                         } label: {
                             Image(systemName: "arrow.counterclockwise")
                         }
                         .help("Reset")
                         .buttonStyle(.plain)
                     }
+
                     CustomGradientPicker(
                         gradient: Binding(
                             get: {
-                                menuBarManager.tintGradient ?? CustomGradient()
+                                menuBarManager.tintGradient
                             },
                             set: { gradient in
                                 if gradient.stops.isEmpty {
-                                    menuBarManager.tintGradient = nil
+                                    menuBarManager.tintGradient = .defaultMenuBarTint
                                 } else {
                                     menuBarManager.tintGradient = gradient
                                 }
@@ -78,6 +80,23 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                         supportsOpacity: false,
                         mode: .crayon
                     )
+                    .onChange(of: menuBarManager.tintGradient) { gradient in
+                        if gradient.stops.isEmpty {
+                            menuBarManager.tintGradient = .defaultMenuBarTint
+                        } else if gradient.stops.count == 1 {
+                            var gradient = gradient
+                            if gradient.stops[0].location >= 0.5 {
+                                gradient.stops[0].location = 1
+                                let stop = ColorStop(color: .white, location: 0)
+                                gradient.stops.append(stop)
+                            } else {
+                                gradient.stops[0].location = 0
+                                let stop = ColorStop(color: .black, location: 1)
+                                gradient.stops.append(stop)
+                            }
+                            menuBarManager.tintGradient = gradient
+                        }
+                    }
                 }
             }
             .frame(height: 24)

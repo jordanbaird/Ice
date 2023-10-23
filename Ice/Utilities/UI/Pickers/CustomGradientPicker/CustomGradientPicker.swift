@@ -167,12 +167,7 @@ struct CustomGradientPicker: View {
             )
         } else {
             newStop = ColorStop(
-                color: CGColor(
-                    red: 0,
-                    green: 0,
-                    blue: 0,
-                    alpha: 1
-                ),
+                color: CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1),
                 location: location
             )
         }
@@ -213,14 +208,6 @@ private struct CustomGradientPickerHandle: View {
         }
     }
 
-    private var stroke: AnyShapeStyle {
-        if model.selectedStop == stop {
-            AnyShapeStyle(.primary)
-        } else {
-            AnyShapeStyle(.secondary.opacity(0.75))
-        }
-    }
-
     var body: some View {
         if let stop {
             gradientPickerHandle(with: stop)
@@ -236,10 +223,17 @@ private struct CustomGradientPickerHandle: View {
                 Capsule()
                     .inset(by: -1)
                     .stroke()
-                    .foregroundStyle(stroke)
+                    .foregroundStyle(.secondary.opacity(0.75))
                     .blendMode(.softLight)
             }
             .frame(width: width, height: height)
+            .background {
+                if model.selectedStop == stop {
+                    Capsule()
+                        .inset(by: -2)
+                        .fill(.primary)
+                }
+            }
             .offset(
                 x: (geometry.size.width - width) * stop.location,
                 y: (geometry.size.height - height) / 2

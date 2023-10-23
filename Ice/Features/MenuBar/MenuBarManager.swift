@@ -33,7 +33,7 @@ final class MenuBarManager: ObservableObject {
     @Published var tintColor: CGColor?
 
     /// The user's currently chosen tint gradient.
-    @Published var tintGradient: CustomGradient?
+    @Published var tintGradient = CustomGradient.defaultMenuBarTint
 
     /// The average color of the menu bar.
     ///
@@ -69,7 +69,9 @@ final class MenuBarManager: ObservableObject {
     let sharedContent = SharedContent()
 
     private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
+
     private lazy var overlayPanel = MenuBarOverlayPanel(menuBarManager: self)
+
     private var cancellables = Set<AnyCancellable>()
 
     /// Initializes a new menu bar instance.
@@ -259,28 +261,19 @@ final class MenuBarManager: ObservableObject {
         $tintGradient
             .receive(on: DispatchQueue.main)
             .sink { [weak self] tintGradient in
-                guard
-                    let self,
-                    tintKind == .gradient
-                else {
+                guard let self else {
                     return
                 }
-                if
-                    let tintGradient,
-                    !tintGradient.stops.isEmpty
-                {
-                    do {
-                        let data = try JSONEncoder().encode(tintGradient)
-                        UserDefaults.standard.set(data, forKey: Defaults.menuBarTintGradient)
-                        if case .gradient = tintKind {
-                            overlayPanel.show()
-                        }
-                    } catch {
-                        Logger.menuBarManager.error("Error encoding gradient: \(error)")
-                        overlayPanel.hide()
-                    }
-                } else {
-                    UserDefaults.standard.removeObject(forKey: Defaults.menuBarTintGradient)
+                guard case .gradient = tintKind else {
+                    overlayPanel.hide()
+                    return
+                }
+                do {
+                    let data = try JSONEncoder().encode(tintGradient)
+                    UserDefaults.standard.set(data, forKey: Defaults.menuBarTintGradient)
+                    overlayPanel.show()
+                } catch {
+                    Logger.menuBarManager.error("Error encoding gradient: \(error)")
                     overlayPanel.hide()
                 }
             }
@@ -492,24 +485,21 @@ private class MenuBarOverlayPanel: NSPanel {
             }
             backgroundColor = nsColor
         case .gradient:
-            guard
-                let tintGradient = menuBarManager.tintGradient,
-                !tintGradient.stops.isEmpty
-            else {
+            guard !menuBarManager.tintGradient.stops.isEmpty else {
                 return
             }
             let gradientLayer = CAGradientLayer()
             gradientLayer.startPoint = CGPoint(x: 0, y: 0)
             gradientLayer.endPoint = CGPoint(x: 1, y: 0)
-            if tintGradient.stops.count == 1 {
+            if menuBarManager.tintGradient.stops.count == 1 {
                 // gradient layer needs at least two stops to render correctly;
                 // convert the single stop into two and place them on opposite
                 // ends of the layer
-                let color = tintGradient.stops[0].color
+                let color = menuBarManager.tintGradient.stops[0].color
                 gradientLayer.colors = [color, color]
                 gradientLayer.locations = [0, 1]
             } else {
-                let sortedStops = tintGradient.stops.sorted { $0.location < $1.location }
+                let sortedStops = menuBarManager.tintGradient.stops.sorted { $0.location < $1.location }
                 gradientLayer.colors = sortedStops.map { $0.color }
                 gradientLayer.locations = sortedStops.map { $0.location } as [NSNumber]
             }

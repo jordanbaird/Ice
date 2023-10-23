@@ -21,10 +21,11 @@ struct CustomGradient: View {
 
     /// A Cocoa representation of this gradient.
     var nsGradient: NSGradient? {
-        let colors = stops.compactMap { stop in
+        let sortedStops = sortedStops
+        let colors = sortedStops.compactMap { stop in
             NSColor(cgColor: stop.color)
         }
-        var locations = stops.map { stop in
+        var locations = sortedStops.map { stop in
             stop.location
         }
         guard colors.count == locations.count else {
@@ -87,6 +88,22 @@ struct CustomGradient: View {
             options: nil
         )
     }
+}
+
+extension CustomGradient {
+    /// The default menu bar tint gradient.
+    static let defaultMenuBarTint = CustomGradient(
+        unsortedStops: [
+            ColorStop(
+                color: CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1),
+                location: 0
+            ),
+            ColorStop(
+                color: CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1),
+                location: 1
+            ),
+        ]
+    )
 }
 
 // MARK: CustomGradient: Codable

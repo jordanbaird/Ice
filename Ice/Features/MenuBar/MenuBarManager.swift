@@ -365,20 +365,18 @@ final class MenuBarManager: ObservableObject {
                 screenBounds: menuBarWindow.frame,
                 options: .ignoreFraming
             ),
-            let components = image.averageColor(
+            let color = image.averageColor(
                 accuracy: .low,
-                algorithm: .simple
+                algorithm: .simple,
+                options: .ignoreAlpha
             )
         else {
             return
         }
 
-        averageColor = CGColor(
-            red: components.red,
-            green: components.green,
-            blue: components.blue,
-            alpha: 1
-        )
+        if averageColor != color {
+            averageColor = color
+        }
     }
 }
 

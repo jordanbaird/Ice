@@ -32,26 +32,44 @@ enum ColorAverageAccuracy {
     case exact
 }
 
-extension CGImage {
-    /// Amounts to shift a pixel value to get the correct color components.
-    private enum Shift: UInt32 {
-        /// Shift for the alpha component.
-        case alpha = 0x18
-        /// Shift for the red component.
-        case red   = 0x10
-        /// Shift for the green component.
-        case green = 0x08
-        /// Shift for the blue component.
-        case blue  = 0x00
-    }
+/// Options that affect the output of a color averaging algorithm.
+struct ColorAverageOptions: OptionSet {
+    let rawValue: Int
 
-    /// Computes and returns the average color components of the image,
-    /// using the specified accuracy, algorithm, and alpha threshold.
+    /// The alpha component of the result is ignored and replaced
+    /// with a value of `1`.
+    static let ignoreAlpha = ColorAverageOptions(rawValue: 1 << 0)
+}
+
+/// Amounts to shift a pixel value to get the correct color components.
+private enum Shift: UInt32 {
+    /// Shift for the alpha component.
+    case alpha = 0x18
+    /// Shift for the red component.
+    case red   = 0x10
+    /// Shift for the green component.
+    case green = 0x08
+    /// Shift for the blue component.
+    case blue  = 0x00
+}
+
+extension CGImage {
+    /// Computes and returns the average color of the image.
+    ///
+    /// - Parameters:
+    ///   - accuracy: The accuracy of the algorithm.
+    ///   - algorithm: The algorithm used to compute the average.
+    ///   - options: Options that further specify how the average
+    ///     should be computed.
+    ///   - alphaThreshold: An alpha value below which pixels should
+    ///     be ignored. Pixels whose alpha component is less than
+    ///     this value are not used in the computation.
     func averageColor(
         accuracy: ColorAverageAccuracy,
         algorithm: ColorAverageAlgorithm,
+        options: ColorAverageOptions = [],
         alphaThreshold: CGFloat = 0.5
-    ) -> (red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat)? {
+    ) -> CGColor? {
         // resize the image based on the accuracy; smaller images remove
         // more pixels, decreasing accuracy, but increasing performance
         let size = computeSize(for: accuracy)
@@ -135,9 +153,13 @@ extension CGImage {
         let red = averageRed / 255
         let green = averageGreen / 255
         let blue = averageBlue / 255
-        let alpha = averageAlpha / 255
+        let alpha: CGFloat = if options.contains(.ignoreAlpha) {
+            1.0
+        } else {
+            averageAlpha / 255
+        }
 
-        return (red: red, green: green, blue: blue, alpha: alpha)
+        return CGColor(red: red, green: green, blue: blue, alpha: alpha)
     }
 
     /// Computes a new size for the image, based on the given accuracy.

@@ -125,7 +125,7 @@ class MenuBarAppearancePanel: NSPanel {
 
     /// Hides the panel.
     func hide() {
-        orderOut(nil)
+        close()
     }
 
     override func isAccessibilityElement() -> Bool {

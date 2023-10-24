@@ -15,6 +15,9 @@ struct MenuBarSettingsPaneAppearanceTab: View {
             Section {
                 tintPicker
             }
+            Section {
+                shadowToggle
+            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -101,6 +104,11 @@ struct MenuBarSettingsPaneAppearanceTab: View {
             }
             .frame(height: 24)
         }
+    }
+
+    @ViewBuilder
+    private var shadowToggle: some View {
+        Toggle("Shadow", isOn: $menuBarManager.hasShadow)
     }
 }
 

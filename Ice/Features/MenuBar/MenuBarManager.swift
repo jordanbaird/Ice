@@ -26,6 +26,10 @@ final class MenuBarManager: ObservableObject {
     /// The menu bar's window.
     @Published var menuBarWindow: SCWindow?
 
+    /// A Boolean value that indicates whether the menu bar should
+    /// have a shadow.
+    @Published var hasShadow: Bool
+
     /// The tint kind currently in use.
     @Published var tintKind: TintKind
 
@@ -71,11 +75,13 @@ final class MenuBarManager: ObservableObject {
     private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
 
     private lazy var overlayPanel = MenuBarOverlayPanel(menuBarManager: self)
+    private lazy var shadowPanel = MenuBarShadowPanel(menuBarManager: self)
 
     private var cancellables = Set<AnyCancellable>()
 
     /// Initializes a new menu bar instance.
     init() {
+        self.hasShadow = UserDefaults.standard.bool(forKey: Defaults.menuBarHasShadow)
         self.tintKind = TintKind(rawValue: UserDefaults.standard.integer(forKey: Defaults.menuBarTintKind)) ?? .none
         if let tintColorData = UserDefaults.standard.data(forKey: Defaults.menuBarTintColor) {
             do {
@@ -211,6 +217,21 @@ final class MenuBarManager: ObservableObject {
                 }
                 if publishesAverageColor {
                     readAndUpdateAverageColor(windows: windows)
+                }
+            }
+            .store(in: &c)
+
+        $hasShadow
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] hasShadow in
+                guard let self else {
+                    return
+                }
+                UserDefaults.standard.set(hasShadow, forKey: Defaults.menuBarHasShadow)
+                if hasShadow {
+                    shadowPanel.showIfAble(fadeIn: true)
+                } else {
+                    shadowPanel.hide()
                 }
             }
             .store(in: &c)

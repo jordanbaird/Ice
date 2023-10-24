@@ -5,6 +5,7 @@
 
 /// A namespace for `UserDefaults` keys.
 enum Defaults {
+    static let menuBarHasShadow = "MenuBarHasShadow"
     static let menuBarTintKind = "MenuBarTintKind"
     static let menuBarTintColor = "MenuBarTintColor"
     static let menuBarTintGradient = "MenuBarTintGradient"

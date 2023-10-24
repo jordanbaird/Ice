@@ -10,7 +10,7 @@ import OSLog
 // MARK: - MenuBarAppearancePanel
 
 /// A subclass of `NSPanel` that is displayed over the top
-/// of, or underneath the menu bar to augment its appearance.
+/// of, or underneath the menu bar to alter its appearance.
 class MenuBarAppearancePanel: NSPanel {
     /// The default alpha value for menu bar helper panels
     /// of this type.
@@ -101,7 +101,7 @@ class MenuBarAppearancePanel: NSPanel {
             return
         }
         guard let screen = NSScreen.main else {
-            Logger.menuBarHelperPanel.info("No screen")
+            Logger.menuBarAppearancePanel.info("No screen")
             return
         }
         setFrame(
@@ -134,7 +134,6 @@ class MenuBarAppearancePanel: NSPanel {
 }
 
 // MARK: - MenuBarOverlayPanel
-
 class MenuBarOverlayPanel: MenuBarAppearancePanel {
     private var cancellables = Set<AnyCancellable>()
 
@@ -175,7 +174,7 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
         cancellables = c
     }
 
-    /// Updates the tint of the panel according to the appearance
+    /// Updates the tint of the panel according to the menu bar
     /// manager's tint kind.
     func updateTint() {
         backgroundColor = .clear
@@ -220,7 +219,39 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
     }
 }
 
+// MARK: - MenuBarShadowPanel
+class MenuBarShadowPanel: MenuBarAppearancePanel {
+    override class var defaultAlphaValue: CGFloat { 1 }
+
+    override var canShow: Bool {
+        menuBarManager?.hasShadow ?? false
+    }
+
+    init(menuBarManager: MenuBarManager) {
+        super.init(
+            level: Level(Int(CGWindowLevelForKey(.desktopIconWindow))),
+            title: "Menu Bar Shadow",
+            menuBarManager: menuBarManager
+        )
+        self.backgroundColor = .clear
+        self.contentView?.wantsLayer = true
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.colors = [CGColor.clear, CGColor(gray: 0, alpha: 0.2)]
+        self.contentView?.layer = gradientLayer
+    }
+
+    override func menuBarFrame(forScreen screen: NSScreen) -> CGRect {
+        let rect = super.menuBarFrame(forScreen: screen)
+        return CGRect(
+            x: rect.minX,
+            y: rect.minY - 5,
+            width: rect.width,
+            height: 5
+        )
+    }
+}
+
 // MARK: - Logger
 private extension Logger {
-    static let menuBarHelperPanel = mainSubsystem(category: "MenuBarHelperPanel")
+    static let menuBarAppearancePanel = mainSubsystem(category: "MenuBarAppearancePanel")
 }

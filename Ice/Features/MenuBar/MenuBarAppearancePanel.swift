@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import OSLog
 
 // MARK: - MenuBarAppearancePanel
 
@@ -96,12 +95,9 @@ class MenuBarAppearancePanel: NSPanel {
     func showIfAble(fadeIn: Bool) {
         guard
             canShow,
-            !ProcessInfo.processInfo.isPreview
+            !ProcessInfo.processInfo.isPreview,
+            let screen = NSScreen.main
         else {
-            return
-        }
-        guard let screen = NSScreen.main else {
-            Logger.menuBarAppearancePanel.info("No screen")
             return
         }
         setFrame(
@@ -249,9 +245,4 @@ class MenuBarShadowPanel: MenuBarAppearancePanel {
             height: 5
         )
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let menuBarAppearancePanel = mainSubsystem(category: "MenuBarAppearancePanel")
 }

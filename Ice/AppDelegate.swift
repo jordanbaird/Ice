@@ -49,23 +49,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Activates the app and sets its activation policy to the given value.
     func activate(withPolicy policy: NSApplication.ActivationPolicy) {
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        NSApp.activate(ignoringOtherApps: true)
         NSApp.setActivationPolicy(policy)
         menuBarManager.sharedContent.activate()
     }
 
     /// Deactivates the app and sets its activation policy to the given value.
     func deactivate(withPolicy policy: NSApplication.ActivationPolicy) {
-        if #available(macOS 14.0, *) {
-            // FIXME: Seems like there should be a better way to simply deactivate and yield
-            // to the next available app, but I'm not seeing one. Yielding to an empty bundle
-            // id is probably a bad (or at least not good) solution, but calling deactivate()
-            // on macOS 14 causes the app to be unfocused the next time it activates
-            NSApp.yieldActivation(toApplicationWithBundleIdentifier: "")
+        lazy var nextApp = NSWorkspace.shared.runningApplications.first { app in
+            app != .current
+        }
+        if
+            #available(macOS 14.0, *),
+            let nextApp
+        {
+            NSApp.yieldActivation(to: nextApp)
         } else {
             NSApp.deactivate()
         }

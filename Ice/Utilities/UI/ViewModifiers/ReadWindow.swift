@@ -1,12 +1,12 @@
 //
-//  WindowReader.swift
+//  ReadWindow.swift
 //  Ice
 //
 
 import Combine
 import SwiftUI
 
-struct WindowReader: View {
+private struct WindowReader: View {
     private class WindowObserver: ObservableObject {
         private var cancellable: AnyCancellable?
 

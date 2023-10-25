@@ -64,8 +64,7 @@
 		71A7D6D62ABEF3E5000768B8 /* LayoutBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A7D6D52ABEF3E5000768B8 /* LayoutBar.swift */; };
 		71A7D6D82ABEF40F000768B8 /* LayoutBarCocoaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A7D6D72ABEF40F000768B8 /* LayoutBarCocoaView.swift */; };
 		71A7D6DC2ABEF667000768B8 /* LayoutBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71A7D6DB2ABEF667000768B8 /* LayoutBarItem.swift */; };
-		71C400302AAD1C35006FDB1C /* CustomButtonConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C4002F2AAD1C35006FDB1C /* CustomButtonConfiguration.swift */; };
-		71C400322AAD76A8006FDB1C /* WindowReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C400312AAD76A8006FDB1C /* WindowReader.swift */; };
+		71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C400312AAD76A8006FDB1C /* ReadWindow.swift */; };
 		71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */; };
 		71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */; };
 		71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */; };
@@ -136,8 +135,7 @@
 		71A7D6D52ABEF3E5000768B8 /* LayoutBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBar.swift; sourceTree = "<group>"; };
 		71A7D6D72ABEF40F000768B8 /* LayoutBarCocoaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarCocoaView.swift; sourceTree = "<group>"; };
 		71A7D6DB2ABEF667000768B8 /* LayoutBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarItem.swift; sourceTree = "<group>"; };
-		71C4002F2AAD1C35006FDB1C /* CustomButtonConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomButtonConfiguration.swift; sourceTree = "<group>"; };
-		71C400312AAD76A8006FDB1C /* WindowReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowReader.swift; sourceTree = "<group>"; };
+		71C400312AAD76A8006FDB1C /* ReadWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadWindow.swift; sourceTree = "<group>"; };
 		71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+displayName.swift"; sourceTree = "<group>"; };
 		71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+versionString.swift"; sourceTree = "<group>"; };
 		71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSSplitViewItem+swizzledCanCollapse.swift"; sourceTree = "<group>"; };
@@ -176,6 +174,39 @@
 				1736F7822ADBCAFD0073428E /* CGColor+blended.swift */,
 			);
 			path = CGColor;
+			sourceTree = "<group>";
+		};
+		179267372AE98870006AFBAF /* ViewModifiers */ = {
+			isa = PBXGroup;
+			children = (
+				7112D0D42AB882D300F27889 /* Annotation.swift */,
+				71604D602AAE62DA002FE96F /* BottomBar.swift */,
+				71604D622AAE84ED002FE96F /* ErrorOverlay.swift */,
+				17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */,
+				71839C152A9B6A0D00250044 /* OnFrameChange.swift */,
+				17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */,
+				71C400312AAD76A8006FDB1C /* ReadWindow.swift */,
+				179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */,
+			);
+			path = ViewModifiers;
+			sourceTree = "<group>";
+		};
+		179267382AE98985006AFBAF /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				711AD0EA2ABD616700258639 /* CustomTabView.swift */,
+				71D36C532A89445C00D89CD5 /* VisualEffectView.swift */,
+				17EC6B522AE0C09F0065F260 /* Pickers */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		179267392AE98A85006AFBAF /* Styles */ = {
+			isa = PBXGroup;
+			children = (
+				71623BD22A8B6744002FD331 /* CustomButtonStyle.swift */,
+			);
+			path = Styles;
 			sourceTree = "<group>";
 		};
 		17C9EB702AC9078800141043 /* WindowList */ = {
@@ -426,19 +457,9 @@
 		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
-				7112D0D42AB882D300F27889 /* Annotation.swift */,
-				71604D602AAE62DA002FE96F /* BottomBar.swift */,
-				71C4002F2AAD1C35006FDB1C /* CustomButtonConfiguration.swift */,
-				71623BD22A8B6744002FD331 /* CustomButtonStyle.swift */,
-				711AD0EA2ABD616700258639 /* CustomTabView.swift */,
-				71604D622AAE84ED002FE96F /* ErrorOverlay.swift */,
-				17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */,
-				71839C152A9B6A0D00250044 /* OnFrameChange.swift */,
-				17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */,
-				17EC6B522AE0C09F0065F260 /* Pickers */,
-				179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */,
-				71D36C532A89445C00D89CD5 /* VisualEffectView.swift */,
-				71C400312AAD76A8006FDB1C /* WindowReader.swift */,
+				179267392AE98A85006AFBAF /* Styles */,
+				179267372AE98870006AFBAF /* ViewModifiers */,
+				179267382AE98985006AFBAF /* Views */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -579,14 +600,13 @@
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
 				71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */,
 				7150A7B32AA42B640045EA68 /* Hotkey+Modifiers.swift in Sources */,
-				71C400322AAD76A8006FDB1C /* WindowReader.swift in Sources */,
+				71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */,
 				71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */,
 				17C9EB7D2AC9FD0600141043 /* QueuedTimer.swift in Sources */,
 				7166834B2A76811C006ABF84 /* Logger+mainSubsystem.swift in Sources */,
 				17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */,
 				17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */,
 				71839BD82A997DC200250044 /* Edge+cgRectEdge.swift in Sources */,
-				71C400302AAD1C35006FDB1C /* CustomButtonConfiguration.swift in Sources */,
 				714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */,
 				17FE8E882AC76842006C6579 /* LayoutBarScrollView.swift in Sources */,
 				71623BD32A8B6744002FD331 /* CustomButtonStyle.swift in Sources */,

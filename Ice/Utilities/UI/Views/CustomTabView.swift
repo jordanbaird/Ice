@@ -52,7 +52,7 @@ struct CustomTabView: View {
                 selection = 0
             }
         }
-        .buttonStyle(CustomButtonStyle())
+        .buttonStyle(.custom)
     }
 
     @ViewBuilder

@@ -200,5 +200,5 @@ struct HotkeyRecorder: View {
 #Preview {
     HotkeyRecorder(section: nil, failure: .constant(nil))
         .padding()
-        .buttonStyle(CustomButtonStyle())
+        .buttonStyle(.custom)
 }

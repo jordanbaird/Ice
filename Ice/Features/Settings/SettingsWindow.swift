@@ -17,7 +17,7 @@ struct SettingsWindow: Scene {
                         .overlay(Material.thin)
                 }
                 .environmentObject(menuBarManager)
-                .buttonStyle(CustomButtonStyle())
+                .buttonStyle(.custom)
         }
         .commandsRemoved()
         .defaultSize(width: 900, height: 600)

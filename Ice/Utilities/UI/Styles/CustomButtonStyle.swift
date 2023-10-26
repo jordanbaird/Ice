@@ -56,14 +56,17 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
     @Environment(\.customButtonConfiguration.isHighlighted) private var isHighlighted
     @Environment(\.customButtonConfiguration.labelForegroundColor) private var labelForegroundColor
     @Environment(\.customButtonConfiguration.shape) private var shape
+    @Environment(\.controlSize) private var controlSize
+    @State private var horizontalPadding: CGFloat = 7
+    @State private var verticalPadding: CGFloat = 2
     @State private var isPressed = false
     @State private var frame = CGRect.zero
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(labelForegroundColor)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
             .baselineOffset(1)
             .transformEnvironment(\.font) { font in
                 if font == nil {
@@ -94,6 +97,27 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
                     }
             )
             .onFrameChange(update: $frame)
+            .onAppear {
+                switch controlSize {
+                case .mini:
+                    horizontalPadding = 2
+                    verticalPadding = 0
+                case .small:
+                    horizontalPadding = 4
+                    verticalPadding = 1
+                case .regular:
+                    horizontalPadding = 7
+                    verticalPadding = 2
+                case .large:
+                    horizontalPadding = 8
+                    verticalPadding = 6
+                case .extraLarge:
+                    horizontalPadding = 12
+                    verticalPadding = 8
+                @unknown default:
+                    break
+                }
+            }
     }
 }
 

@@ -13,6 +13,11 @@
 		1736F7832ADBCAFD0073428E /* CGColor+blended.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F7822ADBCAFD0073428E /* CGColor+blended.swift */; };
 		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
 		178B36692AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178B36682AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift */; };
+		1792673C2AE9B561006AFBAF /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1792673B2AE9B561006AFBAF /* PermissionsView.swift */; };
+		1792673E2AE9B8C1006AFBAF /* PermissionsGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1792673D2AE9B8C1006AFBAF /* PermissionsGroup.swift */; };
+		179267402AE9B9F6006AFBAF /* PermissionsCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1792673F2AE9B9F6006AFBAF /* PermissionsCheck.swift */; };
+		179267422AE9BC15006AFBAF /* PermissionsRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179267412AE9BC15006AFBAF /* PermissionsRequest.swift */; };
+		179267462AE9D292006AFBAF /* PermissionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179267452AE9D292006AFBAF /* PermissionsManager.swift */; };
 		17928F1A2AC5DF9C0016C615 /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17928F192AC5DF9C0016C615 /* Defaults.swift */; };
 		179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */; };
 		17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */; };
@@ -83,6 +88,11 @@
 		1736F7822ADBCAFD0073428E /* CGColor+blended.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGColor+blended.swift"; sourceTree = "<group>"; };
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
 		178B36682AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearancePanel.swift; sourceTree = "<group>"; };
+		1792673B2AE9B561006AFBAF /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
+		1792673D2AE9B8C1006AFBAF /* PermissionsGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsGroup.swift; sourceTree = "<group>"; };
+		1792673F2AE9B9F6006AFBAF /* PermissionsCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsCheck.swift; sourceTree = "<group>"; };
+		179267412AE9BC15006AFBAF /* PermissionsRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsRequest.swift; sourceTree = "<group>"; };
+		179267452AE9D292006AFBAF /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
 		17928F192AC5DF9C0016C615 /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
 		179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveSidebarToggle.swift; sourceTree = "<group>"; };
 		17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnKeyDown.swift; sourceTree = "<group>"; };
@@ -207,6 +217,18 @@
 				71623BD22A8B6744002FD331 /* CustomButtonStyle.swift */,
 			);
 			path = Styles;
+			sourceTree = "<group>";
+		};
+		1792673A2AE9B540006AFBAF /* Permissions */ = {
+			isa = PBXGroup;
+			children = (
+				1792673F2AE9B9F6006AFBAF /* PermissionsCheck.swift */,
+				1792673D2AE9B8C1006AFBAF /* PermissionsGroup.swift */,
+				179267452AE9D292006AFBAF /* PermissionsManager.swift */,
+				179267412AE9BC15006AFBAF /* PermissionsRequest.swift */,
+				1792673B2AE9B561006AFBAF /* PermissionsView.swift */,
+			);
+			path = Permissions;
 			sourceTree = "<group>";
 		};
 		17C9EB702AC9078800141043 /* WindowList */ = {
@@ -349,6 +371,7 @@
 				71D36C562A896ED700D89CD5 /* DictionarySerialization */,
 				716683412A76811C006ABF84 /* Extensions */,
 				71FEA25A2A8DA1D60048341A /* Misc */,
+				1792673A2AE9B540006AFBAF /* Permissions */,
 				71D36C492A88EDD200D89CD5 /* Swizzling */,
 				71D36C522A89443800D89CD5 /* UI */,
 			);
@@ -584,11 +607,14 @@
 				17DFF4A62AD3954B00B5177A /* SharedContent.swift in Sources */,
 				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
 				71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */,
+				179267462AE9D292006AFBAF /* PermissionsManager.swift in Sources */,
 				716683502A7681AF006ABF84 /* MenuBarManager.swift in Sources */,
 				71A7D6D62ABEF3E5000768B8 /* LayoutBar.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
 				170DE5F02AC4D02000D989B8 /* WindowCaptureManager.swift in Sources */,
+				1792673E2AE9B8C1006AFBAF /* PermissionsGroup.swift in Sources */,
+				1792673C2AE9B561006AFBAF /* PermissionsView.swift in Sources */,
 				178B36692AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift in Sources */,
 				1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
@@ -621,6 +647,7 @@
 				17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPaneAppearanceTab.swift in Sources */,
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
 				71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */,
+				179267402AE9B9F6006AFBAF /* PermissionsCheck.swift in Sources */,
 				17EC6B552AE0C0DE0065F260 /* CustomColorPickerModel.swift in Sources */,
 				71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
@@ -629,6 +656,7 @@
 				71FEA2502A8D5D590048341A /* HotkeyRecorder.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
 				71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */,
+				179267422AE9BC15006AFBAF /* PermissionsRequest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

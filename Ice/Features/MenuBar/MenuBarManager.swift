@@ -73,6 +73,7 @@ final class MenuBarManager: ObservableObject {
     let sharedContent = SharedContent()
 
     private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
+    let permissionsManager = PermissionsManager()
 
     private lazy var overlayPanel = MenuBarOverlayPanel(menuBarManager: self)
     private lazy var shadowPanel = MenuBarShadowPanel(menuBarManager: self)
@@ -322,6 +323,11 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
         itemManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
+        permissionsManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }

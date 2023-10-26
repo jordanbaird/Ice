@@ -6,7 +6,8 @@
 import SwiftUI
 
 struct SettingsWindow: Scene {
-    let menuBarManager: MenuBarManager
+    @ObservedObject var menuBarManager: MenuBarManager
+    @State private var permissionsPresented = false
 
     var body: some Scene {
         Window(Constants.appName, id: Constants.settingsWindowID) {
@@ -17,6 +18,18 @@ struct SettingsWindow: Scene {
                         .overlay(Material.thin)
                 }
                 .environmentObject(menuBarManager)
+                .sheet(isPresented: $permissionsPresented) {
+                    PermissionsView(
+                        menuBarManager: menuBarManager,
+                        isPresented: $permissionsPresented
+                    )
+                    .buttonStyle(.custom)
+                }
+                .onReceive(menuBarManager.permissionsManager.$hasPermissions) { hasPermissions in
+                    if !hasPermissions {
+                        permissionsPresented = true
+                    }
+                }
                 .buttonStyle(.custom)
         }
         .commandsRemoved()

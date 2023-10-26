@@ -18,12 +18,12 @@ private struct WindowReader: View {
     }
 
     private struct Representable: NSViewRepresentable {
-        @Binding var window: NSWindow?
+        let onWindowChange: (NSWindow?) -> Void
 
         func makeNSView(context: Context) -> NSView {
             let view = NSView()
             context.coordinator.configure(for: view) { window in
-                self.window = window
+                onWindowChange(window)
             }
             return view
         }
@@ -35,20 +35,28 @@ private struct WindowReader: View {
         func updateNSView(_: NSView, context: Context) { }
     }
 
-    @Binding var window: NSWindow?
+    let onWindowChange: (NSWindow?) -> Void
 
     var body: some View {
-        Representable(window: $window)
+        Representable(onWindowChange: onWindowChange)
     }
 }
 
 extension View {
+    /// Reads the window of this view, performing the given closure when
+    /// the window changes.
+    ///
+    /// - Parameter onChange: A closure to perform when the window changes.
+    func readWindow(onChange: @escaping (NSWindow?) -> Void) -> some View {
+        background {
+            WindowReader(onWindowChange: onChange)
+        }
+    }
+
     /// Reads the window of this view, assigning it to the given binding.
     ///
     /// - Parameter window: A binding to use to store the view's window.
     func readWindow(window: Binding<NSWindow?>) -> some View {
-        background {
-            WindowReader(window: window)
-        }
+        readWindow { window.wrappedValue = $0 }
     }
 }

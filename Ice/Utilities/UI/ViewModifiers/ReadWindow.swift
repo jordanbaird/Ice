@@ -6,8 +6,8 @@
 import Combine
 import SwiftUI
 
-private struct WindowReader: View {
-    private class WindowObserver: ObservableObject {
+private struct WindowReader: NSViewRepresentable {
+    class Coordinator: ObservableObject {
         private var cancellable: AnyCancellable?
 
         func configure(for view: NSView, onWindowChange: @escaping (NSWindow?) -> Void) {
@@ -17,29 +17,21 @@ private struct WindowReader: View {
         }
     }
 
-    private struct Representable: NSViewRepresentable {
-        let onWindowChange: (NSWindow?) -> Void
-
-        func makeNSView(context: Context) -> NSView {
-            let view = NSView()
-            context.coordinator.configure(for: view) { window in
-                onWindowChange(window)
-            }
-            return view
-        }
-
-        func makeCoordinator() -> WindowObserver {
-            WindowObserver()
-        }
-
-        func updateNSView(_: NSView, context: Context) { }
-    }
-
     let onWindowChange: (NSWindow?) -> Void
 
-    var body: some View {
-        Representable(onWindowChange: onWindowChange)
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        context.coordinator.configure(for: view) { window in
+            onWindowChange(window)
+        }
+        return view
     }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func updateNSView(_: NSView, context: Context) { }
 }
 
 extension View {

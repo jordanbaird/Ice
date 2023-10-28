@@ -7,10 +7,10 @@ import SwiftUI
 
 struct PermissionsView: View {
     @Binding var isPresented: Bool
-    @ObservedObject var menuBarManager: MenuBarManager
+    @ObservedObject var appState: AppState
 
-    init(menuBarManager: MenuBarManager, isPresented: Binding<Bool>) {
-        self.menuBarManager = menuBarManager
+    init(appState: AppState, isPresented: Binding<Bool>) {
+        self.appState = appState
         self._isPresented = isPresented
     }
 
@@ -52,8 +52,8 @@ struct PermissionsView: View {
     @ViewBuilder
     private var permissionsGroupStack: some View {
         VStack {
-            PermissionsGroupView(group: menuBarManager.permissionsManager.accessibilityGroup)
-            PermissionsGroupView(group: menuBarManager.permissionsManager.screenCaptureGroup)
+            PermissionsGroupView(group: appState.permissionsManager.accessibilityGroup)
+            PermissionsGroupView(group: appState.permissionsManager.screenCaptureGroup)
         }
     }
 
@@ -77,11 +77,11 @@ struct PermissionsView: View {
 
             Spacer()
 
-            if menuBarManager.permissionsManager.hasPermissions {
+            if appState.permissionsManager.hasPermissions {
                 Button("Continue") {
                     isPresented = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        menuBarManager.sharedContent.activate()
+                        appState.sharedContent.activate()
                     }
                 }
             }
@@ -150,10 +150,10 @@ private struct PermissionsGroupView<Request: PermissionsRequest, Check: Permissi
 
 #Preview {
     @State var isPresented = false
-    @StateObject var menuBarManager = MenuBarManager()
+    @StateObject var appState = AppState()
 
     return PermissionsView(
-        menuBarManager: menuBarManager,
+        appState: appState,
         isPresented: $isPresented
     )
     .buttonStyle(.custom)

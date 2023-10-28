@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct SettingsWindow: Scene {
-    @ObservedObject var menuBarManager: MenuBarManager
+    @ObservedObject var appState: AppState
     @State private var permissionsPresented = false
 
     var body: some Scene {
@@ -17,15 +17,15 @@ struct SettingsWindow: Scene {
                     Color.clear
                         .overlay(Material.thin)
                 }
-                .environmentObject(menuBarManager)
+                .environmentObject(appState)
                 .sheet(isPresented: $permissionsPresented) {
                     PermissionsView(
-                        menuBarManager: menuBarManager,
+                        appState: appState,
                         isPresented: $permissionsPresented
                     )
                     .buttonStyle(.custom)
                 }
-                .onReceive(menuBarManager.permissionsManager.$hasPermissions) { hasPermissions in
+                .onReceive(appState.permissionsManager.$hasPermissions) { hasPermissions in
                     if !hasPermissions {
                         permissionsPresented = true
                     }

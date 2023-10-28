@@ -6,8 +6,8 @@
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    /// The shared menu bar manager.
-    let menuBarManager = MenuBarManager()
+    /// Central app state.
+    let appState = AppState()
 
     /// The window that contains the settings interface.
     var settingsWindow: NSWindow? {
@@ -17,8 +17,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // if we have the required permissions, stop all checks
         // and close all windows
-        if menuBarManager.permissionsManager.hasPermissions {
-            menuBarManager.permissionsManager.stopAllChecks()
+        if appState.permissionsManager.hasPermissions {
+            appState.permissionsManager.stopAllChecks()
             for window in NSApp.windows {
                 window.close()
             }
@@ -38,7 +38,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // initialize the menu bar's sections
         if !ProcessInfo.processInfo.isPreview {
-            menuBarManager.initializeSections()
+            appState.menuBarManager.initializeSections()
         }
     }
 
@@ -55,7 +55,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func activate(withPolicy policy: NSApplication.ActivationPolicy) {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.setActivationPolicy(policy)
-        menuBarManager.sharedContent.activate()
+        appState.sharedContent.activate()
     }
 
     /// Deactivates the app and sets its activation policy to the given value.
@@ -72,7 +72,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.deactivate()
         }
         NSApp.setActivationPolicy(policy)
-        menuBarManager.sharedContent.deactivate()
+        appState.sharedContent.deactivate()
     }
 
     /// Opens the settings window and activates the app.

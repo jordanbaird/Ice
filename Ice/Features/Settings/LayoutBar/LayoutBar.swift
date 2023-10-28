@@ -129,7 +129,7 @@ private struct PreviewLayoutBar: View {
         ),
     ]
 
-    @StateObject private var menuBarManager = MenuBarManager()
+    @StateObject private var menuBarManager = MenuBarManager(appState: AppState())
 
     var body: some View {
         LayoutBar(

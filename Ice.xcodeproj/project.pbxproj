@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		170DE5F02AC4D02000D989B8 /* WindowCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170DE5EF2AC4D02000D989B8 /* WindowCaptureManager.swift */; };
+		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
 		1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */; };
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
 		1736F7832ADBCAFD0073428E /* CGColor+blended.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F7822ADBCAFD0073428E /* CGColor+blended.swift */; };
@@ -83,6 +84,7 @@
 
 /* Begin PBXFileReference section */
 		170DE5EF2AC4D02000D989B8 /* WindowCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowCaptureManager.swift; sourceTree = "<group>"; };
+		1725FC692AED973800A59081 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
 		1736F7822ADBCAFD0073428E /* CGColor+blended.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGColor+blended.swift"; sourceTree = "<group>"; };
@@ -359,6 +361,7 @@
 				7166833E2A76811C006ABF84 /* Utilities */,
 				7166832D2A767E6A006ABF84 /* IceApp.swift */,
 				7166833C2A7680CE006ABF84 /* AppDelegate.swift */,
+				1725FC692AED973800A59081 /* AppState.swift */,
 				716683312A767E6B006ABF84 /* Assets.xcassets */,
 				716683362A767E6B006ABF84 /* Ice.entitlements */,
 			);
@@ -595,6 +598,7 @@
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
 				7112D0D52AB882D300F27889 /* Annotation.swift in Sources */,
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
+				1725FC6A2AED973800A59081 /* AppState.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,
 				718AFF2C2AB360AD00BC49CB /* HotkeyRecorderModel.swift in Sources */,
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,

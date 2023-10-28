@@ -70,18 +70,15 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
-    let sharedContent = SharedContent()
-
-    private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
-    let permissionsManager = PermissionsManager()
-
+    private(set) weak var appState: AppState?
     private lazy var overlayPanel = MenuBarOverlayPanel(menuBarManager: self)
     private lazy var shadowPanel = MenuBarShadowPanel(menuBarManager: self)
 
     private var cancellables = Set<AnyCancellable>()
 
     /// Initializes a new menu bar instance.
-    init() {
+    init(appState: AppState) {
+        self.appState = appState
         self.hasShadow = UserDefaults.standard.bool(forKey: Defaults.menuBarHasShadow)
         self.tintKind = TintKind(rawValue: UserDefaults.standard.integer(forKey: Defaults.menuBarTintKind)) ?? .none
         if let tintColorData = UserDefaults.standard.data(forKey: Defaults.menuBarTintColor) {
@@ -203,7 +200,7 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        sharedContent.$windows
+        appState?.sharedContent.$windows
             .receive(on: DispatchQueue.main)
             .sink { [weak self] windows in
                 guard let self else {
@@ -308,7 +305,7 @@ final class MenuBarManager: ObservableObject {
                 }
                 // immediately update the average color
                 if publishesAverageColor {
-                    readAndUpdateAverageColor(windows: sharedContent.windows)
+                    readAndUpdateAverageColor(windows: appState?.sharedContent.windows ?? [])
                 } else {
                     averageColor = nil
                 }
@@ -316,22 +313,6 @@ final class MenuBarManager: ObservableObject {
             .store(in: &c)
 
         // propagate changes up from child observable objects
-        sharedContent.objectWillChange
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] in
-                self?.objectWillChange.send()
-            }
-            .store(in: &c)
-        itemManager.objectWillChange
-            .sink { [weak self] in
-                self?.objectWillChange.send()
-            }
-            .store(in: &c)
-        permissionsManager.objectWillChange
-            .sink { [weak self] in
-                self?.objectWillChange.send()
-            }
-            .store(in: &c)
         for section in sections {
             section.objectWillChange
                 .sink { [weak self] in

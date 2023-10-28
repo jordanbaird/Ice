@@ -15,9 +15,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // close all windows
-        for window in NSApp.windows {
-            window.close()
+        // if we have the required permissions, stop all checks
+        // and close all windows
+        if menuBarManager.permissionsManager.hasPermissions {
+            menuBarManager.permissionsManager.stopAllChecks()
+            for window in NSApp.windows {
+                window.close()
+            }
         }
 
         // hide the main menu to make more space in the menu bar

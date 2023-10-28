@@ -15,6 +15,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let settingsWindow {
+            appState.setSettingsWindow(settingsWindow)
+            // give the settings window a custom background
+            settingsWindow.backgroundColor = .settingsWindowBackground
+        }
+
         // if we have the required permissions, stop all checks
         // and close all windows
         if appState.permissionsManager.hasPermissions {
@@ -29,11 +35,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             for item in mainMenu.items {
                 item.isHidden = true
             }
-        }
-
-        // give the settings window a custom background
-        if let settingsWindow {
-            settingsWindow.backgroundColor = .settingsWindowBackground
         }
 
         // initialize the menu bar's sections

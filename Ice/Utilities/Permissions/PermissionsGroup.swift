@@ -23,23 +23,27 @@ class PermissionsGroup<Request: PermissionsRequest, Check: PermissionsCheck<Requ
     /// Contextual notes that further explain the permission.
     let notes: [String]
 
+    private(set) weak var appState: AppState?
+
     private var cancellable: Cancellable?
 
     /// Creates a permission with the given permissions check, title,
     /// details, and notes.
-    ///
+    /// 
     /// - Parameters:
     ///   - check: The check associated with the permission.
     ///   - title: The permission's title.
     ///   - details: Details that describe the reasons the app needs
     ///     this permission.
     ///   - notes: Contextual notes that further explain the permission.
-    init(check: Check, title: String, details: [String] = [], notes: [String] = []) {
+    ///   - appState: The global app state.
+    init(check: Check, title: String, details: [String] = [], notes: [String] = [], appState: AppState?) {
         self.check = check
         self.request = Request()
         self.title = title
         self.details = details
         self.notes = notes
+        self.appState = appState
         self.check.$hasPermissions.assign(to: &$hasPermissions)
     }
 
@@ -57,10 +61,15 @@ class PermissionsGroup<Request: PermissionsRequest, Check: PermissionsCheck<Requ
                 }
                 if hasPermissions {
                     if #available(macOS 14.0, *) {
-                        NSApp.activate()
+                        if let app = NSWorkspace.shared.frontmostApplication {
+                            NSRunningApplication.current.activate(from: app)
+                        } else {
+                            NSApp.activate()
+                        }
                     } else {
                         NSApp.activate(ignoringOtherApps: true)
                     }
+                    appState?.settingsWindow?.orderFrontRegardless()
                     cancellable = nil
                 }
             }
@@ -69,20 +78,21 @@ class PermissionsGroup<Request: PermissionsRequest, Check: PermissionsCheck<Requ
 
 // MARK: - AccessibilityPermissionsGroup
 class AccessibilityPermissionsGroup: PermissionsGroup<AccessibilityRequest, AccessibilityPermissionsCheck> {
-    init() {
+    init(permissionsManager: PermissionsManager) {
         super.init(
             check: AccessibilityPermissionsCheck(),
             title: "Accessibility",
             details: [
                 "Arrange individual menu bar items.",
-            ]
+            ],
+            appState: permissionsManager.appState
         )
     }
 }
 
 // MARK: - ScreenCapturePermissionsGroup
 class ScreenCapturePermissionsGroup: PermissionsGroup<ScreenCaptureRequest, ScreenCapturePermissionsCheck> {
-    init() {
+    init(permissionsManager: PermissionsManager) {
         super.init(
             check: ScreenCapturePermissionsCheck(),
             title: "Screen Capture",
@@ -92,7 +102,8 @@ class ScreenCapturePermissionsGroup: PermissionsGroup<ScreenCaptureRequest, Scre
             ],
             notes: [
                 "\(Constants.appName) does not record your screen.",
-            ]
+            ],
+            appState: permissionsManager.appState
         )
     }
 }

@@ -4,14 +4,16 @@
 //
 
 import Combine
-import Foundation
+import SwiftUI
 
 class AppState: ObservableObject {
     private(set) lazy var menuBarManager = MenuBarManager(appState: self)
     private(set) lazy var itemManager = MenuBarItemManager(appState: self)
+    private(set) lazy var permissionsManager = PermissionsManager(appState: self)
 
-    let permissionsManager = PermissionsManager()
     let sharedContent = SharedContent()
+
+    private(set) weak var settingsWindow: NSWindow?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -46,5 +48,9 @@ class AppState: ObservableObject {
             .store(in: &c)
 
         cancellables = c
+    }
+
+    func setSettingsWindow(_ settingsWindow: NSWindow) {
+        self.settingsWindow = settingsWindow
     }
 }

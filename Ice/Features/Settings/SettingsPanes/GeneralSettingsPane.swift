@@ -11,6 +11,10 @@ struct GeneralSettingsPane: View {
     @AppStorage(Defaults.secondaryActionModifier) var secondaryActionModifier = Hotkey.Modifiers.option
     @EnvironmentObject var appState: AppState
 
+    private var menuBarManager: MenuBarManager {
+        appState.menuBarManager
+    }
+
     var body: some View {
         Form {
             Section {
@@ -56,7 +60,7 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var alwaysHiddenOptions: some View {
-        if let section = appState.menuBarManager.section(withName: .alwaysHidden) {
+        if let section = menuBarManager.section(withName: .alwaysHidden) {
             Toggle(isOn: section.bindings.isEnabled) {
                 Text("Enable \"\(section.name.rawValue)\" section")
             }
@@ -76,14 +80,14 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var hiddenRecorder: some View {
-        if let section = appState.menuBarManager.section(withName: .hidden) {
+        if let section = menuBarManager.section(withName: .hidden) {
             LabeledHotkeyRecorder(section: section)
         }
     }
 
     @ViewBuilder
     private var alwaysHiddenRecorder: some View {
-        if let section = appState.menuBarManager.section(withName: .alwaysHidden) {
+        if let section = menuBarManager.section(withName: .alwaysHidden) {
             LabeledHotkeyRecorder(section: section)
         }
     }

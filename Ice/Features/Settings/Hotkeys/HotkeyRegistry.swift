@@ -56,27 +56,18 @@ enum HotkeyRegistry {
         }
     }
 
-    private static var registrations = [UInt32: Registration]()
-
     private static var eventHandlerRef: EventHandlerRef?
+    private static var registrations = [UInt32: Registration]()
+    private static var cancellables = Set<AnyCancellable>()
 
     private static let eventTypes: [EventTypeSpec] = [
-        EventTypeSpec(
-            eventClass: OSType(kEventClassKeyboard),
-            eventKind: UInt32(kEventHotKeyPressed)
-        ),
-        EventTypeSpec(
-            eventClass: OSType(kEventClassKeyboard),
-            eventKind: UInt32(kEventHotKeyReleased)
-        ),
+        EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed)),
+        EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased)),
     ]
-
     private static let signature: OSType = {
-        let code = "ICEK" // ICEK(ey)
+        let code = "Ice " // code must be 4 characters
         return NSHFSTypeCodeFromFileType("'\(code)'")
     }()
-
-    private static var cancellables = Set<AnyCancellable>()
 
     /// Installs the global event handler reference, if it hasn't
     /// already been installed.
@@ -112,25 +103,20 @@ enum HotkeyRegistry {
         )
     }
 
-    /// Registers the given hotkey for the given event kind and
-    /// returns the identifier of the registration on success.
+    /// Registers the given hotkey for the given event kind and returns the
+    /// identifier of the registration on success.
     ///
-    /// The returned identifier can be used to unregister the hotkey
-    /// using the ``unregister(_:)`` function.
+    /// The returned identifier can be used to unregister the hotkey using
+    /// the ``unregister(_:)`` function.
     ///
     /// - Parameters:
     ///   - hotkey: The hotkey to register the handler with.
     ///   - eventKind: The event kind to register the handler with.
-    ///   - handler: The handler to perform when `hotkey` is triggered
-    ///     with the event kind specified by `eventKind`.
+    ///   - handler: The handler to perform when `hotkey` is triggered with
+    ///     the event kind specified by `eventKind`.
     ///
-    /// - Returns: The registration's identifier on success, `nil`
-    ///   on failure.
-    static func register(
-        hotkey: Hotkey,
-        eventKind: EventKind,
-        handler: @escaping () -> Void
-    ) -> UInt32? {
+    /// - Returns: The registration's identifier on success, `nil` on failure.
+    static func register(hotkey: Hotkey, eventKind: EventKind, handler: @escaping () -> Void) -> UInt32? {
         enum Context {
             static var currentID: UInt32 = 0
         }
@@ -142,14 +128,14 @@ enum HotkeyRegistry {
         var status = installIfNeeded()
 
         guard status == noErr else {
-            Logger.hotkeyRegistry.error("\(#function) Hotkey event handler installation failed with status \(status)")
+            Logger.hotkeyRegistry.error("Hotkey event handler installation failed with status \(status)")
             return nil
         }
 
         let id = Context.currentID
 
         guard registrations[id] == nil else {
-            Logger.hotkeyRegistry.error("\(#function) Hotkey already registered for id \(id)")
+            Logger.hotkeyRegistry.error("Hotkey already registered for id \(id)")
             return nil
         }
 
@@ -165,12 +151,12 @@ enum HotkeyRegistry {
         )
 
         guard status == noErr else {
-            Logger.hotkeyRegistry.error("\(#function) Hotkey registration failed with status \(status)")
+            Logger.hotkeyRegistry.error("Hotkey registration failed with status \(status)")
             return nil
         }
 
         guard let hotKeyRef else {
-            Logger.hotkeyRegistry.error("\(#function) Hotkey registration failed due to invalid EventHotKeyRef")
+            Logger.hotkeyRegistry.error("Hotkey registration failed due to invalid EventHotKeyRef")
             return nil
         }
 
@@ -187,16 +173,16 @@ enum HotkeyRegistry {
         return id
     }
 
-    /// Unregisters the hotkey with the given identifier, retaining
-    /// its registration in an inactive state.
+    /// Unregisters the hotkey with the given identifier, retaining its
+    /// registration in an inactive state.
     private static func retainedUnregister(_ id: UInt32) {
         guard let registration = registrations[id] else {
-            Logger.hotkeyRegistry.error("\(#function) No registered hotkey for id \(id)")
+            Logger.hotkeyRegistry.error("No registered hotkey for id \(id)")
             return
         }
         let status = UnregisterEventHotKey(registration.hotKeyRef)
         guard status == noErr else {
-            Logger.hotkeyRegistry.error("\(#function) Hotkey unregistration failed with status \(status)")
+            Logger.hotkeyRegistry.error("Hotkey unregistration failed with status \(status)")
             return
         }
         registration.hotKeyRef = nil
@@ -238,7 +224,7 @@ enum HotkeyRegistry {
                 let hotKeyRef
             else {
                 registrations.removeValue(forKey: registration.hotKeyID.id)
-                Logger.hotkeyRegistry.error("\(#function) Hotkey registration failed with status \(status)")
+                Logger.hotkeyRegistry.error("Hotkey registration failed with status \(status)")
                 continue
             }
 
@@ -246,8 +232,8 @@ enum HotkeyRegistry {
         }
     }
 
-    /// Retrieves and performs the event handler stored under
-    /// the identifier for the specified event.
+    /// Retrieves and performs the event handler stored under the
+    /// identifier for the specified event.
     private static func performEventHandler(for event: EventRef?) -> OSStatus {
         guard let event else {
             return OSStatus(eventNotHandledErr)

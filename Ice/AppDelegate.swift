@@ -53,7 +53,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Activates the app and sets its activation policy to the given value.
     func activate(withPolicy policy: NSApplication.ActivationPolicy) {
-        NSApp.activate(ignoringOtherApps: true)
+        if #available(macOS 14.0, *) {
+            if let app = NSWorkspace.shared.frontmostApplication {
+                NSRunningApplication.current.activate(from: app)
+            } else {
+                NSApp.activate()
+            }
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
         NSApp.setActivationPolicy(policy)
         appState.sharedContent.activate()
     }

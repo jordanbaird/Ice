@@ -19,7 +19,7 @@ struct PermissionsView: View {
             headerView
             explanationView
             permissionsGroupStack
-            grantPermissionsCallout
+            grantPermissionCallout
             footerView
         }
         .fixedSize()
@@ -58,8 +58,8 @@ struct PermissionsView: View {
     }
 
     @ViewBuilder
-    private var grantPermissionsCallout: some View {
-        Text("Clicking \"Grant Permissions\" will open System Settings")
+    private var grantPermissionCallout: some View {
+        Text("Clicking \"Grant Permission\" will open System Settings")
             .font(.callout)
             .foregroundStyle(.secondary)
     }
@@ -99,7 +99,7 @@ private struct PermissionsGroupView<Request: PermissionsRequest, Check: Permissi
                     .font(.title)
                     .underline()
 
-                Text("\(Constants.appName) needs this permission to:")
+                Text("\(Constants.appName) needs your permission to:")
                     .font(.subheadline)
 
                 VStack(alignment: .leading) {
@@ -136,7 +136,7 @@ private struct PermissionsGroupView<Request: PermissionsRequest, Check: Permissi
                     .frame(height: 21)
                 } else {
                     Button(
-                        "Grant Permissions",
+                        "Grant Permission",
                         action: group.performRequest
                     )
                     .frame(height: 21)

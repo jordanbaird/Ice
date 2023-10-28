@@ -7,7 +7,7 @@ import Combine
 import SwiftUI
 
 class AppState: ObservableObject {
-    private(set) lazy var menuBarManager = MenuBarManager(appState: self)
+    private(set) lazy var menuBar = MenuBar(appState: self)
     private(set) lazy var itemManager = MenuBarItemManager(appState: self)
     private(set) lazy var permissionsManager = PermissionsManager(appState: self)
 
@@ -25,7 +25,7 @@ class AppState: ObservableObject {
         var c = Set<AnyCancellable>()
 
         // propagate changes up from child observable objects
-        menuBarManager.objectWillChange
+        menuBar.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }

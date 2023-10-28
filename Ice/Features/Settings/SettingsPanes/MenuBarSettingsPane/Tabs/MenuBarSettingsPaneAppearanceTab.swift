@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct MenuBarSettingsPaneAppearanceTab: View {
-    typealias TintKind = MenuBarManager.TintKind
+    typealias TintKind = MenuBar.TintKind
 
     @EnvironmentObject var appState: AppState
 
@@ -27,7 +27,7 @@ struct MenuBarSettingsPaneAppearanceTab: View {
     private var tintPicker: some View {
         LabeledContent("Menu bar tint") {
             HStack {
-                Picker("Menu bar tint", selection: appState.menuBarManager.bindings.tintKind) {
+                Picker("Menu bar tint", selection: appState.menuBar.bindings.tintKind) {
                     Text("None")
                         .tag(TintKind.none)
                     Text("Solid")
@@ -37,13 +37,13 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                 }
                 .labelsHidden()
 
-                switch appState.menuBarManager.tintKind {
+                switch appState.menuBar.tintKind {
                 case .none:
                     EmptyView()
                 case .solid:
-                    if appState.menuBarManager.tintColor != nil {
+                    if appState.menuBar.tintColor != nil {
                         Button {
-                            appState.menuBarManager.tintColor = nil
+                            appState.menuBar.tintColor = nil
                         } label: {
                             Image(systemName: "arrow.counterclockwise")
                         }
@@ -52,14 +52,14 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                     }
 
                     CustomColorPicker(
-                        selection: appState.menuBarManager.bindings.tintColor,
+                        selection: appState.menuBar.bindings.tintColor,
                         supportsOpacity: false,
                         mode: .crayon
                     )
                 case .gradient:
-                    if appState.menuBarManager.tintGradient != .defaultMenuBarTint {
+                    if appState.menuBar.tintGradient != .defaultMenuBarTint {
                         Button {
-                            appState.menuBarManager.tintGradient = .defaultMenuBarTint
+                            appState.menuBar.tintGradient = .defaultMenuBarTint
                         } label: {
                             Image(systemName: "arrow.counterclockwise")
                         }
@@ -70,22 +70,22 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                     CustomGradientPicker(
                         gradient: Binding(
                             get: {
-                                appState.menuBarManager.tintGradient
+                                appState.menuBar.tintGradient
                             },
                             set: { gradient in
                                 if gradient.stops.isEmpty {
-                                    appState.menuBarManager.tintGradient = .defaultMenuBarTint
+                                    appState.menuBar.tintGradient = .defaultMenuBarTint
                                 } else {
-                                    appState.menuBarManager.tintGradient = gradient
+                                    appState.menuBar.tintGradient = gradient
                                 }
                             }
                         ),
                         supportsOpacity: false,
                         mode: .crayon
                     )
-                    .onChange(of: appState.menuBarManager.tintGradient) { gradient in
+                    .onChange(of: appState.menuBar.tintGradient) { gradient in
                         if gradient.stops.isEmpty {
-                            appState.menuBarManager.tintGradient = .defaultMenuBarTint
+                            appState.menuBar.tintGradient = .defaultMenuBarTint
                         } else if gradient.stops.count == 1 {
                             var gradient = gradient
                             if gradient.stops[0].location >= 0.5 {
@@ -97,7 +97,7 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                                 let stop = ColorStop(color: .black, location: 1)
                                 gradient.stops.append(stop)
                             }
-                            appState.menuBarManager.tintGradient = gradient
+                            appState.menuBar.tintGradient = gradient
                         }
                     }
                 }
@@ -108,7 +108,7 @@ struct MenuBarSettingsPaneAppearanceTab: View {
 
     @ViewBuilder
     private var shadowToggle: some View {
-        Toggle("Shadow", isOn: appState.menuBarManager.bindings.hasShadow)
+        Toggle("Shadow", isOn: appState.menuBar.bindings.hasShadow)
     }
 }
 

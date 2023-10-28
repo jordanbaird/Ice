@@ -15,8 +15,8 @@ class MenuBarAppearancePanel: NSPanel {
     /// of this type.
     class var defaultAlphaValue: CGFloat { 0.2 }
 
-    /// The menu bar manager that manages this panel.
-    private(set) weak var menuBarManager: MenuBarManager?
+    /// The menu bar that manages this panel.
+    private(set) weak var menuBar: MenuBar?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -30,9 +30,8 @@ class MenuBarAppearancePanel: NSPanel {
     /// - Parameters:
     ///   - level: The window level of the panel.
     ///   - title: The title of the panel, for accessibility.
-    ///   - menuBarManager: The menu bar manager responsible for
-    ///     the panel.
-    init(level: Level, title: String, menuBarManager: MenuBarManager) {
+    ///   - menuBar: The menu bar responsible for the panel.
+    init(level: Level, title: String, menuBar: MenuBar) {
         super.init(
             contentRect: .zero,
             styleMask: [
@@ -43,7 +42,7 @@ class MenuBarAppearancePanel: NSPanel {
             backing: .buffered,
             defer: false
         )
-        self.menuBarManager = menuBarManager
+        self.menuBar = menuBar
         self.level = level
         self.title = title
         self.ignoresMouseEvents = true
@@ -134,17 +133,17 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
     private var cancellables = Set<AnyCancellable>()
 
     override var canShow: Bool {
-        guard let tintKind = menuBarManager?.tintKind else {
+        guard let tintKind = menuBar?.tintKind else {
             return false
         }
         return tintKind != .none
     }
 
-    init(menuBarManager: MenuBarManager) {
+    init(menuBar: MenuBar) {
         super.init(
             level: .statusBar,
             title: "Menu Bar Overlay",
-            menuBarManager: menuBarManager
+            menuBar: menuBar
         )
         self.contentView?.wantsLayer = true
         configureCancellables()
@@ -153,11 +152,11 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        if let menuBarManager {
+        if let menuBar {
             Publishers.CombineLatest3(
-                menuBarManager.$tintKind,
-                menuBarManager.$tintColor,
-                menuBarManager.$tintGradient
+                menuBar.$tintKind,
+                menuBar.$tintColor,
+                menuBar.$tintGradient
             )
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
@@ -170,43 +169,43 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
         cancellables = c
     }
 
-    /// Updates the tint of the panel according to the menu bar
-    /// manager's tint kind.
+    /// Updates the tint of the panel according to the menu bar's
+    /// tint kind.
     func updateTint() {
         backgroundColor = .clear
         contentView?.layer = CALayer()
 
-        guard let menuBarManager else {
+        guard let menuBar else {
             return
         }
 
-        switch menuBarManager.tintKind {
+        switch menuBar.tintKind {
         case .none:
             break
         case .solid:
             guard
-                let tintColor = menuBarManager.tintColor,
+                let tintColor = menuBar.tintColor,
                 let nsColor = NSColor(cgColor: tintColor)
             else {
                 return
             }
             backgroundColor = nsColor
         case .gradient:
-            guard !menuBarManager.tintGradient.stops.isEmpty else {
+            guard !menuBar.tintGradient.stops.isEmpty else {
                 return
             }
             let gradientLayer = CAGradientLayer()
             gradientLayer.startPoint = CGPoint(x: 0, y: 0)
             gradientLayer.endPoint = CGPoint(x: 1, y: 0)
-            if menuBarManager.tintGradient.stops.count == 1 {
+            if menuBar.tintGradient.stops.count == 1 {
                 // gradient layer needs at least two stops to render correctly;
                 // convert the single stop into two and place them on opposite
                 // ends of the layer
-                let color = menuBarManager.tintGradient.stops[0].color
+                let color = menuBar.tintGradient.stops[0].color
                 gradientLayer.colors = [color, color]
                 gradientLayer.locations = [0, 1]
             } else {
-                let sortedStops = menuBarManager.tintGradient.stops.sorted { $0.location < $1.location }
+                let sortedStops = menuBar.tintGradient.stops.sorted { $0.location < $1.location }
                 gradientLayer.colors = sortedStops.map { $0.color }
                 gradientLayer.locations = sortedStops.map { $0.location } as [NSNumber]
             }
@@ -220,14 +219,14 @@ class MenuBarShadowPanel: MenuBarAppearancePanel {
     override class var defaultAlphaValue: CGFloat { 1 }
 
     override var canShow: Bool {
-        menuBarManager?.hasShadow ?? false
+        menuBar?.hasShadow ?? false
     }
 
-    init(menuBarManager: MenuBarManager) {
+    init(menuBar: MenuBar) {
         super.init(
             level: Level(Int(CGWindowLevelForKey(.desktopIconWindow))),
             title: "Menu Bar Shadow",
-            menuBarManager: menuBarManager
+            menuBar: menuBar
         )
         self.backgroundColor = .clear
         self.contentView?.wantsLayer = true

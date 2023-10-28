@@ -38,9 +38,9 @@ class MenuBarItemManager: ObservableObject {
         guard
             let appState,
             let menuBarWindow = windows.first(where: windowIsMenuBar),
-            let visibleSection = appState.menuBarManager.section(withName: .visible),
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-            let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden)
+            let visibleSection = appState.menuBar.section(withName: .visible),
+            let hiddenSection = appState.menuBar.section(withName: .hidden),
+            let alwaysHiddenSection = appState.menuBar.section(withName: .alwaysHidden)
         else {
             return
         }

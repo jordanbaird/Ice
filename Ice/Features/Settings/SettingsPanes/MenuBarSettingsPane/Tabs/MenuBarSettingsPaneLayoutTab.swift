@@ -53,7 +53,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
         Form {
             Section("Always Visible") {
                 LayoutBar(
-                    menuBarManager: appState.menuBarManager,
+                    menuBar: appState.menuBar,
                     layoutItems: $visibleItems
                 )
                 .annotation {
@@ -66,7 +66,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
 
             Section("Hidden") {
                 LayoutBar(
-                    menuBarManager: appState.menuBarManager,
+                    menuBar: appState.menuBar,
                     layoutItems: $hiddenItems
                 )
                 .annotation {
@@ -79,7 +79,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
 
             Section("Always Hidden") {
                 LayoutBar(
-                    menuBarManager: appState.menuBarManager,
+                    menuBar: appState.menuBar,
                     layoutItems: $alwaysHiddenItems
                 )
                 .annotation {
@@ -90,14 +90,14 @@ struct MenuBarSettingsPaneLayoutTab: View {
     }
 
     private func handleAppear() {
-        appState.menuBarManager.publishesAverageColor = usesColoredLayoutBars
+        appState.menuBar.publishesAverageColor = usesColoredLayoutBars
         updateVisibleItems(appState.itemManager.visibleItems)
         updateHiddenItems(appState.itemManager.hiddenItems)
         updateAlwaysHiddenItems(appState.itemManager.alwaysHiddenItems)
     }
 
     private func handleDisappear() {
-        appState.menuBarManager.publishesAverageColor = false
+        appState.menuBar.publishesAverageColor = false
     }
 
     private func updateVisibleItems(_ items: [MenuBarItem]) {

@@ -39,7 +39,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // initialize the menu bar's sections
         if !ProcessInfo.processInfo.isPreview {
-            appState.menuBarManager.initializeSections()
+            appState.menuBar.initializeSections()
         }
     }
 

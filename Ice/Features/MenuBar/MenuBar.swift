@@ -1,5 +1,5 @@
 //
-//  MenuBarManager.swift
+//  MenuBar.swift
 //  Ice
 //
 
@@ -9,7 +9,7 @@ import ScreenCaptureKit
 import SwiftUI
 
 /// Manager for the state of the menu bar.
-final class MenuBarManager: ObservableObject {
+final class MenuBar: ObservableObject {
     /// A type that specifies how the menu bar is tinted.
     enum TintKind: Int {
         /// The menu bar is not tinted.
@@ -56,13 +56,13 @@ final class MenuBarManager: ObservableObject {
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
             for section in sections {
-                section.menuBarManager = nil
+                section.menuBar = nil
             }
         }
         didSet {
             if validateSectionCountOrReinitialize() {
                 for section in sections {
-                    section.menuBarManager = self
+                    section.menuBar = self
                 }
             }
             configureCancellables()
@@ -71,8 +71,8 @@ final class MenuBarManager: ObservableObject {
     }
 
     private weak var appState: AppState?
-    private lazy var overlayPanel = MenuBarOverlayPanel(menuBarManager: self)
-    private lazy var shadowPanel = MenuBarShadowPanel(menuBarManager: self)
+    private lazy var overlayPanel = MenuBarOverlayPanel(menuBar: self)
+    private lazy var shadowPanel = MenuBarShadowPanel(menuBar: self)
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -85,14 +85,14 @@ final class MenuBarManager: ObservableObject {
             do {
                 self.tintColor = try JSONDecoder().decode(CodableColor.self, from: tintColorData).cgColor
             } catch {
-                Logger.menuBarManager.error("Error decoding color: \(error)")
+                Logger.menuBar.error("Error decoding color: \(error)")
             }
         }
         if let tintGradientData = UserDefaults.standard.data(forKey: Defaults.menuBarTintGradient) {
             do {
                 self.tintGradient = try JSONDecoder().decode(CustomGradient.self, from: tintGradientData)
             } catch {
-                Logger.menuBarManager.error("Error decoding gradient: \(error)")
+                Logger.menuBar.error("Error decoding gradient: \(error)")
             }
         }
         configureCancellables()
@@ -101,20 +101,20 @@ final class MenuBarManager: ObservableObject {
     /// Performs the initial setup of the menu bar's section list.
     func initializeSections() {
         guard sections.isEmpty else {
-            Logger.menuBarManager.info("Sections already initialized")
+            Logger.menuBar.info("Sections already initialized")
             return
         }
 
         // load sections from persistent storage
         sections = (UserDefaults.standard.array(forKey: Defaults.sections) ?? []).compactMap { entry in
             guard let dictionary = entry as? [String: Any] else {
-                Logger.menuBarManager.error("Entry not convertible to dictionary")
+                Logger.menuBar.error("Entry not convertible to dictionary")
                 return nil
             }
             do {
                 return try DictionaryDecoder().decode(MenuBarSection.self, from: dictionary)
             } catch {
-                Logger.menuBarManager.error("Decoding error: \(error)")
+                Logger.menuBar.error("Decoding error: \(error)")
                 return nil
             }
         }
@@ -129,7 +129,7 @@ final class MenuBarManager: ObservableObject {
             UserDefaults.standard.set(serializedSections, forKey: Defaults.sections)
             needsSave = false
         } catch {
-            Logger.menuBarManager.error("Encoding error: \(error)")
+            Logger.menuBar.error("Encoding error: \(error)")
         }
     }
 
@@ -267,7 +267,7 @@ final class MenuBarManager: ObservableObject {
                             overlayPanel.showIfAble(fadeIn: true)
                         }
                     } catch {
-                        Logger.menuBarManager.error("Error encoding color: \(error)")
+                        Logger.menuBar.error("Error encoding color: \(error)")
                         overlayPanel.hide()
                     }
                 } else {
@@ -292,7 +292,7 @@ final class MenuBarManager: ObservableObject {
                     UserDefaults.standard.set(data, forKey: Defaults.menuBarTintGradient)
                     overlayPanel.showIfAble(fadeIn: true)
                 } catch {
-                    Logger.menuBarManager.error("Error encoding gradient: \(error)")
+                    Logger.menuBar.error("Error encoding gradient: \(error)")
                     overlayPanel.hide()
                 }
             }
@@ -367,10 +367,10 @@ final class MenuBarManager: ObservableObject {
     }
 }
 
-// MARK: MenuBarManager: BindingExposable
-extension MenuBarManager: BindingExposable { }
+// MARK: MenuBar: BindingExposable
+extension MenuBar: BindingExposable { }
 
 // MARK: - Logger
 private extension Logger {
-    static let menuBarManager = mainSubsystem(category: "MenuBarManager")
+    static let menuBar = mainSubsystem(category: "MenuBar")
 }

@@ -5,7 +5,10 @@
 
 import Combine
 
+/// A type that manages the permissions of the app.
 class PermissionsManager: ObservableObject {
+    /// A Boolean value that indicates whether the app has been
+    /// granted all permissions.
     @Published var hasPermissions: Bool = false
 
     private(set) lazy var accessibilityGroup = AccessibilityPermissionsGroup(permissionsManager: self)
@@ -32,6 +35,7 @@ class PermissionsManager: ObservableObject {
         cancellables = c
     }
 
+    /// Stops running all permissions checks.
     func stopAllChecks() {
         accessibilityGroup.check.stop()
         screenCaptureGroup.check.stop()

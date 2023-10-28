@@ -11,7 +11,7 @@ class MenuBarItemManager: ObservableObject {
     @Published var hiddenItems = [MenuBarItem]()
     @Published var alwaysHiddenItems = [MenuBarItem]()
 
-    private(set) weak var appState: AppState?
+    private weak var appState: AppState?
 
     private var cancellables = Set<AnyCancellable>()
 

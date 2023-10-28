@@ -70,7 +70,7 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
-    private(set) weak var appState: AppState?
+    private weak var appState: AppState?
     private lazy var overlayPanel = MenuBarOverlayPanel(menuBarManager: self)
     private lazy var shadowPanel = MenuBarShadowPanel(menuBarManager: self)
 

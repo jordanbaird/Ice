@@ -9,11 +9,14 @@ import Foundation
 
 // MARK: - PermissionsCheck
 class PermissionsCheck<Request: PermissionsRequest>: ObservableObject {
-    @Published var hasPermissions: Bool
+    /// A Boolean value that indicates whether the app has been
+    /// granted this permission.
+    @Published private(set) var hasPermissions: Bool
 
-    let queue = DispatchQueue(label: "Permissions Check Queue")
-    var timer: QueuedTimer?
+    private let queue = DispatchQueue(label: "Permissions Check Queue")
+    private var timer: QueuedTimer?
 
+    /// Creates a permissions check with the given closure.
     init(body: @escaping () -> Bool) {
         self.hasPermissions = body()
         let timer = QueuedTimer(interval: 1, queue: queue) { [weak self] timer in
@@ -30,6 +33,7 @@ class PermissionsCheck<Request: PermissionsRequest>: ObservableObject {
         timer?.stop()
     }
 
+    /// Stops running this permissions check.
     func stop() {
         timer?.stop()
     }

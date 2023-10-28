@@ -23,7 +23,7 @@ class PermissionsGroup<Request: PermissionsRequest, Check: PermissionsCheck<Requ
     /// Contextual notes that further explain the permission.
     let notes: [String]
 
-    private(set) weak var appState: AppState?
+    private weak var appState: AppState?
 
     private var cancellable: Cancellable?
 
@@ -37,7 +37,7 @@ class PermissionsGroup<Request: PermissionsRequest, Check: PermissionsCheck<Requ
     ///     this permission.
     ///   - notes: Contextual notes that further explain the permission.
     ///   - appState: The global app state.
-    init(check: Check, title: String, details: [String] = [], notes: [String] = [], appState: AppState?) {
+    init(check: Check, title: String, details: [String], notes: [String], appState: AppState?) {
         self.check = check
         self.request = Request()
         self.title = title
@@ -85,6 +85,7 @@ class AccessibilityPermissionsGroup: PermissionsGroup<AccessibilityRequest, Acce
             details: [
                 "Arrange individual menu bar items.",
             ],
+            notes: [],
             appState: permissionsManager.appState
         )
     }

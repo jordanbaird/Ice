@@ -7,6 +7,7 @@ import Cocoa
 
 // MARK: - PermissionsRequest
 
+/// A type that requests permissions for the app.
 protocol PermissionsRequest {
     /// The URL to the Settings pane where the user can grant the
     /// required permissions.

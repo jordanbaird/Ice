@@ -108,9 +108,7 @@ struct SettingsView: View {
 }
 
 #Preview {
-    let appState = AppState()
-
-    return SettingsView()
+    SettingsView()
         .buttonStyle(.custom)
-        .environmentObject(appState)
+        .environmentObject(AppState.shared)
 }

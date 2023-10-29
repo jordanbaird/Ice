@@ -140,9 +140,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
 }
 
 #Preview {
-    let appState = AppState()
-
-    return MenuBarSettingsPaneLayoutTab()
+    MenuBarSettingsPaneLayoutTab()
         .fixedSize()
-        .environmentObject(appState)
+        .environmentObject(AppState.shared)
 }

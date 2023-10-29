@@ -17,13 +17,9 @@ struct SettingsWindow: Scene {
                     Color.clear
                         .overlay(Material.thin)
                 }
-                .environmentObject(appState)
                 .sheet(isPresented: $permissionsPresented) {
-                    PermissionsView(
-                        appState: appState,
-                        isPresented: $permissionsPresented
-                    )
-                    .buttonStyle(.custom)
+                    PermissionsView(isPresented: $permissionsPresented)
+                        .buttonStyle(.custom)
                 }
                 .onReceive(appState.permissionsManager.$hasPermissions) { hasPermissions in
                     if !hasPermissions {
@@ -31,6 +27,7 @@ struct SettingsWindow: Scene {
                     }
                 }
                 .buttonStyle(.custom)
+                .environmentObject(appState)
         }
         .commandsRemoved()
         .defaultSize(width: 900, height: 600)

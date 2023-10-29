@@ -129,7 +129,7 @@ private struct PreviewLayoutBar: View {
         ),
     ]
 
-    @StateObject private var menuBar = MenuBar(appState: AppState())
+    @StateObject private var menuBar = MenuBar(appState: .shared)
 
     var body: some View {
         LayoutBar(

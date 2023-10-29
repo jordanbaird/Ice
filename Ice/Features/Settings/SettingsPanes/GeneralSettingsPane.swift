@@ -123,10 +123,8 @@ struct LabeledHotkeyRecorder: View {
 }
 
 #Preview {
-    let appState = AppState()
-
-    return GeneralSettingsPane()
+    GeneralSettingsPane()
         .fixedSize()
         .buttonStyle(.custom)
-        .environmentObject(appState)
+        .environmentObject(AppState.shared)
 }

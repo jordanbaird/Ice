@@ -4,20 +4,33 @@
 //
 
 import Combine
+import OSLog
 import SwiftUI
 
+/// The model for app-wide state.
 class AppState: ObservableObject {
+    /// The shared app state singleton.
+    static let shared = AppState()
+
+    /// Manager for the state of the menu bar.
     private(set) lazy var menuBar = MenuBar(appState: self)
+
+    /// Manager for menu bar items.
     private(set) lazy var itemManager = MenuBarItemManager(appState: self)
+
+    /// Manager for app permissions.
     private(set) lazy var permissionsManager = PermissionsManager(appState: self)
 
+    /// Publisher for the displays, apps, and windows that
+    /// are available for the app to capture.
     let sharedContent = SharedContent()
 
+    /// The window that contains the settings interface.
     private(set) weak var settingsWindow: NSWindow?
 
     private var cancellables = Set<AnyCancellable>()
 
-    init() {
+    private init() {
         configureCancellables()
     }
 
@@ -50,7 +63,22 @@ class AppState: ObservableObject {
         cancellables = c
     }
 
-    func setSettingsWindow(_ settingsWindow: NSWindow) {
+    /// Assigns the app state's settings window to the given window.
+    ///
+    /// - Important: The assignment is only made if the app state does
+    ///   not currently retain a settings window. Attempting to assign
+    ///   a window when one is already retained results in a warning
+    ///   being logged, but otherwise has no effect.
+    func assignSettingsWindow(_ settingsWindow: NSWindow) {
+        guard self.settingsWindow == nil else {
+            Logger.appState.warning("Multiple attempts made to assign settings window")
+            return
+        }
         self.settingsWindow = settingsWindow
     }
+}
+
+// MARK: - Logger
+private extension Logger {
+    static let appState = mainSubsystem(category: "AppState")
 }

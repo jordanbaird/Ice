@@ -6,25 +6,17 @@
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    /// Central app state.
-    let appState = AppState()
-
-    /// The window that contains the settings interface.
-    var settingsWindow: NSWindow? {
-        NSApp.window(withIdentifier: Constants.settingsWindowID)
-    }
-
     func applicationDidFinishLaunching(_ notification: Notification) {
-        if let settingsWindow {
-            appState.setSettingsWindow(settingsWindow)
+        if let settingsWindow = NSApp.window(withIdentifier: Constants.settingsWindowID) {
+            AppState.shared.assignSettingsWindow(settingsWindow)
             // give the settings window a custom background
             settingsWindow.backgroundColor = .settingsWindowBackground
         }
 
         // if we have the required permissions, stop all checks
         // and close all windows
-        if appState.permissionsManager.hasPermissions {
-            appState.permissionsManager.stopAllChecks()
+        if AppState.shared.permissionsManager.hasPermissions {
+            AppState.shared.permissionsManager.stopAllChecks()
             for window in NSApp.windows {
                 window.close()
             }
@@ -39,7 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // initialize the menu bar's sections
         if !ProcessInfo.processInfo.isPreview {
-            appState.menuBar.initializeSections()
+            AppState.shared.menuBar.initializeSections()
         }
     }
 
@@ -64,7 +56,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
         }
         NSApp.setActivationPolicy(policy)
-        appState.sharedContent.activate()
+        AppState.shared.sharedContent.activate()
     }
 
     /// Deactivates the app and sets its activation policy to the given value.
@@ -81,14 +73,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.deactivate()
         }
         NSApp.setActivationPolicy(policy)
-        appState.sharedContent.deactivate()
+        AppState.shared.sharedContent.deactivate()
     }
 
     /// Opens the settings window and activates the app.
     ///
     /// The app will automatically deactivate once all of its windows are closed.
     @objc func openSettingsWindow() {
-        guard let settingsWindow else {
+        guard let settingsWindow = AppState.shared.settingsWindow else {
             return
         }
         activate(withPolicy: .regular)

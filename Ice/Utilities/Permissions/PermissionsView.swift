@@ -7,12 +7,7 @@ import SwiftUI
 
 struct PermissionsView: View {
     @Binding var isPresented: Bool
-    @ObservedObject var appState: AppState
-
-    init(appState: AppState, isPresented: Binding<Bool>) {
-        self.appState = appState
-        self._isPresented = isPresented
-    }
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         VStack {
@@ -150,11 +145,8 @@ private struct PermissionsGroupView<Request: PermissionsRequest, Check: Permissi
 
 #Preview {
     @State var isPresented = false
-    @StateObject var appState = AppState()
 
-    return PermissionsView(
-        appState: appState,
-        isPresented: $isPresented
-    )
-    .buttonStyle(.custom)
+    return PermissionsView(isPresented: $isPresented)
+        .buttonStyle(.custom)
+        .environmentObject(AppState.shared)
 }

@@ -149,9 +149,7 @@ struct MenuBarSettingsPaneAppearanceTab: View {
 }
 
 #Preview {
-    let appState = AppState()
-
-    return MenuBarSettingsPaneAppearanceTab()
-        .environmentObject(appState)
+    MenuBarSettingsPaneAppearanceTab()
+        .environmentObject(AppState.shared)
         .frame(width: 500, height: 300)
 }

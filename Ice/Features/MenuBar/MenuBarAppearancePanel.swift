@@ -214,8 +214,8 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
     }
 }
 
-// MARK: - MenuBarShadowPanel
-class MenuBarShadowPanel: MenuBarAppearancePanel {
+// MARK: - MenuBarBackingPanel
+class MenuBarBackingPanel: MenuBarAppearancePanel {
     override class var defaultAlphaValue: CGFloat { 1 }
 
     override var canShow: Bool {
@@ -225,7 +225,7 @@ class MenuBarShadowPanel: MenuBarAppearancePanel {
     init(menuBar: MenuBar) {
         super.init(
             level: Level(Int(CGWindowLevelForKey(.desktopIconWindow))),
-            title: "Menu Bar Shadow",
+            title: "Menu Bar Backing",
             menuBar: menuBar
         )
         self.backgroundColor = .clear

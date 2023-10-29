@@ -72,7 +72,7 @@ final class MenuBar: ObservableObject {
 
     private weak var appState: AppState?
     private lazy var overlayPanel = MenuBarOverlayPanel(menuBar: self)
-    private lazy var shadowPanel = MenuBarShadowPanel(menuBar: self)
+    private lazy var backingPanel = MenuBarBackingPanel(menuBar: self)
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -227,9 +227,9 @@ final class MenuBar: ObservableObject {
                 }
                 UserDefaults.standard.set(hasShadow, forKey: Defaults.menuBarHasShadow)
                 if hasShadow {
-                    shadowPanel.showIfAble(fadeIn: true)
+                    backingPanel.showIfAble(fadeIn: true)
                 } else {
-                    shadowPanel.hide()
+                    backingPanel.hide()
                 }
             }
             .store(in: &c)

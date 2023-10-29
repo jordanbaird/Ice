@@ -87,20 +87,15 @@ struct SettingsView: View {
         } icon: {
             item.icon.view
                 .padding(6)
-                .foregroundStyle(Color(nsColor: .linkColor))
+                .foregroundStyle(.primary)
                 .frame(width: 32, height: 32)
-                .background {
-                    VisualEffectView(
-                        material: .sidebar,
-                        isEmphasized: true
-                    )
-                    .brightness(0.05)
-                    .clipShape(Circle())
-                }
-                .shadow(
-                    color: .black.opacity(0.25),
-                    radius: 1
+                .background(
+                    Color.secondary.gradient
+                        .opacity(0.25)
+                        .blendMode(.overlay),
+                    in: RoundedRectangle(cornerRadius: 10)
                 )
+                .shadow(radius: 1)
         }
         .padding(.leading, 8)
         .frame(height: 50)

@@ -8,6 +8,8 @@
 
 Ice is a powerful menu bar management tool. It aims to cover a wide variety of features, while remaining free and open source.
 
+![Ice-Screenshot](https://github.com/jordanbaird/Ice/assets/90936861/20f340cb-bd9e-419f-bf4e-57deecbfc375)
+
 ## Roadmap/Features
 
 ### Menu Bar Item Management

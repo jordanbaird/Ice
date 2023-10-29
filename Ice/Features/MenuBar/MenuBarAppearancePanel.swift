@@ -20,10 +20,6 @@ class MenuBarAppearancePanel: NSPanel {
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// A Boolean value that indicates whether the panel can
-    /// be shown using ``showIfAble(fadeIn:)``.
-    var canShow: Bool { true }
-
     /// Creates a menu bar helper panel with the given window
     /// level and title.
     /// 
@@ -62,7 +58,7 @@ class MenuBarAppearancePanel: NSPanel {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.hide()
-                self?.showIfAble(fadeIn: true)
+                self?.show(fadeIn: true)
             }
             .store(in: &c)
 
@@ -83,17 +79,14 @@ class MenuBarAppearancePanel: NSPanel {
         )
     }
 
-    /// Shows the panel, if it is able to be shown.
-    ///
-    /// If ``canShow`` returns `true`, the panel will show.
+    /// Shows the panel.
     ///
     /// - Parameter fadeIn: A Boolean value that indicates whether
     ///   the panel should fade in. If `true`, the panel starts out
     ///   fully transparent and animates its opacity to the value
     ///   returned from the ``defaultAlphaValue`` class property.
-    func showIfAble(fadeIn: Bool) {
+    func show(fadeIn: Bool) {
         guard
-            canShow,
             !ProcessInfo.processInfo.isPreview,
             let screen = NSScreen.main
         else {
@@ -131,13 +124,6 @@ class MenuBarAppearancePanel: NSPanel {
 // MARK: - MenuBarOverlayPanel
 class MenuBarOverlayPanel: MenuBarAppearancePanel {
     private var cancellables = Set<AnyCancellable>()
-
-    override var canShow: Bool {
-        guard let tintKind = menuBar?.tintKind else {
-            return false
-        }
-        return tintKind != .none
-    }
 
     init(menuBar: MenuBar) {
         super.init(
@@ -218,8 +204,16 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
 class MenuBarBackingPanel: MenuBarAppearancePanel {
     override class var defaultAlphaValue: CGFloat { 1 }
 
-    override var canShow: Bool {
-        menuBar?.hasShadow ?? false
+    private var cancellables = Set<AnyCancellable>()
+
+    private var offset: Double {
+        guard
+            let menuBar,
+            menuBar.hasBorder
+        else {
+            return 0
+        }
+        return menuBar.borderWidth
     }
 
     init(menuBar: MenuBar) {
@@ -229,19 +223,107 @@ class MenuBarBackingPanel: MenuBarAppearancePanel {
             menuBar: menuBar
         )
         self.backgroundColor = .clear
-        self.contentView?.wantsLayer = true
-        let gradientLayer = CAGradientLayer()
-        gradientLayer.colors = [CGColor.clear, CGColor(gray: 0, alpha: 0.2)]
-        self.contentView?.layer = gradientLayer
+        self.hasShadow = false
+        configureCancellables()
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        if let menuBar {
+            Publishers.CombineLatest4(
+                menuBar.$hasShadow,
+                menuBar.$hasBorder,
+                menuBar.$borderColor,
+                menuBar.$borderWidth
+            )
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    guard
+                        let self,
+                        let menuBar = self.menuBar
+                    else {
+                        return
+                    }
+                    self.contentView = MenuBarBackingPanelView(
+                        hasShadow: menuBar.hasShadow,
+                        hasBorder: menuBar.hasBorder,
+                        borderWidth: menuBar.borderWidth,
+                        borderColor: menuBar.borderColor,
+                        offset: self.offset
+                    )
+                    self.show(fadeIn: true)
+                }
+            }
+            .store(in: &c)
+        }
+
+        cancellables = c
     }
 
     override func menuBarFrame(forScreen screen: NSScreen) -> CGRect {
         let rect = super.menuBarFrame(forScreen: screen)
         return CGRect(
             x: rect.minX,
-            y: rect.minY - 5,
+            y: (rect.minY - offset) - 5,
             width: rect.width,
-            height: 5
+            height: (rect.height + offset) + 5
         )
+    }
+}
+
+class MenuBarBackingPanelView: NSView {
+    let hasShadow: Bool
+    let hasBorder: Bool
+    let borderWidth: Double
+    let borderColor: CGColor
+    let offset: Double
+
+    init(
+        hasShadow: Bool,
+        hasBorder: Bool,
+        borderWidth: Double,
+        borderColor: CGColor,
+        offset: Double
+    ) {
+        self.hasShadow = hasShadow
+        self.hasBorder = hasBorder
+        self.borderWidth = borderWidth
+        self.borderColor = borderColor
+        self.offset = offset
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        if hasShadow {
+            let gradient = NSGradient(
+                colors: [
+                    NSColor(white: 0.0, alpha: 0.0),
+                    NSColor(white: 0.0, alpha: 0.2),
+                ]
+            )
+            let shadowBounds = CGRect(
+                x: bounds.minX,
+                y: bounds.minY,
+                width: bounds.width,
+                height: 5
+            )
+            gradient?.draw(in: shadowBounds, angle: 90)
+        }
+        if hasBorder {
+            let borderBounds = CGRect(
+                x: bounds.minX,
+                y: bounds.minY + 5,
+                width: bounds.width,
+                height: borderWidth
+            )
+            NSColor(cgColor: borderColor)?.setFill()
+            NSBezierPath(rect: borderBounds).fill()
+        }
     }
 }

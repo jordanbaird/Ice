@@ -37,6 +37,26 @@ struct CustomColorPicker: View {
         }
     }
 
+    init(
+        selection: Binding<CGColor?>,
+        supportsOpacity: Bool,
+        mode: NSColorPanel.Mode
+    ) {
+        self._selection = selection
+        self.supportsOpacity = supportsOpacity
+        self.mode = mode
+    }
+
+    init(
+        selection: Binding<CGColor>,
+        supportsOpacity: Bool,
+        mode: NSColorPanel.Mode
+    ) {
+        self._selection = Binding(selection)
+        self.supportsOpacity = supportsOpacity
+        self.mode = mode
+    }
+
     var body: some View {
         RoundedRectangle(cornerRadius: 5)
             .fill(fill)

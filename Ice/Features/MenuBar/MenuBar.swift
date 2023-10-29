@@ -30,6 +30,16 @@ final class MenuBar: ObservableObject {
     /// have a shadow.
     @Published var hasShadow: Bool
 
+    /// A Boolean value that indicates whether the menu bar should
+    /// have a border.
+    @Published var hasBorder: Bool
+
+    /// The color of the menu bar's border.
+    @Published var borderColor: CGColor = .white
+
+    /// The width of the menu bar's border.
+    @Published var borderWidth: Double
+
     /// The tint kind currently in use.
     @Published var tintKind: TintKind
 
@@ -80,19 +90,28 @@ final class MenuBar: ObservableObject {
     init(appState: AppState) {
         self.appState = appState
         self.hasShadow = UserDefaults.standard.bool(forKey: Defaults.menuBarHasShadow)
+        self.hasBorder = UserDefaults.standard.bool(forKey: Defaults.menuBarHasBorder)
+        self.borderWidth = UserDefaults.standard.object(forKey: Defaults.menuBarBorderWidth) as? Double ?? 1
         self.tintKind = TintKind(rawValue: UserDefaults.standard.integer(forKey: Defaults.menuBarTintKind)) ?? .none
+        if let borderColorData = UserDefaults.standard.data(forKey: Defaults.menuBarBorderColor) {
+            do {
+                self.borderColor = try JSONDecoder().decode(CodableColor.self, from: borderColorData).cgColor
+            } catch {
+                Logger.menuBar.error("Error decoding border color: \(error)")
+            }
+        }
         if let tintColorData = UserDefaults.standard.data(forKey: Defaults.menuBarTintColor) {
             do {
                 self.tintColor = try JSONDecoder().decode(CodableColor.self, from: tintColorData).cgColor
             } catch {
-                Logger.menuBar.error("Error decoding color: \(error)")
+                Logger.menuBar.error("Error decoding tint color: \(error)")
             }
         }
         if let tintGradientData = UserDefaults.standard.data(forKey: Defaults.menuBarTintGradient) {
             do {
                 self.tintGradient = try JSONDecoder().decode(CustomGradient.self, from: tintGradientData)
             } catch {
-                Logger.menuBar.error("Error decoding gradient: \(error)")
+                Logger.menuBar.error("Error decoding tint gradient: \(error)")
             }
         }
         configureCancellables()
@@ -221,13 +240,72 @@ final class MenuBar: ObservableObject {
 
         $hasShadow
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] hasShadow in
+            .sink { hasShadow in
+                UserDefaults.standard.set(hasShadow, forKey: Defaults.menuBarHasShadow)
+            }
+            .store(in: &c)
+
+        $hasBorder
+            .receive(on: DispatchQueue.main)
+            .sink { hasBorder in
+                UserDefaults.standard.set(hasBorder, forKey: Defaults.menuBarHasBorder)
+            }
+            .store(in: &c)
+
+        $borderColor
+            .receive(on: DispatchQueue.main)
+            .sink { borderColor in
+                do {
+                    let data = try JSONEncoder().encode(CodableColor(cgColor: borderColor))
+                    UserDefaults.standard.set(data, forKey: Defaults.menuBarBorderColor)
+                } catch {
+                    Logger.menuBar.error("Error encoding border color: \(error)")
+                }
+            }
+            .store(in: &c)
+
+        $borderWidth
+            .receive(on: DispatchQueue.main)
+            .sink { borderWidth in
+                UserDefaults.standard.set(borderWidth, forKey: Defaults.menuBarBorderWidth)
+            }
+            .store(in: &c)
+
+        $tintKind
+            .receive(on: DispatchQueue.main)
+            .sink { tintKind in
+                UserDefaults.standard.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
+            }
+            .store(in: &c)
+
+        $tintColor
+            .receive(on: DispatchQueue.main)
+            .sink { tintColor in
+                if let tintColor {
+                    do {
+                        let data = try JSONEncoder().encode(CodableColor(cgColor: tintColor))
+                        UserDefaults.standard.set(data, forKey: Defaults.menuBarTintColor)
+                    } catch {
+                        Logger.menuBar.error("Error encoding tint color: \(error)")
+                    }
+                } else {
+                    UserDefaults.standard.removeObject(forKey: Defaults.menuBarTintColor)
+                }
+            }
+            .store(in: &c)
+
+        $hasShadow
+            .combineLatest($hasBorder)
+            .map { hasShadow, hasBorder in
+                hasShadow || hasBorder
+            }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] shouldShow in
                 guard let self else {
                     return
                 }
-                UserDefaults.standard.set(hasShadow, forKey: Defaults.menuBarHasShadow)
-                if hasShadow {
-                    backingPanel.showIfAble(fadeIn: true)
+                if shouldShow {
+                    backingPanel.show(fadeIn: true)
                 } else {
                     backingPanel.hide()
                 }
@@ -235,43 +313,17 @@ final class MenuBar: ObservableObject {
             .store(in: &c)
 
         $tintKind
+            .map { tintKind in
+                tintKind != .none
+            }
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] tintKind in
+            .sink { [weak self] shouldShow in
                 guard let self else {
                     return
                 }
-                UserDefaults.standard.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
-                switch tintKind {
-                case .none:
-                    overlayPanel.hide()
-                case .solid, .gradient:
-                    overlayPanel.showIfAble(fadeIn: true)
-                }
-            }
-            .store(in: &c)
-
-        $tintColor
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] tintColor in
-                guard
-                    let self,
-                    tintKind == .solid
-                else {
-                    return
-                }
-                if let tintColor {
-                    do {
-                        let data = try JSONEncoder().encode(CodableColor(cgColor: tintColor))
-                        UserDefaults.standard.set(data, forKey: Defaults.menuBarTintColor)
-                        if case .solid = tintKind {
-                            overlayPanel.showIfAble(fadeIn: true)
-                        }
-                    } catch {
-                        Logger.menuBar.error("Error encoding color: \(error)")
-                        overlayPanel.hide()
-                    }
+                if shouldShow {
+                    overlayPanel.show(fadeIn: true)
                 } else {
-                    UserDefaults.standard.removeObject(forKey: Defaults.menuBarTintColor)
                     overlayPanel.hide()
                 }
             }
@@ -279,22 +331,13 @@ final class MenuBar: ObservableObject {
 
         $tintGradient
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] tintGradient in
-                guard let self else {
-                    return
+            .encode(encoder: JSONEncoder())
+            .sink { completion in
+                if case .failure(let error) = completion {
+                    Logger.menuBar.error("Error encoding tint gradient: \(error)")
                 }
-                guard case .gradient = tintKind else {
-                    overlayPanel.hide()
-                    return
-                }
-                do {
-                    let data = try JSONEncoder().encode(tintGradient)
-                    UserDefaults.standard.set(data, forKey: Defaults.menuBarTintGradient)
-                    overlayPanel.showIfAble(fadeIn: true)
-                } catch {
-                    Logger.menuBar.error("Error encoding gradient: \(error)")
-                    overlayPanel.hide()
-                }
+            } receiveValue: { data in
+                UserDefaults.standard.set(data, forKey: Defaults.menuBarTintGradient)
             }
             .store(in: &c)
 

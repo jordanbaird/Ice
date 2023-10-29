@@ -18,6 +18,11 @@ struct MenuBarSettingsPaneAppearanceTab: View {
             Section {
                 shadowToggle
             }
+            Section {
+                borderToggle
+                borderColor
+                borderWidth
+            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -25,9 +30,9 @@ struct MenuBarSettingsPaneAppearanceTab: View {
 
     @ViewBuilder
     private var tintPicker: some View {
-        LabeledContent("Menu bar tint") {
+        LabeledContent("Menu Bar Tint") {
             HStack {
-                Picker("Menu bar tint", selection: appState.menuBar.bindings.tintKind) {
+                Picker("Menu Bar Tint", selection: appState.menuBar.bindings.tintKind) {
                     Text("None")
                         .tag(TintKind.none)
                     Text("Solid")
@@ -109,6 +114,37 @@ struct MenuBarSettingsPaneAppearanceTab: View {
     @ViewBuilder
     private var shadowToggle: some View {
         Toggle("Shadow", isOn: appState.menuBar.bindings.hasShadow)
+    }
+
+    @ViewBuilder
+    private var borderToggle: some View {
+        Toggle("Border", isOn: appState.menuBar.bindings.hasBorder)
+    }
+
+    @ViewBuilder
+    private var borderColor: some View {
+        if appState.menuBar.hasBorder {
+            LabeledContent("Border Color") {
+                CustomColorPicker(
+                    selection: appState.menuBar.bindings.borderColor,
+                    supportsOpacity: false,
+                    mode: .crayon
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var borderWidth: some View {
+        if appState.menuBar.hasBorder {
+            Stepper(
+                "Border Width",
+                value: appState.menuBar.bindings.borderWidth,
+                in: 1...5,
+                step: 1,
+                format: .number
+            )
+        }
     }
 }
 

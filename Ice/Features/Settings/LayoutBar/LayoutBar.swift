@@ -24,19 +24,12 @@ struct LayoutBar: View {
         }
     }
 
+    @AppStorage(Defaults.usesLayoutBarDecorations) var usesLayoutBarDecorations = true
     @Binding var layoutItems: [LayoutBarItem]
     @ObservedObject var menuBar: MenuBar
 
     /// The amount of spacing between each layout item.
     let spacing: CGFloat
-
-    /// The color of the layout bar's background.
-    var backgroundColor: Color? {
-        guard let averageColor = menuBar.averageColor else {
-            return nil
-        }
-        return Color(cgColor: averageColor)
-    }
 
     /// Creates a layout bar with the given spacing, menu bar, and
     /// layout items.
@@ -56,45 +49,81 @@ struct LayoutBar: View {
     }
 
     var body: some View {
-        Representable(
-            layoutItems: $layoutItems,
-            spacing: spacing
-        )
-        .background {
-            if let backgroundColor {
-                backgroundColor
-                    .overlay(
-                        Material.bar
-                            .opacity(0.2)
-                            .blendMode(.multiply)
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 9)
-                    )
-            } else {
+        if usesLayoutBarDecorations {
+            Representable(
+                layoutItems: $layoutItems,
+                spacing: spacing
+            )
+            .background {
+                backgroundView
+            }
+            .overlay {
+                tintView
+            }
+            .overlay {
+                borderView
+            }
+            .shadow(
+                color: Color(
+                    white: 0,
+                    opacity: menuBar.hasShadow ? 0.2 : 0
+                ),
+                radius: 5
+            )
+        } else {
+            Representable(
+                layoutItems: $layoutItems,
+                spacing: spacing
+            )
+            .background {
                 RoundedRectangle(cornerRadius: 9)
                     .fill(.defaultLayoutBar)
             }
         }
-        .overlay {
-            if backgroundColor != nil {
-                switch menuBar.tintKind {
-                case .none:
-                    EmptyView()
-                case .solid:
-                    if let tintColor = menuBar.tintColor {
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(Color(cgColor: tintColor))
-                            .opacity(0.2)
-                            .allowsHitTesting(false)
-                    }
-                case .gradient:
-                    menuBar.tintGradient
-                        .clipShape(RoundedRectangle(cornerRadius: 9))
+    }
+
+    @ViewBuilder
+    private var backgroundView: some View {
+        if let averageColor = menuBar.averageColor {
+            Color(cgColor: averageColor)
+                .overlay(
+                    Material.bar
                         .opacity(0.2)
-                        .allowsHitTesting(false)
-                }
+                        .blendMode(.multiply)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+        }
+    }
+
+    @ViewBuilder
+    private var tintView: some View {
+        switch menuBar.tintKind {
+        case .none:
+            EmptyView()
+        case .solid:
+            if let tintColor = menuBar.tintColor {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(Color(cgColor: tintColor))
+                    .opacity(0.2)
+                    .allowsHitTesting(false)
             }
+        case .gradient:
+            menuBar.tintGradient
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+                .opacity(0.2)
+                .allowsHitTesting(false)
+        }
+    }
+
+    @ViewBuilder
+    private var borderView: some View {
+        if menuBar.hasBorder {
+            RoundedRectangle(cornerRadius: 9)
+                .inset(by: -menuBar.borderWidth / 2)
+                .stroke(
+                    Color(cgColor: menuBar.borderColor),
+                    lineWidth: menuBar.borderWidth
+                )
         }
     }
 }

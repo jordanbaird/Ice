@@ -7,7 +7,7 @@ import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsPane: View {
-    @AppStorage(Defaults.usesColoredLayoutBars) var usesColoredLayoutBars = true
+    @AppStorage(Defaults.usesLayoutBarDecorations) var usesLayoutBarDecorations = true
     @AppStorage(Defaults.secondaryActionModifier) var secondaryActionModifier = Hotkey.Modifiers.option
     @EnvironmentObject var appState: AppState
 
@@ -52,9 +52,9 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var coloredLayoutBars: some View {
-        Toggle(isOn: $usesColoredLayoutBars) {
-            Text("Use colored layout bars")
-            Text("When enabled, the bars in \(Constants.appName)'s Layout settings take on the color of the actual menu bar. Disabling this setting can improve performance.")
+        Toggle(isOn: $usesLayoutBarDecorations) {
+            Text("Use layout bar decorations")
+            Text("When enabled, the bars in \(Constants.appName)'s Layout settings take on the appearance of the actual menu bar. Disabling this setting can improve performance.")
         }
     }
 

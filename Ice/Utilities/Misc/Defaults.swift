@@ -15,5 +15,5 @@ enum Defaults {
     static let menuBarSettingsPaneSelectedTab = "MenuBarSettingsPaneSelectedTab"
     static let secondaryActionModifier = "SecondaryActionModifier"
     static let sections = "Sections"
-    static let usesColoredLayoutBars = "UsesColoredLayoutBars"
+    static let usesLayoutBarDecorations = "UsesLayoutBarDecorations"
 }

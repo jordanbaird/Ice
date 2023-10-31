@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct MenuBarSettingsPaneLayoutTab: View {
-    @AppStorage(Defaults.usesColoredLayoutBars) var usesColoredLayoutBars = true
+    @AppStorage(Defaults.usesLayoutBarDecorations) var usesLayoutBarDecorations = true
     @EnvironmentObject var appState: AppState
     @State private var visibleItems = [LayoutBarItem]()
     @State private var hiddenItems = [LayoutBarItem]()
@@ -90,7 +90,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
     }
 
     private func handleAppear() {
-        appState.menuBar.publishesAverageColor = usesColoredLayoutBars
+        appState.menuBar.publishesAverageColor = usesLayoutBarDecorations
         updateVisibleItems(appState.itemManager.visibleItems)
         updateHiddenItems(appState.itemManager.hiddenItems)
         updateAlwaysHiddenItems(appState.itemManager.alwaysHiddenItems)

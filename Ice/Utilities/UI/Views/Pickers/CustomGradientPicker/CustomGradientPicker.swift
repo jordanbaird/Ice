@@ -233,11 +233,11 @@ private struct CustomGradientPickerHandle: View {
                     .blendMode(.softLight)
             }
             .frame(width: width, height: height)
-            .background {
+            .overlay {
                 if selectedStop == stop {
                     Capsule()
-                        .inset(by: -2)
-                        .fill(.primary)
+                        .inset(by: -1.5)
+                        .stroke(.primary, lineWidth: 1.5)
                 }
             }
             .offset(

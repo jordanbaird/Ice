@@ -14,6 +14,7 @@ struct CustomGradientPicker: View {
     @State private var cancellables = Set<AnyCancellable>()
 
     let supportsOpacity: Bool
+    let allowsEmptySelections: Bool
     let mode: NSColorPanel.Mode
 
     /// Creates a new gradient picker.
@@ -22,16 +23,20 @@ struct CustomGradientPicker: View {
     ///   - gradient: A binding to a gradient.
     ///   - supportsOpacity: A Boolean value indicating whether the
     ///     picker should support opacity.
+    ///   - allowsEmptySelections: A Boolean value indicating whether
+    ///     the picker should allow empty gradient selections.
     ///   - mode: The mode that the color panel should take on when
     ///     picking a color for the gradient.
     init(
         gradient: Binding<CustomGradient>,
         supportsOpacity: Bool,
+        allowsEmptySelections: Bool,
         mode: NSColorPanel.Mode
     ) {
         self._gradient = gradient
         self.zOrderedStops = gradient.wrappedValue.stops
         self.supportsOpacity = supportsOpacity
+        self.allowsEmptySelections = allowsEmptySelections
         self.mode = mode
     }
 
@@ -39,14 +44,7 @@ struct CustomGradientPicker: View {
         gradientView
             .clipShape(RoundedRectangle(cornerRadius: 5))
             .overlay {
-                RoundedRectangle(cornerRadius: 5)
-                    .stroke()
-                    .overlay {
-                        Rectangle()
-                            .frame(width: 1, height: 6)
-                    }
-                    .foregroundStyle(.secondary.opacity(0.75))
-                    .blendMode(.softLight)
+                borderView
             }
             .shadow(radius: 1)
             .frame(width: 200, height: 18)
@@ -59,18 +57,14 @@ struct CustomGradientPicker: View {
             }
             .foregroundStyle(Color(white: 0.9))
             .frame(height: 24)
+            .onChange(of: gradient) { gradient in
+                gradientChanged(to: gradient)
+            }
             .onKeyDown(key: .escape) {
                 selectedStop = nil
             }
             .onKeyDown(key: .delete) {
-                guard
-                    let selectedStop,
-                    let index = gradient.stops.firstIndex(of: selectedStop)
-                else {
-                    return
-                }
-                gradient.stops.remove(at: index)
-                self.selectedStop = nil
+                deleteSelectedStop()
             }
             .readWindow(window: $window)
     }
@@ -87,28 +81,27 @@ struct CustomGradientPicker: View {
     }
 
     @ViewBuilder
+    private var borderView: some View {
+        RoundedRectangle(cornerRadius: 5)
+            .stroke()
+            .overlay {
+                centerTickMark
+            }
+            .foregroundStyle(.secondary.opacity(0.75))
+            .blendMode(.softLight)
+    }
+
+    @ViewBuilder
+    private var centerTickMark: some View {
+        Rectangle()
+            .frame(width: 1, height: 6)
+    }
+
+    @ViewBuilder
     private func selectionReader(geometry: GeometryProxy) -> some View {
         Color.clear
             .localEventMonitor(mask: .leftMouseDown) { event in
-                guard
-                    let window = event.window,
-                    self.window === window
-                else {
-                    return event
-                }
-                let locationInWindow = event.locationInWindow
-                guard window.contentLayoutRect.contains(locationInWindow) else {
-                    return event
-                }
-                let globalFrame = geometry.frame(in: .global)
-                let flippedLocation = CGPoint(
-                    x: locationInWindow.x,
-                    y: window.frame.height - locationInWindow.y
-                )
-                if !globalFrame.contains(flippedLocation) {
-                    selectedStop = nil
-                }
-                return event
+                leftMouseDown(with: event, in: geometry)
             }
     }
 
@@ -180,6 +173,63 @@ struct CustomGradientPicker: View {
             self.selectedStop = newStop
         }
     }
+
+    private func gradientChanged(to gradient: CustomGradient) {
+        if allowsEmptySelections {
+            return
+        }
+        if gradient.stops.isEmpty {
+            self.gradient = .defaultMenuBarTint
+        } else if gradient.stops.count == 1 {
+            var gradient = gradient
+            if gradient.stops[0].location >= 0.5 {
+                gradient.stops[0].location = 1
+                let stop = ColorStop(color: .white, location: 0)
+                gradient.stops.append(stop)
+            } else {
+                gradient.stops[0].location = 0
+                let stop = ColorStop(color: .black, location: 1)
+                gradient.stops.append(stop)
+            }
+            self.gradient = gradient
+        }
+    }
+
+    private func deleteSelectedStop() {
+        guard
+            let selectedStop,
+            let index = gradient.stops.firstIndex(of: selectedStop)
+        else {
+            return
+        }
+        gradient.stops.remove(at: index)
+        self.selectedStop = nil
+    }
+
+    private func leftMouseDown(
+        with event: NSEvent,
+        in geometry: GeometryProxy
+    ) -> NSEvent? {
+        guard
+            let window = event.window,
+            self.window === window
+        else {
+            return event
+        }
+        let locationInWindow = event.locationInWindow
+        guard window.contentLayoutRect.contains(locationInWindow) else {
+            return event
+        }
+        let globalFrame = geometry.frame(in: .global)
+        let flippedLocation = CGPoint(
+            x: locationInWindow.x,
+            y: window.frame.height - locationInWindow.y
+        )
+        if !globalFrame.contains(flippedLocation) {
+            selectedStop = nil
+        }
+        return event
+    }
 }
 
 private struct CustomGradientPickerHandle: View {
@@ -216,87 +266,93 @@ private struct CustomGradientPickerHandle: View {
 
     var body: some View {
         if let stop {
-            gradientPickerHandle(with: stop)
+            handleView(cgColor: stop.color)
+                .overlay {
+                    borderView
+                }
+                .frame(width: width, height: height)
+                .overlay {
+                    selectionIndicator(isSelected: selectedStop == stop)
+                }
+                .offset(
+                    x: (geometry.size.width - width) * stop.location,
+                    y: (geometry.size.height - height) / 2
+                )
+                .shadow(radius: 1)
+                .gesture(
+                    DragGesture(minimumDistance: 5)
+                        .onChanged { value in
+                            update(
+                                with: value.location.x,
+                                shouldSnap: abs(value.velocity.width) <= 75
+                            )
+                        }
+                        .onEnded { value in
+                            update(
+                                with: value.location.x,
+                                shouldSnap: true
+                            )
+                        }
+                )
+                .onTapGesture(count: 2) {
+                    if gradient.stops.count == 1 {
+                        gradient.stops[0].location = 0.5
+                    } else {
+                        let last = CGFloat(gradient.stops.count - 1)
+                        gradient.stops = gradient.sortedStops
+                            .enumerated()
+                            .map { n, stop in
+                                var stop = stop
+                                stop.location = CGFloat(n) / last
+                                return stop
+                            }
+                    }
+                }
+                .onTapGesture {
+                    selectedStop = stop
+                }
+                .zIndex(Double(zOrderedStops.firstIndex(of: stop) ?? 0))
+                .onChange(of: selectedStop == stop) { _ in
+                    deactivate()
+                    DispatchQueue.main.async {
+                        if self.selectedStop == stop {
+                            activate()
+                        }
+                    }
+                }
         }
     }
 
     @ViewBuilder
-    private func gradientPickerHandle(with stop: ColorStop) -> some View {
+    private func handleView(cgColor: CGColor) -> some View {
         Capsule()
             .inset(by: -1)
-            .fill(Color(cgColor: stop.color))
-            .overlay {
-                Capsule()
-                    .inset(by: -1)
-                    .stroke()
-                    .foregroundStyle(.secondary.opacity(0.75))
-                    .blendMode(.softLight)
-            }
-            .frame(width: width, height: height)
-            .overlay {
-                if selectedStop == stop {
-                    Capsule()
-                        .inset(by: -1.5)
-                        .stroke(.primary, lineWidth: 1.5)
-                }
-            }
-            .offset(
-                x: (geometry.size.width - width) * stop.location,
-                y: (geometry.size.height - height) / 2
-            )
-            .shadow(radius: 1)
-            .gesture(
-                DragGesture(minimumDistance: 5)
-                    .onChanged { value in
-                        update(
-                            with: value.location.x,
-                            shouldSnap: abs(value.velocity.width) <= 75
-                        )
-                    }
-                    .onEnded { value in
-                        update(
-                            with: value.location.x,
-                            shouldSnap: true
-                        )
-                    }
-            )
-            .onTapGesture(count: 2) {
-                if gradient.stops.count == 1 {
-                    gradient.stops[0].location = 0.5
-                } else {
-                    let last = CGFloat(gradient.stops.count - 1)
-                    gradient.stops = gradient.sortedStops
-                        .enumerated()
-                        .map { n, stop in
-                            var stop = stop
-                            stop.location = CGFloat(n) / last
-                            return stop
-                        }
-                }
-            }
-            .onTapGesture {
-                selectedStop = stop
-            }
-            .zIndex(Double(zOrderedStops.firstIndex(of: stop) ?? 0))
-            .onChange(of: selectedStop == stop) { _ in
-                deactivate()
-                DispatchQueue.main.async {
-                    if self.selectedStop == stop {
-                        activate()
-                    }
-                }
-            }
+            .fill(Color(cgColor: cgColor))
+    }
+
+    @ViewBuilder
+    private var borderView: some View {
+        Capsule()
+            .inset(by: -1)
+            .stroke()
+            .foregroundStyle(.secondary.opacity(0.75))
+            .blendMode(.softLight)
+    }
+
+    @ViewBuilder
+    private func selectionIndicator(isSelected: Bool) -> some View {
+        if isSelected {
+            Capsule()
+                .inset(by: -1.5)
+                .stroke(.primary, lineWidth: 1.5)
+        }
     }
 
     private func update(with location: CGFloat, shouldSnap: Bool) {
         guard var stop else {
             return
         }
-        let newLocation = (
-            location - (width / 2)
-        ) / (
-            geometry.size.width - width
-        )
+        let newLocation = (location - (width / 2)) / (geometry.size.width - width)
         if let index = zOrderedStops.firstIndex(of: stop) {
             zOrderedStops.remove(at: index)
         }
@@ -374,6 +430,7 @@ private struct CustomGradientPickerPreview: View {
         CustomGradientPicker(
             gradient: $gradient,
             supportsOpacity: false,
+            allowsEmptySelections: false,
             mode: .crayon
         )
     }

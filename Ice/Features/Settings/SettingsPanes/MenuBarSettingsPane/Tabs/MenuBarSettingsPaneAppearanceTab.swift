@@ -53,38 +53,11 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                     )
                 case .gradient:
                     CustomGradientPicker(
-                        gradient: Binding(
-                            get: {
-                                appState.menuBar.tintGradient
-                            },
-                            set: { gradient in
-                                if gradient.stops.isEmpty {
-                                    appState.menuBar.tintGradient = .defaultMenuBarTint
-                                } else {
-                                    appState.menuBar.tintGradient = gradient
-                                }
-                            }
-                        ),
+                        gradient: appState.bindings.menuBar.tintGradient,
                         supportsOpacity: false,
+                        allowsEmptySelections: false,
                         mode: .crayon
                     )
-                    .onChange(of: appState.menuBar.tintGradient) { gradient in
-                        if gradient.stops.isEmpty {
-                            appState.menuBar.tintGradient = .defaultMenuBarTint
-                        } else if gradient.stops.count == 1 {
-                            var gradient = gradient
-                            if gradient.stops[0].location >= 0.5 {
-                                gradient.stops[0].location = 1
-                                let stop = ColorStop(color: .white, location: 0)
-                                gradient.stops.append(stop)
-                            } else {
-                                gradient.stops[0].location = 0
-                                let stop = ColorStop(color: .black, location: 1)
-                                gradient.stops.append(stop)
-                            }
-                            appState.menuBar.tintGradient = gradient
-                        }
-                    }
                 }
             }
             .frame(height: 24)

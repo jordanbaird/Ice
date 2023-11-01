@@ -58,6 +58,7 @@ struct CustomGradientPicker: View {
                 }
             }
             .foregroundStyle(Color(white: 0.9))
+            .frame(height: 24)
             .onKeyDown(key: .escape) {
                 selectedStop = nil
             }

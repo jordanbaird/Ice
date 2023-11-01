@@ -6,121 +6,101 @@
 import Combine
 import SwiftUI
 
-struct CustomColorPicker: View {
-    @Binding var selection: CGColor?
-    @StateObject private var model = CustomColorPickerModel()
-    @State private var isActive = false
+struct CustomColorPicker: NSViewRepresentable {
+    class Coordinator {
+        @Binding var selection: CGColor
+
+        let supportsOpacity: Bool
+        let mode: NSColorPanel.Mode
+
+        private var cancellables = Set<AnyCancellable>()
+
+        init(
+            selection: Binding<CGColor>,
+            supportsOpacity: Bool,
+            mode: NSColorPanel.Mode
+        ) {
+            self._selection = selection
+            self.supportsOpacity = supportsOpacity
+            self.mode = mode
+        }
+
+        func configure(with nsView: NSColorWell) {
+            var c = Set<AnyCancellable>()
+
+            nsView
+                .publisher(for: \.color)
+                .removeDuplicates()
+                .sink { [weak self] color in
+                    DispatchQueue.main.async {
+                        self?.selection = color.cgColor
+                    }
+                }
+                .store(in: &c)
+
+            NSColorPanel.shared
+                .publisher(for: \.isVisible)
+                .sink { [weak self, weak nsView] isVisible in
+                    guard
+                        let self,
+                        isVisible,
+                        nsView?.isActive == true
+                    else {
+                        return
+                    }
+                    NSColorPanel.shared.showsAlpha = supportsOpacity
+                    NSColorPanel.shared.mode = mode
+                }
+                .store(in: &c)
+
+            cancellables = c
+        }
+    }
+
+    @Binding var selection: CGColor
 
     let supportsOpacity: Bool
     let mode: NSColorPanel.Mode
 
-    private var fill: AnyShapeStyle {
-        if let selection {
-            AnyShapeStyle(
-                Color(cgColor: selection)
-            )
-        } else {
-            AnyShapeStyle(
-                Color.white
-                    .gradient
-                    .opacity(0.1)
-                    .blendMode(.softLight)
-            )
+    func makeNSView(context: Context) -> NSColorWell {
+        let nsView = NSColorWell()
+        context.coordinator.configure(with: nsView)
+        return nsView
+    }
+
+    func updateNSView(_ nsView: NSColorWell, context: Context) {
+        if let color = NSColor(cgColor: selection) {
+            nsView.color = color
+        }
+        if #available(macOS 14.0, *) {
+            nsView.supportsAlpha = supportsOpacity
         }
     }
 
-    private var stroke: AnyShapeStyle {
-        if isActive {
-            AnyShapeStyle(.primary)
-        } else {
-            AnyShapeStyle(.secondary.opacity(0.75))
+    func makeCoordinator() -> Coordinator {
+        Coordinator(
+            selection: $selection,
+            supportsOpacity: supportsOpacity,
+            mode: mode
+        )
+    }
+
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        nsView: NSColorWell,
+        context: Context
+    ) -> CGSize? {
+        switch nsView.controlSize {
+        case .large:
+            CGSize(width: 55, height: 30)
+        case .regular:
+            CGSize(width: 44, height: 24)
+        case .small:
+            CGSize(width: 33, height: 18)
+        case .mini:
+            CGSize(width: 29, height: 16)
+        @unknown default:
+            nsView.intrinsicContentSize
         }
-    }
-
-    init(
-        selection: Binding<CGColor?>,
-        supportsOpacity: Bool,
-        mode: NSColorPanel.Mode
-    ) {
-        self._selection = selection
-        self.supportsOpacity = supportsOpacity
-        self.mode = mode
-    }
-
-    init(
-        selection: Binding<CGColor>,
-        supportsOpacity: Bool,
-        mode: NSColorPanel.Mode
-    ) {
-        self._selection = Binding(selection)
-        self.supportsOpacity = supportsOpacity
-        self.mode = mode
-    }
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: 5)
-            .fill(fill)
-            .overlay {
-                RoundedRectangle(cornerRadius: 5)
-                    .stroke()
-                    .foregroundStyle(stroke)
-                    .blendMode(.softLight)
-            }
-            .frame(width: 40, height: 24)
-            .shadow(radius: 1)
-            .contentShape(Rectangle())
-            .foregroundStyle(Color(white: 0.9))
-            .help("Select a color")
-            .onTapGesture {
-                activate()
-            }
-            .onDisappear {
-                deactivate()
-            }
-    }
-
-    private func activate() {
-        deactivate()
-
-        NSColorPanel.shared.showsAlpha = supportsOpacity
-        NSColorPanel.shared.mode = mode
-        if
-            let selection,
-            let color = NSColor(cgColor: selection)
-        {
-            NSColorPanel.shared.color = color
-        }
-        NSColorPanel.shared.orderFrontRegardless()
-
-        var c = Set<AnyCancellable>()
-
-        NSColorPanel.shared.publisher(for: \.color)
-            .dropFirst()
-            .sink { color in
-                if selection != color.cgColor {
-                    selection = color.cgColor
-                }
-            }
-            .store(in: &c)
-
-        NSColorPanel.shared.publisher(for: \.isVisible)
-            .sink { isVisible in
-                if !isVisible {
-                    deactivate()
-                }
-            }
-            .store(in: &c)
-
-        model.cancellables = c
-
-        isActive = true
-    }
-
-    private func deactivate() {
-        for cancellable in model.cancellables {
-            cancellable.cancel()
-        }
-        model.cancellables.removeAll()
-        isActive = false
     }
 }

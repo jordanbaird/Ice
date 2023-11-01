@@ -6,8 +6,6 @@
 import SwiftUI
 
 struct MenuBarSettingsPaneAppearanceTab: View {
-    typealias TintKind = MenuBar.TintKind
-
     @EnvironmentObject var appState: AppState
 
     var body: some View {
@@ -34,11 +32,11 @@ struct MenuBarSettingsPaneAppearanceTab: View {
             HStack {
                 Picker("Menu Bar Tint", selection: appState.bindings.menuBar.tintKind) {
                     Text("None")
-                        .tag(TintKind.none)
+                        .tag(MenuBar.TintKind.none)
                     Text("Solid")
-                        .tag(TintKind.solid)
+                        .tag(MenuBar.TintKind.solid)
                     Text("Gradient")
-                        .tag(TintKind.gradient)
+                        .tag(MenuBar.TintKind.gradient)
                 }
                 .labelsHidden()
 

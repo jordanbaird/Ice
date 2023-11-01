@@ -32,7 +32,7 @@ struct MenuBarSettingsPaneAppearanceTab: View {
     private var tintPicker: some View {
         LabeledContent("Menu Bar Tint") {
             HStack {
-                Picker("Menu Bar Tint", selection: appState.menuBar.bindings.tintKind) {
+                Picker("Menu Bar Tint", selection: appState.bindings.menuBar.tintKind) {
                     Text("None")
                         .tag(TintKind.none)
                     Text("Solid")
@@ -57,7 +57,7 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                     }
 
                     CustomColorPicker(
-                        selection: appState.menuBar.bindings.tintColor,
+                        selection: appState.bindings.menuBar.tintColor,
                         supportsOpacity: false,
                         mode: .crayon
                     )
@@ -113,12 +113,12 @@ struct MenuBarSettingsPaneAppearanceTab: View {
 
     @ViewBuilder
     private var shadowToggle: some View {
-        Toggle("Shadow", isOn: appState.menuBar.bindings.hasShadow)
+        Toggle("Shadow", isOn: appState.bindings.menuBar.hasShadow)
     }
 
     @ViewBuilder
     private var borderToggle: some View {
-        Toggle("Border", isOn: appState.menuBar.bindings.hasBorder)
+        Toggle("Border", isOn: appState.bindings.menuBar.hasBorder)
     }
 
     @ViewBuilder
@@ -126,7 +126,7 @@ struct MenuBarSettingsPaneAppearanceTab: View {
         if appState.menuBar.hasBorder {
             LabeledContent("Border Color") {
                 CustomColorPicker(
-                    selection: appState.menuBar.bindings.borderColor,
+                    selection: appState.bindings.menuBar.borderColor,
                     supportsOpacity: false,
                     mode: .crayon
                 )
@@ -139,7 +139,7 @@ struct MenuBarSettingsPaneAppearanceTab: View {
         if appState.menuBar.hasBorder {
             Stepper(
                 "Border Width",
-                value: appState.menuBar.bindings.borderWidth,
+                value: appState.bindings.menuBar.borderWidth,
                 in: 1...5,
                 step: 1,
                 format: .number

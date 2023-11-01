@@ -8,7 +8,7 @@ import OSLog
 import SwiftUI
 
 /// The model for app-wide state.
-class AppState: ObservableObject {
+final class AppState: ObservableObject {
     /// The shared app state singleton.
     static let shared = AppState()
 
@@ -77,6 +77,9 @@ class AppState: ObservableObject {
         self.settingsWindow = settingsWindow
     }
 }
+
+// MARK: AppState: BindingExposable
+extension AppState: BindingExposable { }
 
 // MARK: - Logger
 private extension Logger {

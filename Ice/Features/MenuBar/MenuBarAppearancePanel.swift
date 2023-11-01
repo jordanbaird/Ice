@@ -169,10 +169,7 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
         case .none:
             break
         case .solid:
-            guard
-                let tintColor = menuBar.tintColor,
-                let nsColor = NSColor(cgColor: tintColor)
-            else {
+            guard let nsColor = NSColor(cgColor: menuBar.tintColor) else {
                 return
             }
             backgroundColor = nsColor

@@ -101,12 +101,10 @@ struct LayoutBar: View {
         case .none:
             EmptyView()
         case .solid:
-            if let tintColor = menuBar.tintColor {
-                RoundedRectangle(cornerRadius: 9)
-                    .fill(Color(cgColor: tintColor))
-                    .opacity(0.2)
-                    .allowsHitTesting(false)
-            }
+            RoundedRectangle(cornerRadius: 9)
+                .fill(Color(cgColor: menuBar.tintColor))
+                .opacity(0.2)
+                .allowsHitTesting(false)
         case .gradient:
             menuBar.tintGradient
                 .clipShape(RoundedRectangle(cornerRadius: 9))

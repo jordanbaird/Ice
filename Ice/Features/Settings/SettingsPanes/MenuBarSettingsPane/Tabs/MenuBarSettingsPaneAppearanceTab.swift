@@ -46,32 +46,12 @@ struct MenuBarSettingsPaneAppearanceTab: View {
                 case .none:
                     EmptyView()
                 case .solid:
-                    if appState.menuBar.tintColor != nil {
-                        Button {
-                            appState.menuBar.tintColor = nil
-                        } label: {
-                            Image(systemName: "arrow.counterclockwise")
-                        }
-                        .help("Reset")
-                        .buttonStyle(.plain)
-                    }
-
                     CustomColorPicker(
                         selection: appState.bindings.menuBar.tintColor,
                         supportsOpacity: false,
                         mode: .crayon
                     )
                 case .gradient:
-                    if appState.menuBar.tintGradient != .defaultMenuBarTint {
-                        Button {
-                            appState.menuBar.tintGradient = .defaultMenuBarTint
-                        } label: {
-                            Image(systemName: "arrow.counterclockwise")
-                        }
-                        .help("Reset")
-                        .buttonStyle(.plain)
-                    }
-
                     CustomGradientPicker(
                         gradient: Binding(
                             get: {

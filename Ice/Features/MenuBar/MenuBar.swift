@@ -35,7 +35,7 @@ final class MenuBar: ObservableObject {
     @Published var hasBorder: Bool
 
     /// The color of the menu bar's border.
-    @Published var borderColor: CGColor = .white
+    @Published var borderColor: CGColor = .black
 
     /// The width of the menu bar's border.
     @Published var borderWidth: Double
@@ -44,10 +44,10 @@ final class MenuBar: ObservableObject {
     @Published var tintKind: TintKind
 
     /// The user's currently chosen tint color.
-    @Published var tintColor: CGColor?
+    @Published var tintColor: CGColor = .black
 
     /// The user's currently chosen tint gradient.
-    @Published var tintGradient = CustomGradient.defaultMenuBarTint
+    @Published var tintGradient: CustomGradient = .defaultMenuBarTint
 
     /// The average color of the menu bar.
     ///
@@ -281,15 +281,11 @@ final class MenuBar: ObservableObject {
         $tintColor
             .receive(on: DispatchQueue.main)
             .sink { tintColor in
-                if let tintColor {
-                    do {
-                        let data = try JSONEncoder().encode(CodableColor(cgColor: tintColor))
-                        UserDefaults.standard.set(data, forKey: Defaults.menuBarTintColor)
-                    } catch {
-                        Logger.menuBar.error("Error encoding tint color: \(error)")
-                    }
-                } else {
-                    UserDefaults.standard.removeObject(forKey: Defaults.menuBarTintColor)
+                do {
+                    let data = try JSONEncoder().encode(CodableColor(cgColor: tintColor))
+                    UserDefaults.standard.set(data, forKey: Defaults.menuBarTintColor)
+                } catch {
+                    Logger.menuBar.error("Error encoding tint color: \(error)")
                 }
             }
             .store(in: &c)

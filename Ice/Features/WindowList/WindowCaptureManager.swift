@@ -7,16 +7,6 @@ import ScreenCaptureKit
 
 /// A type that manages the capturing of window images.
 class WindowCaptureManager {
-    /// The resolution at which to capture a window or group of windows.
-    enum CaptureResolution {
-        /// Windows are captured at the best possible resolution.
-        case best
-        /// Windows are captured at the nominal resolution.
-        case nominal
-        /// Capture resolution is determined automatically.
-        case automatic
-    }
-
     /// Options that affect the image or images returned from a window capture.
     struct CaptureOptions: OptionSet {
         let rawValue: Int
@@ -28,7 +18,7 @@ class WindowCaptureManager {
         static let onlyShadows = CaptureOptions(rawValue: 1 << 1)
         /// Fills the partially or fully transparent areas of the capture with a
         /// solid white backing color, resulting in an image that is fully opaque.
-        static let opaque = CaptureOptions(rawValue: 1 << 2)
+        static let shouldBeOpaque = CaptureOptions(rawValue: 1 << 2)
     }
 
     /// Captures the given windows as a composite image.
@@ -43,7 +33,7 @@ class WindowCaptureManager {
     static func captureImage(
         window: SCWindow,
         screenBounds: CGRect? = nil,
-        resolution: CaptureResolution = .automatic,
+        resolution: SCCaptureResolutionType = .automatic,
         options: CaptureOptions = []
     ) -> CGImage? {
         let pointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: 1)
@@ -63,6 +53,8 @@ class WindowCaptureManager {
             imageOption.insert(.nominalResolution)
         case .automatic:
             break
+        @unknown default:
+            break
         }
         if options.contains(.ignoreFraming) {
             imageOption.insert(.boundsIgnoreFraming)
@@ -70,7 +62,7 @@ class WindowCaptureManager {
         if options.contains(.onlyShadows) {
             imageOption.insert(.onlyShadows)
         }
-        if options.contains(.opaque) {
+        if options.contains(.shouldBeOpaque) {
             imageOption.insert(.shouldBeOpaque)
         }
         return CGImage(

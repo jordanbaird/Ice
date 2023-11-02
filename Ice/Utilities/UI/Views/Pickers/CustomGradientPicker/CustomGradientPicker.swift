@@ -57,8 +57,8 @@ struct CustomGradientPicker: View {
             }
             .foregroundStyle(Color(white: 0.9))
             .frame(height: 24)
-            .onChange(of: gradient) { gradient in
-                gradientChanged(to: gradient)
+            .onChange(of: gradient) { _, newValue in
+                gradientChanged(to: newValue)
             }
             .onKeyDown(key: .escape) {
                 selectedStop = nil
@@ -312,7 +312,7 @@ private struct CustomGradientPickerHandle: View {
                     selectedStop = stop
                 }
                 .zIndex(Double(zOrderedStops.firstIndex(of: stop) ?? 0))
-                .onChange(of: selectedStop == stop) { _ in
+                .onChange(of: selectedStop == stop) {
                     deactivate()
                     DispatchQueue.main.async {
                         if self.selectedStop == stop {

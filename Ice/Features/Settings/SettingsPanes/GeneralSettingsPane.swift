@@ -110,7 +110,7 @@ struct LabeledHotkeyRecorder: View {
             } label: {
                 Text(localizedLabel)
             }
-            .onChange(of: failure) { newValue in
+            .onChange(of: failure) { _, newValue in
                 timer?.invalidate()
                 if newValue != nil {
                     timer = .scheduledTimer(withTimeInterval: 3, repeats: false) { _ in

@@ -28,13 +28,13 @@ struct MenuBarSettingsPaneLayoutTab: View {
         .onDisappear {
             handleDisappear()
         }
-        .onChange(of: appState.itemManager.visibleItems) { items in
+        .onChange(of: appState.itemManager.visibleItems) { _, items in
             updateVisibleItems(items)
         }
-        .onChange(of: appState.itemManager.hiddenItems) { items in
+        .onChange(of: appState.itemManager.hiddenItems) { _, items in
             updateHiddenItems(items)
         }
-        .onChange(of: appState.itemManager.alwaysHiddenItems) { items in
+        .onChange(of: appState.itemManager.alwaysHiddenItems) { _, items in
             updateAlwaysHiddenItems(items)
         }
     }

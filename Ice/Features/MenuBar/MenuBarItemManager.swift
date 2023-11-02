@@ -60,7 +60,7 @@ class MenuBarItemManager: ObservableObject {
             }
             .compactMap { window in
                 WindowCaptureManager
-                    .captureImage(windows: [window], options: .ignoreFraming)
+                    .captureImage(window: window, options: .ignoreFraming)
                     .map { image in
                         MenuBarItem(window: window, image: image)
                     }
@@ -75,7 +75,7 @@ class MenuBarItemManager: ObservableObject {
                 }
                 .compactMap { window in
                     WindowCaptureManager
-                        .captureImage(windows: [window], options: .ignoreFraming)
+                        .captureImage(window: window, options: .ignoreFraming)
                         .map { image in
                             MenuBarItem(window: window, image: image)
                         }
@@ -87,7 +87,7 @@ class MenuBarItemManager: ObservableObject {
                 }
                 .compactMap { window in
                     WindowCaptureManager
-                        .captureImage(windows: [window], options: .ignoreFraming)
+                        .captureImage(window: window, options: .ignoreFraming)
                         .map { image in
                             MenuBarItem(window: window, image: image)
                         }
@@ -100,7 +100,7 @@ class MenuBarItemManager: ObservableObject {
                 }
                 .compactMap { window in
                     WindowCaptureManager
-                        .captureImage(windows: [window], options: .ignoreFraming)
+                        .captureImage(window: window, options: .ignoreFraming)
                         .map { image in
                             MenuBarItem(window: window, image: image)
                         }

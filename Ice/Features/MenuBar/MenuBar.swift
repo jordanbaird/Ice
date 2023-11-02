@@ -387,7 +387,7 @@ final class MenuBar: ObservableObject {
             let wallpaperWindow,
             let menuBarWindow,
             let image = WindowCaptureManager.captureImage(
-                windows: [wallpaperWindow],
+                window: wallpaperWindow,
                 screenBounds: menuBarWindow.frame,
                 options: .ignoreFraming
             ),

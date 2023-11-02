@@ -41,21 +41,18 @@ class WindowCaptureManager {
     ///   - resolution: The resolution at which to capture the windows.
     ///   - options: Options that affect the image returned from the capture.
     static func captureImage(
-        windows: [SCWindow],
+        window: SCWindow,
         screenBounds: CGRect? = nil,
         resolution: CaptureResolution = .automatic,
         options: CaptureOptions = []
     ) -> CGImage? {
-        let count = windows.count
-        let pointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: count)
+        let pointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: 1)
         defer {
-            pointer.deinitialize(count: count)
+            pointer.deinitialize(count: 1)
             pointer.deallocate()
         }
-        for (index, window) in windows.enumerated() {
-            pointer[index] = UnsafeRawPointer(bitPattern: UInt(window.windowID))
-        }
-        guard let windowArray = CFArrayCreate(kCFAllocatorDefault, pointer, count, nil) else {
+        pointer.initialize(to: UnsafeRawPointer(bitPattern: UInt(window.windowID)))
+        guard let windowArray = CFArrayCreate(kCFAllocatorDefault, pointer, 1, nil) else {
             return nil
         }
         var imageOption: CGWindowImageOption = []

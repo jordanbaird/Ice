@@ -388,7 +388,7 @@ final class MenuBar: ObservableObject {
             let menuBarWindow,
             let image = WindowCaptureManager.captureImage(
                 window: wallpaperWindow,
-                screenBounds: menuBarWindow.frame,
+                captureRect: menuBarWindow.frame,
                 options: .ignoreFraming
             ),
             let color = image.averageColor(

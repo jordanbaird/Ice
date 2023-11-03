@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import OSLog
 import ScreenCaptureKit
 
 /// A type that manages the capturing of window images.
@@ -21,54 +22,87 @@ class WindowCaptureManager {
         static let shouldBeOpaque = CaptureOptions(rawValue: 1 << 2)
     }
 
-    /// Captures the given windows as a composite image.
+    /// Captures the given window as an image.
     ///
     /// - Parameters:
-    ///   - windows: The windows to capture as a composite image.
-    ///   - screenBounds: The bounds to capture, specified in screen coordinates,
-    ///     with the origin at the upper left corner of the main display. Pass `nil`
-    ///     to capture the minimum area enclosing `windows`.
-    ///   - resolution: The resolution at which to capture the windows.
+    ///   - window: The window to capture.
+    ///   - captureRect: The rectangle to capture, relative to the coordinate
+    ///     space of the window. Pass `nil` to capture the entire window.
+    ///   - resolution: The resolution at which to capture the window.
     ///   - options: Options that affect the image returned from the capture.
     static func captureImage(
         window: SCWindow,
-        screenBounds: CGRect? = nil,
+        captureRect: CGRect? = nil,
         resolution: SCCaptureResolutionType = .automatic,
         options: CaptureOptions = []
     ) -> CGImage? {
-        let pointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: 1)
-        defer {
-            pointer.deinitialize(count: 1)
-            pointer.deallocate()
-        }
-        pointer.initialize(to: UnsafeRawPointer(bitPattern: UInt(window.windowID)))
-        guard let windowArray = CFArrayCreate(kCFAllocatorDefault, pointer, 1, nil) else {
+        guard window.isOnScreen else {
+            // FIXME: Remove this check once Apple provides a way to capture off screen windows
+            Logger.windowCapture.warning("Warning: window is not on screen and cannot be captured")
             return nil
         }
-        var imageOption: CGWindowImageOption = []
-        switch resolution {
-        case .best:
-            imageOption.insert(.bestResolution)
-        case .nominal:
-            imageOption.insert(.nominalResolution)
-        case .automatic:
-            break
-        @unknown default:
-            break
+
+        let captureRect = captureRect ?? .null
+        let windowBounds = CGRect(origin: .zero, size: window.frame.size)
+        let sourceRect = captureRect.isNull ? windowBounds : captureRect
+        guard windowBounds.contains(sourceRect) else {
+            // capture will time out if we continue
+            Logger.windowCapture.error("Error capturing image: sourceRect is not inside windowBounds")
+            return nil
         }
-        if options.contains(.ignoreFraming) {
-            imageOption.insert(.boundsIgnoreFraming)
+
+        let contentFilter = SCContentFilter(desktopIndependentWindow: window)
+        let configuration = SCStreamConfiguration()
+
+        let scale = getDisplayScaleFactor(CGMainDisplayID())
+        configuration.sourceRect = sourceRect
+        configuration.width = Int(sourceRect.width * scale)
+        configuration.height = Int(sourceRect.height * scale)
+        configuration.captureResolution = resolution
+        configuration.showsCursor = false
+        configuration.ignoreShadowsSingleWindow = options.contains(.ignoreFraming)
+        configuration.capturesShadowsOnly = options.contains(.onlyShadows)
+        configuration.shouldBeOpaque = options.contains(.shouldBeOpaque)
+
+        var result: Result<CGImage?, Error> = .success(nil)
+        let semaphore = DispatchSemaphore(value: 0)
+
+        SCScreenshotManager.captureImage(
+            contentFilter: contentFilter,
+            configuration: configuration
+        ) { image, error in
+            if let error {
+                result = .failure(error)
+            } else {
+                result = .success(image)
+            }
+            semaphore.signal()
         }
-        if options.contains(.onlyShadows) {
-            imageOption.insert(.onlyShadows)
+
+        switch semaphore.wait(timeout: .now() + 1) {
+        case .success:
+            switch result {
+            case .success(let image):
+                return image
+            case .failure(let error):
+                Logger.windowCapture.error("Error capturing image: \(error)")
+                return nil
+            }
+        case .timedOut:
+            Logger.windowCapture.error("Error capturing image: Timed out")
+            return nil
         }
-        if options.contains(.shouldBeOpaque) {
-            imageOption.insert(.shouldBeOpaque)
-        }
-        return CGImage(
-            windowListFromArrayScreenBounds: screenBounds ?? .null,
-            windowArray: windowArray,
-            imageOption: imageOption
-        )
     }
+
+    private static func getDisplayScaleFactor(_ displayID: CGDirectDisplayID) -> CGFloat {
+        guard let mode = CGDisplayCopyDisplayMode(displayID) else {
+            return 1
+        }
+        return CGFloat(mode.pixelWidth) / CGFloat(mode.width)
+    }
+}
+
+// MARK: - Logger
+private extension Logger {
+    static let windowCapture = mainSubsystem(category: "WindowCapture")
 }

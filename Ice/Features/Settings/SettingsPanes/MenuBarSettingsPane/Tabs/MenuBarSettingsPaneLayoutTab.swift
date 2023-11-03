@@ -101,7 +101,7 @@ struct MenuBarSettingsPaneLayoutTab: View {
     }
 
     private func updateVisibleItems(_ items: [MenuBarItem]) {
-        let disabledItemTitles = [
+        let disabledDisplayNames = [
             "Clock",
             "Siri",
             "Control Center",
@@ -109,9 +109,9 @@ struct MenuBarSettingsPaneLayoutTab: View {
         visibleItems = items.map { item in
             LayoutBarItem(
                 image: item.image,
-                size: item.window.frame.size,
-                toolTip: item.title,
-                isEnabled: !disabledItemTitles.contains(item.title)
+                size: item.frame.size,
+                toolTip: item.displayName,
+                isEnabled: !disabledDisplayNames.contains(item.displayName)
             )
         }
     }
@@ -120,8 +120,8 @@ struct MenuBarSettingsPaneLayoutTab: View {
         hiddenItems = items.map { item in
             LayoutBarItem(
                 image: item.image,
-                size: item.window.frame.size,
-                toolTip: item.title,
+                size: item.frame.size,
+                toolTip: item.displayName,
                 isEnabled: true
             )
         }
@@ -131,8 +131,8 @@ struct MenuBarSettingsPaneLayoutTab: View {
         alwaysHiddenItems = items.map { item in
             LayoutBarItem(
                 image: item.image,
-                size: item.window.frame.size,
-                toolTip: item.title,
+                size: item.frame.size,
+                toolTip: item.displayName,
                 isEnabled: true
             )
         }

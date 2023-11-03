@@ -5,81 +5,82 @@
 
 import ScreenCaptureKit
 
+private func bestDisplayName(for window: SCWindow) -> String {
+    guard let application = window.owningApplication else {
+        return window.title ?? ""
+    }
+    guard let title = window.title else {
+        return application.applicationName
+    }
+    // by default, use the application name, but handle some special cases
+    return switch application.bundleIdentifier {
+    case "com.apple.controlcenter":
+        if title == "BentoBox" { // Control Center icon
+            application.applicationName
+        } else if title == "NowPlaying" {
+            "Now Playing"
+        } else {
+            title
+        }
+    case "com.apple.systemuiserver":
+        if title == "TimeMachine.TMMenuExtraHost" {
+            "Time Machine"
+        } else {
+            title
+        }
+    default:
+        application.applicationName
+    }
+}
+
 /// An item in the menu bar.
 struct MenuBarItem {
-    /// The title of the Control Center menu bar item.
-    private static let controlCenterWindowTitle: String = "BentoBox"
-
-    /// The title of the Time Machine menu bar item.
-    private static let timeMachineWindowTitle: String = {
-        if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 14 {
-            "TimeMachine.TMMenuExtraHost"
-        } else {
-            "TMMenuExtra"
-        }
-    }()
-
-    /// The window containing the menu bar item.
-    let window: SCWindow
-
-    /// An image representation of the menu bar item.
+    let displayName: String
+    let frame: CGRect
     let image: CGImage
+    let isActive: Bool
+    let isOnScreen: Bool
+    let windowID: CGWindowID
 
-    /// The menu bar item's title.
-    var title: String {
-        if let owningApplication = window.owningApplication {
-            // we have an owning application; by default, use
-            // its name, but handle a couple of special cases
-            switch owningApplication.bundleIdentifier {
-            case "com.apple.controlcenter":
-                // icons such as Battery, WiFi, Bluetooth, etc.
-                // are all owned by the Control Center process
-                if window.title == Self.controlCenterWindowTitle {
-                    // actual Control Center icon should use the
-                    // application name
-                    owningApplication.applicationName
-                } else {
-                    // default to window title for other icons
-                    window.title ?? owningApplication.applicationName
-                }
-            case "com.apple.systemuiserver":
-                if window.title == Self.timeMachineWindowTitle {
-                    "Time Machine"
-                } else {
-                    window.title ?? owningApplication.applicationName
-                }
-            default:
-                owningApplication.applicationName
-            }
-        } else if let title = window.title {
-            // no owning application; default to window title
-            title
-        } else {
-            // no owning application or window title; use empty
-            // string as fallback
-            String()
+    init?(window: SCWindow) {
+        guard let image = WindowCaptureManager.captureImage(window: window, options: .ignoreFraming) else {
+            return nil
         }
-    }
-
-    /// A Boolean value indicating whether the menu bar item's
-    /// window is on screen.
-    var isOnScreen: Bool {
-        window.isOnScreen
+        self.displayName = bestDisplayName(for: window)
+        self.frame = window.frame
+        self.image = image
+        self.isActive = window.isActive
+        self.isOnScreen = window.isOnScreen
+        self.windowID = window.windowID
     }
 }
 
 // MARK: MenuBarItem: Equatable
 extension MenuBarItem: Equatable {
     static func == (lhs: MenuBarItem, rhs: MenuBarItem) -> Bool {
-        lhs.window == rhs.window &&
-        lhs.image.dataProvider?.data == rhs.image.dataProvider?.data
+        lhs.displayName == rhs.displayName &&
+        lhs.frame.width == rhs.frame.width &&
+        lhs.frame.height == rhs.frame.height &&
+        lhs.frame.origin.x == rhs.frame.origin.x &&
+        lhs.frame.origin.y == rhs.frame.origin.y &&
+        lhs.image.dataProvider?.data == rhs.image.dataProvider?.data &&
+        lhs.isActive == rhs.isActive &&
+        lhs.isOnScreen == rhs.isOnScreen &&
+        lhs.windowID == rhs.windowID
     }
 }
 
 // MARK: MenuBarItem: Hashable
 extension MenuBarItem: Hashable {
     func hash(into hasher: inout Hasher) {
-        hasher.combine(window)
+        hasher.combine(displayName)
+        hasher.combine(frame.width)
+        hasher.combine(frame.height)
+        hasher.combine(frame.origin.x)
+        hasher.combine(frame.origin.y)
         hasher.combine(image.dataProvider?.data)
+        hasher.combine(isActive)
+        hasher.combine(isOnScreen)
+        hasher.combine(windowID)
     }
 }

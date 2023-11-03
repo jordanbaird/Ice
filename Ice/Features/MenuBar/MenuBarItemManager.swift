@@ -59,11 +59,7 @@ class MenuBarItemManager: ObservableObject {
                 window.windowID != visibleSection.controlItem.windowID
             }
             .compactMap { window in
-                WindowCaptureManager
-                    .captureImage(window: window, options: .ignoreFraming)
-                    .map { image in
-                        MenuBarItem(window: window, image: image)
-                    }
+                MenuBarItem(window: window)
             }
         if alwaysHiddenSection.isEnabled {
             hiddenItems = sortedWindows
@@ -74,11 +70,7 @@ class MenuBarItemManager: ObservableObject {
                     window.windowID != alwaysHiddenSection.controlItem.windowID
                 }
                 .compactMap { window in
-                    WindowCaptureManager
-                        .captureImage(window: window, options: .ignoreFraming)
-                        .map { image in
-                            MenuBarItem(window: window, image: image)
-                        }
+                    MenuBarItem(window: window)
                 }
             alwaysHiddenItems = sortedWindows
                 .filter { window in
@@ -86,11 +78,7 @@ class MenuBarItemManager: ObservableObject {
                     window.windowID != alwaysHiddenSection.controlItem.windowID
                 }
                 .compactMap { window in
-                    WindowCaptureManager
-                        .captureImage(window: window, options: .ignoreFraming)
-                        .map { image in
-                            MenuBarItem(window: window, image: image)
-                        }
+                    MenuBarItem(window: window)
                 }
         } else {
             hiddenItems = sortedWindows
@@ -99,11 +87,7 @@ class MenuBarItemManager: ObservableObject {
                     window.windowID != hiddenSection.controlItem.windowID
                 }
                 .compactMap { window in
-                    WindowCaptureManager
-                        .captureImage(window: window, options: .ignoreFraming)
-                        .map { image in
-                            MenuBarItem(window: window, image: image)
-                        }
+                    MenuBarItem(window: window)
                 }
             alwaysHiddenItems = []
         }

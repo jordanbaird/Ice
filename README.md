@@ -1,14 +1,11 @@
 <div align="center">
-  <img src="https://github.com/jordanbaird/Ice/assets/90936861/0a0473d8-c660-400c-a780-4e8547f913c1" width=200 height=200>
-  <h1>Ice</h1>
-  <h3>Menu bar manager</h3>
+  <img src="Ice/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width=150 height=150>
+  <h1>Ice Menu Bar Manager</h1>
 </div>
 
 ## About
 
 Ice is a powerful menu bar management tool. It aims to cover a wide variety of features, while remaining free and open source.
-
-![Ice-Screenshot](https://github.com/jordanbaird/Ice/assets/90936861/20f340cb-bd9e-419f-bf4e-57deecbfc375)
 
 ## Roadmap/Features
 

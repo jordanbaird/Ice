@@ -7,7 +7,6 @@ import SwiftUI
 
 struct SettingsWindow: Scene {
     @ObservedObject var appState: AppState
-    @State private var permissionsPresented = false
 
     var body: some Scene {
         Window(Constants.appName, id: Constants.settingsWindowID) {
@@ -16,15 +15,6 @@ struct SettingsWindow: Scene {
                 .background {
                     Color.clear
                         .overlay(Material.thin)
-                }
-                .sheet(isPresented: $permissionsPresented) {
-                    PermissionsView(isPresented: $permissionsPresented)
-                        .buttonStyle(.custom)
-                }
-                .onReceive(appState.permissionsManager.$hasPermissions) { hasPermissions in
-                    if !hasPermissions {
-                        permissionsPresented = true
-                    }
                 }
                 .buttonStyle(.custom)
                 .environmentObject(appState)

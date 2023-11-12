@@ -46,19 +46,6 @@ final class MenuBar: ObservableObject {
     /// The user's currently chosen tint gradient.
     @Published var tintGradient: CustomGradient = .defaultMenuBarTint
 
-    /// The average color of the menu bar.
-    ///
-    /// If ``publishesAverageColor`` is `false`, this property is
-    /// set to `nil`.
-    @Published var averageColor: CGColor?
-
-    /// A Boolean value that indicates whether the average color of
-    /// the menu bar should be actively published.
-    ///
-    /// If this property is `false`, the ``averageColor`` property
-    /// is set to `nil`.
-    @Published var publishesAverageColor = false
-
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
@@ -216,18 +203,6 @@ final class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
-        Timer.publish(every: 3, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                if publishesAverageColor {
-                    readAndUpdateAverageColor()
-                }
-            }
-            .store(in: &c)
-
         $hasShadow
             .receive(on: DispatchQueue.main)
             .sink { hasShadow in
@@ -327,20 +302,6 @@ final class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
-        $publishesAverageColor
-            .sink { [weak self] publishesAverageColor in
-                guard let self else {
-                    return
-                }
-                // immediately update the average color
-                if publishesAverageColor {
-                    readAndUpdateAverageColor()
-                } else {
-                    averageColor = nil
-                }
-            }
-            .store(in: &c)
-
         // propagate changes up from child observable objects
         for section in sections {
             section.objectWillChange
@@ -356,31 +317,6 @@ final class MenuBar: ObservableObject {
     /// Returns the menu bar section with the given name.
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
-    }
-
-    private func readAndUpdateAverageColor() {
-        let content = SharedContent.current
-
-        guard
-            let wallpaperWindow = content.firstWindow(where: .isWallpaperWindow),
-            let menuBarWindow = content.firstWindow(where: .isMenuBarWindow),
-            let image = WindowCaptureManager.captureImage(
-                window: wallpaperWindow,
-                captureRect: menuBarWindow.frame,
-                options: .ignoreFraming
-            ),
-            let color = image.averageColor(
-                accuracy: .low,
-                algorithm: .simple,
-                options: .ignoreAlpha
-            )
-        else {
-            return
-        }
-
-        if averageColor != color {
-            averageColor = color
-        }
     }
 }
 

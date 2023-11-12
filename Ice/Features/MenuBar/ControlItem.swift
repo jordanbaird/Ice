@@ -537,8 +537,3 @@ enum ControlItemImages {
         static let small = chevron(size: CGSize(width: 9, height: 9), lineWidth: 2)
     }
 }
-
-// MARK: - Logger
-private extension Logger {
-    static let controlItem = mainSubsystem(category: "ControlItem")
-}

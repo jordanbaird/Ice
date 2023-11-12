@@ -13,13 +13,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             settingsWindow.backgroundColor = .settingsWindowBackground
         }
 
-        // if we have the required permissions, stop all checks
-        // and close all windows
-        if AppState.shared.permissionsManager.hasPermissions {
-            AppState.shared.permissionsManager.stopAllChecks()
-            for window in NSApp.windows {
-                window.close()
-            }
+        // close all windows
+        for window in NSApp.windows {
+            window.close()
         }
 
         // hide the main menu to make more space in the menu bar
@@ -46,24 +42,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Activates the app and sets its activation policy to the given value.
     func activate(withPolicy policy: NSApplication.ActivationPolicy) {
-        if #available(macOS 14.0, *) {
-            if let frontApp = NSWorkspace.shared.frontmostApplication {
-                NSRunningApplication.current.activate(from: frontApp)
-            } else {
-                NSApp.activate()
-            }
+        if let frontApp = NSWorkspace.shared.frontmostApplication {
+            NSRunningApplication.current.activate(from: frontApp)
         } else {
-            NSApp.activate(ignoringOtherApps: true)
+            NSApp.activate()
         }
         NSApp.setActivationPolicy(policy)
     }
 
     /// Deactivates the app and sets its activation policy to the given value.
     func deactivate(withPolicy policy: NSApplication.ActivationPolicy) {
-        if
-            #available(macOS 14.0, *),
-            let nextApp = NSWorkspace.shared.runningApplications.first(where: { $0 != .current })
-        {
+        if let nextApp = NSWorkspace.shared.runningApplications.first(where: { $0 != .current }) {
             NSApp.yieldActivation(to: nextApp)
         } else {
             NSApp.deactivate()

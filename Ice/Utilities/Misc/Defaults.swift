@@ -12,8 +12,6 @@ enum Defaults {
     static let menuBarTintKind = "MenuBarTintKind"
     static let menuBarTintColor = "MenuBarTintColor"
     static let menuBarTintGradient = "MenuBarTintGradient"
-    static let menuBarSettingsPaneSelectedTab = "MenuBarSettingsPaneSelectedTab"
     static let secondaryActionModifier = "SecondaryActionModifier"
     static let sections = "Sections"
-    static let usesLayoutBarDecorations = "UsesLayoutBarDecorations"
 }

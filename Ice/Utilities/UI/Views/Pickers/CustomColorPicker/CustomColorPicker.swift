@@ -72,9 +72,7 @@ struct CustomColorPicker: NSViewRepresentable {
         if let color = NSColor(cgColor: selection) {
             nsView.color = color
         }
-        if #available(macOS 14.0, *) {
-            nsView.supportsAlpha = supportsOpacity
-        }
+        nsView.supportsAlpha = supportsOpacity
     }
 
     func makeCoordinator() -> Coordinator {

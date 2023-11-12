@@ -1,11 +1,11 @@
 //
-//  MenuBarSettingsPaneAppearanceTab.swift
+//  MenuBarSettingsPane.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct MenuBarSettingsPaneAppearanceTab: View {
+struct MenuBarSettingsPane: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
@@ -100,7 +100,7 @@ struct MenuBarSettingsPaneAppearanceTab: View {
 }
 
 #Preview {
-    MenuBarSettingsPaneAppearanceTab()
+    MenuBarSettingsPane()
         .environmentObject(AppState.shared)
         .frame(width: 500, height: 300)
 }

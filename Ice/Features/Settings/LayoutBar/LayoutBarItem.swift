@@ -5,34 +5,6 @@
 
 import Cocoa
 
-// MARK: - LayoutBarItem
-
-/// A type that produces a view for display in a menu bar
-/// layout view.
-struct LayoutBarItem: Hashable, Identifiable {
-    let view: LayoutBarItemView
-
-    var id: Int {
-        view.image.hashValue
-    }
-
-    init(image: NSImage, toolTip: String, isEnabled: Bool) {
-        self.view = LayoutBarItemView(
-            image: image,
-            toolTip: toolTip,
-            isEnabled: isEnabled
-        )
-    }
-
-    init(image: CGImage, size: CGSize, toolTip: String, isEnabled: Bool) {
-        self.init(
-            image: NSImage(cgImage: image, size: size), 
-            toolTip: toolTip,
-            isEnabled: isEnabled
-        )
-    }
-}
-
 // MARK: - LayoutBarItemView
 
 /// A view that displays an image in a menu bar layout view.
@@ -78,6 +50,15 @@ class LayoutBarItemView: NSControl {
         self.toolTip = toolTip
         self.isEnabled = isEnabled
         unregisterDraggedTypes()
+    }
+
+    /// Creates an item view that displays the given CoreGraphics image.
+    convenience init(image: CGImage, size: CGSize, toolTip: String, isEnabled: Bool) {
+        self.init(
+            image: NSImage(cgImage: image, size: size),
+            toolTip: toolTip,
+            isEnabled: isEnabled
+        )
     }
 
     @available(*, unavailable)

@@ -75,9 +75,9 @@ struct PermissionsView: View {
             if appState.permissionsManager.hasPermissions {
                 Button("Continue") {
                     isPresented = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        appState.sharedContent.activate()
-                    }
+//                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+//                        appState.sharedContent.activate()
+//                    }
                 }
             }
         }

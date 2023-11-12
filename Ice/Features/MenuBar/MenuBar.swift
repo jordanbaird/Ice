@@ -23,9 +23,6 @@ final class MenuBar: ObservableObject {
     /// Set to `true` to tell the menu bar to save its sections.
     @Published var needsSave = false
 
-    /// The menu bar's window.
-    @Published var menuBarWindow: SCWindow?
-
     /// A Boolean value that indicates whether the menu bar should
     /// have a shadow.
     @Published var hasShadow: Bool
@@ -219,21 +216,14 @@ final class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
-        appState?.sharedContent.$windows
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] windows in
+        Timer.publish(every: 3, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
                 guard let self else {
                     return
                 }
-                menuBarWindow = windows.first {
-                    // menu bar window belongs to the WindowServer process
-                    // (identified by an empty string)
-                    $0.owningApplication?.bundleIdentifier == "" &&
-                    $0.windowLayer == kCGMainMenuWindowLevel &&
-                    $0.title == "Menubar"
-                }
                 if publishesAverageColor {
-                    readAndUpdateAverageColor(windows: windows)
+                    readAndUpdateAverageColor()
                 }
             }
             .store(in: &c)
@@ -344,7 +334,7 @@ final class MenuBar: ObservableObject {
                 }
                 // immediately update the average color
                 if publishesAverageColor {
-                    readAndUpdateAverageColor(windows: appState?.sharedContent.windows ?? [])
+                    readAndUpdateAverageColor()
                 } else {
                     averageColor = nil
                 }
@@ -368,24 +358,12 @@ final class MenuBar: ObservableObject {
         sections.first { $0.name == name }
     }
 
-    private func readAndUpdateAverageColor(windows: [SCWindow]) {
-        // macOS 14 uses a different title for the wallpaper window
-        let namePrefix = if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 14 {
-            "Wallpaper-"
-        } else {
-            "Desktop Picture"
-        }
-
-        let wallpaperWindow = windows.first {
-            // wallpaper window belongs to the Dock process
-            $0.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            $0.isOnScreen &&
-            $0.title?.hasPrefix(namePrefix) == true
-        }
+    private func readAndUpdateAverageColor() {
+        let content = SharedContent.current
 
         guard
-            let wallpaperWindow,
-            let menuBarWindow,
+            let wallpaperWindow = content.firstWindow(where: .isWallpaperWindow),
+            let menuBarWindow = content.firstWindow(where: .isMenuBarWindow),
             let image = WindowCaptureManager.captureImage(
                 window: wallpaperWindow,
                 captureRect: menuBarWindow.frame,

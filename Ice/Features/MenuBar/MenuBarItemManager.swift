@@ -7,150 +7,100 @@ import Combine
 import ScreenCaptureKit
 
 class MenuBarItemManager: ObservableObject {
-    @Published var visibleItems = [MenuBarItem]()
-    @Published var hiddenItems = [MenuBarItem]()
-    @Published var alwaysHiddenItems = [MenuBarItem]()
+    private static let queue = DispatchQueue(label: "MenuBarItem Observation Queue", qos: .utility)
+
+    @Published private(set) var menuBarItems = [MenuBarItem]()
+    @Published private(set) var visibleItems = [MenuBarItem]()
+    @Published private(set) var hiddenItems = [MenuBarItem]()
+    @Published private(set) var alwaysHiddenItems = [MenuBarItem]()
 
     private weak var appState: AppState?
 
+    private var timer: QueuedTimer?
     private var cancellables = Set<AnyCancellable>()
 
     init(appState: AppState) {
         self.appState = appState
-        updateMenuBarItems(windows: appState.sharedContent.windows)
-        configureCancellables()
     }
 
-    private func configureCancellables() {
-        var c = Set<AnyCancellable>()
-
-        appState?.sharedContent.$windows
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] windows in
-                self?.updateMenuBarItems(windows: windows)
+    func startObservingMenuBarItems() {
+        let timer = QueuedTimer(interval: 1, queue: Self.queue) { [weak self] _ in
+            guard
+                let self,
+                let menuBar = appState?.menuBar
+            else {
+                return
             }
-            .store(in: &c)
-
-        cancellables = c
+            let content = SharedContent.current
+            DispatchQueue.main.async {
+                self.updateMenuBarItems(menuBar: menuBar, content: content)
+            }
+        }
+        timer.start(fireImmediately: true)
+        self.timer = timer
     }
 
-    private func updateMenuBarItems(windows: [SCWindow]) {
-        guard
-            let appState,
-            let menuBarWindow = windows.first(where: windowIsMenuBar),
-            let visibleSection = appState.menuBar.section(withName: .visible),
-            let hiddenSection = appState.menuBar.section(withName: .hidden),
-            let alwaysHiddenSection = appState.menuBar.section(withName: .alwaysHidden)
-        else {
-            return
+    func stopObservingMenuBarItems() {
+        timer?.stop()
+        timer = nil
+    }
+
+    private func getMenuBarItemWindows(content: SharedContent) -> [SCWindow] {
+        guard let menuBarWindow = content.firstWindow(where: .isMenuBarWindow) else {
+            return []
         }
-        let sortedWindows = windows
+        return content.windows
             .filter { window in
-                windowIsMenuBarItem(window, in: menuBarWindow) &&
-                !windowIsOwnedByIce(window) &&
-                !windowIsHiddenMenuBarItem(window, in: menuBarWindow)
+                window.windowLayer == kCGStatusWindowLevel &&
+                window.frame.minY == menuBarWindow.frame.minY &&
+                window.frame.maxY == menuBarWindow.frame.maxY &&
+                window.frame.width < menuBarWindow.frame.width &&
+                window.owningApplication?.processID != ProcessInfo.processInfo.processIdentifier
             }
             .sorted { first, second in
                 first.frame.minX < second.frame.minX
             }
-        visibleItems = sortedWindows
-            .filter { window in
-                window.frame.midX > (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                window.windowID != visibleSection.controlItem.windowID
-            }
-            .compactMap { window in
-                MenuBarItem(window: window)
+    }
+
+    private func updateMenuBarItems(menuBar: MenuBar, content: SharedContent) {
+        let windows = getMenuBarItemWindows(content: content)
+        let menuBarItems = windows.map { window in
+            MenuBarItem(window: window)
+        }
+        guard
+            menuBarItems != self.menuBarItems,
+            let visibleSection = menuBar.section(withName: .visible),
+            let hiddenSection = menuBar.section(withName: .hidden),
+            let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden)
+        else {
+            return
+        }
+        self.menuBarItems = menuBarItems
+        visibleItems = menuBarItems
+            .filter { item in
+                item.frame.midX > (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                item.windowID != visibleSection.controlItem.windowID
             }
         if alwaysHiddenSection.isEnabled {
-            hiddenItems = sortedWindows
-                .filter { window in
-                    window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                    window.frame.midX > (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                    window.windowID != hiddenSection.controlItem.windowID &&
-                    window.windowID != alwaysHiddenSection.controlItem.windowID
+            hiddenItems = menuBarItems
+                .filter { item in
+                    item.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                    item.frame.midX > (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                    item.windowID != hiddenSection.controlItem.windowID &&
+                    item.windowID != alwaysHiddenSection.controlItem.windowID
                 }
-                .compactMap { window in
-                    MenuBarItem(window: window)
-                }
-            alwaysHiddenItems = sortedWindows
-                .filter { window in
-                    window.frame.midX < (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                    window.windowID != alwaysHiddenSection.controlItem.windowID
-                }
-                .compactMap { window in
-                    MenuBarItem(window: window)
+            alwaysHiddenItems = menuBarItems
+                .filter { item in
+                    item.frame.midX < (alwaysHiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                    item.windowID != alwaysHiddenSection.controlItem.windowID
                 }
         } else {
-            hiddenItems = sortedWindows
-                .filter { window in
-                    window.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
-                    window.windowID != hiddenSection.controlItem.windowID
-                }
-                .compactMap { window in
-                    MenuBarItem(window: window)
+            hiddenItems = menuBarItems
+                .filter { item in
+                    item.frame.midX < (hiddenSection.controlItem.windowFrame?.midX ?? 0) &&
+                    item.windowID != hiddenSection.controlItem.windowID
                 }
             alwaysHiddenItems = []
         }
-    }
-
-    /// Returns a Boolean value indicating whether the given window
-    /// is a menu bar.
-    ///
-    /// - Parameter window: The window to check.
-    private func windowIsMenuBar(_ window: SCWindow) -> Bool {
-        window.windowLayer == kCGMainMenuWindowLevel &&
-        window.title == "Menubar"
-    }
-
-    /// Returns a Boolean value indicating whether the given window
-    /// is a menu bar item within the given menu bar window.
-    ///
-    /// - Parameters:
-    ///   - window: The window to check.
-    ///   - menuBarWindow: A window to treat as a menu bar when determining
-    ///     if `window` is one of its items. This window must return `true`
-    ///     when passed to a call to ``windowIsMenuBar(_:)``.
-    private func windowIsMenuBarItem(_ window: SCWindow, in menuBarWindow: SCWindow) -> Bool {
-        windowIsMenuBar(menuBarWindow) &&
-        window.windowLayer == kCGStatusWindowLevel &&
-        window.frame.height == menuBarWindow.frame.height &&
-        window.frame.width < menuBarWindow.frame.width
-    }
-
-    /// Returns a Boolean value indicating whether the given window
-    /// is owned by the app.
-    ///
-    /// - Parameter window: The window to check.
-    private func windowIsOwnedByIce(_ window: SCWindow) -> Bool {
-        window.owningApplication?.processID == ProcessInfo.processInfo.processIdentifier
-    }
-
-    /// Returns a Boolean value indicating whether the given window
-    /// is a hidden menu bar item.
-    ///
-    /// - Parameters:
-    ///   - window: The window to check.
-    ///   - menuBarWindow: A window to treat as a menu bar when determining
-    ///     if `window` is one of its items. This window must return `true`
-    ///     when passed to a call to ``windowIsMenuBar(_:)``.
-    private func windowIsHiddenMenuBarItem(_ window: SCWindow, in menuBarWindow: SCWindow) -> Bool {
-        guard windowIsMenuBarItem(window, in: menuBarWindow) else {
-            return false
-        }
-        var isOnAnotherDesktop: Bool {
-            // offscreen windows with empty titles likely belong to another
-            // desktop; if a desktop's wallpaper causes the items to invert
-            // their colors, two sets of items are created and the ones not
-            // currently in use are kept offscreen
-            (window.title ?? "").isEmpty && !window.isOnScreen
-        }
-        var isAudioVideoModule: Bool {
-            window.owningApplication?.bundleIdentifier == "com.apple.controlcenter" &&
-            window.title == "AudioVideoModule"
-        }
-        var isTextInputMenuAgent: Bool {
-            window.owningApplication?.bundleIdentifier == "com.apple.TextInputMenuAgent"
-        }
-        return isOnAnotherDesktop || isAudioVideoModule || isTextInputMenuAgent
     }
 }

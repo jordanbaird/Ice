@@ -7,85 +7,76 @@ import Combine
 import OSLog
 import ScreenCaptureKit
 
-/// An object that routinely publishes the displays, apps, and
-/// windows that are available for capture.
-class SharedContent: ObservableObject {
-    /// The most recently published windows.
-    @Published private(set) var windows = [SCWindow]()
-
-    /// The most recently published displays.
-    @Published private(set) var displays = [SCDisplay]()
-
-    /// The most recently published applications.
-    @Published private(set) var applications = [SCRunningApplication]()
-
-    /// The time interval at which the content is published.
-    ///
-    /// - Note: Setting this value immediately publishes the content.
-    ///   The content will then be published using the new interval.
-    var interval: TimeInterval {
-        didSet {
-            let isActive = isActive
-            deactivate()
-            if isActive {
-                activate()
+class SharedContent {
+    static var current: SharedContent {
+        let current = SharedContent()
+        let semaphore = DispatchSemaphore(value: 0)
+        SCShareableContent.getWithCompletionHandler { content, error in
+            defer {
+                semaphore.signal()
             }
+            guard let content else {
+                return
+            }
+            current._windows = content.windows
+            current._displays = content.displays
+            current._applications = content.applications
+            if let error {
+                Logger.sharedContent.error("Error retrieving shared content: \(error)")
+            }
+        }
+        switch semaphore.wait(timeout: .now() + 1) {
+        case .success:
+            return current
+        case .timedOut:
+            Logger.sharedContent.error("Error retrieving shared content: Timed out")
+            return current
         }
     }
 
-    /// A Boolean value that indicates whether the content is
-    /// actively being published.
-    var isActive: Bool {
-        timer != nil
+    private var _windows = [SCWindow]()
+    private var _displays = [SCDisplay]()
+    private var _applications = [SCRunningApplication]()
+
+    var windows: [SCWindow] { _windows }
+    var displays: [SCDisplay] { _displays }
+    var applications: [SCRunningApplication] { _applications }
+
+    private init() { }
+
+    func firstWindow(where predicate: WindowPredicate) -> SCWindow? {
+        windows.first(where: predicate.body)
     }
+}
 
-    /// The dispatch queue used to determine the timing with
-    /// which to publish the content.
-    private let queue = DispatchQueue.global(qos: .utility)
+//extension SharedContent {
+//    struct ContentType<Content> {
+//        static var window: ContentType<SCWindow> { .init() }
+//        static var display: ContentType<SCDisplay> { .init() }
+//        static var application: ContentType<SCRunningApplication> { .init() }
+//
+//        private init() { }
+//    }
+//}
 
-    /// Timer that manages the publishing of the shared content
-    /// using the instance's ``interval`` and ``queue``.
-    private var timer: QueuedTimer?
+extension SharedContent {
+    struct WindowPredicate {
+        let body: (SCWindow) -> Bool
 
-    /// Creates an instance that publishes its content using the
-    /// given time interval.
-    ///
-    /// - Parameter interval: The time interval at which the content
-    ///   is published.
-    init(interval: TimeInterval = 1.0) {
-        self.interval = interval
-    }
-
-    /// Starts publishing the content using the instance's ``interval``.
-    ///
-    /// The first changes are published immediately when this function
-    /// is called. If the instance is already active, it is deactivated
-    /// and immediately reactivated.
-    func activate() {
-        deactivate()
-        let newTimer = QueuedTimer(interval: interval, queue: queue) { [weak self] _ in
-            SCShareableContent.getWithCompletionHandler { [weak self] content, error in
-                guard let self else {
-                    return
-                }
-                if let content {
-                    windows = content.windows
-                    displays = content.displays
-                    applications = content.applications
-                }
-                if let error {
-                    Logger.sharedContent.error("Error retrieving shared content: \(error)")
-                }
-            }
+        static let isMenuBarWindow = WindowPredicate { window in
+            // menu bar window belongs to the WindowServer process
+            // (identified by an empty string)
+            window.owningApplication?.bundleIdentifier == "" &&
+            window.windowLayer == kCGMainMenuWindowLevel &&
+            window.title == "Menubar"
         }
-        newTimer.start(fireImmediately: true)
-        timer = newTimer
-    }
 
-    /// Stops publishing the content.
-    func deactivate() {
-        timer?.stop()
-        timer = nil
+        static let isWallpaperWindow = WindowPredicate { window in
+            // wallpaper window belongs to the Dock process
+            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            window.isOnScreen &&
+            window.title?.hasPrefix("Wallpaper-") == true
+        }
     }
 }
 

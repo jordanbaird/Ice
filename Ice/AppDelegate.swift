@@ -56,7 +56,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
         }
         NSApp.setActivationPolicy(policy)
-        AppState.shared.sharedContent.activate()
     }
 
     /// Deactivates the app and sets its activation policy to the given value.
@@ -70,7 +69,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.deactivate()
         }
         NSApp.setActivationPolicy(policy)
-        AppState.shared.sharedContent.deactivate()
     }
 
     /// Opens the settings window and activates the app.

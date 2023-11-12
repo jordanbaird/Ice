@@ -8,9 +8,6 @@ import SwiftUI
 struct MenuBarSettingsPaneLayoutTab: View {
     @AppStorage(Defaults.usesLayoutBarDecorations) var usesLayoutBarDecorations = true
     @EnvironmentObject var appState: AppState
-    @State private var visibleItems = [LayoutBarItem]()
-    @State private var hiddenItems = [LayoutBarItem]()
-    @State private var alwaysHiddenItems = [LayoutBarItem]()
 
     var body: some View {
         ScrollView {
@@ -28,15 +25,6 @@ struct MenuBarSettingsPaneLayoutTab: View {
         .onDisappear {
             handleDisappear()
         }
-        .onChange(of: appState.itemManager.visibleItems) { _, items in
-            updateVisibleItems(items)
-        }
-        .onChange(of: appState.itemManager.hiddenItems) { _, items in
-            updateHiddenItems(items)
-        }
-        .onChange(of: appState.itemManager.alwaysHiddenItems) { _, items in
-            updateAlwaysHiddenItems(items)
-        }
     }
 
     @ViewBuilder
@@ -51,39 +39,45 @@ struct MenuBarSettingsPaneLayoutTab: View {
     @ViewBuilder
     private var layoutViews: some View {
         Form {
-            Section("Always Visible") {
-                LayoutBar(
-                    menuBar: appState.menuBar,
-                    layoutItems: $visibleItems
-                )
-                .annotation {
-                    Text("Drag menu bar items to this section if you want them to always be visible.")
+            if let visibleSection = appState.menuBar.section(withName: .visible) {
+                Section("Always Visible") {
+                    LayoutBar(
+                        appState: appState,
+                        section: visibleSection
+                    )
+                    .annotation {
+                        Text("Drag menu bar items to this section if you want them to always be visible.")
+                    }
                 }
             }
 
-            Spacer()
-                .frame(maxHeight: 25)
+            if let hiddenSection = appState.menuBar.section(withName: .hidden) {
+                Spacer()
+                    .frame(maxHeight: 25)
 
-            Section("Hidden") {
-                LayoutBar(
-                    menuBar: appState.menuBar,
-                    layoutItems: $hiddenItems
-                )
-                .annotation {
-                    Text("Drag menu bar items to this section if you want to hide them.")
+                Section("Hidden") {
+                    LayoutBar(
+                        appState: appState,
+                        section: hiddenSection
+                    )
+                    .annotation {
+                        Text("Drag menu bar items to this section if you want to hide them.")
+                    }
                 }
             }
 
-            Spacer()
-                .frame(maxHeight: 25)
+            if let alwaysHiddenSection = appState.menuBar.section(withName: .alwaysHidden) {
+                Spacer()
+                    .frame(maxHeight: 25)
 
-            Section("Always Hidden") {
-                LayoutBar(
-                    menuBar: appState.menuBar,
-                    layoutItems: $alwaysHiddenItems
-                )
-                .annotation {
-                    Text("Drag menu bar items to this section if you want them to always be hidden.")
+                Section("Always Hidden") {
+                    LayoutBar(
+                        appState: appState,
+                        section: alwaysHiddenSection
+                    )
+                    .annotation {
+                        Text("Drag menu bar items to this section if you want them to always be hidden.")
+                    }
                 }
             }
         }
@@ -91,51 +85,12 @@ struct MenuBarSettingsPaneLayoutTab: View {
 
     private func handleAppear() {
         appState.menuBar.publishesAverageColor = usesLayoutBarDecorations
-        updateVisibleItems(appState.itemManager.visibleItems)
-        updateHiddenItems(appState.itemManager.hiddenItems)
-        updateAlwaysHiddenItems(appState.itemManager.alwaysHiddenItems)
+        appState.itemManager.startObservingMenuBarItems()
     }
 
     private func handleDisappear() {
         appState.menuBar.publishesAverageColor = false
-    }
-
-    private func updateVisibleItems(_ items: [MenuBarItem]) {
-        let disabledDisplayNames = [
-            "Clock",
-            "Siri",
-            "Control Center",
-        ]
-        visibleItems = items.map { item in
-            LayoutBarItem(
-                image: item.image,
-                size: item.frame.size,
-                toolTip: item.displayName,
-                isEnabled: !disabledDisplayNames.contains(item.displayName)
-            )
-        }
-    }
-
-    private func updateHiddenItems(_ items: [MenuBarItem]) {
-        hiddenItems = items.map { item in
-            LayoutBarItem(
-                image: item.image,
-                size: item.frame.size,
-                toolTip: item.displayName,
-                isEnabled: true
-            )
-        }
-    }
-
-    private func updateAlwaysHiddenItems(_ items: [MenuBarItem]) {
-        alwaysHiddenItems = items.map { item in
-            LayoutBarItem(
-                image: item.image,
-                size: item.frame.size,
-                toolTip: item.displayName,
-                isEnabled: true
-            )
-        }
+        appState.itemManager.stopObservingMenuBarItems()
     }
 }
 

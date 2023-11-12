@@ -21,10 +21,6 @@ final class AppState: ObservableObject {
     /// Manager for app permissions.
     private(set) lazy var permissionsManager = PermissionsManager(appState: self)
 
-    /// Publisher for the displays, apps, and windows that
-    /// are available for the app to capture.
-    let sharedContent = SharedContent()
-
     /// The window that contains the settings interface.
     private(set) weak var settingsWindow: NSWindow?
 
@@ -49,12 +45,6 @@ final class AppState: ObservableObject {
             }
             .store(in: &c)
         permissionsManager.objectWillChange
-            .sink { [weak self] in
-                self?.objectWillChange.send()
-            }
-            .store(in: &c)
-        sharedContent.objectWillChange
-            .receive(on: DispatchQueue.main)
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }

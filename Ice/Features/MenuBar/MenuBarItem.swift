@@ -34,24 +34,29 @@ private func bestDisplayName(for window: SCWindow) -> String {
 }
 
 /// An item in the menu bar.
-struct MenuBarItem {
+class MenuBarItem {
     let displayName: String
     let frame: CGRect
-    let image: CGImage
     let isActive: Bool
     let isOnScreen: Bool
     let windowID: CGWindowID
 
-    init?(window: SCWindow) {
-        guard let image = WindowCaptureManager.captureImage(window: window, options: .ignoreFraming) else {
-            return nil
-        }
+    init(window: SCWindow) {
         self.displayName = bestDisplayName(for: window)
         self.frame = window.frame
-        self.image = image
         self.isActive = window.isActive
         self.isOnScreen = window.isOnScreen
         self.windowID = window.windowID
+    }
+
+    func captureImage(with content: SharedContent) -> CGImage? {
+        guard
+            let window = content.windows.first(where: { $0.windowID == windowID }),
+            window.isOnScreen
+        else {
+            return nil
+        }
+        return WindowCaptureManager.captureImage(window: window, options: .ignoreFraming)
     }
 }
 
@@ -63,7 +68,6 @@ extension MenuBarItem: Equatable {
         lhs.frame.height == rhs.frame.height &&
         lhs.frame.origin.x == rhs.frame.origin.x &&
         lhs.frame.origin.y == rhs.frame.origin.y &&
-        lhs.image.dataProvider?.data == rhs.image.dataProvider?.data &&
         lhs.isActive == rhs.isActive &&
         lhs.isOnScreen == rhs.isOnScreen &&
         lhs.windowID == rhs.windowID
@@ -78,7 +82,6 @@ extension MenuBarItem: Hashable {
         hasher.combine(frame.height)
         hasher.combine(frame.origin.x)
         hasher.combine(frame.origin.y)
-        hasher.combine(image.dataProvider?.data)
         hasher.combine(isActive)
         hasher.combine(isOnScreen)
         hasher.combine(windowID)

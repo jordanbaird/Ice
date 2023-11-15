@@ -35,3 +35,7 @@ Ice is a powerful menu bar management tool. It aims to cover a wide variety of f
 ## Known Issues
 
 - Using Ice with other menu bar management apps can result in undefined behavior
+
+## License
+
+Ice is available under the [MIT license](LICENSE).

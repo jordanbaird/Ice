@@ -1,6 +1,6 @@
 <div align="center">
   <img src="Ice/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width=150 height=150>
-  <h1>Ice Menu Bar Manager</h1>
+  <h1>Ice – Menu Bar Manager</h1>
 </div>
 
 ## About
@@ -31,3 +31,7 @@ Ice is a powerful menu bar management tool. It aims to cover a wide variety of f
 - [x] Launch at login
 - [ ] Custom menu bar widgets
 - [ ] Custom panel that displays menu bar icons as an alternative to the menu bar
+
+## Known Issues
+
+- Using Ice with other menu bar management apps can result in undefined behavior

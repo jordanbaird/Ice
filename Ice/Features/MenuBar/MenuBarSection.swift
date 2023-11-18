@@ -75,22 +75,30 @@ final class MenuBarSection: ObservableObject {
         configureCancellables()
     }
 
-    /// Creates a menu bar section with the given name, control item
-    /// autosave name, control item position, and control item hiding
-    /// state.
-    convenience init(
-        name: Name,
-        autosaveName: String,
-        position: CGFloat? = nil,
-        state: ControlItem.HidingState? = nil
-    ) {
+    /// Creates a menu bar section with the given name.
+    convenience init(name: Name) {
+        let autosaveName: String
+        let position: CGFloat?
+        let state: ControlItem.HidingState?
+
+        switch name {
+        case .visible:
+            autosaveName = "Item-1"
+            position = 0
+            state = nil
+        case .hidden:
+            autosaveName = "Item-2"
+            position = 1
+            state = nil
+        case .alwaysHidden:
+            autosaveName = "Item-3"
+            position = nil
+            state = .hideItems
+        }
+
         self.init(
             name: name,
-            controlItem: ControlItem(
-                autosaveName: autosaveName,
-                position: position,
-                state: state
-            ),
+            controlItem: ControlItem(autosaveName: autosaveName, position: position, state: state),
             hotkey: nil
         )
     }

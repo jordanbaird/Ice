@@ -25,26 +25,32 @@ final class MenuBar: ObservableObject {
 
     /// A Boolean value that indicates whether the menu bar should
     /// have a shadow.
-    @Published var hasShadow: Bool
+    @Published var hasShadow: Bool = false
 
     /// A Boolean value that indicates whether the menu bar should
     /// have a border.
-    @Published var hasBorder: Bool
+    @Published var hasBorder: Bool = false
 
     /// The color of the menu bar's border.
     @Published var borderColor: CGColor = .black
 
     /// The width of the menu bar's border.
-    @Published var borderWidth: Double
+    @Published var borderWidth: Double = 1
 
     /// The tint kind currently in use.
-    @Published var tintKind: TintKind
+    @Published var tintKind: TintKind = .none
 
     /// The user's currently chosen tint color.
     @Published var tintColor: CGColor = .black
 
     /// The user's currently chosen tint gradient.
     @Published var tintGradient: CustomGradient = .defaultMenuBarTint
+
+    /// The icon to show in the menu bar when items are hidden.
+    @Published var hiddenIcon = ControlItemImage.builtin(.circleFilled)
+
+    /// The icon to show in the menu bar when items are visible.
+    @Published var visibleIcon = ControlItemImage.builtin(.circleStroked)
 
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
@@ -73,32 +79,40 @@ final class MenuBar: ObservableObject {
     /// Initializes a new menu bar instance.
     init(appState: AppState) {
         self.appState = appState
-        self.hasShadow = UserDefaults.standard.bool(forKey: Defaults.menuBarHasShadow)
-        self.hasBorder = UserDefaults.standard.bool(forKey: Defaults.menuBarHasBorder)
-        self.borderWidth = UserDefaults.standard.object(forKey: Defaults.menuBarBorderWidth) as? Double ?? 1
-        self.tintKind = TintKind(rawValue: UserDefaults.standard.integer(forKey: Defaults.menuBarTintKind)) ?? .none
-        if let borderColorData = UserDefaults.standard.data(forKey: Defaults.menuBarBorderColor) {
-            do {
-                self.borderColor = try JSONDecoder().decode(CodableColor.self, from: borderColorData).cgColor
-            } catch {
-                Logger.menuBar.error("Error decoding border color: \(error)")
-            }
-        }
-        if let tintColorData = UserDefaults.standard.data(forKey: Defaults.menuBarTintColor) {
-            do {
-                self.tintColor = try JSONDecoder().decode(CodableColor.self, from: tintColorData).cgColor
-            } catch {
-                Logger.menuBar.error("Error decoding tint color: \(error)")
-            }
-        }
-        if let tintGradientData = UserDefaults.standard.data(forKey: Defaults.menuBarTintGradient) {
-            do {
-                self.tintGradient = try JSONDecoder().decode(CustomGradient.self, from: tintGradientData)
-            } catch {
-                Logger.menuBar.error("Error decoding tint gradient: \(error)")
-            }
-        }
+        loadInitialState()
         configureCancellables()
+    }
+
+    /// Loads data from storage and sets the initial state of the
+    /// menu bar from that data.
+    private func loadInitialState() {
+        let defaults = UserDefaults.standard
+        let decoder = JSONDecoder()
+
+        hasShadow = defaults.bool(forKey: Defaults.menuBarHasShadow)
+        hasBorder = defaults.bool(forKey: Defaults.menuBarHasBorder)
+        borderWidth = defaults.object(forKey: Defaults.menuBarBorderWidth) as? Double ?? 1
+        tintKind = TintKind(rawValue: defaults.integer(forKey: Defaults.menuBarTintKind)) ?? .none
+
+        do {
+            if let borderColorData = defaults.data(forKey: Defaults.menuBarBorderColor) {
+                borderColor = try decoder.decode(CodableColor.self, from: borderColorData).cgColor
+            }
+            if let tintColorData = defaults.data(forKey: Defaults.menuBarTintColor) {
+                tintColor = try decoder.decode(CodableColor.self, from: tintColorData).cgColor
+            }
+            if let tintGradientData = defaults.data(forKey: Defaults.menuBarTintGradient) {
+                tintGradient = try decoder.decode(CustomGradient.self, from: tintGradientData)
+            }
+            if let hiddenIconData = defaults.data(forKey: Defaults.hiddenIcon) {
+                hiddenIcon = try decoder.decode(ControlItemImage.self, from: hiddenIconData)
+            }
+            if let visibleIconData = defaults.data(forKey: Defaults.visibleIcon) {
+                visibleIcon = try decoder.decode(ControlItemImage.self, from: visibleIconData)
+            }
+        } catch {
+            Logger.menuBar.error("Error decoding value: \(error)")
+        }
     }
 
     /// Performs the initial setup of the menu bar's section list.
@@ -143,11 +157,9 @@ final class MenuBar: ObservableObject {
     private func validateSectionCountOrReinitialize() -> Bool {
         if sections.count != 3 {
             sections = [
-                MenuBarSection(name: .visible, autosaveName: "Item-1", position: 0),
-                MenuBarSection(name: .hidden, autosaveName: "Item-2", position: 1),
-                // don't give the always-hidden section an initial position,
-                // so that its item is placed at the far end of the menu bar
-                MenuBarSection(name: .alwaysHidden, autosaveName: "Item-3", state: .hideItems),
+                MenuBarSection(name: .visible),
+                MenuBarSection(name: .hidden),
+                MenuBarSection(name: .alwaysHidden),
             ]
             return false
         }
@@ -299,6 +311,30 @@ final class MenuBar: ObservableObject {
                 }
             } receiveValue: { data in
                 UserDefaults.standard.set(data, forKey: Defaults.menuBarTintGradient)
+            }
+            .store(in: &c)
+
+        $hiddenIcon
+            .receive(on: DispatchQueue.main)
+            .encode(encoder: JSONEncoder())
+            .sink { completion in
+                if case .failure(let error) = completion {
+                    Logger.menuBar.error("Error encoding hidden icon: \(error)")
+                }
+            } receiveValue: { data in
+                UserDefaults.standard.set(data, forKey: Defaults.hiddenIcon)
+            }
+            .store(in: &c)
+
+        $visibleIcon
+            .receive(on: DispatchQueue.main)
+            .encode(encoder: JSONEncoder())
+            .sink { completion in
+                if case .failure(let error) = completion {
+                    Logger.menuBar.error("Error encoding visible icon: \(error)")
+                }
+            } receiveValue: { data in
+                UserDefaults.standard.set(data, forKey: Defaults.visibleIcon)
             }
             .store(in: &c)
 

@@ -299,14 +299,14 @@ final class ControlItem: ObservableObject {
             case .visible:
                 switch state {
                 case .hideItems:
-                    ControlItemImages.Circle.filled
+                    menuBar?.hiddenIcon.nsImage
                 case .showItems:
-                    ControlItemImages.Circle.stroked
+                    menuBar?.visibleIcon.nsImage
                 }
             case .hidden:
-                ControlItemImages.Chevron.large
+                ControlItemImage.builtin(.chevronLarge).nsImage
             case .alwaysHidden:
-                ControlItemImages.Chevron.small
+                ControlItemImage.builtin(.chevronSmall).nsImage
             }
         }
     }
@@ -479,61 +479,5 @@ private enum StatusItemDefaults {
             let key = stringKey(forKey: key, autosaveName: autosaveName)
             UserDefaults.standard.set(newValue, forKey: key)
         }
-    }
-}
-
-// MARK: - ControlItemImages
-
-/// Namespaces for control item images.
-enum ControlItemImages {
-    /// Namespace for circle-shaped control item images.
-    enum Circle {
-        static let filled: NSImage = {
-            let image = NSImage(size: CGSize(width: 8, height: 8), flipped: false) { bounds in
-                NSColor.black.setFill()
-                NSBezierPath(ovalIn: bounds).fill()
-                return true
-            }
-            image.isTemplate = true
-            return image
-        }()
-
-        static let stroked: NSImage = {
-            let image = NSImage(size: CGSize(width: 8, height: 8), flipped: false) { bounds in
-                let lineWidth: CGFloat = 1.5
-                let insetBounds = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
-                let path = NSBezierPath(ovalIn: insetBounds)
-                path.lineWidth = lineWidth
-                NSColor.black.setStroke()
-                path.stroke()
-                return true
-            }
-            image.isTemplate = true
-            return image
-        }()
-    }
-
-    /// Namespace for chevron-shaped control item images.
-    enum Chevron {
-        private static func chevron(size: CGSize, lineWidth: CGFloat) -> NSImage {
-            let image = NSImage(size: size, flipped: false) { bounds in
-                let insetBounds = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
-                let path = NSBezierPath()
-                path.move(to: CGPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.maxY))
-                path.line(to: CGPoint(x: (insetBounds.minX + insetBounds.midX) / 2, y: insetBounds.midY))
-                path.line(to: CGPoint(x: (insetBounds.midX + insetBounds.maxX) / 2, y: insetBounds.minY))
-                path.lineWidth = lineWidth
-                path.lineCapStyle = .butt
-                NSColor.black.setStroke()
-                path.stroke()
-                return true
-            }
-            image.isTemplate = true
-            return image
-        }
-
-        static let large = chevron(size: CGSize(width: 12, height: 12), lineWidth: 2)
-
-        static let small = chevron(size: CGSize(width: 9, height: 9), lineWidth: 2)
     }
 }

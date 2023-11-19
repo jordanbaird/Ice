@@ -20,6 +20,9 @@ struct GeneralSettingsPane: View {
                 launchAtLogin
             }
             Section {
+                iconOptions
+            }
+            Section {
                 alwaysHiddenOptions
             }
             Section("Hotkeys") {
@@ -46,6 +49,25 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private var launchAtLogin: some View {
         LaunchAtLogin.Toggle()
+    }
+
+    @ViewBuilder
+    private var iconOptions: some View {
+        Picker("Hidden Icon", selection: menuBar.bindings.hiddenIcon) {
+            ForEach(ControlItemImage.userSelectableImages, id: \.self) { image in
+                image.nsImage.map { nsImage in
+                    Image(nsImage: nsImage).tag(image)
+                }
+            }
+        }
+
+        Picker("Visible Icon", selection: menuBar.bindings.visibleIcon) {
+            ForEach(ControlItemImage.userSelectableImages, id: \.self) { image in
+                image.nsImage.map { nsImage in
+                    Image(nsImage: nsImage).tag(image)
+                }
+            }
+        }
     }
 
     @ViewBuilder

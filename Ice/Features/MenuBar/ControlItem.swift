@@ -60,6 +60,7 @@ final class ControlItem: ObservableObject {
     /// The menu bar associated with the control item.
     weak var menuBar: MenuBar? {
         didSet {
+            configureCancellables()
             updateStatusItem(with: state)
         }
     }
@@ -260,6 +261,32 @@ final class ControlItem: ObservableObject {
                 .removeDuplicates()
                 .sink { [weak self] position in
                     self?.position = position
+                }
+                .store(in: &c)
+        }
+
+        if let menuBar {
+            menuBar.$hiddenIcon
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    guard let self else {
+                        return
+                    }
+                    if case .hideItems = state {
+                        updateStatusItem(with: .hideItems)
+                    }
+                }
+                .store(in: &c)
+
+            menuBar.$visibleIcon
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    guard let self else {
+                        return
+                    }
+                    if case .showItems = state {
+                        updateStatusItem(with: .showItems)
+                    }
                 }
                 .store(in: &c)
         }

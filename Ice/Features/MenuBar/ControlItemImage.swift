@@ -31,6 +31,15 @@ enum ControlItemImage: Codable, Hashable {
             return NSImage(data: data)
         }
     }
+
+    static let userSelectableImages: [ControlItemImage] = [
+        .builtin(.circleFilled),
+        .builtin(.circleStroked),
+        .catalog("ArrowBarExpand"),
+        .catalog("ArrowBarCollapse"),
+        .catalog("ArrowBarSquareExpand"),
+        .catalog("ArrowBarSquareCollapse"),
+    ]
 }
 
 extension ControlItemImage {

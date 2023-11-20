@@ -12,6 +12,7 @@
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
 		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
 		177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F22B092A0700448BBF /* ControlItemImage.swift */; };
+		177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F42B0A654D00448BBF /* ControlItemImageSet.swift */; };
 		178B36692AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178B36682AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift */; };
 		17928F1A2AC5DF9C0016C615 /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17928F192AC5DF9C0016C615 /* Defaults.swift */; };
 		179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */; };
@@ -67,6 +68,7 @@
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
 		177386F22B092A0700448BBF /* ControlItemImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImage.swift; sourceTree = "<group>"; };
+		177386F42B0A654D00448BBF /* ControlItemImageSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImageSet.swift; sourceTree = "<group>"; };
 		178B36682AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearancePanel.swift; sourceTree = "<group>"; };
 		17928F192AC5DF9C0016C615 /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
 		179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveSidebarToggle.swift; sourceTree = "<group>"; };
@@ -136,6 +138,16 @@
 				1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */,
 			);
 			path = CustomGradientPicker;
+			sourceTree = "<group>";
+		};
+		177386F62B0A656100448BBF /* ControlItem */ = {
+			isa = PBXGroup;
+			children = (
+				716683512A76820A006ABF84 /* ControlItem.swift */,
+				177386F22B092A0700448BBF /* ControlItemImage.swift */,
+				177386F42B0A654D00448BBF /* ControlItemImageSet.swift */,
+			);
+			path = ControlItem;
 			sourceTree = "<group>";
 		};
 		179267372AE98870006AFBAF /* ViewModifiers */ = {
@@ -338,11 +350,10 @@
 		7166834E2A768190006ABF84 /* MenuBar */ = {
 			isa = PBXGroup;
 			children = (
-				716683512A76820A006ABF84 /* ControlItem.swift */,
 				7166834F2A7681AF006ABF84 /* MenuBar.swift */,
 				178B36682AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift */,
 				7162406E2AA0A323003EC671 /* MenuBarSection.swift */,
-				177386F22B092A0700448BBF /* ControlItemImage.swift */,
+				177386F62B0A656100448BBF /* ControlItem */,
 			);
 			path = MenuBar;
 			sourceTree = "<group>";
@@ -484,6 +495,7 @@
 				71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
+				177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
 				1725FC6A2AED973800A59081 /* AppState.swift in Sources */,

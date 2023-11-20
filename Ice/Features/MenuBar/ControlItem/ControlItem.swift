@@ -266,27 +266,13 @@ final class ControlItem: ObservableObject {
         }
 
         if let menuBar {
-            menuBar.$hiddenIcon
+            menuBar.$iceIcon
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     guard let self else {
                         return
                     }
-                    if case .hideItems = state {
-                        updateStatusItem(with: .hideItems)
-                    }
-                }
-                .store(in: &c)
-
-            menuBar.$visibleIcon
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in
-                    guard let self else {
-                        return
-                    }
-                    if case .showItems = state {
-                        updateStatusItem(with: .showItems)
-                    }
+                    updateStatusItem(with: state)
                 }
                 .store(in: &c)
         }
@@ -326,9 +312,9 @@ final class ControlItem: ObservableObject {
             case .visible:
                 switch state {
                 case .hideItems:
-                    menuBar?.hiddenIcon.nsImage
+                    menuBar?.iceIcon.hidden.nsImage
                 case .showItems:
-                    menuBar?.visibleIcon.nsImage
+                    menuBar?.iceIcon.visible.nsImage
                 }
             case .hidden:
                 ControlItemImage.builtin(.chevronLarge).nsImage

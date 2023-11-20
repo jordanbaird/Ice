@@ -5,10 +5,12 @@
 
 import LaunchAtLogin
 import SwiftUI
+import OSLog
 
 struct GeneralSettingsPane: View {
     @AppStorage(Defaults.secondaryActionModifier) var secondaryActionModifier = Hotkey.Modifiers.option
     @EnvironmentObject var appState: AppState
+    @State private var isImporting = false
 
     private var menuBar: MenuBar {
         appState.menuBar
@@ -52,20 +54,59 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private var iconOptions: some View {
-        Picker("Hidden Icon", selection: menuBar.bindings.hiddenIcon) {
-            ForEach(ControlItemImage.userSelectableImages, id: \.self) { image in
-                image.nsImage.map { nsImage in
-                    Image(nsImage: nsImage).tag(image)
-                }
+    private func label(for imageSet: ControlItemImageSet) -> some View {
+        Label {
+            Text(imageSet.name.rawValue)
+        } icon: {
+            if let nsImage = imageSet.hidden.nsImage {
+                Image(nsImage: nsImage)
             }
         }
+        .tag(imageSet)
+    }
 
-        Picker("Visible Icon", selection: menuBar.bindings.visibleIcon) {
-            ForEach(ControlItemImage.userSelectableImages, id: \.self) { image in
-                image.nsImage.map { nsImage in
-                    Image(nsImage: nsImage).tag(image)
+    @ViewBuilder
+    private var iconOptions: some View {
+        LabeledContent("Ice Icon") {
+            Menu {
+                Picker("Ice Icon", selection: menuBar.bindings.iceIcon) {
+                    ForEach(ControlItemImageSet.userSelectableImageSets) { imageSet in
+                        label(for: imageSet)
+                    }
                 }
+                .pickerStyle(.inline)
+                .labelsHidden()
+
+                Button("Choose Image…") {
+                    isImporting = true
+                }
+            } label: {
+                label(for: menuBar.iceIcon)
+            }
+            .labelStyle(.titleAndIcon)
+            .scaledToFit()
+            .fixedSize()
+        }
+        .fileImporter(isPresented: $isImporting, allowedContentTypes: [.image]) { result in
+            switch result {
+            case .success(let url):
+                if url.startAccessingSecurityScopedResource() {
+                    defer {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                    do {
+                        let data = try Data(contentsOf: url)
+                        menuBar.iceIcon = ControlItemImageSet(
+                            name: .custom,
+                            hidden: .data(data),
+                            visible: .data(data)
+                        )
+                    } catch {
+                        Logger.general.error("Error loading icon: \(error)")
+                    }
+                }
+            case .failure(let error):
+                Logger.general.error("Error loading icon: \(error)")
             }
         }
     }

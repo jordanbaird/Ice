@@ -46,11 +46,9 @@ final class MenuBar: ObservableObject {
     /// The user's currently chosen tint gradient.
     @Published var tintGradient: CustomGradient = .defaultMenuBarTint
 
-    /// The icon to show in the menu bar when items are hidden.
-    @Published var hiddenIcon = ControlItemImage.builtin(.circleFilled)
-
-    /// The icon to show in the menu bar when items are visible.
-    @Published var visibleIcon = ControlItemImage.builtin(.circleStroked)
+    /// An icon to show in the menu bar, with a different image
+    /// for when items are visible or hidden.
+    @Published var iceIcon: ControlItemImageSet = .dot
 
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
@@ -104,11 +102,8 @@ final class MenuBar: ObservableObject {
             if let tintGradientData = defaults.data(forKey: Defaults.menuBarTintGradient) {
                 tintGradient = try decoder.decode(CustomGradient.self, from: tintGradientData)
             }
-            if let hiddenIconData = defaults.data(forKey: Defaults.hiddenIcon) {
-                hiddenIcon = try decoder.decode(ControlItemImage.self, from: hiddenIconData)
-            }
-            if let visibleIconData = defaults.data(forKey: Defaults.visibleIcon) {
-                visibleIcon = try decoder.decode(ControlItemImage.self, from: visibleIconData)
+            if let iceIconData = defaults.data(forKey: Defaults.iceIcon) {
+                iceIcon = try decoder.decode(ControlItemImageSet.self, from: iceIconData)
             }
         } catch {
             Logger.menuBar.error("Error decoding value: \(error)")
@@ -314,27 +309,15 @@ final class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
-        $hiddenIcon
+        $iceIcon
             .receive(on: DispatchQueue.main)
             .encode(encoder: JSONEncoder())
             .sink { completion in
                 if case .failure(let error) = completion {
-                    Logger.menuBar.error("Error encoding hidden icon: \(error)")
+                    Logger.menuBar.error("Error encoding ice icon: \(error)")
                 }
             } receiveValue: { data in
-                UserDefaults.standard.set(data, forKey: Defaults.hiddenIcon)
-            }
-            .store(in: &c)
-
-        $visibleIcon
-            .receive(on: DispatchQueue.main)
-            .encode(encoder: JSONEncoder())
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.menuBar.error("Error encoding visible icon: \(error)")
-                }
-            } receiveValue: { data in
-                UserDefaults.standard.set(data, forKey: Defaults.visibleIcon)
+                UserDefaults.standard.set(data, forKey: Defaults.iceIcon)
             }
             .store(in: &c)
 

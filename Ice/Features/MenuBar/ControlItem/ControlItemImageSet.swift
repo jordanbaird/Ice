@@ -59,8 +59,8 @@ extension ControlItemImageSet {
         ),
         ControlItemImageSet(
             name: .iceCube,
-            hidden: .catalog("IceCube"),
-            visible: .catalog("IceCube")
+            hidden: .catalog("IceCubeStroke"),
+            visible: .catalog("IceCubeFill")
         ),
         ControlItemImageSet(
             name: .sunglasses,

@@ -31,7 +31,19 @@ enum ControlItemImage: Codable, Hashable {
             image?.isTemplate = true
             return image
         case .catalog(let name):
-            return NSImage(named: name)
+            guard let originalImage = NSImage(named: name) else {
+                return nil
+            }
+            let originalWidth = originalImage.size.width
+            let originalHeight = originalImage.size.height
+            let ratio = max(originalWidth / 25, originalHeight / 17)
+            let newSize = CGSize(width: originalWidth / ratio, height: originalHeight / ratio)
+            let resizedImage = NSImage(size: newSize, flipped: false) { bounds in
+                originalImage.draw(in: bounds)
+                return true
+            }
+            resizedImage.isTemplate = originalImage.isTemplate
+            return resizedImage
         case .data(let data):
             let image = NSImage(data: data)
             image?.isTemplate = menuBar.customIceIconIsTemplate

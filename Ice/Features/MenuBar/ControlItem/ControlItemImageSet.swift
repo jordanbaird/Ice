@@ -25,66 +25,47 @@ struct ControlItemImageSet: Codable, Hashable, Identifiable {
 }
 
 extension ControlItemImageSet {
-    static let arrow = ControlItemImageSet(
-        name: .arrow,
-        hidden: .symbol("arrowshape.left.fill"),
-        visible: .symbol("arrowshape.right.fill")
-    )
-
-    static let chevron = ControlItemImageSet(
-        name: .chevron,
-        hidden: .symbol("chevron.left"),
-        visible: .symbol("chevron.right")
-    )
-
-    static let door = ControlItemImageSet(
-        name: .door,
-        hidden: .symbol("door.left.hand.closed"),
-        visible: .symbol("door.left.hand.open")
-    )
-
-    static let dot = ControlItemImageSet(
+    static let defaultIceIcon = ControlItemImageSet(
         name: .dot,
         hidden: .builtin(.dotFilled),
         visible: .builtin(.dotStroked)
     )
 
-    static let ellipsis = ControlItemImageSet(
-        name: .ellipsis,
-        hidden: .catalog("EllipsisFill"),
-        visible: .catalog("EllipsisStroke")
-    )
-
-    static let iceCube = ControlItemImageSet(
-        name: .iceCube,
-        hidden: .catalog("IceCube"),
-        visible: .catalog("IceCube")
-    )
-
-    static let sunglasses = ControlItemImageSet(
-        name: .sunglasses,
-        hidden: .symbol("sunglasses.fill"),
-        visible: .symbol("sunglasses")
-    )
-
-    static let userSelectableImageSets: [ControlItemImageSet] = {
-        var imageSets: Set<ControlItemImageSet> = [
-            arrow,
-            chevron,
-            door,
-            dot,
-            ellipsis,
-            iceCube,
-            sunglasses,
-        ]
-        if let data = UserDefaults.standard.data(forKey: Defaults.iceIcon) {
-            let decoder = JSONDecoder()
-            if let iceIcon = try? decoder.decode(ControlItemImageSet.self, from: data) {
-                imageSets.insert(iceIcon)
-            }
-        }
-        return imageSets.sorted { lhs, rhs in
-            lhs.name.rawValue < rhs.name.rawValue
-        }
-    }()
+    static let userSelectableImageSets = [
+        ControlItemImageSet(
+            name: .arrow,
+            hidden: .symbol("arrowshape.left.fill"),
+            visible: .symbol("arrowshape.right.fill")
+        ),
+        ControlItemImageSet(
+            name: .chevron,
+            hidden: .symbol("chevron.left"),
+            visible: .symbol("chevron.right")
+        ),
+        ControlItemImageSet(
+            name: .door,
+            hidden: .symbol("door.left.hand.closed"),
+            visible: .symbol("door.left.hand.open")
+        ),
+        ControlItemImageSet(
+            name: .dot,
+            hidden: .builtin(.dotFilled),
+            visible: .builtin(.dotStroked)
+        ),
+        ControlItemImageSet(
+            name: .ellipsis,
+            hidden: .catalog("EllipsisFill"),
+            visible: .catalog("EllipsisStroke")
+        ),
+        ControlItemImageSet(
+            name: .iceCube,
+            hidden: .catalog("IceCube"),
+            visible: .catalog("IceCube")
+        ),
+        ControlItemImageSet(
+            name: .sunglasses,
+            hidden: .symbol("sunglasses.fill"),
+            visible: .symbol("sunglasses")
+        ),
+    ]
 }

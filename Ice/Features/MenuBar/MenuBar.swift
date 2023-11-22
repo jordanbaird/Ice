@@ -47,7 +47,10 @@ final class MenuBar: ObservableObject {
 
     /// An icon to show in the menu bar, with a different image
     /// for when items are visible or hidden.
-    @Published var iceIcon: ControlItemImageSet = .dot
+    @Published var iceIcon: ControlItemImageSet = .defaultIceIcon
+
+    /// The last user-selected custom Ice icon.
+    @Published var lastCustomIceIcon: ControlItemImageSet?
 
     /// A Boolean value that indicates whether custom Ice icons
     /// should be rendered as template images.
@@ -108,6 +111,9 @@ final class MenuBar: ObservableObject {
             }
             if let iceIconData = defaults.data(forKey: Defaults.iceIcon) {
                 iceIcon = try decoder.decode(ControlItemImageSet.self, from: iceIconData)
+                if case .custom = iceIcon.name {
+                    lastCustomIceIcon = iceIcon
+                }
             }
         } catch {
             Logger.menuBar.error("Error decoding value: \(error)")
@@ -324,13 +330,19 @@ final class MenuBar: ObservableObject {
 
         $iceIcon
             .receive(on: DispatchQueue.main)
-            .encode(encoder: encoder)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.menuBar.error("Error encoding ice icon: \(error)")
+            .sink { [weak self] iceIcon in
+                guard let self else {
+                    return
                 }
-            } receiveValue: { data in
-                defaults.set(data, forKey: Defaults.iceIcon)
+                if case .custom = iceIcon.name {
+                    lastCustomIceIcon = iceIcon
+                }
+                do {
+                    let data = try encoder.encode(iceIcon)
+                    defaults.set(data, forKey: Defaults.iceIcon)
+                } catch {
+                    Logger.menuBar.error("Error encoding Ice icon: \(error)")
+                }
             }
             .store(in: &c)
 

@@ -308,8 +308,7 @@ final class ControlItem: ObservableObject {
             // set the image based on section name and state
             switch section.name {
             case .visible:
-                // we can usually just set the image directly
-                // from the icon
+                // we can usually just set the image directly from the icon
                 button.image = switch state {
                 case .hideItems: menuBar.iceIcon.hidden.nsImage(for: menuBar)
                 case .showItems: menuBar.iceIcon.visible.nsImage(for: menuBar)
@@ -318,9 +317,11 @@ final class ControlItem: ObservableObject {
                     case .custom = menuBar.iceIcon.name,
                     let originalImage = button.image
                 {
-                    // custom icons need to be resized to fit
-                    // inside the button
-                    let newSize = CGSize(width: 17, height: 17)
+                    // custom icons need to be resized to fit inside the button
+                    let originalWidth = originalImage.size.width
+                    let originalHeight = originalImage.size.height
+                    let ratio = max(originalWidth / 25, originalHeight / 17)
+                    let newSize = CGSize(width: originalWidth / ratio, height: originalHeight / ratio)
                     let resizedImage = NSImage(size: newSize, flipped: false) { bounds in
                         originalImage.draw(in: bounds)
                         return true

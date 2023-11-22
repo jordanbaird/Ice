@@ -155,8 +155,8 @@ final class ControlItem: ObservableObject {
         self.isVisible = statusItem.isVisible
         self.state = state ?? .showItems
 
-        // NOTE: this needs to happen after the status item is
-        // created, but before the call to configureStatusItem()
+        // NOTE: cache needs to be restored after the status item
+        // is created, but before the call to configureStatusItem()
         if let cachedIsVisible {
             self.isVisible = cachedIsVisible
         }
@@ -466,6 +466,7 @@ extension ControlItem: Hashable {
 
 // MARK: - StatusItemDefaultsKey
 
+/// Keys used to look up user defaults for status items.
 private struct StatusItemDefaultsKey<Value> {
     let rawValue: String
 }
@@ -489,16 +490,12 @@ private enum StatusItemDefaults {
         return "NSStatusItem \(key.rawValue) \(autosaveName)"
     }
 
-    /// Accesses the preferred position associated with the specified 
-    /// key and autosave name.
+    /// Accesses the value associated with the specified key and autosave name.
     static subscript<Value>(
         key: StatusItemDefaultsKey<Value>, 
         autosaveName: String
     ) -> Value? {
         get {
-            // use object(forKey:) because double(forKey:) returns 0 if no value
-            // is stored; we need to differentiate between "a stored value of 0"
-            // and "no stored value"
             let key = stringKey(forKey: key, autosaveName: autosaveName)
             return UserDefaults.standard.object(forKey: key) as? Value
         }

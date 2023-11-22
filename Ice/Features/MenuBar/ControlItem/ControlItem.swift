@@ -275,23 +275,34 @@ final class ControlItem: ObservableObject {
                     updateStatusItem(with: state)
                 }
                 .store(in: &c)
+
+            menuBar.$customIceIconIsTemplate
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    guard let self else {
+                        return
+                    }
+                    updateStatusItem(with: state)
+                }
+                .store(in: &c)
         }
 
         cancellables = c
     }
 
-    /// Updates the control item's status item to match the given
-    /// state.
+    /// Updates the control item's status item to match
+    /// the given state.
     func updateStatusItem(with state: HidingState) {
         guard
-            let name = section?.name,
+            let menuBar,
+            let section,
             let button = statusItem.button
         else {
             return
         }
 
         defer {
-            menuBar?.needsSave = true
+            menuBar.needsSave = true
         }
 
         switch state {
@@ -308,22 +319,37 @@ final class ControlItem: ObservableObject {
             // enable cell, as it may have been previously disabled
             button.cell?.isEnabled = true
             // set the image based on section name and state
-            button.image = switch name {
+            switch section.name {
             case .visible:
-                switch state {
-                case .hideItems:
-                    menuBar?.iceIcon.hidden.nsImage
-                case .showItems:
-                    menuBar?.iceIcon.visible.nsImage
+                // we can usually just set the image directly
+                // from the icon
+                button.image = switch state {
+                case .hideItems: menuBar.iceIcon.hidden.nsImage(for: menuBar)
+                case .showItems: menuBar.iceIcon.visible.nsImage(for: menuBar)
+                }
+                if
+                    case .custom = menuBar.iceIcon.name,
+                    let originalImage = button.image
+                {
+                    // custom icons need to be resized to fit
+                    // inside the button
+                    let newSize = CGSize(width: 17, height: 17)
+                    let resizedImage = NSImage(size: newSize, flipped: false) { bounds in
+                        originalImage.draw(in: bounds)
+                        return true
+                    }
+                    resizedImage.isTemplate = originalImage.isTemplate
+                    button.image = resizedImage
                 }
             case .hidden:
-                ControlItemImage.builtin(.chevronLarge).nsImage
+                button.image = ControlItemImage.builtin(.chevronLarge).nsImage(for: menuBar)
             case .alwaysHidden:
-                ControlItemImage.builtin(.chevronSmall).nsImage
+                button.image = ControlItemImage.builtin(.chevronSmall).nsImage(for: menuBar)
             }
         }
     }
 
+    /// Performs an action for the control item's status item.
     @objc private func performAction() {
         guard
             let menuBar,

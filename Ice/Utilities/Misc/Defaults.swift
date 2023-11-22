@@ -6,6 +6,7 @@
 /// A namespace for `UserDefaults` keys.
 enum Defaults {
     static let iceIcon = "IceIcon"
+    static let customIceIconIsTemplate = "CustomIceIconIsTemplate"
     static let menuBarHasShadow = "MenuBarHasShadow"
     static let menuBarHasBorder = "MenuBarHasBorder"
     static let menuBarBorderColor = "MenuBarBorderColor"

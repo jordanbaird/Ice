@@ -50,6 +50,10 @@ final class MenuBar: ObservableObject {
     /// for when items are visible or hidden.
     @Published var iceIcon: ControlItemImageSet = .dot
 
+    /// A Boolean value that indicates whether custom Ice icons
+    /// should be rendered as template images.
+    @Published var customIceIconIsTemplate = false
+
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
@@ -91,6 +95,7 @@ final class MenuBar: ObservableObject {
         hasBorder = defaults.bool(forKey: Defaults.menuBarHasBorder)
         borderWidth = defaults.object(forKey: Defaults.menuBarBorderWidth) as? Double ?? 1
         tintKind = TintKind(rawValue: defaults.integer(forKey: Defaults.menuBarTintKind)) ?? .none
+        customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
 
         do {
             if let borderColorData = defaults.data(forKey: Defaults.menuBarBorderColor) {
@@ -117,14 +122,17 @@ final class MenuBar: ObservableObject {
             return
         }
 
+        let defaults = UserDefaults.standard
+        let decoder = DictionaryDecoder()
+
         // load sections from persistent storage
-        sections = (UserDefaults.standard.array(forKey: Defaults.sections) ?? []).compactMap { entry in
+        sections = (defaults.array(forKey: Defaults.sections) ?? []).compactMap { entry in
             guard let dictionary = entry as? [String: Any] else {
                 Logger.menuBar.error("Entry not convertible to dictionary")
                 return nil
             }
             do {
-                return try DictionaryDecoder().decode(MenuBarSection.self, from: dictionary)
+                return try decoder.decode(MenuBarSection.self, from: dictionary)
             } catch {
                 Logger.menuBar.error("Decoding error: \(error)")
                 return nil
@@ -134,11 +142,14 @@ final class MenuBar: ObservableObject {
 
     /// Save all control items in the menu bar to persistent storage.
     func saveSections() {
+        let defaults = UserDefaults.standard
+        let encoder = DictionaryEncoder()
+
         do {
             let serializedSections = try sections.map { section in
-                try DictionaryEncoder().encode(section)
+                try encoder.encode(section)
             }
-            UserDefaults.standard.set(serializedSections, forKey: Defaults.sections)
+            defaults.set(serializedSections, forKey: Defaults.sections)
             needsSave = false
         } catch {
             Logger.menuBar.error("Encoding error: \(error)")
@@ -163,6 +174,9 @@ final class MenuBar: ObservableObject {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
+
+        let defaults = UserDefaults.standard
+        let encoder = JSONEncoder()
 
         // update the control item for each section when the
         // position of one changes
@@ -213,14 +227,14 @@ final class MenuBar: ObservableObject {
         $hasShadow
             .receive(on: DispatchQueue.main)
             .sink { hasShadow in
-                UserDefaults.standard.set(hasShadow, forKey: Defaults.menuBarHasShadow)
+                defaults.set(hasShadow, forKey: Defaults.menuBarHasShadow)
             }
             .store(in: &c)
 
         $hasBorder
             .receive(on: DispatchQueue.main)
             .sink { hasBorder in
-                UserDefaults.standard.set(hasBorder, forKey: Defaults.menuBarHasBorder)
+                defaults.set(hasBorder, forKey: Defaults.menuBarHasBorder)
             }
             .store(in: &c)
 
@@ -228,8 +242,8 @@ final class MenuBar: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { borderColor in
                 do {
-                    let data = try JSONEncoder().encode(CodableColor(cgColor: borderColor))
-                    UserDefaults.standard.set(data, forKey: Defaults.menuBarBorderColor)
+                    let data = try encoder.encode(CodableColor(cgColor: borderColor))
+                    defaults.set(data, forKey: Defaults.menuBarBorderColor)
                 } catch {
                     Logger.menuBar.error("Error encoding border color: \(error)")
                 }
@@ -239,14 +253,14 @@ final class MenuBar: ObservableObject {
         $borderWidth
             .receive(on: DispatchQueue.main)
             .sink { borderWidth in
-                UserDefaults.standard.set(borderWidth, forKey: Defaults.menuBarBorderWidth)
+                defaults.set(borderWidth, forKey: Defaults.menuBarBorderWidth)
             }
             .store(in: &c)
 
         $tintKind
             .receive(on: DispatchQueue.main)
             .sink { tintKind in
-                UserDefaults.standard.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
+                defaults.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
             }
             .store(in: &c)
 
@@ -254,8 +268,8 @@ final class MenuBar: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { tintColor in
                 do {
-                    let data = try JSONEncoder().encode(CodableColor(cgColor: tintColor))
-                    UserDefaults.standard.set(data, forKey: Defaults.menuBarTintColor)
+                    let data = try encoder.encode(CodableColor(cgColor: tintColor))
+                    defaults.set(data, forKey: Defaults.menuBarTintColor)
                 } catch {
                     Logger.menuBar.error("Error encoding tint color: \(error)")
                 }
@@ -299,25 +313,32 @@ final class MenuBar: ObservableObject {
 
         $tintGradient
             .receive(on: DispatchQueue.main)
-            .encode(encoder: JSONEncoder())
+            .encode(encoder: encoder)
             .sink { completion in
                 if case .failure(let error) = completion {
                     Logger.menuBar.error("Error encoding tint gradient: \(error)")
                 }
             } receiveValue: { data in
-                UserDefaults.standard.set(data, forKey: Defaults.menuBarTintGradient)
+                defaults.set(data, forKey: Defaults.menuBarTintGradient)
             }
             .store(in: &c)
 
         $iceIcon
             .receive(on: DispatchQueue.main)
-            .encode(encoder: JSONEncoder())
+            .encode(encoder: encoder)
             .sink { completion in
                 if case .failure(let error) = completion {
                     Logger.menuBar.error("Error encoding ice icon: \(error)")
                 }
             } receiveValue: { data in
-                UserDefaults.standard.set(data, forKey: Defaults.iceIcon)
+                defaults.set(data, forKey: Defaults.iceIcon)
+            }
+            .store(in: &c)
+
+        $customIceIconIsTemplate
+            .receive(on: DispatchQueue.main)
+            .sink { isTemplate in
+                defaults.set(isTemplate, forKey: Defaults.customIceIconIsTemplate)
             }
             .store(in: &c)
 

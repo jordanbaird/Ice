@@ -58,7 +58,7 @@ struct GeneralSettingsPane: View {
         Label {
             Text(imageSet.name.rawValue)
         } icon: {
-            if let nsImage = imageSet.hidden.nsImage {
+            if let nsImage = imageSet.hidden.nsImage(for: menuBar) {
                 Image(nsImage: nsImage)
             }
         }
@@ -107,6 +107,17 @@ struct GeneralSettingsPane: View {
                 }
             case .failure(let error):
                 Logger.general.error("Error loading icon: \(error)")
+            }
+        }
+
+        if case .custom = menuBar.iceIcon.name {
+            Toggle(isOn: menuBar.bindings.customIceIconIsTemplate) {
+                Text("Is Template")
+                if menuBar.customIceIconIsTemplate {
+                    Text("The icon is displayed as a monochrome image that matches the system appearance.")
+                } else {
+                    Text("The icon is displayed using its original appearance.")
+                }
             }
         }
     }

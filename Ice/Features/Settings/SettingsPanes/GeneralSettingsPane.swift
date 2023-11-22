@@ -114,9 +114,9 @@ struct GeneralSettingsPane: View {
             Toggle(isOn: menuBar.bindings.customIceIconIsTemplate) {
                 Text("Is Template")
                 if menuBar.customIceIconIsTemplate {
-                    Text("The icon is displayed as a monochrome image that matches the system appearance.")
+                    Text("The icon is displayed as a monochrome image matching the system appearance.")
                 } else {
-                    Text("The icon is displayed using its original appearance.")
+                    Text("The icon is displayed with its original appearance.")
                 }
             }
         }

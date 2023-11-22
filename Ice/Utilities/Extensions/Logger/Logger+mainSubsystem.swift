@@ -14,7 +14,4 @@ extension Logger {
     static func mainSubsystem(category: String) -> Logger {
         Logger(subsystem: subsystem, category: category)
     }
-
-    /// The general-purpose logger.
-    static let general = mainSubsystem(category: "General")
 }

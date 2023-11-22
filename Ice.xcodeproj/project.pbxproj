@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		170CF88A2B0EC0970073F982 /* Logger+general.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF8892B0EC0970073F982 /* Logger+general.swift */; };
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
 		1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */; };
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
@@ -60,6 +61,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		170CF8892B0EC0970073F982 /* Logger+general.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+general.swift"; sourceTree = "<group>"; };
 		1725FC692AED973800A59081 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
@@ -317,6 +319,7 @@
 		716683442A76811C006ABF84 /* Logger */ = {
 			isa = PBXGroup;
 			children = (
+				170CF8892B0EC0970073F982 /* Logger+general.swift */,
 				716683452A76811C006ABF84 /* Logger+mainSubsystem.swift */,
 			);
 			path = Logger;
@@ -477,6 +480,7 @@
 				71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */,
 				71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
+				170CF88A2B0EC0970073F982 /* Logger+general.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
 				177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,

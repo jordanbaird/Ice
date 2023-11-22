@@ -22,10 +22,10 @@ struct GeneralSettingsPane: View {
                 launchAtLogin
             }
             Section {
-                iconOptions
+                alwaysHiddenOptions
             }
             Section {
-                alwaysHiddenOptions
+                iceIconOptions
             }
             Section("Hotkeys") {
                 hiddenRecorder
@@ -54,6 +54,26 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
+    private var alwaysHiddenOptions: some View {
+        if let section = menuBar.section(withName: .alwaysHidden) {
+            Toggle(isOn: section.bindings.isEnabled) {
+                Text("Enable \"\(section.name.rawValue)\" section")
+            }
+
+            if section.isEnabled {
+                Picker(selection: $secondaryActionModifier) {
+                    ForEach(ControlItem.secondaryActionModifiers, id: \.self) { modifier in
+                        Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
+                    }
+                } label: {
+                    Text("Modifier")
+                    Text("\(secondaryActionModifier.label) (\(secondaryActionModifier.stringValue)) + clicking either of \(Constants.appName)'s menu bar items will temporarily show this section")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private func label(for imageSet: ControlItemImageSet) -> some View {
         Label {
             Text(imageSet.name.rawValue)
@@ -66,7 +86,7 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private var iconOptions: some View {
+    private var iceIconOptions: some View {
         LabeledContent("Ice Icon") {
             Menu {
                 Picker("Ice Icon", selection: menuBar.bindings.iceIcon) {
@@ -112,31 +132,11 @@ struct GeneralSettingsPane: View {
 
         if case .custom = menuBar.iceIcon.name {
             Toggle(isOn: menuBar.bindings.customIceIconIsTemplate) {
-                Text("Is Template")
+                Text("Use template image")
                 if menuBar.customIceIconIsTemplate {
                     Text("The icon is displayed as a monochrome image matching the system appearance.")
                 } else {
                     Text("The icon is displayed with its original appearance.")
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var alwaysHiddenOptions: some View {
-        if let section = menuBar.section(withName: .alwaysHidden) {
-            Toggle(isOn: section.bindings.isEnabled) {
-                Text("Enable \"\(section.name.rawValue)\" section")
-            }
-
-            if section.isEnabled {
-                Picker(selection: $secondaryActionModifier) {
-                    ForEach(ControlItem.secondaryActionModifiers, id: \.self) { modifier in
-                        Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
-                    }
-                } label: {
-                    Text("Modifier")
-                    Text("\(secondaryActionModifier.label) (\(secondaryActionModifier.stringValue)) + clicking either of \(Constants.appName)'s menu bar items will temporarily show this section")
                 }
             }
         }

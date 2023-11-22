@@ -5,7 +5,6 @@
 
 import Combine
 import OSLog
-import ScreenCaptureKit
 import SwiftUI
 
 /// Manager for the state of the menu bar.

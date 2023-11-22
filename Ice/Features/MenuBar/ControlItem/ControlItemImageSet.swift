@@ -27,8 +27,8 @@ struct ControlItemImageSet: Codable, Hashable, Identifiable {
 extension ControlItemImageSet {
     static let defaultIceIcon = ControlItemImageSet(
         name: .dot,
-        hidden: .builtin(.dotFilled),
-        visible: .builtin(.dotStroked)
+        hidden: .catalog("DotFill"),
+        visible: .catalog("DotStroke")
     )
 
     static let userSelectableImageSets = [
@@ -49,8 +49,8 @@ extension ControlItemImageSet {
         ),
         ControlItemImageSet(
             name: .dot,
-            hidden: .builtin(.dotFilled),
-            visible: .builtin(.dotStroked)
+            hidden: .catalog("DotFill"),
+            visible: .catalog("DotStroke")
         ),
         ControlItemImageSet(
             name: .ellipsis,

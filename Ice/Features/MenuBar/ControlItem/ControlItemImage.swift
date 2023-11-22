@@ -21,8 +21,6 @@ enum ControlItemImage: Codable, Hashable {
         switch self {
         case .builtin(let name):
             return switch name {
-            case .dotFilled: StaticBuiltins.Dot.filled
-            case .dotStroked: StaticBuiltins.Dot.stroked
             case .chevronLarge: StaticBuiltins.Chevron.large
             case .chevronSmall: StaticBuiltins.Chevron.small
             }
@@ -56,10 +54,6 @@ extension ControlItemImage {
     /// A name for an image that is created from drawing code
     /// in the app.
     enum ImageBuiltinName: Codable, Hashable {
-        /// A filled dot.
-        case dotFilled
-        /// A stroked dot.
-        case dotStroked
         /// A large chevron.
         case chevronLarge
         /// A small chevron.
@@ -74,35 +68,6 @@ extension ControlItemImage {
     ///   executing code every time the ``nsImage`` property
     ///   is accessed.
     private enum StaticBuiltins {
-        /// A namespace for static builtin dot images.
-        enum Dot {
-            /// A filled dot.
-            static let filled: NSImage = {
-                let image = NSImage(size: CGSize(width: 8, height: 8), flipped: false) { bounds in
-                    NSColor.black.setFill()
-                    NSBezierPath(ovalIn: bounds).fill()
-                    return true
-                }
-                image.isTemplate = true
-                return image
-            }()
-
-            /// A stroked dot.
-            static let stroked: NSImage = {
-                let image = NSImage(size: CGSize(width: 8, height: 8), flipped: false) { bounds in
-                    let lineWidth: CGFloat = 1.5
-                    let insetBounds = bounds.insetBy(dx: lineWidth / 2, dy: lineWidth / 2)
-                    let path = NSBezierPath(ovalIn: insetBounds)
-                    path.lineWidth = lineWidth
-                    NSColor.black.setStroke()
-                    path.stroke()
-                    return true
-                }
-                image.isTemplate = true
-                return image
-            }()
-        }
-
         /// A namespace for static builtin chevron images.
         enum Chevron {
             /// Creates a chevron image with the given size and line width.

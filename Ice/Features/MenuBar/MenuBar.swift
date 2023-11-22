@@ -128,32 +128,28 @@ final class MenuBar: ObservableObject {
         }
 
         let defaults = UserDefaults.standard
-        let decoder = DictionaryDecoder()
+        let decoder = JSONDecoder()
 
         // load sections from persistent storage
-        sections = (defaults.array(forKey: Defaults.sections) ?? []).compactMap { entry in
-            guard let dictionary = entry as? [String: Any] else {
-                Logger.menuBar.error("Entry not convertible to dictionary")
-                return nil
-            }
+        if let sectionsData = defaults.data(forKey: Defaults.sections) {
             do {
-                return try decoder.decode(MenuBarSection.self, from: dictionary)
+                sections = try decoder.decode([MenuBarSection].self, from: sectionsData)
             } catch {
                 Logger.menuBar.error("Decoding error: \(error)")
-                return nil
+                sections = []
             }
+        } else {
+            sections = []
         }
     }
 
     /// Save all control items in the menu bar to persistent storage.
     func saveSections() {
         let defaults = UserDefaults.standard
-        let encoder = DictionaryEncoder()
+        let encoder = JSONEncoder()
 
         do {
-            let serializedSections = try sections.map { section in
-                try encoder.encode(section)
-            }
+            let serializedSections = try encoder.encode(sections)
             defaults.set(serializedSections, forKey: Defaults.sections)
             needsSave = false
         } catch {

@@ -55,8 +55,6 @@
 		71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */; };
 		71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */; };
 		71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C532A89445C00D89CD5 /* VisualEffectView.swift */; };
-		71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */; };
-		71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */; };
 		71FEA2502A8D5D590048341A /* HotkeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */; };
 		71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */; };
 /* End PBXBuildFile section */
@@ -111,8 +109,6 @@
 		71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSSplitViewItem+swizzledCanCollapse.swift"; sourceTree = "<group>"; };
 		71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
 		71D36C532A89445C00D89CD5 /* VisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
-		71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryEncoder.swift; sourceTree = "<group>"; };
-		71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryDecoder.swift; sourceTree = "<group>"; };
 		71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorder.swift; sourceTree = "<group>"; };
 		71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalEventMonitor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -288,7 +284,6 @@
 		7166833E2A76811C006ABF84 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				71D36C562A896ED700D89CD5 /* DictionarySerialization */,
 				716683412A76811C006ABF84 /* Extensions */,
 				71FEA25A2A8DA1D60048341A /* Misc */,
 				71D36C492A88EDD200D89CD5 /* Swizzling */,
@@ -388,15 +383,6 @@
 				179267382AE98985006AFBAF /* Views */,
 			);
 			path = UI;
-			sourceTree = "<group>";
-		};
-		71D36C562A896ED700D89CD5 /* DictionarySerialization */ = {
-			isa = PBXGroup;
-			children = (
-				71D36C592A89713000D89CD5 /* DictionaryDecoder.swift */,
-				71D36C572A896EFC00D89CD5 /* DictionaryEncoder.swift */,
-			);
-			path = DictionarySerialization;
 			sourceTree = "<group>";
 		};
 		71FEA25A2A8DA1D60048341A /* Misc */ = {
@@ -516,7 +502,6 @@
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
-				71D36C582A896EFC00D89CD5 /* DictionaryEncoder.swift in Sources */,
 				7150A7B32AA42B640045EA68 /* Hotkey+Modifiers.swift in Sources */,
 				71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */,
 				71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */,
@@ -536,7 +521,6 @@
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				71FEA2502A8D5D590048341A /* HotkeyRecorder.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
-				71D36C5A2A89713000D89CD5 /* DictionaryDecoder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -4,13 +4,14 @@
 //
 
 import LaunchAtLogin
-import OSLog
 import SwiftUI
 
 struct GeneralSettingsPane: View {
     @AppStorage(Defaults.secondaryActionModifier) var secondaryActionModifier = Hotkey.Modifiers.option
     @EnvironmentObject var appState: AppState
-    @State private var isImporting = false
+    @State private var isImportingCustomIceIcon = false
+    @State private var isPresentingError = false
+    @State private var presentedError: LocalizedErrorBox?
 
     private var menuBar: MenuBar {
         appState.menuBar
@@ -37,6 +38,12 @@ struct GeneralSettingsPane: View {
         .scrollBounceBehavior(.basedOnSize)
         .frame(maxHeight: .infinity)
         .errorOverlay(RecordingFailure.self)
+        .alert(isPresented: $isPresentingError, error: presentedError) {
+            Button("OK") {
+                presentedError = nil
+                isPresentingError = false
+            }
+        }
         .bottomBar {
             HStack {
                 Spacer()
@@ -102,7 +109,7 @@ struct GeneralSettingsPane: View {
                 .labelsHidden()
 
                 Button("Choose Image…") {
-                    isImporting = true
+                    isImportingCustomIceIcon = true
                 }
             } label: {
                 label(for: menuBar.iceIcon)
@@ -111,7 +118,10 @@ struct GeneralSettingsPane: View {
             .scaledToFit()
             .fixedSize()
         }
-        .fileImporter(isPresented: $isImporting, allowedContentTypes: [.image]) { result in
+        .fileImporter(
+            isPresented: $isImportingCustomIceIcon,
+            allowedContentTypes: [.image]
+        ) { result in
             do {
                 let url = try result.get()
                 if url.startAccessingSecurityScopedResource() {
@@ -126,7 +136,8 @@ struct GeneralSettingsPane: View {
                     )
                 }
             } catch {
-                Logger.general.error("Error loading icon: \(error)")
+                presentedError = LocalizedErrorBox(error: error)
+                isPresentingError = true
             }
         }
 

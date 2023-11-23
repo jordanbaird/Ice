@@ -109,19 +109,6 @@ final class ControlItem: ObservableObject {
         }
     }
 
-    /// The modifier that the user has selected from the various options
-    /// in ``secondaryActionModifiers`` to trigger the control item's
-    /// secondary action.
-    ///
-    /// Defaults to ``Hotkey/Modifiers-swift.struct/option`` if the user
-    /// has not made a selection.
-    private var secondaryActionModifier: Hotkey.Modifiers {
-        guard let rawValue = UserDefaults.standard.object(forKey: Defaults.secondaryActionModifier) as? Int else {
-            return .option
-        }
-        return Hotkey.Modifiers(rawValue: rawValue)
-    }
-
     /// Creates a control item with the given autosave name, position,
     /// and hiding state.
     ///
@@ -350,7 +337,7 @@ final class ControlItem: ObservableObject {
             if
                 let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden),
                 alwaysHiddenSection.isEnabled,
-                NSEvent.modifierFlags == secondaryActionModifier.nsEventFlags
+                NSEvent.modifierFlags == menuBar.secondaryActionModifier.nsEventFlags
             {
                 alwaysHiddenSection.show()
             } else {

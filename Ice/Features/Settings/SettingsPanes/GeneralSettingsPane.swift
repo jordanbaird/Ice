@@ -7,7 +7,6 @@ import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsPane: View {
-    @AppStorage(Defaults.secondaryActionModifier) var secondaryActionModifier = Hotkey.Modifiers.option
     @EnvironmentObject var appState: AppState
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false
@@ -66,12 +65,12 @@ struct GeneralSettingsPane: View {
             Toggle(isOn: section.bindings.isEnabled) {
                 Text("Enable \"\(section.name.rawValue)\" section")
                 if section.isEnabled {
-                    Text("\(secondaryActionModifier.label) (\(secondaryActionModifier.stringValue)) + click either of \(Constants.appName)'s menu bar items to temporarily show this section")
+                    Text("\(menuBar.secondaryActionModifier.label) (\(menuBar.secondaryActionModifier.stringValue)) + click either of \(Constants.appName)'s menu bar items to temporarily show this section")
                 }
             }
 
             if section.isEnabled {
-                Picker("Modifier", selection: $secondaryActionModifier) {
+                Picker("Modifier", selection: menuBar.bindings.secondaryActionModifier) {
                     ForEach(ControlItem.secondaryActionModifiers, id: \.self) { modifier in
                         Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
                     }

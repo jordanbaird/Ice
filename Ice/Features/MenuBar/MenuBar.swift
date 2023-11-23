@@ -56,6 +56,10 @@ final class MenuBar: ObservableObject {
     /// should be rendered as template images.
     @Published var customIceIconIsTemplate = false
 
+    /// The modifier that triggers the secondary action on the
+    /// menu bar's control items.
+    @Published var secondaryActionModifier = Hotkey.Modifiers.option
+
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
@@ -114,6 +118,9 @@ final class MenuBar: ObservableObject {
                 if case .custom = iceIcon.name {
                     lastCustomIceIcon = iceIcon
                 }
+            }
+            if let modifierRawValue = defaults.object(forKey: Defaults.secondaryActionModifier) as? Int {
+                secondaryActionModifier = Hotkey.Modifiers(rawValue: modifierRawValue)
             }
         } catch {
             Logger.menuBar.error("Error decoding value: \(error)")
@@ -346,6 +353,13 @@ final class MenuBar: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { isTemplate in
                 defaults.set(isTemplate, forKey: Defaults.customIceIconIsTemplate)
+            }
+            .store(in: &c)
+
+        $secondaryActionModifier
+            .receive(on: DispatchQueue.main)
+            .sink { modifier in
+                defaults.set(modifier.rawValue, forKey: Defaults.secondaryActionModifier)
             }
             .store(in: &c)
 

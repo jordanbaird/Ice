@@ -4,8 +4,8 @@
 //
 
 import LaunchAtLogin
-import SwiftUI
 import OSLog
+import SwiftUI
 
 struct GeneralSettingsPane: View {
     @AppStorage(Defaults.secondaryActionModifier) var secondaryActionModifier = Hotkey.Modifiers.option
@@ -36,7 +36,7 @@ struct GeneralSettingsPane: View {
         .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
         .frame(maxHeight: .infinity)
-        .errorOverlay(HotkeyRecorder.Failure.self)
+        .errorOverlay(RecordingFailure.self)
         .bottomBar {
             HStack {
                 Spacer()
@@ -147,45 +147,25 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
+    private func hotkeyRecorder(for section: MenuBarSection) -> some View {
+        if section.isEnabled {
+            HotkeyRecorder(section: section) {
+                Text("Toggle the \"\(section.name.rawValue)\" menu bar section")
+            }
+        }
+    }
+
+    @ViewBuilder
     private var hiddenRecorder: some View {
         if let section = menuBar.section(withName: .hidden) {
-            LabeledHotkeyRecorder(section: section)
+            hotkeyRecorder(for: section)
         }
     }
 
     @ViewBuilder
     private var alwaysHiddenRecorder: some View {
         if let section = menuBar.section(withName: .alwaysHidden) {
-            LabeledHotkeyRecorder(section: section)
-        }
-    }
-}
-
-struct LabeledHotkeyRecorder: View {
-    @State private var failure: HotkeyRecorder.Failure?
-    @State private var timer: Timer?
-
-    let section: MenuBarSection
-
-    private var localizedLabel: LocalizedStringKey {
-        "Toggle the \"\(section.name.rawValue)\" menu bar section"
-    }
-
-    var body: some View {
-        if section.isEnabled {
-            LabeledContent {
-                HotkeyRecorder(section: section, failure: $failure)
-            } label: {
-                Text(localizedLabel)
-            }
-            .onChange(of: failure) { _, newValue in
-                timer?.invalidate()
-                if newValue != nil {
-                    timer = .scheduledTimer(withTimeInterval: 3, repeats: false) { _ in
-                        failure = nil
-                    }
-                }
-            }
+            hotkeyRecorder(for: section)
         }
     }
 }

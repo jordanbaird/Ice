@@ -6,59 +6,91 @@
 import SwiftUI
 
 /// A view that records user-chosen key combinations for a hotkey.
-struct HotkeyRecorder: View {
-    /// An error type that describes a recording failure.
-    enum Failure: LocalizedError, Hashable {
-        /// No modifiers were pressed.
-        case noModifiers
-        /// Shift was the only modifier being pressed.
-        case onlyShift
-        /// The given hotkey is reserved by macOS.
-        case reserved(Hotkey)
-
-        /// Description of the failure.
-        var errorDescription: String? {
-            switch self {
-            case .noModifiers:
-                return "Hotkey should include at least one modifier"
-            case .onlyShift:
-                return "Shift (⇧) cannot be a hotkey's only modifier"
-            case .reserved(let hotkey):
-                return "Hotkey \(hotkey.stringValue) is reserved by macOS"
-            }
-        }
-    }
-
-    @Binding var failure: Failure?
+struct HotkeyRecorder<Label: View>: View {
     @StateObject private var model: HotkeyRecorderModel
     @State private var frame: CGRect = .zero
     @State private var isInsideSegment2 = false
+    @State private var timer: Timer?
+
+    private let label: Label
+
+    private var modifierString: String {
+        model.section?.hotkey?.modifiers.stringValue ?? ""
+    }
+
+    private var keyString: String {
+        guard let key = model.section?.hotkey?.key else {
+            return ""
+        }
+        return key.stringValue.capitalized
+    }
+
+    private var symbolString: String {
+        if model.isRecording {
+            return "escape"
+        }
+        if model.isEnabled {
+            return "xmark.circle.fill"
+        }
+        return "record.circle"
+    }
+
+    private var segment1HelpString: String {
+        if model.isRecording {
+            return ""
+        }
+        if model.isEnabled {
+            return "Click to record new hotkey"
+        }
+        return "Click to record hotkey"
+    }
+
+    private var segment2HelpString: String {
+        if model.isRecording {
+            return "Cancel recording"
+        }
+        if model.isEnabled {
+            return "Delete hotkey"
+        }
+        return "Click to record hotkey"
+    }
 
     /// Creates a hotkey recorder that records user-chosen key
     /// combinations for the given section.
     ///
     /// - Parameters:
-    ///   - section: The section that the recorder records hotkeys for.
-    ///   - failure: A binding to a property that holds information about
-    ///     the current recording failure on behalf of the recorder.
-    init(section: MenuBarSection?, failure: Binding<Failure?>) {
-        let model = HotkeyRecorderModel(section: section) {
-            failure.wrappedValue = $0
-        } removeFailure: {
-            failure.wrappedValue = nil
-        }
+    ///   - section: The menu bar section whose hotkey is recorded.
+    ///   - label: A label for the recorder.
+    init(section: MenuBarSection?, @ViewBuilder label: () -> Label) {
+        let model = HotkeyRecorderModel(section: section)
         self._model = StateObject(wrappedValue: model)
-        self._failure = failure
+        self.label = label()
     }
 
     var body: some View {
-        HStack(spacing: 1) {
-            segment1
-            segment2
+        LabeledContent {
+            HStack(spacing: 1) {
+                segment1
+                segment2
+            }
+            .frame(width: 130, height: 21)
+            .onFrameChange(update: $frame)
+            .error(model.failure)
+            .buttonStyle(.custom)
+        } label: {
+            label
         }
-        .frame(width: 130, height: 21)
-        .onFrameChange(update: $frame)
-        .error(failure)
+        .onChange(of: model.failure) { _, newValue in
+            timer?.invalidate()
+            if newValue != nil {
+                timer = .scheduledTimer(
+                    withTimeInterval: 3,
+                    repeats: false
+                ) { _ in
+                    model.failure = nil
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -154,51 +186,11 @@ struct HotkeyRecorder: View {
                 height: frame.height - 2
             )
     }
-
-    private var modifierString: String {
-        model.section?.hotkey?.modifiers.stringValue ?? ""
-    }
-
-    private var keyString: String {
-        guard let key = model.section?.hotkey?.key else {
-            return ""
-        }
-        return key.stringValue.capitalized
-    }
-
-    private var symbolString: String {
-        if model.isRecording {
-            return "escape"
-        }
-        if model.isEnabled {
-            return "xmark.circle.fill"
-        }
-        return "record.circle"
-    }
-
-    private var segment1HelpString: String {
-        if model.isRecording {
-            return ""
-        }
-        if model.isEnabled {
-            return "Click to record new hotkey"
-        }
-        return "Click to record hotkey"
-    }
-
-    private var segment2HelpString: String {
-        if model.isRecording {
-            return "Cancel recording"
-        }
-        if model.isEnabled {
-            return "Delete hotkey"
-        }
-        return "Click to record hotkey"
-    }
 }
 
 #Preview {
-    HotkeyRecorder(section: nil, failure: .constant(nil))
-        .padding()
-        .buttonStyle(.custom)
+    HotkeyRecorder(section: nil) {
+        EmptyView()
+    }
+    .padding()
 }

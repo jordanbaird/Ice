@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		170CF88A2B0EC0970073F982 /* Logger+general.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF8892B0EC0970073F982 /* Logger+general.swift */; };
+		170CF88C2B0ED4FA0073F982 /* RecordingFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */; };
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
 		1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */; };
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
@@ -62,6 +63,7 @@
 
 /* Begin PBXFileReference section */
 		170CF8892B0EC0970073F982 /* Logger+general.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+general.swift"; sourceTree = "<group>"; };
+		170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingFailure.swift; sourceTree = "<group>"; };
 		1725FC692AED973800A59081 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
@@ -231,6 +233,7 @@
 				71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */,
 				718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */,
 				7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */,
+				170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */,
 			);
 			path = Hotkeys;
 			sourceTree = "<group>";
@@ -522,6 +525,7 @@
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
 				71D36C542A89445C00D89CD5 /* VisualEffectView.swift in Sources */,
 				71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */,
+				170CF88C2B0ED4FA0073F982 /* RecordingFailure.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				71FEA2502A8D5D590048341A /* HotkeyRecorder.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,

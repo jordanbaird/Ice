@@ -8,15 +8,13 @@ import Combine
 
 /// Model for a hotkey recorder's state.
 class HotkeyRecorderModel: ObservableObject {
-    typealias Failure = HotkeyRecorder.Failure
-
     @Published private(set) var isRecording = false
     @Published private(set) var pressedModifierStrings = [String]()
+    @Published var failure: RecordingFailure?
 
     let section: MenuBarSection?
 
-    private let handleFailure: (HotkeyRecorderModel, Failure) -> Void
-    private let removeFailure: () -> Void
+    private let handleFailure: (HotkeyRecorderModel, RecordingFailure) -> Void
     private var monitor: LocalEventMonitor?
 
     private var cancellables = Set<AnyCancellable>()
@@ -29,11 +27,7 @@ class HotkeyRecorderModel: ObservableObject {
 
     /// Creates a model for a hotkey recorder that records key
     /// combinations for the given section's hotkey.
-    init(
-        section: MenuBarSection?,
-        onFailure: @escaping (Failure) -> Void,
-        removeFailure: @escaping () -> Void
-    ) {
+    init(section: MenuBarSection?) {
         defer {
             configureCancellables()
         }
@@ -42,9 +36,8 @@ class HotkeyRecorderModel: ObservableObject {
             // remove the modifier strings so the pressed modifiers
             // aren't being displayed at the same time as a failure
             model.pressedModifierStrings.removeAll()
-            onFailure(failure)
+            model.failure = failure
         }
-        self.removeFailure = removeFailure
         guard !ProcessInfo.processInfo.isPreview else {
             return
         }
@@ -102,7 +95,7 @@ class HotkeyRecorderModel: ObservableObject {
         monitor?.stop()
         section?.enableHotkey()
         pressedModifierStrings = []
-        removeFailure()
+        failure = nil
     }
 
     /// Handles local key down events when the hotkey recorder

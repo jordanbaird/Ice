@@ -112,24 +112,20 @@ struct GeneralSettingsPane: View {
             .fixedSize()
         }
         .fileImporter(isPresented: $isImporting, allowedContentTypes: [.image]) { result in
-            switch result {
-            case .success(let url):
+            do {
+                let url = try result.get()
                 if url.startAccessingSecurityScopedResource() {
                     defer {
                         url.stopAccessingSecurityScopedResource()
                     }
-                    do {
-                        let data = try Data(contentsOf: url)
-                        menuBar.iceIcon = ControlItemImageSet(
-                            name: .custom,
-                            hidden: .data(data),
-                            visible: .data(data)
-                        )
-                    } catch {
-                        Logger.general.error("Error loading icon: \(error)")
-                    }
+                    let data = try Data(contentsOf: url)
+                    menuBar.iceIcon = ControlItemImageSet(
+                        name: .custom,
+                        hidden: .data(data),
+                        visible: .data(data)
+                    )
                 }
-            case .failure(let error):
+            } catch {
                 Logger.general.error("Error loading icon: \(error)")
             }
         }

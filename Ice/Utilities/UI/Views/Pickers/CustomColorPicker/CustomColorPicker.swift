@@ -50,6 +50,9 @@ struct CustomColorPicker: NSViewRepresentable {
                     }
                     NSColorPanel.shared.showsAlpha = supportsOpacity
                     NSColorPanel.shared.mode = mode
+                    if NSColorPanel.shared.frame.origin == .zero {
+                        NSColorPanel.shared.center()
+                    }
                 }
                 .store(in: &c)
 

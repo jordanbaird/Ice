@@ -400,7 +400,11 @@ private struct CustomGradientPickerHandle: View {
 
         NSColorPanel.shared.publisher(for: \.isVisible)
             .sink { isVisible in
-                if !isVisible {
+                if isVisible {
+                    if NSColorPanel.shared.frame.origin == .zero {
+                        NSColorPanel.shared.center()
+                    }
+                } else {
                     selectedStop = nil
                 }
             }

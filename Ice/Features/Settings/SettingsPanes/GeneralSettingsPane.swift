@@ -65,16 +65,16 @@ struct GeneralSettingsPane: View {
         if let section = menuBar.section(withName: .alwaysHidden) {
             Toggle(isOn: section.bindings.isEnabled) {
                 Text("Enable \"\(section.name.rawValue)\" section")
+                if section.isEnabled {
+                    Text("\(secondaryActionModifier.label) (\(secondaryActionModifier.stringValue)) + click either of \(Constants.appName)'s menu bar items to temporarily show this section")
+                }
             }
 
             if section.isEnabled {
-                Picker(selection: $secondaryActionModifier) {
+                Picker("Modifier", selection: $secondaryActionModifier) {
                     ForEach(ControlItem.secondaryActionModifiers, id: \.self) { modifier in
                         Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
                     }
-                } label: {
-                    Text("Modifier")
-                    Text("\(secondaryActionModifier.label) (\(secondaryActionModifier.stringValue)) + clicking either of \(Constants.appName)'s menu bar items will temporarily show this section")
                 }
             }
         }
@@ -94,7 +94,7 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var iceIconOptions: some View {
-        LabeledContent("\(Constants.appName) Icon") {
+        LabeledContent {
             Menu {
                 Picker("\(Constants.appName) Icon", selection: menuBar.bindings.iceIcon) {
                     ForEach(ControlItemImageSet.userSelectableImageSets) { imageSet in
@@ -117,6 +117,9 @@ struct GeneralSettingsPane: View {
             .labelStyle(.titleAndIcon)
             .scaledToFit()
             .fixedSize()
+        } label: {
+            Text("\(Constants.appName) Icon")
+            Text("Choose a custom icon to show in the menu bar")
         }
         .fileImporter(
             isPresented: $isImportingCustomIceIcon,

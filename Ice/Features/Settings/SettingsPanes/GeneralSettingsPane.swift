@@ -87,9 +87,9 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var iceIconOptions: some View {
-        LabeledContent("Ice Icon") {
+        LabeledContent("\(Constants.appName) Icon") {
             Menu {
-                Picker("Ice Icon", selection: menuBar.bindings.iceIcon) {
+                Picker("\(Constants.appName) Icon", selection: menuBar.bindings.iceIcon) {
                     ForEach(ControlItemImageSet.userSelectableImageSets) { imageSet in
                         label(for: imageSet)
                     }

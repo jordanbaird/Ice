@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		170CF88A2B0EC0970073F982 /* Logger+general.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF8892B0EC0970073F982 /* Logger+general.swift */; };
 		170CF88C2B0ED4FA0073F982 /* RecordingFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */; };
 		170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */; };
 		170CF8902B101D980073F982 /* ColorStop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88F2B101D980073F982 /* ColorStop.swift */; };
@@ -45,7 +44,7 @@
 		7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166832D2A767E6A006ABF84 /* IceApp.swift */; };
 		716683322A767E6B006ABF84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 716683312A767E6B006ABF84 /* Assets.xcassets */; };
 		7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166833C2A7680CE006ABF84 /* AppDelegate.swift */; };
-		7166834B2A76811C006ABF84 /* Logger+mainSubsystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683452A76811C006ABF84 /* Logger+mainSubsystem.swift */; };
+		7166834B2A76811C006ABF84 /* Logger+initCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683452A76811C006ABF84 /* Logger+initCategory.swift */; };
 		7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */; };
 		716683502A7681AF006ABF84 /* MenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166834F2A7681AF006ABF84 /* MenuBar.swift */; };
 		716683522A76820A006ABF84 /* ControlItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683512A76820A006ABF84 /* ControlItem.swift */; };
@@ -63,7 +62,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		170CF8892B0EC0970073F982 /* Logger+general.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+general.swift"; sourceTree = "<group>"; };
 		170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingFailure.swift; sourceTree = "<group>"; };
 		170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizedErrorBox.swift; sourceTree = "<group>"; };
 		170CF88F2B101D980073F982 /* ColorStop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorStop.swift; sourceTree = "<group>"; };
@@ -102,7 +100,7 @@
 		716683312A767E6B006ABF84 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		716683362A767E6B006ABF84 /* Ice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ice.entitlements; sourceTree = "<group>"; };
 		7166833C2A7680CE006ABF84 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		716683452A76811C006ABF84 /* Logger+mainSubsystem.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Logger+mainSubsystem.swift"; sourceTree = "<group>"; };
+		716683452A76811C006ABF84 /* Logger+initCategory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Logger+initCategory.swift"; sourceTree = "<group>"; };
 		716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSStatusItem+showMenu.swift"; sourceTree = "<group>"; };
 		7166834F2A7681AF006ABF84 /* MenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBar.swift; sourceTree = "<group>"; };
 		716683512A76820A006ABF84 /* ControlItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItem.swift; sourceTree = "<group>"; };
@@ -316,8 +314,7 @@
 		716683442A76811C006ABF84 /* Logger */ = {
 			isa = PBXGroup;
 			children = (
-				170CF8892B0EC0970073F982 /* Logger+general.swift */,
-				716683452A76811C006ABF84 /* Logger+mainSubsystem.swift */,
+				716683452A76811C006ABF84 /* Logger+initCategory.swift */,
 			);
 			path = Logger;
 			sourceTree = "<group>";
@@ -478,7 +475,6 @@
 				71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */,
 				71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
-				170CF88A2B0EC0970073F982 /* Logger+general.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
 				177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
@@ -506,7 +502,7 @@
 				7150A7B32AA42B640045EA68 /* Hotkey+Modifiers.swift in Sources */,
 				71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */,
 				71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */,
-				7166834B2A76811C006ABF84 /* Logger+mainSubsystem.swift in Sources */,
+				7166834B2A76811C006ABF84 /* Logger+initCategory.swift in Sources */,
 				17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */,
 				170CF8902B101D980073F982 /* ColorStop.swift in Sources */,
 				17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */,

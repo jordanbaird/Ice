@@ -139,5 +139,5 @@ extension Hotkey {
 
 // MARK: - Logger
 private extension Logger {
-    static let hotkey = mainSubsystem(category: "Hotkey")
+    static let hotkey = Logger(category: "Hotkey")
 }

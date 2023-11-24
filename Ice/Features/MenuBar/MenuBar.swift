@@ -386,5 +386,5 @@ extension MenuBar: BindingExposable { }
 
 // MARK: - Logger
 private extension Logger {
-    static let menuBar = mainSubsystem(category: "MenuBar")
+    static let menuBar = Logger(category: "MenuBar")
 }

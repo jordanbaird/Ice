@@ -275,5 +275,5 @@ enum HotkeyRegistry {
 
 // MARK: - Logger
 private extension Logger {
-    static let hotkeyRegistry = mainSubsystem(category: "HotkeyRegistry")
+    static let hotkeyRegistry = Logger(category: "HotkeyRegistry")
 }

@@ -69,5 +69,5 @@ extension AppState: BindingExposable { }
 
 // MARK: - Logger
 private extension Logger {
-    static let appState = mainSubsystem(category: "AppState")
+    static let appState = Logger(category: "AppState")
 }

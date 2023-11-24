@@ -87,7 +87,7 @@ class MenuBarAppearancePanel: NSPanel {
     ///   returned from the ``defaultAlphaValue`` class property.
     func show(fadeIn: Bool) {
         guard
-            !ProcessInfo.processInfo.isPreview,
+            !AppState.shared.isPreview,
             let screen = NSScreen.main
         else {
             return

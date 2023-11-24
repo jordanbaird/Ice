@@ -20,6 +20,18 @@ final class AppState: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
+    /// A Boolean value that indicates whether the app is running
+    /// as a SwiftUI preview.
+    let isPreview: Bool = {
+        #if DEBUG
+        let environment = ProcessInfo.processInfo.environment
+        let key = "XCODE_RUNNING_FOR_PREVIEWS"
+        return environment[key] != nil
+        #else
+        return false
+        #endif
+    }()
+
     private init() {
         configureCancellables()
     }

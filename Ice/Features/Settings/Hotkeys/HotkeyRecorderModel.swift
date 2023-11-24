@@ -38,7 +38,7 @@ class HotkeyRecorderModel: ObservableObject {
             model.pressedModifierStrings.removeAll()
             model.failure = failure
         }
-        guard !ProcessInfo.processInfo.isPreview else {
+        guard !AppState.shared.isPreview else {
             return
         }
         self.monitor = LocalEventMonitor(mask: [.keyDown, .flagsChanged]) { [weak self] event in

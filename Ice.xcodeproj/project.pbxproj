@@ -45,7 +45,6 @@
 		7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166832D2A767E6A006ABF84 /* IceApp.swift */; };
 		716683322A767E6B006ABF84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 716683312A767E6B006ABF84 /* Assets.xcassets */; };
 		7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166833C2A7680CE006ABF84 /* AppDelegate.swift */; };
-		7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683432A76811C006ABF84 /* ProcessInfo+isPreview.swift */; };
 		7166834B2A76811C006ABF84 /* Logger+mainSubsystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683452A76811C006ABF84 /* Logger+mainSubsystem.swift */; };
 		7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */; };
 		716683502A7681AF006ABF84 /* MenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166834F2A7681AF006ABF84 /* MenuBar.swift */; };
@@ -103,7 +102,6 @@
 		716683312A767E6B006ABF84 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		716683362A767E6B006ABF84 /* Ice.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ice.entitlements; sourceTree = "<group>"; };
 		7166833C2A7680CE006ABF84 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		716683432A76811C006ABF84 /* ProcessInfo+isPreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ProcessInfo+isPreview.swift"; sourceTree = "<group>"; };
 		716683452A76811C006ABF84 /* Logger+mainSubsystem.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Logger+mainSubsystem.swift"; sourceTree = "<group>"; };
 		716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSStatusItem+showMenu.swift"; sourceTree = "<group>"; };
 		7166834F2A7681AF006ABF84 /* MenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBar.swift; sourceTree = "<group>"; };
@@ -311,17 +309,8 @@
 				716683442A76811C006ABF84 /* Logger */,
 				7133ED5F2A855ADA000A7E1B /* NSApplication */,
 				716683462A76811C006ABF84 /* NSStatusItem */,
-				716683422A76811C006ABF84 /* ProcessInfo */,
 			);
 			path = Extensions;
-			sourceTree = "<group>";
-		};
-		716683422A76811C006ABF84 /* ProcessInfo */ = {
-			isa = PBXGroup;
-			children = (
-				716683432A76811C006ABF84 /* ProcessInfo+isPreview.swift */,
-			);
-			path = ProcessInfo;
 			sourceTree = "<group>";
 		};
 		716683442A76811C006ABF84 /* Logger */ = {
@@ -503,7 +492,6 @@
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
 				7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */,
 				71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */,
-				7166834A2A76811C006ABF84 /* ProcessInfo+isPreview.swift in Sources */,
 				71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */,
 				716683502A7681AF006ABF84 /* MenuBar.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,

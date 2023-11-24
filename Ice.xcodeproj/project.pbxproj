@@ -10,6 +10,7 @@
 		170CF88A2B0EC0970073F982 /* Logger+general.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF8892B0EC0970073F982 /* Logger+general.swift */; };
 		170CF88C2B0ED4FA0073F982 /* RecordingFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */; };
 		170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */; };
+		170CF8902B101D980073F982 /* ColorStop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88F2B101D980073F982 /* ColorStop.swift */; };
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
 		1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */; };
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
@@ -66,6 +67,7 @@
 		170CF8892B0EC0970073F982 /* Logger+general.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Logger+general.swift"; sourceTree = "<group>"; };
 		170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingFailure.swift; sourceTree = "<group>"; };
 		170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizedErrorBox.swift; sourceTree = "<group>"; };
+		170CF88F2B101D980073F982 /* ColorStop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorStop.swift; sourceTree = "<group>"; };
 		1725FC692AED973800A59081 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				1736F77F2ADBC02B0073428E /* CustomGradient.swift */,
+				170CF88F2B101D980073F982 /* ColorStop.swift */,
 				1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */,
 			);
 			path = CustomGradientPicker;
@@ -517,6 +520,7 @@
 				71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */,
 				7166834B2A76811C006ABF84 /* Logger+mainSubsystem.swift in Sources */,
 				17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */,
+				170CF8902B101D980073F982 /* ColorStop.swift in Sources */,
 				17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */,
 				71839BD82A997DC200250044 /* Edge+cgRectEdge.swift in Sources */,
 				714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */,

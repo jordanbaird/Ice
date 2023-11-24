@@ -12,8 +12,6 @@ struct MenuBarSettingsPane: View {
         Form {
             Section {
                 tintPicker
-            }
-            Section {
                 shadowToggle
             }
             Section {
@@ -28,9 +26,9 @@ struct MenuBarSettingsPane: View {
 
     @ViewBuilder
     private var tintPicker: some View {
-        LabeledContent("Menu Bar Tint") {
+        LabeledContent("Tint") {
             HStack {
-                Picker("Menu Bar Tint", selection: appState.bindings.menuBar.tintKind) {
+                Picker("Tint", selection: appState.bindings.menuBar.tintKind) {
                     Text("None")
                         .tag(MenuBar.TintKind.none)
                     Text("Solid")

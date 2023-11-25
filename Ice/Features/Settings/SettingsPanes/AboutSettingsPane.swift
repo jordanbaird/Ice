@@ -8,6 +8,10 @@ import SwiftUI
 struct AboutSettingsPane: View {
     @Environment(\.openURL) private var openURL
 
+    var acknowledgementsURL: URL {
+        Bundle.main.url(forResource: "Acknowledgements", withExtension: "pdf")!
+    }
+
     var contributeURL: URL {
         URL(string: "https://github.com/jordanbaird/Ice")!
     }
@@ -48,8 +52,7 @@ struct AboutSettingsPane: View {
         .bottomBar {
             HStack {
                 Button("Acknowledgements") {
-                    // TODO: -
-                    print("Open Acknowledgements")
+                    NSWorkspace.shared.open(acknowledgementsURL)
                 }
                 Spacer()
                 Button("Contribute") {

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		170749BE2B119E97009DDF73 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 170749BD2B119E97009DDF73 /* LaunchAtLogin */; };
+		170749C12B11A2EA009DDF73 /* Acknowledgements.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 170749C02B11A2EA009DDF73 /* Acknowledgements.pdf */; };
 		170CF88C2B0ED4FA0073F982 /* RecordingFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */; };
 		170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */; };
 		170CF8902B101D980073F982 /* ColorStop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88F2B101D980073F982 /* ColorStop.swift */; };
@@ -62,6 +63,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		170749C02B11A2EA009DDF73 /* Acknowledgements.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Acknowledgements.pdf; sourceTree = "<group>"; };
 		170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingFailure.swift; sourceTree = "<group>"; };
 		170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizedErrorBox.swift; sourceTree = "<group>"; };
 		170CF88F2B101D980073F982 /* ColorStop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorStop.swift; sourceTree = "<group>"; };
@@ -129,6 +131,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		170749BF2B11A2BB009DDF73 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				170749C02B11A2EA009DDF73 /* Acknowledgements.pdf */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		1736F7762ADBBEF10073428E /* CustomGradientPicker */ = {
 			isa = PBXGroup;
 			children = (
@@ -278,6 +288,7 @@
 			children = (
 				7166834D2A768184006ABF84 /* Features */,
 				7166833E2A76811C006ABF84 /* Utilities */,
+				170749BF2B11A2BB009DDF73 /* Resources */,
 				7166832D2A767E6A006ABF84 /* IceApp.swift */,
 				7166833C2A7680CE006ABF84 /* AppDelegate.swift */,
 				1725FC692AED973800A59081 /* AppState.swift */,
@@ -461,6 +472,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				716683322A767E6B006ABF84 /* Assets.xcassets in Resources */,
+				170749C12B11A2EA009DDF73 /* Acknowledgements.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

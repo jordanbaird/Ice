@@ -5,11 +5,14 @@
 
 ## About
 
-Ice is a powerful menu bar management tool. Its primary function is to hide and show items in the menu bar. It aims to cover a wide variety of features, while remaining free and open source.
+Ice is a powerful menu bar management tool. While its primary function is to hide and show items in the menu bar, it covers a wide variety of additional features, making it one of the most versatile menu bar tools available. Most importantly, Ice is free and open source.
 
 ![Example](https://github.com/jordanbaird/Ice/assets/90936861/c9b668b8-c4ac-4885-8f6b-1a51acbc2935)
 
-## Roadmap/Features
+> [!NOTE]
+> Ice is currently in active development. As such, some features have not yet been implemented. See roadmap below.
+
+## Features/Roadmap
 
 ### Menu Bar Item Management
 
@@ -33,10 +36,6 @@ Ice is a powerful menu bar management tool. Its primary function is to hide and 
 - [x] Launch at login
 - [ ] Custom menu bar widgets
 - [ ] Custom panel that displays menu bar icons as an alternative to the menu bar
-
-## Known Issues
-
-- Using Ice with other menu bar management apps can result in undefined behavior
 
 ## License
 

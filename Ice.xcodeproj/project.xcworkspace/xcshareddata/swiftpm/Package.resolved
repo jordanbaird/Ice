@@ -1,12 +1,12 @@
 {
   "pins" : [
     {
-      "identity" : "launchatlogin-modern",
+      "identity" : "launchatlogin",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sindresorhus/LaunchAtLogin-Modern",
+      "location" : "https://github.com/sindresorhus/LaunchAtLogin",
       "state" : {
-        "revision" : "638e6c426b8d113eae255baeba59ed2d9d9a7c4d",
-        "version" : "1.0.0"
+        "revision" : "7ad6331f9c38953eb1ce8737758e18f7607e984a",
+        "version" : "5.0.0"
       }
     }
   ],

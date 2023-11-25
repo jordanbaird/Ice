@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		170749BE2B119E97009DDF73 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 170749BD2B119E97009DDF73 /* LaunchAtLogin */; };
 		170CF88C2B0ED4FA0073F982 /* RecordingFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */; };
 		170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */; };
 		170CF8902B101D980073F982 /* ColorStop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88F2B101D980073F982 /* ColorStop.swift */; };
@@ -37,7 +38,6 @@
 		7150A7B32AA42B640045EA68 /* Hotkey+Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B22AA42B640045EA68 /* Hotkey+Modifiers.swift */; };
 		71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71604D602AAE62DA002FE96F /* BottomBar.swift */; };
 		71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71604D622AAE84ED002FE96F /* ErrorOverlay.swift */; };
-		71604D662AAEAB0D002FE96F /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 71604D652AAEAB0D002FE96F /* LaunchAtLogin */; };
 		71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */; };
 		71623BD32A8B6744002FD331 /* CustomButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BD22A8B6744002FD331 /* CustomButtonStyle.swift */; };
 		7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7162406E2AA0A323003EC671 /* MenuBarSection.swift */; };
@@ -122,7 +122,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				71604D662AAEAB0D002FE96F /* LaunchAtLogin in Frameworks */,
+				170749BE2B119E97009DDF73 /* LaunchAtLogin in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -413,7 +413,7 @@
 			);
 			name = Ice;
 			packageProductDependencies = (
-				71604D652AAEAB0D002FE96F /* LaunchAtLogin */,
+				170749BD2B119E97009DDF73 /* LaunchAtLogin */,
 			);
 			productName = Ice;
 			productReference = 7166832A2A767E6A006ABF84 /* Ice.app */;
@@ -444,7 +444,7 @@
 			);
 			mainGroup = 716683212A767E6A006ABF84;
 			packageReferences = (
-				71604D642AAEAB0C002FE96F /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
+				170749BC2B119E97009DDF73 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */,
 			);
 			productRefGroup = 7166832B2A767E6A006ABF84 /* Products */;
 			projectDirPath = "";
@@ -730,20 +730,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		71604D642AAEAB0C002FE96F /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
+		170749BC2B119E97009DDF73 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
+				minimumVersion = 5.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		71604D652AAEAB0D002FE96F /* LaunchAtLogin */ = {
+		170749BD2B119E97009DDF73 /* LaunchAtLogin */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 71604D642AAEAB0C002FE96F /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
+			package = 170749BC2B119E97009DDF73 /* XCRemoteSwiftPackageReference "LaunchAtLogin" */;
 			productName = LaunchAtLogin;
 		};
 /* End XCSwiftPackageProductDependency section */

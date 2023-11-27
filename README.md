@@ -1,13 +1,27 @@
 <div align="center">
-  <img src="Ice/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width=150 height=150>
-  <h1>Ice – Menu Bar Manager</h1>
+    <img src="Ice/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width=150 height=150>
+    <h1>Ice – Menu Bar Manager</h1>
+    <p>
+        <a href="https://github.com/jordanbaird/Ice/releases/latest">
+            <img src="https://img.shields.io/badge/download-latest-brightgreen?style=flat-square", alt="download">
+        </a>
+        <a href="https://img.shields.io/badge/platform-macOS-blue?style=flat-square">
+            <img src="https://img.shields.io/badge/platform-macOS-blue?style=flat-square", alt="platform">
+        </a>
+        <a href="https://img.shields.io/badge/requirements-macOS%2014%2B-fa4e49?style=flat-square">
+            <img src="https://img.shields.io/badge/requirements-macOS%2014%2B-fa4e49?style=flat-square", alt="requirements">
+        </a>
+        <a href="https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square">
+            <img src="https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square", alt="license">
+        </a>
+    </p>
 </div>
 
 ## About
 
 Ice is a powerful menu bar management tool. While its primary function is to hide and show items in the menu bar, it covers a wide variety of additional features, making it one of the most versatile menu bar tools available. Most importantly, Ice is free and open source.
 
-![Example](https://github.com/jordanbaird/Ice/assets/90936861/c9b668b8-c4ac-4885-8f6b-1a51acbc2935)
+![Example](https://github.com/jordanbaird/Ice/assets/90936861/b4116e9b-5073-4654-b426-08cd473aca35)
 
 > [!NOTE]
 > Ice is currently in active development. As such, some features have not yet been implemented. See roadmap below.

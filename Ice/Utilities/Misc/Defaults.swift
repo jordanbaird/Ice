@@ -16,4 +16,5 @@ enum Defaults {
     static let menuBarTintKind = "MenuBarTintKind"
     static let secondaryActionModifier = "SecondaryActionModifier"
     static let sections = "Sections"
+    static let showOnHover = "ShowOnHover"
 }

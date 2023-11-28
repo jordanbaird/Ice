@@ -219,18 +219,13 @@ final class ControlItem: ObservableObject {
         if let window = statusItem.button?.window {
             window.publisher(for: \.frame)
                 .combineLatest(window.publisher(for: \.screen))
-                .compactMap { [weak self] frame, screen in
-                    // only publish when the item is not expanded and the
-                    // window is at least partially onscreen
-                    guard
-                        self?.isExpanded == false,
-                        let screenFrame = screen?.frame,
-                        screenFrame.intersects(frame)
-                    else {
+                .compactMap { frame, screen in
+                    // calculate the position relative to the trailing
+                    // edge of the screen
+                    guard let screen else {
                         return nil
                     }
-                    // calculate position relative to trailing edge of screen
-                    return screenFrame.maxX - frame.maxX
+                    return screen.frame.maxX - frame.maxX
                 }
                 .removeDuplicates()
                 .sink { [weak self] position in

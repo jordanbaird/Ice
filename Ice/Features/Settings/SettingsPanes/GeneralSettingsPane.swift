@@ -25,6 +25,7 @@ struct GeneralSettingsPane: View {
                 alwaysHiddenOptions
             }
             Section {
+                showOnHover
                 iceIconOptions
             }
             Section("Hotkeys") {
@@ -57,6 +58,14 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private var launchAtLogin: some View {
         LaunchAtLogin.Toggle()
+    }
+
+    @ViewBuilder
+    private var showOnHover: some View {
+        Toggle(isOn: menuBar.bindings.showOnHover) {
+            Text("Show on hover")
+            Text("Hover over an empty area in the menu bar to show hidden items")
+        }
     }
 
     @ViewBuilder

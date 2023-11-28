@@ -60,6 +60,11 @@ final class MenuBar: ObservableObject {
     /// menu bar's control items.
     @Published var secondaryActionModifier = Hotkey.Modifiers.option
 
+    /// A Boolean value that indicates whether the hidden section
+    /// should be shown when the mouse pointer hovers over an
+    /// empty area of the menu bar.
+    @Published var showOnHover = false
+
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
@@ -82,6 +87,37 @@ final class MenuBar: ObservableObject {
     private lazy var overlayPanel = MenuBarOverlayPanel(menuBar: self)
     private lazy var backingPanel = MenuBarBackingPanel(menuBar: self)
 
+    private lazy var showOnHoverMonitor = UniversalEventMonitor(mask: .mouseMoved) { [weak self] event in
+        let locationOnScreen = event.locationOnScreen
+        let screenPredicate: (NSScreen) -> Bool = { screen in
+            (screen.frame.minX...screen.frame.maxX).contains(locationOnScreen.x)
+        }
+
+        guard
+            let self,
+            let screen = NSScreen.screens.first(where: screenPredicate),
+            let section = section(withName: .hidden)
+        else {
+            return event
+        }
+
+        if section.isHidden {
+            if
+                let controlItemPosition = section.controlItem.position,
+                locationOnScreen.y > screen.visibleFrame.maxY,
+                screen.frame.maxX - locationOnScreen.x > controlItemPosition
+            {
+                section.show()
+            }
+        } else {
+            if locationOnScreen.y < screen.visibleFrame.maxY {
+                section.hide()
+            }
+        }
+
+        return event
+    }
+
     private var cancellables = Set<AnyCancellable>()
 
     /// Initializes a new menu bar instance.
@@ -102,6 +138,7 @@ final class MenuBar: ObservableObject {
         borderWidth = defaults.object(forKey: Defaults.menuBarBorderWidth) as? Double ?? 1
         tintKind = TintKind(rawValue: defaults.integer(forKey: Defaults.menuBarTintKind)) ?? .none
         customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
+        showOnHover = defaults.bool(forKey: Defaults.showOnHover)
 
         do {
             if let borderColorData = defaults.data(forKey: Defaults.menuBarBorderColor) {
@@ -360,6 +397,18 @@ final class MenuBar: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { modifier in
                 defaults.set(modifier.rawValue, forKey: Defaults.secondaryActionModifier)
+            }
+            .store(in: &c)
+
+        $showOnHover
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] showOnHover in
+                if showOnHover {
+                    self?.showOnHoverMonitor.start()
+                } else {
+                    self?.showOnHoverMonitor.stop()
+                }
+                defaults.set(showOnHover, forKey: Defaults.showOnHover)
             }
             .store(in: &c)
 

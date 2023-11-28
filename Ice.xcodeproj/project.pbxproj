@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		170749C12B11A2EA009DDF73 /* Acknowledgements.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 170749C02B11A2EA009DDF73 /* Acknowledgements.pdf */; };
+		170749C82B12078F009DDF73 /* GlobalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170749C72B12078F009DDF73 /* GlobalEventMonitor.swift */; };
+		170749CA2B1207D9009DDF73 /* UniversalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170749C92B1207D9009DDF73 /* UniversalEventMonitor.swift */; };
 		170CF88C2B0ED4FA0073F982 /* RecordingFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */; };
 		170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */; };
 		170CF8902B101D980073F982 /* ColorStop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88F2B101D980073F982 /* ColorStop.swift */; };
@@ -64,6 +66,8 @@
 
 /* Begin PBXFileReference section */
 		170749C02B11A2EA009DDF73 /* Acknowledgements.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Acknowledgements.pdf; sourceTree = "<group>"; };
+		170749C72B12078F009DDF73 /* GlobalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalEventMonitor.swift; sourceTree = "<group>"; };
+		170749C92B1207D9009DDF73 /* UniversalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalEventMonitor.swift; sourceTree = "<group>"; };
 		170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingFailure.swift; sourceTree = "<group>"; };
 		170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizedErrorBox.swift; sourceTree = "<group>"; };
 		170CF88F2B101D980073F982 /* ColorStop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorStop.swift; sourceTree = "<group>"; };
@@ -137,6 +141,16 @@
 				170749C02B11A2EA009DDF73 /* Acknowledgements.pdf */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		170749CB2B120951009DDF73 /* EventMonitors */ = {
+			isa = PBXGroup;
+			children = (
+				170749C72B12078F009DDF73 /* GlobalEventMonitor.swift */,
+				71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */,
+				170749C92B1207D9009DDF73 /* UniversalEventMonitor.swift */,
+			);
+			path = EventMonitors;
 			sourceTree = "<group>";
 		};
 		1736F7762ADBBEF10073428E /* CustomGradientPicker */ = {
@@ -400,9 +414,9 @@
 				17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */,
 				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
 				17928F192AC5DF9C0016C615 /* Defaults.swift */,
-				71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */,
 				170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
+				170749CB2B120951009DDF73 /* EventMonitors */,
 			);
 			path = Misc;
 			sourceTree = "<group>";
@@ -492,6 +506,7 @@
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
 				1725FC6A2AED973800A59081 /* AppState.swift in Sources */,
+				170749CA2B1207D9009DDF73 /* UniversalEventMonitor.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,
 				718AFF2C2AB360AD00BC49CB /* HotkeyRecorderModel.swift in Sources */,
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,
@@ -500,6 +515,7 @@
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
 				7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */,
 				71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */,
+				170749C82B12078F009DDF73 /* GlobalEventMonitor.swift in Sources */,
 				71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */,
 				716683502A7681AF006ABF84 /* MenuBar.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,

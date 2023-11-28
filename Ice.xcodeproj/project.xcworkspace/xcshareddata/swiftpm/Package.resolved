@@ -1,6 +1,15 @@
 {
   "pins" : [
     {
+      "identity" : "axswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tmandry/AXSwift",
+      "state" : {
+        "revision" : "81dcc36aced905d6464cc25e35f8d13184bbf21c",
+        "version" : "0.3.2"
+      }
+    },
+    {
       "identity" : "launchatlogin-modern",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sindresorhus/LaunchAtLogin-Modern",

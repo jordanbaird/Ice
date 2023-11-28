@@ -3,10 +3,17 @@
 //  Ice
 //
 
+import AXSwift
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // TODO: Replace with Permissions interface
+        guard UIElement.isProcessTrusted(withPrompt: true) else {
+            print("RETURN")
+            return
+        }
+
         if let settingsWindow = NSApp.window(withIdentifier: Constants.settingsWindowID) {
             AppState.shared.assignSettingsWindow(settingsWindow)
             // give the settings window a custom background

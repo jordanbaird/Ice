@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import AXSwift
 import Combine
 import OSLog
 import SwiftUI
@@ -18,6 +19,9 @@ final class MenuBar: ObservableObject {
         /// The menu bar is tinted with a gradient.
         case gradient
     }
+
+    /// The maximum X coordinate of the menu bar's main menu.
+    @Published var mainMenuMaxX: CGFloat = 0
 
     /// Set to `true` to tell the menu bar to save its sections.
     @Published var needsSave = false
@@ -105,6 +109,7 @@ final class MenuBar: ObservableObject {
             if
                 let controlItemPosition = section.controlItem.position,
                 locationOnScreen.y > screen.visibleFrame.maxY,
+                locationOnScreen.x > mainMenuMaxX,
                 screen.frame.maxX - locationOnScreen.x > controlItemPosition
             {
                 section.show()
@@ -222,6 +227,33 @@ final class MenuBar: ObservableObject {
 
         let defaults = UserDefaults.standard
         let encoder = JSONEncoder()
+
+        // update the maxX coordinate of the main menu every
+        // time the application that owns the menu bar changes
+        NSWorkspace.shared.publisher(for: \.menuBarOwningApplication)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] runningApplication in
+                guard let self else {
+                    return
+                }
+                do {
+                    guard
+                        let runningApplication,
+                        let application = Application(runningApplication),
+                        let menuBar: UIElement = try application.attribute(.menuBar),
+                        let children: [UIElement] = try menuBar.arrayAttribute(.children),
+                        let maxX = try children.compactMap({ try ($0.attribute(.frame) as CGRect?)?.maxX }).max()
+                    else {
+                        mainMenuMaxX = 0
+                        return
+                    }
+                    mainMenuMaxX = maxX
+                } catch {
+                    mainMenuMaxX = 0
+                    Logger.menuBar.error("Error updating main menu maxX: \(error)")
+                }
+            }
+            .store(in: &c)
 
         // update the control item for each section when the
         // position of one changes

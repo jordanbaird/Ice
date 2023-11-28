@@ -3,7 +3,7 @@
     <h1>Ice – Menu Bar Manager</h1>
 </div>
 
-Ice is a powerful menu bar management tool. While its primary function is to hide and show items in the menu bar, it covers a wide variety of additional features, making it one of the most versatile menu bar tools available. Most importantly, it is free and open source.
+Ice is a powerful menu bar management tool. While its primary function is to hide and show items in the menu bar, it also aims to cover a wide variety of additional features, making it one of the most versatile menu bar tools available.
 
 ![Example](https://github.com/jordanbaird/Ice/assets/90936861/00e2b2bd-ad0a-4f56-9ca9-aa804489a30d)
 
@@ -13,7 +13,7 @@ Ice is a powerful menu bar management tool. While its primary function is to hid
 [![License](https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square)](LICENSE)
 
 > [!NOTE]
-> Ice is currently in active development. As such, some features have not yet been implemented. See roadmap below.
+> Ice is currently in active development. As such, some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
 
 ## Features/Roadmap
 

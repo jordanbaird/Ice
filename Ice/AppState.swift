@@ -15,6 +15,9 @@ final class AppState: ObservableObject {
     /// Manager for the state of the menu bar.
     private(set) lazy var menuBar = MenuBar(appState: self)
 
+    /// Manager for app permissions.
+    private(set) lazy var permissionsManager = PermissionsManager(appState: self)
+
     /// The window that contains the settings interface.
     private(set) weak var settingsWindow: NSWindow?
 
@@ -41,6 +44,11 @@ final class AppState: ObservableObject {
 
         // propagate changes up from child observable objects
         menuBar.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
+        permissionsManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }

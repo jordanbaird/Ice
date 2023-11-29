@@ -8,21 +8,19 @@ import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // TODO: Replace with Permissions interface
-        guard UIElement.isProcessTrusted(withPrompt: true) else {
-            print("RETURN")
-            return
-        }
-
         if let settingsWindow = NSApp.window(withIdentifier: Constants.settingsWindowID) {
             AppState.shared.assignSettingsWindow(settingsWindow)
             // give the settings window a custom background
             settingsWindow.backgroundColor = .settingsWindowBackground
         }
 
-        // close all windows
-        for window in NSApp.windows {
-            window.close()
+        // if we have the required permissions, stop all checks
+        // and close all windows
+        if AppState.shared.permissionsManager.hasPermissions {
+            AppState.shared.permissionsManager.stopAllChecks()
+            for window in NSApp.windows {
+                window.close()
+            }
         }
 
         // hide the main menu to make more space in the menu bar

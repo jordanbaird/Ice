@@ -22,7 +22,7 @@ Ice is a powerful menu bar management tool. While its primary function is to hid
 - [x] Hide/show menu bar items
 - [x] "Always Hidden" menu bar section
 - [x] Hotkeys to toggle individual menu bar sections
-- [ ] Toggle when mouse enters and exits the menu bar
+- [x] Toggle when mouse enters and exits the menu bar
 - [ ] Autohide after inactivity
 - [ ] Drag and drop interface to arrange individual menu bar items
 - [ ] Hotkeys to temporarily show individual menu bar items

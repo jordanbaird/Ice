@@ -42,7 +42,12 @@ struct CustomGradientPicker: View {
 
     var body: some View {
         gradientView
-            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: 4,
+                    style: .circular
+                )
+            )
             .overlay {
                 borderView
             }
@@ -82,13 +87,16 @@ struct CustomGradientPicker: View {
 
     @ViewBuilder
     private var borderView: some View {
-        RoundedRectangle(cornerRadius: 5)
-            .stroke()
-            .overlay {
-                centerTickMark
-            }
-            .foregroundStyle(.secondary.opacity(0.75))
-            .blendMode(.softLight)
+        RoundedRectangle(
+            cornerRadius: 4,
+            style: .circular
+        )
+        .stroke()
+        .overlay {
+            centerTickMark
+        }
+        .foregroundStyle(.secondary.opacity(0.75))
+        .blendMode(.softLight)
     }
 
     @ViewBuilder
@@ -108,7 +116,12 @@ struct CustomGradientPicker: View {
     @ViewBuilder
     private func insertionReader(geometry: GeometryProxy) -> some View {
         Color.clear
-            .contentShape(RoundedRectangle(cornerRadius: 5))
+            .contentShape(
+                RoundedRectangle(
+                    cornerRadius: 4,
+                    style: .circular
+                )
+            )
             .gesture(
                 DragGesture(
                     minimumDistance: 0,

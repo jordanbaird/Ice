@@ -104,7 +104,7 @@ struct GeneralSettingsPane: View {
     private var iceIconOptions: some View {
         LabeledContent {
             Menu {
-                Picker("\(Constants.appName) Icon", selection: menuBar.bindings.iceIcon) {
+                Picker("\(Constants.appName) icon", selection: menuBar.bindings.iceIcon) {
                     ForEach(ControlItemImageSet.userSelectableImageSets) { imageSet in
                         label(for: imageSet)
                     }
@@ -116,7 +116,7 @@ struct GeneralSettingsPane: View {
                 .pickerStyle(.inline)
                 .labelsHidden()
 
-                Button("Choose Image…") {
+                Button("Choose image…") {
                     isImportingCustomIceIcon = true
                 }
             } label: {
@@ -126,7 +126,7 @@ struct GeneralSettingsPane: View {
             .scaledToFit()
             .fixedSize()
         } label: {
-            Text("\(Constants.appName) Icon")
+            Text("\(Constants.appName) icon")
             Text("Choose a custom icon to show in the menu bar")
         }
         .fileImporter(

@@ -20,12 +20,12 @@
 		177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F22B092A0700448BBF /* ControlItemImage.swift */; };
 		177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F42B0A654D00448BBF /* ControlItemImageSet.swift */; };
 		1787C4272B16890B002F50DF /* AXSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1787C4262B16890B002F50DF /* AXSwift */; };
-		1787C4292B169644002F50DF /* Acknowledgements.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 1787C4282B169644002F50DF /* Acknowledgements.pdf */; };
 		1787C42C2B16AE0B002F50DF /* PermissionsCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C42B2B16AE0B002F50DF /* PermissionsCheck.swift */; };
 		1787C42E2B16AE32002F50DF /* PermissionsGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C42D2B16AE32002F50DF /* PermissionsGroup.swift */; };
 		1787C4302B16AE78002F50DF /* PermissionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C42F2B16AE78002F50DF /* PermissionsManager.swift */; };
 		1787C4322B16AEA0002F50DF /* PermissionsRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C4312B16AEA0002F50DF /* PermissionsRequest.swift */; };
 		1787C4342B16AECF002F50DF /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C4332B16AECF002F50DF /* PermissionsView.swift */; };
+		1787C4362B17A9EB002F50DF /* Acknowledgements.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */; };
 		178B36692AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178B36682AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift */; };
 		17928F1A2AC5DF9C0016C615 /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17928F192AC5DF9C0016C615 /* Defaults.swift */; };
 		179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */; };
@@ -83,12 +83,12 @@
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
 		177386F22B092A0700448BBF /* ControlItemImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImage.swift; sourceTree = "<group>"; };
 		177386F42B0A654D00448BBF /* ControlItemImageSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImageSet.swift; sourceTree = "<group>"; };
-		1787C4282B169644002F50DF /* Acknowledgements.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Acknowledgements.pdf; sourceTree = "<group>"; };
 		1787C42B2B16AE0B002F50DF /* PermissionsCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsCheck.swift; sourceTree = "<group>"; };
 		1787C42D2B16AE32002F50DF /* PermissionsGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsGroup.swift; sourceTree = "<group>"; };
 		1787C42F2B16AE78002F50DF /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
 		1787C4312B16AEA0002F50DF /* PermissionsRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsRequest.swift; sourceTree = "<group>"; };
 		1787C4332B16AECF002F50DF /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
+		1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Acknowledgements.pdf; sourceTree = "<group>"; };
 		178B36682AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearancePanel.swift; sourceTree = "<group>"; };
 		17928F192AC5DF9C0016C615 /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
 		179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveSidebarToggle.swift; sourceTree = "<group>"; };
@@ -152,7 +152,7 @@
 		170749BF2B11A2BB009DDF73 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				1787C4282B169644002F50DF /* Acknowledgements.pdf */,
+				1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -524,7 +524,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				716683322A767E6B006ABF84 /* Assets.xcassets in Resources */,
-				1787C4292B169644002F50DF /* Acknowledgements.pdf in Resources */,
+				1787C4362B17A9EB002F50DF /* Acknowledgements.pdf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

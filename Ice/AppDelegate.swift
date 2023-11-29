@@ -3,7 +3,6 @@
 //  Ice
 //
 
-import AXSwift
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {

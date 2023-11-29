@@ -20,34 +20,23 @@ final class MenuBar: ObservableObject {
         case gradient
     }
 
-    /// The maximum X coordinate of the menu bar's main menu.
-    @Published var mainMenuMaxX: CGFloat = 0
-
-    /// Set to `true` to tell the menu bar to save its sections.
-    @Published var needsSave = false
-
-    /// A Boolean value that indicates whether the menu bar should
-    /// have a shadow.
-    @Published var hasShadow: Bool = false
-
-    /// A Boolean value that indicates whether the menu bar should
-    /// have a border.
-    @Published var hasBorder: Bool = false
-
     /// The color of the menu bar's border.
     @Published var borderColor: CGColor = .black
 
     /// The width of the menu bar's border.
     @Published var borderWidth: Double = 1
 
-    /// The tint kind currently in use.
-    @Published var tintKind: TintKind = .none
+    /// A Boolean value that indicates whether custom Ice icons
+    /// should be rendered as template images.
+    @Published var customIceIconIsTemplate = false
 
-    /// The user's currently chosen tint color.
-    @Published var tintColor: CGColor = .black
+    /// A Boolean value that indicates whether the menu bar should
+    /// have a border.
+    @Published var hasBorder: Bool = false
 
-    /// The user's currently chosen tint gradient.
-    @Published var tintGradient: CustomGradient = .defaultMenuBarTint
+    /// A Boolean value that indicates whether the menu bar should
+    /// have a shadow.
+    @Published var hasShadow: Bool = false
 
     /// An icon to show in the menu bar, with a different image
     /// for when items are visible or hidden.
@@ -56,9 +45,11 @@ final class MenuBar: ObservableObject {
     /// The last user-selected custom Ice icon.
     @Published var lastCustomIceIcon: ControlItemImageSet?
 
-    /// A Boolean value that indicates whether custom Ice icons
-    /// should be rendered as template images.
-    @Published var customIceIconIsTemplate = false
+    /// The maximum X coordinate of the menu bar's main menu.
+    @Published var mainMenuMaxX: CGFloat = 0
+
+    /// Set to `true` to tell the menu bar to save its sections.
+    @Published var needsSave = false
 
     /// The modifier that triggers the secondary action on the
     /// menu bar's control items.
@@ -68,6 +59,20 @@ final class MenuBar: ObservableObject {
     /// should be shown when the mouse pointer hovers over an
     /// empty area of the menu bar.
     @Published var showOnHover = false
+
+    /// A Boolean value that indicates whether the user has interacted
+    /// with the menu bar, preventing the "show on hover" feature from
+    /// activating.
+    @Published var showOnHoverPreventedByUserInteraction = false
+
+    /// The user's currently chosen tint color.
+    @Published var tintColor: CGColor = .black
+
+    /// The user's currently chosen tint gradient.
+    @Published var tintGradient: CustomGradient = .defaultMenuBarTint
+
+    /// The tint kind currently in use.
+    @Published var tintKind: TintKind = .none
 
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
@@ -87,43 +92,63 @@ final class MenuBar: ObservableObject {
         }
     }
 
-    private weak var appState: AppState?
-    private lazy var overlayPanel = MenuBarOverlayPanel(menuBar: self)
-    private lazy var backingPanel = MenuBarBackingPanel(menuBar: self)
+    private var cancellables = Set<AnyCancellable>()
 
-    private lazy var showOnHoverMonitor = UniversalEventMonitor(mask: .mouseMoved) { [weak self] event in
+    private weak var appState: AppState?
+    private lazy var backingPanel = MenuBarBackingPanel(menuBar: self)
+    private lazy var overlayPanel = MenuBarOverlayPanel(menuBar: self)
+
+    private lazy var showOnHoverMonitor = UniversalEventMonitor(
+        mask: [.mouseMoved, .leftMouseDown, .rightMouseDown, .otherMouseDown]
+    ) { [weak self] event in
+        guard
+            let self,
+            !showOnHoverPreventedByUserInteraction
+        else {
+            return event
+        }
+
         let locationOnScreen = event.locationOnScreen
         let screenPredicate: (NSScreen) -> Bool = { screen in
             (screen.frame.minX...screen.frame.maxX).contains(locationOnScreen.x)
         }
 
         guard
-            let self,
             let screen = NSScreen.screens.first(where: screenPredicate),
             let section = section(withName: .hidden)
         else {
             return event
         }
 
-        if section.isHidden {
+        switch event.type {
+        case .mouseMoved:
+            if section.isHidden {
+                if
+                    let controlItemPosition = section.controlItem.position,
+                    locationOnScreen.y > screen.visibleFrame.maxY,
+                    locationOnScreen.x > mainMenuMaxX,
+                    screen.frame.maxX - locationOnScreen.x > controlItemPosition
+                {
+                    section.show()
+                }
+            } else {
+                if locationOnScreen.y < screen.visibleFrame.maxY {
+                    section.hide()
+                }
+            }
+        case .leftMouseDown, .rightMouseDown, .otherMouseDown:
             if
-                let controlItemPosition = section.controlItem.position,
                 locationOnScreen.y > screen.visibleFrame.maxY,
-                locationOnScreen.x > mainMenuMaxX,
-                screen.frame.maxX - locationOnScreen.x > controlItemPosition
+                locationOnScreen.x > mainMenuMaxX
             {
-                section.show()
+                showOnHoverPreventedByUserInteraction = true
             }
-        } else {
-            if locationOnScreen.y < screen.visibleFrame.maxY {
-                section.hide()
-            }
+        default:
+            break
         }
 
         return event
     }
-
-    private var cancellables = Set<AnyCancellable>()
 
     /// Initializes a new menu bar instance.
     init(appState: AppState) {

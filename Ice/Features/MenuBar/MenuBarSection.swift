@@ -210,6 +210,7 @@ final class MenuBarSection: ObservableObject {
             }
             section.controlItem.state = .hideItems
         }
+        menuBar.showOnHoverPreventedByUserInteraction = false
     }
 
     /// Toggles the visibility of the status items in the section.

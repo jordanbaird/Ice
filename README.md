@@ -40,6 +40,14 @@ Ice is a powerful menu bar management tool. While its primary function is to hid
 - [ ] Custom menu bar widgets
 - [ ] Custom panel that displays menu bar icons as an alternative to the menu bar
 
+## Gallery
+
+#### Choose a custom icon to show in the menu bar
+![Visible Menu Bar](https://github.com/jordanbaird/Ice/assets/90936861/ebb49da0-4f3c-4398-8dcd-5d9d9f6561a0)
+
+#### Give the menu bar a custom appearance
+![Menu Bar Appearance](https://github.com/jordanbaird/Ice/assets/90936861/709b603e-d2cf-463c-a089-74c587671472)
+
 ## License
 
 Ice is available under the [MIT license](LICENSE).

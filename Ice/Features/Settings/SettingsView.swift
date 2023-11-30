@@ -50,7 +50,7 @@ struct SettingsView: View {
                     Text(Constants.appName)
                         .font(.system(size: 30, weight: .medium))
                 }
-                .foregroundColor(.primary)
+                .foregroundStyle(.primary)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 10)
                 .padding(.bottom, 8)

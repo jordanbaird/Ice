@@ -10,16 +10,6 @@ import SwiftUI
 
 /// Manager for the state of the menu bar.
 final class MenuBar: ObservableObject {
-    /// A type that specifies how the menu bar is tinted.
-    enum TintKind: Int {
-        /// The menu bar is not tinted.
-        case none
-        /// The menu bar is tinted with a solid color.
-        case solid
-        /// The menu bar is tinted with a gradient.
-        case gradient
-    }
-
     /// The color of the menu bar's border.
     @Published var borderColor: CGColor = .black
 
@@ -72,7 +62,7 @@ final class MenuBar: ObservableObject {
     @Published var tintGradient: CustomGradient = .defaultMenuBarTint
 
     /// The tint kind currently in use.
-    @Published var tintKind: TintKind = .none
+    @Published var tintKind: MenuBarTintKind = .none
 
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
@@ -166,7 +156,7 @@ final class MenuBar: ObservableObject {
         hasShadow = defaults.bool(forKey: Defaults.menuBarHasShadow)
         hasBorder = defaults.bool(forKey: Defaults.menuBarHasBorder)
         borderWidth = defaults.object(forKey: Defaults.menuBarBorderWidth) as? Double ?? 1
-        tintKind = TintKind(rawValue: defaults.integer(forKey: Defaults.menuBarTintKind)) ?? .none
+        tintKind = MenuBarTintKind(rawValue: defaults.integer(forKey: Defaults.menuBarTintKind)) ?? .none
         customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
         showOnHover = defaults.bool(forKey: Defaults.showOnHover)
 

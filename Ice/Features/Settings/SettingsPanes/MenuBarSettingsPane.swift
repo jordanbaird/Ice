@@ -29,12 +29,9 @@ struct MenuBarSettingsPane: View {
         LabeledContent("Tint") {
             HStack {
                 Picker("Tint", selection: appState.bindings.menuBar.tintKind) {
-                    Text("None")
-                        .tag(MenuBar.TintKind.none)
-                    Text("Solid")
-                        .tag(MenuBar.TintKind.solid)
-                    Text("Gradient")
-                        .tag(MenuBar.TintKind.gradient)
+                    ForEach(MenuBarTintKind.allCases) { tintKind in
+                        Text(tintKind.localized).tag(tintKind)
+                    }
                 }
                 .labelsHidden()
 

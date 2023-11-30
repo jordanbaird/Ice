@@ -3,9 +3,9 @@
     <h1>Ice – Menu Bar Manager</h1>
 </div>
 
-Ice is a powerful menu bar management tool. While its primary function is to hide and show items in the menu bar, it also aims to cover a wide variety of additional features, making it one of the most versatile menu bar tools available.
+Ice is a powerful menu bar management tool. While its primary function is to hide and show menu bar items, it aims to cover a wide variety of additional features to make it one of the most versatile menu bar tools available.
 
-![Example](https://github.com/jordanbaird/Ice/assets/90936861/a2f814ee-b0f5-4e27-8786-2a261b4bb392)
+![Example](https://github.com/jordanbaird/Ice/assets/90936861/80f98d27-96a6-4ac7-99d8-527d8b7d26a9)
 
 [![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
@@ -13,11 +13,11 @@ Ice is a powerful menu bar management tool. While its primary function is to hid
 [![License](https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square)](LICENSE)
 
 > [!NOTE]
-> Ice is currently in active development. As such, some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
+> Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
 
 ## Features/Roadmap
 
-### Menu Bar Item Management
+### Menu bar item management
 
 - [x] Hide/show menu bar items
 - [x] "Always Hidden" menu bar section

@@ -99,38 +99,46 @@ final class MenuBar: ObservableObject {
         }
 
         let locationOnScreen = event.locationOnScreen
-        let screenPredicate: (NSScreen) -> Bool = { screen in
-            (screen.frame.minX...screen.frame.maxX).contains(locationOnScreen.x)
-        }
 
         guard
-            let screen = NSScreen.screens.first(where: screenPredicate),
-            let section = section(withName: .hidden)
+            let screen = NSScreen.screens.first(where: { ($0.frame.minX...$0.frame.maxX).contains(locationOnScreen.x) }),
+            let hiddenSection = section(withName: .hidden)
         else {
             return event
         }
 
+        var mouseIsInMenuBar: Bool {
+            guard let hiddenControlItemPosition = hiddenSection.controlItem.position else {
+                return false
+            }
+            return locationOnScreen.y > screen.visibleFrame.maxY &&
+            locationOnScreen.x > mainMenuMaxX &&
+            screen.frame.maxX - locationOnScreen.x > hiddenControlItemPosition
+        }
+
         switch event.type {
         case .mouseMoved:
-            if section.isHidden {
-                if
-                    let controlItemPosition = section.controlItem.position,
-                    locationOnScreen.y > screen.visibleFrame.maxY,
-                    locationOnScreen.x > mainMenuMaxX,
-                    screen.frame.maxX - locationOnScreen.x > controlItemPosition
-                {
-                    section.show()
+            if hiddenSection.isHidden {
+                if mouseIsInMenuBar {
+                    hiddenSection.show()
                 }
             } else {
                 if locationOnScreen.y < screen.visibleFrame.maxY {
-                    section.hide()
+                    hiddenSection.hide()
                 }
             }
-        case .leftMouseDown, .rightMouseDown, .otherMouseDown:
-            if
-                locationOnScreen.y > screen.visibleFrame.maxY,
-                locationOnScreen.x > mainMenuMaxX
-            {
+        case .leftMouseDown:
+            guard
+                let visibleSection = section(withName: .visible),
+                let visibleControlItemFrame = visibleSection.controlItem.windowFrame
+            else {
+                break
+            }
+            if mouseIsInMenuBar || visibleControlItemFrame.contains(locationOnScreen) {
+                showOnHoverPreventedByUserInteraction = true
+            }
+        case .rightMouseDown, .otherMouseDown:
+            if mouseIsInMenuBar {
                 showOnHoverPreventedByUserInteraction = true
             }
         default:

@@ -70,6 +70,11 @@ final class ControlItem: ObservableObject {
         statusItem.autosaveName
     }
 
+    /// The frame of the control item's window.
+    var windowFrame: CGRect? {
+        statusItem.button?.window?.frame
+    }
+
     /// The menu bar section associated with the control item.
     var section: MenuBarSection? {
         menuBar?.sections.first { $0.controlItem == self }

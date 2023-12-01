@@ -41,31 +41,18 @@ private struct ErrorOverlayView<E: Error & Equatable, Content: View>: View {
     @ViewBuilder
     private func overlay(in frame: CGRect) -> some View {
         Text(error?.localizedDescription ?? "")
-            .font(.system(size: 18, weight: .light))
-            .padding()
-            .background {
-                VisualEffectView(
-                    material: .toolTip,
-                    blendingMode: .withinWindow,
-                    state: .active,
-                    isEmphasized: true
-                )
-                .clipShape(
-                    RoundedRectangle(cornerRadius: 9)
-                )
-                .overlay {
-                    VisualEffectView(
-                        material: .selection,
-                        blendingMode: .withinWindow,
-                        state: .active,
-                        isEmphasized: true
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 9)
-                            .inset(by: colorScheme == .dark ? 1 : 0)
-                            .stroke(lineWidth: 0.5)
-                    )
-                }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                Material.regular,
+                in: RoundedRectangle(cornerRadius: 7)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 7)
+                    .inset(by: colorScheme == .dark ? 1.5 : 0.5)
+                    .stroke(lineWidth: 1)
+                    .foregroundStyle(.tertiary)
+                    .opacity(0.75)
             }
             .shadow(
                 color: .black.opacity(0.5),
@@ -76,8 +63,8 @@ private struct ErrorOverlayView<E: Error & Equatable, Content: View>: View {
                 maxHeight: frame.height * 0.75
             )
             .position(
-                x: frame.width / 2,
-                y: frame.height / 2
+                x: frame.midX,
+                y: frame.maxY - 25
             )
     }
 }

@@ -30,11 +30,21 @@ private struct ErrorOverlayView<E: Error & Equatable, Content: View>: View {
                     overlay(in: proxy.frame(in: .local))
                 }
             }
-            .animation(.default, value: error)
-            .transition(.opacity)
         }
         .onPreferenceChange(ErrorPreferenceKey<E>.self) { error in
-            self.error = error
+            if self.error == nil || error == nil {
+                withAnimation {
+                    self.error = error
+                }
+            } else {
+                withAnimation(.easeInOut(duration: 0.25), completionCriteria: .removed) {
+                    self.error = nil
+                } completion: {
+                    withAnimation {
+                        self.error = error
+                    }
+                }
+            }
         }
     }
 

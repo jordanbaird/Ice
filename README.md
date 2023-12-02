@@ -32,7 +32,7 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 - [x] Menu bar tint (solid and gradient)
 - [x] Menu bar shadow
 - [x] Menu bar border
-- [ ] Custom menu bar shapes
+- [ ] Custom menu bar shapes (i.e. rounded/split)
 
 ### Other
 

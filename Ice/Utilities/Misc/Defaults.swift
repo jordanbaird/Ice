@@ -7,10 +7,11 @@
 enum Defaults {
     static let customIceIconIsTemplate = "CustomIceIconIsTemplate"
     static let iceIcon = "IceIcon"
-    static let menuBarHasBorder = "MenuBarHasBorder"
-    static let menuBarHasShadow = "MenuBarHasShadow"
     static let menuBarBorderColor = "MenuBarBorderColor"
     static let menuBarBorderWidth = "MenuBarBorderWidth"
+    static let menuBarHasBorder = "MenuBarHasBorder"
+    static let menuBarHasShadow = "MenuBarHasShadow"
+    static let menuBarShape = "MenuBarShape"
     static let menuBarTintColor = "MenuBarTintColor"
     static let menuBarTintGradient = "MenuBarTintGradient"
     static let menuBarTintKind = "MenuBarTintKind"

@@ -45,6 +45,9 @@ final class MenuBar: ObservableObject {
     /// menu bar's control items.
     @Published var secondaryActionModifier = Hotkey.Modifiers.option
 
+    /// The shape of the menu bar.
+    @Published var shape: MenuBarShape = .defaultShape
+
     /// A Boolean value that indicates whether the hidden section
     /// should be shown when the mouse pointer hovers over an
     /// empty area of the menu bar.
@@ -186,6 +189,9 @@ final class MenuBar: ObservableObject {
             }
             if let modifierRawValue = defaults.object(forKey: Defaults.secondaryActionModifier) as? Int {
                 secondaryActionModifier = Hotkey.Modifiers(rawValue: modifierRawValue)
+            }
+            if let shapeData = defaults.data(forKey: Defaults.menuBarShape) {
+                shape = try decoder.decode(MenuBarShape.self, from: shapeData)
             }
         } catch {
             Logger.menuBar.error("Error decoding value: \(error)")
@@ -464,6 +470,18 @@ final class MenuBar: ObservableObject {
                     self?.showOnHoverMonitor.stop()
                 }
                 defaults.set(showOnHover, forKey: Defaults.showOnHover)
+            }
+            .store(in: &c)
+
+        $shape
+            .receive(on: DispatchQueue.main)
+            .encode(encoder: encoder)
+            .sink { completion in
+                if case .failure(let error) = completion {
+                    Logger.menuBar.error("Error encoding menu bar shape: \(error)")
+                }
+            } receiveValue: { data in
+                defaults.set(data, forKey: Defaults.menuBarShape)
             }
             .store(in: &c)
 

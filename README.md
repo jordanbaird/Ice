@@ -3,9 +3,9 @@
     <h1>Ice – Menu Bar Manager</h1>
 </div>
 
-Ice is a powerful menu bar management tool. While its primary function is to hide and show menu bar items, it aims to cover a wide variety of additional features to make it one of the most versatile menu bar tools available.
+Ice is a powerful menu bar management tool. While its primary function is hiding and showing menu bar items, it aims to cover a wide variety of additional features to make it one of the most versatile menu bar tools available.
 
-![Example](https://github.com/jordanbaird/Ice/assets/90936861/80f98d27-96a6-4ac7-99d8-527d8b7d26a9)
+![Banner](https://github.com/jordanbaird/Ice/assets/90936861/80f98d27-96a6-4ac7-99d8-527d8b7d26a9)
 
 [![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
@@ -32,7 +32,7 @@ Ice is a powerful menu bar management tool. While its primary function is to hid
 - [x] Menu bar tint (solid and gradient)
 - [x] Menu bar shadow
 - [x] Menu bar border
-- [ ] Rounded menu bar
+- [ ] Custom menu bar shapes
 
 ### Other
 

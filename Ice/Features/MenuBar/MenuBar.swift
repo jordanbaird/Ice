@@ -43,10 +43,18 @@ final class MenuBar: ObservableObject {
 
     /// The modifier that triggers the secondary action on the
     /// menu bar's control items.
-    @Published var secondaryActionModifier = Hotkey.Modifiers.option
+    @Published var secondaryActionModifier: Hotkey.Modifiers = .option
 
     /// The shape of the menu bar.
-    @Published var shape: MenuBarShape = .defaultShape
+    @Published var shapeKind: MenuBarShapeKind = .full
+
+    /// Information for the menu bar's shape when it is in
+    /// the ``MenuBarShape/full`` state.
+    @Published var fullShapeInfo: MenuBarFullShapeInfo = .default
+
+    /// Information for the menu bar's shape when it is in
+    /// the ``MenuBarShape/split`` state.
+    @Published var splitShapeInfo: MenuBarSplitShapeInfo = .default
 
     /// A Boolean value that indicates whether the hidden section
     /// should be shown when the mouse pointer hovers over an
@@ -190,8 +198,14 @@ final class MenuBar: ObservableObject {
             if let modifierRawValue = defaults.object(forKey: Defaults.secondaryActionModifier) as? Int {
                 secondaryActionModifier = Hotkey.Modifiers(rawValue: modifierRawValue)
             }
-            if let shapeData = defaults.data(forKey: Defaults.menuBarShape) {
-                shape = try decoder.decode(MenuBarShape.self, from: shapeData)
+            if let shapeKindData = defaults.data(forKey: Defaults.menuBarShapeKind) {
+                shapeKind = try decoder.decode(MenuBarShapeKind.self, from: shapeKindData)
+            }
+            if let fullShapeData = defaults.data(forKey: Defaults.menuBarFullShapeInfo) {
+                fullShapeInfo = try decoder.decode(MenuBarFullShapeInfo.self, from: fullShapeData)
+            }
+            if let splitShapeData = defaults.data(forKey: Defaults.menuBarSplitShapeInfo) {
+                splitShapeInfo = try decoder.decode(MenuBarSplitShapeInfo.self, from: splitShapeData)
             }
         } catch {
             Logger.menuBar.error("Error decoding value: \(error)")
@@ -473,15 +487,39 @@ final class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
-        $shape
+        $shapeKind
             .receive(on: DispatchQueue.main)
             .encode(encoder: encoder)
             .sink { completion in
                 if case .failure(let error) = completion {
-                    Logger.menuBar.error("Error encoding menu bar shape: \(error)")
+                    Logger.menuBar.error("Error encoding menu bar shape kind: \(error)")
                 }
             } receiveValue: { data in
-                defaults.set(data, forKey: Defaults.menuBarShape)
+                defaults.set(data, forKey: Defaults.menuBarShapeKind)
+            }
+            .store(in: &c)
+
+        $fullShapeInfo
+            .receive(on: DispatchQueue.main)
+            .encode(encoder: encoder)
+            .sink { completion in
+                if case .failure(let error) = completion {
+                    Logger.menuBar.error("Error encoding menu bar full shape info: \(error)")
+                }
+            } receiveValue: { data in
+                defaults.set(data, forKey: Defaults.menuBarFullShapeInfo)
+            }
+            .store(in: &c)
+
+        $splitShapeInfo
+            .receive(on: DispatchQueue.main)
+            .encode(encoder: encoder)
+            .sink { completion in
+                if case .failure(let error) = completion {
+                    Logger.menuBar.error("Error encoding menu bar split shape info: \(error)")
+                }
+            } receiveValue: { data in
+                defaults.set(data, forKey: Defaults.menuBarSplitShapeInfo)
             }
             .store(in: &c)
 

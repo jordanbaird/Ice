@@ -1,11 +1,11 @@
 //
-//  MenuBarSettingsPane.swift
+//  MenuBarAppearanceTab.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct MenuBarSettingsPane: View {
+struct MenuBarAppearanceTab: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
@@ -18,6 +18,9 @@ struct MenuBarSettingsPane: View {
                 borderToggle
                 borderColor
                 borderWidth
+            }
+            Section("Menu Bar Shape") {
+                shapePicker
             }
         }
         .formStyle(.grouped)
@@ -92,10 +95,15 @@ struct MenuBarSettingsPane: View {
             )
         }
     }
+
+    @ViewBuilder
+    private var shapePicker: some View {
+        MenuBarShapePicker()
+    }
 }
 
 #Preview {
-    MenuBarSettingsPane()
+    MenuBarAppearanceTab()
         .environmentObject(AppState.shared)
         .frame(width: 500, height: 300)
 }

@@ -75,7 +75,7 @@ struct HotkeyRecorder<Label: View>: View {
             }
             .frame(width: 130, height: 21)
             .onFrameChange(update: $frame)
-            .error(model.failure)
+            .overlay(error: model.failure)
             .buttonStyle(.custom)
         } label: {
             label

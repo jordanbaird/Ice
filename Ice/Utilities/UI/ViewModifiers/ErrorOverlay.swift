@@ -84,21 +84,22 @@ extension View {
     /// occur.
     ///
     /// The overlay can be triggered by setting an error of the same
-    /// type using the ``error(_:)`` modifier elsewhere in the view
-    /// hierarchy.
+    /// type using the ``overlay(error:)`` modifier elsewhere in the
+    /// view hierarchy.
     ///
     /// - Parameter type: The type of error to display a descriptive
     ///   overlay for.
-    func errorOverlay<E: Error & Equatable>(_ type: E.Type) -> some View {
+    func errorOverlay<E: Error & Equatable>(for type: E.Type) -> some View {
         ErrorOverlayView(type: type, content: self)
     }
 
-    /// Sets an error to be displayed over the top of any view that has
-    /// applied the ``errorOverlay(_:)`` modifier for the same error
-    /// type as the provided error.
+    /// Sets an error to be presented as a descriptive overlay atop
+    /// views that have applied the ``errorOverlay(for:)`` modifier
+    /// with the same type as the provided error.
     ///
-    /// - Parameter error: An error to display a descriptive overlay for.
-    func error<E: Error & Equatable>(_ error: E?) -> some View {
+    /// - Parameter error: An error to display as a descriptive
+    ///   overlay. Pass `nil` to remove an existing overlay.
+    func overlay<E: Error & Equatable>(error: E?) -> some View {
         preference(key: ErrorPreferenceKey<E>.self, value: error)
     }
 }

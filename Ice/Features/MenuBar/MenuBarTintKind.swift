@@ -8,11 +8,11 @@ import SwiftUI
 /// A type that specifies how the menu bar is tinted.
 enum MenuBarTintKind: Int, CaseIterable, Identifiable {
     /// The menu bar is not tinted.
-    case none
+    case none = 0
     /// The menu bar is tinted with a solid color.
-    case solid
+    case solid = 1
     /// The menu bar is tinted with a gradient.
-    case gradient
+    case gradient = 2
 
     var id: Int { rawValue }
 

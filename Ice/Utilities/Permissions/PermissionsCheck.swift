@@ -31,7 +31,7 @@ class PermissionsCheck<Request: PermissionsRequest>: ObservableObject {
         hasPermissions = body()
         timerCancellable = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
-            .sink { [weak self] timer in
+            .sink { [weak self] _ in
                 guard let self else {
                     return
                 }
@@ -57,8 +57,8 @@ class AccessibilityPermissionsCheck: PermissionsCheck<AccessibilityRequest> {
 }
 
 // MARK: - ScreenCapturePermissionsCheck
-//class ScreenCapturePermissionsCheck: PermissionsCheck<ScreenCaptureRequest> {
-//    init() {
-//        super.init(body: CGPreflightScreenCaptureAccess)
-//    }
-//}
+// class ScreenCapturePermissionsCheck: PermissionsCheck<ScreenCaptureRequest> {
+//     init() {
+//         super.init(body: CGPreflightScreenCaptureAccess)
+//     }
+// }

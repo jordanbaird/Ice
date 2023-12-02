@@ -6,7 +6,7 @@
 import Foundation
 import OSLog
 
-private let subsystem = Bundle.main.bundleIdentifier!
+private let subsystem = Bundle.main.bundleIdentifier! // swiftlint:disable:this force_unwrapping
 
 extension Logger {
     /// Creates a logger using the default subsystem and the

@@ -1,0 +1,21 @@
+name: Lint Swift Files
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - ".github/workflows/lint.yml"
+      - ".swiftlint.yml"
+      - "**/*.swift"
+  pull_request:
+    paths:
+      - ".github/workflows/lint.yml"
+      - ".swiftlint.yml"
+      - "**/*.swift"
+jobs:
+  swiftlint:
+    if: '!github.event.pull_request.merged'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run SwiftLint
+        uses: norio-nomura/action-swiftlint@3.2.1

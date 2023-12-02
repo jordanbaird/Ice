@@ -116,7 +116,7 @@ final class MenuBarSection: ObservableObject {
         controlItem.$isVisible
             .removeDuplicates()
             .sink { [weak self] isVisible in
-                guard 
+                guard
                     let self,
                     isEnabled != isVisible
                 else {
@@ -129,7 +129,7 @@ final class MenuBarSection: ObservableObject {
         $isEnabled
             .removeDuplicates()
             .sink { [weak self] isEnabled in
-                guard 
+                guard
                     let self,
                     controlItem.isVisible != isEnabled
                 else {

@@ -479,7 +479,7 @@ private enum StatusItemDefaults {
 
     /// Accesses the value associated with the specified key and autosave name.
     static subscript<Value>(
-        key: StatusItemDefaultsKey<Value>, 
+        key: StatusItemDefaultsKey<Value>,
         autosaveName: String
     ) -> Value? {
         get {

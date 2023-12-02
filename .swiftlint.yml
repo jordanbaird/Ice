@@ -1,0 +1,70 @@
+disabled_rules:
+  - cyclomatic_complexity
+  - file_length
+  - function_body_length
+  - identifier_name
+  - large_tuple
+  - line_length
+  - nesting
+  - todo
+  - type_body_length
+
+opt_in_rules:
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - convenience_type
+  - discouraged_object_literal
+  - empty_count
+  - fatal_error_message
+  - file_header
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - indentation_width
+  - literal_expression_end_indentation
+  - lower_acl_than_parent
+  - modifier_order
+  - multiline_arguments
+  - multiline_arguments_brackets
+  - multiline_literal_brackets
+  - multiline_parameters
+  - multiline_parameters_brackets
+  - period_spacing
+  - unavailable_function
+  - vertical_parameter_alignment_on_call
+  - vertical_whitespace_closing_braces
+  - yoda_condition
+
+custom_rules:
+  objc_dynamic:
+    name: "@objc dynamic"
+    message: "`dynamic` modifier should immediately follow `@objc` attribute"
+    regex: '@objc\b(\(\w*\))?+\s*(\S+|\v+\S*)\s*\bdynamic'
+    match_kinds: attribute.builtin
+  prefer_spaces_over_tabs:
+    name: Prefer Spaces Over Tabs
+    message: "Indentation should use 4 spaces per indentation level instead of tabs"
+    regex: ^\t
+
+file_header:
+  required_pattern: |
+    //
+    //  SWIFTLINT_CURRENT_FILENAME
+    //  Ice
+    //
+
+modifier_order:
+  preferred_modifier_order:
+    - acl
+    - setterACL
+    - override
+    - mutators
+    - lazy
+    - final
+    - required
+    - convenience
+    - typeMethods
+    - owned
+
+trailing_comma:
+  mandatory_comma: true

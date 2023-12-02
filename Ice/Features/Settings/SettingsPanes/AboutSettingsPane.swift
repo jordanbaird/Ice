@@ -9,10 +9,12 @@ struct AboutSettingsPane: View {
     @Environment(\.openURL) private var openURL
 
     var acknowledgementsURL: URL {
+        // swiftlint:disable:next force_unwrapping
         Bundle.main.url(forResource: "Acknowledgements", withExtension: "pdf")!
     }
 
     var contributeURL: URL {
+        // swiftlint:disable:next force_unwrapping
         URL(string: "https://github.com/jordanbaird/Ice")!
     }
 

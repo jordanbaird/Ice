@@ -52,12 +52,12 @@ struct AccessibilityRequest: PermissionsRequest {
 }
 
 // MARK: - ScreenCaptureRequest
-//struct ScreenCaptureRequest: PermissionsRequest {
-//    var settingsPaneURL: URL? {
-//        URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
-//    }
+// struct ScreenCaptureRequest: PermissionsRequest {
+//     var settingsPaneURL: URL? {
+//         URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
+//     }
 //
-//    func perform() {
-//        CGRequestScreenCaptureAccess()
-//    }
-//}
+//     func perform() {
+//         CGRequestScreenCaptureAccess()
+//     }
+// }

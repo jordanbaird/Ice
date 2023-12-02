@@ -50,7 +50,7 @@ struct PermissionsView: View {
     private var permissionsGroupStack: some View {
         VStack {
             PermissionsGroupView(group: appState.permissionsManager.accessibilityGroup)
-            //PermissionsGroupView(group: appState.permissionsManager.screenCaptureGroup)
+            // PermissionsGroupView(group: appState.permissionsManager.screenCaptureGroup)
         }
     }
 

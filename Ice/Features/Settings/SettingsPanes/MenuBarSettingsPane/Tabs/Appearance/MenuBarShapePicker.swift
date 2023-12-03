@@ -35,9 +35,11 @@ struct MenuBarShapePicker: View {
     private var exampleView: some View {
         switch menuBar.shapeKind {
         case .full:
-            MenuBarFullShapeExampleView(info: menuBar.bindings.fullShapeInfo).equatable()
+            MenuBarFullShapeExampleView(info: menuBar.bindings.fullShapeInfo)
+                .equatable()
         case .split:
-            MenuBarSplitShapeExampleView(info: menuBar.bindings.splitShapeInfo).equatable()
+            MenuBarSplitShapeExampleView(info: menuBar.bindings.splitShapeInfo)
+                .equatable()
         }
     }
 }

@@ -25,6 +25,7 @@ struct MenuBarAppearanceTab: View {
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     @ViewBuilder

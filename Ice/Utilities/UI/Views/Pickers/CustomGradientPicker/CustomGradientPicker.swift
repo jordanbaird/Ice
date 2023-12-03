@@ -402,6 +402,7 @@ private struct CustomGradientPickerHandle: View {
         var c = Set<AnyCancellable>()
 
         NSColorPanel.shared.publisher(for: \.color)
+            .receive(on: DispatchQueue.main)
             .dropFirst()
             .sink { color in
                 if stop?.color != color.cgColor {

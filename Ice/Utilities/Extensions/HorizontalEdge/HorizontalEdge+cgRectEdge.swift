@@ -1,17 +1,15 @@
 //
-//  Edge+cgRectEdge.swift
+//  HorizontalEdge+cgRectEdge.swift
 //  Ice
 //
 
 import SwiftUI
 
-extension Edge {
+extension HorizontalEdge {
     /// The CoreGraphics equivalent to this edge.
     var cgRectEdge: CGRectEdge {
         switch self {
-        case .top: .maxYEdge
         case .leading: .minXEdge
-        case .bottom: .minYEdge
         case .trailing: .maxXEdge
         }
     }

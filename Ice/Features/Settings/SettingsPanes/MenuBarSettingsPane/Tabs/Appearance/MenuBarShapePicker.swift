@@ -22,6 +22,8 @@ struct MenuBarShapePicker: View {
         Picker("Shape Kind", selection: menuBar.bindings.shapeKind) {
             ForEach(MenuBarShapeKind.allCases, id: \.self) { shape in
                 switch shape {
+                case .none:
+                    Text("None").tag(shape)
                 case .full:
                     Text("Full").tag(shape)
                 case .split:
@@ -34,6 +36,10 @@ struct MenuBarShapePicker: View {
     @ViewBuilder
     private var exampleView: some View {
         switch menuBar.shapeKind {
+        case .none:
+            Text("No shape kind selected")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
         case .full:
             MenuBarFullShapeExampleView(info: menuBar.bindings.fullShapeInfo)
                 .equatable()

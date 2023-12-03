@@ -46,7 +46,7 @@ final class MenuBar: ObservableObject {
     @Published var secondaryActionModifier: Hotkey.Modifiers = .option
 
     /// The shape of the menu bar.
-    @Published var shapeKind: MenuBarShapeKind = .full
+    @Published var shapeKind: MenuBarShapeKind = .none
 
     /// Information for the menu bar's shape when it is in
     /// the ``MenuBarShape/full`` state.

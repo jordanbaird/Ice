@@ -41,6 +41,8 @@ class MenuBarAppearancePanel: NSPanel {
         self.menuBar = menuBar
         self.level = level
         self.title = title
+        self.backgroundColor = .clear
+        self.hasShadow = false
         self.ignoresMouseEvents = true
         self.collectionBehavior = [
             .fullScreenNone,
@@ -122,18 +124,34 @@ class MenuBarAppearancePanel: NSPanel {
 }
 
 // MARK: - MenuBarOverlayPanel
-class MenuBarOverlayPanel: MenuBarAppearancePanel {
-    private var cancellables = Set<AnyCancellable>()
 
+class MenuBarOverlayPanel: MenuBarAppearancePanel {
     init(menuBar: MenuBar) {
         super.init(
             level: .statusBar,
             title: "Menu Bar Overlay",
             menuBar: menuBar
         )
-        self.contentView?.wantsLayer = true
-        self.backgroundColor = .clear
+        self.contentView = MenuBarOverlayPanelView(menuBar: menuBar)
+    }
+}
+
+// MARK: - MenuBarOverlayPanelView
+
+class MenuBarOverlayPanelView: NSView {
+    private(set) weak var menuBar: MenuBar?
+
+    private var cancellables = Set<AnyCancellable>()
+
+    init(menuBar: MenuBar) {
+        self.menuBar = menuBar
+        super.init(frame: .zero)
         configureCancellables()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 
     private func configureCancellables() {
@@ -145,73 +163,18 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
                 menuBar.$tintColor,
                 menuBar.$tintGradient
             )
-            .sink { [weak self] _ in
-                DispatchQueue.main.async {
-                    self?.updateContentView()
-                }
-            }
-            .store(in: &c)
-
-            Publishers.CombineLatest3(
+            .combineLatest(
                 menuBar.$shapeKind,
                 menuBar.$fullShapeInfo,
                 menuBar.$splitShapeInfo
             )
             .sink { [weak self] _ in
-                DispatchQueue.main.async {
-                    self?.updateContentView()
-                }
+                self?.needsDisplay = true
             }
             .store(in: &c)
         }
 
         cancellables = c
-    }
-
-    private func updateContentView() {
-        guard let menuBar else {
-            return
-        }
-        contentView = MenuBarOverlayPanelView(
-            tintKind: menuBar.tintKind,
-            tintColor: menuBar.tintColor,
-            tintGradient: menuBar.tintGradient,
-            shapeKind: menuBar.shapeKind,
-            fullShapeInfo: menuBar.fullShapeInfo,
-            splitShapeInfo: menuBar.splitShapeInfo
-        )
-    }
-}
-
-// MARK: - MenuBarOverlayPanelView
-class MenuBarOverlayPanelView: NSView {
-    let tintKind: MenuBarTintKind
-    let tintColor: CGColor
-    let tintGradient: CustomGradient
-    let shapeKind: MenuBarShapeKind
-    let fullShapeInfo: MenuBarFullShapeInfo
-    let splitShapeInfo: MenuBarSplitShapeInfo
-
-    init(
-        tintKind: MenuBarTintKind,
-        tintColor: CGColor,
-        tintGradient: CustomGradient,
-        shapeKind: MenuBarShapeKind,
-        fullShapeInfo: MenuBarFullShapeInfo,
-        splitShapeInfo: MenuBarSplitShapeInfo
-    ) {
-        self.tintKind = tintKind
-        self.tintColor = tintColor
-        self.tintGradient = tintGradient
-        self.shapeKind = shapeKind
-        self.fullShapeInfo = fullShapeInfo
-        self.splitShapeInfo = splitShapeInfo
-        super.init(frame: .zero)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -220,7 +183,11 @@ class MenuBarOverlayPanelView: NSView {
             NSGraphicsContext.restoreGraphicsState()
         }
 
-        switch shapeKind {
+        guard let menuBar else {
+            return
+        }
+
+        switch menuBar.shapeKind {
         case .none:
             break
         case .full:
@@ -245,14 +212,14 @@ class MenuBarOverlayPanelView: NSView {
 
             let clipPath = NSBezierPath(rect: clipBounds)
 
-            switch fullShapeInfo.leadingEndCap {
+            switch menuBar.fullShapeInfo.leadingEndCap {
             case .square:
                 clipPath.appendRect(leadingEndCapBounds)
             case .round:
                 clipPath.appendOval(in: leadingEndCapBounds)
             }
 
-            switch fullShapeInfo.trailingEndCap {
+            switch menuBar.fullShapeInfo.trailingEndCap {
             case .square:
                 clipPath.appendRect(trailingEndCapBounds)
             case .round:
@@ -264,23 +231,22 @@ class MenuBarOverlayPanelView: NSView {
             break
         }
 
-        switch tintKind {
+        switch menuBar.tintKind {
         case .none:
             break
         case .solid:
-            NSColor(cgColor: tintColor)?.setFill()
+            NSColor(cgColor: menuBar.tintColor)?.setFill()
             NSBezierPath(rect: bounds).fill()
         case .gradient:
-            tintGradient.nsGradient?.draw(in: bounds, angle: 0)
+            menuBar.tintGradient.nsGradient?.draw(in: bounds, angle: 0)
         }
     }
 }
 
 // MARK: - MenuBarBackingPanel
+
 class MenuBarBackingPanel: MenuBarAppearancePanel {
     override class var defaultAlphaValue: CGFloat { 1 }
-
-    private var cancellables = Set<AnyCancellable>()
 
     private var offset: Double {
         guard
@@ -298,43 +264,7 @@ class MenuBarBackingPanel: MenuBarAppearancePanel {
             title: "Menu Bar Backing",
             menuBar: menuBar
         )
-        self.backgroundColor = .clear
-        self.hasShadow = false
-        configureCancellables()
-    }
-
-    private func configureCancellables() {
-        var c = Set<AnyCancellable>()
-
-        if let menuBar {
-            Publishers.CombineLatest4(
-                menuBar.$hasShadow,
-                menuBar.$hasBorder,
-                menuBar.$borderColor,
-                menuBar.$borderWidth
-            )
-            .sink { [weak self] _ in
-                DispatchQueue.main.async {
-                    guard
-                        let self,
-                        let menuBar = self.menuBar
-                    else {
-                        return
-                    }
-                    self.contentView = MenuBarBackingPanelView(
-                        hasShadow: menuBar.hasShadow,
-                        hasBorder: menuBar.hasBorder,
-                        borderWidth: menuBar.borderWidth,
-                        borderColor: menuBar.borderColor,
-                        offset: self.offset
-                    )
-                    self.show(fadeIn: true)
-                }
-            }
-            .store(in: &c)
-        }
-
-        cancellables = c
+        self.contentView = MenuBarBackingPanelView(menuBar: menuBar)
     }
 
     override func menuBarFrame(forScreen screen: NSScreen) -> CGRect {
@@ -349,26 +279,16 @@ class MenuBarBackingPanel: MenuBarAppearancePanel {
 }
 
 // MARK: - MenuBarBackingPanelView
-class MenuBarBackingPanelView: NSView {
-    let hasShadow: Bool
-    let hasBorder: Bool
-    let borderWidth: Double
-    let borderColor: CGColor
-    let offset: Double
 
-    init(
-        hasShadow: Bool,
-        hasBorder: Bool,
-        borderWidth: Double,
-        borderColor: CGColor,
-        offset: Double
-    ) {
-        self.hasShadow = hasShadow
-        self.hasBorder = hasBorder
-        self.borderWidth = borderWidth
-        self.borderColor = borderColor
-        self.offset = offset
+class MenuBarBackingPanelView: NSView {
+    private(set) weak var menuBar: MenuBar?
+
+    private var cancellables = Set<AnyCancellable>()
+
+    init(menuBar: MenuBar) {
+        self.menuBar = menuBar
         super.init(frame: .zero)
+        configureCancellables()
     }
 
     @available(*, unavailable)
@@ -376,8 +296,30 @@ class MenuBarBackingPanelView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        if let menuBar {
+            Publishers.CombineLatest4(
+                menuBar.$hasShadow,
+                menuBar.$hasBorder,
+                menuBar.$borderColor,
+                menuBar.$borderWidth
+            )
+            .sink { [weak self] _ in
+                self?.needsDisplay = true
+            }
+            .store(in: &c)
+        }
+
+        cancellables = c
+    }
+
     override func draw(_ dirtyRect: NSRect) {
-        if hasShadow {
+        guard let menuBar else {
+            return
+        }
+        if menuBar.hasShadow {
             let gradient = NSGradient(
                 colors: [
                     NSColor(white: 0.0, alpha: 0.0),
@@ -392,14 +334,14 @@ class MenuBarBackingPanelView: NSView {
             )
             gradient?.draw(in: shadowBounds, angle: 90)
         }
-        if hasBorder {
+        if menuBar.hasBorder {
             let borderBounds = CGRect(
                 x: bounds.minX,
                 y: bounds.minY + 5,
                 width: bounds.width,
-                height: borderWidth
+                height: menuBar.borderWidth
             )
-            NSColor(cgColor: borderColor)?.setFill()
+            NSColor(cgColor: menuBar.borderColor)?.setFill()
             NSBezierPath(rect: borderBounds).fill()
         }
     }

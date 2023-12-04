@@ -42,12 +42,7 @@ struct CustomGradientPicker: View {
 
     var body: some View {
         gradientView
-            .clipShape(
-                RoundedRectangle(
-                    cornerRadius: 4,
-                    style: .circular
-                )
-            )
+            .clipShape(borderShape)
             .overlay {
                 borderView
             }
@@ -75,6 +70,11 @@ struct CustomGradientPicker: View {
     }
 
     @ViewBuilder
+    private var borderShape: some Shape {
+        RoundedRectangle(cornerRadius: 4, style: .circular)
+    }
+
+    @ViewBuilder
     private var gradientView: some View {
         if gradient.stops.isEmpty {
             Rectangle()
@@ -87,16 +87,13 @@ struct CustomGradientPicker: View {
 
     @ViewBuilder
     private var borderView: some View {
-        RoundedRectangle(
-            cornerRadius: 4,
-            style: .circular
-        )
-        .stroke()
-        .overlay {
-            centerTickMark
-        }
-        .foregroundStyle(.secondary.opacity(0.75))
-        .blendMode(.softLight)
+        borderShape
+            .stroke()
+            .overlay {
+                centerTickMark
+            }
+            .foregroundStyle(.secondary.opacity(0.75))
+            .blendMode(.softLight)
     }
 
     @ViewBuilder
@@ -116,12 +113,7 @@ struct CustomGradientPicker: View {
     @ViewBuilder
     private func insertionReader(geometry: GeometryProxy) -> some View {
         Color.clear
-            .contentShape(
-                RoundedRectangle(
-                    cornerRadius: 4,
-                    style: .circular
-                )
-            )
+            .contentShape(borderShape)
             .gesture(
                 DragGesture(
                     minimumDistance: 0,
@@ -250,6 +242,7 @@ private struct CustomGradientPickerHandle: View {
     @Binding var selectedStop: ColorStop?
     @Binding var zOrderedStops: [ColorStop]
     @Binding var cancellables: Set<AnyCancellable>
+    @State private var canActivate = true
 
     let index: Int
     let supportsOpacity: Bool
@@ -386,6 +379,10 @@ private struct CustomGradientPickerHandle: View {
     }
 
     private func activate() {
+        guard canActivate else {
+            return
+        }
+
         deactivate()
 
         NSColorPanel.shared.showsAlpha = supportsOpacity
@@ -405,6 +402,10 @@ private struct CustomGradientPickerHandle: View {
             .receive(on: DispatchQueue.main)
             .dropFirst()
             .sink { color in
+                canActivate = false
+                defer {
+                    canActivate = true
+                }
                 if stop?.color != color.cgColor {
                     stop?.color = color.cgColor
                     selectedStop = stop

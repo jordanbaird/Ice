@@ -7,18 +7,23 @@ import SwiftUI
 
 struct AboutSettingsPane: View {
     @Environment(\.openURL) private var openURL
+    @State private var frame: CGRect = .zero
 
-    var acknowledgementsURL: URL {
+    private var isLarge: Bool {
+        frame.width >= 475
+    }
+
+    private var acknowledgementsURL: URL {
         // swiftlint:disable:next force_unwrapping
         Bundle.main.url(forResource: "Acknowledgements", withExtension: "pdf")!
     }
 
-    var contributeURL: URL {
+    private var contributeURL: URL {
         // swiftlint:disable:next force_unwrapping
         URL(string: "https://github.com/jordanbaird/Ice")!
     }
 
-    var issuesURL: URL {
+    private var issuesURL: URL {
         contributeURL.appendingPathComponent("issues")
     }
 
@@ -28,29 +33,33 @@ struct AboutSettingsPane: View {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 300, height: 300)
+                    .frame(width: isLarge ? 300 : 200)
             }
 
             VStack(alignment: .leading) {
                 Text(Constants.appName)
-                    .font(.system(size: 64))
+                    .font(.system(size: isLarge ? 64 : 36))
                     .foregroundStyle(.primary)
 
                 HStack(spacing: 4) {
                     Text("Version")
                     Text(Constants.appVersion)
                 }
-                .font(.system(size: 16))
+                .font(.system(size: isLarge ? 16 : 12))
                 .foregroundStyle(.secondary)
 
                 Text(Constants.copyright)
-                    .font(.system(size: 14))
+                    .font(.system(size: isLarge ? 14 : 10))
                     .foregroundStyle(.tertiary)
             }
             .fontWeight(.medium)
             .padding([.vertical, .trailing])
         }
-        .frame(maxHeight: .infinity)
+        .frame(
+            maxWidth: .infinity,
+            maxHeight: .infinity
+        )
+        .onFrameChange(update: $frame)
         .bottomBar {
             HStack {
                 Button("Acknowledgements") {

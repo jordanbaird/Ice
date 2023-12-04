@@ -132,6 +132,7 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
             menuBar: menuBar
         )
         self.contentView?.wantsLayer = true
+        self.backgroundColor = .clear
         configureCancellables()
     }
 
@@ -146,7 +147,19 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
             )
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
-                    self?.updateTint()
+                    self?.updateContentView()
+                }
+            }
+            .store(in: &c)
+
+            Publishers.CombineLatest3(
+                menuBar.$shapeKind,
+                menuBar.$fullShapeInfo,
+                menuBar.$splitShapeInfo
+            )
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.updateContentView()
                 }
             }
             .store(in: &c)
@@ -155,44 +168,110 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
         cancellables = c
     }
 
-    /// Updates the tint of the panel according to the menu bar's
-    /// tint kind.
-    func updateTint() {
-        backgroundColor = .clear
-        contentView?.layer = CALayer()
-
+    private func updateContentView() {
         guard let menuBar else {
             return
         }
+        contentView = MenuBarOverlayPanelView(
+            tintKind: menuBar.tintKind,
+            tintColor: menuBar.tintColor,
+            tintGradient: menuBar.tintGradient,
+            shapeKind: menuBar.shapeKind,
+            fullShapeInfo: menuBar.fullShapeInfo,
+            splitShapeInfo: menuBar.splitShapeInfo
+        )
+    }
+}
 
-        switch menuBar.tintKind {
+// MARK: - MenuBarOverlayPanelView
+class MenuBarOverlayPanelView: NSView {
+    let tintKind: MenuBarTintKind
+    let tintColor: CGColor
+    let tintGradient: CustomGradient
+    let shapeKind: MenuBarShapeKind
+    let fullShapeInfo: MenuBarFullShapeInfo
+    let splitShapeInfo: MenuBarSplitShapeInfo
+
+    init(
+        tintKind: MenuBarTintKind,
+        tintColor: CGColor,
+        tintGradient: CustomGradient,
+        shapeKind: MenuBarShapeKind,
+        fullShapeInfo: MenuBarFullShapeInfo,
+        splitShapeInfo: MenuBarSplitShapeInfo
+    ) {
+        self.tintKind = tintKind
+        self.tintColor = tintColor
+        self.tintGradient = tintGradient
+        self.shapeKind = shapeKind
+        self.fullShapeInfo = fullShapeInfo
+        self.splitShapeInfo = splitShapeInfo
+        super.init(frame: .zero)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        NSGraphicsContext.saveGraphicsState()
+        defer {
+            NSGraphicsContext.restoreGraphicsState()
+        }
+
+        switch shapeKind {
+        case .none:
+            break
+        case .full:
+            let clipBounds = CGRect(
+                x: bounds.height / 2,
+                y: 0,
+                width: bounds.width - bounds.height,
+                height: bounds.height
+            )
+            let leadingEndCapBounds = CGRect(
+                x: 0,
+                y: 0,
+                width: bounds.height,
+                height: bounds.height
+            )
+            let trailingEndCapBounds = CGRect(
+                x: bounds.width - bounds.height,
+                y: 0,
+                width: bounds.height,
+                height: bounds.height
+            )
+
+            let clipPath = NSBezierPath(rect: clipBounds)
+
+            switch fullShapeInfo.leadingEndCap {
+            case .square:
+                clipPath.appendRect(leadingEndCapBounds)
+            case .round:
+                clipPath.appendOval(in: leadingEndCapBounds)
+            }
+
+            switch fullShapeInfo.trailingEndCap {
+            case .square:
+                clipPath.appendRect(trailingEndCapBounds)
+            case .round:
+                clipPath.appendOval(in: trailingEndCapBounds)
+            }
+
+            clipPath.setClip()
+        case .split:
+            break
+        }
+
+        switch tintKind {
         case .none:
             break
         case .solid:
-            guard let nsColor = NSColor(cgColor: menuBar.tintColor) else {
-                return
-            }
-            backgroundColor = nsColor
+            NSColor(cgColor: tintColor)?.setFill()
+            NSBezierPath(rect: bounds).fill()
         case .gradient:
-            guard !menuBar.tintGradient.stops.isEmpty else {
-                return
-            }
-            let gradientLayer = CAGradientLayer()
-            gradientLayer.startPoint = CGPoint(x: 0, y: 0)
-            gradientLayer.endPoint = CGPoint(x: 1, y: 0)
-            if menuBar.tintGradient.stops.count == 1 {
-                // gradient layer needs at least two stops to render correctly;
-                // convert the single stop into two and place them on opposite
-                // ends of the layer
-                let color = menuBar.tintGradient.stops[0].color
-                gradientLayer.colors = [color, color]
-                gradientLayer.locations = [0, 1]
-            } else {
-                let sortedStops = menuBar.tintGradient.stops.sorted { $0.location < $1.location }
-                gradientLayer.colors = sortedStops.map { $0.color }
-                gradientLayer.locations = sortedStops.map { $0.location } as [NSNumber]
-            }
-            contentView?.layer = gradientLayer
+            tintGradient.nsGradient?.draw(in: bounds, angle: 0)
         }
     }
 }
@@ -269,6 +348,7 @@ class MenuBarBackingPanel: MenuBarAppearancePanel {
     }
 }
 
+// MARK: - MenuBarBackingPanelView
 class MenuBarBackingPanelView: NSView {
     let hasShadow: Bool
     let hasBorder: Bool

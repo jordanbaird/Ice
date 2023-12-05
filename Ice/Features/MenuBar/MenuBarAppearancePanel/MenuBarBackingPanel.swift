@@ -9,8 +9,6 @@ import Combine
 // MARK: - MenuBarBackingPanel
 
 class MenuBarBackingPanel: MenuBarAppearancePanel {
-    override var defaultAlphaValue: CGFloat { 1 }
-
     override var canShow: Bool {
         guard let menuBar else {
             return false

@@ -6,6 +6,7 @@
 import AXSwift
 import Combine
 import OSLog
+import ScreenCaptureKit
 import SwiftUI
 
 /// Manager for the state of the menu bar.
@@ -19,6 +20,14 @@ final class MenuBar: ObservableObject {
     /// A Boolean value that indicates whether custom Ice icons
     /// should be rendered as template images.
     @Published var customIceIconIsTemplate = false
+
+    /// A Boolean value that indicates whether the current desktop
+    /// wallpaper should be published.
+    @Published var publishesDesktopWallpaper = true
+
+    /// The current desktop wallpaper, clipped to the bounds of
+    /// the menu bar.
+    @Published var desktopWallpaper: CGImage?
 
     /// A Boolean value that indicates whether the menu bar should
     /// have a border.
@@ -335,6 +344,20 @@ final class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
+        Timer.publish(every: 5, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                if publishesDesktopWallpaper {
+                    Task { [weak self] in
+                        try await self?.readAndUpdateDesktopWallpaper()
+                    }
+                }
+            }
+            .store(in: &c)
+
         $needsSave
             .debounce(for: 1, scheduler: DispatchQueue.main)
             .sink { [weak self] needsSave in
@@ -523,6 +546,22 @@ final class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
+        $publishesDesktopWallpaper
+            .sink { [weak self] publishesDesktopWallpaper in
+                guard let self else {
+                    return
+                }
+                // immediately update the desktop wallpaper
+                if publishesDesktopWallpaper {
+                    Task { [weak self] in
+                        try await self?.readAndUpdateDesktopWallpaper()
+                    }
+                } else {
+                    desktopWallpaper = nil
+                }
+            }
+            .store(in: &c)
+
         // propagate changes up from child observable objects
         for section in sections {
             section.objectWillChange
@@ -533,6 +572,46 @@ final class MenuBar: ObservableObject {
         }
 
         cancellables = c
+    }
+
+    @MainActor
+    private func readAndUpdateDesktopWallpaper() async throws {
+        guard
+            let appState,
+            appState.permissionsManager.screenCaptureGroup.hasPermissions
+        else {
+            return
+        }
+
+        let content = try await SCShareableContent.current
+
+        let wallpaperWindowPredicate: (SCWindow) -> Bool = { window in
+            // wallpaper window belongs to the Dock process
+            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            window.isOnScreen &&
+            window.title?.hasPrefix("Wallpaper-") == true
+        }
+        let menuBarWindowPredicate: (SCWindow) -> Bool = { window in
+            // menu bar window belongs to the WindowServer process
+            // (identified by an empty string)
+            window.owningApplication?.bundleIdentifier == "" &&
+            window.windowLayer == kCGMainMenuWindowLevel &&
+            window.title == "Menubar"
+        }
+
+        guard
+            let wallpaperWindow = content.windows.first(where: wallpaperWindowPredicate),
+            let menuBarWindow = content.windows.first(where: menuBarWindowPredicate)
+        else {
+            // TODO: Throw an error
+            return
+        }
+
+        desktopWallpaper = try await ScreenshotManager.captureImage(
+            window: wallpaperWindow,
+            captureRect: menuBarWindow.frame,
+            options: .ignoreFraming
+        )
     }
 
     /// Returns the menu bar section with the given name.

@@ -16,9 +16,6 @@ class MenuBarAppearancePanel: NSPanel {
     /// The menu bar that manages the panel.
     private(set) weak var menuBar: MenuBar?
 
-    /// The default alpha value for the panel.
-    var defaultAlphaValue: CGFloat { 0.2 }
-
     /// A Boolean value that indicates whether the panel
     /// can be shown.
     var canShow: Bool { true }
@@ -87,8 +84,7 @@ class MenuBarAppearancePanel: NSPanel {
     ///
     /// - Parameter fadeIn: A Boolean value that indicates whether
     ///   the panel should fade in. If `true`, the panel starts out
-    ///   fully transparent and animates its opacity to the value
-    ///   returned from the ``defaultAlphaValue`` property.
+    ///   fully transparent and animates to fully opaque.
     func showIfAble(fadeIn: Bool) {
         guard
             canShow,
@@ -108,11 +104,11 @@ class MenuBarAppearancePanel: NSPanel {
             }
             orderFrontRegardless()
             if !isVisible {
-                animator().alphaValue = defaultAlphaValue
+                animator().alphaValue = 1
             }
         } else {
             orderFrontRegardless()
-            alphaValue = defaultAlphaValue
+            alphaValue = 1
         }
     }
 

@@ -31,7 +31,8 @@ private class MenuBarOverlayPanelView: NSView {
     init(menuBar: MenuBar) {
         super.init(frame: .zero)
         self.menuBar = menuBar
-        self.cancellable = Publishers.CombineLatest3(
+        self.cancellable = Publishers.CombineLatest4(
+            menuBar.$desktopWallpaper,
             menuBar.$tintKind,
             menuBar.$tintColor,
             menuBar.$tintGradient
@@ -84,20 +85,43 @@ private class MenuBarOverlayPanelView: NSView {
                 height: bounds.height
             )
 
-            let clipPath = NSBezierPath(rect: clipBounds)
+            var clipPath = NSBezierPath(rect: clipBounds)
 
             switch menuBar.fullShapeInfo.leadingEndCap {
             case .square:
-                clipPath.appendRect(leadingEndCapBounds)
+                clipPath = NSBezierPath(
+                    cgPath: clipPath.cgPath.union(
+                        CGPath(rect: leadingEndCapBounds, transform: nil)
+                    )
+                )
             case .round:
-                clipPath.appendOval(in: leadingEndCapBounds)
+                clipPath = NSBezierPath(
+                    cgPath: clipPath.cgPath.union(
+                        CGPath(ellipseIn: leadingEndCapBounds, transform: nil)
+                    )
+                )
             }
 
             switch menuBar.fullShapeInfo.trailingEndCap {
             case .square:
-                clipPath.appendRect(trailingEndCapBounds)
+                clipPath = NSBezierPath(
+                    cgPath: clipPath.cgPath.union(
+                        CGPath(rect: trailingEndCapBounds, transform: nil)
+                    )
+                )
             case .round:
-                clipPath.appendOval(in: trailingEndCapBounds)
+                clipPath = NSBezierPath(
+                    cgPath: clipPath.cgPath.union(
+                        CGPath(ellipseIn: trailingEndCapBounds, transform: nil)
+                    )
+                )
+            }
+
+            if let desktopWallpaper = menuBar.desktopWallpaper {
+                let reversedClipPath = NSBezierPath(rect: bounds)
+                reversedClipPath.append(clipPath.reversed)
+                reversedClipPath.setClip()
+                NSGraphicsContext.current?.cgContext.draw(desktopWallpaper, in: bounds, byTiling: false)
             }
 
             clipPath.setClip()
@@ -109,10 +133,10 @@ private class MenuBarOverlayPanelView: NSView {
         case .none:
             break
         case .solid:
-            NSColor(cgColor: menuBar.tintColor)?.setFill()
+            NSColor(cgColor: menuBar.tintColor)?.withAlphaComponent(0.2).setFill()
             NSBezierPath(rect: bounds).fill()
         case .gradient:
-            menuBar.tintGradient.nsGradient?.draw(in: bounds, angle: 0)
+            menuBar.tintGradient.withAlphaComponent(0.2).nsGradient?.draw(in: bounds, angle: 0)
         }
     }
 }

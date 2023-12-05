@@ -23,6 +23,7 @@
 		177354702B1BFF65001CF731 /* HorizontalEdge+cgRectEdge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1773546F2B1BFF65001CF731 /* HorizontalEdge+cgRectEdge.swift */; };
 		177354792B1F533F001CF731 /* MenuBarOverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354782B1F533F001CF731 /* MenuBarOverlayPanel.swift */; };
 		1773547B2B1F539A001CF731 /* MenuBarBackingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1773547A2B1F539A001CF731 /* MenuBarBackingPanel.swift */; };
+		177354812B1F5F38001CF731 /* ScreenshotManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354802B1F5F38001CF731 /* ScreenshotManager.swift */; };
 		177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F22B092A0700448BBF /* ControlItemImage.swift */; };
 		177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F42B0A654D00448BBF /* ControlItemImageSet.swift */; };
 		1787C4272B16890B002F50DF /* AXSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1787C4262B16890B002F50DF /* AXSwift */; };
@@ -93,6 +94,7 @@
 		1773546F2B1BFF65001CF731 /* HorizontalEdge+cgRectEdge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HorizontalEdge+cgRectEdge.swift"; sourceTree = "<group>"; };
 		177354782B1F533F001CF731 /* MenuBarOverlayPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarOverlayPanel.swift; sourceTree = "<group>"; };
 		1773547A2B1F539A001CF731 /* MenuBarBackingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarBackingPanel.swift; sourceTree = "<group>"; };
+		177354802B1F5F38001CF731 /* ScreenshotManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotManager.swift; sourceTree = "<group>"; };
 		177386F22B092A0700448BBF /* ControlItemImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImage.swift; sourceTree = "<group>"; };
 		177386F42B0A654D00448BBF /* ControlItemImageSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImageSet.swift; sourceTree = "<group>"; };
 		1787C42B2B16AE0B002F50DF /* PermissionsCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsCheck.swift; sourceTree = "<group>"; };
@@ -510,6 +512,7 @@
 				17928F192AC5DF9C0016C615 /* Defaults.swift */,
 				170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
+				177354802B1F5F38001CF731 /* ScreenshotManager.swift */,
 				170749CB2B120951009DDF73 /* EventMonitors */,
 			);
 			path = Misc;
@@ -619,6 +622,7 @@
 				1787C42C2B16AE0B002F50DF /* PermissionsCheck.swift in Sources */,
 				1787C4342B16AECF002F50DF /* PermissionsView.swift in Sources */,
 				716683502A7681AF006ABF84 /* MenuBar.swift in Sources */,
+				177354812B1F5F38001CF731 /* ScreenshotManager.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				1773546A2B1BBACF001CF731 /* MenuBarAppearanceTab.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,

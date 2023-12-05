@@ -57,8 +57,8 @@ class AccessibilityPermissionsCheck: PermissionsCheck<AccessibilityRequest> {
 }
 
 // MARK: - ScreenCapturePermissionsCheck
-// class ScreenCapturePermissionsCheck: PermissionsCheck<ScreenCaptureRequest> {
-//     init() {
-//         super.init(body: CGPreflightScreenCaptureAccess)
-//     }
-// }
+class ScreenCapturePermissionsCheck: PermissionsCheck<ScreenCaptureRequest> {
+    init() {
+        super.init(body: CGPreflightScreenCaptureAccess)
+    }
+}

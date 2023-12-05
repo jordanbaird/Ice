@@ -11,6 +11,14 @@ struct ColorStop: Hashable {
     var color: CGColor
     /// The location of the stop relative to its gradient.
     var location: CGFloat
+
+    /// Returns a copy of the color stop with the given alpha value.
+    func withAlphaComponent(_ alpha: CGFloat) -> ColorStop? {
+        guard let newColor = color.copy(alpha: alpha) else {
+            return nil
+        }
+        return ColorStop(color: newColor, location: location)
+    }
 }
 
 extension ColorStop: Codable {

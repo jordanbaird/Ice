@@ -92,18 +92,18 @@ class AccessibilityPermissionsGroup: PermissionsGroup<AccessibilityRequest, Acce
 }
 
 // MARK: - ScreenCapturePermissionsGroup
-// class ScreenCapturePermissionsGroup: PermissionsGroup<ScreenCaptureRequest, ScreenCapturePermissionsCheck> {
-//     init(permissionsManager: PermissionsManager) {
-//         super.init(
-//             check: ScreenCapturePermissionsCheck(),
-//             title: "Screen Capture",
-//             details: [
-//                 "Capture images of your menu bar items for display.",
-//             ],
-//             notes: [
-//                 "\(Constants.appName) does not record your screen.",
-//             ],
-//             appState: permissionsManager.appState
-//         )
-//     }
-// }
+class ScreenCapturePermissionsGroup: PermissionsGroup<ScreenCaptureRequest, ScreenCapturePermissionsCheck> {
+    init(permissionsManager: PermissionsManager) {
+        super.init(
+            check: ScreenCapturePermissionsCheck(),
+            title: "Screen Capture",
+            details: [
+                "Capture images of your menu bar items for display.",
+            ],
+            notes: [
+                "\(Constants.appName) does not record your screen.",
+            ],
+            appState: permissionsManager.appState
+        )
+    }
+}

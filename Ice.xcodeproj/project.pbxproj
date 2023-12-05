@@ -24,6 +24,7 @@
 		177354792B1F533F001CF731 /* MenuBarOverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354782B1F533F001CF731 /* MenuBarOverlayPanel.swift */; };
 		1773547B2B1F539A001CF731 /* MenuBarBackingPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1773547A2B1F539A001CF731 /* MenuBarBackingPanel.swift */; };
 		177354812B1F5F38001CF731 /* ScreenshotManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354802B1F5F38001CF731 /* ScreenshotManager.swift */; };
+		177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354832B1F9AF9001CF731 /* NSBezierPath+union.swift */; };
 		177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F22B092A0700448BBF /* ControlItemImage.swift */; };
 		177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F42B0A654D00448BBF /* ControlItemImageSet.swift */; };
 		1787C4272B16890B002F50DF /* AXSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1787C4262B16890B002F50DF /* AXSwift */; };
@@ -95,6 +96,7 @@
 		177354782B1F533F001CF731 /* MenuBarOverlayPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarOverlayPanel.swift; sourceTree = "<group>"; };
 		1773547A2B1F539A001CF731 /* MenuBarBackingPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarBackingPanel.swift; sourceTree = "<group>"; };
 		177354802B1F5F38001CF731 /* ScreenshotManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotManager.swift; sourceTree = "<group>"; };
+		177354832B1F9AF9001CF731 /* NSBezierPath+union.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+union.swift"; sourceTree = "<group>"; };
 		177386F22B092A0700448BBF /* ControlItemImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImage.swift; sourceTree = "<group>"; };
 		177386F42B0A654D00448BBF /* ControlItemImageSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImageSet.swift; sourceTree = "<group>"; };
 		1787C42B2B16AE0B002F50DF /* PermissionsCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsCheck.swift; sourceTree = "<group>"; };
@@ -233,6 +235,14 @@
 				177354782B1F533F001CF731 /* MenuBarOverlayPanel.swift */,
 			);
 			path = MenuBarAppearancePanel;
+			sourceTree = "<group>";
+		};
+		177354822B1F9AE1001CF731 /* NSBezierPath */ = {
+			isa = PBXGroup;
+			children = (
+				177354832B1F9AF9001CF731 /* NSBezierPath+union.swift */,
+			);
+			path = NSBezierPath;
 			sourceTree = "<group>";
 		};
 		177386F62B0A656100448BBF /* ControlItem */ = {
@@ -424,6 +434,7 @@
 				1773546E2B1BFF55001CF731 /* HorizontalEdge */,
 				716683442A76811C006ABF84 /* Logger */,
 				7133ED5F2A855ADA000A7E1B /* NSApplication */,
+				177354822B1F9AE1001CF731 /* NSBezierPath */,
 				17ECD34C2B156F8E003BA301 /* NSEvent */,
 				716683462A76811C006ABF84 /* NSStatusItem */,
 			);
@@ -624,6 +635,7 @@
 				716683502A7681AF006ABF84 /* MenuBar.swift in Sources */,
 				177354812B1F5F38001CF731 /* ScreenshotManager.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
+				177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */,
 				1773546A2B1BBACF001CF731 /* MenuBarAppearanceTab.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
 				178B36692AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift in Sources */,

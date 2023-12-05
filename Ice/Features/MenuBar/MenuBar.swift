@@ -438,10 +438,11 @@ final class MenuBar: ObservableObject {
             .store(in: &c)
 
         $tintKind
-            .map { tintKind in
-                tintKind != .none
-            }
+            .combineLatest($shapeKind)
             .receive(on: DispatchQueue.main)
+            .map { tintKind, shapeKind in
+                tintKind != .none || shapeKind != .none
+            }
             .sink { [weak self] shouldShow in
                 guard let self else {
                     return

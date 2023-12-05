@@ -9,13 +9,17 @@ import Combine
 // MARK: - MenuBarBackingPanel
 
 class MenuBarBackingPanel: MenuBarAppearancePanel {
-    private(set) weak var menuBar: MenuBar?
-
     override var defaultAlphaValue: CGFloat { 1 }
 
+    override var canShow: Bool {
+        guard let menuBar else {
+            return false
+        }
+        return menuBar.hasShadow || menuBar.hasBorder
+    }
+
     init(menuBar: MenuBar) {
-        super.init(level: Level(Int(CGWindowLevelForKey(.desktopIconWindow))))
-        self.menuBar = menuBar
+        super.init(level: Level(Int(CGWindowLevelForKey(.desktopIconWindow))), menuBar: menuBar)
         self.contentView = MenuBarBackingPanelView(menuBar: menuBar)
     }
 

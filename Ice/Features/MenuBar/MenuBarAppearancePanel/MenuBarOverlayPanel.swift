@@ -9,8 +9,15 @@ import Combine
 // MARK: - MenuBarOverlayPanel
 
 class MenuBarOverlayPanel: MenuBarAppearancePanel {
+    override var canShow: Bool {
+        guard let menuBar else {
+            return false
+        }
+        return menuBar.shapeKind != .none || menuBar.tintKind != .none
+    }
+
     init(menuBar: MenuBar) {
-        super.init(level: .statusBar)
+        super.init(level: .statusBar, menuBar: menuBar)
         self.contentView = MenuBarOverlayPanelView(menuBar: menuBar)
     }
 }

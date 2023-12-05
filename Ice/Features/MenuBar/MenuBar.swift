@@ -407,7 +407,7 @@ final class MenuBar: ObservableObject {
                     return
                 }
                 if shouldShow {
-                    backingPanel.show(fadeIn: true)
+                    backingPanel.showIfAble(fadeIn: true)
                 } else {
                     backingPanel.hide()
                 }
@@ -424,7 +424,7 @@ final class MenuBar: ObservableObject {
                     return
                 }
                 if shouldShow {
-                    overlayPanel.show(fadeIn: true)
+                    overlayPanel.showIfAble(fadeIn: true)
                 } else {
                     overlayPanel.hide()
                 }

@@ -457,11 +457,11 @@
 			isa = PBXGroup;
 			children = (
 				7166834F2A7681AF006ABF84 /* MenuBar.swift */,
-				177354772B1F530B001CF731 /* MenuBarAppearancePanel */,
 				7162406E2AA0A323003EC671 /* MenuBarSection.swift */,
 				177354652B1B8502001CF731 /* MenuBarShape.swift */,
 				1787C43A2B187187002F50DF /* MenuBarTintKind.swift */,
 				177386F62B0A656100448BBF /* ControlItem */,
+				177354772B1F530B001CF731 /* MenuBarAppearancePanel */,
 			);
 			path = MenuBar;
 			sourceTree = "<group>";

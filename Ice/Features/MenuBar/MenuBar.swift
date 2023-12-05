@@ -173,6 +173,10 @@ final class MenuBar: ObservableObject {
         self.appState = appState
         loadInitialState()
         configureCancellables()
+        DispatchQueue.main.async { [self] in
+            backingPanel.configureCancellables()
+            overlayPanel.configureCancellables()
+        }
     }
 
     /// Loads data from storage and sets the initial state of the
@@ -415,45 +419,6 @@ final class MenuBar: ObservableObject {
                     defaults.set(data, forKey: Defaults.menuBarTintColor)
                 } catch {
                     Logger.menuBar.error("Error encoding tint color: \(error)")
-                }
-            }
-            .store(in: &c)
-
-        $hasShadow
-            .combineLatest($hasBorder, $shapeKind)
-            .map { hasShadow, hasBorder, shapeKind in
-                guard shapeKind == .none else {
-                    return false
-                }
-                return hasShadow || hasBorder
-            }
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] shouldShow in
-                guard let self else {
-                    return
-                }
-                if shouldShow {
-                    backingPanel.showIfAble(fadeIn: true)
-                } else {
-                    backingPanel.hide()
-                }
-            }
-            .store(in: &c)
-
-        $tintKind
-            .combineLatest($shapeKind)
-            .receive(on: DispatchQueue.main)
-            .map { tintKind, shapeKind in
-                tintKind != .none || shapeKind != .none
-            }
-            .sink { [weak self] shouldShow in
-                guard let self else {
-                    return
-                }
-                if shouldShow {
-                    overlayPanel.showIfAble(fadeIn: true)
-                } else {
-                    overlayPanel.hide()
                 }
             }
             .store(in: &c)

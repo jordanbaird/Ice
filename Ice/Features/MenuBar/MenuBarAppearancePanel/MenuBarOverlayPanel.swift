@@ -9,16 +9,39 @@ import Combine
 // MARK: - MenuBarOverlayPanel
 
 class MenuBarOverlayPanel: MenuBarAppearancePanel {
-    override var canShow: Bool {
-        guard let menuBar else {
-            return false
-        }
-        return menuBar.shapeKind != .none || menuBar.tintKind != .none
-    }
+    private var cancellables = Set<AnyCancellable>()
 
     init(menuBar: MenuBar) {
         super.init(level: .statusBar, menuBar: menuBar)
         self.contentView = MenuBarOverlayPanelView(menuBar: menuBar)
+    }
+
+    func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        if let menuBar {
+            Publishers.CombineLatest(
+                menuBar.$tintKind,
+                menuBar.$shapeKind
+            )
+            .map { tintKind, shapeKind in
+                tintKind != .none || shapeKind != .none
+            }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] shouldShow in
+                guard let self else {
+                    return
+                }
+                if shouldShow {
+                    show()
+                } else {
+                    hide()
+                }
+            }
+            .store(in: &c)
+        }
+
+        cancellables = c
     }
 }
 
@@ -54,6 +77,7 @@ private class MenuBarOverlayPanelView: NSView {
                 menuBar.$fullShapeInfo,
                 menuBar.$splitShapeInfo
             )
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.needsDisplay = true
             }
@@ -65,6 +89,7 @@ private class MenuBarOverlayPanelView: NSView {
                 menuBar.$borderColor,
                 menuBar.$borderWidth
             )
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.needsDisplay = true
             }

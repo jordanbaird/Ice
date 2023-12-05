@@ -16,10 +16,6 @@ class MenuBarAppearancePanel: NSPanel {
     /// The menu bar that manages the panel.
     private(set) weak var menuBar: MenuBar?
 
-    /// A Boolean value that indicates whether the panel
-    /// can be shown.
-    var canShow: Bool { true }
-
     /// Creates a panel with the given window level and
     /// menu bar.
     ///
@@ -58,8 +54,14 @@ class MenuBarAppearancePanel: NSPanel {
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.hide()
-                self?.showIfAble(fadeIn: true)
+                guard let self else {
+                    return
+                }
+                let isVisible = isVisible
+                hide()
+                if isVisible {
+                    show()
+                }
             }
             .store(in: &c)
 
@@ -81,42 +83,20 @@ class MenuBarAppearancePanel: NSPanel {
     }
 
     /// Shows the panel.
-    ///
-    /// - Parameter fadeIn: A Boolean value that indicates whether
-    ///   the panel should fade in. If `true`, the panel starts out
-    ///   fully transparent and animates to fully opaque.
-    func showIfAble(fadeIn: Bool) {
+    func show() {
         guard
-            canShow,
             !AppState.shared.isPreview,
             let screen = NSScreen.main
         else {
             return
         }
-        setFrame(
-            menuBarFrame(forScreen: screen),
-            display: true
-        )
-        if fadeIn {
-            let isVisible = isVisible
-            if !isVisible {
-                alphaValue = 0
-            }
-            orderFrontRegardless()
-            if !isVisible {
-                animator().alphaValue = 1
-            }
-        } else {
-            orderFrontRegardless()
-            alphaValue = 1
-        }
+        setFrame(menuBarFrame(forScreen: screen), display: true)
+        orderFrontRegardless()
     }
 
     /// Hides the panel.
     func hide() {
-        if isVisible {
-            close()
-        }
+        close()
     }
 
     override func isAccessibilityElement() -> Bool {

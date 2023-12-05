@@ -9,19 +9,43 @@ import Combine
 // MARK: - MenuBarBackingPanel
 
 class MenuBarBackingPanel: MenuBarAppearancePanel {
-    override var canShow: Bool {
-        guard
-            let menuBar,
-            menuBar.shapeKind == .none
-        else {
-            return false
-        }
-        return menuBar.hasShadow || menuBar.hasBorder
-    }
+    private var cancellables = Set<AnyCancellable>()
 
     init(menuBar: MenuBar) {
         super.init(level: Level(Int(CGWindowLevelForKey(.desktopIconWindow))), menuBar: menuBar)
         self.contentView = MenuBarBackingPanelView(menuBar: menuBar)
+    }
+
+    func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        if let menuBar {
+            Publishers.CombineLatest3(
+                menuBar.$hasShadow,
+                menuBar.$hasBorder,
+                menuBar.$shapeKind
+            )
+            .map { hasShadow, hasBorder, shapeKind in
+                guard shapeKind == .none else {
+                    return false
+                }
+                return hasShadow || hasBorder
+            }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] shouldShow in
+                guard let self else {
+                    return
+                }
+                if shouldShow {
+                    show()
+                } else {
+                    hide()
+                }
+            }
+            .store(in: &c)
+        }
+
+        cancellables = c
     }
 
     override func menuBarFrame(forScreen screen: NSScreen) -> CGRect {
@@ -60,6 +84,7 @@ private class MenuBarBackingPanelView: NSView {
             menuBar.$borderWidth
         )
         .combineLatest(menuBar.$shapeKind)
+        .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in
             self?.needsDisplay = true
         }

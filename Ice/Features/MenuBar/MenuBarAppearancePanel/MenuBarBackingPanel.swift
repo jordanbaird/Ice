@@ -10,7 +10,10 @@ import Combine
 
 class MenuBarBackingPanel: MenuBarAppearancePanel {
     override var canShow: Bool {
-        guard let menuBar else {
+        guard
+            let menuBar,
+            menuBar.shapeKind == .none
+        else {
             return false
         }
         return menuBar.hasShadow || menuBar.hasBorder
@@ -56,6 +59,7 @@ private class MenuBarBackingPanelView: NSView {
             menuBar.$borderColor,
             menuBar.$borderWidth
         )
+        .combineLatest(menuBar.$shapeKind)
         .sink { [weak self] _ in
             self?.needsDisplay = true
         }

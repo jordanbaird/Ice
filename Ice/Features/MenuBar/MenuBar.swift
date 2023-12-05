@@ -420,9 +420,12 @@ final class MenuBar: ObservableObject {
             .store(in: &c)
 
         $hasShadow
-            .combineLatest($hasBorder)
-            .map { hasShadow, hasBorder in
-                hasShadow || hasBorder
+            .combineLatest($hasBorder, $shapeKind)
+            .map { hasShadow, hasBorder, shapeKind in
+                guard shapeKind == .none else {
+                    return false
+                }
+                return hasShadow || hasBorder
             }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] shouldShow in

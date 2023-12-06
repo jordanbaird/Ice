@@ -110,6 +110,57 @@ private class MenuBarOverlayPanelView: NSView {
         cancellables = c
     }
 
+    private func shapePathForFullShapeKind(
+        in rect: CGRect,
+        info: MenuBarFullShapeInfo
+    ) -> NSBezierPath {
+        let shapeBounds = CGRect(
+            x: rect.height / 2,
+            y: rect.origin.y,
+            width: rect.width - rect.height,
+            height: rect.height
+        )
+        let leadingEndCapBounds = CGRect(
+            x: rect.origin.x,
+            y: rect.origin.y,
+            width: rect.height,
+            height: rect.height
+        )
+        let trailingEndCapBounds = CGRect(
+            x: rect.width - rect.height,
+            y: rect.origin.y,
+            width: rect.height,
+            height: rect.height
+        )
+
+        var path = NSBezierPath(rect: shapeBounds)
+
+        switch info.leadingEndCap {
+        case .square:
+            path = path.union(NSBezierPath(rect: leadingEndCapBounds))
+        case .round:
+            path = path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
+        }
+
+        switch info.trailingEndCap {
+        case .square:
+            path = path.union(NSBezierPath(rect: trailingEndCapBounds))
+        case .round:
+            path = path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
+        }
+
+        return path
+    }
+
+    private func shapePathForSplitShapeKind(
+        in rect: CGRect,
+        info: MenuBarSplitShapeInfo
+    ) -> NSBezierPath {
+        // TODO: implement
+        let path = NSBezierPath(rect: rect)
+        return path
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         guard
             let menuBar,
@@ -130,80 +181,53 @@ private class MenuBarOverlayPanelView: NSView {
             height: bounds.height - 5
         )
 
-        var shapePath: NSBezierPath
-
-        switch menuBar.shapeKind {
+        let shapePath = switch menuBar.shapeKind {
         case .none:
-            shapePath = NSBezierPath(rect: adjustedBounds)
+            NSBezierPath(rect: adjustedBounds)
         case .full:
-            let shapeBounds = CGRect(
-                x: adjustedBounds.height / 2,
-                y: adjustedBounds.origin.y,
-                width: adjustedBounds.width - adjustedBounds.height,
-                height: adjustedBounds.height
+            shapePathForFullShapeKind(
+                in: adjustedBounds,
+                info: menuBar.fullShapeInfo
             )
-            let leadingEndCapBounds = CGRect(
-                x: adjustedBounds.origin.x,
-                y: adjustedBounds.origin.y,
-                width: adjustedBounds.height,
-                height: adjustedBounds.height
-            )
-            let trailingEndCapBounds = CGRect(
-                x: adjustedBounds.width - adjustedBounds.height,
-                y: adjustedBounds.origin.y,
-                width: adjustedBounds.height,
-                height: adjustedBounds.height
-            )
-
-            shapePath = NSBezierPath(rect: shapeBounds)
-
-            switch menuBar.fullShapeInfo.leadingEndCap {
-            case .square:
-                shapePath = shapePath.union(NSBezierPath(rect: leadingEndCapBounds))
-            case .round:
-                shapePath = shapePath.union(NSBezierPath(ovalIn: leadingEndCapBounds))
-            }
-
-            switch menuBar.fullShapeInfo.trailingEndCap {
-            case .square:
-                shapePath = shapePath.union(NSBezierPath(rect: trailingEndCapBounds))
-            case .round:
-                shapePath = shapePath.union(NSBezierPath(ovalIn: trailingEndCapBounds))
-            }
         case .split:
-            shapePath = NSBezierPath(rect: adjustedBounds)
+            shapePathForSplitShapeKind(
+                in: adjustedBounds,
+                info: menuBar.splitShapeInfo
+            )
         }
 
-        if
-            let desktopWallpaper = menuBar.desktopWallpaper,
-            menuBar.shapeKind != .none
-        {
-            context.saveGraphicsState()
-            defer {
-                context.restoreGraphicsState()
+        var hasBorder = false
+
+        if menuBar.shapeKind != .none {
+            if let desktopWallpaper = menuBar.desktopWallpaper {
+                context.saveGraphicsState()
+                defer {
+                    context.restoreGraphicsState()
+                }
+
+                let invertedClipPath = NSBezierPath(rect: adjustedBounds)
+                invertedClipPath.append(shapePath.reversed)
+                invertedClipPath.setClip()
+
+                context.cgContext.draw(desktopWallpaper, in: adjustedBounds)
             }
 
-            let reversedClipPath = NSBezierPath(rect: adjustedBounds)
-            reversedClipPath.append(shapePath.reversed)
-            reversedClipPath.setClip()
+            if menuBar.hasShadow {
+                context.saveGraphicsState()
+                defer {
+                    context.restoreGraphicsState()
+                }
 
-            context.cgContext.draw(desktopWallpaper, in: adjustedBounds, byTiling: false)
-        }
+                let shadowClipPath = NSBezierPath(rect: bounds)
+                shadowClipPath.append(shapePath.reversed)
+                shadowClipPath.setClip()
 
-        if
-            menuBar.hasShadow,
-            menuBar.shapeKind != .none
-        {
-            context.saveGraphicsState()
-            defer {
-                context.restoreGraphicsState()
+                shapePath.drawShadow(color: .black.withAlphaComponent(0.5), radius: 5)
             }
 
-            let shadowClipPath = NSBezierPath(rect: bounds)
-            shadowClipPath.append(shapePath.reversed)
-            shadowClipPath.setClip()
-
-            shapePath.drawShadow(color: .black.withAlphaComponent(0.5), radius: 5)
+            if menuBar.hasBorder {
+                hasBorder = true
+            }
         }
 
         shapePath.setClip()
@@ -222,10 +246,7 @@ private class MenuBarOverlayPanelView: NSView {
             }
         }
 
-        if
-            menuBar.hasBorder,
-            menuBar.shapeKind != .none
-        {
+        if hasBorder {
             if let borderColor = NSColor(cgColor: menuBar.borderColor) {
                 borderColor.setStroke()
 

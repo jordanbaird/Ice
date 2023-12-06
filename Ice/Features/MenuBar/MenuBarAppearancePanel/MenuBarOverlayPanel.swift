@@ -20,11 +20,12 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
         var c = Set<AnyCancellable>()
 
         if let menuBar {
-            Publishers.CombineLatest(
+            Publishers.CombineLatest3(
                 menuBar.$tintKind,
-                menuBar.$shapeKind
+                menuBar.$shapeKind,
+                menuBar.$hasShadow
             )
-            .map { tintKind, shapeKind in
+            .map { tintKind, shapeKind, _ in
                 tintKind != .none || shapeKind != .none
             }
             .receive(on: DispatchQueue.main)
@@ -42,6 +43,16 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
         }
 
         cancellables = c
+    }
+
+    override func menuBarFrame(forScreen screen: NSScreen) -> CGRect {
+        let rect = super.menuBarFrame(forScreen: screen)
+        return CGRect(
+            x: rect.minX,
+            y: rect.minY - 5,
+            width: rect.width,
+            height: rect.height + 5
+        )
     }
 }
 
@@ -112,29 +123,36 @@ private class MenuBarOverlayPanelView: NSView {
             context.restoreGraphicsState()
         }
 
+        let adjustedBounds = CGRect(
+            x: bounds.origin.x,
+            y: bounds.origin.y + 5,
+            width: bounds.width,
+            height: bounds.height - 5
+        )
+
         var shapePath: NSBezierPath
 
         switch menuBar.shapeKind {
         case .none:
-            shapePath = NSBezierPath(rect: bounds)
+            shapePath = NSBezierPath(rect: adjustedBounds)
         case .full:
             let shapeBounds = CGRect(
-                x: bounds.height / 2,
-                y: 0,
-                width: bounds.width - bounds.height,
-                height: bounds.height
+                x: adjustedBounds.height / 2,
+                y: adjustedBounds.origin.y,
+                width: adjustedBounds.width - adjustedBounds.height,
+                height: adjustedBounds.height
             )
             let leadingEndCapBounds = CGRect(
-                x: 0,
-                y: 0,
-                width: bounds.height,
-                height: bounds.height
+                x: adjustedBounds.origin.x,
+                y: adjustedBounds.origin.y,
+                width: adjustedBounds.height,
+                height: adjustedBounds.height
             )
             let trailingEndCapBounds = CGRect(
-                x: bounds.width - bounds.height,
-                y: 0,
-                width: bounds.height,
-                height: bounds.height
+                x: adjustedBounds.width - adjustedBounds.height,
+                y: adjustedBounds.origin.y,
+                width: adjustedBounds.height,
+                height: adjustedBounds.height
             )
 
             shapePath = NSBezierPath(rect: shapeBounds)
@@ -152,18 +170,43 @@ private class MenuBarOverlayPanelView: NSView {
             case .round:
                 shapePath = shapePath.union(NSBezierPath(ovalIn: trailingEndCapBounds))
             }
+        case .split:
+            shapePath = NSBezierPath(rect: adjustedBounds)
+        }
 
-            if let desktopWallpaper = menuBar.desktopWallpaper {
-                let reversedClipPath = NSBezierPath(rect: bounds)
-                reversedClipPath.append(shapePath.reversed)
-                reversedClipPath.setClip()
-                context.cgContext.draw(desktopWallpaper, in: bounds, byTiling: false)
+        if
+            let desktopWallpaper = menuBar.desktopWallpaper,
+            menuBar.shapeKind != .none
+        {
+            context.saveGraphicsState()
+            defer {
+                context.restoreGraphicsState()
             }
 
-            shapePath.setClip()
-        case .split:
-            shapePath = NSBezierPath(rect: bounds)
+            let reversedClipPath = NSBezierPath(rect: adjustedBounds)
+            reversedClipPath.append(shapePath.reversed)
+            reversedClipPath.setClip()
+
+            context.cgContext.draw(desktopWallpaper, in: adjustedBounds, byTiling: false)
         }
+
+        if
+            menuBar.hasShadow,
+            menuBar.shapeKind != .none
+        {
+            context.saveGraphicsState()
+            defer {
+                context.restoreGraphicsState()
+            }
+
+            let shadowClipPath = NSBezierPath(rect: bounds)
+            shadowClipPath.append(shapePath.reversed)
+            shadowClipPath.setClip()
+
+            shapePath.drawShadow(color: .black.withAlphaComponent(0.5), radius: 5)
+        }
+
+        shapePath.setClip()
 
         switch menuBar.tintKind {
         case .none:
@@ -171,11 +214,11 @@ private class MenuBarOverlayPanelView: NSView {
         case .solid:
             if let tintColor = NSColor(cgColor: menuBar.tintColor)?.withAlphaComponent(0.2) {
                 tintColor.setFill()
-                NSBezierPath(rect: bounds).fill()
+                NSBezierPath(rect: adjustedBounds).fill()
             }
         case .gradient:
             if let tintGradient = menuBar.tintGradient.withAlphaComponent(0.2).nsGradient {
-                tintGradient.draw(in: bounds, angle: 0)
+                tintGradient.draw(in: adjustedBounds, angle: 0)
             }
         }
 
@@ -187,8 +230,8 @@ private class MenuBarOverlayPanelView: NSView {
                 borderColor.setStroke()
 
                 let translation = menuBar.borderWidth / 2
-                let scaleX = (bounds.width - menuBar.borderWidth) / bounds.width
-                let scaleY = (bounds.height - menuBar.borderWidth) / bounds.height
+                let scaleX = (adjustedBounds.width - menuBar.borderWidth) / adjustedBounds.width
+                let scaleY = (adjustedBounds.height - menuBar.borderWidth) / adjustedBounds.height
                 var transform = CGAffineTransform(translationX: translation, y: translation).scaledBy(x: scaleX, y: scaleY)
 
                 if let transformedPath = shapePath.cgPath.copy(using: &transform) {

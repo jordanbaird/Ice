@@ -90,7 +90,7 @@ struct MenuBarAppearanceTab: View {
             Stepper(
                 "Border Width",
                 value: appState.bindings.menuBar.borderWidth,
-                in: 1...5,
+                in: 1...3,
                 step: 1,
                 format: .number
             )

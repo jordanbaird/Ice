@@ -248,18 +248,13 @@ private class MenuBarOverlayPanelView: NSView {
 
         if hasBorder {
             if let borderColor = NSColor(cgColor: menuBar.borderColor) {
+                let borderPath = shapePath.copy() as! NSBezierPath
+                // HACK: Insetting a path to get an "inside" stroke is surprisingly
+                // difficult. This particular path is being clipped anyway, so double
+                // its line width to fake the correct stroke.
+                borderPath.lineWidth = menuBar.borderWidth * 2
                 borderColor.setStroke()
-
-                let translation = menuBar.borderWidth / 2
-                let scaleX = (adjustedBounds.width - menuBar.borderWidth) / adjustedBounds.width
-                let scaleY = (adjustedBounds.height - menuBar.borderWidth) / adjustedBounds.height
-                var transform = CGAffineTransform(translationX: translation, y: translation).scaledBy(x: scaleX, y: scaleY)
-
-                if let transformedPath = shapePath.cgPath.copy(using: &transform) {
-                    let borderPath = NSBezierPath(cgPath: transformedPath)
-                    borderPath.lineWidth = menuBar.borderWidth
-                    borderPath.stroke()
-                }
+                borderPath.stroke()
             }
         }
     }

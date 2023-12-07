@@ -248,6 +248,7 @@ private class MenuBarOverlayPanelView: NSView {
 
         if hasBorder {
             if let borderColor = NSColor(cgColor: menuBar.borderColor) {
+                // swiftlint:disable:next force_cast
                 let borderPath = shapePath.copy() as! NSBezierPath
                 // HACK: Insetting a path to get an "inside" stroke is surprisingly
                 // difficult. This particular path is being clipped anyway, so double

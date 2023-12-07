@@ -6,7 +6,7 @@
 import ScreenCaptureKit
 
 /// A type that captures screenshots.
-class ScreenshotManager {
+enum ScreenshotManager {
     /// Options that affect the image or images returned from a capture.
     struct CaptureOptions: OptionSet {
         let rawValue: Int

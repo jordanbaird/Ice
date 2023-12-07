@@ -17,6 +17,7 @@ extension NSBezierPath {
         shadow.shadowBlurRadius = radius
         shadow.shadowColor = color
 
+        // swiftlint:disable:next force_cast
         let path = copy() as! NSBezierPath
 
         context.saveGraphicsState()

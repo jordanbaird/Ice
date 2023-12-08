@@ -55,6 +55,12 @@ final class ControlItem: ObservableObject {
     /// Setting this value marks the item as needing an update.
     @Published var state: HidingState
 
+    /// The frame of the control item's window.
+    @Published var windowFrame: CGRect?
+
+    /// The screen containing the control item.
+    @Published var screen: NSScreen?
+
     private var cancellables = Set<AnyCancellable>()
 
     /// The menu bar associated with the control item.
@@ -68,11 +74,6 @@ final class ControlItem: ObservableObject {
     /// The control item's autosave name.
     var autosaveName: String {
         statusItem.autosaveName
-    }
-
-    /// The frame of the control item's window.
-    var windowFrame: CGRect? {
-        statusItem.button?.window?.frame
     }
 
     /// The menu bar section associated with the control item.
@@ -214,6 +215,25 @@ final class ControlItem: ObservableObject {
             }
             .store(in: &c)
 
+        $windowFrame
+            .combineLatest($screen)
+            .compactMap { frame, screen in
+                // calculate the position relative to the trailing
+                // edge of the screen
+                guard
+                    let frame,
+                    let screen
+                else {
+                    return nil
+                }
+                return screen.frame.maxX - frame.maxX
+            }
+            .removeDuplicates()
+            .sink { [weak self] position in
+                self?.position = position
+            }
+            .store(in: &c)
+
         statusItem.publisher(for: \.isVisible)
             .removeDuplicates()
             .sink { [weak self] isVisible in
@@ -223,18 +243,14 @@ final class ControlItem: ObservableObject {
 
         if let window = statusItem.button?.window {
             window.publisher(for: \.frame)
-                .combineLatest(window.publisher(for: \.screen))
-                .compactMap { frame, screen in
-                    // calculate the position relative to the trailing
-                    // edge of the screen
-                    guard let screen else {
-                        return nil
-                    }
-                    return screen.frame.maxX - frame.maxX
+                .sink { [weak self] frame in
+                    self?.windowFrame = frame
                 }
-                .removeDuplicates()
-                .sink { [weak self] position in
-                    self?.position = position
+                .store(in: &c)
+
+            window.publisher(for: \.screen)
+                .sink { [weak self] screen in
+                    self?.screen = screen
                 }
                 .store(in: &c)
         }

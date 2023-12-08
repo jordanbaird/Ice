@@ -113,10 +113,20 @@ private class MenuBarOverlayPanelView: NSView {
             }
             .store(in: &c)
 
-            for section in menuBar.sections {
-                section.controlItem.$state
-                    .combineLatest(section.controlItem.$position)
-                    .sink { [weak self] _ in
+            if let section = menuBar.section(withName: .hidden) {
+                section.controlItem.$windowFrame
+                    .combineLatest(section.controlItem.$screen)
+                    .filter { frame, screen in
+                        guard
+                            let frame,
+                            let screen
+                        else {
+                            return false
+                        }
+                        return (screen.frame.minX...screen.frame.maxX).contains(frame.maxX)
+                    }
+                    .receive(on: RunLoop.main)
+                    .sink { [weak self] pos in
                         self?.needsDisplay = true
                     }
                     .store(in: &c)
@@ -276,6 +286,10 @@ private class MenuBarOverlayPanelView: NSView {
 
             return path
         }()
+
+        guard !leadingPath.intersects(trailingPath) else {
+            return shapePathForFullShapeKind(in: rect, menuBar: menuBar)
+        }
 
         let path = NSBezierPath()
 

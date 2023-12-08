@@ -17,6 +17,7 @@
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
 		175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 175061902B1543DD003144CD /* LaunchAtLogin */; };
 		17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17540BD72B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift */; };
+		17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */; };
 		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
 		177354662B1B8502001CF731 /* MenuBarShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354652B1B8502001CF731 /* MenuBarShape.swift */; };
 		1773546A2B1BBACF001CF731 /* MenuBarAppearanceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354692B1BBACF001CF731 /* MenuBarAppearanceTab.swift */; };
@@ -90,6 +91,7 @@
 		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
 		17540BD72B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+drawShadow.swift"; sourceTree = "<group>"; };
+		17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+intersects.swift"; sourceTree = "<group>"; };
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
 		177354652B1B8502001CF731 /* MenuBarShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarShape.swift; sourceTree = "<group>"; };
 		177354692B1BBACF001CF731 /* MenuBarAppearanceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceTab.swift; sourceTree = "<group>"; };
@@ -244,6 +246,7 @@
 			children = (
 				17540BD72B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift */,
 				177354832B1F9AF9001CF731 /* NSBezierPath+union.swift */,
+				17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */,
 			);
 			path = NSBezierPath;
 			sourceTree = "<group>";
@@ -640,6 +643,7 @@
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */,
 				177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */,
+				17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */,
 				1773546A2B1BBACF001CF731 /* MenuBarAppearanceTab.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
 				178B36692AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift in Sources */,

@@ -76,6 +76,12 @@ private class MenuBarOverlayPanelView: NSView {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
+        NSWorkspace.shared.publisher(for: \.menuBarOwningApplication)
+            .sink { [weak self] _ in
+                self?.needsDisplay = true
+            }
+            .store(in: &c)
+
         if let menuBar {
             Publishers.CombineLatest4(
                 menuBar.$desktopWallpaper,
@@ -112,7 +118,7 @@ private class MenuBarOverlayPanelView: NSView {
 
     private func shapePathForFullShapeKind(
         in rect: CGRect,
-        info: MenuBarFullShapeInfo
+        menuBar: MenuBar
     ) -> NSBezierPath {
         let shapeBounds = CGRect(
             x: rect.height / 2,
@@ -135,14 +141,14 @@ private class MenuBarOverlayPanelView: NSView {
 
         var path = NSBezierPath(rect: shapeBounds)
 
-        switch info.leadingEndCap {
+        switch menuBar.fullShapeInfo.leadingEndCap {
         case .square:
             path = path.union(NSBezierPath(rect: leadingEndCapBounds))
         case .round:
             path = path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
         }
 
-        switch info.trailingEndCap {
+        switch menuBar.fullShapeInfo.trailingEndCap {
         case .square:
             path = path.union(NSBezierPath(rect: trailingEndCapBounds))
         case .round:
@@ -154,10 +160,43 @@ private class MenuBarOverlayPanelView: NSView {
 
     private func shapePathForSplitShapeKind(
         in rect: CGRect,
-        info: MenuBarSplitShapeInfo
+        menuBar: MenuBar
     ) -> NSBezierPath {
-        // TODO: implement
-        let path = NSBezierPath(rect: rect)
+        let shapeBounds = CGRect(
+            x: rect.height / 2,
+            y: rect.origin.y,
+            width: (menuBar.mainMenuMaxX - rect.height) + 10,
+            height: rect.height
+        )
+        let leadingEndCapBounds = CGRect(
+            x: rect.origin.x,
+            y: rect.origin.y,
+            width: rect.height,
+            height: rect.height
+        )
+        let trailingEndCapBounds = CGRect(
+            x: (menuBar.mainMenuMaxX - rect.height) + 10,
+            y: rect.origin.y,
+            width: rect.height,
+            height: rect.height
+        )
+
+        var path = NSBezierPath(rect: shapeBounds)
+
+        switch menuBar.splitShapeInfo.leading.leadingEndCap {
+        case .square:
+            path = path.union(NSBezierPath(rect: leadingEndCapBounds))
+        case .round:
+            path = path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
+        }
+
+        switch menuBar.splitShapeInfo.leading.trailingEndCap {
+        case .square:
+            path = path.union(NSBezierPath(rect: trailingEndCapBounds))
+        case .round:
+            path = path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
+        }
+
         return path
     }
 
@@ -187,12 +226,12 @@ private class MenuBarOverlayPanelView: NSView {
         case .full:
             shapePathForFullShapeKind(
                 in: adjustedBounds,
-                info: menuBar.fullShapeInfo
+                menuBar: menuBar
             )
         case .split:
             shapePathForSplitShapeKind(
                 in: adjustedBounds,
-                info: menuBar.splitShapeInfo
+                menuBar: menuBar
             )
         }
 

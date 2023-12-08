@@ -287,7 +287,6 @@ final class MenuBar: ObservableObject {
         // update the maxX coordinate of the main menu every
         // time the application that owns the menu bar changes
         NSWorkspace.shared.publisher(for: \.menuBarOwningApplication)
-            .receive(on: DispatchQueue.main)
             .sink { [weak self] runningApplication in
                 guard let self else {
                     return

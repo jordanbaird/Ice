@@ -521,6 +521,18 @@ final class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
+        $shapeKind
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] shapeKind in
+                switch shapeKind {
+                case .none:
+                    self?.publishesDesktopWallpaper = false
+                case .full, .split:
+                    self?.publishesDesktopWallpaper = true
+                }
+            }
+            .store(in: &c)
+
         $fullShapeInfo
             .receive(on: DispatchQueue.main)
             .encode(encoder: encoder)

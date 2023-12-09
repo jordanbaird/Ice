@@ -291,39 +291,38 @@ final class MenuBar: ObservableObject {
         let encoder = JSONEncoder()
 
         // update the maxX coordinate of the main menu every
-        // time the application that owns the menu bar changes
-        NSWorkspace.shared.publisher(for: \.menuBarOwningApplication)
+        // time the frontmost application changes
+        NSWorkspace.shared.publisher(for: \.frontmostApplication)
             .sink { [weak self] runningApplication in
                 guard let runningApplication else {
                     return
                 }
 
-                if let name = runningApplication.localizedName {
-                    Logger.menuBar.debug("Menu bar owning application changed to: \(name)")
-                } else {
-                    Logger.menuBar.debug("Menu bar owning application changed")
-                }
+                let appID = runningApplication.localizedName ?? "PID \(runningApplication.processIdentifier)"
+                Logger.menuBar.debug("New frontmost application: \(appID)")
 
-                var isFinishedLaunchingCancellable: (any Cancellable)?
-                isFinishedLaunchingCancellable = runningApplication.publisher(for: \.isFinishedLaunching)
+                // wait until the application finishes launching
+                var launchObserver: (any Cancellable)?
+                launchObserver = runningApplication.publisher(for: \.isFinishedLaunching)
                     .sink { [weak self] isFinishedLaunching in
                         guard isFinishedLaunching else {
-                            Logger.menuBar.debug("Menu bar owning application has not finished launching...")
+                            Logger.menuBar.debug("Frontmost application is launching...")
                             return
                         }
 
-                        Logger.menuBar.debug("Menu bar owning application has finished launching")
+                        Logger.menuBar.debug("Frontmost application finished launching")
 
                         guard let self else {
                             return
                         }
 
                         defer {
-                            isFinishedLaunchingCancellable?.cancel()
-                            isFinishedLaunchingCancellable = nil
+                            launchObserver?.cancel()
+                            launchObserver = nil
                         }
 
                         do {
+                            // get the largest x-coordinate of all items
                             guard
                                 let application = Application(runningApplication),
                                 let menuBar: UIElement = try application.attribute(.menuBar),

@@ -341,6 +341,20 @@ final class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                if publishesDesktopWallpaper {
+                    Task { [weak self] in
+                        try await self?.readAndUpdateDesktopWallpaper()
+                    }
+                }
+            }
+            .store(in: &c)
+
         // update the control item for each section when the
         // position of one changes
         Publishers.MergeMany(sections.map { $0.controlItem.$position })

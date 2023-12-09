@@ -91,7 +91,16 @@ class MenuBarAppearancePanel: NSPanel {
             return
         }
         setFrame(menuBarFrame(forScreen: screen), display: true)
+        let isVisible = isVisible
+        if !isVisible {
+            alphaValue = 0
+        }
         orderFrontRegardless()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if !isVisible {
+                self.animator().alphaValue = 1
+            }
+        }
     }
 
     /// Hides the panel.

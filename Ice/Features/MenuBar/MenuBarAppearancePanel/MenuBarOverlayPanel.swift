@@ -77,13 +77,13 @@ private class MenuBarOverlayPanelView: NSView {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        NSWorkspace.shared.publisher(for: \.menuBarOwningApplication)
-            .sink { [weak self] _ in
-                self?.needsDisplay = true
-            }
-            .store(in: &c)
-
         if let menuBar {
+            menuBar.$mainMenuMaxX
+                .sink { [weak self] _ in
+                    self?.needsDisplay = true
+                }
+                .store(in: &c)
+
             Publishers.CombineLatest4(
                 menuBar.$desktopWallpaper,
                 menuBar.$tintKind,

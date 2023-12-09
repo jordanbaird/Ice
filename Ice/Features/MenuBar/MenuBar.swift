@@ -288,25 +288,51 @@ final class MenuBar: ObservableObject {
         // time the application that owns the menu bar changes
         NSWorkspace.shared.publisher(for: \.menuBarOwningApplication)
             .sink { [weak self] runningApplication in
-                guard let self else {
+                guard let runningApplication else {
                     return
                 }
-                do {
-                    guard
-                        let runningApplication,
-                        let application = Application(runningApplication),
-                        let menuBar: UIElement = try application.attribute(.menuBar),
-                        let children: [UIElement] = try menuBar.arrayAttribute(.children),
-                        let maxX = try children.compactMap({ try ($0.attribute(.frame) as CGRect?)?.maxX }).max()
-                    else {
-                        mainMenuMaxX = 0
-                        return
-                    }
-                    mainMenuMaxX = maxX
-                } catch {
-                    mainMenuMaxX = 0
-                    Logger.menuBar.error("Error updating main menu maxX: \(error)")
+
+                if let name = runningApplication.localizedName {
+                    Logger.menuBar.debug("Menu bar owning application changed to: \(name)")
+                } else {
+                    Logger.menuBar.debug("Menu bar owning application changed")
                 }
+
+                var isFinishedLaunchingCancellable: (any Cancellable)?
+                isFinishedLaunchingCancellable = runningApplication.publisher(for: \.isFinishedLaunching)
+                    .sink { [weak self] isFinishedLaunching in
+                        guard isFinishedLaunching else {
+                            Logger.menuBar.debug("Menu bar owning application has not finished launching...")
+                            return
+                        }
+
+                        Logger.menuBar.debug("Menu bar owning application has finished launching")
+
+                        guard let self else {
+                            return
+                        }
+
+                        defer {
+                            isFinishedLaunchingCancellable?.cancel()
+                            isFinishedLaunchingCancellable = nil
+                        }
+
+                        do {
+                            guard
+                                let application = Application(runningApplication),
+                                let menuBar: UIElement = try application.attribute(.menuBar),
+                                let children: [UIElement] = try menuBar.arrayAttribute(.children),
+                                let maxX = try children.compactMap({ try ($0.attribute(.frame) as CGRect?)?.maxX }).max()
+                            else {
+                                mainMenuMaxX = 0
+                                return
+                            }
+                            mainMenuMaxX = maxX
+                        } catch {
+                            mainMenuMaxX = 0
+                            Logger.menuBar.error("Error updating main menu maxX: \(error)")
+                        }
+                    }
             }
             .store(in: &c)
 
@@ -347,7 +373,7 @@ final class MenuBar: ObservableObject {
             }
             .store(in: &c)
 
-        Timer.publish(every: 5, on: .main, in: .common)
+        Timer.publish(every: 3, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 guard let self else {
@@ -575,11 +601,15 @@ final class MenuBar: ObservableObject {
             return
         }
 
-        desktopWallpaper = try await ScreenshotManager.captureImage(
+        let image = try await ScreenshotManager.captureImage(
             window: wallpaperWindow,
             captureRect: menuBarWindow.frame,
             options: .ignoreFraming
         )
+
+        if desktopWallpaper?.dataProvider?.data != image.dataProvider?.data {
+            desktopWallpaper = image
+        }
     }
 
     /// Returns the menu bar section with the given name.

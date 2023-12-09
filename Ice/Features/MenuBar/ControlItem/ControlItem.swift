@@ -275,6 +275,23 @@ final class ControlItem: ObservableObject {
                     updateStatusItem(with: state)
                 }
                 .store(in: &c)
+
+            menuBar.$shapeKind
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] shapeKind in
+                    guard
+                        let self,
+                        let button = statusItem.button
+                    else {
+                        return
+                    }
+                    if menuBar.shapeKind == .split {
+                        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+                    } else {
+                        button.sendAction(on: [.leftMouseDown, .rightMouseUp])
+                    }
+                }
+                .store(in: &c)
         }
 
         cancellables = c
@@ -349,7 +366,7 @@ final class ControlItem: ObservableObject {
             return
         }
         switch event.type {
-        case .leftMouseDown:
+        case .leftMouseDown, .leftMouseUp:
             if
                 let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden),
                 alwaysHiddenSection.isEnabled,

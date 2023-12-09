@@ -72,27 +72,38 @@ class MenuBarBackingPanel: MenuBarAppearancePanel {
 
 private class MenuBarBackingPanelView: NSView {
     private weak var menuBar: MenuBar?
-    private var cancellable: (any Cancellable)?
+    private var cancellables = Set<AnyCancellable>()
 
     init(menuBar: MenuBar) {
         super.init(frame: .zero)
         self.menuBar = menuBar
-        self.cancellable = Publishers.CombineLatest4(
-            menuBar.$hasShadow,
-            menuBar.$hasBorder,
-            menuBar.$borderColor,
-            menuBar.$borderWidth
-        )
-        .combineLatest(menuBar.$shapeKind)
-        .receive(on: DispatchQueue.main)
-        .sink { [weak self] _ in
-            self?.needsDisplay = true
-        }
+        configureCancellables()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        if let menuBar {
+            Publishers.CombineLatest4(
+                menuBar.$hasShadow,
+                menuBar.$hasBorder,
+                menuBar.$borderColor,
+                menuBar.$borderWidth
+            )
+            .combineLatest(menuBar.$shapeKind)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.needsDisplay = true
+            }
+            .store(in: &c)
+        }
+
+        cancellables = c
     }
 
     override func draw(_ dirtyRect: NSRect) {

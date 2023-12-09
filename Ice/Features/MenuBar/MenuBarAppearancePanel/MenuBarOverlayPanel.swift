@@ -113,33 +113,33 @@ private class MenuBarOverlayPanelView: NSView {
             }
             .store(in: &c)
 
-            if let section = menuBar.section(withName: .hidden) {
-                section.controlItem.$windowFrame
-                    .combineLatest(section.controlItem.$screen)
-                    .filter { frame, screen in
-                        guard
-                            let frame,
-                            let screen
-                        else {
-                            return false
+            for name: MenuBarSection.Name in [.hidden, .alwaysHidden] {
+                if let section = menuBar.section(withName: name) {
+                    section.controlItem.$windowFrame
+                        .combineLatest(section.controlItem.$screen)
+                        .filter { frame, screen in
+                            guard
+                                let frame,
+                                let screen
+                            else {
+                                return false
+                            }
+                            return (screen.frame.minX...screen.frame.maxX).contains(frame.maxX)
                         }
-                        return (screen.frame.minX...screen.frame.maxX).contains(frame.maxX)
-                    }
-                    .receive(on: RunLoop.main)
-                    .sink { [weak self] pos in
-                        self?.needsDisplay = true
-                    }
-                    .store(in: &c)
+                        .receive(on: RunLoop.main)
+                        .sink { [weak self] _ in
+                            self?.needsDisplay = true
+                        }
+                        .store(in: &c)
+                }
             }
         }
 
         cancellables = c
     }
 
-    private func shapePathForFullShapeKind(
-        in rect: CGRect,
-        menuBar: MenuBar
-    ) -> NSBezierPath {
+    /// Returns a path for the ``MenuBarShapeKind/full`` shape kind.
+    private func pathForFullShapeKind(in rect: CGRect, info: MenuBarFullShapeInfo) -> NSBezierPath {
         let shapeBounds = CGRect(
             x: rect.height / 2,
             y: rect.origin.y,
@@ -161,33 +161,38 @@ private class MenuBarOverlayPanelView: NSView {
 
         var path = NSBezierPath(rect: shapeBounds)
 
-        switch menuBar.fullShapeInfo.leadingEndCap {
-        case .square:
-            path = path.union(NSBezierPath(rect: leadingEndCapBounds))
-        case .round:
-            path = path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
+        path = switch info.leadingEndCap {
+        case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
+        case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
         }
 
-        switch menuBar.fullShapeInfo.trailingEndCap {
-        case .square:
-            path = path.union(NSBezierPath(rect: trailingEndCapBounds))
-        case .round:
-            path = path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
+        path = switch info.trailingEndCap {
+        case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
+        case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
         }
 
         return path
     }
 
-    private func shapePathForSplitShapeKind(
-        in rect: CGRect,
-        menuBar: MenuBar
-    ) -> NSBezierPath {
+    /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
+    private func pathForSplitShapeKind(in rect: CGRect, info: MenuBarSplitShapeInfo) -> NSBezierPath {
         guard
+            let menuBar,
             let hiddenSection = menuBar.section(withName: .hidden),
             let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden)
         else {
-            Logger.menuBarOverlayPanel.notice("Unable to draw split shape path")
+            Logger.menuBarOverlayPanel.notice("Unable to create split shape path")
             return NSBezierPath(rect: rect)
+        }
+
+        guard alwaysHiddenSection.isHidden else {
+            return pathForFullShapeKind(
+                in: rect,
+                info: MenuBarFullShapeInfo(
+                    leadingEndCap: info.leading.leadingEndCap,
+                    trailingEndCap: info.trailing.trailingEndCap
+                )
+            )
         }
 
         let leadingPath: NSBezierPath = {
@@ -212,55 +217,37 @@ private class MenuBarOverlayPanelView: NSView {
 
             var path = NSBezierPath(rect: shapeBounds)
 
-            switch menuBar.splitShapeInfo.leading.leadingEndCap {
-            case .square:
-                path = path.union(NSBezierPath(rect: leadingEndCapBounds))
-            case .round:
-                path = path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
+            path = switch info.leading.leadingEndCap {
+            case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
+            case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
             }
 
-            switch menuBar.splitShapeInfo.leading.trailingEndCap {
-            case .square:
-                path = path.union(NSBezierPath(rect: trailingEndCapBounds))
-            case .round:
-                path = path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
+            path = switch info.leading.trailingEndCap {
+            case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
+            case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
             }
 
             return path
         }()
 
         let trailingPath: NSBezierPath = {
-            let shapeBounds: CGRect
-            let leadingEndCapBounds: CGRect
-            if hiddenSection.isHidden {
-                let position = hiddenSection.controlItem.position ?? 0
-                shapeBounds = CGRect(
-                    x: ((rect.maxX - position) + (rect.height / 2)) - 10,
-                    y: rect.origin.y,
-                    width: (position - rect.height) + 10,
-                    height: rect.height
-                )
-                leadingEndCapBounds = CGRect(
-                    x: (rect.maxX - position) - 10,
-                    y: rect.origin.y,
-                    width: rect.height,
-                    height: rect.height
-                )
+            let position = if hiddenSection.isHidden {
+                hiddenSection.controlItem.windowFrame?.maxX ?? 0
             } else {
-                let position = alwaysHiddenSection.controlItem.position ?? 0
-                shapeBounds = CGRect(
-                    x: ((rect.maxX - position) + (rect.height / 2)) - 10,
-                    y: rect.origin.y,
-                    width: (position - rect.height) + 10,
-                    height: rect.height
-                )
-                leadingEndCapBounds = CGRect(
-                    x: (rect.maxX - position) - 10,
-                    y: rect.origin.y,
-                    width: rect.height,
-                    height: rect.height
-                )
+                alwaysHiddenSection.controlItem.windowFrame?.maxX ?? 0
             }
+            let shapeBounds = CGRect(
+                x: (position + (rect.height / 2)) - 10,
+                y: rect.origin.y,
+                width: (rect.maxX - (position + rect.height)) + 10,
+                height: rect.height
+            )
+            let leadingEndCapBounds = CGRect(
+                x: position - 10,
+                y: rect.origin.y,
+                width: rect.height,
+                height: rect.height
+            )
             let trailingEndCapBounds = CGRect(
                 x: rect.maxX - rect.height,
                 y: rect.origin.y,
@@ -270,25 +257,27 @@ private class MenuBarOverlayPanelView: NSView {
 
             var path = NSBezierPath(rect: shapeBounds)
 
-            switch menuBar.splitShapeInfo.trailing.leadingEndCap {
-            case .square:
-                path = path.union(NSBezierPath(rect: leadingEndCapBounds))
-            case .round:
-                path = path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
+            path = switch info.trailing.leadingEndCap {
+            case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
+            case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
             }
 
-            switch menuBar.splitShapeInfo.trailing.trailingEndCap {
-            case .square:
-                path = path.union(NSBezierPath(rect: trailingEndCapBounds))
-            case .round:
-                path = path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
+            path = switch info.trailing.trailingEndCap {
+            case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
+            case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
             }
 
             return path
         }()
 
         guard !leadingPath.intersects(trailingPath) else {
-            return shapePathForFullShapeKind(in: rect, menuBar: menuBar)
+            return pathForFullShapeKind(
+                in: rect,
+                info: MenuBarFullShapeInfo(
+                    leadingEndCap: info.leading.leadingEndCap,
+                    trailingEndCap: info.trailing.trailingEndCap
+                )
+            )
         }
 
         let path = NSBezierPath()
@@ -323,15 +312,9 @@ private class MenuBarOverlayPanelView: NSView {
         case .none:
             NSBezierPath(rect: adjustedBounds)
         case .full:
-            shapePathForFullShapeKind(
-                in: adjustedBounds,
-                menuBar: menuBar
-            )
+            pathForFullShapeKind(in: adjustedBounds, info: menuBar.fullShapeInfo)
         case .split:
-            shapePathForSplitShapeKind(
-                in: adjustedBounds,
-                menuBar: menuBar
-            )
+            pathForSplitShapeKind(in: adjustedBounds, info: menuBar.splitShapeInfo)
         }
 
         var hasBorder = false
@@ -388,9 +371,9 @@ private class MenuBarOverlayPanelView: NSView {
             if let borderColor = NSColor(cgColor: menuBar.borderColor) {
                 // swiftlint:disable:next force_cast
                 let borderPath = shapePath.copy() as! NSBezierPath
-                // HACK: Insetting a path to get an "inside" stroke is surprisingly
-                // difficult. This particular path is being clipped anyway, so double
-                // its line width to fake the correct stroke.
+                // HACK: insetting a path to get an "inside" stroke is surprisingly
+                // difficult; we can fake the correct line width by doubling it, as
+                // anything outside the shape path will be clipped
                 borderPath.lineWidth = menuBar.borderWidth * 2
                 borderColor.setStroke()
                 borderPath.stroke()

@@ -11,44 +11,33 @@ import SwiftUI
 
 /// Manager for the state of the menu bar.
 final class MenuBar: ObservableObject {
+    /// Set to `true` to tell the menu bar to save its sections.
+    @Published var needsSave = false
+
+    /// A Boolean value that indicates whether the menu bar should
+    /// have a shadow.
+    @Published var hasShadow: Bool = false
+
+    /// A Boolean value that indicates whether the menu bar should
+    /// have a border.
+    @Published var hasBorder: Bool = false
+
     /// The color of the menu bar's border.
     @Published var borderColor: CGColor = .black
 
     /// The width of the menu bar's border.
     @Published var borderWidth: Double = 1
 
-    /// A Boolean value that indicates whether custom Ice icons
-    /// should be rendered as template images.
-    @Published var customIceIconIsTemplate = false
-
-    /// A Boolean value that indicates whether the current desktop
-    /// wallpaper should be published.
-    @Published var publishesDesktopWallpaper = true
-
-    /// The current desktop wallpaper, clipped to the bounds of
-    /// the menu bar.
-    @Published var desktopWallpaper: CGImage?
-
-    /// A Boolean value that indicates whether the menu bar should
-    /// have a border.
-    @Published var hasBorder: Bool = false
-
-    /// A Boolean value that indicates whether the menu bar should
-    /// have a shadow.
-    @Published var hasShadow: Bool = false
-
     /// An icon to show in the menu bar, with a different image
     /// for when items are visible or hidden.
     @Published var iceIcon: ControlItemImageSet = .defaultIceIcon
 
+    /// A Boolean value that indicates whether custom Ice icons
+    /// should be rendered as template images.
+    @Published var customIceIconIsTemplate = false
+
     /// The last user-selected custom Ice icon.
     @Published var lastCustomIceIcon: ControlItemImageSet?
-
-    /// The maximum X coordinate of the menu bar's main menu.
-    @Published var mainMenuMaxX: CGFloat = 0
-
-    /// Set to `true` to tell the menu bar to save its sections.
-    @Published var needsSave = false
 
     /// The modifier that triggers the secondary action on the
     /// menu bar's control items.
@@ -75,14 +64,25 @@ final class MenuBar: ObservableObject {
     /// activating.
     @Published var showOnHoverPreventedByUserInteraction = false
 
+    /// The tint kind currently in use.
+    @Published var tintKind: MenuBarTintKind = .none
+
     /// The user's currently chosen tint color.
     @Published var tintColor: CGColor = .black
 
     /// The user's currently chosen tint gradient.
     @Published var tintGradient: CustomGradient = .defaultMenuBarTint
 
-    /// The tint kind currently in use.
-    @Published var tintKind: MenuBarTintKind = .none
+    /// The maximum X coordinate of the menu bar's main menu.
+    @Published var mainMenuMaxX: CGFloat = 0
+
+    /// The current desktop wallpaper, clipped to the bounds of
+    /// the menu bar.
+    @Published var desktopWallpaper: CGImage?
+
+    /// A Boolean value that indicates whether the current desktop
+    /// wallpaper should be published.
+    @Published var publishesDesktopWallpaper = true
 
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {

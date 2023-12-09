@@ -29,9 +29,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // initialize the menu bar's sections
+        // set up the menu bar
         if !AppState.shared.isPreview {
-            AppState.shared.menuBar.initializeSections()
+            AppState.shared.menuBar.performSetup()
         }
     }
 

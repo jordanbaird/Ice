@@ -171,9 +171,15 @@ final class MenuBar: ObservableObject {
     /// Initializes a new menu bar instance.
     init(appState: AppState) {
         self.appState = appState
+    }
+
+    /// Performs the initial setup of the menu bar.
+    func performSetup() {
         loadInitialState()
         configureCancellables()
-        DispatchQueue.main.async { [self] in
+        initializeSections()
+        Task.detached { @MainActor [self] in
+            try await Task.sleep(for: .milliseconds(500))
             backingPanel.configureCancellables()
             overlayPanel.configureCancellables()
         }
@@ -226,7 +232,7 @@ final class MenuBar: ObservableObject {
     }
 
     /// Performs the initial setup of the menu bar's section list.
-    func initializeSections() {
+    private func initializeSections() {
         guard sections.isEmpty else {
             Logger.menuBar.info("Sections already initialized")
             return
@@ -249,7 +255,7 @@ final class MenuBar: ObservableObject {
     }
 
     /// Save all control items in the menu bar to persistent storage.
-    func saveSections() {
+    private func saveSections() {
         let defaults = UserDefaults.standard
         let encoder = JSONEncoder()
 

@@ -32,11 +32,12 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 - [x] Menu bar tint (solid and gradient)
 - [x] Menu bar shadow
 - [x] Menu bar border
-- [ ] Custom menu bar shapes (i.e. rounded/split)
+- [x] Custom menu bar shapes (i.e. rounded/split)
 
 ### Other
 
 - [x] Launch at login
+- [ ] Automatic updates
 - [x] Custom menu bar icon 
 - [ ] Custom menu bar widgets
 - [ ] Custom panel that displays menu bar icons as an alternative to the menu bar
@@ -47,7 +48,8 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 ![Custom Icon Example](https://github.com/jordanbaird/Ice/assets/90936861/df0613b6-16b9-4e36-acae-acf93cb4f4ad)
 
 #### Customize the menu bar's appearance
-![Menu Bar Appearance Example](https://github.com/jordanbaird/Ice/assets/90936861/709b603e-d2cf-463c-a089-74c587671472)
+![Menu Bar Appearance Example 1](https://github.com/jordanbaird/Ice/assets/90936861/3a666903-59f7-4833-a843-8c44be8c6b6e)
+![Menu Bar Appearance Example 2](https://github.com/jordanbaird/Ice/assets/90936861/440e7426-94e4-4c08-bace-639e5a83c240)
 
 ## License
 

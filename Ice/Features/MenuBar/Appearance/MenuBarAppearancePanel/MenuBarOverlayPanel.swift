@@ -12,19 +12,19 @@ import OSLog
 class MenuBarOverlayPanel: MenuBarAppearancePanel {
     private var cancellables = Set<AnyCancellable>()
 
-    init(menuBar: MenuBar) {
-        super.init(level: .statusBar, menuBar: menuBar)
-        self.contentView = MenuBarOverlayPanelView(menuBar: menuBar)
+    init(appearanceManager: MenuBarAppearanceManager) {
+        super.init(level: .statusBar, appearanceManager: appearanceManager)
+        self.contentView = MenuBarOverlayPanelView(appearanceManager: appearanceManager)
     }
 
     func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        if let menuBar {
+        if let appearanceManager {
             Publishers.CombineLatest3(
-                menuBar.$tintKind,
-                menuBar.$shapeKind,
-                menuBar.$hasShadow
+                appearanceManager.$tintKind,
+                appearanceManager.$shapeKind,
+                appearanceManager.$hasShadow
             )
             .map { tintKind, shapeKind, _ in
                 tintKind != .none || shapeKind != .none
@@ -60,12 +60,12 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
 // MARK: - MenuBarOverlayPanelView
 
 private class MenuBarOverlayPanelView: NSView {
-    private weak var menuBar: MenuBar?
+    private weak var appearanceManager: MenuBarAppearanceManager?
     private var cancellables = Set<AnyCancellable>()
 
-    init(menuBar: MenuBar) {
+    init(appearanceManager: MenuBarAppearanceManager) {
         super.init(frame: .zero)
-        self.menuBar = menuBar
+        self.appearanceManager = appearanceManager
         configureCancellables()
     }
 
@@ -77,41 +77,12 @@ private class MenuBarOverlayPanelView: NSView {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        if let menuBar {
+        if let menuBar = appearanceManager?.menuBar {
             menuBar.$mainMenuMaxX
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
                 }
                 .store(in: &c)
-
-            Publishers.CombineLatest4(
-                menuBar.$desktopWallpaper,
-                menuBar.$tintKind,
-                menuBar.$tintColor,
-                menuBar.$tintGradient
-            )
-            .combineLatest(
-                menuBar.$shapeKind,
-                menuBar.$fullShapeInfo,
-                menuBar.$splitShapeInfo
-            )
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.needsDisplay = true
-            }
-            .store(in: &c)
-
-            Publishers.CombineLatest4(
-                menuBar.$hasShadow,
-                menuBar.$hasBorder,
-                menuBar.$borderColor,
-                menuBar.$borderWidth
-            )
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.needsDisplay = true
-            }
-            .store(in: &c)
 
             for name: MenuBarSection.Name in [.hidden, .alwaysHidden] {
                 if let section = menuBar.section(withName: name) {
@@ -133,6 +104,37 @@ private class MenuBarOverlayPanelView: NSView {
                         .store(in: &c)
                 }
             }
+        }
+
+        if let appearanceManager {
+            Publishers.CombineLatest4(
+                appearanceManager.$desktopWallpaper,
+                appearanceManager.$tintKind,
+                appearanceManager.$tintColor,
+                appearanceManager.$tintGradient
+            )
+            .combineLatest(
+                appearanceManager.$shapeKind,
+                appearanceManager.$fullShapeInfo,
+                appearanceManager.$splitShapeInfo
+            )
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.needsDisplay = true
+            }
+            .store(in: &c)
+
+            Publishers.CombineLatest4(
+                appearanceManager.$hasShadow,
+                appearanceManager.$hasBorder,
+                appearanceManager.$borderColor,
+                appearanceManager.$borderWidth
+            )
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.needsDisplay = true
+            }
+            .store(in: &c)
         }
 
         cancellables = c
@@ -177,7 +179,7 @@ private class MenuBarOverlayPanelView: NSView {
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
     private func pathForSplitShapeKind(in rect: CGRect, info: MenuBarSplitShapeInfo) -> NSBezierPath {
         guard
-            let menuBar,
+            let menuBar = appearanceManager?.menuBar,
             let hiddenSection = menuBar.section(withName: .hidden),
             let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden)
         else {
@@ -290,7 +292,7 @@ private class MenuBarOverlayPanelView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         guard
-            let menuBar,
+            let appearanceManager,
             let context = NSGraphicsContext.current
         else {
             return
@@ -308,19 +310,19 @@ private class MenuBarOverlayPanelView: NSView {
             height: bounds.height - 5
         )
 
-        let shapePath = switch menuBar.shapeKind {
+        let shapePath = switch appearanceManager.shapeKind {
         case .none:
             NSBezierPath(rect: adjustedBounds)
         case .full:
-            pathForFullShapeKind(in: adjustedBounds, info: menuBar.fullShapeInfo)
+            pathForFullShapeKind(in: adjustedBounds, info: appearanceManager.fullShapeInfo)
         case .split:
-            pathForSplitShapeKind(in: adjustedBounds, info: menuBar.splitShapeInfo)
+            pathForSplitShapeKind(in: adjustedBounds, info: appearanceManager.splitShapeInfo)
         }
 
         var hasBorder = false
 
-        if menuBar.shapeKind != .none {
-            if let desktopWallpaper = menuBar.desktopWallpaper {
+        if appearanceManager.shapeKind != .none {
+            if let desktopWallpaper = appearanceManager.desktopWallpaper {
                 context.saveGraphicsState()
                 defer {
                     context.restoreGraphicsState()
@@ -333,7 +335,7 @@ private class MenuBarOverlayPanelView: NSView {
                 context.cgContext.draw(desktopWallpaper, in: adjustedBounds)
             }
 
-            if menuBar.hasShadow {
+            if appearanceManager.hasShadow {
                 context.saveGraphicsState()
                 defer {
                     context.restoreGraphicsState()
@@ -346,35 +348,35 @@ private class MenuBarOverlayPanelView: NSView {
                 shapePath.drawShadow(color: .black.withAlphaComponent(0.5), radius: 5)
             }
 
-            if menuBar.hasBorder {
+            if appearanceManager.hasBorder {
                 hasBorder = true
             }
         }
 
         shapePath.setClip()
 
-        switch menuBar.tintKind {
+        switch appearanceManager.tintKind {
         case .none:
             break
         case .solid:
-            if let tintColor = NSColor(cgColor: menuBar.tintColor)?.withAlphaComponent(0.2) {
+            if let tintColor = NSColor(cgColor: appearanceManager.tintColor)?.withAlphaComponent(0.2) {
                 tintColor.setFill()
                 NSBezierPath(rect: adjustedBounds).fill()
             }
         case .gradient:
-            if let tintGradient = menuBar.tintGradient.withAlphaComponent(0.2).nsGradient {
+            if let tintGradient = appearanceManager.tintGradient.withAlphaComponent(0.2).nsGradient {
                 tintGradient.draw(in: adjustedBounds, angle: 0)
             }
         }
 
         if hasBorder {
-            if let borderColor = NSColor(cgColor: menuBar.borderColor) {
+            if let borderColor = NSColor(cgColor: appearanceManager.borderColor) {
                 // swiftlint:disable:next force_cast
                 let borderPath = shapePath.copy() as! NSBezierPath
                 // HACK: insetting a path to get an "inside" stroke is surprisingly
                 // difficult; we can fake the correct line width by doubling it, as
                 // anything outside the shape path will be clipped
-                borderPath.lineWidth = menuBar.borderWidth * 2
+                borderPath.lineWidth = appearanceManager.borderWidth * 2
                 borderColor.setStroke()
                 borderPath.stroke()
             }

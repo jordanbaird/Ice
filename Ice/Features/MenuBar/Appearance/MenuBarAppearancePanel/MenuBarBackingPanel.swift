@@ -11,19 +11,19 @@ import Combine
 class MenuBarBackingPanel: MenuBarAppearancePanel {
     private var cancellables = Set<AnyCancellable>()
 
-    init(menuBar: MenuBar) {
-        super.init(level: Level(Int(CGWindowLevelForKey(.desktopIconWindow))), menuBar: menuBar)
-        self.contentView = MenuBarBackingPanelView(menuBar: menuBar)
+    init(appearanceManager: MenuBarAppearanceManager) {
+        super.init(level: Level(Int(CGWindowLevelForKey(.desktopIconWindow))), appearanceManager: appearanceManager)
+        self.contentView = MenuBarBackingPanelView(appearanceManager: appearanceManager)
     }
 
     func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        if let menuBar {
+        if let appearanceManager {
             Publishers.CombineLatest3(
-                menuBar.$hasShadow,
-                menuBar.$hasBorder,
-                menuBar.$shapeKind
+                appearanceManager.$hasShadow,
+                appearanceManager.$hasBorder,
+                appearanceManager.$shapeKind
             )
             .map { hasShadow, hasBorder, shapeKind in
                 guard shapeKind == .none else {
@@ -52,12 +52,12 @@ class MenuBarBackingPanel: MenuBarAppearancePanel {
         let rect = super.menuBarFrame(forScreen: screen)
         let offset: CGFloat = {
             guard
-                let menuBar,
-                menuBar.hasBorder
+                let appearanceManager,
+                appearanceManager.hasBorder
             else {
                 return 0
             }
-            return menuBar.borderWidth
+            return appearanceManager.borderWidth
         }()
         return CGRect(
             x: rect.minX,
@@ -71,12 +71,12 @@ class MenuBarBackingPanel: MenuBarAppearancePanel {
 // MARK: - MenuBarBackingPanelView
 
 private class MenuBarBackingPanelView: NSView {
-    private weak var menuBar: MenuBar?
+    private weak var appearanceManager: MenuBarAppearanceManager?
     private var cancellables = Set<AnyCancellable>()
 
-    init(menuBar: MenuBar) {
+    init(appearanceManager: MenuBarAppearanceManager) {
         super.init(frame: .zero)
-        self.menuBar = menuBar
+        self.appearanceManager = appearanceManager
         configureCancellables()
     }
 
@@ -88,14 +88,14 @@ private class MenuBarBackingPanelView: NSView {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        if let menuBar {
+        if let appearanceManager {
             Publishers.CombineLatest4(
-                menuBar.$hasShadow,
-                menuBar.$hasBorder,
-                menuBar.$borderColor,
-                menuBar.$borderWidth
+                appearanceManager.$hasShadow,
+                appearanceManager.$hasBorder,
+                appearanceManager.$borderColor,
+                appearanceManager.$borderWidth
             )
-            .combineLatest(menuBar.$shapeKind)
+            .combineLatest(appearanceManager.$shapeKind)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.needsDisplay = true
@@ -107,11 +107,11 @@ private class MenuBarBackingPanelView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        guard let menuBar else {
+        guard let appearanceManager else {
             return
         }
 
-        if menuBar.hasShadow {
+        if appearanceManager.hasShadow {
             let gradient = NSGradient(
                 colors: [
                     NSColor(white: 0.0, alpha: 0.0),
@@ -127,14 +127,14 @@ private class MenuBarBackingPanelView: NSView {
             gradient?.draw(in: shadowBounds, angle: 90)
         }
 
-        if menuBar.hasBorder {
+        if appearanceManager.hasBorder {
             let borderBounds = CGRect(
                 x: bounds.minX,
                 y: bounds.minY + 5,
                 width: bounds.width,
-                height: menuBar.borderWidth
+                height: appearanceManager.borderWidth
             )
-            NSColor(cgColor: menuBar.borderColor)?.setFill()
+            NSColor(cgColor: appearanceManager.borderColor)?.setFill()
             NSBezierPath(rect: borderBounds).fill()
         }
     }

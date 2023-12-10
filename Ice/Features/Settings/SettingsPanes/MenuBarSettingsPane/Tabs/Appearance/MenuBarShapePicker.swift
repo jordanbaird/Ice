@@ -8,8 +8,8 @@ import SwiftUI
 struct MenuBarShapePicker: View {
     @EnvironmentObject var appState: AppState
 
-    private var menuBar: MenuBar {
-        appState.menuBar
+    private var appearanceManager: MenuBarAppearanceManager {
+        appState.menuBar.appearanceManager
     }
 
     var body: some View {
@@ -19,7 +19,7 @@ struct MenuBarShapePicker: View {
 
     @ViewBuilder
     private var shapeKindPicker: some View {
-        Picker("Shape Kind", selection: menuBar.bindings.shapeKind) {
+        Picker("Shape Kind", selection: appearanceManager.bindings.shapeKind) {
             ForEach(MenuBarShapeKind.allCases, id: \.self) { shape in
                 switch shape {
                 case .none:
@@ -35,16 +35,16 @@ struct MenuBarShapePicker: View {
 
     @ViewBuilder
     private var exampleView: some View {
-        switch menuBar.shapeKind {
+        switch appearanceManager.shapeKind {
         case .none:
             Text("No shape kind selected")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         case .full:
-            MenuBarFullShapeExampleView(info: menuBar.bindings.fullShapeInfo)
+            MenuBarFullShapeExampleView(info: appearanceManager.bindings.fullShapeInfo)
                 .equatable()
         case .split:
-            MenuBarSplitShapeExampleView(info: menuBar.bindings.splitShapeInfo)
+            MenuBarSplitShapeExampleView(info: appearanceManager.bindings.splitShapeInfo)
                 .equatable()
         }
     }

@@ -13,16 +13,15 @@ import Combine
 class MenuBarAppearancePanel: NSPanel {
     private var cancellables = Set<AnyCancellable>()
 
-    /// The menu bar that manages the panel.
-    private(set) weak var menuBar: MenuBar?
+    /// The appearance manager that manages the panel.
+    private(set) weak var appearanceManager: MenuBarAppearanceManager?
 
-    /// Creates a panel with the given window level and
-    /// menu bar.
+    /// Creates a panel with the given window level and menu bar.
     ///
     /// - Parameters:
     ///   - level: The window level of the panel.
-    ///   - menuBar: The menu bar that manages the panel.
-    init(level: Level, menuBar: MenuBar) {
+    ///   - appearanceManager: The appearance manager that manages the panel.
+    init(level: Level, appearanceManager: MenuBarAppearanceManager) {
         super.init(
             contentRect: .zero,
             styleMask: [
@@ -33,7 +32,7 @@ class MenuBarAppearancePanel: NSPanel {
             backing: .buffered,
             defer: false
         )
-        self.menuBar = menuBar
+        self.appearanceManager = appearanceManager
         self.level = level
         self.title = String(describing: Self.self)
         self.backgroundColor = .clear

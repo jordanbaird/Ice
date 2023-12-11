@@ -26,6 +26,9 @@ enum ScreenshotManager {
 
         /// The cursor is shown in the capture.
         static let showsCursor = CaptureOptions(rawValue: 1 << 3)
+
+        /// The output is scaled to fit the configured width and height.
+        static let scalesToFit = CaptureOptions(rawValue: 1 << 4)
     }
 
     /// An error that can occur during a capture.
@@ -36,11 +39,15 @@ enum ScreenshotManager {
         /// The source rectangle of the capture is outside the bounds
         /// of the provided window.
         case sourceRectOutOfBounds
+
+        /// The capture operation timed out.
+        case timeout
     }
 
     /// Captures the given window as an image.
     ///
     /// - Parameters:
+    ///   - timeout: Amount of time to wait before throwing a cancellation error.
     ///   - window: The window to capture.
     ///   - display: The display that determines the scale factor of the
     ///     capture. Usually this is the display that contains the window.
@@ -50,6 +57,7 @@ enum ScreenshotManager {
     ///   - resolution: The resolution of the capture.
     ///   - options: Additional parameters for the capture.
     static func captureImage(
+        withTimeout timeout: Duration,
         window: SCWindow,
         display: SCDisplay? = nil,
         captureRect: CGRect? = nil,
@@ -86,11 +94,29 @@ enum ScreenshotManager {
         configuration.capturesShadowsOnly = options.contains(.onlyShadows)
         configuration.shouldBeOpaque = options.contains(.shouldBeOpaque)
         configuration.showsCursor = options.contains(.showsCursor)
+        configuration.scalesToFit = options.contains(.scalesToFit)
 
-        return try await SCScreenshotManager.captureImage(
-            contentFilter: contentFilter,
-            configuration: configuration
-        )
+        let captureTask = Task {
+            let image = try await SCScreenshotManager.captureImage(
+                contentFilter: contentFilter,
+                configuration: configuration
+            )
+            try Task.checkCancellation()
+            return image
+        }
+
+        let timeoutTask = Task {
+            try await Task.sleep(for: timeout)
+            captureTask.cancel()
+        }
+
+        do {
+            let result = try await captureTask.value
+            timeoutTask.cancel()
+            return result
+        } catch is CancellationError {
+            throw CaptureError.timeout
+        }
     }
 
     private static func getDisplayScaleFactor(_ displayID: CGDirectDisplayID) -> CGFloat {

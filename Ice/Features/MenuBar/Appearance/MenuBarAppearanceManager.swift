@@ -121,9 +121,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                     return
                 }
                 if publishesDesktopWallpaper {
-                    Task { [weak self] in
-                        try await self?.readAndUpdateDesktopWallpaper()
-                    }
+                    readAndUpdateDesktopWallpaper()
                 }
             }
             .store(in: &c)
@@ -135,9 +133,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                     return
                 }
                 if publishesDesktopWallpaper {
-                    Task { [weak self] in
-                        try await self?.readAndUpdateDesktopWallpaper()
-                    }
+                    readAndUpdateDesktopWallpaper()
                 }
             }
             .store(in: &c)
@@ -261,9 +257,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 }
                 // immediately update the desktop wallpaper
                 if publishesDesktopWallpaper {
-                    Task { [weak self] in
-                        try await self?.readAndUpdateDesktopWallpaper()
-                    }
+                    readAndUpdateDesktopWallpaper()
                 } else {
                     desktopWallpaper = nil
                 }
@@ -273,8 +267,7 @@ final class MenuBarAppearanceManager: ObservableObject {
         cancellables = c
     }
 
-    @MainActor
-    private func readAndUpdateDesktopWallpaper() async throws {
+    private func readAndUpdateDesktopWallpaper() {
         guard
             let appState = menuBar?.appState,
             appState.permissionsManager.screenCaptureGroup.hasPermissions
@@ -282,38 +275,45 @@ final class MenuBarAppearanceManager: ObservableObject {
             return
         }
 
-        let content = try await SCShareableContent.current
+        Task { @MainActor in
+            do {
+                let content = try await SCShareableContent.current
 
-        let wallpaperWindowPredicate: (SCWindow) -> Bool = { window in
-            // wallpaper window belongs to the Dock process
-            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            window.isOnScreen &&
-            window.title?.hasPrefix("Wallpaper-") == true
-        }
-        let menuBarWindowPredicate: (SCWindow) -> Bool = { window in
-            // menu bar window belongs to the WindowServer process
-            // (identified by an empty string)
-            window.owningApplication?.bundleIdentifier == "" &&
-            window.windowLayer == kCGMainMenuWindowLevel &&
-            window.title == "Menubar"
-        }
+                let wallpaperWindowPredicate: (SCWindow) -> Bool = { window in
+                    // wallpaper window belongs to the Dock process
+                    window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+                    window.isOnScreen &&
+                    window.title?.hasPrefix("Wallpaper-") == true
+                }
+                let menuBarWindowPredicate: (SCWindow) -> Bool = { window in
+                    // menu bar window belongs to the WindowServer process
+                    // (identified by an empty string)
+                    window.owningApplication?.bundleIdentifier == "" &&
+                    window.windowLayer == kCGMainMenuWindowLevel &&
+                    window.title == "Menubar"
+                }
 
-        guard
-            let wallpaperWindow = content.windows.first(where: wallpaperWindowPredicate),
-            let menuBarWindow = content.windows.first(where: menuBarWindowPredicate)
-        else {
-            // TODO: Throw an error
-            return
-        }
+                guard
+                    let wallpaperWindow = content.windows.first(where: wallpaperWindowPredicate),
+                    let menuBarWindow = content.windows.first(where: menuBarWindowPredicate)
+                else {
+                    // TODO: Throw an error
+                    return
+                }
 
-        let image = try await ScreenshotManager.captureImage(
-            window: wallpaperWindow,
-            captureRect: menuBarWindow.frame,
-            options: .ignoreFraming
-        )
+                let image = try await ScreenshotManager.captureImage(
+                    withTimeout: .milliseconds(500),
+                    window: wallpaperWindow,
+                    captureRect: menuBarWindow.frame,
+                    options: .ignoreFraming
+                )
 
-        if desktopWallpaper?.dataProvider?.data != image.dataProvider?.data {
-            desktopWallpaper = image
+                if desktopWallpaper?.dataProvider?.data != image.dataProvider?.data {
+                    desktopWallpaper = image
+                }
+            } catch {
+                Logger.appearanceManager.error("Error updating desktop wallpaper: \(error)")
+            }
         }
     }
 }

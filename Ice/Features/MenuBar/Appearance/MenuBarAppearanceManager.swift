@@ -48,10 +48,6 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// of the menu bar.
     @Published var desktopWallpaper: CGImage?
 
-    /// A Boolean value that indicates whether the current
-    /// desktop wallpaper should be updated.
-    @Published var updatesDesktopWallpaper = true
-
     /// A Boolean value that indicates whether the screen
     /// is currently locked.
     @Published private(set) var screenIsLocked = false
@@ -153,24 +149,14 @@ final class MenuBarAppearanceManager: ObservableObject {
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                if updatesDesktopWallpaper {
-                    updateDesktopWallpaper()
-                }
+                self?.updateDesktopWallpaper()
             }
             .store(in: &c)
 
         Timer.publish(every: 3, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                if updatesDesktopWallpaper {
-                    updateDesktopWallpaper()
-                }
+                self?.updateDesktopWallpaper()
             }
             .store(in: &c)
 
@@ -245,20 +231,9 @@ final class MenuBarAppearanceManager: ObservableObject {
                 if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding menu bar shape kind: \(error)")
                 }
-            } receiveValue: { data in
+            } receiveValue: { [weak self] data in
+                self?.updateDesktopWallpaper()
                 defaults.set(data, forKey: Defaults.menuBarShapeKind)
-            }
-            .store(in: &c)
-
-        $shapeKind
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] shapeKind in
-                switch shapeKind {
-                case .none:
-                    self?.updatesDesktopWallpaper = false
-                case .full, .split:
-                    self?.updatesDesktopWallpaper = true
-                }
             }
             .store(in: &c)
 
@@ -286,24 +261,15 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
             .store(in: &c)
 
-        $updatesDesktopWallpaper
-            .sink { [weak self] updatesDesktopWallpaper in
-                guard let self else {
-                    return
-                }
-                // immediately update the desktop wallpaper
-                if updatesDesktopWallpaper {
-                    updateDesktopWallpaper()
-                } else {
-                    desktopWallpaper = nil
-                }
-            }
-            .store(in: &c)
-
         cancellables = c
     }
 
     private func updateDesktopWallpaper() {
+        guard shapeKind != .none else {
+            desktopWallpaper = nil
+            return
+        }
+
         guard !screenIsLocked else {
             Logger.appearanceManager.debug("Screen is locked")
             return

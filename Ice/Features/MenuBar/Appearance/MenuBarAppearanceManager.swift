@@ -10,12 +10,12 @@ import SwiftUI
 
 /// A type that manages the appearance of the menu bar.
 final class MenuBarAppearanceManager: ObservableObject {
-    /// A Boolean value that indicates whether the menu bar should
-    /// have a shadow.
+    /// A Boolean value that indicates whether the menu bar
+    /// should have a shadow.
     @Published var hasShadow: Bool = false
 
-    /// A Boolean value that indicates whether the menu bar should
-    /// have a border.
+    /// A Boolean value that indicates whether the menu bar
+    /// should have a border.
     @Published var hasBorder: Bool = false
 
     /// The color of the menu bar's border.
@@ -44,13 +44,21 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// The user's currently chosen tint gradient.
     @Published var tintGradient: CustomGradient = .defaultMenuBarTint
 
-    /// The current desktop wallpaper, clipped to the bounds of
-    /// the menu bar.
+    /// The current desktop wallpaper, clipped to the bounds
+    /// of the menu bar.
     @Published var desktopWallpaper: CGImage?
 
-    /// A Boolean value that indicates whether the current desktop
-    /// wallpaper should be published.
-    @Published var publishesDesktopWallpaper = true
+    /// A Boolean value that indicates whether the current
+    /// desktop wallpaper should be updated.
+    @Published var updatesDesktopWallpaper = true
+
+    /// A Boolean value that indicates whether the screen
+    /// is currently locked.
+    @Published private(set) var screenIsLocked = false
+
+    /// A Boolean value that indicates whether the screen
+    /// saver is currently active.
+    @Published private(set) var screenSaverIsActive = false
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -114,14 +122,42 @@ final class MenuBarAppearanceManager: ObservableObject {
         let defaults = UserDefaults.standard
         let encoder = JSONEncoder()
 
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("com.apple.screenIsLocked"))
+            .sink { [weak self] _ in
+                self?.screenIsLocked = true
+            }
+            .store(in: &c)
+
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("com.apple.screenIsUnlocked"))
+            .sink { [weak self] _ in
+                self?.screenIsLocked = false
+            }
+            .store(in: &c)
+
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("com.apple.screensaver.didstart"))
+            .sink { [weak self] _ in
+                self?.screenSaverIsActive = true
+            }
+            .store(in: &c)
+
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("com.apple.screensaver.didstop"))
+            .sink { [weak self] _ in
+                self?.screenSaverIsActive = false
+            }
+            .store(in: &c)
+
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .sink { [weak self] _ in
                 guard let self else {
                     return
                 }
-                if publishesDesktopWallpaper {
-                    readAndUpdateDesktopWallpaper()
+                if updatesDesktopWallpaper {
+                    updateDesktopWallpaper()
                 }
             }
             .store(in: &c)
@@ -132,8 +168,8 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                if publishesDesktopWallpaper {
-                    readAndUpdateDesktopWallpaper()
+                if updatesDesktopWallpaper {
+                    updateDesktopWallpaper()
                 }
             }
             .store(in: &c)
@@ -219,9 +255,9 @@ final class MenuBarAppearanceManager: ObservableObject {
             .sink { [weak self] shapeKind in
                 switch shapeKind {
                 case .none:
-                    self?.publishesDesktopWallpaper = false
+                    self?.updatesDesktopWallpaper = false
                 case .full, .split:
-                    self?.publishesDesktopWallpaper = true
+                    self?.updatesDesktopWallpaper = true
                 }
             }
             .store(in: &c)
@@ -250,14 +286,14 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
             .store(in: &c)
 
-        $publishesDesktopWallpaper
-            .sink { [weak self] publishesDesktopWallpaper in
+        $updatesDesktopWallpaper
+            .sink { [weak self] updatesDesktopWallpaper in
                 guard let self else {
                     return
                 }
                 // immediately update the desktop wallpaper
-                if publishesDesktopWallpaper {
-                    readAndUpdateDesktopWallpaper()
+                if updatesDesktopWallpaper {
+                    updateDesktopWallpaper()
                 } else {
                     desktopWallpaper = nil
                 }
@@ -267,11 +303,22 @@ final class MenuBarAppearanceManager: ObservableObject {
         cancellables = c
     }
 
-    private func readAndUpdateDesktopWallpaper() {
+    private func updateDesktopWallpaper() {
+        guard !screenIsLocked else {
+            Logger.appearanceManager.debug("Screen is locked")
+            return
+        }
+
+        guard !screenSaverIsActive else {
+            Logger.appearanceManager.debug("Screen saver is active")
+            return
+        }
+
         guard
             let appState = menuBar?.appState,
             appState.permissionsManager.screenCaptureGroup.hasPermissions
         else {
+            Logger.appearanceManager.notice("Missing screen capture permissions")
             return
         }
 
@@ -297,7 +344,6 @@ final class MenuBarAppearanceManager: ObservableObject {
                     let wallpaperWindow = content.windows.first(where: wallpaperWindowPredicate),
                     let menuBarWindow = content.windows.first(where: menuBarWindowPredicate)
                 else {
-                    // TODO: Throw an error
                     return
                 }
 

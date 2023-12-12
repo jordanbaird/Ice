@@ -236,11 +236,11 @@ final class MenuBar: ObservableObject {
                 launchObserver = runningApplication.publisher(for: \.isFinishedLaunching)
                     .sink { [weak self] isFinishedLaunching in
                         guard isFinishedLaunching else {
-                            Logger.menuBar.debug("Frontmost application is launching...")
+                            Logger.menuBar.debug("\(appID) is launching...")
                             return
                         }
 
-                        Logger.menuBar.debug("Frontmost application finished launching")
+                        Logger.menuBar.debug("\(appID) is finished launching")
 
                         guard let self else {
                             return

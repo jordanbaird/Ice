@@ -75,11 +75,6 @@ final class AppState: ObservableObject {
 // MARK: AppState: BindingExposable
 extension AppState: BindingExposable { }
 
-enum AppScene {
-    case permissions
-    case settings
-}
-
 // MARK: - Logger
 private extension Logger {
     static let appState = Logger(category: "AppState")

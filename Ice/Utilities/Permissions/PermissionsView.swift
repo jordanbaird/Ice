@@ -7,11 +7,13 @@ import SwiftUI
 
 struct PermissionsView: View {
     @EnvironmentObject var appState: AppState
-
-    @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
 
     let onContinue: () -> Void
+
+    private var permissionsManager: PermissionsManager {
+        appState.permissionsManager
+    }
 
     var body: some View {
         VStack {
@@ -22,14 +24,6 @@ struct PermissionsView: View {
         }
         .fixedSize()
         .padding()
-        .onAppear {
-            appState.permissionsManager.accessibilityGroup.hasPermissionsHandler = {
-                openWindow(id: Constants.permissionsWindowID)
-            }
-            appState.permissionsManager.screenCaptureGroup.hasPermissionsHandler = {
-                openWindow(id: Constants.permissionsWindowID)
-            }
-        }
     }
 
     @ViewBuilder
@@ -60,8 +54,8 @@ struct PermissionsView: View {
     @ViewBuilder
     private var permissionsGroupStack: some View {
         VStack {
-            PermissionsGroupView(group: appState.permissionsManager.accessibilityGroup)
-            PermissionsGroupView(group: appState.permissionsManager.screenCaptureGroup)
+            SinglePermissionView(permission: permissionsManager.accessibilityPermission)
+            SinglePermissionView(permission: permissionsManager.screenRecordingPermission)
         }
     }
 
@@ -75,7 +69,7 @@ struct PermissionsView: View {
 
             Spacer()
 
-            if appState.permissionsManager.hasPermissions {
+            if permissionsManager.hasPermission {
                 Button("Continue") {
                     dismissWindow()
                     onContinue()
@@ -85,16 +79,14 @@ struct PermissionsView: View {
     }
 }
 
-private struct PermissionsGroupView<
-    Request: PermissionsRequest,
-    Check: PermissionsCheck<Request>
->: View {
-    @ObservedObject var group: PermissionsGroup<Request, Check>
+private struct SinglePermissionView: View {
+    @ObservedObject var permission: Permission
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         GroupBox {
             VStack(spacing: 2) {
-                Text(group.title)
+                Text(permission.title)
                     .font(.title)
                     .underline()
 
@@ -102,13 +94,13 @@ private struct PermissionsGroupView<
                     .font(.subheadline)
 
                 VStack(alignment: .leading) {
-                    ForEach(group.details, id: \.self) { detail in
+                    ForEach(permission.details, id: \.self) { detail in
                         Text(detail)
                     }
                 }
 
                 VStack(spacing: 1) {
-                    ForEach(group.notes, id: \.self) { note in
+                    ForEach(permission.notes, id: \.self) { note in
                         Text(note)
                             .bold()
                             .padding(.horizontal, 6)
@@ -124,9 +116,9 @@ private struct PermissionsGroupView<
                 }
                 .padding(3)
 
-                if group.hasPermissions {
+                if permission.hasPermission {
                     Label(
-                        "\(Constants.appName) has the required permissions",
+                        "\(Constants.appName) has been granted permission",
                         systemImage: "checkmark"
                     )
                     .foregroundStyle(.green)
@@ -134,10 +126,11 @@ private struct PermissionsGroupView<
                     .focusable(false)
                     .frame(height: 21)
                 } else {
-                    Button(
-                        "Grant Permission",
-                        action: group.performRequest
-                    )
+                    Button("Grant Permission") {
+                        permission.run {
+                            openWindow(id: Constants.permissionsWindowID)
+                        }
+                    }
                     .frame(height: 21)
                 }
             }

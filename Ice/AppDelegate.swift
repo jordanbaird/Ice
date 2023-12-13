@@ -20,8 +20,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if !AppState.shared.isPreview {
             // if we have the required permissions, stop all checks
-            if AppState.shared.permissionsManager.hasPermissions {
-                AppState.shared.permissionsManager.stopAllChecks()
+            if AppState.shared.permissionsManager.hasPermission {
+                AppState.shared.permissionsManager.stopAll()
                 // set up the menu bar
                 AppState.shared.menuBar.performSetup()
             }
@@ -40,7 +40,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        if AppState.shared.permissionsManager.hasPermissions {
+        if AppState.shared.permissionsManager.hasPermission {
             deactivate(withPolicy: .accessory)
             return false
         }

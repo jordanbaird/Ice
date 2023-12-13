@@ -282,7 +282,7 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         guard
             let appState = menuBar?.appState,
-            appState.permissionsManager.screenCaptureGroup.hasPermissions
+            appState.permissionsManager.screenRecordingPermission.hasPermission
         else {
             Logger.appearanceManager.notice("Missing screen capture permissions")
             return

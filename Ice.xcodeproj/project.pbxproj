@@ -30,10 +30,8 @@
 		177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F22B092A0700448BBF /* ControlItemImage.swift */; };
 		177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F42B0A654D00448BBF /* ControlItemImageSet.swift */; };
 		1787C4272B16890B002F50DF /* AXSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1787C4262B16890B002F50DF /* AXSwift */; };
-		1787C42C2B16AE0B002F50DF /* PermissionsCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C42B2B16AE0B002F50DF /* PermissionsCheck.swift */; };
-		1787C42E2B16AE32002F50DF /* PermissionsGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C42D2B16AE32002F50DF /* PermissionsGroup.swift */; };
+		1787C42C2B16AE0B002F50DF /* Permission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C42B2B16AE0B002F50DF /* Permission.swift */; };
 		1787C4302B16AE78002F50DF /* PermissionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C42F2B16AE78002F50DF /* PermissionsManager.swift */; };
-		1787C4322B16AEA0002F50DF /* PermissionsRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C4312B16AEA0002F50DF /* PermissionsRequest.swift */; };
 		1787C4342B16AECF002F50DF /* PermissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C4332B16AECF002F50DF /* PermissionsView.swift */; };
 		1787C4362B17A9EB002F50DF /* Acknowledgements.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */; };
 		1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C43A2B187187002F50DF /* MenuBarTintKind.swift */; };
@@ -105,10 +103,8 @@
 		177354832B1F9AF9001CF731 /* NSBezierPath+union.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+union.swift"; sourceTree = "<group>"; };
 		177386F22B092A0700448BBF /* ControlItemImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImage.swift; sourceTree = "<group>"; };
 		177386F42B0A654D00448BBF /* ControlItemImageSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImageSet.swift; sourceTree = "<group>"; };
-		1787C42B2B16AE0B002F50DF /* PermissionsCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsCheck.swift; sourceTree = "<group>"; };
-		1787C42D2B16AE32002F50DF /* PermissionsGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsGroup.swift; sourceTree = "<group>"; };
+		1787C42B2B16AE0B002F50DF /* Permission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permission.swift; sourceTree = "<group>"; };
 		1787C42F2B16AE78002F50DF /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
-		1787C4312B16AEA0002F50DF /* PermissionsRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsRequest.swift; sourceTree = "<group>"; };
 		1787C4332B16AECF002F50DF /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
 		1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Acknowledgements.pdf; sourceTree = "<group>"; };
 		1787C43A2B187187002F50DF /* MenuBarTintKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTintKind.swift; sourceTree = "<group>"; };
@@ -268,10 +264,8 @@
 		1787C42A2B16ADF2002F50DF /* Permissions */ = {
 			isa = PBXGroup;
 			children = (
-				1787C42B2B16AE0B002F50DF /* PermissionsCheck.swift */,
-				1787C42D2B16AE32002F50DF /* PermissionsGroup.swift */,
+				1787C42B2B16AE0B002F50DF /* Permission.swift */,
 				1787C42F2B16AE78002F50DF /* PermissionsManager.swift */,
-				1787C4312B16AEA0002F50DF /* PermissionsRequest.swift */,
 				1787C4332B16AECF002F50DF /* PermissionsView.swift */,
 				17ECD4ED2B290F8D00E33147 /* PermissionsWindow.swift */,
 			);
@@ -629,7 +623,6 @@
 			files = (
 				17928F1A2AC5DF9C0016C615 /* Defaults.swift in Sources */,
 				71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */,
-				1787C42E2B16AE32002F50DF /* PermissionsGroup.swift in Sources */,
 				71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
@@ -651,7 +644,7 @@
 				170749C82B12078F009DDF73 /* GlobalEventMonitor.swift in Sources */,
 				17ECD4EE2B290F8D00E33147 /* PermissionsWindow.swift in Sources */,
 				71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */,
-				1787C42C2B16AE0B002F50DF /* PermissionsCheck.swift in Sources */,
+				1787C42C2B16AE0B002F50DF /* Permission.swift in Sources */,
 				1787C4342B16AECF002F50DF /* PermissionsView.swift in Sources */,
 				716683502A7681AF006ABF84 /* MenuBar.swift in Sources */,
 				177354812B1F5F38001CF731 /* ScreenshotManager.swift in Sources */,
@@ -687,7 +680,6 @@
 				179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */,
 				17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPane.swift in Sources */,
 				177354662B1B8502001CF731 /* MenuBarShape.swift in Sources */,
-				1787C4322B16AEA0002F50DF /* PermissionsRequest.swift in Sources */,
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
 				71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */,
 				1787C4302B16AE78002F50DF /* PermissionsManager.swift in Sources */,

@@ -18,7 +18,7 @@ struct IceApp: App {
 
     var body: some Scene {
         SettingsWindow(appState: appState, onAppear: {
-            if !appState.permissionsManager.hasPermissions {
+            if !appState.permissionsManager.hasPermission {
                 openWindow(id: Constants.permissionsWindowID)
             }
         })

@@ -20,9 +20,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if !AppState.shared.isPreview {
             // if we have the required permissions, stop all checks
+            // and set up the menu bar
             if AppState.shared.permissionsManager.hasPermission {
                 AppState.shared.permissionsManager.stopAll()
-                // set up the menu bar
                 AppState.shared.menuBar.performSetup()
             }
         }
@@ -68,8 +68,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Opens the settings window and activates the app.
-    ///
-    /// The app will automatically deactivate once all of its windows are closed.
     @objc func openSettingsWindow() {
         guard let settingsWindow = AppState.shared.settingsWindow else {
             return

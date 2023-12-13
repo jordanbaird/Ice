@@ -6,19 +6,30 @@
 import SwiftUI
 
 struct PermissionsView: View {
-    @Binding var isPresented: Bool
     @EnvironmentObject var appState: AppState
+
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+
+    let onContinue: () -> Void
 
     var body: some View {
         VStack {
             headerView
             explanationView
             permissionsGroupStack
-            grantPermissionCallout
             footerView
         }
         .fixedSize()
         .padding()
+        .onAppear {
+            appState.permissionsManager.accessibilityGroup.hasPermissionsHandler = {
+                openWindow(id: Constants.permissionsWindowID)
+            }
+            appState.permissionsManager.screenCaptureGroup.hasPermissionsHandler = {
+                openWindow(id: Constants.permissionsWindowID)
+            }
+        }
     }
 
     @ViewBuilder
@@ -55,20 +66,10 @@ struct PermissionsView: View {
     }
 
     @ViewBuilder
-    private var grantPermissionCallout: some View {
-        Text("Clicking \"Grant Permission\" will open System Settings")
-            .font(.callout)
-            .foregroundStyle(.secondary)
-    }
-
-    @ViewBuilder
     private var footerView: some View {
         HStack(alignment: .bottom) {
             Button("Quit \(Constants.appName)") {
-                isPresented = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    NSApp.terminate(self)
-                }
+                NSApp.terminate(self)
             }
             .focusable(false)
 
@@ -76,14 +77,18 @@ struct PermissionsView: View {
 
             if appState.permissionsManager.hasPermissions {
                 Button("Continue") {
-                    isPresented = false
+                    dismissWindow()
+                    onContinue()
                 }
             }
         }
     }
 }
 
-private struct PermissionsGroupView<Request: PermissionsRequest, Check: PermissionsCheck<Request>>: View {
+private struct PermissionsGroupView<
+    Request: PermissionsRequest,
+    Check: PermissionsCheck<Request>
+>: View {
     @ObservedObject var group: PermissionsGroup<Request, Check>
 
     var body: some View {
@@ -98,10 +103,7 @@ private struct PermissionsGroupView<Request: PermissionsRequest, Check: Permissi
 
                 VStack(alignment: .leading) {
                     ForEach(group.details, id: \.self) { detail in
-                        HStack(spacing: 5) {
-                            Text("•").bold()
-                            Text(detail)
-                        }
+                        Text(detail)
                     }
                 }
 
@@ -112,8 +114,11 @@ private struct PermissionsGroupView<Request: PermissionsRequest, Check: Permissi
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
                             .background {
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(.quinary)
+                                RoundedRectangle(
+                                    cornerRadius: 5,
+                                    style: .circular
+                                )
+                                .fill(.quinary)
                             }
                     }
                 }
@@ -143,9 +148,7 @@ private struct PermissionsGroupView<Request: PermissionsRequest, Check: Permissi
 }
 
 #Preview {
-    @State var isPresented = false
-
-    return PermissionsView(isPresented: $isPresented)
+    PermissionsView { }
         .buttonStyle(.custom)
         .environmentObject(AppState.shared)
 }

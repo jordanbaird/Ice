@@ -13,12 +13,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             settingsWindow.backgroundColor = .settingsWindowBackground
         }
 
-        // if we have the required permissions, stop all checks
-        // and close all windows
-        if AppState.shared.permissionsManager.hasPermissions {
-            AppState.shared.permissionsManager.stopAllChecks()
-            for window in NSApp.windows {
-                window.close()
+        // close all windows
+        for window in NSApp.windows {
+            window.close()
+        }
+
+        if !AppState.shared.isPreview {
+            // if we have the required permissions, stop all checks
+            if AppState.shared.permissionsManager.hasPermissions {
+                AppState.shared.permissionsManager.stopAllChecks()
+                // set up the menu bar
+                AppState.shared.menuBar.performSetup()
             }
         }
 
@@ -28,11 +33,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 item.isHidden = true
             }
         }
-
-        // set up the menu bar
-        if !AppState.shared.isPreview {
-            AppState.shared.menuBar.performSetup()
-        }
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
@@ -40,8 +40,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        deactivate(withPolicy: .accessory)
-        return false
+        if AppState.shared.permissionsManager.hasPermissions {
+            deactivate(withPolicy: .accessory)
+            return false
+        }
+        return true
     }
 
     /// Activates the app and sets its activation policy to the given value.

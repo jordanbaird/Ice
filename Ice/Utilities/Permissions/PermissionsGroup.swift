@@ -23,6 +23,8 @@ class PermissionsGroup<Request: PermissionsRequest, Check: PermissionsCheck<Requ
     /// Contextual notes that further explain the permission.
     let notes: [String]
 
+    var hasPermissionsHandler: (() -> Void)?
+
     private weak var appState: AppState?
     private var cancellable: (any Cancellable)?
 
@@ -59,16 +61,12 @@ class PermissionsGroup<Request: PermissionsRequest, Check: PermissionsCheck<Requ
                     return
                 }
                 if hasPermissions {
-                    if #available(macOS 14.0, *) {
-                        if let app = NSWorkspace.shared.frontmostApplication {
-                            NSRunningApplication.current.activate(from: app)
-                        } else {
-                            NSApp.activate()
-                        }
+                    if let app = NSWorkspace.shared.frontmostApplication {
+                        NSRunningApplication.current.activate(from: app)
                     } else {
-                        NSApp.activate(ignoringOtherApps: true)
+                        NSApp.activate()
                     }
-                    appState?.settingsWindow?.orderFrontRegardless()
+                    hasPermissionsHandler?()
                     cancellable = nil
                 }
             }
@@ -82,7 +80,7 @@ class AccessibilityPermissionsGroup: PermissionsGroup<AccessibilityRequest, Acce
             check: AccessibilityPermissionsCheck(),
             title: "Accessibility",
             details: [
-                "Get real-time information about your menu bar.",
+                "Get real-time information about the menu bar.",
                 // "Arrange individual menu bar items.",
             ],
             notes: [],
@@ -96,9 +94,10 @@ class ScreenCapturePermissionsGroup: PermissionsGroup<ScreenCaptureRequest, Scre
     init(permissionsManager: PermissionsManager) {
         super.init(
             check: ScreenCapturePermissionsCheck(),
-            title: "Screen Capture",
+            title: "Screen Recording",
             details: [
-                "Capture images of your menu bar items for display.",
+                "Apply custom styling to the menu bar.",
+                // "Capture images of menu bar items for display.",
             ],
             notes: [
                 "\(Constants.appName) does not record your screen.",

@@ -50,8 +50,11 @@ class Permission: ObservableObject {
         stop()
     }
 
-    /// Starts running this permission.
-    func run(onCompletion completionHandler: @escaping () -> Void) {
+    /// Runs the permission check. If the user has not granted
+    /// permission, performs the request and waits for the user
+    /// to respond. When permission is granted, performs the
+    /// given completion handler.
+    func runWithCompletion(_ completionHandler: @escaping () -> Void) {
         if check() {
             hasPermission = true
         } else {
@@ -86,7 +89,7 @@ class Permission: ObservableObject {
         }
     }
 
-    /// Stops running this permission.
+    /// Stops running the permission.
     func stop() {
         timerCancellable?.cancel()
         timerCancellable = nil

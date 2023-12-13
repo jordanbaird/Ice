@@ -7,7 +7,9 @@ import SwiftUI
 
 struct PermissionsView: View {
     @EnvironmentObject var appState: AppState
+
     @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(\.openWindow) private var openWindow
 
     let onContinue: () -> Void
 
@@ -54,36 +56,27 @@ struct PermissionsView: View {
     @ViewBuilder
     private var permissionsGroupStack: some View {
         VStack {
-            SinglePermissionView(permission: permissionsManager.accessibilityPermission)
-            SinglePermissionView(permission: permissionsManager.screenRecordingPermission)
+            permissionBox(permissionsManager.accessibilityPermission)
+            permissionBox(permissionsManager.screenRecordingPermission)
         }
     }
 
     @ViewBuilder
     private var footerView: some View {
-        HStack(alignment: .bottom) {
-            Button("Quit \(Constants.appName)") {
-                NSApp.terminate(self)
-            }
-            .focusable(false)
-
-            Spacer()
-
-            if permissionsManager.hasPermission {
-                Button("Continue") {
-                    dismissWindow()
-                    onContinue()
-                }
-            }
+        Button {
+            dismissWindow()
+            onContinue()
+        } label: {
+            Text("Continue")
+                .frame(maxWidth: .infinity)
         }
+        .controlSize(.large)
+        .opacity(permissionsManager.hasPermission ? 1 : 0)
+        .disabled(!permissionsManager.hasPermission)
     }
-}
 
-private struct SinglePermissionView: View {
-    @ObservedObject var permission: Permission
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some View {
+    @ViewBuilder
+    private func permissionBox(_ permission: Permission) -> some View {
         GroupBox {
             VStack(spacing: 2) {
                 Text(permission.title)
@@ -127,7 +120,7 @@ private struct SinglePermissionView: View {
                     .frame(height: 21)
                 } else {
                     Button("Grant Permission") {
-                        permission.run {
+                        permission.runWithCompletion {
                             openWindow(id: Constants.permissionsWindowID)
                         }
                     }

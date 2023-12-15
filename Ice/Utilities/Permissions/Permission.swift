@@ -1,5 +1,5 @@
 //
-//  PermissionsCheck.swift
+//  Permission.swift
 //  Ice
 //
 

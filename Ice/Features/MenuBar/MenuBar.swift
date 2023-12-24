@@ -33,9 +33,9 @@ final class MenuBar: ObservableObject {
     /// empty area of the menu bar.
     @Published var showOnHover = false
 
-    /// A Boolean value that indicates whether the user has interacted
-    /// with the menu bar, preventing the "show on hover" feature from
-    /// activating.
+    /// A Boolean value that indicates whether the user has
+    /// interacted with the menu bar, preventing the "show on
+    /// hover" feature from activating.
     @Published var showOnHoverPreventedByUserInteraction = false
 
     /// The maximum X coordinate of the menu bar's main menu.
@@ -60,6 +60,11 @@ final class MenuBar: ObservableObject {
     }
 
     private var cancellables = Set<AnyCancellable>()
+
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+
+    private let defaults: UserDefaults
 
     private(set) weak var appState: AppState?
     private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBar: self)
@@ -135,24 +140,24 @@ final class MenuBar: ObservableObject {
     }
 
     /// Initializes a new menu bar instance.
-    init(appState: AppState) {
+    init(appState: AppState, defaults: UserDefaults) {
         self.appState = appState
+        self.defaults = defaults
     }
 
     /// Performs the initial setup of the menu bar.
     func performSetup() {
+        defer {
+            appearanceManager.performSetup()
+        }
         loadInitialState()
         configureCancellables()
         initializeSections()
-        appearanceManager.performSetup()
     }
 
-    /// Loads data from storage and sets the initial state of the
-    /// menu bar from that data.
+    /// Loads data from storage and sets the initial state
+    /// of the menu bar from that data.
     private func loadInitialState() {
-        let defaults = UserDefaults.standard
-        let decoder = JSONDecoder()
-
         customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
         showOnHover = defaults.bool(forKey: Defaults.showOnHover)
 
@@ -178,9 +183,6 @@ final class MenuBar: ObservableObject {
             return
         }
 
-        let defaults = UserDefaults.standard
-        let decoder = JSONDecoder()
-
         // load sections from persistent storage
         if let sectionsData = defaults.data(forKey: Defaults.sections) {
             do {
@@ -196,9 +198,6 @@ final class MenuBar: ObservableObject {
 
     /// Save all control items in the menu bar to persistent storage.
     private func saveSections() {
-        let defaults = UserDefaults.standard
-        let encoder = JSONEncoder()
-
         do {
             let serializedSections = try encoder.encode(sections)
             defaults.set(serializedSections, forKey: Defaults.sections)
@@ -227,9 +226,6 @@ final class MenuBar: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        let defaults = UserDefaults.standard
-        let encoder = JSONEncoder()
-
         // update the maxX coordinate of the main menu every
         // time the frontmost application changes
         NSWorkspace.shared.publisher(for: \.frontmostApplication)
@@ -241,7 +237,7 @@ final class MenuBar: ObservableObject {
                 let appID = runningApplication.localizedName ?? "PID \(runningApplication.processIdentifier)"
                 Logger.menuBar.debug("New frontmost application: \(appID)")
 
-                // wait until the application finishes launching
+                // wait until the application is finished launching
                 var launchObserver: (any Cancellable)?
                 launchObserver = runningApplication.publisher(for: \.isFinishedLaunching)
                     .sink { [weak self] isFinishedLaunching in
@@ -347,15 +343,15 @@ final class MenuBar: ObservableObject {
 
         $customIceIconIsTemplate
             .receive(on: DispatchQueue.main)
-            .sink { isTemplate in
-                defaults.set(isTemplate, forKey: Defaults.customIceIconIsTemplate)
+            .sink { [weak self] isTemplate in
+                self?.defaults.set(isTemplate, forKey: Defaults.customIceIconIsTemplate)
             }
             .store(in: &c)
 
         $secondaryActionModifier
             .receive(on: DispatchQueue.main)
-            .sink { modifier in
-                defaults.set(modifier.rawValue, forKey: Defaults.secondaryActionModifier)
+            .sink { [weak self] modifier in
+                self?.defaults.set(modifier.rawValue, forKey: Defaults.secondaryActionModifier)
             }
             .store(in: &c)
 
@@ -367,7 +363,7 @@ final class MenuBar: ObservableObject {
                 } else {
                     self?.showOnHoverMonitor.stop()
                 }
-                defaults.set(showOnHover, forKey: Defaults.showOnHover)
+                self?.defaults.set(showOnHover, forKey: Defaults.showOnHover)
             }
             .store(in: &c)
 

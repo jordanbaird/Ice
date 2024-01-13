@@ -30,6 +30,7 @@
 		177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354832B1F9AF9001CF731 /* NSBezierPath+union.swift */; };
 		177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F22B092A0700448BBF /* ControlItemImage.swift */; };
 		177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F42B0A654D00448BBF /* ControlItemImageSet.swift */; };
+		1780ED0E2B43D132000AED1C /* BoxObject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1780ED0D2B43D132000AED1C /* BoxObject.swift */; };
 		1787C4272B16890B002F50DF /* AXSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1787C4262B16890B002F50DF /* AXSwift */; };
 		1787C42C2B16AE0B002F50DF /* Permission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C42B2B16AE0B002F50DF /* Permission.swift */; };
 		1787C4302B16AE78002F50DF /* PermissionsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C42F2B16AE78002F50DF /* PermissionsManager.swift */; };
@@ -104,6 +105,7 @@
 		177354832B1F9AF9001CF731 /* NSBezierPath+union.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+union.swift"; sourceTree = "<group>"; };
 		177386F22B092A0700448BBF /* ControlItemImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImage.swift; sourceTree = "<group>"; };
 		177386F42B0A654D00448BBF /* ControlItemImageSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImageSet.swift; sourceTree = "<group>"; };
+		1780ED0D2B43D132000AED1C /* BoxObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxObject.swift; sourceTree = "<group>"; };
 		1787C42B2B16AE0B002F50DF /* Permission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permission.swift; sourceTree = "<group>"; };
 		1787C42F2B16AE78002F50DF /* PermissionsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsManager.swift; sourceTree = "<group>"; };
 		1787C4332B16AECF002F50DF /* PermissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsView.swift; sourceTree = "<group>"; };
@@ -436,6 +438,7 @@
 			isa = PBXGroup;
 			children = (
 				711535F12AB9F6C1003193AD /* BindingExposable.swift */,
+				1780ED0D2B43D132000AED1C /* BoxObject.swift */,
 				17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */,
 				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
 				17928F192AC5DF9C0016C615 /* Defaults.swift */,
@@ -631,6 +634,7 @@
 				1787C42C2B16AE0B002F50DF /* Permission.swift in Sources */,
 				1787C4342B16AECF002F50DF /* PermissionsView.swift in Sources */,
 				716683502A7681AF006ABF84 /* MenuBar.swift in Sources */,
+				1780ED0E2B43D132000AED1C /* BoxObject.swift in Sources */,
 				177354812B1F5F38001CF731 /* ScreenshotManager.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */,

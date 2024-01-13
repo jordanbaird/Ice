@@ -238,9 +238,9 @@ final class MenuBar: ObservableObject {
                 Logger.menuBar.debug("New frontmost application: \(appID)")
 
                 // wait until the application is finished launching
-                var launchObserver: (any Cancellable)?
-                launchObserver = runningApplication.publisher(for: \.isFinishedLaunching)
-                    .sink { [weak self] isFinishedLaunching in
+                let box = BoxObject<AnyCancellable?>()
+                box.base = runningApplication.publisher(for: \.isFinishedLaunching)
+                    .sink { [weak self, weak box] isFinishedLaunching in
                         guard isFinishedLaunching else {
                             Logger.menuBar.debug("\(appID) is launching...")
                             return
@@ -248,13 +248,16 @@ final class MenuBar: ObservableObject {
 
                         Logger.menuBar.debug("\(appID) is finished launching")
 
-                        guard let self else {
+                        guard 
+                            let self,
+                            let box
+                        else {
                             return
                         }
 
                         defer {
-                            launchObserver?.cancel()
-                            launchObserver = nil
+                            box.base?.cancel()
+                            box.base = nil
                         }
 
                         do {

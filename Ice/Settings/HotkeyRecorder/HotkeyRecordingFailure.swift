@@ -1,12 +1,12 @@
 //
-//  RecordingFailure.swift
+//  HotkeyRecordingFailure.swift
 //  Ice
 //
 
 import Foundation
 
 /// An error type that describes a recording failure.
-enum RecordingFailure: LocalizedError, Hashable {
+enum HotkeyRecordingFailure: LocalizedError, Hashable {
     /// No modifiers were pressed.
     case noModifiers
     /// Shift was the only modifier being pressed.

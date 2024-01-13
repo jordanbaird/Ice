@@ -37,7 +37,7 @@ struct GeneralSettingsPane: View {
         .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
         .frame(maxHeight: .infinity)
-        .errorOverlay(for: RecordingFailure.self)
+        .errorOverlay(for: HotkeyRecordingFailure.self)
         .alert(isPresented: $isPresentingError, error: presentedError) {
             Button("OK") {
                 presentedError = nil

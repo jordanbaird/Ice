@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		170749C82B12078F009DDF73 /* GlobalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170749C72B12078F009DDF73 /* GlobalEventMonitor.swift */; };
 		170749CA2B1207D9009DDF73 /* UniversalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170749C92B1207D9009DDF73 /* UniversalEventMonitor.swift */; };
-		170CF88C2B0ED4FA0073F982 /* RecordingFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */; };
+		170CF88C2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88B2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift */; };
 		170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */; };
 		170CF8902B101D980073F982 /* ColorStop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88F2B101D980073F982 /* ColorStop.swift */; };
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
@@ -85,7 +85,7 @@
 /* Begin PBXFileReference section */
 		170749C72B12078F009DDF73 /* GlobalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalEventMonitor.swift; sourceTree = "<group>"; };
 		170749C92B1207D9009DDF73 /* UniversalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalEventMonitor.swift; sourceTree = "<group>"; };
-		170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingFailure.swift; sourceTree = "<group>"; };
+		170CF88B2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecordingFailure.swift; sourceTree = "<group>"; };
 		170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizedErrorBox.swift; sourceTree = "<group>"; };
 		170CF88F2B101D980073F982 /* ColorStop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorStop.swift; sourceTree = "<group>"; };
 		1725FC692AED973800A59081 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -176,7 +176,7 @@
 			children = (
 				71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */,
 				718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */,
-				170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */,
+				170CF88B2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift */,
 			);
 			path = HotkeyRecorder;
 			sourceTree = "<group>";
@@ -671,7 +671,7 @@
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
 				71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */,
 				1787C4302B16AE78002F50DF /* PermissionsManager.swift in Sources */,
-				170CF88C2B0ED4FA0073F982 /* RecordingFailure.swift in Sources */,
+				170CF88C2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift in Sources */,
 				170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				1773547B2B1F539A001CF731 /* MenuBarBackingPanel.swift in Sources */,

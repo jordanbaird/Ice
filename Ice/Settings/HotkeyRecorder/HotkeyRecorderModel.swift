@@ -10,11 +10,11 @@ import Combine
 class HotkeyRecorderModel: ObservableObject {
     @Published private(set) var isRecording = false
     @Published private(set) var pressedModifierStrings = [String]()
-    @Published var failure: RecordingFailure?
+    @Published var failure: HotkeyRecordingFailure?
 
     let section: MenuBarSection?
 
-    private let handleFailure: (HotkeyRecorderModel, RecordingFailure) -> Void
+    private let handleFailure: (HotkeyRecorderModel, HotkeyRecordingFailure) -> Void
     private var monitor: LocalEventMonitor?
 
     private var cancellables = Set<AnyCancellable>()

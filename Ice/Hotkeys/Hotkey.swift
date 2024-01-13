@@ -18,7 +18,7 @@ struct Hotkey: Codable, Hashable {
 
     /// A string representation of the hotkey.
     var stringValue: String {
-        key.stringValue + modifiers.stringValue
+        modifiers.stringValue + key.stringValue
     }
 
     /// Creates a hotkey with the given key and modifiers.

@@ -169,6 +169,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1706D7582B5302A60053D1E8 /* HotkeyRecorder */ = {
+			isa = PBXGroup;
+			children = (
+				71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */,
+				718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */,
+				170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */,
+			);
+			path = HotkeyRecorder;
+			sourceTree = "<group>";
+		};
 		170749BF2B11A2BB009DDF73 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -191,8 +201,8 @@
 		1736F7762ADBBEF10073428E /* CustomGradientPicker */ = {
 			isa = PBXGroup;
 			children = (
-				1736F77F2ADBC02B0073428E /* CustomGradient.swift */,
 				170CF88F2B101D980073F982 /* ColorStop.swift */,
+				1736F77F2ADBC02B0073428E /* CustomGradient.swift */,
 				1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */,
 			);
 			path = CustomGradientPicker;
@@ -348,11 +358,11 @@
 		7133ED662A858230000A7E1B /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				7162406A2A9F1565003EC671 /* Helpers */,
-				7150A7AB2AA4262F0045EA68 /* Hotkeys */,
-				7162406B2A9F1607003EC671 /* SettingsPanes */,
 				7133ED692A85870E000A7E1B /* SettingsView.swift */,
 				71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */,
+				7162406A2A9F1565003EC671 /* Helpers */,
+				1706D7582B5302A60053D1E8 /* HotkeyRecorder */,
+				7162406B2A9F1607003EC671 /* SettingsPanes */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -363,10 +373,7 @@
 				7150A7AC2AA4265F0045EA68 /* Hotkey.swift */,
 				7150A7B02AA427F80045EA68 /* Hotkey+Key.swift */,
 				7150A7B22AA42B640045EA68 /* Hotkey+Modifiers.swift */,
-				71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */,
-				718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */,
 				7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */,
-				170CF88B2B0ED4FA0073F982 /* RecordingFailure.swift */,
 			);
 			path = Hotkeys;
 			sourceTree = "<group>";
@@ -408,9 +415,14 @@
 		7166832C2A767E6A006ABF84 /* Ice */ = {
 			isa = PBXGroup;
 			children = (
-				7166834D2A768184006ABF84 /* Features */,
-				7166833E2A76811C006ABF84 /* Utilities */,
+				716683412A76811C006ABF84 /* Extensions */,
+				7150A7AB2AA4262F0045EA68 /* Hotkeys */,
+				7166834E2A768190006ABF84 /* MenuBar */,
+				1787C42A2B16ADF2002F50DF /* Permissions */,
 				170749BF2B11A2BB009DDF73 /* Resources */,
+				7133ED662A858230000A7E1B /* Settings */,
+				71D36C522A89443800D89CD5 /* UI */,
+				7166833E2A76811C006ABF84 /* Utilities */,
 				7166832D2A767E6A006ABF84 /* IceApp.swift */,
 				7166833C2A7680CE006ABF84 /* AppDelegate.swift */,
 				1725FC692AED973800A59081 /* AppState.swift */,
@@ -423,11 +435,15 @@
 		7166833E2A76811C006ABF84 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
-				716683412A76811C006ABF84 /* Extensions */,
-				71FEA25A2A8DA1D60048341A /* Misc */,
-				1787C42A2B16ADF2002F50DF /* Permissions */,
+				711535F12AB9F6C1003193AD /* BindingExposable.swift */,
+				17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */,
+				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
+				17928F192AC5DF9C0016C615 /* Defaults.swift */,
+				170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */,
+				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
+				177354802B1F5F38001CF731 /* ScreenshotManager.swift */,
+				170749CB2B120951009DDF73 /* EventMonitors */,
 				71D36C492A88EDD200D89CD5 /* Swizzling */,
-				71D36C522A89443800D89CD5 /* UI */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -461,15 +477,6 @@
 				716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */,
 			);
 			path = NSStatusItem;
-			sourceTree = "<group>";
-		};
-		7166834D2A768184006ABF84 /* Features */ = {
-			isa = PBXGroup;
-			children = (
-				7166834E2A768190006ABF84 /* MenuBar */,
-				7133ED662A858230000A7E1B /* Settings */,
-			);
-			path = Features;
 			sourceTree = "<group>";
 		};
 		7166834E2A768190006ABF84 /* MenuBar */ = {
@@ -518,21 +525,6 @@
 				179267382AE98985006AFBAF /* Views */,
 			);
 			path = UI;
-			sourceTree = "<group>";
-		};
-		71FEA25A2A8DA1D60048341A /* Misc */ = {
-			isa = PBXGroup;
-			children = (
-				711535F12AB9F6C1003193AD /* BindingExposable.swift */,
-				17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */,
-				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
-				17928F192AC5DF9C0016C615 /* Defaults.swift */,
-				170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */,
-				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
-				177354802B1F5F38001CF731 /* ScreenshotManager.swift */,
-				170749CB2B120951009DDF73 /* EventMonitors */,
-			);
-			path = Misc;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

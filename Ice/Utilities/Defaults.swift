@@ -25,4 +25,6 @@ enum Defaults {
     static let menuBarShapeKind = "MenuBarShapeKind"
     static let menuBarFullShapeInfo = "MenuBarFullShapeInfo"
     static let menuBarSplitShapeInfo = "MenuBarSplitShapeInfo"
+
+    static let menuBarSettingsPaneSelectedTab = "MenuBarSettingsPaneSelectedTab"
 }

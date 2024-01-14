@@ -19,6 +19,8 @@
 		175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 175061902B1543DD003144CD /* LaunchAtLogin */; };
 		17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17540BD72B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift */; };
 		17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */; };
+		175584122B541CFC00EDC9D3 /* CustomTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175584112B541CFC00EDC9D3 /* CustomTabView.swift */; };
+		175584152B541D6F00EDC9D3 /* MenuBarLayoutTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175584142B541D6F00EDC9D3 /* MenuBarLayoutTab.swift */; };
 		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
 		177354662B1B8502001CF731 /* MenuBarShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354652B1B8502001CF731 /* MenuBarShape.swift */; };
 		1773546A2B1BBACF001CF731 /* MenuBarAppearanceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354692B1BBACF001CF731 /* MenuBarAppearanceTab.swift */; };
@@ -94,6 +96,8 @@
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
 		17540BD72B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+drawShadow.swift"; sourceTree = "<group>"; };
 		17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+intersects.swift"; sourceTree = "<group>"; };
+		175584112B541CFC00EDC9D3 /* CustomTabView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomTabView.swift; sourceTree = "<group>"; };
+		175584142B541D6F00EDC9D3 /* MenuBarLayoutTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLayoutTab.swift; sourceTree = "<group>"; };
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
 		177354652B1B8502001CF731 /* MenuBarShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarShape.swift; sourceTree = "<group>"; };
 		177354692B1BBACF001CF731 /* MenuBarAppearanceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceTab.swift; sourceTree = "<group>"; };
@@ -210,6 +214,14 @@
 			path = CustomGradientPicker;
 			sourceTree = "<group>";
 		};
+		175584132B541D6000EDC9D3 /* Layout */ = {
+			isa = PBXGroup;
+			children = (
+				175584142B541D6F00EDC9D3 /* MenuBarLayoutTab.swift */,
+			);
+			path = Layout;
+			sourceTree = "<group>";
+		};
 		177354672B1BBAB3001CF731 /* MenuBarSettingsPane */ = {
 			isa = PBXGroup;
 			children = (
@@ -223,6 +235,7 @@
 			isa = PBXGroup;
 			children = (
 				1773546D2B1BBC08001CF731 /* Appearance */,
+				175584132B541D6000EDC9D3 /* Layout */,
 			);
 			path = Tabs;
 			sourceTree = "<group>";
@@ -302,6 +315,7 @@
 		179267382AE98985006AFBAF /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				175584112B541CFC00EDC9D3 /* CustomTabView.swift */,
 				17EC6B522AE0C09F0065F260 /* Pickers */,
 			);
 			path = Views;
@@ -621,6 +635,7 @@
 				1725FC6A2AED973800A59081 /* AppState.swift in Sources */,
 				170749CA2B1207D9009DDF73 /* UniversalEventMonitor.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,
+				175584122B541CFC00EDC9D3 /* CustomTabView.swift in Sources */,
 				718AFF2C2AB360AD00BC49CB /* HotkeyRecorderModel.swift in Sources */,
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,
 				1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */,
@@ -644,6 +659,7 @@
 				17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
 				178B36692AE6EC2E00AA7B35 /* MenuBarAppearancePanel.swift in Sources */,
+				175584152B541D6F00EDC9D3 /* MenuBarLayoutTab.swift in Sources */,
 				1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
 				711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */,

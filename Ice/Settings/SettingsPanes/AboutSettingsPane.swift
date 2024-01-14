@@ -62,10 +62,13 @@ struct AboutSettingsPane: View {
         .onFrameChange(update: $frame)
         .bottomBar {
             HStack {
+                Button("Quit \(Constants.appName)") {
+                    NSApp.terminate(nil)
+                }
+                Spacer()
                 Button("Acknowledgements") {
                     NSWorkspace.shared.open(acknowledgementsURL)
                 }
-                Spacer()
                 Button("Contribute") {
                     openURL(contributeURL)
                 }

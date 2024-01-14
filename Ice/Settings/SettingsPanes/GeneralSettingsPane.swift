@@ -44,15 +44,6 @@ struct GeneralSettingsPane: View {
                 isPresentingError = false
             }
         }
-        .bottomBar {
-            HStack {
-                Spacer()
-                Button("Quit \(Constants.appName)") {
-                    NSApp.terminate(nil)
-                }
-            }
-            .padding()
-        }
     }
 
     @ViewBuilder

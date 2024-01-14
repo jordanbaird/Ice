@@ -8,15 +8,6 @@ import SwiftUI
 struct MenuBarSettingsPane: View {
     var body: some View {
         MenuBarAppearanceTab()
-            .bottomBar {
-                HStack {
-                    Spacer()
-                    Button("Quit \(Constants.appName)") {
-                        NSApp.terminate(nil)
-                    }
-                }
-                .padding()
-            }
     }
 }
 

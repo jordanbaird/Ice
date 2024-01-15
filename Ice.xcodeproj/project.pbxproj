@@ -329,15 +329,6 @@
 			path = Styles;
 			sourceTree = "<group>";
 		};
-		17B7F32C2B264C2000CDCF49 /* Appearance */ = {
-			isa = PBXGroup;
-			children = (
-				17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */,
-				177354772B1F530B001CF731 /* MenuBarAppearancePanel */,
-			);
-			path = Appearance;
-			sourceTree = "<group>";
-		};
 		17EC6B522AE0C09F0065F260 /* Pickers */ = {
 			isa = PBXGroup;
 			children = (
@@ -499,12 +490,13 @@
 		7166834E2A768190006ABF84 /* MenuBar */ = {
 			isa = PBXGroup;
 			children = (
+				17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */,
 				7166834F2A7681AF006ABF84 /* MenuBarManager.swift */,
 				7162406E2AA0A323003EC671 /* MenuBarSection.swift */,
 				177354652B1B8502001CF731 /* MenuBarShape.swift */,
 				1787C43A2B187187002F50DF /* MenuBarTintKind.swift */,
-				17B7F32C2B264C2000CDCF49 /* Appearance */,
 				177386F62B0A656100448BBF /* ControlItem */,
+				177354772B1F530B001CF731 /* MenuBarAppearancePanel */,
 			);
 			path = MenuBar;
 			sourceTree = "<group>";

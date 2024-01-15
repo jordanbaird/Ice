@@ -180,7 +180,7 @@ final class ControlItem: ObservableObject {
         }
         button.target = self
         button.action = #selector(performAction)
-        button.sendAction(on: [.leftMouseDown, .rightMouseUp])
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
     private func configureCancellables() {
@@ -349,7 +349,7 @@ final class ControlItem: ObservableObject {
             return
         }
         switch event.type {
-        case .leftMouseDown:
+        case .leftMouseUp:
             if
                 let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden),
                 alwaysHiddenSection.isEnabled,

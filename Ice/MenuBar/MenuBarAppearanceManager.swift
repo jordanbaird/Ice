@@ -58,13 +58,20 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
+    private let encoder: JSONEncoder
+    private let decoder: JSONDecoder
+
+    private let defaults = UserDefaults.standard
+
     private(set) weak var menuBarManager: MenuBarManager?
 
     private lazy var backingPanel = MenuBarBackingPanel(appearanceManager: self)
     private lazy var overlayPanel = MenuBarOverlayPanel(appearanceManager: self)
 
-    init(menuBarManager: MenuBarManager) {
+    init(menuBarManager: MenuBarManager, encoder: JSONEncoder, decoder: JSONDecoder) {
         self.menuBarManager = menuBarManager
+        self.encoder = encoder
+        self.decoder = decoder
     }
 
     func performSetup() {
@@ -80,9 +87,6 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// Loads data from storage and sets the initial state
     /// of the manager from that data.
     private func loadInitialState() {
-        let defaults = UserDefaults.standard
-        let decoder = JSONDecoder()
-
         hasShadow = defaults.bool(forKey: Defaults.menuBarHasShadow)
         hasBorder = defaults.bool(forKey: Defaults.menuBarHasBorder)
         borderWidth = defaults.object(forKey: Defaults.menuBarBorderWidth) as? Double ?? 1
@@ -114,9 +118,6 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
-
-        let defaults = UserDefaults.standard
-        let encoder = JSONEncoder()
 
         DistributedNotificationCenter.default()
             .publisher(for: Notification.Name("com.apple.screenIsLocked"))
@@ -162,21 +163,30 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         $hasShadow
             .receive(on: DispatchQueue.main)
-            .sink { hasShadow in
+            .sink { [weak self] hasShadow in
+                guard let self else {
+                    return
+                }
                 defaults.set(hasShadow, forKey: Defaults.menuBarHasShadow)
             }
             .store(in: &c)
 
         $hasBorder
             .receive(on: DispatchQueue.main)
-            .sink { hasBorder in
+            .sink { [weak self] hasBorder in
+                guard let self else {
+                    return
+                }
                 defaults.set(hasBorder, forKey: Defaults.menuBarHasBorder)
             }
             .store(in: &c)
 
         $borderColor
             .receive(on: DispatchQueue.main)
-            .sink { borderColor in
+            .sink { [weak self] borderColor in
+                guard let self else {
+                    return
+                }
                 do {
                     let data = try encoder.encode(CodableColor(cgColor: borderColor))
                     defaults.set(data, forKey: Defaults.menuBarBorderColor)
@@ -188,21 +198,30 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         $borderWidth
             .receive(on: DispatchQueue.main)
-            .sink { borderWidth in
+            .sink { [weak self] borderWidth in
+                guard let self else {
+                    return
+                }
                 defaults.set(borderWidth, forKey: Defaults.menuBarBorderWidth)
             }
             .store(in: &c)
 
         $tintKind
             .receive(on: DispatchQueue.main)
-            .sink { tintKind in
+            .sink { [weak self] tintKind in
+                guard let self else {
+                    return
+                }
                 defaults.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
             }
             .store(in: &c)
 
         $tintColor
             .receive(on: DispatchQueue.main)
-            .sink { tintColor in
+            .sink { [weak self] tintColor in
+                guard let self else {
+                    return
+                }
                 do {
                     let data = try encoder.encode(CodableColor(cgColor: tintColor))
                     defaults.set(data, forKey: Defaults.menuBarTintColor)
@@ -219,7 +238,10 @@ final class MenuBarAppearanceManager: ObservableObject {
                 if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding tint gradient: \(error)")
                 }
-            } receiveValue: { data in
+            } receiveValue: { [weak self] data in
+                guard let self else {
+                    return
+                }
                 defaults.set(data, forKey: Defaults.menuBarTintGradient)
             }
             .store(in: &c)
@@ -232,7 +254,10 @@ final class MenuBarAppearanceManager: ObservableObject {
                     Logger.appearanceManager.error("Error encoding menu bar shape kind: \(error)")
                 }
             } receiveValue: { [weak self] data in
-                self?.updateDesktopWallpaper()
+                guard let self else {
+                    return
+                }
+                updateDesktopWallpaper()
                 defaults.set(data, forKey: Defaults.menuBarShapeKind)
             }
             .store(in: &c)
@@ -244,7 +269,10 @@ final class MenuBarAppearanceManager: ObservableObject {
                 if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding menu bar full shape info: \(error)")
                 }
-            } receiveValue: { data in
+            } receiveValue: { [weak self] data in
+                guard let self else {
+                    return
+                }
                 defaults.set(data, forKey: Defaults.menuBarFullShapeInfo)
             }
             .store(in: &c)
@@ -256,7 +284,10 @@ final class MenuBarAppearanceManager: ObservableObject {
                 if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding menu bar split shape info: \(error)")
                 }
-            } receiveValue: { data in
+            } receiveValue: { [weak self] data in
+                guard let self else {
+                    return
+                }
                 defaults.set(data, forKey: Defaults.menuBarSplitShapeInfo)
             }
             .store(in: &c)

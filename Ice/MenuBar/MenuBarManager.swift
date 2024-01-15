@@ -64,10 +64,14 @@ final class MenuBarManager: ObservableObject {
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
-    private let defaults: UserDefaults
+    private let defaults = UserDefaults.standard
 
     private(set) weak var appState: AppState?
-    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBarManager: self)
+    private(set) lazy var appearanceManager = MenuBarAppearanceManager(
+        menuBarManager: self,
+        encoder: encoder,
+        decoder: decoder
+    )
 
     private lazy var showOnHoverMonitor = UniversalEventMonitor(
         mask: [.mouseMoved, .leftMouseDown, .rightMouseDown, .otherMouseDown]
@@ -98,23 +102,21 @@ final class MenuBarManager: ObservableObject {
         }
 
         switch event.type {
-        case .mouseMoved:
-            if hiddenSection.isHidden {
-                if mouseIsInMenuBar {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        // make sure the mouse is still inside
-                        if mouseIsInMenuBar {
-                            hiddenSection.show()
-                        }
+        case .mouseMoved where hiddenSection.isHidden:
+            if mouseIsInMenuBar {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    // make sure the mouse is still inside
+                    if mouseIsInMenuBar {
+                        hiddenSection.show()
                     }
                 }
-            } else {
-                if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        // make sure the mouse is still outside
-                        if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
-                            hiddenSection.hide()
-                        }
+            }
+        case .mouseMoved:
+            if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    // make sure the mouse is still outside
+                    if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
+                        hiddenSection.hide()
                     }
                 }
             }
@@ -139,10 +141,9 @@ final class MenuBarManager: ObservableObject {
         return event
     }
 
-    /// Initializes a new menu bar instance.
-    init(appState: AppState, defaults: UserDefaults) {
+    /// Initializes a new menu bar manager instance.
+    init(appState: AppState) {
         self.appState = appState
-        self.defaults = defaults
     }
 
     /// Performs the initial setup of the menu bar.
@@ -226,94 +227,16 @@ final class MenuBarManager: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // update the maxX coordinate of the main menu every
-        // time the frontmost application changes
         NSWorkspace.shared.publisher(for: \.frontmostApplication)
-            .sink { [weak self] runningApplication in
-                guard let runningApplication else {
-                    return
-                }
-
-                let appID = runningApplication.localizedName ?? "PID \(runningApplication.processIdentifier)"
-                Logger.menuBarManager.debug("New frontmost application: \(appID)")
-
-                // wait until the application is finished launching
-                let box = BoxObject<AnyCancellable?>()
-                box.base = runningApplication.publisher(for: \.isFinishedLaunching)
-                    .sink { [weak self, weak box] isFinishedLaunching in
-                        guard isFinishedLaunching else {
-                            Logger.menuBarManager.debug("\(appID) is launching...")
-                            return
-                        }
-
-                        Logger.menuBarManager.debug("\(appID) is finished launching")
-
-                        guard 
-                            let self,
-                            let box
-                        else {
-                            return
-                        }
-
-                        defer {
-                            box.base?.cancel()
-                            box.base = nil
-                        }
-
-                        do {
-                            // get the largest x-coordinate of all items
-                            guard
-                                let application = Application(runningApplication),
-                                let menuBar: UIElement = try application.attribute(.menuBar),
-                                let children: [UIElement] = try menuBar.arrayAttribute(.children),
-                                let maxX = try children.compactMap({ try ($0.attribute(.frame) as CGRect?)?.maxX }).max()
-                            else {
-                                mainMenuMaxX = 0
-                                return
-                            }
-                            mainMenuMaxX = maxX
-                        } catch {
-                            mainMenuMaxX = 0
-                            Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
-                        }
-                    }
+            .sink { [weak self] frontmostApplication in
+                self?.handleFrontmostApplication(frontmostApplication)
             }
             .store(in: &c)
 
-        // update the control item for each section when the
-        // position of one changes
         Publishers.MergeMany(sections.map { $0.controlItem.$position })
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                let sortedControlItems = sections.lazy
-                    .map { section in
-                        section.controlItem
-                    }
-                    .sorted { first, second in
-                        // invisible items should preserve their ordering
-                        if !first.isVisible {
-                            return false
-                        }
-                        if !second.isVisible {
-                            return true
-                        }
-                        // expanded items should preserve their ordering
-                        switch (first.state, second.state) {
-                        case (.showItems, .showItems):
-                            return (first.position ?? 0) < (second.position ?? 0)
-                        case (.hideItems, _):
-                            return !first.expandsOnHide
-                        case (_, .hideItems):
-                            return second.expandsOnHide
-                        }
-                    }
-                // assign the items to their new sections
-                for index in 0..<sections.count {
-                    sections[index].controlItem = sortedControlItems[index]
-                }
+                self?.assignControlItemsByPosition()
             }
             .store(in: &c)
 
@@ -391,6 +314,88 @@ final class MenuBarManager: ObservableObject {
     /// Returns the menu bar section with the given name.
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
+    }
+
+    /// Handles changes to the frontmost application.
+    private func handleFrontmostApplication(_ frontmostApplication: NSRunningApplication?) {
+        guard let frontmostApplication else {
+            return
+        }
+
+        let appID = frontmostApplication.localizedName ?? "PID \(frontmostApplication.processIdentifier)"
+        Logger.menuBarManager.debug("New frontmost application: \(appID)")
+
+        // wait until the application is finished launching
+        let box = BoxObject<AnyCancellable?>()
+        box.base = frontmostApplication.publisher(for: \.isFinishedLaunching)
+            .sink { [weak self, weak box] isFinishedLaunching in
+                guard isFinishedLaunching else {
+                    Logger.menuBarManager.debug("\(appID) is launching...")
+                    return
+                }
+
+                Logger.menuBarManager.debug("\(appID) is finished launching")
+
+                guard
+                    let self,
+                    let box
+                else {
+                    return
+                }
+
+                defer {
+                    box.base?.cancel()
+                    box.base = nil
+                }
+
+                do {
+                    // get the largest x-coordinate of all items
+                    guard
+                        let application = Application(frontmostApplication),
+                        let menuBar: UIElement = try application.attribute(.menuBar),
+                        let children: [UIElement] = try menuBar.arrayAttribute(.children),
+                        let maxX = try children.compactMap({ try ($0.attribute(.frame) as CGRect?)?.maxX }).max()
+                    else {
+                        mainMenuMaxX = 0
+                        return
+                    }
+                    mainMenuMaxX = maxX
+                } catch {
+                    mainMenuMaxX = 0
+                    Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
+                }
+            }
+    }
+
+    /// Updates the control item for each section based on the
+    /// current control item positions.
+    private func assignControlItemsByPosition() {
+        let sortedControlItems = sections.lazy
+            .map { section in
+                section.controlItem
+            }
+            .sorted { first, second in
+                // invisible items should preserve their ordering
+                if !first.isVisible {
+                    return false
+                }
+                if !second.isVisible {
+                    return true
+                }
+                // expanded items should preserve their ordering
+                switch (first.state, second.state) {
+                case (.showItems, .showItems):
+                    return (first.position ?? 0) < (second.position ?? 0)
+                case (.hideItems, _):
+                    return !first.expandsOnHide
+                case (_, .hideItems):
+                    return second.expandsOnHide
+                }
+            }
+        // assign the items to their new sections
+        for index in 0..<sections.count {
+            sections[index].controlItem = sortedControlItems[index]
+        }
     }
 }
 

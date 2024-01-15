@@ -70,7 +70,7 @@
 		7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166833C2A7680CE006ABF84 /* AppDelegate.swift */; };
 		7166834B2A76811C006ABF84 /* Logger+initCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683452A76811C006ABF84 /* Logger+initCategory.swift */; };
 		7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */; };
-		716683502A7681AF006ABF84 /* MenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166834F2A7681AF006ABF84 /* MenuBar.swift */; };
+		716683502A7681AF006ABF84 /* MenuBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166834F2A7681AF006ABF84 /* MenuBarManager.swift */; };
 		716683522A76820A006ABF84 /* ControlItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683512A76820A006ABF84 /* ControlItem.swift */; };
 		71839BD82A997DC200250044 /* Edge+cgRectEdge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839BD72A997DC200250044 /* Edge+cgRectEdge.swift */; };
 		71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C152A9B6A0D00250044 /* OnFrameChange.swift */; };
@@ -148,7 +148,7 @@
 		7166833C2A7680CE006ABF84 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		716683452A76811C006ABF84 /* Logger+initCategory.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Logger+initCategory.swift"; sourceTree = "<group>"; };
 		716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSStatusItem+showMenu.swift"; sourceTree = "<group>"; };
-		7166834F2A7681AF006ABF84 /* MenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBar.swift; sourceTree = "<group>"; };
+		7166834F2A7681AF006ABF84 /* MenuBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarManager.swift; sourceTree = "<group>"; };
 		716683512A76820A006ABF84 /* ControlItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItem.swift; sourceTree = "<group>"; };
 		71839BD72A997DC200250044 /* Edge+cgRectEdge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Edge+cgRectEdge.swift"; sourceTree = "<group>"; };
 		71839C152A9B6A0D00250044 /* OnFrameChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnFrameChange.swift; sourceTree = "<group>"; };
@@ -499,7 +499,7 @@
 		7166834E2A768190006ABF84 /* MenuBar */ = {
 			isa = PBXGroup;
 			children = (
-				7166834F2A7681AF006ABF84 /* MenuBar.swift */,
+				7166834F2A7681AF006ABF84 /* MenuBarManager.swift */,
 				7162406E2AA0A323003EC671 /* MenuBarSection.swift */,
 				177354652B1B8502001CF731 /* MenuBarShape.swift */,
 				1787C43A2B187187002F50DF /* MenuBarTintKind.swift */,
@@ -648,7 +648,7 @@
 				71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */,
 				1787C42C2B16AE0B002F50DF /* Permission.swift in Sources */,
 				1787C4342B16AECF002F50DF /* PermissionsView.swift in Sources */,
-				716683502A7681AF006ABF84 /* MenuBar.swift in Sources */,
+				716683502A7681AF006ABF84 /* MenuBarManager.swift in Sources */,
 				1780ED0E2B43D132000AED1C /* BoxObject.swift in Sources */,
 				177354812B1F5F38001CF731 /* ScreenshotManager.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,

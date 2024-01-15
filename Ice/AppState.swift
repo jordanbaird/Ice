@@ -13,7 +13,7 @@ final class AppState: ObservableObject {
     static let shared = AppState()
 
     /// Manager for the state of the menu bar.
-    private(set) lazy var menuBar = MenuBar(appState: self, defaults: .standard)
+    private(set) lazy var menuBarManager = MenuBarManager(appState: self, defaults: .standard)
 
     /// Manager for app permissions.
     private(set) lazy var permissionsManager = PermissionsManager(appState: self)
@@ -43,7 +43,7 @@ final class AppState: ObservableObject {
         var c = Set<AnyCancellable>()
 
         // propagate changes up from child observable objects
-        menuBar.objectWillChange
+        menuBarManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }

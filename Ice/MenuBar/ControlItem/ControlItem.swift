@@ -63,8 +63,8 @@ final class ControlItem: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// The menu bar associated with the control item.
-    weak var menuBar: MenuBar? {
+    /// The menu bar manager associated with the control item.
+    weak var menuBarManager: MenuBarManager? {
         didSet {
             configureCancellables()
             updateStatusItem(with: state)
@@ -78,7 +78,7 @@ final class ControlItem: ObservableObject {
 
     /// The menu bar section associated with the control item.
     var section: MenuBarSection? {
-        menuBar?.sections.first { $0.controlItem == self }
+        menuBarManager?.sections.first { $0.controlItem == self }
     }
 
     /// A Boolean value indicating whether the control item 
@@ -86,7 +86,7 @@ final class ControlItem: ObservableObject {
     var expandsOnHide: Bool {
         guard
             let section,
-            let index = menuBar?.sections.firstIndex(of: section)
+            let index = menuBarManager?.sections.firstIndex(of: section)
         else {
             return false
         }
@@ -210,7 +210,7 @@ final class ControlItem: ObservableObject {
                     }
                 }
                 statusItem.isVisible = isVisible
-                menuBar?.needsSave = true
+                menuBarManager?.needsSave = true
                 deferredBlock?()
             }
             .store(in: &c)
@@ -255,8 +255,8 @@ final class ControlItem: ObservableObject {
                 .store(in: &c)
         }
 
-        if let menuBar {
-            menuBar.$iceIcon
+        if let menuBarManager {
+            menuBarManager.$iceIcon
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     guard let self else {
@@ -266,7 +266,7 @@ final class ControlItem: ObservableObject {
                 }
                 .store(in: &c)
 
-            menuBar.$customIceIconIsTemplate
+            menuBarManager.$customIceIconIsTemplate
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     guard let self else {
@@ -284,7 +284,7 @@ final class ControlItem: ObservableObject {
     /// the given state.
     func updateStatusItem(with state: HidingState) {
         guard
-            let menuBar,
+            let menuBarManager,
             let section,
             let button = statusItem.button
         else {
@@ -292,7 +292,7 @@ final class ControlItem: ObservableObject {
         }
 
         defer {
-            menuBar.needsSave = true
+            menuBarManager.needsSave = true
         }
 
         switch state {
@@ -313,11 +313,11 @@ final class ControlItem: ObservableObject {
             case .visible:
                 // we can usually just set the image directly from the icon
                 button.image = switch state {
-                case .hideItems: menuBar.iceIcon.hidden.nsImage(for: menuBar)
-                case .showItems: menuBar.iceIcon.visible.nsImage(for: menuBar)
+                case .hideItems: menuBarManager.iceIcon.hidden.nsImage(for: menuBarManager)
+                case .showItems: menuBarManager.iceIcon.visible.nsImage(for: menuBarManager)
                 }
                 if
-                    case .custom = menuBar.iceIcon.name,
+                    case .custom = menuBarManager.iceIcon.name,
                     let originalImage = button.image
                 {
                     // custom icons need to be resized to fit inside the button
@@ -333,9 +333,9 @@ final class ControlItem: ObservableObject {
                     button.image = resizedImage
                 }
             case .hidden:
-                button.image = ControlItemImage.builtin(.chevronLarge).nsImage(for: menuBar)
+                button.image = ControlItemImage.builtin(.chevronLarge).nsImage(for: menuBarManager)
             case .alwaysHidden:
-                button.image = ControlItemImage.builtin(.chevronSmall).nsImage(for: menuBar)
+                button.image = ControlItemImage.builtin(.chevronSmall).nsImage(for: menuBarManager)
             }
         }
     }
@@ -343,7 +343,7 @@ final class ControlItem: ObservableObject {
     /// Performs an action for the control item's status item.
     @objc private func performAction() {
         guard
-            let menuBar,
+            let menuBarManager,
             let event = NSApp.currentEvent
         else {
             return
@@ -351,16 +351,16 @@ final class ControlItem: ObservableObject {
         switch event.type {
         case .leftMouseDown:
             if
-                let alwaysHiddenSection = menuBar.section(withName: .alwaysHidden),
+                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden),
                 alwaysHiddenSection.isEnabled,
-                NSEvent.modifierFlags == menuBar.secondaryActionModifier.nsEventFlags
+                NSEvent.modifierFlags == menuBarManager.secondaryActionModifier.nsEventFlags
             {
                 alwaysHiddenSection.show()
             } else {
                 section?.toggle()
             }
         case .rightMouseUp:
-            statusItem.showMenu(createMenu(with: menuBar))
+            statusItem.showMenu(createMenu(with: menuBarManager))
         default:
             break
         }
@@ -368,7 +368,7 @@ final class ControlItem: ObservableObject {
 
     /// Creates and returns a menu to show when the control item is
     /// right-clicked.
-    private func createMenu(with menuBar: MenuBar) -> NSMenu {
+    private func createMenu(with menuBarManager: MenuBarManager) -> NSMenu {
         let menu = NSMenu(title: Constants.appName)
 
         // add menu items to toggle the hidden and always-hidden 
@@ -376,7 +376,7 @@ final class ControlItem: ObservableObject {
         let sectionNames: [MenuBarSection.Name] = [.hidden, .alwaysHidden]
         for name in sectionNames {
             guard
-                let section = menuBar.section(withName: name),
+                let section = menuBarManager.section(withName: name),
                 section.isEnabled
             else {
                 continue

@@ -9,7 +9,7 @@ struct MenuBarAppearanceTab: View {
     @EnvironmentObject var appState: AppState
 
     private var appearanceManager: MenuBarAppearanceManager {
-        appState.menuBar.appearanceManager
+        appState.menuBarManager.appearanceManager
     }
 
     var body: some View {

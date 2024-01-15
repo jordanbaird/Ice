@@ -1,5 +1,5 @@
 //
-//  MenuBar.swift
+//  MenuBarManager.swift
 //  Ice
 //
 
@@ -9,7 +9,7 @@ import OSLog
 import SwiftUI
 
 /// Manager for the state of the menu bar.
-final class MenuBar: ObservableObject {
+final class MenuBarManager: ObservableObject {
     /// Set to `true` to tell the menu bar to save its sections.
     @Published var needsSave = false
 
@@ -45,13 +45,13 @@ final class MenuBar: ObservableObject {
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
             for section in sections {
-                section.menuBar = nil
+                section.menuBarManager = nil
             }
         }
         didSet {
             if validateSectionCountOrReinitialize() {
                 for section in sections {
-                    section.menuBar = self
+                    section.menuBarManager = self
                 }
             }
             configureCancellables()
@@ -67,7 +67,7 @@ final class MenuBar: ObservableObject {
     private let defaults: UserDefaults
 
     private(set) weak var appState: AppState?
-    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBar: self)
+    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBarManager: self)
 
     private lazy var showOnHoverMonitor = UniversalEventMonitor(
         mask: [.mouseMoved, .leftMouseDown, .rightMouseDown, .otherMouseDown]
@@ -172,14 +172,14 @@ final class MenuBar: ObservableObject {
                 secondaryActionModifier = Hotkey.Modifiers(rawValue: modifierRawValue)
             }
         } catch {
-            Logger.menuBar.error("Error decoding value: \(error)")
+            Logger.menuBarManager.error("Error decoding value: \(error)")
         }
     }
 
     /// Performs the initial setup of the menu bar's section list.
     private func initializeSections() {
         guard sections.isEmpty else {
-            Logger.menuBar.info("Sections already initialized")
+            Logger.menuBarManager.info("Sections already initialized")
             return
         }
 
@@ -188,7 +188,7 @@ final class MenuBar: ObservableObject {
             do {
                 sections = try decoder.decode([MenuBarSection].self, from: sectionsData)
             } catch {
-                Logger.menuBar.error("Decoding error: \(error)")
+                Logger.menuBarManager.error("Decoding error: \(error)")
                 sections = []
             }
         } else {
@@ -203,7 +203,7 @@ final class MenuBar: ObservableObject {
             defaults.set(serializedSections, forKey: Defaults.sections)
             needsSave = false
         } catch {
-            Logger.menuBar.error("Encoding error: \(error)")
+            Logger.menuBarManager.error("Encoding error: \(error)")
         }
     }
 
@@ -235,18 +235,18 @@ final class MenuBar: ObservableObject {
                 }
 
                 let appID = runningApplication.localizedName ?? "PID \(runningApplication.processIdentifier)"
-                Logger.menuBar.debug("New frontmost application: \(appID)")
+                Logger.menuBarManager.debug("New frontmost application: \(appID)")
 
                 // wait until the application is finished launching
                 let box = BoxObject<AnyCancellable?>()
                 box.base = runningApplication.publisher(for: \.isFinishedLaunching)
                     .sink { [weak self, weak box] isFinishedLaunching in
                         guard isFinishedLaunching else {
-                            Logger.menuBar.debug("\(appID) is launching...")
+                            Logger.menuBarManager.debug("\(appID) is launching...")
                             return
                         }
 
-                        Logger.menuBar.debug("\(appID) is finished launching")
+                        Logger.menuBarManager.debug("\(appID) is finished launching")
 
                         guard 
                             let self,
@@ -274,7 +274,7 @@ final class MenuBar: ObservableObject {
                             mainMenuMaxX = maxX
                         } catch {
                             mainMenuMaxX = 0
-                            Logger.menuBar.error("Error updating main menu maxX: \(error)")
+                            Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
                         }
                     }
             }
@@ -339,7 +339,7 @@ final class MenuBar: ObservableObject {
                     let data = try encoder.encode(iceIcon)
                     defaults.set(data, forKey: Defaults.iceIcon)
                 } catch {
-                    Logger.menuBar.error("Error encoding Ice icon: \(error)")
+                    Logger.menuBarManager.error("Error encoding Ice icon: \(error)")
                 }
             }
             .store(in: &c)
@@ -394,10 +394,10 @@ final class MenuBar: ObservableObject {
     }
 }
 
-// MARK: MenuBar: BindingExposable
-extension MenuBar: BindingExposable { }
+// MARK: MenuBarManager: BindingExposable
+extension MenuBarManager: BindingExposable { }
 
 // MARK: - Logger
 private extension Logger {
-    static let menuBar = Logger(category: "MenuBar")
+    static let menuBarManager = Logger(category: "MenuBarManager")
 }

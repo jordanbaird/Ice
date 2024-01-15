@@ -25,7 +25,7 @@ struct IceApp: App {
 
         PermissionsWindow(appState: appState, onContinue: {
             appState.permissionsManager.stopAll()
-            appState.menuBar.performSetup()
+            appState.menuBarManager.performSetup()
             openWindow(id: Constants.settingsWindowID)
         })
     }

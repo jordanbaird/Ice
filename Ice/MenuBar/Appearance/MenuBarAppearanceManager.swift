@@ -58,13 +58,13 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    private(set) weak var menuBar: MenuBar?
+    private(set) weak var menuBarManager: MenuBarManager?
 
     private lazy var backingPanel = MenuBarBackingPanel(appearanceManager: self)
     private lazy var overlayPanel = MenuBarOverlayPanel(appearanceManager: self)
 
-    init(menuBar: MenuBar) {
-        self.menuBar = menuBar
+    init(menuBarManager: MenuBarManager) {
+        self.menuBarManager = menuBarManager
     }
 
     func performSetup() {
@@ -281,7 +281,7 @@ final class MenuBarAppearanceManager: ObservableObject {
         }
 
         guard
-            let appState = menuBar?.appState,
+            let appState = menuBarManager?.appState,
             appState.permissionsManager.screenRecordingPermission.hasPermission
         else {
             Logger.appearanceManager.notice("Missing screen capture permissions")

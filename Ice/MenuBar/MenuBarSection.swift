@@ -36,17 +36,17 @@ final class MenuBarSection: ObservableObject {
             if listener != nil {
                 enableHotkey()
             }
-            menuBar?.needsSave = true
+            menuBarManager?.needsSave = true
         }
     }
 
     private var listener: Hotkey.Listener?
     private var cancellables = Set<AnyCancellable>()
 
-    /// The menu bar associated with the section.
-    weak var menuBar: MenuBar? {
+    /// The menu bar manager associated with the section.
+    weak var menuBarManager: MenuBarManager? {
         didSet {
-            controlItem.menuBar = menuBar
+            controlItem.menuBarManager = menuBarManager
         }
     }
 
@@ -162,14 +162,14 @@ final class MenuBarSection: ObservableObject {
 
     /// Shows the status items in the section.
     func show() {
-        guard let menuBar else {
+        guard let menuBarManager else {
             return
         }
         switch name {
         case .visible, .hidden:
             guard
-                let section1 = menuBar.section(withName: .visible),
-                let section2 = menuBar.section(withName: .hidden)
+                let section1 = menuBarManager.section(withName: .visible),
+                let section2 = menuBarManager.section(withName: .hidden)
             else {
                 return
             }
@@ -177,8 +177,8 @@ final class MenuBarSection: ObservableObject {
             section2.controlItem.state = .showItems
         case .alwaysHidden:
             guard
-                let section1 = menuBar.section(withName: .hidden),
-                let section2 = menuBar.section(withName: .alwaysHidden)
+                let section1 = menuBarManager.section(withName: .hidden),
+                let section2 = menuBarManager.section(withName: .alwaysHidden)
             else {
                 return
             }
@@ -189,15 +189,15 @@ final class MenuBarSection: ObservableObject {
 
     /// Hides the status items in the section.
     func hide() {
-        guard let menuBar else {
+        guard let menuBarManager else {
             return
         }
         switch name {
         case .visible, .hidden:
             guard
-                let section1 = menuBar.section(withName: .visible),
-                let section2 = menuBar.section(withName: .hidden),
-                let section3 = menuBar.section(withName: .alwaysHidden)
+                let section1 = menuBarManager.section(withName: .visible),
+                let section2 = menuBarManager.section(withName: .hidden),
+                let section3 = menuBarManager.section(withName: .alwaysHidden)
             else {
                 return
             }
@@ -205,12 +205,12 @@ final class MenuBarSection: ObservableObject {
             section2.controlItem.state = .hideItems
             section3.hide() // uses other branch
         case .alwaysHidden:
-            guard let section = menuBar.section(withName: .alwaysHidden) else {
+            guard let section = menuBarManager.section(withName: .alwaysHidden) else {
                 return
             }
             section.controlItem.state = .hideItems
         }
-        menuBar.showOnHoverPreventedByUserInteraction = false
+        menuBarManager.showOnHoverPreventedByUserInteraction = false
     }
 
     /// Toggles the visibility of the status items in the section.

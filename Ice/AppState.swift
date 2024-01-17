@@ -5,6 +5,7 @@
 
 import Combine
 import OSLog
+import Sparkle
 import SwiftUI
 
 /// The model for app-wide state.
@@ -17,6 +18,9 @@ final class AppState: ObservableObject {
 
     /// Manager for app permissions.
     private(set) lazy var permissionsManager = PermissionsManager(appState: self)
+
+    /// Manager for app updates.
+    private(set) lazy var updatesManager = UpdatesManager()
 
     /// The window that contains the settings interface.
     private(set) weak var settingsWindow: NSWindow?

@@ -16,6 +16,10 @@ struct SettingsView: View {
             icon: .systemSymbol("menubar.rectangle")
         ),
         SettingsNavigationItem(
+            name: .updates,
+            icon: .systemSymbol("arrow.circlepath")
+        ),
+        SettingsNavigationItem(
             name: .about,
             icon: .assetCatalog(.iceCube)
         ),
@@ -73,6 +77,8 @@ struct SettingsView: View {
             GeneralSettingsPane()
         case .menuBar:
             MenuBarSettingsPane()
+        case .updates:
+            UpdatesSettingsPane()
         case .about:
             AboutSettingsPane()
         }

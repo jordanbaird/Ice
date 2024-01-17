@@ -407,6 +407,16 @@ final class ControlItem: ObservableObject {
 
         menu.addItem(.separator())
 
+        let checkForUpdatesItem = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(AppState.shared.updatesManager.checkForUpdates),
+            keyEquivalent: ""
+        )
+        checkForUpdatesItem.target = AppState.shared.updatesManager
+        menu.addItem(checkForUpdatesItem)
+
+        menu.addItem(.separator())
+
         let quitItem = NSMenuItem(
             title: "Quit \(Constants.appName)",
             action: #selector(NSApp.terminate),

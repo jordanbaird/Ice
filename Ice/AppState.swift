@@ -20,7 +20,7 @@ final class AppState: ObservableObject {
     private(set) lazy var permissionsManager = PermissionsManager(appState: self)
 
     /// Manager for app updates.
-    private(set) lazy var updatesManager = UpdatesManager()
+    let updatesManager = UpdatesManager()
 
     /// The window that contains the settings interface.
     private(set) weak var settingsWindow: NSWindow?
@@ -53,6 +53,11 @@ final class AppState: ObservableObject {
             }
             .store(in: &c)
         permissionsManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
+        updatesManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }

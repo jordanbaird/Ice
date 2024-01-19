@@ -82,63 +82,7 @@ private struct MenuBarFullShapeExampleView: View, Equatable {
     }
 
     @ViewBuilder
-    private var leadingEndCapPicker: some View {
-        Picker("Leading End Cap", selection: $info.leadingEndCap) {
-            ForEach(MenuBarEndCap.allCases.reversed(), id: \.self) { endCap in
-                MenuBarEndCapPickerContentView(
-                    endCap: endCap,
-                    edge: .leading
-                )
-                .equatable()
-                .tag(endCap)
-            }
-        }
-        .fixedSize()
-    }
-
-    @ViewBuilder
-    private var trailingEndCapPicker: some View {
-        Picker("Trailing End Cap", selection: $info.trailingEndCap) {
-            ForEach(MenuBarEndCap.allCases, id: \.self) { endCap in
-                MenuBarEndCapPickerContentView(
-                    endCap: endCap,
-                    edge: .trailing
-                )
-                .equatable()
-                .tag(endCap)
-            }
-        }
-        .fixedSize()
-    }
-
-    @ViewBuilder
-    private var leadingEndCapExample: some View {
-        MenuBarEndCapExampleView(
-            endCap: info.leadingEndCap,
-            edge: .leading
-        )
-        .equatable()
-    }
-
-    @ViewBuilder
-    private var trailingEndCapExample: some View {
-        MenuBarEndCapExampleView(
-            endCap: info.trailingEndCap,
-            edge: .trailing
-        )
-        .equatable()
-    }
-
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.info == rhs.info
-    }
-}
-
-private struct MenuBarEndCapPickerContentView: View, Equatable {
-    let endCap: MenuBarEndCap
-    let edge: HorizontalEdge
-
-    var body: some View {
+    private func endCapPickerContentView(endCap: MenuBarEndCap, edge: HorizontalEdge) -> some View {
         switch endCap {
         case .square:
             Image(size: CGSize(width: 12, height: 12)) { context in
@@ -147,6 +91,7 @@ private struct MenuBarEndCapPickerContentView: View, Equatable {
             .renderingMode(.template)
             .resizable()
             .help("Square Cap")
+            .tag(endCap)
         case .round:
             Image(size: CGSize(width: 12, height: 12)) { context in
                 let remainder = context.clipBoundingRect
@@ -166,16 +111,52 @@ private struct MenuBarEndCapPickerContentView: View, Equatable {
             .renderingMode(.template)
             .resizable()
             .help("Round Cap")
+            .tag(endCap)
         }
     }
 
+    @ViewBuilder
+    private var leadingEndCapPicker: some View {
+        Picker("Leading End Cap", selection: $info.leadingEndCap) {
+            ForEach(MenuBarEndCap.allCases.reversed(), id: \.self) { endCap in
+                endCapPickerContentView(endCap: endCap, edge: .leading)
+            }
+        }
+        .fixedSize()
+    }
+
+    @ViewBuilder
+    private var trailingEndCapPicker: some View {
+        Picker("Trailing End Cap", selection: $info.trailingEndCap) {
+            ForEach(MenuBarEndCap.allCases, id: \.self) { endCap in
+                endCapPickerContentView(endCap: endCap, edge: .trailing)
+            }
+        }
+        .fixedSize()
+    }
+
+    @ViewBuilder
+    private var leadingEndCapExample: some View {
+        MenuBarEndCapExampleView(
+            endCap: info.leadingEndCap,
+            edge: .leading
+        )
+    }
+
+    @ViewBuilder
+    private var trailingEndCapExample: some View {
+        MenuBarEndCapExampleView(
+            endCap: info.trailingEndCap,
+            edge: .trailing
+        )
+    }
+
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.endCap == rhs.endCap &&
-        lhs.edge == rhs.edge
+        lhs.info == rhs.info
     }
 }
 
-private struct MenuBarEndCapExampleView: View, Equatable {
+private struct MenuBarEndCapExampleView: View {
     @State private var radius: CGFloat = 0
 
     let endCap: MenuBarEndCap
@@ -207,12 +188,6 @@ private struct MenuBarEndCapExampleView: View, Equatable {
                 }
             }
         }
-    }
-
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.radius == rhs.radius &&
-        lhs.endCap == rhs.endCap &&
-        lhs.edge == rhs.edge
     }
 }
 

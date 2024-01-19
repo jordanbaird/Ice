@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import OSLog
 
 /// A status item that controls the visibility of a section in
 /// the menu bar.

@@ -3,8 +3,8 @@
 //  Ice
 //
 
-import SwiftUI
 import Sparkle
+import SwiftUI
 
 final class UpdatesManager: ObservableObject {
     @Published var canCheckForUpdates = false

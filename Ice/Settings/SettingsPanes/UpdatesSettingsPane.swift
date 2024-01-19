@@ -3,8 +3,8 @@
 //  Ice
 //
 
-import SwiftUI
 import Sparkle
+import SwiftUI
 
 struct UpdatesSettingsPane: View {
     @EnvironmentObject var appState: AppState

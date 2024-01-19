@@ -5,7 +5,6 @@
 
 import Combine
 import OSLog
-import Sparkle
 import SwiftUI
 
 /// The model for app-wide state.

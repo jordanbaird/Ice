@@ -3,8 +3,6 @@
 //  Ice
 //
 
-import Foundation
-
 struct ControlItemImageSet: Codable, Hashable, Identifiable {
     enum Name: String, Codable, Hashable {
         case arrow = "Arrow"

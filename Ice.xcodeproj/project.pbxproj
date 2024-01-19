@@ -16,7 +16,6 @@
 		170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */; };
 		170CF8902B101D980073F982 /* ColorStop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88F2B101D980073F982 /* ColorStop.swift */; };
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
-		1726A3F92B3378B8008B09DD /* Acknowledgements.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 1726A3F82B3378B8008B09DD /* Acknowledgements.rtf */; };
 		1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */; };
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
 		175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 175061902B1543DD003144CD /* LaunchAtLogin */; };
@@ -48,7 +47,6 @@
 		17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */; };
 		17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */; };
 		17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */; };
-		17C261E32B5AC03C0076F129 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 17C261E22B5AC03C0076F129 /* Info.plist */; };
 		17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPane.swift */; };
 		17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */; };
 		17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */; };
@@ -623,8 +621,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				17C261E32B5AC03C0076F129 /* Info.plist in Resources */,
-				1726A3F92B3378B8008B09DD /* Acknowledgements.rtf in Resources */,
 				716683322A767E6B006ABF84 /* Assets.xcassets in Resources */,
 				1787C4362B17A9EB002F50DF /* Acknowledgements.pdf in Resources */,
 			);

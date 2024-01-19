@@ -91,13 +91,14 @@ struct MenuBarAppearanceTab: View {
     @ViewBuilder
     private var borderWidth: some View {
         if appearanceManager.hasBorder {
-            Stepper(
+            Picker(
                 "Border Width",
-                value: appearanceManager.bindings.borderWidth,
-                in: 1...3,
-                step: 1,
-                format: .number
-            )
+                selection: appearanceManager.bindings.borderWidth
+            ) {
+                Text("1").tag(1.0)
+                Text("2").tag(2.0)
+                Text("3").tag(3.0)
+            }
         }
     }
 

@@ -78,12 +78,7 @@ final class MenuBarManager: ObservableObject {
     ) { [weak self] event in
         guard
             let self,
-            !showOnHoverPreventedByUserInteraction
-        else {
-            return event
-        }
-
-        guard
+            !showOnHoverPreventedByUserInteraction,
             let screen = NSScreen.screens.first(where: {
                 ($0.frame.minX...$0.frame.maxX).contains(NSEvent.mouseLocation.x)
             }),

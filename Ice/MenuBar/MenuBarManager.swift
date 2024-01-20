@@ -326,9 +326,17 @@ final class MenuBarManager: ObservableObject {
         Logger.menuBarManager.debug("New frontmost application: \(appID)")
 
         // wait until the application is finished launching
-        let box = BoxObject<AnyCancellable?>()
-        box.base = frontmostApplication.publisher(for: \.isFinishedLaunching)
-            .sink { [weak self, weak box] isFinishedLaunching in
+        var box: BoxObject<AnyCancellable?>? = BoxObject()
+        box?.base = frontmostApplication.publisher(for: \.isFinishedLaunching)
+            .combineLatest(frontmostApplication.publisher(for: \.ownsMenuBar))
+            .sink { [weak self] isFinishedLaunching, ownsMenuBar in
+                // Ice never actually owns the menu bar, so exclude it from the check
+                if frontmostApplication.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+                    guard ownsMenuBar else {
+                        Logger.menuBarManager.debug("\(appID) does not own menu bar")
+                        return
+                    }
+                }
                 guard isFinishedLaunching else {
                     Logger.menuBarManager.debug("\(appID) is launching...")
                     return
@@ -336,16 +344,12 @@ final class MenuBarManager: ObservableObject {
 
                 Logger.menuBarManager.debug("\(appID) is finished launching")
 
-                guard
-                    let self,
-                    let box
-                else {
-                    return
+                defer {
+                    box = nil
                 }
 
-                defer {
-                    box.base?.cancel()
-                    box.base = nil
+                guard let self else {
+                    return
                 }
 
                 do {

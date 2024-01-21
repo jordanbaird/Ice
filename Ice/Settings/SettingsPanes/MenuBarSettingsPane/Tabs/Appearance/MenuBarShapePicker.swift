@@ -7,6 +7,7 @@ import SwiftUI
 
 struct MenuBarShapePicker: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.colorScheme) private var colorScheme
 
     private var appearanceManager: MenuBarAppearanceManager {
         appState.menuBarManager.appearanceManager
@@ -43,9 +44,11 @@ struct MenuBarShapePicker: View {
         case .full:
             MenuBarFullShapeExampleView(info: appearanceManager.bindings.fullShapeInfo)
                 .equatable()
+                .foregroundStyle(colorScheme == .dark ? .primary : .secondary)
         case .split:
             MenuBarSplitShapeExampleView(info: appearanceManager.bindings.splitShapeInfo)
                 .equatable()
+                .foregroundStyle(colorScheme == .dark ? .primary : .secondary)
         }
     }
 }
@@ -86,29 +89,20 @@ private struct MenuBarFullShapeExampleView: View, Equatable {
         switch endCap {
         case .square:
             Image(size: CGSize(width: 12, height: 12)) { context in
-                context.fill(Path(context.clipBoundingRect), with: .color(.black))
+                context.fill(Path(context.clipBoundingRect), with: .foreground)
             }
-            .renderingMode(.template)
             .resizable()
             .help("Square Cap")
             .tag(endCap)
         case .round:
             Image(size: CGSize(width: 12, height: 12)) { context in
                 let remainder = context.clipBoundingRect
-                    .divided(
-                        atDistance: context.clipBoundingRect.width / 2,
-                        from: edge.cgRectEdge
-                    )
+                    .divided(atDistance: context.clipBoundingRect.width / 2, from: edge.cgRectEdge)
                     .remainder
-                let paths: [Path] = [
-                    Path(remainder),
-                    Path(ellipseIn: context.clipBoundingRect),
-                ]
-                for path in paths {
-                    context.fill(path, with: .color(.black))
-                }
+                let path1 = Path(remainder)
+                let path2 = Path(ellipseIn: context.clipBoundingRect)
+                context.fill(path1.union(path2), with: .foreground)
             }
-            .renderingMode(.template)
             .resizable()
             .help("Round Cap")
             .tag(endCap)

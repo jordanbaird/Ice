@@ -10,7 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let settingsWindow = NSApp.window(withIdentifier: Constants.settingsWindowID) {
             AppState.shared.assignSettingsWindow(settingsWindow)
             // give the settings window a custom background
-            settingsWindow.backgroundColor = .settingsWindowBackground
+            settingsWindow.backgroundColor = .underPageBackgroundColor
         }
 
         // close all windows

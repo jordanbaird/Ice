@@ -74,7 +74,7 @@ private struct ErrorOverlayView<E: Error & Equatable, Content: View>: View {
             )
             .position(
                 x: frame.midX,
-                y: frame.maxY - 25
+                y: frame.maxY - 50
             )
     }
 }

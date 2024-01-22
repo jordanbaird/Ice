@@ -19,40 +19,25 @@ struct HotkeyRecorder<Label: View>: View {
     }
 
     private var keyString: String {
-        guard let key = model.section?.hotkey?.key else {
-            return ""
-        }
-        return key.stringValue.capitalized
+        model.section?.hotkey?.key.stringValue.capitalized ?? ""
     }
 
     private var symbolString: String {
         if model.isRecording {
-            return "escape"
+            "escape"
+        } else if model.isEnabled {
+            "xmark.circle.fill"
+        } else {
+            "record.circle"
         }
-        if model.isEnabled {
-            return "xmark.circle.fill"
-        }
-        return "record.circle"
     }
 
     private var segment1HelpString: String {
-        if model.isRecording {
-            return ""
-        }
-        if model.isEnabled {
-            return "Click to record new hotkey"
-        }
-        return "Click to record hotkey"
+        if model.isRecording { "" } else { "Click to record" }
     }
 
     private var segment2HelpString: String {
-        if model.isRecording {
-            return "Cancel recording"
-        }
-        if model.isEnabled {
-            return "Delete hotkey"
-        }
-        return "Click to record hotkey"
+        if model.isEnabled { "Delete" } else { segment1HelpString }
     }
 
     /// Creates a hotkey recorder that records user-chosen key
@@ -83,10 +68,7 @@ struct HotkeyRecorder<Label: View>: View {
         .onChange(of: model.failure) { _, newValue in
             timer?.invalidate()
             if newValue != nil {
-                timer = .scheduledTimer(
-                    withTimeInterval: 3,
-                    repeats: false
-                ) { _ in
+                timer = .scheduledTimer(withTimeInterval: 3, repeats: false) { _ in
                     model.failure = nil
                 }
             }
@@ -98,13 +80,12 @@ struct HotkeyRecorder<Label: View>: View {
         Button {
             model.startRecording()
         } label: {
-            segment1Label
-                .frame(maxWidth: .infinity)
+            segment1Label.frame(maxWidth: .infinity)
         }
         .help(segment1HelpString)
-        .customButtonConfiguration {
-            $0.shape = .leadingSegment
-            $0.isHighlighted = model.isRecording
+        .customButtonConfiguration { configuration in
+            configuration.shape = .leadingSegment
+            configuration.isHighlighted = model.isRecording
         }
     }
 
@@ -119,16 +100,15 @@ struct HotkeyRecorder<Label: View>: View {
                 model.startRecording()
             }
         } label: {
-            Color.clear
-                .overlay { segment2Label }
+            Color.clear.overlay { segment2Label }
         }
         .frame(width: frame.height)
         .onHover { isInside in
             isInsideSegment2 = isInside
         }
         .help(segment2HelpString)
-        .customButtonConfiguration {
-            $0.shape = .trailingSegment
+        .customButtonConfiguration { configuration in
+            configuration.shape = .trailingSegment
         }
     }
 
@@ -141,7 +121,7 @@ struct HotkeyRecorder<Label: View>: View {
                 HStack(spacing: 1) {
                     ForEach(model.pressedModifierStrings, id: \.self) { string in
                         Text(string)
-                            .frame(width: frame.height - 2)
+                            .frame(width: frame.height - 4)
                             .background { keyCap }
                     }
                 }
@@ -168,22 +148,22 @@ struct HotkeyRecorder<Label: View>: View {
 
     @ViewBuilder
     private var keyCap: some View {
-        RoundedRectangle(cornerRadius: 5)
+        RoundedRectangle(cornerRadius: 4, style: .circular)
             .fill(.background.opacity(0.5))
             .overlay {
-                RoundedRectangle(cornerRadius: 5)
+                RoundedRectangle(cornerRadius: 4, style: .circular)
                     .inset(by: -2)
                     .offset(y: -2)
                     .strokeBorder(.background.opacity(0.5))
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
             }
             .shadow(
                 color: .black.opacity(0.25),
                 radius: 1
             )
             .frame(
-                width: frame.height - 2,
-                height: frame.height - 2
+                width: frame.height - 4,
+                height: frame.height - 4
             )
     }
 }

@@ -14,6 +14,7 @@ struct IceApp: App {
 
     init() {
         NSSplitViewItem.swizzle()
+        appState.assignAppDelegate(appDelegate)
     }
 
     var body: some Scene {

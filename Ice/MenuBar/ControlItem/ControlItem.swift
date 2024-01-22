@@ -408,10 +408,10 @@ final class ControlItem: ObservableObject {
 
         let checkForUpdatesItem = NSMenuItem(
             title: "Check for Updates…",
-            action: #selector(AppState.shared.updatesManager.checkForUpdates),
+            action: #selector(checkForUpdates),
             keyEquivalent: ""
         )
-        checkForUpdatesItem.target = AppState.shared.updatesManager
+        checkForUpdatesItem.target = self
         menu.addItem(checkForUpdatesItem)
 
         menu.addItem(.separator())
@@ -430,6 +430,16 @@ final class ControlItem: ObservableObject {
     /// Action for a menu item in the control item's menu to perform.
     @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
         Self.sectionStorage[menuItem]?.toggle()
+    }
+
+    /// Opens the settings window and checks for updates.
+    @objc private func checkForUpdates() {
+        if let appDelegate = AppState.shared.appDelegate {
+            // open the settings window in case an alert needs
+            // to be displayed
+            appDelegate.openSettingsWindow()
+            AppState.shared.updatesManager.checkForUpdates()
+        }
     }
 }
 

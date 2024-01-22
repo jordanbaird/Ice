@@ -12,6 +12,9 @@ final class AppState: ObservableObject {
     /// The shared app state singleton.
     static let shared = AppState()
 
+    /// The app delegate.
+    private(set) weak var appDelegate: AppDelegate?
+
     /// Manager for the state of the menu bar.
     private(set) lazy var menuBarManager = MenuBarManager(appState: self)
 
@@ -63,6 +66,20 @@ final class AppState: ObservableObject {
             .store(in: &c)
 
         cancellables = c
+    }
+
+    /// Assigns the app state's app delegate to the given instance.
+    ///
+    /// - Important: The assignment is only made if the app state does
+    ///   not currently retain an app delegate. Attempting to assign
+    ///   a delegate when one is already retained results in a warning
+    ///   being logged, but otherwise has no effect.
+    func assignAppDelegate(_ appDelegate: AppDelegate) {
+        guard self.appDelegate == nil else {
+            Logger.appState.warning("Multiple attempts made to assign app delegate")
+            return
+        }
+        self.appDelegate = appDelegate
     }
 
     /// Assigns the app state's settings window to the given window.

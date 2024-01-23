@@ -279,12 +279,15 @@ final class MenuBarManager: ObservableObject {
         $showOnHover
             .receive(on: DispatchQueue.main)
             .sink { [weak self] showOnHover in
-                if showOnHover {
-                    self?.showOnHoverMonitor.start()
-                } else {
-                    self?.showOnHoverMonitor.stop()
+                guard let self else {
+                    return
                 }
-                self?.defaults.set(showOnHover, forKey: Defaults.showOnHover)
+                if showOnHover {
+                    showOnHoverMonitor.start()
+                } else {
+                    showOnHoverMonitor.stop()
+                }
+                defaults.set(showOnHover, forKey: Defaults.showOnHover)
             }
             .store(in: &c)
 

@@ -6,9 +6,15 @@
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    let appState = AppState.shared
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // assign the delegate to the shared app state
+        appState.assignAppDelegate(self)
+
+        // assign the settings window to the shared app state
         if let settingsWindow = NSApp.window(withIdentifier: Constants.settingsWindowID) {
-            AppState.shared.assignSettingsWindow(settingsWindow)
+            appState.assignSettingsWindow(settingsWindow)
             // give the settings window a custom background
             settingsWindow.backgroundColor = .settingsWindowBackground
         }
@@ -18,12 +24,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.close()
         }
 
-        if !AppState.shared.isPreview {
+        if !appState.isPreview {
             // if we have the required permissions, stop all checks
             // and set up the menu bar
-            if AppState.shared.permissionsManager.hasPermission {
-                AppState.shared.permissionsManager.stopAll()
-                AppState.shared.menuBarManager.performSetup()
+            if appState.permissionsManager.hasPermission {
+                appState.performSetup()
             }
         }
 
@@ -40,7 +45,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        if AppState.shared.permissionsManager.hasPermission {
+        if appState.permissionsManager.hasPermission {
             deactivate(withPolicy: .accessory)
             return false
         }
@@ -69,7 +74,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Opens the settings window and activates the app.
     @objc func openSettingsWindow() {
-        guard let settingsWindow = AppState.shared.settingsWindow else {
+        guard let settingsWindow = appState.settingsWindow else {
             return
         }
         activate(withPolicy: .regular)

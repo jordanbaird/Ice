@@ -12,9 +12,6 @@ final class AppState: ObservableObject {
     /// The shared app state singleton.
     static let shared = AppState()
 
-    /// The app delegate.
-    private(set) weak var appDelegate: AppDelegate?
-
     /// Manager for the state of the menu bar.
     private(set) lazy var menuBarManager = MenuBarManager(appState: self)
 
@@ -23,6 +20,9 @@ final class AppState: ObservableObject {
 
     /// Manager for app updates.
     let updatesManager = UpdatesManager()
+
+    /// The application's delegate.
+    private(set) weak var appDelegate: AppDelegate?
 
     /// The window that contains the settings interface.
     private(set) weak var settingsWindow: NSWindow?
@@ -48,7 +48,6 @@ final class AppState: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // propagate changes up from child observable objects
         menuBarManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
@@ -68,12 +67,6 @@ final class AppState: ObservableObject {
         cancellables = c
     }
 
-    /// Assigns the app state's app delegate to the given instance.
-    ///
-    /// - Important: The assignment is only made if the app state does
-    ///   not currently retain an app delegate. Attempting to assign
-    ///   a delegate when one is already retained results in a warning
-    ///   being logged, but otherwise has no effect.
     func assignAppDelegate(_ appDelegate: AppDelegate) {
         guard self.appDelegate == nil else {
             Logger.appState.warning("Multiple attempts made to assign app delegate")
@@ -82,18 +75,17 @@ final class AppState: ObservableObject {
         self.appDelegate = appDelegate
     }
 
-    /// Assigns the app state's settings window to the given window.
-    ///
-    /// - Important: The assignment is only made if the app state does
-    ///   not currently retain a settings window. Attempting to assign
-    ///   a window when one is already retained results in a warning
-    ///   being logged, but otherwise has no effect.
     func assignSettingsWindow(_ settingsWindow: NSWindow) {
         guard self.settingsWindow == nil else {
             Logger.appState.warning("Multiple attempts made to assign settings window")
             return
         }
         self.settingsWindow = settingsWindow
+    }
+
+    func performSetup() {
+        permissionsManager.stopAllChecks()
+        menuBarManager.performSetup()
     }
 }
 

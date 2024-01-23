@@ -46,7 +46,7 @@ class Permission: ObservableObject {
     }
 
     deinit {
-        stop()
+        stopCheck()
     }
 
     /// Runs the permission check. If the user has not granted
@@ -82,14 +82,14 @@ class Permission: ObservableObject {
                             NSApp.activate()
                         }
                         completionHandler()
-                        stop()
+                        stopCheck()
                     }
                 }
         }
     }
 
-    /// Stops running the permission.
-    func stop() {
+    /// Stops running the permission check.
+    func stopCheck() {
         timerCancellable?.cancel()
         timerCancellable = nil
         hasPermissionCancellable?.cancel()

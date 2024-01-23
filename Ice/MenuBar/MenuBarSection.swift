@@ -98,7 +98,11 @@ final class MenuBarSection: ObservableObject {
 
         self.init(
             name: name,
-            controlItem: ControlItem(autosaveName: autosaveName, position: position, state: state),
+            controlItem: ControlItem(
+                autosaveName: autosaveName,
+                position: position,
+                state: state
+            ),
             hotkey: nil
         )
     }

@@ -36,9 +36,9 @@ class PermissionsManager: ObservableObject {
         cancellables = c
     }
 
-    /// Stops running all permissions.
-    func stopAll() {
-        accessibilityPermission.stop()
-        screenRecordingPermission.stop()
+    /// Stops running all permissions checks.
+    func stopAllChecks() {
+        accessibilityPermission.stopCheck()
+        screenRecordingPermission.stopCheck()
     }
 }

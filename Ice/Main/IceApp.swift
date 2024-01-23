@@ -14,7 +14,6 @@ struct IceApp: App {
 
     init() {
         NSSplitViewItem.swizzle()
-        appState.assignAppDelegate(appDelegate)
     }
 
     var body: some Scene {
@@ -25,8 +24,7 @@ struct IceApp: App {
         })
 
         PermissionsWindow(appState: appState, onContinue: {
-            appState.permissionsManager.stopAll()
-            appState.menuBarManager.performSetup()
+            appState.performSetup()
             openWindow(id: Constants.settingsWindowID)
         })
     }

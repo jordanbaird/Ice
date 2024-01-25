@@ -38,6 +38,11 @@ final class MenuBarManager: ObservableObject {
     /// hover" feature from activating.
     @Published var showOnHoverPreventedByUserInteraction = false
 
+    /// A Boolean value that indicates whether the hidden section
+    /// should automatically rehide after a given time interval
+    /// has passed without interaction.
+    @Published var autoRehide = false
+
     /// The maximum X coordinate of the menu bar's main menu.
     @Published var mainMenuMaxX: CGFloat = 0
 
@@ -59,6 +64,23 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
+    /// Returns a Boolean value that indicates whether the mouse
+    /// is within the bounds of the menu bar.
+    var mouseIsInMenuBar: Bool {
+        guard
+            let hiddenSection = section(withName: .hidden),
+            let hiddenControlItemPosition = hiddenSection.controlItem.position,
+            let screen = NSScreen.screens.first(where: {
+                ($0.frame.minX...$0.frame.maxX).contains(NSEvent.mouseLocation.x)
+            })
+        else {
+            return false
+        }
+        return NSEvent.mouseLocation.y > screen.visibleFrame.maxY &&
+        NSEvent.mouseLocation.x > mainMenuMaxX &&
+        screen.frame.maxX - NSEvent.mouseLocation.x > hiddenControlItemPosition
+    }
+
     private var cancellables = Set<AnyCancellable>()
 
     private let encoder = JSONEncoder()
@@ -74,39 +96,27 @@ final class MenuBarManager: ObservableObject {
     )
 
     private lazy var showOnHoverMonitor = UniversalEventMonitor(
-        mask: [.mouseMoved, .leftMouseDown, .rightMouseDown, .otherMouseDown]
+        mask: .mouseMoved
     ) { [weak self] event in
         guard
             let self,
             !showOnHoverPreventedByUserInteraction,
-            let screen = NSScreen.screens.first(where: {
-                ($0.frame.minX...$0.frame.maxX).contains(NSEvent.mouseLocation.x)
-            }),
             let hiddenSection = section(withName: .hidden)
         else {
             return event
         }
-
-        var mouseIsInMenuBar: Bool {
-            guard let hiddenControlItemPosition = hiddenSection.controlItem.position else {
-                return false
-            }
-            return NSEvent.mouseLocation.y > screen.visibleFrame.maxY &&
-            NSEvent.mouseLocation.x > mainMenuMaxX &&
-            screen.frame.maxX - NSEvent.mouseLocation.x > hiddenControlItemPosition
-        }
-
-        switch event.type {
-        case .mouseMoved where hiddenSection.isHidden:
+        if hiddenSection.isHidden {
             if mouseIsInMenuBar {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     // make sure the mouse is still inside
-                    if mouseIsInMenuBar {
+                    if self.mouseIsInMenuBar {
                         hiddenSection.show()
                     }
                 }
             }
-        case .mouseMoved:
+        } else if let screen = NSScreen.screens.first(where: {
+            ($0.frame.minX...$0.frame.maxX).contains(NSEvent.mouseLocation.x)
+        }) {
             if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                     // make sure the mouse is still outside
@@ -114,6 +124,31 @@ final class MenuBarManager: ObservableObject {
                         hiddenSection.hide()
                     }
                 }
+            }
+        }
+        return event
+    }
+
+    private lazy var mouseMonitor = UniversalEventMonitor(
+        mask: [.leftMouseUp, .leftMouseDown, .rightMouseDown, .otherMouseDown]
+    ) { [weak self] event in
+        guard let self else {
+            return event
+        }
+        switch event.type {
+        case .leftMouseUp:
+            guard
+                autoRehide,
+                !mouseIsInMenuBar,
+                let visibleSection = section(withName: .visible),
+                let hiddenSection = section(withName: .hidden),
+                let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
+                !visibleControlItemFrame.contains(NSEvent.mouseLocation)
+            else {
+                break
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                hiddenSection.hide()
             }
         case .leftMouseDown:
             guard
@@ -132,7 +167,6 @@ final class MenuBarManager: ObservableObject {
         default:
             break
         }
-
         return event
     }
 
@@ -149,6 +183,7 @@ final class MenuBarManager: ObservableObject {
         loadInitialState()
         configureCancellables()
         initializeSections()
+        mouseMonitor.start()
     }
 
     /// Loads data from storage and sets the initial state
@@ -156,6 +191,7 @@ final class MenuBarManager: ObservableObject {
     private func loadInitialState() {
         customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
         showOnHover = defaults.bool(forKey: Defaults.showOnHover)
+        autoRehide = defaults.bool(forKey: Defaults.autoRehide)
 
         do {
             if let iceIconData = defaults.data(forKey: Defaults.iceIcon) {
@@ -288,6 +324,13 @@ final class MenuBarManager: ObservableObject {
                     showOnHoverMonitor.stop()
                 }
                 defaults.set(showOnHover, forKey: Defaults.showOnHover)
+            }
+            .store(in: &c)
+
+        $autoRehide
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] autoRehide in
+                self?.defaults.set(autoRehide, forKey: Defaults.autoRehide)
             }
             .store(in: &c)
 

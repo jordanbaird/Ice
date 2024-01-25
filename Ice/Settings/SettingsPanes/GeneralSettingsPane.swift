@@ -26,6 +26,7 @@ struct GeneralSettingsPane: View {
             }
             Section {
                 showOnHover
+                autoRehide
                 iceIconOptions
             }
             Section("Hotkeys") {
@@ -57,6 +58,14 @@ struct GeneralSettingsPane: View {
             Text("Show on hover")
             Text("Hover over an empty area in the menu bar to show hidden items")
         }
+    }
+
+    @ViewBuilder
+    private var autoRehide: some View {
+        Toggle(
+            "Automatically rehide",
+            isOn: menuBarManager.bindings.autoRehide
+        )
     }
 
     @ViewBuilder

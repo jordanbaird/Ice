@@ -12,6 +12,8 @@ enum Defaults {
     static let sections = "Sections"
     static let showOnHover = "ShowOnHover"
 
+    static let autoRehide = "AutoRehide"
+
     static let menuBarHasBorder = "MenuBarHasBorder"
     static let menuBarBorderColor = "MenuBarBorderColor"
     static let menuBarBorderWidth = "MenuBarBorderWidth"

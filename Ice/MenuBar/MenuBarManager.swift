@@ -98,7 +98,7 @@ final class MenuBarManager: ObservableObject {
             }
             if hiddenSection.isHidden {
                 if mouseIsInMenuBar(of: screen) {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         // make sure the mouse is still inside
                         if self.mouseIsInMenuBar(of: screen) {
                             hiddenSection.show()
@@ -106,7 +106,7 @@ final class MenuBarManager: ObservableObject {
                     }
                 }
             } else if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     // make sure the mouse is still outside
                     if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
                         hiddenSection.hide()
@@ -124,7 +124,7 @@ final class MenuBarManager: ObservableObject {
             else {
                 break
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 hiddenSection.hide()
             }
         case .leftMouseDown:

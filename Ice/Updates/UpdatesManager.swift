@@ -17,13 +17,23 @@ final class UpdatesManager: ObservableObject {
     }
 
     var automaticallyChecksForUpdates: Bool {
-        get { updater.automaticallyChecksForUpdates }
-        set { updater.automaticallyChecksForUpdates = newValue }
+        get {
+            updater.automaticallyChecksForUpdates
+        }
+        set {
+            objectWillChange.send()
+            updater.automaticallyChecksForUpdates = newValue
+        }
     }
 
     var automaticallyDownloadsUpdates: Bool {
-        get { updater.automaticallyDownloadsUpdates }
-        set { updater.automaticallyDownloadsUpdates = newValue }
+        get {
+            updater.automaticallyDownloadsUpdates
+        }
+        set {
+            objectWillChange.send()
+            updater.automaticallyDownloadsUpdates = newValue
+        }
     }
 
     init() {

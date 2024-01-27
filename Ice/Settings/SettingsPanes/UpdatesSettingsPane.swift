@@ -13,19 +13,23 @@ struct UpdatesSettingsPane: View {
         appState.updatesManager
     }
 
-    private var updater: SPUUpdater {
-        updatesManager.updater
+    private var lastUpdateCheckString: String {
+        if let date = updatesManager.lastUpdateCheckDate {
+            date.formatted(
+                date: .abbreviated,
+                time: .standard
+            )
+        } else {
+            "Never"
+        }
     }
 
     var body: some View {
         Form {
             Section {
                 automaticallyCheckForUpdates
-            }
-            if updatesManager.canCheckForUpdates {
-                Section {
-                    checkForUpdates
-                }
+                automaticallyDownloadUpdates
+                checkForUpdates
             }
         }
         .formStyle(.grouped)
@@ -37,24 +41,34 @@ struct UpdatesSettingsPane: View {
     @ViewBuilder
     private var automaticallyCheckForUpdates: some View {
         Toggle(
-            isOn: Binding(
-                get: { updater.automaticallyChecksForUpdates },
-                set: { updater.automaticallyChecksForUpdates = $0 }
-            )
-        ) {
-            Text("Automatically check for updates")
-        }
+            "Automatically check for updates",
+            isOn: updatesManager.bindings.automaticallyChecksForUpdates
+        )
+    }
+
+    @ViewBuilder
+    private var automaticallyDownloadUpdates: some View {
+        Toggle(
+            "Automatically download updates",
+            isOn: updatesManager.bindings.automaticallyDownloadsUpdates
+        )
     }
 
     @ViewBuilder
     private var checkForUpdates: some View {
         HStack {
-            Spacer()
-            Button("Check for Updates…") {
-                updatesManager.checkForUpdates()
+            if updatesManager.canCheckForUpdates {
+                Button("Check for Updates…") {
+                    updatesManager.checkForUpdates()
+                }
+                .controlSize(.large)
             }
-            .controlSize(.large)
             Spacer()
+            HStack(spacing: 2) {
+                Text("Last checked:")
+                Text(lastUpdateCheckString)
+            }
+            .font(.caption)
         }
     }
 }

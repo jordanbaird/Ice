@@ -8,11 +8,22 @@ import SwiftUI
 
 final class UpdatesManager: ObservableObject {
     @Published var canCheckForUpdates = false
+    @Published var lastUpdateCheckDate: Date?
 
     let updaterController: SPUStandardUpdaterController
 
     var updater: SPUUpdater {
         updaterController.updater
+    }
+
+    var automaticallyChecksForUpdates: Bool {
+        get { updater.automaticallyChecksForUpdates }
+        set { updater.automaticallyChecksForUpdates = newValue }
+    }
+
+    var automaticallyDownloadsUpdates: Bool {
+        get { updater.automaticallyDownloadsUpdates }
+        set { updater.automaticallyDownloadsUpdates = newValue }
     }
 
     init() {
@@ -27,6 +38,8 @@ final class UpdatesManager: ObservableObject {
     private func configureCancellables() {
         updater.publisher(for: \.canCheckForUpdates)
             .assign(to: &$canCheckForUpdates)
+        updater.publisher(for: \.lastUpdateCheckDate)
+            .assign(to: &$lastUpdateCheckDate)
     }
 
     @objc func checkForUpdates() {
@@ -40,3 +53,5 @@ final class UpdatesManager: ObservableObject {
         #endif
     }
 }
+
+extension UpdatesManager: BindingExposable { }

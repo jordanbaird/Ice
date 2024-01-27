@@ -6,16 +6,25 @@
 import Sparkle
 import SwiftUI
 
+/// Manager for app updates.
 final class UpdatesManager: ObservableObject {
+    /// A Boolean value that indicates whether the user can
+    /// check for updates.
     @Published var canCheckForUpdates = false
+
+    /// The date of the last update check.
     @Published var lastUpdateCheckDate: Date?
 
+    /// The underlying updater controller.
     let updaterController: SPUStandardUpdaterController
 
+    /// The underlying updater.
     var updater: SPUUpdater {
         updaterController.updater
     }
 
+    /// A Boolean value that indicates whether to automatically
+    /// check for updates.
     var automaticallyChecksForUpdates: Bool {
         get {
             updater.automaticallyChecksForUpdates
@@ -26,6 +35,8 @@ final class UpdatesManager: ObservableObject {
         }
     }
 
+    /// A Boolean value that indicates whether to automatically
+    /// download updates.
     var automaticallyDownloadsUpdates: Bool {
         get {
             updater.automaticallyDownloadsUpdates

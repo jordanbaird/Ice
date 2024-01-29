@@ -121,21 +121,23 @@ enum CustomTabBuilder {
 }
 
 #Preview {
-    CustomTabView(selection: .constant(0)) {
-        CustomTab {
-            Text("Tab 1")
-        } content: {
-            Text("Tab 1 Content")
-        }
-        CustomTab {
-            Text("Tab 2")
-        } content: {
-            Text("Tab 2 Content")
-        }
-        CustomTab {
-            Text("Tab 3")
-        } content: {
-            Text("Tab 3 Content")
+    StateView(initialValue: 0) { state in
+        CustomTabView(selection: state) {
+            CustomTab {
+                Text("Tab 1")
+            } content: {
+                Text("Tab 1 Content")
+            }
+            CustomTab {
+                Text("Tab 2")
+            } content: {
+                Text("Tab 2 Content")
+            }
+            CustomTab {
+                Text("Tab 3")
+            } content: {
+                Text("Tab 3 Content")
+            }
         }
     }
 }

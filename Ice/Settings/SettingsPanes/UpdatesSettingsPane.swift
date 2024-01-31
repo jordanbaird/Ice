@@ -30,8 +30,10 @@ struct UpdatesSettingsPane: View {
                 automaticallyCheckForUpdates
                 automaticallyDownloadUpdates
             }
-            Section {
-                checkForUpdates
+            if updatesManager.canCheckForUpdates {
+                Section {
+                    checkForUpdates
+                }
             }
         }
         .formStyle(.grouped)
@@ -59,13 +61,13 @@ struct UpdatesSettingsPane: View {
     @ViewBuilder
     private var checkForUpdates: some View {
         HStack {
-            if updatesManager.canCheckForUpdates {
-                Button("Check for Updates…") {
-                    updatesManager.checkForUpdates()
-                }
-                .controlSize(.large)
+            Button("Check for Updates…") {
+                updatesManager.checkForUpdates()
             }
+            .controlSize(.large)
+
             Spacer()
+
             HStack(spacing: 2) {
                 Text("Last checked:")
                 Text(lastUpdateCheckString)

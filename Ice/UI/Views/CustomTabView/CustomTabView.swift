@@ -5,7 +5,8 @@
 
 import SwiftUI
 
-/// A tab view that displays its tabs with the ``CustomButtonStyle``.
+/// A tab view that displays its tabs with a custom
+/// button style.
 struct CustomTabView: View {
     /// Index of the currently selected tab.
     @Binding var selection: Int
@@ -13,7 +14,8 @@ struct CustomTabView: View {
     /// The tabs in the tab view.
     let tabs: [CustomTab]
 
-    /// Creates a tab view with the given selection and tabs.
+    /// Creates a tab view with the given selection
+    /// and tabs.
     init(
         selection: Binding<Int>,
         @CustomTabBuilder tabs: () -> [CustomTab]
@@ -24,28 +26,9 @@ struct CustomTabView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 5) {
-                ForEach(0..<tabs.count, id: \.self) { index in
-                    CustomTabButton(
-                        selection: $selection,
-                        tab: tabs[index],
-                        index: index
-                    )
-                }
-            }
-            .padding(.vertical, 5)
-            .frame(maxWidth: .infinity)
-            .background(Material.regular)
-
+            tabBar
             Divider()
-
-            GeometryReader { proxy in
-                selectedTabContent
-                    .frame(
-                        width: proxy.size.width,
-                        height: proxy.size.height
-                    )
-            }
+            content
         }
         .onAppear {
             if !tabs.indices.contains(selection) {
@@ -55,29 +38,37 @@ struct CustomTabView: View {
     }
 
     @ViewBuilder
+    private var tabBar: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<tabs.count, id: \.self) { index in
+                CustomTabButton(
+                    selection: $selection,
+                    tab: tabs[index],
+                    index: index
+                )
+            }
+        }
+        .padding(.vertical, 5)
+        .frame(maxWidth: .infinity)
+        .background(Material.regular)
+    }
+
+    @ViewBuilder
     private var selectedTabContent: some View {
         if tabs.indices.contains(selection) {
             tabs[selection].content
         }
     }
-}
 
-/// A type that contains the information to construct a
-/// tab in a ``CustomTabView``.
-struct CustomTab {
-    /// The tab's label view.
-    let label: AnyView
-
-    /// The tab's content view.
-    let content: AnyView
-
-    /// Creates a tab with the given label and content view.
-    init<Label: View, Content: View>(
-        @ViewBuilder label: () -> Label,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.label = AnyView(label())
-        self.content = AnyView(content())
+    @ViewBuilder
+    private var content: some View {
+        GeometryReader { proxy in
+            selectedTabContent
+                .frame(
+                    width: proxy.size.width,
+                    height: proxy.size.height
+                )
+        }
     }
 }
 
@@ -99,24 +90,15 @@ private struct CustomTabButton: View {
         } label: {
             tab.label
         }
-        .customButtonConfiguration {
-            $0.bezelOpacity = isSelected ? 1 : isHovering ? 0.5 : 0
-            $0.isHighlighted = isSelected
-            $0.labelForegroundColor = .primary.opacity(isSelected ? 1 : 0.75)
+        .customButtonConfiguration { configuration in
+            configuration.bezelOpacity = isSelected ? 1 : isHovering ? 0.5 : 0
+            configuration.isHighlighted = isSelected
+            configuration.labelForegroundColor = .primary.opacity(isSelected ? 1 : 0.75)
         }
         .onHover { hovering in
             isHovering = hovering
         }
         .buttonStyle(.custom)
-    }
-}
-
-/// A result builder type that builds an array of tabs
-/// for a custom tab view.
-@resultBuilder
-enum CustomTabBuilder {
-    static func buildBlock(_ components: CustomTab...) -> [CustomTab] {
-        components
     }
 }
 

@@ -20,6 +20,8 @@
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
 		175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 175061902B1543DD003144CD /* LaunchAtLogin */; };
 		1750850E2B683A4C00CFF13A /* StateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1750850D2B683A4C00CFF13A /* StateView.swift */; };
+		175085132B69C4C100CFF13A /* CustomTabBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175085122B69C4C100CFF13A /* CustomTabBuilder.swift */; };
+		175085152B69C50C00CFF13A /* CustomTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175085142B69C50C00CFF13A /* CustomTab.swift */; };
 		17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17540BD72B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift */; };
 		17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */; };
 		175584122B541CFC00EDC9D3 /* CustomTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175584112B541CFC00EDC9D3 /* CustomTabView.swift */; };
@@ -100,6 +102,8 @@
 		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
 		1750850D2B683A4C00CFF13A /* StateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateView.swift; sourceTree = "<group>"; };
+		175085122B69C4C100CFF13A /* CustomTabBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTabBuilder.swift; sourceTree = "<group>"; };
+		175085142B69C50C00CFF13A /* CustomTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTab.swift; sourceTree = "<group>"; };
 		17540BD72B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+drawShadow.swift"; sourceTree = "<group>"; };
 		17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+intersects.swift"; sourceTree = "<group>"; };
 		175584112B541CFC00EDC9D3 /* CustomTabView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomTabView.swift; sourceTree = "<group>"; };
@@ -230,6 +234,16 @@
 			path = CustomGradientPicker;
 			sourceTree = "<group>";
 		};
+		1750850F2B69C46000CFF13A /* CustomTabView */ = {
+			isa = PBXGroup;
+			children = (
+				175584112B541CFC00EDC9D3 /* CustomTabView.swift */,
+				175085142B69C50C00CFF13A /* CustomTab.swift */,
+				175085122B69C4C100CFF13A /* CustomTabBuilder.swift */,
+			);
+			path = CustomTabView;
+			sourceTree = "<group>";
+		};
 		175584132B541D6000EDC9D3 /* Layout */ = {
 			isa = PBXGroup;
 			children = (
@@ -331,8 +345,8 @@
 		179267382AE98985006AFBAF /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				175584112B541CFC00EDC9D3 /* CustomTabView.swift */,
 				1750850D2B683A4C00CFF13A /* StateView.swift */,
+				1750850F2B69C46000CFF13A /* CustomTabView */,
 				17EC6B522AE0C09F0065F260 /* Pickers */,
 			);
 			path = Views;
@@ -648,6 +662,7 @@
 				71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */,
 				71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
+				175085152B69C50C00CFF13A /* CustomTab.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
 				177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
@@ -672,6 +687,7 @@
 				1787C4342B16AECF002F50DF /* PermissionsView.swift in Sources */,
 				716683502A7681AF006ABF84 /* MenuBarManager.swift in Sources */,
 				1780ED0E2B43D132000AED1C /* BoxObject.swift in Sources */,
+				175085132B69C4C100CFF13A /* CustomTabBuilder.swift in Sources */,
 				177354812B1F5F38001CF731 /* ScreenshotManager.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */,

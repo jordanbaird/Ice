@@ -29,6 +29,8 @@ struct UpdatesSettingsPane: View {
             Section {
                 automaticallyCheckForUpdates
                 automaticallyDownloadUpdates
+            }
+            Section {
                 checkForUpdates
             }
         }

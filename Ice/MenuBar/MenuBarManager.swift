@@ -46,6 +46,9 @@ final class MenuBarManager: ObservableObject {
     /// The maximum X coordinate of the menu bar's main menu.
     @Published var mainMenuMaxX: CGFloat = 0
 
+    /// The UI element that represents the menu bar.
+    @Published var menuBar: UIElement?
+
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
@@ -391,11 +394,14 @@ final class MenuBarManager: ObservableObject {
                         let maxX = try children.compactMap({ try ($0.attribute(.frame) as CGRect?)?.maxX }).max()
                     else {
                         mainMenuMaxX = 0
+                        menuBar = nil
                         return
                     }
                     mainMenuMaxX = maxX
+                    self.menuBar = menuBar
                 } catch {
                     mainMenuMaxX = 0
+                    menuBar = nil
                     Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
                 }
             }

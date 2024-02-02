@@ -24,6 +24,7 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 - [x] Hotkeys to toggle individual menu bar sections
 - [x] Toggle when mouse enters and exits the menu bar
 - [x] Automatically rehide menu bar items
+- [ ] Support MacBooks with notch
 - [ ] Drag and drop interface to arrange individual menu bar items
 - [ ] Hotkeys to temporarily show individual menu bar items
 - [ ] Menu bar widgets

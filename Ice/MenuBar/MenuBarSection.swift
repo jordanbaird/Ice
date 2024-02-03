@@ -154,7 +154,13 @@ final class MenuBarSection: ObservableObject {
     /// Enables the hotkey associated with the section.
     func enableHotkey() {
         listener = hotkey?.onKeyDown { [weak self] in
-            self?.toggle()
+            guard let self else {
+                return
+            }
+            toggle()
+            // prevent the section from automatically rehiding
+            // after mouse movement
+            menuBarManager?.showOnHoverPreventedByUserInteraction = !isHidden
         }
     }
 

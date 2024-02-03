@@ -72,6 +72,7 @@ struct UpdatesSettingsPane: View {
                 Text("Last checked:")
                 Text(lastUpdateCheckString)
             }
+            .lineLimit(1)
             .font(.caption)
         }
     }

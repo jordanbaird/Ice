@@ -58,6 +58,7 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
             .foregroundStyle(customButtonConfiguration.labelForegroundColor)
             .padding(padding)
             .baselineOffset(1)
+            .lineLimit(1)
             .transformEnvironment(\.font) { font in
                 if font == nil {
                     font = .body.weight(.regular)

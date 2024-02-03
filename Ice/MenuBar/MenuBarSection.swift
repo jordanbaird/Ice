@@ -170,24 +170,28 @@ final class MenuBarSection: ObservableObject {
             return
         }
         switch name {
-        case .visible, .hidden:
-            guard
-                let section1 = menuBarManager.section(withName: .visible),
-                let section2 = menuBarManager.section(withName: .hidden)
-            else {
+        case .visible:
+            guard let hiddenSection = menuBarManager.section(withName: .hidden) else {
                 return
             }
-            section1.controlItem.state = .showItems
-            section2.controlItem.state = .showItems
+            controlItem.state = .showItems
+            hiddenSection.controlItem.state = .showItems
+        case .hidden:
+            guard let visibleSection = menuBarManager.section(withName: .visible) else {
+                return
+            }
+            controlItem.state = .showItems
+            visibleSection.controlItem.state = .showItems
         case .alwaysHidden:
             guard
-                let section1 = menuBarManager.section(withName: .hidden),
-                let section2 = menuBarManager.section(withName: .alwaysHidden)
+                let hiddenSection = menuBarManager.section(withName: .hidden),
+                let visibleSection = menuBarManager.section(withName: .visible)
             else {
                 return
             }
-            section1.show() // uses other branch
-            section2.controlItem.state = .showItems
+            controlItem.state = .showItems
+            hiddenSection.controlItem.state = .showItems
+            visibleSection.controlItem.state = .showItems
         }
     }
 
@@ -197,22 +201,28 @@ final class MenuBarSection: ObservableObject {
             return
         }
         switch name {
-        case .visible, .hidden:
+        case .visible:
             guard
-                let section1 = menuBarManager.section(withName: .visible),
-                let section2 = menuBarManager.section(withName: .hidden),
-                let section3 = menuBarManager.section(withName: .alwaysHidden)
+                let hiddenSection = menuBarManager.section(withName: .hidden),
+                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
             else {
                 return
             }
-            section1.controlItem.state = .hideItems
-            section2.controlItem.state = .hideItems
-            section3.hide() // uses other branch
-        case .alwaysHidden:
-            guard let section = menuBarManager.section(withName: .alwaysHidden) else {
+            controlItem.state = .hideItems
+            hiddenSection.controlItem.state = .hideItems
+            alwaysHiddenSection.controlItem.state = .hideItems
+        case .hidden:
+            guard
+                let visibleSection = menuBarManager.section(withName: .visible),
+                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
+            else {
                 return
             }
-            section.controlItem.state = .hideItems
+            controlItem.state = .hideItems
+            visibleSection.controlItem.state = .hideItems
+            alwaysHiddenSection.controlItem.state = .hideItems
+        case .alwaysHidden:
+            controlItem.state = .hideItems
         }
         menuBarManager.showOnHoverPreventedByUserInteraction = false
     }

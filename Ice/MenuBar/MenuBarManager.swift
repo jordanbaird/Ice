@@ -100,10 +100,10 @@ final class MenuBarManager: ObservableObject {
                 break
             }
             if hiddenSection.isHidden {
-                if mouseIsInMenuBar(of: screen) {
+                if isMouseInMenuBar(of: screen) {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         // make sure the mouse is still inside
-                        if self.mouseIsInMenuBar(of: screen) {
+                        if self.isMouseInMenuBar(of: screen) {
                             hiddenSection.show()
                         }
                     }
@@ -119,7 +119,7 @@ final class MenuBarManager: ObservableObject {
         case .leftMouseUp:
             guard
                 autoRehide,
-                !mouseIsInMenuBar(of: nil),
+                !isMouseInMenuBar(of: nil),
                 let visibleSection = section(withName: .visible),
                 let hiddenSection = section(withName: .hidden),
                 let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
@@ -137,11 +137,11 @@ final class MenuBarManager: ObservableObject {
             else {
                 break
             }
-            if mouseIsInMenuBar(of: nil) || visibleControlItemFrame.contains(NSEvent.mouseLocation) {
+            if isMouseInMenuBar(of: nil) || visibleControlItemFrame.contains(NSEvent.mouseLocation) {
                 showOnHoverPreventedByUserInteraction = true
             }
         case .rightMouseDown:
-            if mouseIsInMenuBar(of: nil) {
+            if isMouseInMenuBar(of: nil) {
                 showOnHoverPreventedByUserInteraction = true
             }
         default:
@@ -166,8 +166,8 @@ final class MenuBarManager: ObservableObject {
         mouseMonitor.start()
     }
 
-    /// Loads data from storage and sets the initial state
-    /// of the menu bar from that data.
+    /// Loads data from storage and sets the initial state of the
+    /// menu bar from that data.
     private func loadInitialState() {
         customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
         showOnHover = defaults.bool(forKey: Defaults.showOnHover)
@@ -334,7 +334,7 @@ final class MenuBarManager: ObservableObject {
     ///
     /// - Parameter screen: The screen to use. Pass `nil` to use
     ///   the screen containing the mouse.
-    func mouseIsInMenuBar(of screen: NSScreen?) -> Bool {
+    func isMouseInMenuBar(of screen: NSScreen?) -> Bool {
         guard
             let hiddenSection = section(withName: .hidden),
             let hiddenControlItemPosition = hiddenSection.controlItem.position,

@@ -61,17 +61,23 @@ final class MenuBarAppearanceManager: ObservableObject {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
 
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
 
     private(set) weak var menuBarManager: MenuBarManager?
 
     private lazy var backingPanel = MenuBarBackingPanel(appearanceManager: self)
     private lazy var overlayPanel = MenuBarOverlayPanel(appearanceManager: self)
 
-    init(menuBarManager: MenuBarManager, encoder: JSONEncoder, decoder: JSONDecoder) {
+    init(
+        menuBarManager: MenuBarManager,
+        encoder: JSONEncoder,
+        decoder: JSONDecoder,
+        defaults: UserDefaults
+    ) {
         self.menuBarManager = menuBarManager
         self.encoder = encoder
         self.decoder = decoder
+        self.defaults = defaults
     }
 
     func performSetup() {

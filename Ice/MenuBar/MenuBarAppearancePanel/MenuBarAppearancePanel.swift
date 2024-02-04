@@ -73,14 +73,14 @@ class MenuBarAppearancePanel: NSPanel {
     /// - Parameter screen: The screen to use to compute the
     ///   frame of the menu bar.
     func menuBarFrame(forScreen screen: NSScreen) -> CGRect {
-        guard let frame: CGRect = try? appearanceManager?.menuBarManager?.menuBar?.attribute(.frame) else {
+        guard let menuBarFrame = appearanceManager?.menuBarManager?.menuBarFrame else {
             return .zero
         }
         return CGRect(
-            x: frame.origin.x,
-            y: screen.frame.maxY - frame.origin.y - frame.height,
-            width: frame.width,
-            height: frame.height
+            x: menuBarFrame.origin.x,
+            y: screen.frame.maxY - menuBarFrame.origin.y - menuBarFrame.height,
+            width: menuBarFrame.width,
+            height: menuBarFrame.height
         )
     }
 

@@ -49,6 +49,7 @@ class MenuBarAppearancePanel: NSPanel {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
+        // always show the panel on the active space
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .receive(on: DispatchQueue.main)

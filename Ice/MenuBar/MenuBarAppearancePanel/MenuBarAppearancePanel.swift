@@ -53,12 +53,23 @@ class MenuBarAppearancePanel: NSPanel {
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self else {
+                guard
+                    let self,
+                    let screen = NSScreen.main
+                else {
                     return
                 }
+
+                // cache isVisible before hiding
                 let isVisible = isVisible
+
                 hide()
-                if isVisible {
+
+                // if the screen's visible frame and frame are the same,
+                // the menu bar is hidden; do not allow the panel to show
+                let canShow = screen.visibleFrame != screen.frame
+
+                if canShow && isVisible {
                     show()
                 }
             }

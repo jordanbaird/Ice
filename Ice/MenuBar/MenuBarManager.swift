@@ -10,13 +10,6 @@ import SwiftUI
 
 /// Manager for the state of the menu bar.
 final class MenuBarManager: ObservableObject {
-    /// An error that can be thrown during menu bar operations.
-    enum MenuBarError: Error {
-        /// The given accessibility role of a UI element is not
-        /// what was expected.
-        case invalidRole(expected: Role, found: Role?)
-    }
-
     /// Set to `true` to tell the menu bar to save its sections.
     @Published var needsSave = false
 
@@ -55,9 +48,6 @@ final class MenuBarManager: ObservableObject {
 
     /// The UI element that represents the menu bar.
     @Published var menuBar: UIElement?
-
-    /// The frame of the menu bar.
-    @Published var menuBarFrame: CGRect?
 
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
@@ -317,19 +307,6 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        $menuBar
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] menuBar in
-                guard
-                    let self,
-                    let menuBar
-                else {
-                    return
-                }
-                updateMenuBarFrame(menuBar: menuBar)
-            }
-            .store(in: &c)
-
         // propagate changes up from child observable objects
         appearanceManager.objectWillChange
             .sink { [weak self] in
@@ -459,25 +436,6 @@ final class MenuBarManager: ObservableObject {
         // assign the items to their new sections
         for index in 0..<sections.count {
             sections[index].controlItem = sortedControlItems[index]
-        }
-    }
-
-    /// Updates the menu bar frame using the given UI element.
-    /// 
-    /// - IMPORTANT: The UI element that is passed to the `menuBar`
-    ///   parameter _must_ have the `menuBar` role, or an error will
-    ///   be logged and the menu bar frame will not be updated.
-    ///
-    /// - Parameter menuBar: The UI element representing the menu bar.
-    private func updateMenuBarFrame(menuBar: UIElement) {
-        do {
-            let role = try menuBar.role()
-            guard role == .menuBar else {
-                throw MenuBarError.invalidRole(expected: .menuBar, found: role)
-            }
-            menuBarFrame = try menuBar.attribute(.frame)
-        } catch {
-            Logger.menuBarManager.error("Error updating menu bar frame: \(error)")
         }
     }
 }

@@ -88,31 +88,44 @@ final class MenuBarManager: ObservableObject {
         guard let self else {
             return event
         }
+
+        var isMouseInMenuBar: Bool {
+            guard
+                let screen = NSScreen.main,
+                NSEvent.mouseLocation.y > screen.visibleFrame.maxY,
+                NSEvent.mouseLocation.y <= screen.frame.maxY,
+                let hiddenSection = section(withName: .hidden),
+                let controlItemPosition = hiddenSection.controlItem.position
+            else {
+                return false
+            }
+            return NSEvent.mouseLocation.x > mainMenuMaxX &&
+            screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
+        }
+
         switch event.type {
         case .mouseMoved:
             guard
                 showOnHover,
                 !showOnHoverPreventedByUserInteraction,
                 let hiddenSection = section(withName: .hidden),
-                let screen = NSScreen.screens.first(where: {
-                    ($0.frame.minX...$0.frame.maxX).contains(NSEvent.mouseLocation.x)
-                })
+                let screen = NSScreen.main
             else {
                 break
             }
             if hiddenSection.isHidden {
-                if isMouseInMenuBar(of: screen) {
+                if isMouseInMenuBar {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         // make sure the mouse is still inside
-                        if self.isMouseInMenuBar(of: screen) {
+                        if isMouseInMenuBar {
                             hiddenSection.show()
                         }
                     }
                 }
-            } else if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
+            } else if NSEvent.mouseLocation.y < screen.visibleFrame.maxY || NSEvent.mouseLocation.y > screen.frame.maxY {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     // make sure the mouse is still outside
-                    if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
+                    if NSEvent.mouseLocation.y < screen.visibleFrame.maxY || NSEvent.mouseLocation.y > screen.frame.maxY {
                         hiddenSection.hide()
                     }
                 }
@@ -120,7 +133,7 @@ final class MenuBarManager: ObservableObject {
         case .leftMouseUp:
             guard
                 autoRehide,
-                !isMouseInMenuBar(of: nil),
+                !isMouseInMenuBar,
                 let visibleSection = section(withName: .visible),
                 let hiddenSection = section(withName: .hidden),
                 let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
@@ -138,11 +151,11 @@ final class MenuBarManager: ObservableObject {
             else {
                 break
             }
-            if isMouseInMenuBar(of: nil) || visibleControlItemFrame.contains(NSEvent.mouseLocation) {
+            if isMouseInMenuBar || visibleControlItemFrame.contains(NSEvent.mouseLocation) {
                 showOnHoverPreventedByUserInteraction = true
             }
         case .rightMouseDown:
-            if isMouseInMenuBar(of: nil) {
+            if isMouseInMenuBar {
                 showOnHoverPreventedByUserInteraction = true
             }
         default:
@@ -328,26 +341,6 @@ final class MenuBarManager: ObservableObject {
     /// Returns the menu bar section with the given name.
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
-    }
-
-    /// Returns a Boolean value that indicates whether the mouse
-    /// is within the bounds of the menu bar on the given screen.
-    ///
-    /// - Parameter screen: The screen to use. Pass `nil` to use
-    ///   the screen containing the mouse.
-    func isMouseInMenuBar(of screen: NSScreen?) -> Bool {
-        guard
-            let hiddenSection = section(withName: .hidden),
-            let hiddenControlItemPosition = hiddenSection.controlItem.position,
-            let screen = screen ?? NSScreen.screens.first(where: {
-                ($0.frame.minX...$0.frame.maxX).contains(NSEvent.mouseLocation.x)
-            })
-        else {
-            return false
-        }
-        return NSEvent.mouseLocation.y > screen.visibleFrame.maxY &&
-        NSEvent.mouseLocation.x > mainMenuMaxX &&
-        screen.frame.maxX - NSEvent.mouseLocation.x > hiddenControlItemPosition
     }
 
     /// Handles changes to the frontmost application.

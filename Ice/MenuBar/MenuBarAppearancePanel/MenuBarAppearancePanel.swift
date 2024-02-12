@@ -432,11 +432,13 @@ private class MenuBarAppearancePanelContentView: NSView {
             return pathForFullShapeKind(in: rect, info: info)
         }
 
+        let padding: CGFloat = 8
+
         let leadingPath: NSBezierPath = {
             let shapeBounds = CGRect(
                 x: rect.height / 2,
                 y: rect.origin.y,
-                width: (mainMenuMaxX - (rect.height / 2)) + 8,
+                width: (mainMenuMaxX - (rect.height / 2)) + padding,
                 height: rect.height
             )
             let leadingEndCapBounds = CGRect(
@@ -446,7 +448,7 @@ private class MenuBarAppearancePanelContentView: NSView {
                 height: rect.height
             )
             let trailingEndCapBounds = CGRect(
-                x: (mainMenuMaxX - (rect.height / 2)) + 8,
+                x: (mainMenuMaxX - (rect.height / 2)) + padding,
                 y: rect.origin.y,
                 width: rect.height,
                 height: rect.height
@@ -486,16 +488,25 @@ private class MenuBarAppearancePanelContentView: NSView {
                 }
                 position = (owningScreen.frame.width * scale) - frame.maxX
             }
+
+            // offset the position by the origin of the main screen
             position += mainScreen.frame.origin.x
 
+            // add extra padding after the last menu bar item
+            position += padding
+
+            // compute the final position based on the maxX of the
+            // provided rectangle
+            position = rect.maxX - position
+
             let shapeBounds = CGRect(
-                x: rect.maxX - (position + 8) + (rect.height / 2),
+                x: position + (rect.height / 2),
                 y: rect.origin.y,
-                width: rect.maxX - (rect.maxX - (position + 8) + rect.height),
+                width: rect.maxX - (position + rect.height),
                 height: rect.height
             )
             let leadingEndCapBounds = CGRect(
-                x: rect.maxX - (position + 8),
+                x: position,
                 y: rect.origin.y,
                 width: rect.height,
                 height: rect.height

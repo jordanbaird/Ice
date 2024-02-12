@@ -8,7 +8,7 @@ import Combine
 
 // MARK: - MenuBarBackingPanel
 
-class MenuBarBackingPanel: MenuBarAppearancePanel {
+class MenuBarBackingPanel: MenuBarAppearancePanel_Old {
     private var cancellables = Set<AnyCancellable>()
 
     init(appearanceManager: MenuBarAppearanceManager) {

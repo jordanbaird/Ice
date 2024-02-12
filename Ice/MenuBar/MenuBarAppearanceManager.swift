@@ -44,18 +44,6 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// The user's currently chosen tint gradient.
     @Published var tintGradient: CustomGradient = .defaultMenuBarTint
 
-    /// The current desktop wallpaper, clipped to the bounds
-    /// of the menu bar.
-    @Published var desktopWallpaper: CGImage?
-
-    /// A Boolean value that indicates whether the screen
-    /// is currently locked.
-    @Published private(set) var screenIsLocked = false
-
-    /// A Boolean value that indicates whether the screen
-    /// saver is currently active.
-    @Published private(set) var screenSaverIsActive = false
-
     private var cancellables = Set<AnyCancellable>()
 
     private let encoder: JSONEncoder
@@ -65,8 +53,7 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private(set) weak var menuBarManager: MenuBarManager?
 
-    private lazy var backingPanel = MenuBarBackingPanel(appearanceManager: self)
-    private lazy var overlayPanel = MenuBarOverlayPanel(appearanceManager: self)
+    private var appearancePanels = Set<MenuBarAppearancePanel>()
 
     init(
         menuBarManager: MenuBarManager,
@@ -83,11 +70,7 @@ final class MenuBarAppearanceManager: ObservableObject {
     func performSetup() {
         loadInitialState()
         configureCancellables()
-        Task.detached { @MainActor [self] in
-            try await Task.sleep(for: .milliseconds(500))
-            backingPanel.configureCancellables()
-            overlayPanel.configureCancellables()
-        }
+        configureAppearancePanels()
     }
 
     /// Loads data from storage and sets the initial state
@@ -125,45 +108,16 @@ final class MenuBarAppearanceManager: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screenIsLocked"))
+        NotificationCenter.default
+            .publisher(for: NSApplication.didChangeScreenParametersNotification)
             .sink { [weak self] _ in
-                self?.screenIsLocked = true
-            }
-            .store(in: &c)
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screenIsUnlocked"))
-            .sink { [weak self] _ in
-                self?.screenIsLocked = false
-            }
-            .store(in: &c)
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screensaver.didstart"))
-            .sink { [weak self] _ in
-                self?.screenSaverIsActive = true
-            }
-            .store(in: &c)
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screensaver.didstop"))
-            .sink { [weak self] _ in
-                self?.screenSaverIsActive = false
-            }
-            .store(in: &c)
-
-        NSWorkspace.shared.notificationCenter
-            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .sink { [weak self] _ in
-                self?.updateDesktopWallpaper()
-            }
-            .store(in: &c)
-
-        Timer.publish(every: 3, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.updateDesktopWallpaper()
+                guard let self else {
+                    return
+                }
+                while let panel = appearancePanels.popFirst() {
+                    panel.orderOut(self)
+                }
+                configureAppearancePanels()
             }
             .store(in: &c)
 
@@ -263,7 +217,6 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                updateDesktopWallpaper()
                 defaults.set(data, forKey: Defaults.menuBarShapeKind)
             }
             .store(in: &c)
@@ -301,69 +254,14 @@ final class MenuBarAppearanceManager: ObservableObject {
         cancellables = c
     }
 
-    private func updateDesktopWallpaper() {
-        guard shapeKind != .none else {
-            desktopWallpaper = nil
-            return
+    private func configureAppearancePanels() {
+        var appearancePanels = Set<MenuBarAppearancePanel>()
+        for screen in NSScreen.screens {
+            let panel = MenuBarAppearancePanel(appearanceManager: self, owningScreen: screen)
+            panel.show()
+            appearancePanels.insert(panel)
         }
-
-        guard !screenIsLocked else {
-            Logger.appearanceManager.debug("Screen is locked")
-            return
-        }
-
-        guard !screenSaverIsActive else {
-            Logger.appearanceManager.debug("Screen saver is active")
-            return
-        }
-
-        guard
-            let appState = menuBarManager?.appState,
-            appState.permissionsManager.screenRecordingPermission.hasPermission
-        else {
-            Logger.appearanceManager.notice("Missing screen capture permissions")
-            return
-        }
-
-        Task { @MainActor in
-            do {
-                let content = try await SCShareableContent.current
-
-                let wallpaperWindowPredicate: (SCWindow) -> Bool = { window in
-                    // wallpaper window belongs to the Dock process
-                    window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-                    window.isOnScreen &&
-                    window.title?.hasPrefix("Wallpaper-") == true
-                }
-                let menuBarWindowPredicate: (SCWindow) -> Bool = { window in
-                    // menu bar window belongs to the WindowServer process
-                    // (identified by an empty string)
-                    window.owningApplication?.bundleIdentifier == "" &&
-                    window.windowLayer == kCGMainMenuWindowLevel &&
-                    window.title == "Menubar"
-                }
-
-                guard
-                    let wallpaperWindow = content.windows.first(where: wallpaperWindowPredicate),
-                    let menuBarWindow = content.windows.first(where: menuBarWindowPredicate)
-                else {
-                    return
-                }
-
-                let image = try await ScreenshotManager.captureImage(
-                    withTimeout: .milliseconds(500),
-                    window: wallpaperWindow,
-                    captureRect: menuBarWindow.frame,
-                    options: .ignoreFraming
-                )
-
-                if desktopWallpaper?.dataProvider?.data != image.dataProvider?.data {
-                    desktopWallpaper = image
-                }
-            } catch {
-                Logger.appearanceManager.error("Error updating desktop wallpaper: \(error)")
-            }
-        }
+        self.appearancePanels = appearancePanels
     }
 }
 

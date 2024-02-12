@@ -9,7 +9,7 @@ import OSLog
 
 // MARK: - MenuBarOverlayPanel
 
-class MenuBarOverlayPanel: MenuBarAppearancePanel {
+class MenuBarOverlayPanel: MenuBarAppearancePanel_Old {
     private var cancellables = Set<AnyCancellable>()
 
     init(appearanceManager: MenuBarAppearanceManager) {
@@ -59,7 +59,7 @@ class MenuBarOverlayPanel: MenuBarAppearancePanel {
 
 // MARK: - MenuBarOverlayPanelView
 
-private class MenuBarOverlayPanelView: NSView {
+class MenuBarOverlayPanelView: NSView {
     private weak var appearanceManager: MenuBarAppearanceManager?
     private var cancellables = Set<AnyCancellable>()
 
@@ -107,8 +107,7 @@ private class MenuBarOverlayPanelView: NSView {
         }
 
         if let appearanceManager {
-            Publishers.CombineLatest4(
-                appearanceManager.$desktopWallpaper,
+            Publishers.CombineLatest3(
                 appearanceManager.$tintKind,
                 appearanceManager.$tintColor,
                 appearanceManager.$tintGradient
@@ -322,18 +321,18 @@ private class MenuBarOverlayPanelView: NSView {
         var hasBorder = false
 
         if appearanceManager.shapeKind != .none {
-            if let desktopWallpaper = appearanceManager.desktopWallpaper {
-                context.saveGraphicsState()
-                defer {
-                    context.restoreGraphicsState()
-                }
-
-                let invertedClipPath = NSBezierPath(rect: adjustedBounds)
-                invertedClipPath.append(shapePath.reversed)
-                invertedClipPath.setClip()
-
-                context.cgContext.draw(desktopWallpaper, in: adjustedBounds)
-            }
+//            if let desktopWallpaper = appearanceManager.desktopWallpaper {
+//                context.saveGraphicsState()
+//                defer {
+//                    context.restoreGraphicsState()
+//                }
+//
+//                let invertedClipPath = NSBezierPath(rect: adjustedBounds)
+//                invertedClipPath.append(shapePath.reversed)
+//                invertedClipPath.setClip()
+//
+//                context.cgContext.draw(desktopWallpaper, in: adjustedBounds)
+//            }
 
             if appearanceManager.hasShadow {
                 context.saveGraphicsState()

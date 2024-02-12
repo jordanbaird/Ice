@@ -70,7 +70,9 @@ final class MenuBarAppearanceManager: ObservableObject {
     func performSetup() {
         loadInitialState()
         configureCancellables()
-        configureAppearancePanels()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.configureAppearancePanels()
+        }
     }
 
     /// Loads data from storage and sets the initial state

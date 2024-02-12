@@ -11,8 +11,8 @@ import ScreenCaptureKit
 
 // MARK: - MenuBarAppearancePanel
 
-/// A subclass of `NSPanel` that is displayed over the top
-/// of, or underneath the menu bar to alter its appearance.
+/// A subclass of `NSPanel` that sits atop or underneath
+/// the menu bar to alter its appearance.
 class MenuBarAppearancePanel: NSPanel {
     private var cancellables = Set<AnyCancellable>()
 
@@ -321,41 +321,6 @@ private class MenuBarAppearancePanelContentView: NSView {
         }
     }
 
-    private func getAndSortMenuBarExtras() -> [UIElement] {
-        guard
-            let application = Application(.current),
-            let extrasMenuBar: UIElement = try? application.attribute(.extrasMenuBar),
-            let children: [UIElement] = try? extrasMenuBar.arrayAttribute(.children)
-        else {
-            return []
-        }
-        return children.sorted { lhs, rhs in
-            guard
-                let lhsFrame: CGRect = try? lhs.attribute(.frame),
-                let rhsFrame: CGRect = try? rhs.attribute(.frame)
-            else {
-                return false
-            }
-            return lhsFrame.maxX > rhsFrame.maxX
-        }
-    }
-
-    private func getHiddenControlItemFrame() -> CGRect? {
-        let menuBarExtras = getAndSortMenuBarExtras()
-        guard menuBarExtras.count >= 2 else {
-            return nil
-        }
-        return try? menuBarExtras[1].attribute(.frame)
-    }
-
-    private func getAlwaysHiddenControlItemFrame() -> CGRect? {
-        let menuBarExtras = getAndSortMenuBarExtras()
-        guard menuBarExtras.count >= 3 else {
-            return nil
-        }
-        return try? menuBarExtras[2].attribute(.frame)
-    }
-
     private func updateDesktopWallpaper(
         owningDisplay: SCDisplay,
         wallpaperWindow: SCWindow,
@@ -511,12 +476,12 @@ private class MenuBarAppearancePanelContentView: NSView {
 
             var position: CGFloat
             if hiddenSection.isHidden {
-                guard let frame = getHiddenControlItemFrame() else {
+                guard let frame = hiddenSection.controlItem.windowFrame else {
                     return NSBezierPath(rect: rect)
                 }
                 position = (owningScreen.frame.width * scale) - frame.maxX
             } else {
-                guard let frame = getAlwaysHiddenControlItemFrame() else {
+                guard let frame = alwaysHiddenSection.controlItem.windowFrame else {
                     return NSBezierPath(rect: rect)
                 }
                 position = (owningScreen.frame.width * scale) - frame.maxX
@@ -524,13 +489,13 @@ private class MenuBarAppearancePanelContentView: NSView {
             position += mainScreen.frame.origin.x
 
             let shapeBounds = CGRect(
-                x: rect.maxX - position + (rect.height / 2),
+                x: rect.maxX - (position + 8) + (rect.height / 2),
                 y: rect.origin.y,
-                width: rect.maxX - (rect.maxX - position + rect.height),
+                width: rect.maxX - (rect.maxX - (position + 8) + rect.height),
                 height: rect.height
             )
             let leadingEndCapBounds = CGRect(
-                x: rect.maxX - position,
+                x: rect.maxX - (position + 8),
                 y: rect.origin.y,
                 width: rect.height,
                 height: rect.height

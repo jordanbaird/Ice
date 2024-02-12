@@ -260,8 +260,10 @@ final class MenuBarAppearanceManager: ObservableObject {
         var appearancePanels = Set<MenuBarAppearancePanel>()
         for screen in NSScreen.screens {
             let panel = MenuBarAppearancePanel(appearanceManager: self, owningScreen: screen)
-            panel.show()
             appearancePanels.insert(panel)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                panel.show()
+            }
         }
         self.appearancePanels = appearancePanels
     }

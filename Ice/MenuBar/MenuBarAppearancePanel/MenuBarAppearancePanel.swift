@@ -22,6 +22,8 @@ class MenuBarAppearancePanel: NSPanel {
     /// The screen that owns the panel.
     let owningScreen: NSScreen
 
+    private var isOrderedOut = false
+
     /// A Boolean value that indicates whether the screen
     /// is currently locked.
     private var screenIsLocked = false
@@ -212,6 +214,10 @@ class MenuBarAppearancePanel: NSPanel {
         guard !AppState.shared.isPreview else {
             return
         }
+        guard !isOrderedOut else {
+            Logger.appearancePanel.debug("MenuBarAppearancePanel is ordered out")
+            return
+        }
         do {
             guard let menuBarFrame: CGRect = try menuBar?.attribute(.frame) else {
                 Logger.appearancePanel.error("Missing menu bar frame")
@@ -237,6 +243,11 @@ class MenuBarAppearancePanel: NSPanel {
     /// Hides the panel.
     func hide() {
         close()
+    }
+
+    override func orderOut(_ sender: Any?) {
+        super.orderOut(sender)
+        isOrderedOut = true
     }
 
     override func isAccessibilityElement() -> Bool {

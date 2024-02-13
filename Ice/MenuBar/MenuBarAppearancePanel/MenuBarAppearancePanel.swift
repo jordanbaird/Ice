@@ -93,7 +93,6 @@ class MenuBarAppearancePanel: NSPanel {
             }
             .store(in: &c)
 
-        // always show the panel on the active space
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .delay(for: 0.1, scheduler: DispatchQueue.main)
@@ -142,6 +141,7 @@ class MenuBarAppearancePanel: NSPanel {
         }
     }
 
+    /// Returns the wallpaper window for the given display.
     private func getWallpaperWindow(owningDisplay: SCDisplay) -> SCWindow? {
         ScreenCaptureManager.shared.windows.first { window in
             // wallpaper window belongs to the Dock process
@@ -152,6 +152,7 @@ class MenuBarAppearancePanel: NSPanel {
         }
     }
 
+    /// Returns the menu bar window for the given display.
     private func getMenuBarWindow(owningDisplay: SCDisplay) -> SCWindow? {
         ScreenCaptureManager.shared.windows.first { window in
             // menu bar window belongs to the WindowServer process
@@ -163,21 +164,17 @@ class MenuBarAppearancePanel: NSPanel {
         }
     }
 
+    /// Stores the area of the desktop wallpaper that is under
+    /// the menu bar using the given owning display, wallpaper
+    /// window, and menu bar window.
     private func updateDesktopWallpaper(
         owningDisplay: SCDisplay,
         wallpaperWindow: SCWindow,
         menuBarWindow: SCWindow
     ) {
-        guard !screenIsLocked else {
-            Logger.appearancePanel.debug("Screen is locked")
+        if screenIsLocked || screenSaverIsActive {
             return
         }
-
-        guard !screenSaverIsActive else {
-            Logger.appearancePanel.debug("Screen saver is active")
-            return
-        }
-
         Task { @MainActor in
             do {
                 desktopWallpaper = try await ScreenshotManager.captureImage(
@@ -193,6 +190,8 @@ class MenuBarAppearancePanel: NSPanel {
         }
     }
 
+    /// Stores a reference to the menu bar using the given
+    /// menu bar window.
     private func updateMenuBar(menuBarWindow: SCWindow) {
         do {
             guard
@@ -381,6 +380,7 @@ private class MenuBarAppearancePanelContentView: NSView {
         cancellables = c
     }
 
+    /// Stores the maxX position of the menu bar.
     private func updateMainMenuMaxX(menuBar: UIElement?) {
         Task { @MainActor in
             do {
@@ -446,7 +446,6 @@ private class MenuBarAppearancePanelContentView: NSView {
             let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden),
             let mainMenuMaxX
         else {
-            Logger.appearancePanel.notice("Unable to create split shape path")
             return NSBezierPath(rect: rect)
         }
 

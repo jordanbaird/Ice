@@ -22,6 +22,8 @@ class MenuBarAppearancePanel: NSPanel {
     /// The screen that owns the panel.
     let owningScreen: NSScreen
 
+    /// A Boolean value that indicates whether the panel
+    /// has been ordered out.
     private var isOrderedOut = false
 
     /// A Boolean value that indicates whether the screen
@@ -265,10 +267,6 @@ private class MenuBarAppearancePanelContentView: NSView {
     /// The max X position of the main menu.
     private var mainMenuMaxX: CGFloat?
 
-    private weak var appearanceManager: MenuBarAppearanceManager? {
-        appearancePanel?.appearanceManager
-    }
-
     /// The bounds that the view's drawn content can occupy.
     var drawableBounds: CGRect {
         CGRect(
@@ -314,7 +312,8 @@ private class MenuBarAppearancePanelContentView: NSView {
             }
             .store(in: &c)
 
-        NSWorkspace.shared.publisher(for: \.frontmostApplication)
+        NSWorkspace.shared
+            .publisher(for: \.frontmostApplication)
             .sink { _ in
                 ScreenCaptureManager.shared.update()
             }
@@ -341,57 +340,42 @@ private class MenuBarAppearancePanelContentView: NSView {
                 .store(in: &c)
         }
 
-        if let menuBarManager = appearanceManager?.menuBarManager {
-            for name: MenuBarSection.Name in [.visible, .hidden, .alwaysHidden] {
-                if let section = menuBarManager.section(withName: name) {
-                    section.controlItem.$windowFrame
-                        .combineLatest(section.controlItem.$screen)
-                        .filter { frame, screen in
-                            guard
-                                let frame,
-                                let screen
-                            else {
-                                return false
-                            }
-                            return (screen.frame.minX...screen.frame.maxX).contains(frame.maxX)
+        if let appearanceManager = appearancePanel?.appearanceManager {
+            for section in appearanceManager.menuBarManager?.sections ?? [] {
+                section.controlItem.$windowFrame
+                    .combineLatest(section.controlItem.$screen)
+                    .filter { windowFrame, screen in
+                        guard
+                            let windowFrame,
+                            let screen
+                        else {
+                            return false
                         }
-                        .receive(on: RunLoop.main)
-                        .sink { [weak self] _ in
-                            self?.needsDisplay = true
-                        }
-                        .store(in: &c)
+                        let xRange = screen.frame.minX...screen.frame.maxX
+                        return xRange.contains(windowFrame.maxX)
+                    }
+                    .receive(on: RunLoop.main)
+                    .sink { [weak self] _ in
+                        self?.needsDisplay = true
+                    }
+                    .store(in: &c)
+            }
+
+            appearanceManager.$tintKind
+                .combineLatest(appearanceManager.$tintColor)
+                .combineLatest(appearanceManager.$tintGradient)
+                .combineLatest(appearanceManager.$shapeKind)
+                .combineLatest(appearanceManager.$fullShapeInfo)
+                .combineLatest(appearanceManager.$splitShapeInfo)
+                .combineLatest(appearanceManager.$hasShadow)
+                .combineLatest(appearanceManager.$hasBorder)
+                .combineLatest(appearanceManager.$borderColor)
+                .combineLatest(appearanceManager.$borderWidth)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.needsDisplay = true
                 }
-            }
-        }
-
-        if let appearanceManager {
-            Publishers.CombineLatest3(
-                appearanceManager.$tintKind,
-                appearanceManager.$tintColor,
-                appearanceManager.$tintGradient
-            )
-            .combineLatest(
-                appearanceManager.$shapeKind,
-                appearanceManager.$fullShapeInfo,
-                appearanceManager.$splitShapeInfo
-            )
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.needsDisplay = true
-            }
-            .store(in: &c)
-
-            Publishers.CombineLatest4(
-                appearanceManager.$hasShadow,
-                appearanceManager.$hasBorder,
-                appearanceManager.$borderColor,
-                appearanceManager.$borderWidth
-            )
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.needsDisplay = true
-            }
-            .store(in: &c)
+                .store(in: &c)
         }
 
         cancellables = c
@@ -457,8 +441,7 @@ private class MenuBarAppearancePanelContentView: NSView {
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
     private func pathForSplitShapeKind(in rect: CGRect, info: MenuBarSplitShapeInfo) -> NSBezierPath {
         guard
-            let appearanceManager,
-            let menuBarManager = appearanceManager.menuBarManager,
+            let menuBarManager = appearancePanel?.appearanceManager?.menuBarManager,
             let hiddenSection = menuBarManager.section(withName: .hidden),
             let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden),
             let mainMenuMaxX
@@ -595,7 +578,7 @@ private class MenuBarAppearancePanelContentView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         guard
-            let appearanceManager,
+            let appearanceManager = appearancePanel?.appearanceManager,
             let context = NSGraphicsContext.current
         else {
             return

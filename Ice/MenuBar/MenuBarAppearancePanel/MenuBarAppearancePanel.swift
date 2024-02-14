@@ -22,10 +22,6 @@ class MenuBarAppearancePanel: NSPanel {
     /// The screen that owns the panel.
     let owningScreen: NSScreen
 
-    /// A Boolean value that indicates whether the panel
-    /// has been ordered out.
-    private var isOrderedOut = false
-
     /// A Boolean value that indicates whether the screen
     /// is currently locked.
     private var screenIsLocked = false
@@ -215,10 +211,6 @@ class MenuBarAppearancePanel: NSPanel {
         guard !AppState.shared.isPreview else {
             return
         }
-        guard !isOrderedOut else {
-            Logger.appearancePanel.debug("MenuBarAppearancePanel is ordered out")
-            return
-        }
         do {
             guard let menuBarFrame: CGRect = try menuBar?.attribute(.frame) else {
                 Logger.appearancePanel.error("Missing menu bar frame")
@@ -244,11 +236,6 @@ class MenuBarAppearancePanel: NSPanel {
     /// Hides the panel.
     func hide() {
         close()
-    }
-
-    override func orderOut(_ sender: Any?) {
-        super.orderOut(sender)
-        isOrderedOut = true
     }
 
     override func isAccessibilityElement() -> Bool {
@@ -588,17 +575,17 @@ private class MenuBarAppearancePanelContentView: NSView {
             context.restoreGraphicsState()
         }
 
-        let shapePath = if appearanceManager.appearancePanels.contains(where: { $0.menuBar == nil }) {
+        if appearanceManager.isFullscreen {
+            return
+        }
+
+        let shapePath = switch appearanceManager.shapeKind {
+        case .none:
             NSBezierPath(rect: drawableBounds)
-        } else {
-            switch appearanceManager.shapeKind {
-            case .none:
-                NSBezierPath(rect: drawableBounds)
-            case .full:
-                pathForFullShapeKind(in: drawableBounds, info: appearanceManager.fullShapeInfo)
-            case .split:
-                pathForSplitShapeKind(in: drawableBounds, info: appearanceManager.splitShapeInfo)
-            }
+        case .full:
+            pathForFullShapeKind(in: drawableBounds, info: appearanceManager.fullShapeInfo)
+        case .split:
+            pathForSplitShapeKind(in: drawableBounds, info: appearanceManager.splitShapeInfo)
         }
 
         var hasBorder = false

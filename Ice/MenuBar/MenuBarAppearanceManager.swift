@@ -55,6 +55,24 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private(set) var appearancePanels = Set<MenuBarAppearancePanel>()
 
+    var isFullscreen: Bool {
+        guard let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) else {
+            return false
+        }
+        for window in windows as NSArray {
+            guard let info = window as? NSDictionary else {
+                continue
+            }
+            if
+                info[kCGWindowOwnerName] as? String == "Dock",
+                info[kCGWindowName] as? String == "Fullscreen Backdrop"
+            {
+                return true
+            }
+        }
+        return false
+    }
+
     init(
         menuBarManager: MenuBarManager,
         encoder: JSONEncoder,
@@ -120,6 +138,26 @@ final class MenuBarAppearanceManager: ObservableObject {
                     panel.orderOut(self)
                 }
                 configureAppearancePanels()
+            }
+            .store(in: &c)
+
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                if appearancePanels.isEmpty {
+                    configureAppearancePanels()
+                } else {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        if self.isFullscreen {
+                            while let panel = self.appearancePanels.popFirst() {
+                                panel.orderOut(self)
+                            }
+                        }
+                    }
+                }
             }
             .store(in: &c)
 

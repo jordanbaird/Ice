@@ -588,13 +588,17 @@ private class MenuBarAppearancePanelContentView: NSView {
             context.restoreGraphicsState()
         }
 
-        let shapePath = switch appearanceManager.shapeKind {
-        case .none:
+        let shapePath = if appearanceManager.appearancePanels.contains(where: { $0.menuBar == nil }) {
             NSBezierPath(rect: drawableBounds)
-        case .full:
-            pathForFullShapeKind(in: drawableBounds, info: appearanceManager.fullShapeInfo)
-        case .split:
-            pathForSplitShapeKind(in: drawableBounds, info: appearanceManager.splitShapeInfo)
+        } else {
+            switch appearanceManager.shapeKind {
+            case .none:
+                NSBezierPath(rect: drawableBounds)
+            case .full:
+                pathForFullShapeKind(in: drawableBounds, info: appearanceManager.fullShapeInfo)
+            case .split:
+                pathForSplitShapeKind(in: drawableBounds, info: appearanceManager.splitShapeInfo)
+            }
         }
 
         var hasBorder = false

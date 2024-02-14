@@ -53,7 +53,7 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private(set) weak var menuBarManager: MenuBarManager?
 
-    private var appearancePanels = Set<MenuBarAppearancePanel>()
+    private(set) var appearancePanels = Set<MenuBarAppearancePanel>()
 
     init(
         menuBarManager: MenuBarManager,

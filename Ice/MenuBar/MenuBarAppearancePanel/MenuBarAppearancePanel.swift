@@ -251,7 +251,11 @@ private class MenuBarAppearancePanelContentView: NSView {
     private weak var appearancePanel: MenuBarAppearancePanel?
 
     /// The max X position of the main menu.
-    private var mainMenuMaxX: CGFloat?
+    private var mainMenuMaxX: CGFloat? {
+        didSet {
+            needsDisplay = true
+        }
+    }
 
     /// The bounds that the view's drawn content can occupy.
     var drawableBounds: CGRect {
@@ -277,20 +281,15 @@ private class MenuBarAppearancePanelContentView: NSView {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
+        // update when dark/light mode changes
         DistributedNotificationCenter.default()
             .publisher(for: Notification.Name("AppleInterfaceThemeChangedNotification"))
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                alphaValue = 0
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    ScreenCaptureManager.shared.update()
-                    self.animator().alphaValue = 1
-                }
+            .sink { _ in
+                ScreenCaptureManager.shared.update()
             }
             .store(in: &c)
 
+        // update when active space changes
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .sink { _ in
@@ -298,6 +297,7 @@ private class MenuBarAppearancePanelContentView: NSView {
             }
             .store(in: &c)
 
+        // update when frontmost application changes
         NSWorkspace.shared
             .publisher(for: \.frontmostApplication)
             .sink { _ in
@@ -305,6 +305,7 @@ private class MenuBarAppearancePanelContentView: NSView {
             }
             .store(in: &c)
 
+        // redraw whenever ScreenCaptureManager's windows change
         ScreenCaptureManager.shared.$windows
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -315,8 +316,13 @@ private class MenuBarAppearancePanelContentView: NSView {
         if let appearancePanel {
             appearancePanel.$menuBar
                 .sink { [weak self] menuBar in
-                    self?.updateMainMenuMaxX(menuBar: menuBar)
-                    self?.needsDisplay = true
+                    guard
+                        let self,
+                        let menuBar
+                    else {
+                        return
+                    }
+                    updateMainMenuMaxX(menuBar: menuBar)
                 }
                 .store(in: &c)
             appearancePanel.$desktopWallpaper
@@ -324,68 +330,56 @@ private class MenuBarAppearancePanelContentView: NSView {
                     self?.needsDisplay = true
                 }
                 .store(in: &c)
-        }
 
-        if let appearanceManager = appearancePanel?.appearanceManager {
-            for section in appearanceManager.menuBarManager?.sections ?? [] {
-                section.controlItem.$windowFrame
-                    .combineLatest(section.controlItem.$screen)
-                    .filter { windowFrame, screen in
-                        guard
-                            let windowFrame,
-                            let screen
-                        else {
-                            return false
+            if let appearanceManager = appearancePanel.appearanceManager {
+                // redraw whenever a control item moves, if its maxX
+                // remains on screen
+                for section in appearanceManager.menuBarManager?.sections ?? [] {
+                    section.controlItem.$windowFrame
+                        .filter { [weak section] windowFrame in
+                            guard
+                                let windowFrame,
+                                let screen = section?.controlItem.screen
+                            else {
+                                return false
+                            }
+                            let xRange = screen.frame.minX...screen.frame.maxX
+                            return xRange.contains(windowFrame.maxX)
                         }
-                        let xRange = screen.frame.minX...screen.frame.maxX
-                        return xRange.contains(windowFrame.maxX)
-                    }
-                    .receive(on: RunLoop.main)
+                        .receive(on: RunLoop.main)
+                        .sink { [weak self] _ in
+                            self?.needsDisplay = true
+                        }
+                        .store(in: &c)
+                }
+
+                // redraw whenever appearanceManager's parameters change
+                appearanceManager.objectWillChange
+                    .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
                         self?.needsDisplay = true
                     }
                     .store(in: &c)
             }
-
-            appearanceManager.$tintKind
-                .combineLatest(appearanceManager.$tintColor)
-                .combineLatest(appearanceManager.$tintGradient)
-                .combineLatest(appearanceManager.$shapeKind)
-                .combineLatest(appearanceManager.$fullShapeInfo)
-                .combineLatest(appearanceManager.$splitShapeInfo)
-                .combineLatest(appearanceManager.$hasShadow)
-                .combineLatest(appearanceManager.$hasBorder)
-                .combineLatest(appearanceManager.$borderColor)
-                .combineLatest(appearanceManager.$borderWidth)
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in
-                    self?.needsDisplay = true
-                }
-                .store(in: &c)
         }
 
         cancellables = c
     }
 
     /// Stores the maxX position of the menu bar.
-    private func updateMainMenuMaxX(menuBar: UIElement?) {
-        Task { @MainActor in
-            do {
-                guard
-                    let menuBar,
-                    let children: [UIElement] = try menuBar.arrayAttribute(.children)
-                else {
-                    mainMenuMaxX = nil
-                    return
-                }
-                mainMenuMaxX = try children.reduce(into: 0) { result, child in
-                    if let frame: CGRect = try child.attribute(.frame) {
-                        result += frame.width
-                    }
-                }
-            } catch {
-                Logger.appearancePanel.error("Error updating main menu maxX: \(error)")
+    private func updateMainMenuMaxX(menuBar: UIElement) {
+        do {
+            guard let children: [UIElement] = try menuBar.arrayAttribute(.children) else {
+                mainMenuMaxX = nil
+                return
             }
+            mainMenuMaxX = try children.reduce(into: 0) { result, child in
+                if let frame: CGRect = try child.attribute(.frame) {
+                    result += frame.width
+                }
+            }
+        } catch {
+            Logger.appearancePanel.error("Error updating main menu maxX: \(error)")
         }
     }
 

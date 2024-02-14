@@ -284,8 +284,15 @@ private class MenuBarAppearancePanelContentView: NSView {
         // update when dark/light mode changes
         DistributedNotificationCenter.default()
             .publisher(for: Notification.Name("AppleInterfaceThemeChangedNotification"))
-            .sink { _ in
-                ScreenCaptureManager.shared.update()
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                alphaValue = 0
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    ScreenCaptureManager.shared.update()
+                    self.animator().alphaValue = 1
+                }
             }
             .store(in: &c)
 

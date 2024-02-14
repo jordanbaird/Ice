@@ -556,6 +556,22 @@ private class MenuBarAppearancePanelContentView: NSView {
         }
     }
 
+    private func drawTint(with appearanceManager: MenuBarAppearanceManager) {
+        switch appearanceManager.tintKind {
+        case .none:
+            break
+        case .solid:
+            if let tintColor = NSColor(cgColor: appearanceManager.tintColor)?.withAlphaComponent(0.2) {
+                tintColor.setFill()
+                NSBezierPath(rect: drawableBounds).fill()
+            }
+        case .gradient:
+            if let tintGradient = appearanceManager.tintGradient.withAlphaComponent(0.2).nsGradient {
+                tintGradient.draw(in: drawableBounds, angle: 0)
+            }
+        }
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         guard
             let appearanceManager = appearancePanel?.appearanceManager,
@@ -584,7 +600,37 @@ private class MenuBarAppearancePanelContentView: NSView {
 
         var hasBorder = false
 
-        if appearanceManager.shapeKind != .none {
+        switch appearanceManager.shapeKind {
+        case .none:
+            if appearanceManager.hasShadow {
+                let gradient = NSGradient(
+                    colors: [
+                        NSColor(white: 0.0, alpha: 0.0),
+                        NSColor(white: 0.0, alpha: 0.2),
+                    ]
+                )
+                let shadowBounds = CGRect(
+                    x: bounds.minX,
+                    y: bounds.minY,
+                    width: bounds.width,
+                    height: 5
+                )
+                gradient?.draw(in: shadowBounds, angle: 90)
+            }
+
+            drawTint(with: appearanceManager)
+
+            if appearanceManager.hasBorder {
+                let borderBounds = CGRect(
+                    x: bounds.minX,
+                    y: bounds.minY + 5,
+                    width: bounds.width,
+                    height: appearanceManager.borderWidth
+                )
+                NSColor(cgColor: appearanceManager.borderColor)?.setFill()
+                NSBezierPath(rect: borderBounds).fill()
+            }
+        case .full, .split:
             if let desktopWallpaper = appearancePanel?.desktopWallpaper {
                 context.saveGraphicsState()
                 defer {
@@ -617,19 +663,7 @@ private class MenuBarAppearancePanelContentView: NSView {
 
             shapePath.setClip()
 
-            switch appearanceManager.tintKind {
-            case .none:
-                break
-            case .solid:
-                if let tintColor = NSColor(cgColor: appearanceManager.tintColor)?.withAlphaComponent(0.2) {
-                    tintColor.setFill()
-                    NSBezierPath(rect: drawableBounds).fill()
-                }
-            case .gradient:
-                if let tintGradient = appearanceManager.tintGradient.withAlphaComponent(0.2).nsGradient {
-                    tintGradient.draw(in: drawableBounds, angle: 0)
-                }
-            }
+            drawTint(with: appearanceManager)
 
             if
                 hasBorder,

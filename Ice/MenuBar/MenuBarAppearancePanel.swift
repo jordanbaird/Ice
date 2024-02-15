@@ -304,21 +304,16 @@ private class MenuBarAppearancePanelContentView: NSView {
         // update when dark/light mode changes
         DistributedNotificationCenter.default()
             .publisher(for: Notification.Name("AppleInterfaceThemeChangedNotification"))
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                alphaValue = 0
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    ScreenCaptureManager.shared.update()
-                    self.animator().alphaValue = 1
-                }
+            .delay(for: 0.1, scheduler: DispatchQueue.global(qos: .background))
+            .sink { _ in
+                ScreenCaptureManager.shared.update()
             }
             .store(in: &c)
 
         // update when active space changes
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .receive(on: DispatchQueue.global(qos: .background))
             .sink { _ in
                 ScreenCaptureManager.shared.update()
             }
@@ -327,6 +322,7 @@ private class MenuBarAppearancePanelContentView: NSView {
         // update when frontmost application changes
         NSWorkspace.shared
             .publisher(for: \.frontmostApplication)
+            .receive(on: DispatchQueue.global(qos: .background))
             .sink { _ in
                 ScreenCaptureManager.shared.update()
             }
@@ -373,7 +369,7 @@ private class MenuBarAppearancePanelContentView: NSView {
                             let xRange = screen.frame.minX...screen.frame.maxX
                             return xRange.contains(windowFrame.maxX)
                         }
-                        .receive(on: RunLoop.main)
+                        .receive(on: DispatchQueue.main)
                         .sink { [weak self] _ in
                             self?.needsDisplay = true
                         }

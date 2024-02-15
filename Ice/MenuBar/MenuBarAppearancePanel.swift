@@ -107,23 +107,20 @@ class MenuBarAppearancePanel: NSPanel {
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .delay(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self else {
+                guard
+                    let self,
+                    let appearanceManager
+                else {
                     return
                 }
-
-                // if the screen's visible frame and frame are the same,
-                // the menu bar is hidden; do not allow the panel to show
-                let canShow = owningScreen.visibleFrame != owningScreen.frame
-
-                if canShow && !isOnActiveSpace {
+                if !appearanceManager.isFullscreen && !isOnActiveSpace {
                     show()
                 }
             }
             .store(in: &c)
 
-        // ensure the panel stays pinned to the top of the screen
-        // if the size of the screen changes, i.e. when scaling a
-        // VM window
+        // ensure the panel stays pinned to the top of the screen if
+        // the size of the screen changes, i.e. when scaling a VM window
         Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in

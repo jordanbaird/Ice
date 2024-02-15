@@ -11,8 +11,8 @@ import ScreenCaptureKit
 
 // MARK: - MenuBarAppearancePanel
 
-/// A subclass of `NSPanel` that sits atop or underneath
-/// the menu bar to alter its appearance.
+/// A subclass of `NSPanel` that sits atop the menu bar
+/// to alter its appearance.
 class MenuBarAppearancePanel: NSPanel {
     private var cancellables = Set<AnyCancellable>()
 

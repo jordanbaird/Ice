@@ -55,6 +55,7 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private(set) var appearancePanels = Set<MenuBarAppearancePanel>()
 
+    /// A Boolean value that indicates whether an app is fullscreen.
     var isFullscreen: Bool {
         guard let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) else {
             return false
@@ -88,8 +89,13 @@ final class MenuBarAppearanceManager: ObservableObject {
     func performSetup() {
         loadInitialState()
         configureCancellables()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.configureAppearancePanels()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
+            // make sure all panels are ordered out before configuring
+            // TODO: We may not need this...investigate.
+            while let panel = appearancePanels.popFirst() {
+                panel.orderOut(self)
+            }
+            configureAppearancePanels()
         }
     }
 
@@ -147,7 +153,10 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                if appearancePanels.isEmpty {
+                if
+                    appearancePanels.isEmpty,
+                    !isFullscreen
+                {
                     configureAppearancePanels()
                 } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

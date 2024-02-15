@@ -242,7 +242,7 @@ class MenuBarAppearancePanel: NSPanel {
             return
         }
         guard let frameForDisplay else {
-            Logger.appearancePanel.error("Missing frame for display")
+            Logger.appearancePanel.notice("Missing frame for display")
             return
         }
         alphaValue = 0

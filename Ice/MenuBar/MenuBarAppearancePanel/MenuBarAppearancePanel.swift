@@ -37,6 +37,19 @@ class MenuBarAppearancePanel: NSPanel {
     /// of the menu bar.
     @Published private(set) var desktopWallpaper: CGImage?
 
+    /// The frame that should be used to display the panel.
+    private var frameForDisplay: CGRect? {
+        guard let menuBarFrame: CGRect = try? menuBar?.attribute(.frame) else {
+            return nil
+        }
+        return CGRect(
+            x: owningScreen.frame.origin.x,
+            y: (owningScreen.frame.maxY - menuBarFrame.height) - 5,
+            width: owningScreen.frame.width,
+            height: menuBarFrame.height + 5
+        )
+    }
+
     /// Creates an appearance panel with the given appearance
     /// manager and owning screen.
     init(appearanceManager: MenuBarAppearanceManager, owningScreen: NSScreen) {
@@ -89,6 +102,7 @@ class MenuBarAppearancePanel: NSPanel {
             }
             .store(in: &c)
 
+        // show the panel on the active space
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .delay(for: 0.1, scheduler: DispatchQueue.main)
@@ -104,6 +118,22 @@ class MenuBarAppearancePanel: NSPanel {
                 if canShow && !isOnActiveSpace {
                     show()
                 }
+            }
+            .store(in: &c)
+
+        // ensure the panel stays pinned to the top of the screen
+        // if the size of the screen changes, i.e. when scaling a
+        // VM window
+        Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard
+                    let self,
+                    let frameForDisplay
+                else {
+                    return
+                }
+                setFrame(frameForDisplay, display: true)
             }
             .store(in: &c)
 
@@ -211,25 +241,15 @@ class MenuBarAppearancePanel: NSPanel {
         guard !AppState.shared.isPreview else {
             return
         }
-        do {
-            guard let menuBarFrame: CGRect = try menuBar?.attribute(.frame) else {
-                Logger.appearancePanel.error("Missing menu bar frame")
-                return
-            }
-            alphaValue = 0
-            let adjustedFrame = CGRect(
-                x: owningScreen.frame.origin.x,
-                y: (owningScreen.frame.maxY - menuBarFrame.height) - 5,
-                width: owningScreen.frame.width,
-                height: menuBarFrame.height + 5
-            )
-            setFrame(adjustedFrame, display: true)
-            orderFrontRegardless()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.animator().alphaValue = 1
-            }
-        } catch {
-            Logger.appearancePanel.error("Error showing appearance panel: \(error)")
+        guard let frameForDisplay else {
+            Logger.appearancePanel.error("Missing frame for display")
+            return
+        }
+        alphaValue = 0
+        setFrame(frameForDisplay, display: true)
+        orderFrontRegardless()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.animator().alphaValue = 1
         }
     }
 

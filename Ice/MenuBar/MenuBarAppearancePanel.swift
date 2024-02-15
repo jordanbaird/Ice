@@ -201,9 +201,9 @@ class MenuBarAppearancePanel: NSPanel {
         if screenIsLocked || screenSaverIsActive {
             return
         }
-        Task { @MainActor in
+        Task {
             do {
-                desktopWallpaper = try await ScreenshotManager.captureImage(
+                desktopWallpaper = try await ScreenCaptureManager.shared.captureImage(
                     withTimeout: .milliseconds(500),
                     window: wallpaperWindow,
                     display: owningDisplay,

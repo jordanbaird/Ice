@@ -33,7 +33,6 @@
 		1773546A2B1BBACF001CF731 /* MenuBarAppearanceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354692B1BBACF001CF731 /* MenuBarAppearanceTab.swift */; };
 		1773546C2B1BBBA1001CF731 /* MenuBarShapePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1773546B2B1BBBA1001CF731 /* MenuBarShapePicker.swift */; };
 		177354702B1BFF65001CF731 /* HorizontalEdge+cgRectEdge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1773546F2B1BFF65001CF731 /* HorizontalEdge+cgRectEdge.swift */; };
-		177354812B1F5F38001CF731 /* ScreenshotManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354802B1F5F38001CF731 /* ScreenshotManager.swift */; };
 		177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354832B1F9AF9001CF731 /* NSBezierPath+union.swift */; };
 		177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F22B092A0700448BBF /* ControlItemImage.swift */; };
 		177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177386F42B0A654D00448BBF /* ControlItemImageSet.swift */; };
@@ -115,7 +114,6 @@
 		177354692B1BBACF001CF731 /* MenuBarAppearanceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceTab.swift; sourceTree = "<group>"; };
 		1773546B2B1BBBA1001CF731 /* MenuBarShapePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarShapePicker.swift; sourceTree = "<group>"; };
 		1773546F2B1BFF65001CF731 /* HorizontalEdge+cgRectEdge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HorizontalEdge+cgRectEdge.swift"; sourceTree = "<group>"; };
-		177354802B1F5F38001CF731 /* ScreenshotManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotManager.swift; sourceTree = "<group>"; };
 		177354832B1F9AF9001CF731 /* NSBezierPath+union.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+union.swift"; sourceTree = "<group>"; };
 		177386F22B092A0700448BBF /* ControlItemImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImage.swift; sourceTree = "<group>"; };
 		177386F42B0A654D00448BBF /* ControlItemImageSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItemImageSet.swift; sourceTree = "<group>"; };
@@ -490,7 +488,6 @@
 				170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
 				174AA5F42B730A0B00E3FE74 /* ScreenCaptureManager.swift */,
-				177354802B1F5F38001CF731 /* ScreenshotManager.swift */,
 				170749CB2B120951009DDF73 /* EventMonitors */,
 				71D36C492A88EDD200D89CD5 /* Swizzling */,
 			);
@@ -688,7 +685,6 @@
 				716683502A7681AF006ABF84 /* MenuBarManager.swift in Sources */,
 				1780ED0E2B43D132000AED1C /* BoxObject.swift in Sources */,
 				175085132B69C4C100CFF13A /* CustomTabBuilder.swift in Sources */,
-				177354812B1F5F38001CF731 /* ScreenshotManager.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */,
 				177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */,

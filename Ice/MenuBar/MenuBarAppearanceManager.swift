@@ -308,6 +308,8 @@ final class MenuBarAppearanceManager: ObservableObject {
         for screen in NSScreen.screens {
             let panel = MenuBarAppearancePanel(appearanceManager: self, owningScreen: screen)
             appearancePanels.insert(panel)
+            // panel needs a reference to the menu bar frame, which is retrieved asynchronously; wait a bit before showing
+            // FIXME: Show after the panel has the menu bar reference instead of waiting an arbitrary amount of time
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 panel.show()
             }

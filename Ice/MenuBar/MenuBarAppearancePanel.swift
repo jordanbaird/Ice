@@ -241,10 +241,22 @@ class MenuBarAppearancePanel: NSPanel {
         guard !AppState.shared.isPreview else {
             return
         }
+
         guard let frameForDisplay else {
             Logger.appearancePanel.notice("Missing frame for display")
             return
         }
+
+        // only continue if the appearance manager holds
+        // a reference to this panel
+        guard
+            let appearanceManager,
+            appearanceManager.appearancePanels.contains(self)
+        else {
+            Logger.appearancePanel.notice("Appearance panel \(self) not retained")
+            return
+        }
+
         alphaValue = 0
         setFrame(frameForDisplay, display: true)
         orderFrontRegardless()

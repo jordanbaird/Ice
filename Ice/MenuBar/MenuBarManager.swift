@@ -380,22 +380,24 @@ final class MenuBarManager: ObservableObject {
                 }
 
                 do {
-                    // get the largest x-coordinate of all items
                     guard
                         let application = Application(frontmostApplication),
                         let menuBar: UIElement = try application.attribute(.menuBar),
-                        let children: [UIElement] = try menuBar.arrayAttribute(.children),
-                        let maxX = try children.compactMap({ try ($0.attribute(.frame) as CGRect?)?.maxX }).max()
+                        let children: [UIElement] = try menuBar.arrayAttribute(.children)
                     else {
-                        mainMenuMaxX = 0
-                        menuBar = nil
+                        self.mainMenuMaxX = 0
+                        self.menuBar = nil
                         return
                     }
-                    mainMenuMaxX = maxX
+                    self.mainMenuMaxX = try children.reduce(into: 0) { result, child in
+                        if let frame: CGRect = try child.attribute(.frame) {
+                            result += frame.width
+                        }
+                    }
                     self.menuBar = menuBar
                 } catch {
-                    mainMenuMaxX = 0
-                    menuBar = nil
+                    self.mainMenuMaxX = 0
+                    self.menuBar = nil
                     Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
                 }
             }

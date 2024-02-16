@@ -47,6 +47,7 @@ final class MenuBarAppearanceManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     private let encoder: JSONEncoder
+
     private let decoder: JSONDecoder
 
     private let defaults: UserDefaults

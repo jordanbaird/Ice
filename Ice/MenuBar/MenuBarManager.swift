@@ -43,12 +43,6 @@ final class MenuBarManager: ObservableObject {
     /// has passed without interaction.
     @Published var autoRehide = false
 
-    /// The maximum X coordinate of the menu bar's main menu.
-    @Published var mainMenuMaxX: CGFloat = 0
-
-    /// The UI element that represents the menu bar.
-    @Published var menuBar: UIElement?
-
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
@@ -67,14 +61,19 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
+    /// The maximum X coordinate of the menu bar's main menu.
+    private var mainMenuMaxX: CGFloat = 0
+
     private var cancellables = Set<AnyCancellable>()
 
     private let encoder = JSONEncoder()
+
     private let decoder = JSONDecoder()
 
     private let defaults = UserDefaults.standard
 
     private(set) weak var appState: AppState?
+
     private(set) lazy var appearanceManager = MenuBarAppearanceManager(
         menuBarManager: self,
         encoder: encoder,
@@ -89,7 +88,8 @@ final class MenuBarManager: ObservableObject {
             return event
         }
 
-        var isMouseInMenuBar: Bool {
+        // we use this in multiple places, so define it once
+        var isMouseInsideMenuBar: Bool {
             guard
                 let screen = NSScreen.main,
                 NSEvent.mouseLocation.y > screen.visibleFrame.maxY,
@@ -108,32 +108,38 @@ final class MenuBarManager: ObservableObject {
             guard
                 showOnHover,
                 !showOnHoverPreventedByUserInteraction,
-                let hiddenSection = section(withName: .hidden),
-                let screen = NSScreen.main
+                let hiddenSection = section(withName: .hidden)
             else {
                 break
             }
             if hiddenSection.isHidden {
-                if isMouseInMenuBar {
+                if isMouseInsideMenuBar {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         // make sure the mouse is still inside
-                        if isMouseInMenuBar {
+                        if isMouseInsideMenuBar {
                             hiddenSection.show()
                         }
                     }
                 }
-            } else if NSEvent.mouseLocation.y < screen.visibleFrame.maxY || NSEvent.mouseLocation.y > screen.frame.maxY {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    // make sure the mouse is still outside
-                    if NSEvent.mouseLocation.y < screen.visibleFrame.maxY || NSEvent.mouseLocation.y > screen.frame.maxY {
-                        hiddenSection.hide()
+            } else if let screen = NSScreen.main {
+                // outside check is simpler than inside check, so define it separately
+                var isMouseOutsideMenuBar: Bool {
+                    NSEvent.mouseLocation.y < screen.visibleFrame.maxY ||
+                    NSEvent.mouseLocation.y > screen.frame.maxY
+                }
+                if isMouseOutsideMenuBar {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        // make sure the mouse is still outside
+                        if isMouseOutsideMenuBar {
+                            hiddenSection.hide()
+                        }
                     }
                 }
             }
         case .leftMouseUp:
             guard
                 autoRehide,
-                !isMouseInMenuBar,
+                !isMouseInsideMenuBar,
                 let visibleSection = section(withName: .visible),
                 let hiddenSection = section(withName: .hidden),
                 let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
@@ -151,11 +157,11 @@ final class MenuBarManager: ObservableObject {
             else {
                 break
             }
-            if isMouseInMenuBar || visibleControlItemFrame.contains(NSEvent.mouseLocation) {
+            if isMouseInsideMenuBar || visibleControlItemFrame.contains(NSEvent.mouseLocation) {
                 showOnHoverPreventedByUserInteraction = true
             }
         case .rightMouseDown:
-            if isMouseInMenuBar {
+            if isMouseInsideMenuBar {
                 showOnHoverPreventedByUserInteraction = true
             }
         default:
@@ -352,6 +358,9 @@ final class MenuBarManager: ObservableObject {
         let appID = frontmostApplication.localizedName ?? "PID \(frontmostApplication.processIdentifier)"
         Logger.menuBarManager.debug("New frontmost application: \(appID)")
 
+        // FIXME: Find a better way to cancel the observation from within the call
+        // to `sink`, other than storing the cancellable in an Optional box object
+
         // wait until the application is finished launching
         var box: BoxObject<AnyCancellable?>? = BoxObject()
         box?.base = frontmostApplication.publisher(for: \.isFinishedLaunching)
@@ -385,19 +394,16 @@ final class MenuBarManager: ObservableObject {
                         let menuBar: UIElement = try application.attribute(.menuBar),
                         let children: [UIElement] = try menuBar.arrayAttribute(.children)
                     else {
-                        self.mainMenuMaxX = 0
-                        self.menuBar = nil
+                        mainMenuMaxX = 0
                         return
                     }
-                    self.mainMenuMaxX = try children.reduce(into: 0) { result, child in
+                    mainMenuMaxX = try children.reduce(into: 0) { result, child in
                         if let frame: CGRect = try child.attribute(.frame) {
                             result += frame.width
                         }
                     }
-                    self.menuBar = menuBar
                 } catch {
-                    self.mainMenuMaxX = 0
-                    self.menuBar = nil
+                    mainMenuMaxX = 0
                     Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
                 }
             }

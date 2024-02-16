@@ -357,9 +357,8 @@ final class ControlItem: ObservableObject {
         switch event.type {
         case .leftMouseUp:
             if
-                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden),
-                alwaysHiddenSection.isEnabled,
-                NSEvent.modifierFlags == menuBarManager.secondaryActionModifier.nsEventFlags
+                NSEvent.modifierFlags == menuBarManager.secondaryActionModifier.nsEventFlags,
+                menuBarManager.section(withName: .alwaysHidden)?.isEnabled == true
             {
                 alwaysHiddenSection.show()
             } else {

@@ -119,21 +119,6 @@ class MenuBarAppearancePanel: NSPanel {
             }
             .store(in: &c)
 
-        // ensure the panel stays pinned to the top of the screen if
-        // the size of the screen changes, i.e. when scaling a VM window
-        Timer.publish(every: 1, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard
-                    let self,
-                    let frameForDisplay
-                else {
-                    return
-                }
-                setFrame(frameForDisplay, display: true)
-            }
-            .store(in: &c)
-
         ScreenCaptureManager.shared.$windows
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in

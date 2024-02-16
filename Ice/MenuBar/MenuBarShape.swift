@@ -34,10 +34,7 @@ struct MenuBarFullShapeInfo: Codable, Hashable {
 }
 
 extension MenuBarFullShapeInfo {
-    static let `default` = MenuBarFullShapeInfo(
-        leadingEndCap: .round,
-        trailingEndCap: .round
-    )
+    static let `default` = MenuBarFullShapeInfo(leadingEndCap: .round, trailingEndCap: .round)
 }
 
 /// Information for the ``MenuBarShapeKind/split`` menu bar
@@ -50,8 +47,5 @@ struct MenuBarSplitShapeInfo: Codable, Hashable {
 }
 
 extension MenuBarSplitShapeInfo {
-    static let `default` = MenuBarSplitShapeInfo(
-        leading: .default,
-        trailing: .default
-    )
+    static let `default` = MenuBarSplitShapeInfo(leading: .default, trailing: .default)
 }

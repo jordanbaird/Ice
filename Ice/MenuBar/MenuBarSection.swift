@@ -41,6 +41,7 @@ final class MenuBarSection: ObservableObject {
     }
 
     private var listener: Hotkey.Listener?
+
     private var cancellables = Set<AnyCancellable>()
 
     /// The menu bar manager associated with the section.
@@ -77,34 +78,15 @@ final class MenuBarSection: ObservableObject {
 
     /// Creates a menu bar section with the given name.
     convenience init(name: Name) {
-        let autosaveName: String
-        let position: CGFloat?
-        let state: ControlItem.HidingState?
-
-        switch name {
+        let controlItem = switch name {
         case .visible:
-            autosaveName = "Item-1"
-            position = 0
-            state = nil
+            ControlItem(autosaveName: "Item-1", position: 0, state: nil)
         case .hidden:
-            autosaveName = "Item-2"
-            position = 1
-            state = nil
+            ControlItem(autosaveName: "Item-2", position: 1, state: nil)
         case .alwaysHidden:
-            autosaveName = "Item-3"
-            position = nil
-            state = .hideItems
+            ControlItem(autosaveName: "Item-3", position: nil, state: .hideItems)
         }
-
-        self.init(
-            name: name,
-            controlItem: ControlItem(
-                autosaveName: autosaveName,
-                position: position,
-                state: state
-            ),
-            hotkey: nil
-        )
+        self.init(name: name, controlItem: controlItem, hotkey: nil)
     }
 
     private func configureCancellables() {

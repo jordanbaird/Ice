@@ -460,6 +460,7 @@
 		7166832C2A767E6A006ABF84 /* Ice */ = {
 			isa = PBXGroup;
 			children = (
+				177386F62B0A656100448BBF /* ControlItem */,
 				716683412A76811C006ABF84 /* Extensions */,
 				7150A7AB2AA4262F0045EA68 /* Hotkeys */,
 				17C261E72B5AEB7A0076F129 /* Main */,
@@ -535,7 +536,6 @@
 				7162406E2AA0A323003EC671 /* MenuBarSection.swift */,
 				177354652B1B8502001CF731 /* MenuBarShape.swift */,
 				1787C43A2B187187002F50DF /* MenuBarTintKind.swift */,
-				177386F62B0A656100448BBF /* ControlItem */,
 			);
 			path = MenuBar;
 			sourceTree = "<group>";

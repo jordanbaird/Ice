@@ -242,8 +242,15 @@ final class ControlItem: ObservableObject {
 
         if let window = statusItem.button?.window {
             window.publisher(for: \.frame)
-                .sink { [weak self] frame in
-                    self?.windowFrame = frame
+                .sink { [weak self, weak window] frame in
+                    guard
+                        let self,
+                        let screen = window?.screen,
+                        screen.frame.intersects(frame)
+                    else {
+                        return
+                    }
+                    windowFrame = frame
                 }
                 .store(in: &c)
 

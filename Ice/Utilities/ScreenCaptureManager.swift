@@ -7,8 +7,9 @@ import Combine
 import OSLog
 import ScreenCaptureKit
 
+/// A manager for screen capture operations.
 class ScreenCaptureManager: ObservableObject {
-    /// Options that affect the image or images returned from a capture.
+    /// Options that define additional parameters for a capture.
     struct CaptureOptions: OptionSet {
         let rawValue: Int
 
@@ -34,6 +35,9 @@ class ScreenCaptureManager: ObservableObject {
 
     /// An error that can occur during a capture.
     enum CaptureError: Error {
+        /// The app does not have screen capture permissions.
+        case missingPermissions
+
         /// The screen capture manager does not contain a window that
         /// matches the provided window.
         case noMatchingWindow
@@ -162,9 +166,10 @@ class ScreenCaptureManager: ObservableObject {
     /// Captures the given window as an image.
     ///
     /// - Parameters:
-    ///   - timeout: Amount of time to wait before throwing a cancellation error.
+    ///   - timeout: The amount of time to wait before cancelling the task
+    ///     and throwing a timeout error.
     ///   - window: The window to capture. The window must be on screen.
-    ///   - display: The display of the capture.
+    ///   - display: The display to capture.
     ///   - captureRect: The rectangle to capture, relative to the coordinate
     ///     space of the window. Pass `nil` to capture the entire window.
     ///   - resolution: The resolution of the capture.
@@ -177,6 +182,9 @@ class ScreenCaptureManager: ObservableObject {
         resolution: SCCaptureResolutionType = .automatic,
         options: CaptureOptions = []
     ) async throws -> CGImage {
+        guard hasScreenCapturePermissions else {
+            throw CaptureError.missingPermissions
+        }
         guard let window = windows.first(where: { $0.windowID == window.windowID }) else {
             throw CaptureError.noMatchingWindow
         }
@@ -187,17 +195,7 @@ class ScreenCaptureManager: ObservableObject {
             throw CaptureError.windowOffScreen
         }
 
-        let captureRect = captureRect ?? .null
-        let windowBounds = CGRect(origin: .zero, size: window.frame.size)
-        let sourceRect = if captureRect.isNull {
-            windowBounds
-        } else {
-            captureRect
-        }
-
-        guard windowBounds.contains(sourceRect) else {
-            throw CaptureError.sourceRectOutOfBounds
-        }
+        let sourceRect = try getSourceRect(captureRect: captureRect, window: window)
 
         let contentFilter = SCContentFilter(desktopIndependentWindow: window)
         let configuration = SCStreamConfiguration()
@@ -237,6 +235,20 @@ class ScreenCaptureManager: ObservableObject {
         } catch is CancellationError {
             throw CaptureError.timeout
         }
+    }
+
+    private func getSourceRect(captureRect: CGRect?, window: SCWindow) throws -> CGRect {
+        let captureRect = captureRect ?? .null
+        let windowBounds = CGRect(origin: .zero, size: window.frame.size)
+        let sourceRect = if captureRect.isNull {
+            windowBounds
+        } else {
+            captureRect
+        }
+        guard windowBounds.contains(sourceRect) else {
+            throw CaptureError.sourceRectOutOfBounds
+        }
+        return sourceRect
     }
 
     private func getDisplayScaleFactor(_ displayID: CGDirectDisplayID) -> CGFloat {

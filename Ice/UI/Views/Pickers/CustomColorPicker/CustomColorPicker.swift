@@ -43,16 +43,35 @@ struct CustomColorPicker: NSViewRepresentable {
                 .sink { [weak self, weak nsView] isVisible in
                     guard
                         let self,
+                        let nsView,
                         isVisible,
-                        nsView?.isActive == true
+                        nsView.isActive
                     else {
                         return
                     }
                     NSColorPanel.shared.showsAlpha = supportsOpacity
                     NSColorPanel.shared.mode = mode
+                    if let window = nsView.window {
+                        NSColorPanel.shared.level = window.level + 1
+                    }
                     if NSColorPanel.shared.frame.origin == .zero {
                         NSColorPanel.shared.center()
                     }
+                }
+                .store(in: &c)
+
+            NSColorPanel.shared
+                .publisher(for: \.level)
+                .sink { [weak nsView] level in
+                    guard
+                        let nsView,
+                        nsView.isActive,
+                        let window = nsView.window,
+                        level != window.level + 1
+                    else {
+                        return
+                    }
+                    NSColorPanel.shared.level = window.level + 1
                 }
                 .store(in: &c)
 

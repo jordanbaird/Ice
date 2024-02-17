@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import Combine
 import SwiftUI
 
 // MARK: - MenuBarAppearanceEditorHelperPanel
@@ -10,6 +11,8 @@ import SwiftUI
 /// A panel that manages the menu that appears when the user
 /// right-clicks on the menu bar.
 class MenuBarAppearanceEditorHelperPanel: NSPanel {
+    private var cancellables = Set<AnyCancellable>()
+
     init() {
         super.init(
             contentRect: CGRect(x: 0, y: 0, width: 1, height: 1),
@@ -19,6 +22,22 @@ class MenuBarAppearanceEditorHelperPanel: NSPanel {
         )
         level = .statusBar
         backgroundColor = .clear
+        configureCancellables()
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .sink { [weak self] _ in
+                self?.orderOut(self)
+                NSColorPanel.shared.close()
+                NSColorPanel.shared.hidesOnDeactivate = true
+            }
+            .store(in: &c)
+
+        cancellables = c
     }
 
     /// Shows the appearance editor popover.
@@ -33,6 +52,7 @@ class MenuBarAppearanceEditorHelperPanel: NSPanel {
         let popover = MenuBarAppearanceEditorPopover()
         popover.delegate = self
         popover.show(relativeTo: .zero, of: contentView, preferredEdge: .minY)
+        NSColorPanel.shared.hidesOnDeactivate = false
     }
 }
 
@@ -42,6 +62,8 @@ extension MenuBarAppearanceEditorHelperPanel: NSPopoverDelegate {
         if let popover = notification.object as? MenuBarAppearanceEditorPopover {
             popover.mouseDownMonitor.stop()
             orderOut(popover)
+            NSColorPanel.shared.close()
+            NSColorPanel.shared.hidesOnDeactivate = true
         }
     }
 }

@@ -121,6 +121,7 @@ class ScreenCaptureManager: ObservableObject {
         startContinuouslyUpdating()
     }
 
+    /// Immediately updates the manager's content.
     func update() {
         guard hasScreenCapturePermissions else {
             Logger.screenCaptureManager.notice("Missing screen capture permissions")
@@ -145,10 +146,7 @@ class ScreenCaptureManager: ObservableObject {
         updateTimer = Timer.publish(every: interval, on: runLoop, in: mode)
             .autoconnect()
             .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                update()
+                self?.update()
             }
     }
 

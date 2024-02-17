@@ -163,6 +163,9 @@ final class MenuBarManager: ObservableObject {
         case .rightMouseDown:
             if isMouseInsideMenuBar {
                 showOnHoverPreventedByUserInteraction = true
+                let helperPanel = MenuBarHelperPanel(origin: NSEvent.mouseLocation)
+                helperPanel.orderFrontRegardless()
+                helperPanel.showMenu()
             }
         default:
             break

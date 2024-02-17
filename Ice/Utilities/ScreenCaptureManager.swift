@@ -211,6 +211,7 @@ class ScreenCaptureManager: ObservableObject {
         configuration.width = Int(sourceRect.width * scale)
         configuration.height = Int(sourceRect.height * scale)
         configuration.captureResolution = resolution
+        configuration.colorSpaceName = CGColorSpace.displayP3
         configuration.ignoreShadowsSingleWindow = options.contains(.ignoreFraming)
         configuration.capturesShadowsOnly = options.contains(.onlyShadows)
         configuration.shouldBeOpaque = options.contains(.shouldBeOpaque)

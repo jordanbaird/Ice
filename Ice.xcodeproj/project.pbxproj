@@ -28,7 +28,7 @@
 		17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */; };
 		175584122B541CFC00EDC9D3 /* CustomTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175584112B541CFC00EDC9D3 /* CustomTabView.swift */; };
 		175584152B541D6F00EDC9D3 /* MenuBarLayoutTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175584142B541D6F00EDC9D3 /* MenuBarLayoutTab.swift */; };
-		175812542B80FBFA00D622DA /* MenuBarHelperPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175812532B80FBFA00D622DA /* MenuBarHelperPanel.swift */; };
+		175812542B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175812532B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift */; };
 		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
 		177354662B1B8502001CF731 /* MenuBarShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354652B1B8502001CF731 /* MenuBarShape.swift */; };
 		1773546A2B1BBACF001CF731 /* MenuBarAppearanceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354692B1BBACF001CF731 /* MenuBarAppearanceTab.swift */; };
@@ -110,7 +110,7 @@
 		17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+intersects.swift"; sourceTree = "<group>"; };
 		175584112B541CFC00EDC9D3 /* CustomTabView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomTabView.swift; sourceTree = "<group>"; };
 		175584142B541D6F00EDC9D3 /* MenuBarLayoutTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLayoutTab.swift; sourceTree = "<group>"; };
-		175812532B80FBFA00D622DA /* MenuBarHelperPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarHelperPanel.swift; sourceTree = "<group>"; };
+		175812532B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceEditorHelperPanel.swift; sourceTree = "<group>"; };
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
 		177354652B1B8502001CF731 /* MenuBarShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarShape.swift; sourceTree = "<group>"; };
 		177354692B1BBACF001CF731 /* MenuBarAppearanceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceTab.swift; sourceTree = "<group>"; };
@@ -532,9 +532,9 @@
 		7166834E2A768190006ABF84 /* MenuBar */ = {
 			isa = PBXGroup;
 			children = (
+				175812532B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift */,
 				17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */,
 				174AA5D52B71D97100E3FE74 /* MenuBarAppearancePanel.swift */,
-				175812532B80FBFA00D622DA /* MenuBarHelperPanel.swift */,
 				7166834F2A7681AF006ABF84 /* MenuBarManager.swift */,
 				7162406E2AA0A323003EC671 /* MenuBarSection.swift */,
 				177354652B1B8502001CF731 /* MenuBarShape.swift */,
@@ -728,7 +728,7 @@
 				1787C4302B16AE78002F50DF /* PermissionsManager.swift in Sources */,
 				170CF88C2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift in Sources */,
 				170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */,
-				175812542B80FBFA00D622DA /* MenuBarHelperPanel.swift in Sources */,
+				175812542B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				71FEA2502A8D5D590048341A /* HotkeyRecorder.swift in Sources */,
 				17C3C5F72B75A36100B9648C /* NSScreen+displayID.swift in Sources */,

@@ -163,9 +163,7 @@ final class MenuBarManager: ObservableObject {
         case .rightMouseDown:
             if isMouseInsideMenuBar {
                 showOnHoverPreventedByUserInteraction = true
-                let helperPanel = MenuBarHelperPanel(origin: NSEvent.mouseLocation)
-                helperPanel.orderFrontRegardless()
-                helperPanel.showMenu()
+                showRightClickMenu(at: NSEvent.mouseLocation)
             }
         default:
             break
@@ -350,6 +348,38 @@ final class MenuBarManager: ObservableObject {
     /// Returns the menu bar section with the given name.
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
+    }
+
+    /// Shows the right-click menu.
+    func showRightClickMenu(at point: CGPoint) {
+        let menu = NSMenu(title: Constants.appName)
+
+        let editItem = NSMenuItem(
+            title: "Edit Menu Bar Appearance…",
+            action: #selector(showAppearanceEditorPopover),
+            keyEquivalent: ""
+        )
+        editItem.target = self
+        menu.addItem(editItem)
+
+        menu.addItem(.separator())
+
+        let settingsItem = NSMenuItem(
+            title: "\(Constants.appName) Settings…",
+            action: #selector(AppDelegate.openSettingsWindow),
+            keyEquivalent: ","
+        )
+        menu.addItem(settingsItem)
+
+        menu.popUp(positioning: nil, at: point, in: nil)
+    }
+
+    /// Shows the appearance editor popover, centered under
+    /// the menu bar.
+    @objc private func showAppearanceEditorPopover() {
+        let helperPanel = MenuBarAppearanceEditorHelperPanel()
+        helperPanel.orderFrontRegardless()
+        helperPanel.showAppearanceEditorPopover()
     }
 
     /// Handles changes to the frontmost application.

@@ -72,8 +72,8 @@ extension MenuBarAppearanceEditorHelperPanel: NSPopoverDelegate {
 
 /// A popover that displays the menu bar appearance editor
 /// at a centered location under the menu bar.
-class MenuBarAppearanceEditorPopover: NSPopover {
-    private(set) lazy var mouseDownMonitor = GlobalEventMonitor(mask: .leftMouseDown) { [weak self] event in
+private class MenuBarAppearanceEditorPopover: NSPopover {
+    private(set) lazy var mouseDownMonitor = GlobalEventMonitor(mask: .leftMouseDown) { [weak self] _ in
         self?.performClose(self)
     }
 

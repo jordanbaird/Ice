@@ -23,6 +23,22 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
         func updateNSView(_: NSView, context: Context) { }
     }
 
+    /// Custom view that ensures that the button accepts
+    /// the first mouse input.
+    private struct FirstMouseOverlay: NSViewRepresentable {
+        private class Represented: NSView {
+            override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+                return true
+            }
+        }
+
+        func makeNSView(context: Context) -> NSView {
+            return Represented()
+        }
+
+        func updateNSView(_: NSView, context: Context) { }
+    }
+
     /// Custom shape that draws a rounded rectangle with some of
     /// its sides flattened according to the given button shape.
     private struct ClipShape: Shape {
@@ -69,9 +85,14 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
                     .opacity(customButtonConfiguration.isHighlighted ? 0.2 : 0)
                     .blendMode(.overlay)
                     .background(isPressed ? .tertiary : .quaternary)
-                    .background { MouseDownInterceptor() }
+                    .background {
+                        MouseDownInterceptor()
+                    }
                     .clipShape(ClipShape(cornerRadius: 5, shape: customButtonConfiguration.shape))
                     .opacity(customButtonConfiguration.bezelOpacity)
+            }
+            .overlay {
+                FirstMouseOverlay()
             }
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)

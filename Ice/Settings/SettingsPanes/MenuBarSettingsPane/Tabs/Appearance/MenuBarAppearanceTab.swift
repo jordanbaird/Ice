@@ -13,6 +13,25 @@ struct MenuBarAppearanceTab: View {
     }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            headerText
+            mainForm
+        }
+    }
+
+    @ViewBuilder
+    private var headerText: some View {
+        Text("Menu Bar Appearance")
+            .font(.title2)
+            .annotation {
+                Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
+            }
+            .padding(.top)
+            .padding(.horizontal, 20)
+    }
+
+    @ViewBuilder
+    private var mainForm: some View {
         Form {
             Section {
                 tintPicker

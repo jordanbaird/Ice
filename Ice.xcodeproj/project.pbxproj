@@ -29,6 +29,7 @@
 		175584122B541CFC00EDC9D3 /* CustomTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175584112B541CFC00EDC9D3 /* CustomTabView.swift */; };
 		175584152B541D6F00EDC9D3 /* MenuBarLayoutTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175584142B541D6F00EDC9D3 /* MenuBarLayoutTab.swift */; };
 		175812542B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175812532B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift */; };
+		175812592B82ACA900D622DA /* Annotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175812582B82ACA800D622DA /* Annotation.swift */; };
 		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
 		177354662B1B8502001CF731 /* MenuBarShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354652B1B8502001CF731 /* MenuBarShape.swift */; };
 		1773546A2B1BBACF001CF731 /* MenuBarAppearanceTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354692B1BBACF001CF731 /* MenuBarAppearanceTab.swift */; };
@@ -111,6 +112,7 @@
 		175584112B541CFC00EDC9D3 /* CustomTabView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomTabView.swift; sourceTree = "<group>"; };
 		175584142B541D6F00EDC9D3 /* MenuBarLayoutTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLayoutTab.swift; sourceTree = "<group>"; };
 		175812532B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceEditorHelperPanel.swift; sourceTree = "<group>"; };
+		175812582B82ACA800D622DA /* Annotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Annotation.swift; sourceTree = "<group>"; };
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
 		177354652B1B8502001CF731 /* MenuBarShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarShape.swift; sourceTree = "<group>"; };
 		177354692B1BBACF001CF731 /* MenuBarAppearanceTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceTab.swift; sourceTree = "<group>"; };
@@ -321,6 +323,7 @@
 		179267372AE98870006AFBAF /* ViewModifiers */ = {
 			isa = PBXGroup;
 			children = (
+				175812582B82ACA800D622DA /* Annotation.swift */,
 				71604D602AAE62DA002FE96F /* BottomBar.swift */,
 				71604D622AAE84ED002FE96F /* ErrorOverlay.swift */,
 				17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */,
@@ -724,6 +727,7 @@
 				170423DD2B56E77D004A2549 /* UpdatesManager.swift in Sources */,
 				177354662B1B8502001CF731 /* MenuBarShape.swift in Sources */,
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
+				175812592B82ACA900D622DA /* Annotation.swift in Sources */,
 				71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */,
 				1787C4302B16AE78002F50DF /* PermissionsManager.swift in Sources */,
 				170CF88C2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift in Sources */,

@@ -80,14 +80,7 @@ private class MenuBarAppearanceEditorPopover: NSPopover {
     @ViewBuilder
     private var contentView: some View {
         VStack {
-            Text("Menu Bar Appearance")
-                .font(.title2)
-                .padding(.top)
-
             MenuBarAppearanceTab()
-                .padding(.top, -14)
-                .environmentObject(AppState.shared)
-
             HStack {
                 Spacer()
                 Button("Done") { [weak self] in
@@ -97,6 +90,8 @@ private class MenuBarAppearanceEditorPopover: NSPopover {
             }
             .padding()
         }
+        .environmentObject(AppState.shared)
+        .buttonStyle(.custom)
     }
 
     override init() {

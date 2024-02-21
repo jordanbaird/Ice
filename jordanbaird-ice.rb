@@ -4,7 +4,7 @@ cask "jordanbaird-ice" do
 
   url "https://github.com/jordanbaird/Ice/releases/download/#{version}/Ice.zip"
   name "Ice"
-  desc "Ice Powerful menu bar manager for macOS"
+  desc "Powerful menu bar manager for macOS"
   homepage "https://github.com/jordanbaird/Ice"
 
   livecheck do

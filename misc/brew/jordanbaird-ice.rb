@@ -4,13 +4,8 @@ cask "jordanbaird-ice" do
 
   url "https://github.com/jordanbaird/Ice/releases/download/#{version}/Ice.zip"
   name "Ice"
-  desc "Powerful menu bar manager"
+  desc "Menu bar manager"
   homepage "https://github.com/jordanbaird/Ice"
-
-  livecheck do
-    url "https://github.com/jordanbaird/Ice/releases"
-    strategy :github_latest
-  end
 
   auto_updates true
   depends_on macos: ">= :sonoma"

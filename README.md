@@ -15,6 +15,20 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 > [!NOTE]
 > Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
 
+## Install
+
+### Install Manually
+
+Download the "Ice.zip" file from the [latest release](https://github.com/jordanbaird/Ice/releases/latest), unzip the app, and move it into your Applications folder.
+
+### Homebrew
+
+If you use [Homebrew](https://brew.sh/), you can install Ice using the following command:
+
+```sh
+brew install jordanbaird-ice
+```
+
 ## Features/Roadmap
 
 ### Menu bar item management

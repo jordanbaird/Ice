@@ -17,7 +17,7 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 
 ## Install
 
-### Install Manually
+### Manual Installation
 
 Download the "Ice.zip" file from the [latest release](https://github.com/jordanbaird/Ice/releases/latest), unzip the app, and move it into your Applications folder.
 

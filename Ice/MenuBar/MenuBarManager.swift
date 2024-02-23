@@ -39,9 +39,15 @@ final class MenuBarManager: ObservableObject {
     @Published var showOnHoverPreventedByUserInteraction = false
 
     /// A Boolean value that indicates whether the hidden section
-    /// should automatically rehide after a given time interval
-    /// has passed without interaction.
+    /// should automatically rehide.
     @Published var autoRehide = false
+
+    /// A rule that determines how the auto-rehide feature works.
+    @Published var rehideRule: RehideRule = .timed
+
+    /// A time interval for the auto-rehide feature when its rule
+    /// is ``AutoRehideRule/timed``.
+    @Published var rehideInterval: TimeInterval = 15
 
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
@@ -82,7 +88,7 @@ final class MenuBarManager: ObservableObject {
     )
 
     private lazy var mouseMonitor = UniversalEventMonitor(
-        mask: [.mouseMoved, .leftMouseUp, .leftMouseDown, .rightMouseDown]
+        mask: [.mouseMoved, .leftMouseDown, .rightMouseDown]
     ) { [weak self] event in
         guard let self else {
             return event
@@ -136,20 +142,6 @@ final class MenuBarManager: ObservableObject {
                     }
                 }
             }
-        case .leftMouseUp:
-            guard
-                autoRehide,
-                !isMouseInsideMenuBar,
-                let visibleSection = section(withName: .visible),
-                let hiddenSection = section(withName: .hidden),
-                let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
-                !visibleControlItemFrame.contains(NSEvent.mouseLocation)
-            else {
-                break
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                hiddenSection.hide()
-            }
         case .leftMouseDown:
             guard
                 let visibleSection = section(withName: .visible),
@@ -178,13 +170,11 @@ final class MenuBarManager: ObservableObject {
 
     /// Performs the initial setup of the menu bar.
     func performSetup() {
-        defer {
-            appearanceManager.performSetup()
-        }
         loadInitialState()
         configureCancellables()
         initializeSections()
         mouseMonitor.start()
+        appearanceManager.performSetup()
     }
 
     /// Loads data from storage and sets the initial state of the
@@ -193,19 +183,26 @@ final class MenuBarManager: ObservableObject {
         customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
         showOnHover = defaults.bool(forKey: Defaults.showOnHover)
         autoRehide = defaults.bool(forKey: Defaults.autoRehide)
+        rehideInterval = defaults.double(forKey: Defaults.rehideInterval)
 
-        do {
-            if let iceIconData = defaults.data(forKey: Defaults.iceIcon) {
-                iceIcon = try decoder.decode(ControlItemImageSet.self, from: iceIconData)
-                if case .custom = iceIcon.name {
-                    lastCustomIceIcon = iceIcon
-                }
+        if let data = defaults.data(forKey: Defaults.iceIcon) {
+            do {
+                iceIcon = try decoder.decode(ControlItemImageSet.self, from: data)
+            } catch {
+                Logger.menuBarManager.error("Error decoding Ice icon: \(error)")
             }
-            if let modifierRawValue = defaults.object(forKey: Defaults.secondaryActionModifier) as? Int {
-                secondaryActionModifier = Hotkey.Modifiers(rawValue: modifierRawValue)
+            if case .custom = iceIcon.name {
+                lastCustomIceIcon = iceIcon
             }
-        } catch {
-            Logger.menuBarManager.error("Error decoding value: \(error)")
+        }
+        if let rawValue = defaults.object(forKey: Defaults.secondaryActionModifier) as? Int {
+            secondaryActionModifier = Hotkey.Modifiers(rawValue: rawValue)
+        }
+        if
+            let rawValue = defaults.object(forKey: Defaults.rehideRule) as? Int,
+            let rule = RehideRule(rawValue: rawValue)
+        {
+            rehideRule = rule
         }
     }
 
@@ -327,6 +324,20 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
+        $rehideRule
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] rule in
+                self?.defaults.set(rule.rawValue, forKey: Defaults.rehideRule)
+            }
+            .store(in: &c)
+
+        $rehideInterval
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] interval in
+                self?.defaults.set(interval, forKey: Defaults.rehideInterval)
+            }
+            .store(in: &c)
+
         // propagate changes up from child observable objects
         appearanceManager.objectWillChange
             .sink { [weak self] in
@@ -390,6 +401,13 @@ final class MenuBarManager: ObservableObject {
 
         let appID = frontmostApplication.localizedName ?? "PID \(frontmostApplication.processIdentifier)"
         Logger.menuBarManager.debug("New frontmost application: \(appID)")
+
+        if
+            case .focusedApp = rehideRule,
+            let hiddenSection = section(withName: .hidden)
+        {
+            hiddenSection.hide()
+        }
 
         // FIXME: Find a better way to cancel the observation from within the call
         // to `sink`, other than storing the cancellable in an Optional box object

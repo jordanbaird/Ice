@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import CompactSlider
 import LaunchAtLogin
 import SwiftUI
 
@@ -26,7 +27,11 @@ struct GeneralSettingsPane: View {
             }
             Section {
                 showOnHover
-                autoRehide
+            }
+            Section {
+                autoRehideOptions
+            }
+            Section {
                 iceIconOptions
             }
             Section("Hotkeys") {
@@ -61,11 +66,41 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private var autoRehide: some View {
-        Toggle(
-            "Automatically rehide",
-            isOn: menuBarManager.bindings.autoRehide
-        )
+    private var rehideRulePicker: some View {
+        Picker("Rehide rule", selection: menuBarManager.bindings.rehideRule) {
+            ForEach(RehideRule.allCases) { rule in
+                Text(rule.localized).tag(rule)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var autoRehideOptions: some View {
+        Toggle(isOn: menuBarManager.bindings.autoRehide) {
+            Text("Automatically rehide")
+            Text("Rehide menu bar items after a fixed amount of time, or when the focused app changes")
+        }
+        if menuBarManager.autoRehide {
+            if case .timed = menuBarManager.rehideRule {
+                VStack(alignment: .trailing) {
+                    rehideRulePicker
+                    CompactSlider(
+                        value: menuBarManager.bindings.rehideInterval,
+                        in: 0...30,
+                        step: 1,
+                        handleVisibility: .hovering(width: 1)
+                    ) {
+                        if menuBarManager.rehideInterval == 1 {
+                            Text("\(menuBarManager.rehideInterval.formatted()) second")
+                        } else {
+                            Text("\(menuBarManager.rehideInterval.formatted()) seconds")
+                        }
+                    }
+                }
+            } else {
+                rehideRulePicker
+            }
+        }
     }
 
     @ViewBuilder

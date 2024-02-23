@@ -42,6 +42,8 @@ final class MenuBarSection: ObservableObject {
 
     private var listener: Hotkey.Listener?
 
+    private var rehideTimer: Timer?
+
     private var cancellables = Set<AnyCancellable>()
 
     /// The menu bar manager associated with the section.
@@ -181,6 +183,14 @@ final class MenuBarSection: ObservableObject {
             hiddenSection.controlItem.state = .showItems
             visibleSection.controlItem.state = .showItems
         }
+        if case .timed = menuBarManager.rehideRule {
+            rehideTimer = .scheduledTimer(
+                withTimeInterval: menuBarManager.rehideInterval,
+                repeats: false
+            ) { [weak self] _ in
+                self?.hide()
+            }
+        }
     }
 
     /// Hides the status items in the section.
@@ -213,6 +223,8 @@ final class MenuBarSection: ObservableObject {
             controlItem.state = .hideItems
         }
         menuBarManager.showOnHoverPreventedByUserInteraction = false
+        rehideTimer?.invalidate()
+        rehideTimer = nil
     }
 
     /// Toggles the visibility of the status items in the section.

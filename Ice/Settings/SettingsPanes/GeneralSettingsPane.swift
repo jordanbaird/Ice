@@ -69,7 +69,7 @@ struct GeneralSettingsPane: View {
     private var autoRehideOptions: some View {
         Toggle(isOn: menuBarManager.bindings.autoRehide) {
             Text("Automatically rehide")
-            Text("Rehide menu bar items when the focused app changes, or after a fixed amount of time")
+            Text("Rehide menu bar items after a fixed amount of time, or when the focused app changes")
         }
         if menuBarManager.autoRehide {
             Picker("Rehide rule", selection: menuBarManager.bindings.rehideRule) {

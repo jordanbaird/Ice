@@ -43,7 +43,7 @@ final class MenuBarManager: ObservableObject {
     @Published var autoRehide = false
 
     /// A rule that determines how the auto-rehide feature works.
-    @Published var rehideRule: RehideRule = .focusedApp
+    @Published var rehideRule: RehideRule = .timed
 
     /// A time interval for the auto-rehide feature when its rule
     /// is ``AutoRehideRule/timed``.

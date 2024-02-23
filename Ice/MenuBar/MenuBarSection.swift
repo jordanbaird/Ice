@@ -3,8 +3,8 @@
 //  Ice
 //
 
+import Cocoa
 import Combine
-import Foundation
 import OSLog
 
 /// A representation of a section in a menu bar.
@@ -184,12 +184,7 @@ final class MenuBarSection: ObservableObject {
             visibleSection.controlItem.state = .showItems
         }
         if case .timed = menuBarManager.rehideRule {
-            rehideTimer = .scheduledTimer(
-                withTimeInterval: menuBarManager.rehideInterval,
-                repeats: false
-            ) { [weak self] _ in
-                self?.hide()
-            }
+            scheduleRehideTimer()
         }
     }
 
@@ -232,6 +227,31 @@ final class MenuBarSection: ObservableObject {
         switch controlItem.state {
         case .hideItems: show()
         case .showItems: hide()
+        }
+    }
+
+    private func scheduleRehideTimer() {
+        rehideTimer?.invalidate()
+
+        guard let menuBarManager else {
+            return
+        }
+
+        rehideTimer = .scheduledTimer(
+            withTimeInterval: menuBarManager.rehideInterval,
+            repeats: false
+        ) { [weak self] _ in
+            guard
+                let self,
+                let screen = NSScreen.main
+            else {
+                return
+            }
+            if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
+                hide()
+            } else {
+                scheduleRehideTimer()
+            }
         }
     }
 }

@@ -63,7 +63,7 @@ brew install jordanbaird-ice
 
 ## Why the name?
 
-Because your menu bar becomes like ice, allowing your menu bar items to slide right off 🧊🧊🧊
+Because your menu bar becomes like ice, allowing your menu bar items to slide away 🧊🧊🧊
 
 ## Gallery
 

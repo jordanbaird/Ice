@@ -42,8 +42,7 @@ brew install jordanbaird-ice
 - [ ] Menu bar item search
 - [ ] Hotkeys to temporarily show individual menu bar items
 - [ ] Menu bar widgets
-- [ ] Secondary panel that displays menu bar items as an alternative to the menu bar\
-      (e.g. for use with MacBooks with the notch)
+- [ ] Secondary panel that displays menu bar items as an alternative to the menu bar (e.g. for use with MacBooks with the notch)
 - [ ] Custom spacing between menu bar items
 
 ### Menu bar appearance

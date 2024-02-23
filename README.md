@@ -35,12 +35,10 @@ brew install jordanbaird-ice
 
 - [x] Hide/show menu bar items
 - [x] "Always Hidden" menu bar section
-- [x] Hotkeys to toggle individual menu bar sections
 - [x] Toggle when mouse enters and exits the menu bar
 - [x] Automatically rehide menu bar items
 - [ ] Drag and drop interface to arrange individual menu bar items
 - [ ] Menu bar item search
-- [ ] Hotkeys to temporarily show individual menu bar items
 - [ ] Menu bar widgets
 - [ ] Secondary panel that displays menu bar items as an alternative to the menu bar (e.g. for use with MacBooks with the notch)
 - [ ] Custom spacing between menu bar items
@@ -51,6 +49,12 @@ brew install jordanbaird-ice
 - [x] Menu bar shadow
 - [x] Menu bar border
 - [x] Custom menu bar shapes (rounded and/or split)
+
+### Hotkeys
+
+- [x] Toggle individual menu bar sections
+- [ ] Temporarily show individual menu bar items
+- [ ] Enable/disable auto rehide
 
 ### Other
 

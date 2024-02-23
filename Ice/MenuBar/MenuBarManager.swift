@@ -39,9 +39,15 @@ final class MenuBarManager: ObservableObject {
     @Published var showOnHoverPreventedByUserInteraction = false
 
     /// A Boolean value that indicates whether the hidden section
-    /// should automatically rehide after a given time interval
-    /// has passed without interaction.
+    /// should automatically rehide.
     @Published var autoRehide = false
+
+    /// A rule that determines how the auto-rehide feature works.
+    @Published var rehideRule: RehideRule = .focusedApp
+
+    /// A time interval for the auto-rehide feature when its rule
+    /// is ``AutoRehideRule/timed``.
+    @Published var rehideInterval: TimeInterval = 15
 
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
@@ -137,18 +143,22 @@ final class MenuBarManager: ObservableObject {
                 }
             }
         case .leftMouseUp:
-            guard
+            if
                 autoRehide,
-                !isMouseInsideMenuBar,
-                let visibleSection = section(withName: .visible),
-                let hiddenSection = section(withName: .hidden),
-                let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
-                !visibleControlItemFrame.contains(NSEvent.mouseLocation)
-            else {
-                break
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                hiddenSection.hide()
+                case .focusedApp = rehideRule
+            {
+                guard
+                    !isMouseInsideMenuBar,
+                    let visibleSection = section(withName: .visible),
+                    let hiddenSection = section(withName: .hidden),
+                    let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
+                    !visibleControlItemFrame.contains(NSEvent.mouseLocation)
+                else {
+                    break
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    hiddenSection.hide()
+                }
             }
         case .leftMouseDown:
             guard
@@ -193,6 +203,7 @@ final class MenuBarManager: ObservableObject {
         customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
         showOnHover = defaults.bool(forKey: Defaults.showOnHover)
         autoRehide = defaults.bool(forKey: Defaults.autoRehide)
+        rehideInterval = defaults.double(forKey: Defaults.rehideInterval)
 
         do {
             if let iceIconData = defaults.data(forKey: Defaults.iceIcon) {
@@ -203,6 +214,12 @@ final class MenuBarManager: ObservableObject {
             }
             if let modifierRawValue = defaults.object(forKey: Defaults.secondaryActionModifier) as? Int {
                 secondaryActionModifier = Hotkey.Modifiers(rawValue: modifierRawValue)
+            }
+            if
+                let rehideRuleRawValue = defaults.object(forKey: Defaults.rehideRule) as? Int,
+                let rehideRule = RehideRule(rawValue: rehideRuleRawValue)
+            {
+                self.rehideRule = rehideRule
             }
         } catch {
             Logger.menuBarManager.error("Error decoding value: \(error)")
@@ -324,6 +341,20 @@ final class MenuBarManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] autoRehide in
                 self?.defaults.set(autoRehide, forKey: Defaults.autoRehide)
+            }
+            .store(in: &c)
+
+        $rehideRule
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] rule in
+                self?.defaults.set(rule.rawValue, forKey: Defaults.rehideRule)
+            }
+            .store(in: &c)
+
+        $rehideInterval
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] interval in
+                self?.defaults.set(interval, forKey: Defaults.rehideInterval)
             }
             .store(in: &c)
 

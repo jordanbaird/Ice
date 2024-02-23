@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import CompactSlider
 import LaunchAtLogin
 import SwiftUI
 
@@ -26,7 +27,11 @@ struct GeneralSettingsPane: View {
             }
             Section {
                 showOnHover
-                autoRehide
+            }
+            Section {
+                autoRehideOptions
+            }
+            Section {
                 iceIconOptions
             }
             Section("Hotkeys") {
@@ -61,11 +66,35 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private var autoRehide: some View {
-        Toggle(
-            "Automatically rehide",
-            isOn: menuBarManager.bindings.autoRehide
-        )
+    private var autoRehideOptions: some View {
+        Toggle(isOn: menuBarManager.bindings.autoRehide) {
+            Text("Automatically rehide")
+            Text("Rehide menu bar items when the focused app changes, or after a fixed amount of time")
+        }
+        if menuBarManager.autoRehide {
+            Picker("Rehide rule", selection: menuBarManager.bindings.rehideRule) {
+                ForEach(RehideRule.allCases) { rule in
+                    Text(rule.localized).tag(rule)
+                }
+            }
+            if case .timed = menuBarManager.rehideRule {
+                HStack {
+                    Text("Rehide interval")
+                    CompactSlider(
+                        value: menuBarManager.bindings.rehideInterval,
+                        in: 0...30,
+                        step: 1,
+                        handleVisibility: .hovering(width: 1)
+                    ) {
+                        if menuBarManager.rehideInterval == 1 {
+                            Text("\(menuBarManager.rehideInterval.formatted()) second")
+                        } else {
+                            Text("\(menuBarManager.rehideInterval.formatted()) seconds")
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @ViewBuilder

@@ -13,6 +13,8 @@ enum Defaults {
     static let showOnHover = "ShowOnHover"
 
     static let autoRehide = "AutoRehide"
+    static let rehideRule = "RehideRule"
+    static let rehideInterval = "RehideInterval"
 
     static let menuBarHasBorder = "MenuBarHasBorder"
     static let menuBarBorderColor = "MenuBarBorderColor"

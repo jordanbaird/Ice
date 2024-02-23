@@ -153,13 +153,32 @@ final class MenuBarManager: ObservableObject {
                 showOnHoverPreventedByUserInteraction = true
             }
         case .rightMouseDown:
-            if isMouseInsideMenuBar {
-                showOnHoverPreventedByUserInteraction = true
+            func handleSection(_ section: MenuBarSection) {
+                guard
+                    let controlItemPosition = section.controlItem.position,
+                    NSEvent.mouseLocation.x > mainMenuMaxX,
+                    let screen = NSScreen.main,
+                    screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
+                else {
+                    return
+                }
                 showRightClickMenu(at: NSEvent.mouseLocation)
+            }
+            if
+                let hiddenSection = section(withName: .hidden),
+                hiddenSection.isHidden
+            {
+                handleSection(hiddenSection)
+            } else if
+                let alwaysHiddenSection = section(withName: .alwaysHidden),
+                alwaysHiddenSection.isHidden
+            {
+                handleSection(alwaysHiddenSection)
             }
         default:
             break
         }
+
         return event
     }
 

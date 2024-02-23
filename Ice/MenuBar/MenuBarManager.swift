@@ -88,7 +88,7 @@ final class MenuBarManager: ObservableObject {
     )
 
     private lazy var mouseMonitor = UniversalEventMonitor(
-        mask: [.mouseMoved, .leftMouseUp, .leftMouseDown, .rightMouseDown]
+        mask: [.mouseMoved, .leftMouseDown, .rightMouseDown]
     ) { [weak self] event in
         guard let self else {
             return event
@@ -140,24 +140,6 @@ final class MenuBarManager: ObservableObject {
                             hiddenSection.hide()
                         }
                     }
-                }
-            }
-        case .leftMouseUp:
-            if
-                autoRehide,
-                case .focusedApp = rehideRule
-            {
-                guard
-                    !isMouseInsideMenuBar,
-                    let visibleSection = section(withName: .visible),
-                    let hiddenSection = section(withName: .hidden),
-                    let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
-                    !visibleControlItemFrame.contains(NSEvent.mouseLocation)
-                else {
-                    break
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    hiddenSection.hide()
                 }
             }
         case .leftMouseDown:
@@ -419,6 +401,13 @@ final class MenuBarManager: ObservableObject {
 
         let appID = frontmostApplication.localizedName ?? "PID \(frontmostApplication.processIdentifier)"
         Logger.menuBarManager.debug("New frontmost application: \(appID)")
+
+        if
+            case .focusedApp = rehideRule,
+            let hiddenSection = section(withName: .hidden)
+        {
+            hiddenSection.hide()
+        }
 
         // FIXME: Find a better way to cancel the observation from within the call
         // to `sink`, other than storing the cancellable in an Optional box object

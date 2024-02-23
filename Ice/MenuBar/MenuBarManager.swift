@@ -188,13 +188,11 @@ final class MenuBarManager: ObservableObject {
 
     /// Performs the initial setup of the menu bar.
     func performSetup() {
-        defer {
-            appearanceManager.performSetup()
-        }
         loadInitialState()
         configureCancellables()
         initializeSections()
         mouseMonitor.start()
+        appearanceManager.performSetup()
     }
 
     /// Loads data from storage and sets the initial state of the
@@ -205,24 +203,24 @@ final class MenuBarManager: ObservableObject {
         autoRehide = defaults.bool(forKey: Defaults.autoRehide)
         rehideInterval = defaults.double(forKey: Defaults.rehideInterval)
 
-        do {
-            if let iceIconData = defaults.data(forKey: Defaults.iceIcon) {
-                iceIcon = try decoder.decode(ControlItemImageSet.self, from: iceIconData)
-                if case .custom = iceIcon.name {
-                    lastCustomIceIcon = iceIcon
-                }
+        if let data = defaults.data(forKey: Defaults.iceIcon) {
+            do {
+                iceIcon = try decoder.decode(ControlItemImageSet.self, from: data)
+            } catch {
+                Logger.menuBarManager.error("Error decoding Ice icon: \(error)")
             }
-            if let modifierRawValue = defaults.object(forKey: Defaults.secondaryActionModifier) as? Int {
-                secondaryActionModifier = Hotkey.Modifiers(rawValue: modifierRawValue)
+            if case .custom = iceIcon.name {
+                lastCustomIceIcon = iceIcon
             }
-            if
-                let rehideRuleRawValue = defaults.object(forKey: Defaults.rehideRule) as? Int,
-                let rehideRule = RehideRule(rawValue: rehideRuleRawValue)
-            {
-                self.rehideRule = rehideRule
-            }
-        } catch {
-            Logger.menuBarManager.error("Error decoding value: \(error)")
+        }
+        if let rawValue = defaults.object(forKey: Defaults.secondaryActionModifier) as? Int {
+            secondaryActionModifier = Hotkey.Modifiers(rawValue: rawValue)
+        }
+        if
+            let rawValue = defaults.object(forKey: Defaults.rehideRule) as? Int,
+            let rule = RehideRule(rawValue: rawValue)
+        {
+            rehideRule = rule
         }
     }
 

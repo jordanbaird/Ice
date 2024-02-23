@@ -38,24 +38,28 @@ brew install jordanbaird-ice
 - [x] Hotkeys to toggle individual menu bar sections
 - [x] Toggle when mouse enters and exits the menu bar
 - [x] Automatically rehide menu bar items
-- [ ] Support MacBooks with notch
 - [ ] Drag and drop interface to arrange individual menu bar items
+- [ ] Menu bar item search
 - [ ] Hotkeys to temporarily show individual menu bar items
 - [ ] Menu bar widgets
-- [ ] Drop-down panel that displays menu bar icons as an alternative to the menu bar
-- [ ] Custom spacing between menu bar icons
+- [ ] Secondary panel that displays menu bar items as an alternative to the menu bar (e.g. for use with MacBooks with the notch)
+- [ ] Custom spacing between menu bar items
 
 ### Menu bar appearance
 
 - [x] Menu bar tint (solid and gradient)
 - [x] Menu bar shadow
 - [x] Menu bar border
-- [x] Custom menu bar shapes (i.e. rounded/split)
+- [x] Custom menu bar shapes (rounded and/or split)
 
 ### Other
 
 - [x] Launch at login
-- [x] Automatic updates
+- [x] Automatic updates 
+
+## Why the name?
+
+Because your menu bar becomes like ice, allowing your menu bar items to slide right off 🧊🧊🧊
 
 ## Gallery
 

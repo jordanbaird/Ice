@@ -20,7 +20,7 @@ struct WindowInfo {
             let windowID = info[kCGWindowNumber] as? CGWindowID,
             let frameRaw = info[kCGWindowBounds],
             CFGetTypeID(frameRaw) == CFDictionaryGetTypeID(),
-            let frame = CGRect(dictionaryRepresentation: frameRaw as! CFDictionary),
+            let frame = CGRect(dictionaryRepresentation: frameRaw as! CFDictionary), // swiftlint:disable:this force_cast
             let windowLayer = info[kCGWindowLayer] as? Int,
             let ownerPID = info[kCGWindowOwnerPID] as? Int
         else {

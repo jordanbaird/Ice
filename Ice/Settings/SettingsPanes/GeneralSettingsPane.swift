@@ -61,10 +61,10 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private var rehideRulePicker: some View {
-        Picker("Rehide rule", selection: menuBarManager.bindings.rehideRule) {
-            ForEach(RehideRule.allCases) { rule in
-                Text(rule.localized).tag(rule)
+    private var rehideStrategyPicker: some View {
+        Picker("Rehide strategy", selection: menuBarManager.bindings.rehideStrategy) {
+            ForEach(RehideStrategy.allCases) { strategy in
+                Text(strategy.localized).tag(strategy)
             }
         }
     }
@@ -76,9 +76,9 @@ struct GeneralSettingsPane: View {
             Text("Rehide menu bar items after a fixed amount of time, or when the focused app changes")
         }
         if menuBarManager.autoRehide {
-            if case .timed = menuBarManager.rehideRule {
+            if case .timed = menuBarManager.rehideStrategy {
                 VStack(alignment: .trailing) {
-                    rehideRulePicker
+                    rehideStrategyPicker
                     CompactSlider(
                         value: menuBarManager.bindings.rehideInterval,
                         in: 0...30,
@@ -93,7 +93,7 @@ struct GeneralSettingsPane: View {
                     }
                 }
             } else {
-                rehideRulePicker
+                rehideStrategyPicker
             }
         }
     }

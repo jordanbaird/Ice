@@ -234,7 +234,7 @@ final class MenuBarSection: ObservableObject {
         guard
             let menuBarManager,
             menuBarManager.autoRehide,
-            case .timed = menuBarManager.rehideRule
+            case .timed = menuBarManager.rehideStrategy
         else {
             return
         }

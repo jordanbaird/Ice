@@ -1,12 +1,12 @@
 //
-//  RehideRule.swift
+//  RehideStrategy.swift
 //  Ice
 //
 
 import SwiftUI
 
-/// A rule that determines how the auto-rehide feature works.
-enum RehideRule: Int, CaseIterable, Identifiable {
+/// A type that determines how the auto-rehide feature works.
+enum RehideStrategy: Int, CaseIterable, Identifiable {
     /// Menu bar items are rehidden after a given time interval.
     case timed = 0
     /// Menu bar items are rehidden when the focused app changes.

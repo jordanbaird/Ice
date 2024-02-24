@@ -42,11 +42,11 @@ final class MenuBarManager: ObservableObject {
     /// should automatically rehide.
     @Published var autoRehide = false
 
-    /// A rule that determines how the auto-rehide feature works.
-    @Published var rehideRule: RehideRule = .timed
+    /// A strategy that determines how the auto-rehide feature works.
+    @Published var rehideStrategy: RehideStrategy = .timed
 
     /// A time interval for the auto-rehide feature when its rule
-    /// is ``AutoRehideRule/timed``.
+    /// is ``RehideStrategy/timed``.
     @Published var rehideInterval: TimeInterval = 15
 
     /// The sections currently in the menu bar.
@@ -228,10 +228,10 @@ final class MenuBarManager: ObservableObject {
             secondaryActionModifier = Hotkey.Modifiers(rawValue: rawValue)
         }
         if
-            let rawValue = defaults.object(forKey: Defaults.rehideRule) as? Int,
-            let rule = RehideRule(rawValue: rawValue)
+            let rawValue = defaults.object(forKey: Defaults.rehideStrategy) as? Int,
+            let strategy = RehideStrategy(rawValue: rawValue)
         {
-            rehideRule = rule
+            rehideStrategy = strategy
         }
         if let interval = defaults.object(forKey: Defaults.rehideInterval) as? TimeInterval {
             rehideInterval = interval
@@ -356,10 +356,10 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        $rehideRule
+        $rehideStrategy
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] rule in
-                self?.defaults.set(rule.rawValue, forKey: Defaults.rehideRule)
+            .sink { [weak self] strategy in
+                self?.defaults.set(strategy.rawValue, forKey: Defaults.rehideStrategy)
             }
             .store(in: &c)
 
@@ -435,7 +435,7 @@ final class MenuBarManager: ObservableObject {
         Logger.menuBarManager.debug("New frontmost application: \(appID)")
 
         if
-            case .focusedApp = rehideRule,
+            case .focusedApp = rehideStrategy,
             let hiddenSection = section(withName: .hidden)
         {
             hiddenSection.hide()

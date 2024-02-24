@@ -43,7 +43,7 @@ final class MenuBarManager: ObservableObject {
     @Published var autoRehide = false
 
     /// A strategy that determines how the auto-rehide feature works.
-    @Published var rehideStrategy: RehideStrategy = .timed
+    @Published var rehideStrategy: RehideStrategy = .smart
 
     /// A time interval for the auto-rehide feature when its rule
     /// is ``RehideStrategy/timed``.

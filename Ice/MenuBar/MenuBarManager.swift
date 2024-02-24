@@ -173,7 +173,9 @@ final class MenuBarManager: ObservableObject {
             }
 
             // if all the above checks passed, hide
-            hiddenSection.hide()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                hiddenSection.hide()
+            }
         case .leftMouseDown:
             guard
                 let visibleSection = section(withName: .visible),

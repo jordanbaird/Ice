@@ -141,32 +141,39 @@ final class MenuBarManager: ObservableObject {
                 }
             }
         case .leftMouseUp:
-            func isMouseInEmptyMenuBarSpace() -> Bool {
-                guard
-                    let screen = NSScreen.main,
-                    screen.isMouseInMenuBar,
-                    let hiddenSection = section(withName: .hidden),
-                    let controlItemPosition = hiddenSection.controlItem.position
-                else {
-                    return false
-                }
-                return NSEvent.mouseLocation.x > mainMenuMaxX &&
-                screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
-            }
+            // make sure auto-rehide is enabled and set to smart
             guard
                 autoRehide,
-                case .smart = rehideStrategy,
-                !isMouseInEmptyMenuBarSpace(),
-                let visibleSection = section(withName: .visible),
-                let hiddenSection = section(withName: .hidden),
-                let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
-                !visibleControlItemFrame.contains(NSEvent.mouseLocation)
+                case .smart = rehideStrategy
             else {
                 break
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                hiddenSection.hide()
+
+            // make sure the mouse is not in the menu bar
+            guard
+                let screen = NSScreen.main,
+                !screen.isMouseInMenuBar
+            else {
+                break
             }
+
+            // only continue if the user clicks into an active
+            // window with a regular activation policy
+            guard
+                let hiddenSection = section(withName: .hidden),
+                let flippedMouseLocation = NSEvent.flippedMouseLocation,
+                let windowUnderMouse = WindowInfo.getCurrent(option: .optionOnScreenOnly)
+                    .filter({ $0.windowLayer <= kCGStatusWindowLevel })
+                    .first(where: { $0.frame.contains(flippedMouseLocation) }),
+                let owningApplication = windowUnderMouse.owningApplication,
+                owningApplication.isActive,
+                owningApplication.activationPolicy == .regular
+            else {
+                break
+            }
+
+            // if all the above checks passed, hide
+            hiddenSection.hide()
         case .leftMouseDown:
             guard
                 let visibleSection = section(withName: .visible),

@@ -51,6 +51,7 @@
 		17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */; };
 		17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */; };
 		17C3C5F72B75A36100B9648C /* NSScreen+displayID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C3C5F62B75A36100B9648C /* NSScreen+displayID.swift */; };
+		17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */; };
 		17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPane.swift */; };
 		17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */; };
 		17E2EA652B89531800974E60 /* NSScreen+isMouseInMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E2EA642B89531800974E60 /* NSScreen+isMouseInMenuBar.swift */; };
@@ -137,6 +138,7 @@
 		17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceManager.swift; sourceTree = "<group>"; };
 		17C261E22B5AC03C0076F129 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		17C3C5F62B75A36100B9648C /* NSScreen+displayID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+displayID.swift"; sourceTree = "<group>"; };
+		17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeysSettingsPane.swift; sourceTree = "<group>"; };
 		17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsPane.swift; sourceTree = "<group>"; };
 		17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableColor.swift; sourceTree = "<group>"; };
 		17E2EA642B89531800974E60 /* NSScreen+isMouseInMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+isMouseInMenuBar.swift"; sourceTree = "<group>"; };
@@ -447,6 +449,7 @@
 			children = (
 				714BB9BA2AAB1D690057FB1D /* AboutSettingsPane.swift */,
 				71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */,
+				17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */,
 				170423E22B574CE8004A2549 /* UpdatesSettingsPane.swift */,
 				177354672B1BBAB3001CF731 /* MenuBarSettingsPane */,
 			);
@@ -690,6 +693,7 @@
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,
 				1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */,
 				71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */,
+				17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
 				1750850E2B683A4C00CFF13A /* StateView.swift in Sources */,
 				7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */,

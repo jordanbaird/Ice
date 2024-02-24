@@ -16,6 +16,10 @@ struct SettingsView: View {
             icon: .systemSymbol("menubar.rectangle")
         ),
         SettingsNavigationItem(
+            name: .hotkeys,
+            icon: .systemSymbol("keyboard")
+        ),
+        SettingsNavigationItem(
             name: .updates,
             icon: .systemSymbol("arrow.circlepath")
         ),
@@ -77,6 +81,8 @@ struct SettingsView: View {
             GeneralSettingsPane()
         case .menuBar:
             MenuBarSettingsPane()
+        case .hotkeys:
+            HotkeysSettingsPane()
         case .updates:
             UpdatesSettingsPane()
         case .about:
@@ -104,7 +110,7 @@ struct SettingsView: View {
                 .shadow(radius: 1)
         }
         .padding(.leading, 8)
-        .frame(height: 50)
+        .frame(height: 40)
     }
 }
 

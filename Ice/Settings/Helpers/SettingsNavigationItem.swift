@@ -15,6 +15,7 @@ extension SettingsNavigationItem {
     enum Name: String {
         case general = "General"
         case menuBar = "Menu Bar"
+        case hotkeys = "Hotkeys"
         case updates = "Updates"
         case about = "About"
 

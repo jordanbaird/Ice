@@ -34,16 +34,11 @@ struct GeneralSettingsPane: View {
             Section {
                 iceIconOptions
             }
-            Section("Hotkeys") {
-                hiddenRecorder
-                alwaysHiddenRecorder
-            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
         .frame(maxHeight: .infinity)
-        .errorOverlay(for: HotkeyRecordingFailure.self)
         .alert(isPresented: $isPresentingError, error: presentedError) {
             Button("OK") {
                 presentedError = nil
@@ -192,29 +187,6 @@ struct GeneralSettingsPane: View {
                 Text("Use template image")
                 Text("Display the icon as a monochrome image matching the system appearance")
             }
-        }
-    }
-
-    @ViewBuilder
-    private func hotkeyRecorder(for section: MenuBarSection) -> some View {
-        if section.isEnabled {
-            HotkeyRecorder(section: section) {
-                Text("Toggle the \"\(section.name.rawValue)\" menu bar section")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var hiddenRecorder: some View {
-        if let section = menuBarManager.section(withName: .hidden) {
-            hotkeyRecorder(for: section)
-        }
-    }
-
-    @ViewBuilder
-    private var alwaysHiddenRecorder: some View {
-        if let section = menuBarManager.section(withName: .alwaysHidden) {
-            hotkeyRecorder(for: section)
         }
     }
 }

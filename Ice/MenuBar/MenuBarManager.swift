@@ -213,7 +213,6 @@ final class MenuBarManager: ObservableObject {
         customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
         showOnHover = defaults.bool(forKey: Defaults.showOnHover)
         autoRehide = defaults.bool(forKey: Defaults.autoRehide)
-        rehideInterval = defaults.double(forKey: Defaults.rehideInterval)
 
         if let data = defaults.data(forKey: Defaults.iceIcon) {
             do {
@@ -233,6 +232,9 @@ final class MenuBarManager: ObservableObject {
             let rule = RehideRule(rawValue: rawValue)
         {
             rehideRule = rule
+        }
+        if let interval = defaults.object(forKey: Defaults.rehideInterval) as? TimeInterval {
+            rehideInterval = interval
         }
     }
 

@@ -88,7 +88,7 @@ final class MenuBarManager: ObservableObject {
     )
 
     private lazy var mouseMonitor = UniversalEventMonitor(
-        mask: [.mouseMoved, .leftMouseDown, .rightMouseDown]
+        mask: [.mouseMoved, .leftMouseUp, .leftMouseDown, .rightMouseDown]
     ) { [weak self] event in
         guard let self else {
             return event
@@ -139,6 +139,33 @@ final class MenuBarManager: ObservableObject {
                         }
                     }
                 }
+            }
+        case .leftMouseUp:
+            func isMouseInEmptyMenuBarSpace() -> Bool {
+                guard
+                    let screen = NSScreen.main,
+                    screen.isMouseInMenuBar,
+                    let hiddenSection = section(withName: .hidden),
+                    let controlItemPosition = hiddenSection.controlItem.position
+                else {
+                    return false
+                }
+                return NSEvent.mouseLocation.x > mainMenuMaxX &&
+                screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
+            }
+            guard
+                autoRehide,
+                case .smart = rehideStrategy,
+                !isMouseInEmptyMenuBarSpace(),
+                let visibleSection = section(withName: .visible),
+                let hiddenSection = section(withName: .hidden),
+                let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
+                !visibleControlItemFrame.contains(NSEvent.mouseLocation)
+            else {
+                break
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                hiddenSection.hide()
             }
         case .leftMouseDown:
             guard

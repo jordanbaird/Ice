@@ -62,9 +62,19 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var rehideStrategyPicker: some View {
-        Picker("Rehide strategy", selection: menuBarManager.bindings.rehideStrategy) {
+        Picker(selection: menuBarManager.bindings.rehideStrategy) {
             ForEach(RehideStrategy.allCases) { strategy in
                 Text(strategy.localized).tag(strategy)
+            }
+        } label: {
+            Text("Strategy")
+            switch menuBarManager.rehideStrategy {
+            case .smart:
+                Text("Menu bar items are rehidden using a smart algorithm")
+            case .timed:
+                Text("Menu bar items are rehidden after a fixed amount of time")
+            case .focusedApp:
+                Text("Menu bar items are rehidden when the focused app changes")
             }
         }
     }
@@ -73,7 +83,6 @@ struct GeneralSettingsPane: View {
     private var autoRehideOptions: some View {
         Toggle(isOn: menuBarManager.bindings.autoRehide) {
             Text("Automatically rehide")
-            Text("Rehide menu bar items after a fixed amount of time, or when the focused app changes")
         }
         if menuBarManager.autoRehide {
             if case .timed = menuBarManager.rehideStrategy {

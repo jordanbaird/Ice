@@ -183,9 +183,7 @@ final class MenuBarSection: ObservableObject {
             hiddenSection.controlItem.state = .showItems
             visibleSection.controlItem.state = .showItems
         }
-        if case .timed = menuBarManager.rehideRule {
-            scheduleRehideTimer()
-        }
+        scheduleRehideTimerIfNeeded()
     }
 
     /// Hides the status items in the section.
@@ -230,10 +228,14 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    private func scheduleRehideTimer() {
+    private func scheduleRehideTimerIfNeeded() {
         rehideTimer?.invalidate()
 
-        guard let menuBarManager else {
+        guard
+            let menuBarManager,
+            menuBarManager.autoRehide,
+            case .timed = menuBarManager.rehideRule
+        else {
             return
         }
 
@@ -250,7 +252,7 @@ final class MenuBarSection: ObservableObject {
             if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
                 hide()
             } else {
-                scheduleRehideTimer()
+                scheduleRehideTimerIfNeeded()
             }
         }
     }

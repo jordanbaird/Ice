@@ -1,5 +1,5 @@
 //
-//  Logger+initCategory.swift
+//  Logger+initWithCategory.swift
 //  Ice
 //
 

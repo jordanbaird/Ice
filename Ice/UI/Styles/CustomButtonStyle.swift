@@ -9,58 +9,23 @@ import SwiftUI
 
 /// A custom button style to use in the app's interface.
 struct CustomButtonStyle: PrimitiveButtonStyle {
-    /// Custom view that prevents mouse down messages from
-    /// passing through to the button's window.
+    /// Custom view that prevents mouse down messages from passing through to
+    /// the button's window.
     private struct MouseDownInterceptor: NSViewRepresentable {
         private class Represented: NSView {
             override var mouseDownCanMoveWindow: Bool { false }
         }
-
-        func makeNSView(context: Context) -> NSView {
-            return Represented()
-        }
-
+        func makeNSView(context: Context) -> NSView { Represented() }
         func updateNSView(_: NSView, context: Context) { }
     }
 
-    /// Custom view that ensures that the button accepts
-    /// the first mouse input.
+    /// Custom view that ensures that the button accepts the first mouse input.
     private struct FirstMouseOverlay: NSViewRepresentable {
         private class Represented: NSView {
-            override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
-                return true
-            }
+            override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
         }
-
-        func makeNSView(context: Context) -> NSView {
-            return Represented()
-        }
-
+        func makeNSView(context: Context) -> NSView { Represented() }
         func updateNSView(_: NSView, context: Context) { }
-    }
-
-    /// Custom shape that draws a rounded rectangle with some of
-    /// its sides flattened according to the given button shape.
-    private struct ClipShape: Shape {
-        let cornerRadius: CGFloat
-        let shape: CustomButtonConfiguration.ButtonShape
-
-        func path(in rect: CGRect) -> Path {
-            if shape.flattenedEdges == .all {
-                // fast path
-                return Path(rect)
-            }
-            var path = Path(roundedRect: rect, cornerRadius: cornerRadius)
-            if shape.flattenedEdges.isEmpty {
-                // fast path
-                return path
-            }
-            for edge in Edge.allCases where shape.flattenedEdges.contains(Edge.Set(edge)) {
-                let slice = path.boundingRect.divided(atDistance: cornerRadius, from: edge.cgRectEdge).slice
-                path = path.union(Path(slice))
-            }
-            return path
-        }
     }
 
     @Environment(\.controlSize) private var controlSize
@@ -72,14 +37,10 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(customButtonConfiguration.labelForegroundColor)
+            .font(customButtonConfiguration.font)
             .padding(padding)
             .baselineOffset(1)
             .lineLimit(1)
-            .transformEnvironment(\.font) { font in
-                if font == nil {
-                    font = .body.weight(.regular)
-                }
-            }
             .background {
                 Color.primary
                     .opacity(customButtonConfiguration.isHighlighted ? 0.2 : 0)
@@ -88,7 +49,7 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
                     .background {
                         MouseDownInterceptor()
                     }
-                    .clipShape(ClipShape(cornerRadius: 5, shape: customButtonConfiguration.shape))
+                    .clipShape(UnevenRoundedRectangle(cornerRadii: customButtonConfiguration.shape.cornerRadii))
                     .opacity(customButtonConfiguration.bezelOpacity)
             }
             .overlay {
@@ -142,16 +103,16 @@ extension PrimitiveButtonStyle where Self == CustomButtonStyle {
 struct CustomButtonConfiguration {
     /// A configuration that determines the shape of the button.
     struct ButtonShape {
-        /// The flattened edges of the button.
-        var flattenedEdges: Edge.Set = []
+        /// The corner radii of the shape.
+        var cornerRadii = RectangleCornerRadii(leading: 5, trailing: 5)
 
         /// A configuration for a button with the shape of a leading
         /// segment in a segmented control.
-        static let leadingSegment = ButtonShape(flattenedEdges: .trailing)
+        static let leadingSegment = ButtonShape(cornerRadii: RectangleCornerRadii(leading: 5))
 
         /// A configuration for a button with the shape of a trailing
         /// segment in a segmented control.
-        static let trailingSegment = ButtonShape(flattenedEdges: .leading)
+        static let trailingSegment = ButtonShape(cornerRadii: RectangleCornerRadii(trailing: 5))
     }
 
     /// The opacity of the button's bezel.
@@ -166,6 +127,9 @@ struct CustomButtonConfiguration {
 
     /// The foreground color of the button's label.
     var labelForegroundColor = Color.primary
+
+    /// The font of the button's label.
+    var font = Font.body.weight(.regular)
 
     /// The shape of the button.
     var shape = ButtonShape()

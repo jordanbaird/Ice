@@ -15,8 +15,8 @@ struct HotkeysSettingsPane: View {
     var body: some View {
         Form {
             Section {
-                hiddenRecorder
-                alwaysHiddenRecorder
+                toggleHiddenSection
+                toggleAlwaysHiddenSection
             }
         }
         .formStyle(.grouped)
@@ -27,7 +27,7 @@ struct HotkeysSettingsPane: View {
     }
 
     @ViewBuilder
-    private func hotkeyRecorder(for section: MenuBarSection) -> some View {
+    private func hotkeyRecorder(forToggling section: MenuBarSection) -> some View {
         if section.isEnabled {
             HotkeyRecorder(section: section) {
                 Text("Toggle the \"\(section.name.rawValue)\" menu bar section")
@@ -36,16 +36,16 @@ struct HotkeysSettingsPane: View {
     }
 
     @ViewBuilder
-    private var hiddenRecorder: some View {
+    private var toggleHiddenSection: some View {
         if let section = menuBarManager.section(withName: .hidden) {
-            hotkeyRecorder(for: section)
+            hotkeyRecorder(forToggling: section)
         }
     }
 
     @ViewBuilder
-    private var alwaysHiddenRecorder: some View {
+    private var toggleAlwaysHiddenSection: some View {
         if let section = menuBarManager.section(withName: .alwaysHidden) {
-            hotkeyRecorder(for: section)
+            hotkeyRecorder(forToggling: section)
         }
     }
 }

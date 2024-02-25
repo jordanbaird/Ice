@@ -141,7 +141,7 @@ final class MenuBarManager: ObservableObject {
                 }
             }
         case .leftMouseUp:
-            // make sure auto-rehide is enabled and set to smart
+            // make sure auto-rehide is enabled and set to "Smart"
             guard
                 autoRehide,
                 case .smart = rehideStrategy
@@ -157,22 +157,31 @@ final class MenuBarManager: ObservableObject {
                 break
             }
 
-            // only continue if the user clicks into an active
-            // window with a regular activation policy
+            // get the window that the user has clicked into
             guard
                 let hiddenSection = section(withName: .hidden),
                 let flippedMouseLocation = NSEvent.flippedMouseLocation,
                 let windowUnderMouse = WindowInfo.getCurrent(option: .optionOnScreenOnly)
-                    .filter({ $0.windowLayer <= kCGStatusWindowLevel })
+                    .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
                     .first(where: { $0.frame.contains(flippedMouseLocation) }),
-                let owningApplication = windowUnderMouse.owningApplication,
-                owningApplication.isActive,
-                owningApplication.activationPolicy == .regular
+                let owningApplication = windowUnderMouse.owningApplication
             else {
                 break
             }
 
-            // if all the above checks passed, hide
+            // the dock is an exception to the following check
+            if owningApplication.bundleIdentifier != "com.apple.dock" {
+                // only continue if the user has clicked into an
+                // active window with a regular activation policy
+                guard
+                    owningApplication.isActive,
+                    owningApplication.activationPolicy == .regular
+                else {
+                    break
+                }
+            }
+
+            // if all the above checks have passed, hide
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 hiddenSection.hide()
             }

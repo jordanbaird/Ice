@@ -33,6 +33,11 @@ final class MenuBarManager: ObservableObject {
     /// empty area of the menu bar.
     @Published var showOnHover = false
 
+    /// A Boolean value that indicates whether the hidden section
+    /// should be shown when the mouse pointer clicks in an empty
+    /// area of the menu bar.
+    @Published var showOnClick = false
+
     /// A Boolean value that indicates whether the user has
     /// interacted with the menu bar, preventing the "show on
     /// hover" feature from activating.
@@ -204,7 +209,15 @@ final class MenuBarManager: ObservableObject {
                 return NSEvent.mouseLocation.x > mainMenuMaxX &&
                 screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
             }
-            if isMouseInEmptyMenuBarSpace() || visibleControlItemFrame.contains(NSEvent.mouseLocation) {
+            if isMouseInEmptyMenuBarSpace() {
+                showOnHoverPreventedByUserInteraction = true
+                if
+                    showOnClick,
+                    let hiddenSection = section(withName: .hidden)
+                {
+                    hiddenSection.show()
+                }
+            } else if visibleControlItemFrame.contains(NSEvent.mouseLocation) {
                 showOnHoverPreventedByUserInteraction = true
             }
         case .rightMouseDown:
@@ -257,6 +270,7 @@ final class MenuBarManager: ObservableObject {
     private func loadInitialState() {
         customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
         showOnHover = defaults.bool(forKey: Defaults.showOnHover)
+        showOnClick = defaults.bool(forKey: Defaults.showOnClick)
         autoRehide = defaults.bool(forKey: Defaults.autoRehide)
 
         if let data = defaults.data(forKey: Defaults.iceIcon) {
@@ -391,6 +405,13 @@ final class MenuBarManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] showOnHover in
                 self?.defaults.set(showOnHover, forKey: Defaults.showOnHover)
+            }
+            .store(in: &c)
+
+        $showOnClick
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] showOnClick in
+                self?.defaults.set(showOnClick, forKey: Defaults.showOnClick)
             }
             .store(in: &c)
 

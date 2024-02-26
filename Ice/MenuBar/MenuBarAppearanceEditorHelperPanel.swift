@@ -52,6 +52,7 @@ class MenuBarAppearanceEditorHelperPanel: NSPanel {
         let popover = MenuBarAppearanceEditorPopover()
         popover.delegate = self
         popover.show(relativeTo: .zero, of: contentView, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.makeKey()
         NSColorPanel.shared.hidesOnDeactivate = false
     }
 }

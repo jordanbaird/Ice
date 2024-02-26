@@ -55,6 +55,7 @@
 		17CC22B32B8A5595001A0582 /* NSEvent+flippedMouseLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22B22B8A5595001A0582 /* NSEvent+flippedMouseLocation.swift */; };
 		17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22B42B8A55E7001A0582 /* WindowInfo.swift */; };
 		17CC22B82B8B5628001A0582 /* RectangleCornerRadii+init.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22B72B8B5628001A0582 /* RectangleCornerRadii+init.swift */; };
+		17CC22BC2B8CDE6F001A0582 /* EventMonitorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22BB2B8CDE6F001A0582 /* EventMonitorManager.swift */; };
 		17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPane.swift */; };
 		17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */; };
 		17E2EA652B89531800974E60 /* NSScreen+isMouseInMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E2EA642B89531800974E60 /* NSScreen+isMouseInMenuBar.swift */; };
@@ -144,6 +145,7 @@
 		17CC22B22B8A5595001A0582 /* NSEvent+flippedMouseLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSEvent+flippedMouseLocation.swift"; sourceTree = "<group>"; };
 		17CC22B42B8A55E7001A0582 /* WindowInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowInfo.swift; sourceTree = "<group>"; };
 		17CC22B72B8B5628001A0582 /* RectangleCornerRadii+init.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RectangleCornerRadii+init.swift"; sourceTree = "<group>"; };
+		17CC22BB2B8CDE6F001A0582 /* EventMonitorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMonitorManager.swift; sourceTree = "<group>"; };
 		17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsPane.swift; sourceTree = "<group>"; };
 		17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableColor.swift; sourceTree = "<group>"; };
 		17E2EA642B89531800974E60 /* NSScreen+isMouseInMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+isMouseInMenuBar.swift"; sourceTree = "<group>"; };
@@ -567,6 +569,7 @@
 		7166834E2A768190006ABF84 /* MenuBar */ = {
 			isa = PBXGroup;
 			children = (
+				17CC22BB2B8CDE6F001A0582 /* EventMonitorManager.swift */,
 				175812532B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift */,
 				17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */,
 				174AA5D52B71D97100E3FE74 /* MenuBarAppearancePanel.swift */,
@@ -749,6 +752,7 @@
 				17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */,
 				714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */,
 				174AA5F52B730A0B00E3FE74 /* ScreenCaptureManager.swift in Sources */,
+				17CC22BC2B8CDE6F001A0582 /* EventMonitorManager.swift in Sources */,
 				71623BD32A8B6744002FD331 /* CustomButtonStyle.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */,
 				174AA5D62B71D97100E3FE74 /* MenuBarAppearancePanel.swift in Sources */,

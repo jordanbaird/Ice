@@ -73,7 +73,7 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// The maximum X coordinate of the menu bar's main menu.
-    private var mainMenuMaxX: CGFloat = 0
+    private(set) var mainMenuMaxX: CGFloat = 0
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -92,167 +92,7 @@ final class MenuBarManager: ObservableObject {
         defaults: defaults
     )
 
-    private lazy var mouseMonitor = UniversalEventMonitor(
-        mask: [.mouseMoved, .leftMouseUp, .leftMouseDown, .rightMouseDown]
-    ) { [weak self] event in
-        guard let self else {
-            return event
-        }
-
-        switch event.type {
-        case .mouseMoved:
-            guard
-                showOnHover,
-                !showOnHoverPreventedByUserInteraction,
-                let hiddenSection = section(withName: .hidden)
-            else {
-                break
-            }
-            if hiddenSection.isHidden {
-                func isMouseInEmptyMenuBarSpace() -> Bool {
-                    guard
-                        let screen = NSScreen.main,
-                        screen.isMouseInMenuBar,
-                        let controlItemPosition = hiddenSection.controlItem.position
-                    else {
-                        return false
-                    }
-                    return NSEvent.mouseLocation.x > mainMenuMaxX &&
-                    screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
-                }
-                if isMouseInEmptyMenuBarSpace() {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        // make sure the mouse is still inside
-                        if isMouseInEmptyMenuBarSpace() {
-                            hiddenSection.show()
-                        }
-                    }
-                }
-            } else {
-                func isMouseOutsideMenuBar() -> Bool {
-                    guard let screen = NSScreen.main else {
-                        return false
-                    }
-                    return NSEvent.mouseLocation.y < screen.visibleFrame.maxY ||
-                    NSEvent.mouseLocation.y > screen.frame.maxY
-                }
-                if isMouseOutsideMenuBar() {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        // make sure the mouse is still outside
-                        if isMouseOutsideMenuBar() {
-                            hiddenSection.hide()
-                        }
-                    }
-                }
-            }
-        case .leftMouseUp:
-            // make sure auto-rehide is enabled and set to smart
-            guard
-                autoRehide,
-                case .smart = rehideStrategy
-            else {
-                break
-            }
-
-            // make sure the mouse is not in the menu bar
-            guard
-                let screen = NSScreen.main,
-                !screen.isMouseInMenuBar
-            else {
-                break
-            }
-
-            // get the window that the user has clicked into
-            guard
-                let hiddenSection = section(withName: .hidden),
-                let flippedMouseLocation = NSEvent.flippedMouseLocation,
-                let windowUnderMouse = WindowInfo.getCurrent(option: .optionOnScreenOnly)
-                    .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
-                    .first(where: { $0.frame.contains(flippedMouseLocation) }),
-                let owningApplication = windowUnderMouse.owningApplication
-            else {
-                break
-            }
-
-            // the dock is an exception to the following check
-            if owningApplication.bundleIdentifier != "com.apple.dock" {
-                // only continue if the user has clicked into an
-                // active window with a regular activation policy
-                guard
-                    owningApplication.isActive,
-                    owningApplication.activationPolicy == .regular
-                else {
-                    break
-                }
-            }
-
-            // if all the above checks have passed, hide
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                hiddenSection.hide()
-            }
-        case .leftMouseDown:
-            guard
-                let visibleSection = section(withName: .visible),
-                let visibleControlItemFrame = visibleSection.controlItem.windowFrame
-            else {
-                break
-            }
-            func isMouseInEmptyMenuBarSpace() -> Bool {
-                guard
-                    let screen = NSScreen.main,
-                    screen.isMouseInMenuBar,
-                    let hiddenSection = section(withName: .hidden),
-                    let controlItemPosition = hiddenSection.controlItem.position
-                else {
-                    return false
-                }
-                return NSEvent.mouseLocation.x > mainMenuMaxX &&
-                screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
-            }
-            if isMouseInEmptyMenuBarSpace() {
-                showOnHoverPreventedByUserInteraction = true
-                if
-                    showOnClick,
-                    let hiddenSection = section(withName: .hidden)
-                {
-                    // small delay for better user experience
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        hiddenSection.show()
-                    }
-                }
-            } else if visibleControlItemFrame.contains(NSEvent.mouseLocation) {
-                showOnHoverPreventedByUserInteraction = true
-            }
-        case .rightMouseDown:
-            func handleSection(_ section: MenuBarSection) {
-                guard
-                    let controlItemPosition = section.controlItem.position,
-                    NSEvent.mouseLocation.x > mainMenuMaxX,
-                    let screen = NSScreen.main,
-                    screen.isMouseInMenuBar,
-                    screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
-                else {
-                    return
-                }
-                showRightClickMenu(at: NSEvent.mouseLocation)
-            }
-            if
-                let hiddenSection = section(withName: .hidden),
-                hiddenSection.isHidden
-            {
-                handleSection(hiddenSection)
-            } else if
-                let alwaysHiddenSection = section(withName: .alwaysHidden),
-                alwaysHiddenSection.isHidden
-            {
-                handleSection(alwaysHiddenSection)
-            }
-        default:
-            break
-        }
-
-        return event
-    }
+    private(set) lazy var eventMonitorManager = EventMonitorManager(menuBarManager: self)
 
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
@@ -264,8 +104,8 @@ final class MenuBarManager: ObservableObject {
         loadInitialState()
         configureCancellables()
         initializeSections()
-        mouseMonitor.start()
         appearanceManager.performSetup()
+        eventMonitorManager.performSetup()
     }
 
     /// Loads data from storage and sets the initial state of the

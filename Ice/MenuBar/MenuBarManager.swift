@@ -215,7 +215,10 @@ final class MenuBarManager: ObservableObject {
                     showOnClick,
                     let hiddenSection = section(withName: .hidden)
                 {
-                    hiddenSection.show()
+                    // small delay for better user experience
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        hiddenSection.show()
+                    }
                 }
             } else if visibleControlItemFrame.contains(NSEvent.mouseLocation) {
                 showOnHoverPreventedByUserInteraction = true
@@ -504,7 +507,10 @@ final class MenuBarManager: ObservableObject {
             case .focusedApp = rehideStrategy,
             let hiddenSection = section(withName: .hidden)
         {
-            hiddenSection.hide()
+            // small delay for better user experience
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                hiddenSection.hide()
+            }
         }
 
         // FIXME: Find a better way to cancel the observation from within the call

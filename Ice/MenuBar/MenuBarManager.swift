@@ -29,14 +29,14 @@ final class MenuBarManager: ObservableObject {
     @Published var secondaryActionModifier: Hotkey.Modifiers = .option
 
     /// A Boolean value that indicates whether the hidden section
+    /// should be shown when the mouse pointer clicks in an empty
+    /// area of the menu bar.
+    @Published var showOnClick = true
+
+    /// A Boolean value that indicates whether the hidden section
     /// should be shown when the mouse pointer hovers over an
     /// empty area of the menu bar.
     @Published var showOnHover = false
-
-    /// A Boolean value that indicates whether the hidden section
-    /// should be shown when the mouse pointer clicks in an empty
-    /// area of the menu bar.
-    @Published var showOnClick = false
 
     /// A Boolean value that indicates whether the user has
     /// interacted with the menu bar, preventing the "show on
@@ -45,7 +45,7 @@ final class MenuBarManager: ObservableObject {
 
     /// A Boolean value that indicates whether the hidden section
     /// should automatically rehide.
-    @Published var autoRehide = false
+    @Published var autoRehide = true
 
     /// A strategy that determines how the auto-rehide feature works.
     @Published var rehideStrategy: RehideStrategy = .smart
@@ -111,10 +111,11 @@ final class MenuBarManager: ObservableObject {
     /// Loads data from storage and sets the initial state of the
     /// menu bar from that data.
     private func loadInitialState() {
-        customIceIconIsTemplate = defaults.bool(forKey: Defaults.customIceIconIsTemplate)
-        showOnHover = defaults.bool(forKey: Defaults.showOnHover)
-        showOnClick = defaults.bool(forKey: Defaults.showOnClick)
-        autoRehide = defaults.bool(forKey: Defaults.autoRehide)
+        defaults.assignIfPresent(&customIceIconIsTemplate, forKey: Defaults.customIceIconIsTemplate)
+        defaults.assignIfPresent(&showOnClick, forKey: Defaults.showOnClick)
+        defaults.assignIfPresent(&showOnHover, forKey: Defaults.showOnHover)
+        defaults.assignIfPresent(&autoRehide, forKey: Defaults.autoRehide)
+        defaults.assignIfPresent(&rehideInterval, forKey: Defaults.rehideInterval)
 
         if let data = defaults.data(forKey: Defaults.iceIcon) {
             do {
@@ -134,9 +135,6 @@ final class MenuBarManager: ObservableObject {
             let strategy = RehideStrategy(rawValue: rawValue)
         {
             rehideStrategy = strategy
-        }
-        if let interval = defaults.object(forKey: Defaults.rehideInterval) as? TimeInterval {
-            rehideInterval = interval
         }
     }
 

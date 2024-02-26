@@ -11,8 +11,8 @@ enum Defaults {
     static let secondaryActionModifier = "SecondaryActionModifier"
     static let sections = "Sections"
 
-    static let showOnHover = "ShowOnHover"
     static let showOnClick = "ShowOnClick"
+    static let showOnHover = "ShowOnHover"
 
     static let autoRehide = "AutoRehide"
     static let rehideStrategy = "RehideStrategy"

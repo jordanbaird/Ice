@@ -44,6 +44,8 @@ final class MenuBarSection: ObservableObject {
 
     private var rehideTimer: Timer?
 
+    private var rehideMonitor: UniversalEventMonitor?
+
     private var cancellables = Set<AnyCancellable>()
 
     /// The menu bar manager associated with the section.
@@ -183,7 +185,7 @@ final class MenuBarSection: ObservableObject {
             hiddenSection.controlItem.state = .showItems
             visibleSection.controlItem.state = .showItems
         }
-        scheduleRehideTimerIfNeeded()
+        startRehideMonitor()
     }
 
     /// Hides the status items in the section.
@@ -217,7 +219,9 @@ final class MenuBarSection: ObservableObject {
         }
         menuBarManager.showOnHoverPreventedByUserInteraction = false
         rehideTimer?.invalidate()
+        rehideMonitor?.stop()
         rehideTimer = nil
+        rehideMonitor = nil
     }
 
     /// Toggles the visibility of the status items in the section.
@@ -228,8 +232,9 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    private func scheduleRehideTimerIfNeeded() {
+    private func startRehideMonitor() {
         rehideTimer?.invalidate()
+        rehideMonitor?.stop()
 
         guard
             let menuBarManager,
@@ -239,22 +244,40 @@ final class MenuBarSection: ObservableObject {
             return
         }
 
-        rehideTimer = .scheduledTimer(
-            withTimeInterval: menuBarManager.rehideInterval,
-            repeats: false
-        ) { [weak self] _ in
+        rehideMonitor = UniversalEventMonitor(mask: .mouseMoved) { [weak self] event in
             guard
                 let self,
                 let screen = NSScreen.main
             else {
-                return
+                return event
             }
             if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
-                hide()
+                if rehideTimer == nil {
+                    rehideTimer = .scheduledTimer(
+                        withTimeInterval: menuBarManager.rehideInterval,
+                        repeats: false
+                    ) { [weak self] _ in
+                        guard
+                            let self,
+                            let screen = NSScreen.main
+                        else {
+                            return
+                        }
+                        if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
+                            hide()
+                        } else {
+                            startRehideMonitor()
+                        }
+                    }
+                }
             } else {
-                scheduleRehideTimerIfNeeded()
+                rehideTimer?.invalidate()
+                rehideTimer = nil
             }
+            return event
         }
+
+        rehideMonitor?.start()
     }
 }
 

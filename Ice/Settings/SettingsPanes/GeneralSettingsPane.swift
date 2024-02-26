@@ -17,6 +17,15 @@ struct GeneralSettingsPane: View {
         appState.menuBarManager
     }
 
+    private var rehideInterval: LocalizedStringKey {
+        let formatted = menuBarManager.rehideInterval.formatted()
+        return if menuBarManager.rehideInterval == 1 {
+            LocalizedStringKey(formatted + " second")
+        } else {
+            LocalizedStringKey(formatted + " seconds")
+        }
+    }
+
     var body: some View {
         Form {
             Section {
@@ -103,12 +112,9 @@ struct GeneralSettingsPane: View {
                         step: 1,
                         handleVisibility: .hovering(width: 1)
                     ) {
-                        if menuBarManager.rehideInterval == 1 {
-                            Text("\(menuBarManager.rehideInterval.formatted()) second")
-                        } else {
-                            Text("\(menuBarManager.rehideInterval.formatted()) seconds")
-                        }
+                        Text(rehideInterval)
                     }
+                    .compactSliderDisabledHapticFeedback(true)
                 }
             } else {
                 rehideStrategyPicker

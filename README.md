@@ -33,15 +33,15 @@ brew install jordanbaird-ice
 
 ### Menu bar item management
 
-- [x] Hide/show menu bar items
+- [x] Hide menu bar items
 - [x] "Always Hidden" menu bar section
-- [x] Toggle when mouse enters and exits the menu bar
-- [x] Automatically rehide menu bar items
-- [ ] Drag and drop interface to arrange individual menu bar items
-- [ ] Menu bar item search
-- [ ] Menu bar widgets
-- [ ] Secondary panel that displays menu bar items as an alternative to the menu bar (e.g. for use with MacBooks with the notch)
-- [ ] Custom spacing between menu bar items
+- [x] Show hidden items when hovering over the menu bar
+- [x] Show hidden items when an empty area in the menu bar is clicked 
+- [x] Automatically rehide
+- [ ] Drag and drop interface to arrange individual items
+- [ ] Item search
+- [ ] Display hidden items in a separate bar (e.g. for MacBooks with the notch)
+- [ ] Custom spacing between items
 
 ### Menu bar appearance
 
@@ -59,7 +59,8 @@ brew install jordanbaird-ice
 ### Other
 
 - [x] Launch at login
-- [x] Automatic updates 
+- [x] Automatic updates
+- [ ] Menu bar widgets
 
 ## Why the name?
 

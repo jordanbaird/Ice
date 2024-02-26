@@ -146,7 +146,7 @@ final class MenuBarManager: ObservableObject {
                 }
             }
         case .leftMouseUp:
-            // make sure auto-rehide is enabled and set to "Smart"
+            // make sure auto-rehide is enabled and set to smart
             guard
                 autoRehide,
                 case .smart = rehideStrategy

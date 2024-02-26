@@ -38,6 +38,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 item.isHidden = true
             }
         }
+
+        // hide all sections
+        for section in appState.menuBarManager.sections {
+            section.hide()
+        }
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {

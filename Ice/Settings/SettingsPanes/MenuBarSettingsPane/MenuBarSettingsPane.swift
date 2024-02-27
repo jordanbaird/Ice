@@ -10,14 +10,10 @@ struct MenuBarSettingsPane: View {
 
     var body: some View {
         CustomTabView(selection: $selection) {
-            CustomTab {
-                Text("Appearance")
-            } content: {
+            CustomTab("Appearance") {
                 MenuBarAppearanceTab()
             }
-            CustomTab {
-                Text("Layout")
-            } content: {
+            CustomTab("Layout") {
                 MenuBarLayoutTab()
             }
         }

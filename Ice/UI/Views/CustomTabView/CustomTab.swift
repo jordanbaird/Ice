@@ -22,4 +22,12 @@ struct CustomTab {
         self.label = AnyView(label())
         self.content = AnyView(content())
     }
+
+    /// Creates a tab with the given label and content view.
+    init<Content: View>(
+        _ labelKey: LocalizedStringKey,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.init(label: { Text(labelKey) }, content: content)
+    }
 }

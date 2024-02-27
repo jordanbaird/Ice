@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		170423D92B56DE78004A2549 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 170423D82B56DE78004A2549 /* Sparkle */; };
 		170423DD2B56E77D004A2549 /* UpdatesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170423DC2B56E77D004A2549 /* UpdatesManager.swift */; };
-		170423E32B574CE8004A2549 /* UpdatesSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170423E22B574CE8004A2549 /* UpdatesSettingsPane.swift */; };
 		170749C82B12078F009DDF73 /* GlobalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170749C72B12078F009DDF73 /* GlobalEventMonitor.swift */; };
 		170749CA2B1207D9009DDF73 /* UniversalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170749C92B1207D9009DDF73 /* UniversalEventMonitor.swift */; };
 		170CF88C2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88B2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift */; };
@@ -18,6 +17,8 @@
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
 		1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */; };
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
+		173C24892B8E80830096F7A1 /* AboutTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173C24882B8E80830096F7A1 /* AboutTab.swift */; };
+		173C248C2B8E821C0096F7A1 /* UpdatesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173C248B2B8E821C0096F7A1 /* UpdatesTab.swift */; };
 		174AA5D62B71D97100E3FE74 /* MenuBarAppearancePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174AA5D52B71D97100E3FE74 /* MenuBarAppearancePanel.swift */; };
 		174AA5F52B730A0B00E3FE74 /* ScreenCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174AA5F42B730A0B00E3FE74 /* ScreenCaptureManager.swift */; };
 		175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 175061902B1543DD003144CD /* LaunchAtLogin */; };
@@ -100,7 +101,6 @@
 
 /* Begin PBXFileReference section */
 		170423DC2B56E77D004A2549 /* UpdatesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesManager.swift; sourceTree = "<group>"; };
-		170423E22B574CE8004A2549 /* UpdatesSettingsPane.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UpdatesSettingsPane.swift; sourceTree = "<group>"; };
 		170749C72B12078F009DDF73 /* GlobalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalEventMonitor.swift; sourceTree = "<group>"; };
 		170749C92B1207D9009DDF73 /* UniversalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UniversalEventMonitor.swift; sourceTree = "<group>"; };
 		170CF88B2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecordingFailure.swift; sourceTree = "<group>"; };
@@ -110,6 +110,8 @@
 		1726A3F82B3378B8008B09DD /* Acknowledgements.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Acknowledgements.rtf; sourceTree = "<group>"; };
 		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
+		173C24882B8E80830096F7A1 /* AboutTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutTab.swift; sourceTree = "<group>"; };
+		173C248B2B8E821C0096F7A1 /* UpdatesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesTab.swift; sourceTree = "<group>"; };
 		174AA5D52B71D97100E3FE74 /* MenuBarAppearancePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearancePanel.swift; sourceTree = "<group>"; };
 		174AA5F42B730A0B00E3FE74 /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
 		1750850D2B683A4C00CFF13A /* StateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateView.swift; sourceTree = "<group>"; };
@@ -250,6 +252,24 @@
 				1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */,
 			);
 			path = CustomGradientPicker;
+			sourceTree = "<group>";
+		};
+		173C24862B8E804F0096F7A1 /* AboutSettingsPane */ = {
+			isa = PBXGroup;
+			children = (
+				714BB9BA2AAB1D690057FB1D /* AboutSettingsPane.swift */,
+				173C24872B8E805C0096F7A1 /* Tabs */,
+			);
+			path = AboutSettingsPane;
+			sourceTree = "<group>";
+		};
+		173C24872B8E805C0096F7A1 /* Tabs */ = {
+			isa = PBXGroup;
+			children = (
+				173C24882B8E80830096F7A1 /* AboutTab.swift */,
+				173C248B2B8E821C0096F7A1 /* UpdatesTab.swift */,
+			);
+			path = Tabs;
 			sourceTree = "<group>";
 		};
 		1750850F2B69C46000CFF13A /* CustomTabView */ = {
@@ -479,10 +499,9 @@
 		7162406B2A9F1607003EC671 /* SettingsPanes */ = {
 			isa = PBXGroup;
 			children = (
-				714BB9BA2AAB1D690057FB1D /* AboutSettingsPane.swift */,
 				71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */,
 				17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */,
-				170423E22B574CE8004A2549 /* UpdatesSettingsPane.swift */,
+				173C24862B8E804F0096F7A1 /* AboutSettingsPane */,
 				177354672B1BBAB3001CF731 /* MenuBarSettingsPane */,
 			);
 			path = SettingsPanes;
@@ -709,6 +728,7 @@
 				175085152B69C50C00CFF13A /* CustomTab.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
 				177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */,
+				173C24892B8E80830096F7A1 /* AboutTab.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
 				1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */,
@@ -740,10 +760,10 @@
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */,
 				177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */,
-				170423E32B574CE8004A2549 /* UpdatesSettingsPane.swift in Sources */,
 				17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */,
 				1773546A2B1BBACF001CF731 /* MenuBarAppearanceTab.swift in Sources */,
 				17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */,
+				173C248C2B8E821C0096F7A1 /* UpdatesTab.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
 				175584152B541D6F00EDC9D3 /* MenuBarLayoutTab.swift in Sources */,
 				1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */,

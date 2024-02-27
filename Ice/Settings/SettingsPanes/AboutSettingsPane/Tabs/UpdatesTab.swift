@@ -1,12 +1,11 @@
 //
-//  UpdatesSettingsPane.swift
+//  UpdatesTab.swift
 //  Ice
 //
 
-import Sparkle
 import SwiftUI
 
-struct UpdatesSettingsPane: View {
+struct UpdatesTab: View {
     @EnvironmentObject var appState: AppState
 
     private var updatesManager: UpdatesManager {
@@ -76,11 +75,4 @@ struct UpdatesSettingsPane: View {
             .font(.caption)
         }
     }
-}
-
-#Preview {
-    UpdatesSettingsPane()
-        .fixedSize()
-        .buttonStyle(.custom)
-        .environmentObject(AppState.shared)
 }

@@ -1,11 +1,11 @@
 //
-//  AboutSettingsPane.swift
+//  AboutTab.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct AboutSettingsPane: View {
+struct AboutTab: View {
     @Environment(\.openURL) private var openURL
     @State private var frame: CGRect = .zero
 
@@ -79,9 +79,4 @@ struct AboutSettingsPane: View {
             .padding()
         }
     }
-}
-
-#Preview {
-    AboutSettingsPane()
-        .buttonStyle(.custom)
 }

@@ -14,7 +14,7 @@ struct HotkeysSettingsPane: View {
 
     var body: some View {
         Form {
-            Section {
+            Section("Menu Bar Sections") {
                 toggleHiddenSection
                 toggleAlwaysHiddenSection
             }

@@ -22,6 +22,9 @@ final class MenuBarSection: ObservableObject {
     /// A Boolean value that indicates whether the section is enabled.
     @Published var isEnabled: Bool
 
+    /// A Boolean value that indicates whether the section is hidden.
+    @Published private(set) var isHidden: Bool
+
     /// The control item that manages the visibility of the section.
     @Published var controlItem: ControlItem {
         didSet {
@@ -55,14 +58,6 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    /// A Boolean value that indicates whether the section is hidden.
-    var isHidden: Bool {
-        switch controlItem.state {
-        case .hideItems: true
-        case .showItems: false
-        }
-    }
-
     /// A Boolean value that indicates whether the section's hotkey is
     /// enabled.
     var hotkeyIsEnabled: Bool {
@@ -76,6 +71,7 @@ final class MenuBarSection: ObservableObject {
         self.controlItem = controlItem
         self.hotkey = hotkey
         self.isEnabled = controlItem.isVisible
+        self.isHidden = controlItem.state == .hideItems
         enableHotkey()
         configureCancellables()
     }
@@ -113,6 +109,12 @@ final class MenuBarSection: ObservableObject {
                     return
                 }
                 isEnabled = isVisible
+            }
+            .store(in: &c)
+
+        controlItem.$state
+            .sink { [weak self] state in
+                self?.isHidden = state == .hideItems
             }
             .store(in: &c)
 

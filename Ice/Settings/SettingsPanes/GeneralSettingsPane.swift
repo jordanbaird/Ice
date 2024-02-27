@@ -35,6 +35,9 @@ struct GeneralSettingsPane: View {
                 alwaysHiddenOptions
             }
             Section {
+                iceIconOptions
+            }
+            Section {
                 showOnClick
                 showOnHover
             }
@@ -42,7 +45,7 @@ struct GeneralSettingsPane: View {
                 autoRehideOptions
             }
             Section {
-                iceIconOptions
+                hideApplicationMenus
             }
         }
         .formStyle(.grouped)
@@ -60,66 +63,6 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private var launchAtLogin: some View {
         LaunchAtLogin.Toggle()
-    }
-
-    @ViewBuilder
-    private var showOnClick: some View {
-        Toggle(isOn: menuBarManager.bindings.showOnClick) {
-            Text("Show on click")
-            Text("Click inside an empty area of the menu bar to show hidden items")
-        }
-    }
-
-    @ViewBuilder
-    private var showOnHover: some View {
-        Toggle(isOn: menuBarManager.bindings.showOnHover) {
-            Text("Show on hover")
-            Text("Hover over an empty area of the menu bar to show hidden items")
-        }
-    }
-
-    @ViewBuilder
-    private var rehideStrategyPicker: some View {
-        Picker(selection: menuBarManager.bindings.rehideStrategy) {
-            ForEach(RehideStrategy.allCases) { strategy in
-                Text(strategy.localized).tag(strategy)
-            }
-        } label: {
-            Text("Strategy")
-            switch menuBarManager.rehideStrategy {
-            case .smart:
-                Text("Menu bar items are rehidden using a smart algorithm")
-            case .timed:
-                Text("Menu bar items are rehidden after a fixed amount of time")
-            case .focusedApp:
-                Text("Menu bar items are rehidden when the focused app changes")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var autoRehideOptions: some View {
-        Toggle(isOn: menuBarManager.bindings.autoRehide) {
-            Text("Automatically rehide")
-        }
-        if menuBarManager.autoRehide {
-            if case .timed = menuBarManager.rehideStrategy {
-                VStack(alignment: .trailing) {
-                    rehideStrategyPicker
-                    CompactSlider(
-                        value: menuBarManager.bindings.rehideInterval,
-                        in: 0...30,
-                        step: 1,
-                        handleVisibility: .hovering(width: 1)
-                    ) {
-                        Text(rehideInterval)
-                    }
-                    .compactSliderDisabledHapticFeedback(true)
-                }
-            } else {
-                rehideStrategyPicker
-            }
-        }
     }
 
     @ViewBuilder
@@ -211,6 +154,74 @@ struct GeneralSettingsPane: View {
                 Text("Use template image")
                 Text("Display the icon as a monochrome image matching the system appearance")
             }
+        }
+    }
+
+    @ViewBuilder
+    private var showOnClick: some View {
+        Toggle(isOn: menuBarManager.bindings.showOnClick) {
+            Text("Show on click")
+            Text("Click inside an empty area of the menu bar to show hidden items")
+        }
+    }
+
+    @ViewBuilder
+    private var showOnHover: some View {
+        Toggle(isOn: menuBarManager.bindings.showOnHover) {
+            Text("Show on hover")
+            Text("Hover over an empty area of the menu bar to show hidden items")
+        }
+    }
+
+    @ViewBuilder
+    private var rehideStrategyPicker: some View {
+        Picker(selection: menuBarManager.bindings.rehideStrategy) {
+            ForEach(RehideStrategy.allCases) { strategy in
+                Text(strategy.localized).tag(strategy)
+            }
+        } label: {
+            Text("Strategy")
+            switch menuBarManager.rehideStrategy {
+            case .smart:
+                Text("Menu bar items are rehidden using a smart algorithm")
+            case .timed:
+                Text("Menu bar items are rehidden after a fixed amount of time")
+            case .focusedApp:
+                Text("Menu bar items are rehidden when the focused app changes")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var autoRehideOptions: some View {
+        Toggle(isOn: menuBarManager.bindings.autoRehide) {
+            Text("Automatically rehide")
+        }
+        if menuBarManager.autoRehide {
+            if case .timed = menuBarManager.rehideStrategy {
+                VStack(alignment: .trailing) {
+                    rehideStrategyPicker
+                    CompactSlider(
+                        value: menuBarManager.bindings.rehideInterval,
+                        in: 0...30,
+                        step: 1,
+                        handleVisibility: .hovering(width: 1)
+                    ) {
+                        Text(rehideInterval)
+                    }
+                    .compactSliderDisabledHapticFeedback(true)
+                }
+            } else {
+                rehideStrategyPicker
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var hideApplicationMenus: some View {
+        Toggle(isOn: menuBarManager.bindings.hideApplicationMenus) {
+            Text("Hide application menus when showing menu bar items")
+            Text("Make more room in the menu bar by hiding the left application menus")
         }
     }
 }

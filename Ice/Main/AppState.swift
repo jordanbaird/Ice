@@ -21,11 +21,18 @@ final class AppState: ObservableObject {
     /// Manager for app updates.
     let updatesManager = UpdatesManager()
 
+    /// The application's current mode.
+    @Published private(set) var mode: Mode = .idle
+
     /// The application's delegate.
     private(set) weak var appDelegate: AppDelegate?
 
     /// The window that contains the settings interface.
-    private(set) weak var settingsWindow: NSWindow?
+    private(set) weak var settingsWindow: NSWindow? {
+        didSet {
+            configureCancellables()
+        }
+    }
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -47,6 +54,14 @@ final class AppState: ObservableObject {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
+
+        if let settingsWindow {
+            settingsWindow.publisher(for: \.isVisible)
+                .sink { [weak self] isVisible in
+                    self?.mode = isVisible ? .settings : .idle
+                }
+                .store(in: &c)
+        }
 
         menuBarManager.objectWillChange
             .sink { [weak self] in
@@ -91,6 +106,13 @@ final class AppState: ObservableObject {
 
 // MARK: AppState: BindingExposable
 extension AppState: BindingExposable { }
+
+extension AppState {
+    enum Mode {
+        case idle
+        case settings
+    }
+}
 
 // MARK: - Logger
 private extension Logger {

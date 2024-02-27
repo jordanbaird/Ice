@@ -54,6 +54,10 @@ final class MenuBarManager: ObservableObject {
     /// is ``RehideStrategy/timed``.
     @Published var rehideInterval: TimeInterval = 15
 
+    /// A Boolean value that indicates whether the application menus
+    /// should be hidden if needed to show all menu bar items.
+    @Published var hideApplicationMenus: Bool = false
+
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
@@ -116,6 +120,7 @@ final class MenuBarManager: ObservableObject {
         defaults.assignIfPresent(&showOnHover, forKey: Defaults.showOnHover)
         defaults.assignIfPresent(&autoRehide, forKey: Defaults.autoRehide)
         defaults.assignIfPresent(&rehideInterval, forKey: Defaults.rehideInterval)
+        defaults.assignIfPresent(&hideApplicationMenus, forKey: Defaults.hideApplicationMenus)
 
         if let data = defaults.data(forKey: Defaults.iceIcon) {
             do {
@@ -198,6 +203,25 @@ final class MenuBarManager: ObservableObject {
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] _ in
                 self?.assignControlItemsByPosition()
+            }
+            .store(in: &c)
+
+        Publishers.MergeMany(sections.map { $0.$isHidden })
+            .sink { [weak self] _ in
+                guard
+                    let self,
+                    hideApplicationMenus,
+                    case .idle = appState?.mode
+                else {
+                    return
+                }
+                if sections.contains(where: { !$0.isHidden }) {
+                    NSApp.setActivationPolicy(.regular)
+                    NSApp.activate()
+                } else {
+                    NSApp.setActivationPolicy(.accessory)
+                    NSApp.deactivate()
+                }
             }
             .store(in: &c)
 

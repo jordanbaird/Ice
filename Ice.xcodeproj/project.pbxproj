@@ -47,6 +47,7 @@
 		1787C4362B17A9EB002F50DF /* Acknowledgements.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */; };
 		1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C43A2B187187002F50DF /* MenuBarTintKind.swift */; };
 		17928F1A2AC5DF9C0016C615 /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17928F192AC5DF9C0016C615 /* Defaults.swift */; };
+		179F139A2B8EECC600EC6B52 /* CGColor+codable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F13992B8EECC600EC6B52 /* CGColor+codable.swift */; };
 		179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */; };
 		17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */; };
 		17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */; };
@@ -138,6 +139,7 @@
 		1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Acknowledgements.pdf; sourceTree = "<group>"; };
 		1787C43A2B187187002F50DF /* MenuBarTintKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTintKind.swift; sourceTree = "<group>"; };
 		17928F192AC5DF9C0016C615 /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
+		179F13992B8EECC600EC6B52 /* CGColor+codable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGColor+codable.swift"; sourceTree = "<group>"; };
 		179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveSidebarToggle.swift; sourceTree = "<group>"; };
 		17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnKeyDown.swift; sourceTree = "<group>"; };
 		17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalEventMonitorModifier.swift; sourceTree = "<group>"; };
@@ -389,6 +391,14 @@
 			path = Styles;
 			sourceTree = "<group>";
 		};
+		179F13982B8EECBE00EC6B52 /* CGColor */ = {
+			isa = PBXGroup;
+			children = (
+				179F13992B8EECC600EC6B52 /* CGColor+codable.swift */,
+			);
+			path = CGColor;
+			sourceTree = "<group>";
+		};
 		17C261E72B5AEB7A0076F129 /* Main */ = {
 			isa = PBXGroup;
 			children = (
@@ -565,8 +575,8 @@
 		716683412A76811C006ABF84 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
-				17CC22BD2B8CFC6E001A0582 /* UserDefaults */,
 				71D2B02A2AAFD88E0002B6C8 /* Bundle */,
+				179F13982B8EECBE00EC6B52 /* CGColor */,
 				17EC6B562AE0C3340065F260 /* Comparable */,
 				1773546E2B1BFF55001CF731 /* HorizontalEdge */,
 				716683442A76811C006ABF84 /* Logger */,
@@ -576,6 +586,7 @@
 				17C3C5F52B75A35000B9648C /* NSScreen */,
 				716683462A76811C006ABF84 /* NSStatusItem */,
 				17CC22B62B8B561F001A0582 /* RectangleCornerRadii */,
+				17CC22BD2B8CFC6E001A0582 /* UserDefaults */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -737,6 +748,7 @@
 				170749CA2B1207D9009DDF73 /* UniversalEventMonitor.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,
 				17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */,
+				179F139A2B8EECC600EC6B52 /* CGColor+codable.swift in Sources */,
 				175584122B541CFC00EDC9D3 /* CustomTabView.swift in Sources */,
 				718AFF2C2AB360AD00BC49CB /* HotkeyRecorderModel.swift in Sources */,
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,

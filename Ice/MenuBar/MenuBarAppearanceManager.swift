@@ -172,132 +172,94 @@ final class MenuBarAppearanceManager: ObservableObject {
             .store(in: &c)
 
         $hasShadow
-            .receive(on: DispatchQueue.main)
             .sink { [weak self] hasShadow in
-                guard let self else {
-                    return
-                }
-                defaults.set(hasShadow, forKey: Defaults.menuBarHasShadow)
+                self?.defaults.set(hasShadow, forKey: Defaults.menuBarHasShadow)
             }
             .store(in: &c)
 
         $hasBorder
-            .receive(on: DispatchQueue.main)
             .sink { [weak self] hasBorder in
-                guard let self else {
-                    return
-                }
-                defaults.set(hasBorder, forKey: Defaults.menuBarHasBorder)
+                self?.defaults.set(hasBorder, forKey: Defaults.menuBarHasBorder)
             }
             .store(in: &c)
 
         $borderColor
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] borderColor in
-                guard let self else {
-                    return
-                }
-                do {
-                    let data = try encoder.encode(CodableColor(cgColor: borderColor))
-                    defaults.set(data, forKey: Defaults.menuBarBorderColor)
-                } catch {
+            .map(\.codable)
+            .encode(encoder: encoder)
+            .sink { completion in
+                if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding border color: \(error)")
                 }
+            } receiveValue: { [weak self] data in
+                self?.defaults.set(data, forKey: Defaults.menuBarBorderColor)
             }
             .store(in: &c)
 
         $borderWidth
-            .receive(on: DispatchQueue.main)
             .sink { [weak self] borderWidth in
-                guard let self else {
-                    return
-                }
-                defaults.set(borderWidth, forKey: Defaults.menuBarBorderWidth)
+                self?.defaults.set(borderWidth, forKey: Defaults.menuBarBorderWidth)
             }
             .store(in: &c)
 
         $tintKind
-            .receive(on: DispatchQueue.main)
             .sink { [weak self] tintKind in
-                guard let self else {
-                    return
-                }
-                defaults.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
+                self?.defaults.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
             }
             .store(in: &c)
 
         $tintColor
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] tintColor in
-                guard let self else {
-                    return
-                }
-                do {
-                    let data = try encoder.encode(CodableColor(cgColor: tintColor))
-                    defaults.set(data, forKey: Defaults.menuBarTintColor)
-                } catch {
+            .map(\.codable)
+            .encode(encoder: encoder)
+            .sink { completion in
+                if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding tint color: \(error)")
                 }
+            } receiveValue: { [weak self] data in
+                self?.defaults.set(data, forKey: Defaults.menuBarTintColor)
             }
             .store(in: &c)
 
         $tintGradient
-            .receive(on: DispatchQueue.main)
             .encode(encoder: encoder)
             .sink { completion in
                 if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding tint gradient: \(error)")
                 }
             } receiveValue: { [weak self] data in
-                guard let self else {
-                    return
-                }
-                defaults.set(data, forKey: Defaults.menuBarTintGradient)
+                self?.defaults.set(data, forKey: Defaults.menuBarTintGradient)
             }
             .store(in: &c)
 
         $shapeKind
-            .receive(on: DispatchQueue.main)
             .encode(encoder: encoder)
             .sink { completion in
                 if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding menu bar shape kind: \(error)")
                 }
             } receiveValue: { [weak self] data in
-                guard let self else {
-                    return
-                }
-                defaults.set(data, forKey: Defaults.menuBarShapeKind)
+                self?.defaults.set(data, forKey: Defaults.menuBarShapeKind)
             }
             .store(in: &c)
 
         $fullShapeInfo
-            .receive(on: DispatchQueue.main)
             .encode(encoder: encoder)
             .sink { completion in
                 if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding menu bar full shape info: \(error)")
                 }
             } receiveValue: { [weak self] data in
-                guard let self else {
-                    return
-                }
-                defaults.set(data, forKey: Defaults.menuBarFullShapeInfo)
+                self?.defaults.set(data, forKey: Defaults.menuBarFullShapeInfo)
             }
             .store(in: &c)
 
         $splitShapeInfo
-            .receive(on: DispatchQueue.main)
             .encode(encoder: encoder)
             .sink { completion in
                 if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding menu bar split shape info: \(error)")
                 }
             } receiveValue: { [weak self] data in
-                guard let self else {
-                    return
-                }
-                defaults.set(data, forKey: Defaults.menuBarSplitShapeInfo)
+                self?.defaults.set(data, forKey: Defaults.menuBarSplitShapeInfo)
             }
             .store(in: &c)
 

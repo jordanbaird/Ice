@@ -44,6 +44,15 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// The user's currently chosen tint gradient.
     @Published var tintGradient: CustomGradient = .defaultMenuBarTint
 
+    /// A Boolean value that indicates whether the appearance
+    /// manager should retain any appearance panels.
+    var shouldRetainAppearancePanels: Bool {
+        hasShadow ||
+        hasBorder ||
+        shapeKind != .none ||
+        tintKind != .none
+    }
+
     private var cancellables = Set<AnyCancellable>()
 
     private let encoder: JSONEncoder
@@ -263,10 +272,31 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
             .store(in: &c)
 
+        objectWillChange
+            .sink { [weak self] in
+                guard let self else {
+                    return
+                }
+                // appearance panels may not have been configured yet;
+                // since some of the properties on the manager might
+                // call for them, try to configure now
+                if appearancePanels.isEmpty {
+                    configureAppearancePanels()
+                }
+            }
+            .store(in: &c)
+
         cancellables = c
     }
 
     private func configureAppearancePanels() {
+        guard shouldRetainAppearancePanels else {
+            // remove all appearance panels if none of the properties
+            // on the manager call for them
+            appearancePanels.removeAll()
+            return
+        }
+
         var appearancePanels = Set<MenuBarAppearancePanel>()
         for screen in NSScreen.screens {
             let panel = MenuBarAppearancePanel(appearanceManager: self, owningScreen: screen)
@@ -277,6 +307,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 panel.show()
             }
         }
+
         self.appearancePanels = appearancePanels
     }
 }

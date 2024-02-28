@@ -188,14 +188,14 @@ final class EventMonitorManager {
 
     private(set) lazy var leftMouseDraggedMonitor = UniversalEventMonitor(mask: .leftMouseDragged) { [weak self] event in
         guard
-            let self,
+            let menuBarManager = self?.menuBarManager,
             event.modifierFlags.contains(.command),
             let screen = NSScreen.main,
             screen.isMouseInMenuBar
         else {
             return event
         }
-        menuBarManager?.showAllSections()
+        menuBarManager.showAllSections()
         return event
     }
 

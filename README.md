@@ -5,7 +5,7 @@
 
 Ice is a powerful menu bar management tool. While its primary function is hiding and showing menu bar items, it aims to cover a wide variety of additional features to make it one of the most versatile menu bar tools available.
 
-![Banner](https://github.com/jordanbaird/Ice/assets/90936861/14e543c7-a47e-4697-8b3a-13f1304ebc0f)
+![Banner](https://github.com/jordanbaird/Ice/assets/90936861/9577d06f-dae8-4cfd-b398-0f0237d0d79f)
 
 [![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)

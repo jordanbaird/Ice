@@ -112,10 +112,10 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// Loads data from storage and sets the initial state
     /// of the manager from that data.
     private func loadInitialState() {
-        hasShadow = defaults.bool(forKey: Defaults.menuBarHasShadow)
-        hasBorder = defaults.bool(forKey: Defaults.menuBarHasBorder)
-        borderWidth = defaults.object(forKey: Defaults.menuBarBorderWidth) as? Double ?? 1
-        tintKind = MenuBarTintKind(rawValue: defaults.integer(forKey: Defaults.menuBarTintKind)) ?? .none
+        defaults.ifPresent(key: Defaults.menuBarHasShadow, assign: &hasShadow)
+        defaults.ifPresent(key: Defaults.menuBarHasBorder, assign: &hasBorder)
+        defaults.ifPresent(key: Defaults.menuBarBorderWidth, assign: &borderWidth)
+        defaults.ifPresent(key: Defaults.menuBarTintKind) { tintKind = MenuBarTintKind(rawValue: $0) ?? .none }
 
         do {
             if let borderColorData = defaults.data(forKey: Defaults.menuBarBorderColor) {

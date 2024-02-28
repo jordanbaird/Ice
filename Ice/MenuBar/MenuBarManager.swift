@@ -115,12 +115,12 @@ final class MenuBarManager: ObservableObject {
     /// Loads data from storage and sets the initial state of the
     /// menu bar from that data.
     private func loadInitialState() {
-        defaults.assignIfPresent(&customIceIconIsTemplate, forKey: Defaults.customIceIconIsTemplate)
-        defaults.assignIfPresent(&showOnClick, forKey: Defaults.showOnClick)
-        defaults.assignIfPresent(&showOnHover, forKey: Defaults.showOnHover)
-        defaults.assignIfPresent(&autoRehide, forKey: Defaults.autoRehide)
-        defaults.assignIfPresent(&rehideInterval, forKey: Defaults.rehideInterval)
-        defaults.assignIfPresent(&hideApplicationMenus, forKey: Defaults.hideApplicationMenus)
+        defaults.ifPresent(key: Defaults.customIceIconIsTemplate, assign: &customIceIconIsTemplate)
+        defaults.ifPresent(key: Defaults.showOnClick, assign: &showOnClick)
+        defaults.ifPresent(key: Defaults.showOnHover, assign: &showOnHover)
+        defaults.ifPresent(key: Defaults.autoRehide, assign: &autoRehide)
+        defaults.ifPresent(key: Defaults.rehideInterval, assign: &rehideInterval)
+        defaults.ifPresent(key: Defaults.hideApplicationMenus, assign: &hideApplicationMenus)
 
         if let data = defaults.data(forKey: Defaults.iceIcon) {
             do {

@@ -58,7 +58,7 @@
 		17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22B42B8A55E7001A0582 /* WindowInfo.swift */; };
 		17CC22B82B8B5628001A0582 /* RectangleCornerRadii+init.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22B72B8B5628001A0582 /* RectangleCornerRadii+init.swift */; };
 		17CC22BC2B8CDE6F001A0582 /* EventMonitorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22BB2B8CDE6F001A0582 /* EventMonitorManager.swift */; };
-		17CC22BF2B8CFC75001A0582 /* UserDefaults+assignIfPresent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22BE2B8CFC75001A0582 /* UserDefaults+assignIfPresent.swift */; };
+		17CC22BF2B8CFC75001A0582 /* UserDefaults+ifPresent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22BE2B8CFC75001A0582 /* UserDefaults+ifPresent.swift */; };
 		17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPane.swift */; };
 		17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */; };
 		17E2EA652B89531800974E60 /* NSScreen+isMouseInMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17E2EA642B89531800974E60 /* NSScreen+isMouseInMenuBar.swift */; };
@@ -151,7 +151,7 @@
 		17CC22B42B8A55E7001A0582 /* WindowInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowInfo.swift; sourceTree = "<group>"; };
 		17CC22B72B8B5628001A0582 /* RectangleCornerRadii+init.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RectangleCornerRadii+init.swift"; sourceTree = "<group>"; };
 		17CC22BB2B8CDE6F001A0582 /* EventMonitorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMonitorManager.swift; sourceTree = "<group>"; };
-		17CC22BE2B8CFC75001A0582 /* UserDefaults+assignIfPresent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserDefaults+assignIfPresent.swift"; sourceTree = "<group>"; };
+		17CC22BE2B8CFC75001A0582 /* UserDefaults+ifPresent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserDefaults+ifPresent.swift"; sourceTree = "<group>"; };
 		17DFF4AB2AD5FB3300B5177A /* MenuBarSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSettingsPane.swift; sourceTree = "<group>"; };
 		17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableColor.swift; sourceTree = "<group>"; };
 		17E2EA642B89531800974E60 /* NSScreen+isMouseInMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+isMouseInMenuBar.swift"; sourceTree = "<group>"; };
@@ -437,7 +437,7 @@
 		17CC22BD2B8CFC6E001A0582 /* UserDefaults */ = {
 			isa = PBXGroup;
 			children = (
-				17CC22BE2B8CFC75001A0582 /* UserDefaults+assignIfPresent.swift */,
+				17CC22BE2B8CFC75001A0582 /* UserDefaults+ifPresent.swift */,
 			);
 			path = UserDefaults;
 			sourceTree = "<group>";
@@ -743,7 +743,7 @@
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
 				1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */,
-				17CC22BF2B8CFC75001A0582 /* UserDefaults+assignIfPresent.swift in Sources */,
+				17CC22BF2B8CFC75001A0582 /* UserDefaults+ifPresent.swift in Sources */,
 				1725FC6A2AED973800A59081 /* AppState.swift in Sources */,
 				170749CA2B1207D9009DDF73 /* UniversalEventMonitor.swift in Sources */,
 				71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */,

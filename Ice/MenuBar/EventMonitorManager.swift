@@ -186,6 +186,19 @@ final class EventMonitorManager {
         return event
     }
 
+    private(set) lazy var leftMouseDraggedMonitor = UniversalEventMonitor(mask: .leftMouseDragged) { [weak self] event in
+        guard
+            let self,
+            event.modifierFlags.contains(.command),
+            let screen = NSScreen.main,
+            screen.isMouseInMenuBar
+        else {
+            return event
+        }
+        menuBarManager?.showAllSections()
+        return event
+    }
+
     init(menuBarManager: MenuBarManager) {
         self.menuBarManager = menuBarManager
     }
@@ -195,5 +208,6 @@ final class EventMonitorManager {
         leftMouseUpMonitor.start()
         leftMouseDownMonitor.start()
         rightMouseDownMonitor.start()
+        leftMouseDraggedMonitor.start()
     }
 }

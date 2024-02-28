@@ -319,11 +319,6 @@ final class MenuBarManager: ObservableObject {
         cancellables = c
     }
 
-    /// Returns the menu bar section with the given name.
-    func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
-        sections.first { $0.name == name }
-    }
-
     /// Shows the right-click menu.
     func showRightClickMenu(at point: CGPoint) {
         let menu = NSMenu(title: Constants.appName)
@@ -454,6 +449,18 @@ final class MenuBarManager: ObservableObject {
         // assign the items to their new sections
         for index in 0..<sections.count {
             sections[index].controlItem = sortedControlItems[index]
+        }
+    }
+
+    /// Returns the menu bar section with the given name.
+    func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
+        sections.first { $0.name == name }
+    }
+
+    /// Shows all sections controlled by the manager.
+    func showAllSections() {
+        for section in sections where section.isHidden {
+            section.show()
         }
     }
 }

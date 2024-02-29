@@ -55,25 +55,25 @@ struct MenuBarAppearanceTab: View {
     private var tintPicker: some View {
         LabeledContent("Tint") {
             HStack {
-                Picker("Tint", selection: appearanceManager.bindings.tintKind) {
+                Picker("Tint", selection: appearanceManager.bindings.configuration.tintKind) {
                     ForEach(MenuBarTintKind.allCases) { tintKind in
                         Text(tintKind.localized).tag(tintKind)
                     }
                 }
                 .labelsHidden()
 
-                switch appearanceManager.tintKind {
+                switch appearanceManager.configuration.tintKind {
                 case .none:
                     EmptyView()
                 case .solid:
                     CustomColorPicker(
-                        selection: appearanceManager.bindings.tintColor,
+                        selection: appearanceManager.bindings.configuration.tintColor,
                         supportsOpacity: false,
                         mode: .crayon
                     )
                 case .gradient:
                     CustomGradientPicker(
-                        gradient: appearanceManager.bindings.tintGradient,
+                        gradient: appearanceManager.bindings.configuration.tintGradient,
                         supportsOpacity: false,
                         allowsEmptySelections: false,
                         mode: .crayon
@@ -86,20 +86,20 @@ struct MenuBarAppearanceTab: View {
 
     @ViewBuilder
     private var shadowToggle: some View {
-        Toggle("Shadow", isOn: appearanceManager.bindings.hasShadow)
+        Toggle("Shadow", isOn: appearanceManager.bindings.configuration.hasShadow)
     }
 
     @ViewBuilder
     private var borderToggle: some View {
-        Toggle("Border", isOn: appearanceManager.bindings.hasBorder)
+        Toggle("Border", isOn: appearanceManager.bindings.configuration.hasBorder)
     }
 
     @ViewBuilder
     private var borderColor: some View {
-        if appearanceManager.hasBorder {
+        if appearanceManager.configuration.hasBorder {
             LabeledContent("Border Color") {
                 CustomColorPicker(
-                    selection: appearanceManager.bindings.borderColor,
+                    selection: appearanceManager.bindings.configuration.borderColor,
                     supportsOpacity: false,
                     mode: .crayon
                 )
@@ -109,10 +109,10 @@ struct MenuBarAppearanceTab: View {
 
     @ViewBuilder
     private var borderWidth: some View {
-        if appearanceManager.hasBorder {
+        if appearanceManager.configuration.hasBorder {
             Picker(
                 "Border Width",
-                selection: appearanceManager.bindings.borderWidth
+                selection: appearanceManager.bindings.configuration.borderWidth
             ) {
                 Text("1").tag(1.0)
                 Text("2").tag(2.0)

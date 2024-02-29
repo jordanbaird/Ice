@@ -605,17 +605,17 @@ private class MenuBarAppearancePanelContentView: NSView {
         return result
     }
 
-    private func drawTint(with appearanceManager: MenuBarAppearanceManager) {
-        switch appearanceManager.tintKind {
+    private func drawTint(configuration: MenuBarAppearanceConfiguration) {
+        switch configuration.tintKind {
         case .none:
             break
         case .solid:
-            if let tintColor = NSColor(cgColor: appearanceManager.tintColor)?.withAlphaComponent(0.2) {
+            if let tintColor = NSColor(cgColor: configuration.tintColor)?.withAlphaComponent(0.2) {
                 tintColor.setFill()
                 NSBezierPath(rect: drawableBounds).fill()
             }
         case .gradient:
-            if let tintGradient = appearanceManager.tintGradient.withAlphaComponent(0.2).nsGradient {
+            if let tintGradient = configuration.tintGradient.withAlphaComponent(0.2).nsGradient {
                 tintGradient.draw(in: drawableBounds, angle: 0)
             }
         }
@@ -638,20 +638,22 @@ private class MenuBarAppearancePanelContentView: NSView {
             return
         }
 
-        let shapePath = switch appearanceManager.shapeKind {
+        let configuration = appearanceManager.configuration
+
+        let shapePath = switch configuration.shapeKind {
         case .none:
             NSBezierPath(rect: drawableBounds)
         case .full:
-            pathForFullShapeKind(in: drawableBounds, info: appearanceManager.fullShapeInfo)
+            pathForFullShapeKind(in: drawableBounds, info: configuration.fullShapeInfo)
         case .split:
-            pathForSplitShapeKind(in: drawableBounds, info: appearanceManager.splitShapeInfo)
+            pathForSplitShapeKind(in: drawableBounds, info: configuration.splitShapeInfo)
         }
 
         var hasBorder = false
 
-        switch appearanceManager.shapeKind {
+        switch configuration.shapeKind {
         case .none:
-            if appearanceManager.hasShadow {
+            if configuration.hasShadow {
                 let gradient = NSGradient(
                     colors: [
                         NSColor(white: 0.0, alpha: 0.0),
@@ -667,16 +669,16 @@ private class MenuBarAppearancePanelContentView: NSView {
                 gradient?.draw(in: shadowBounds, angle: 90)
             }
 
-            drawTint(with: appearanceManager)
+            drawTint(configuration: configuration)
 
-            if appearanceManager.hasBorder {
+            if configuration.hasBorder {
                 let borderBounds = CGRect(
                     x: bounds.minX,
                     y: bounds.minY + 5,
                     width: bounds.width,
-                    height: appearanceManager.borderWidth
+                    height: configuration.borderWidth
                 )
-                NSColor(cgColor: appearanceManager.borderColor)?.setFill()
+                NSColor(cgColor: configuration.borderColor)?.setFill()
                 NSBezierPath(rect: borderBounds).fill()
             }
         case .full, .split:
@@ -693,7 +695,7 @@ private class MenuBarAppearancePanelContentView: NSView {
                 context.cgContext.draw(desktopWallpaper, in: drawableBounds)
             }
 
-            if appearanceManager.hasShadow {
+            if configuration.hasShadow {
                 context.saveGraphicsState()
                 defer {
                     context.restoreGraphicsState()
@@ -706,24 +708,24 @@ private class MenuBarAppearancePanelContentView: NSView {
                 shapePath.drawShadow(color: .black.withAlphaComponent(0.5), radius: 5)
             }
 
-            if appearanceManager.hasBorder {
+            if configuration.hasBorder {
                 hasBorder = true
             }
 
             shapePath.setClip()
 
-            drawTint(with: appearanceManager)
+            drawTint(configuration: configuration)
 
             if
                 hasBorder,
-                let borderColor = NSColor(cgColor: appearanceManager.borderColor)
+                let borderColor = NSColor(cgColor: configuration.borderColor)
             {
                 // swiftlint:disable:next force_cast
                 let borderPath = shapePath.copy() as! NSBezierPath
                 // HACK: insetting a path to get an "inside" stroke is surprisingly
                 // difficult; we can fake the correct line width by doubling it, as
                 // anything outside the shape path will be clipped
-                borderPath.lineWidth = appearanceManager.borderWidth * 2
+                borderPath.lineWidth = configuration.borderWidth * 2
                 borderColor.setStroke()
                 borderPath.stroke()
             }

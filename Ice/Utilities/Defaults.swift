@@ -20,6 +20,16 @@ enum Defaults {
     static let rehideStrategy = "RehideStrategy"
     static let rehideInterval = "RehideInterval"
 
+    static let aboutSettingsPaneSelectedTab = "AboutSettingsPaneSelectedTab"
+    static let menuBarSettingsPaneSelectedTab = "MenuBarSettingsPaneSelectedTab"
+}
+
+// MARK: MenuBarAppearanceConfiguration
+extension Defaults {
+    static let menuBarAppearanceConfiguration = "MenuBarAppearanceConfiguration"
+
+    // MARK: Deprecated Appearance Keys
+
     static let menuBarHasBorder = "MenuBarHasBorder"
     static let menuBarBorderColor = "MenuBarBorderColor"
     static let menuBarBorderWidth = "MenuBarBorderWidth"
@@ -33,7 +43,4 @@ enum Defaults {
     static let menuBarShapeKind = "MenuBarShapeKind"
     static let menuBarFullShapeInfo = "MenuBarFullShapeInfo"
     static let menuBarSplitShapeInfo = "MenuBarSplitShapeInfo"
-
-    static let aboutSettingsPaneSelectedTab = "AboutSettingsPaneSelectedTab"
-    static let menuBarSettingsPaneSelectedTab = "MenuBarSettingsPaneSelectedTab"
 }

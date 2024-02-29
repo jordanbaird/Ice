@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// A type that specifies how the menu bar is tinted.
-enum MenuBarTintKind: Int, CaseIterable, Identifiable {
+enum MenuBarTintKind: Int, CaseIterable, Codable, Identifiable {
     /// The menu bar is not tinted.
     case none = 0
     /// The menu bar is tinted with a solid color.

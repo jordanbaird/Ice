@@ -10,39 +10,8 @@ import SwiftUI
 
 /// A type that manages the appearance of the menu bar.
 final class MenuBarAppearanceManager: ObservableObject {
-    /// A Boolean value that indicates whether the menu bar
-    /// should have a shadow.
-    @Published var hasShadow: Bool = false
-
-    /// A Boolean value that indicates whether the menu bar
-    /// should have a border.
-    @Published var hasBorder: Bool = false
-
-    /// The color of the menu bar's border.
-    @Published var borderColor: CGColor = .black
-
-    /// The width of the menu bar's border.
-    @Published var borderWidth: Double = 1
-
-    /// The shape of the menu bar.
-    @Published var shapeKind: MenuBarShapeKind = .none
-
-    /// Information for the menu bar's shape when it is in
-    /// the ``MenuBarShapeKind/full`` state.
-    @Published var fullShapeInfo: MenuBarFullShapeInfo = .default
-
-    /// Information for the menu bar's shape when it is in
-    /// the ``MenuBarShapeKind/split`` state.
-    @Published var splitShapeInfo: MenuBarSplitShapeInfo = .default
-
-    /// The tint kind currently in use.
-    @Published var tintKind: MenuBarTintKind = .none
-
-    /// The user's currently chosen tint color.
-    @Published var tintColor: CGColor = .black
-
-    /// The user's currently chosen tint gradient.
-    @Published var tintGradient: CustomGradient = .defaultMenuBarTint
+    /// The configuration that defines the appearance of the menu bar.
+    @Published var configuration: MenuBarAppearanceConfiguration = .defaultConfiguration
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -61,10 +30,10 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// A Boolean value that indicates whether the appearance
     /// manager should retain any appearance panels.
     var shouldRetainAppearancePanels: Bool {
-        hasShadow ||
-        hasBorder ||
-        shapeKind != .none ||
-        tintKind != .none
+        configuration.hasShadow ||
+        configuration.hasBorder ||
+        configuration.shapeKind != .none ||
+        configuration.tintKind != .none
     }
 
     /// A Boolean value that indicates whether an app is fullscreen.
@@ -114,32 +83,14 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// Loads data from storage and sets the initial state
     /// of the manager from that data.
     private func loadInitialState() {
-        defaults.ifPresent(key: Defaults.menuBarHasShadow, assign: &hasShadow)
-        defaults.ifPresent(key: Defaults.menuBarHasBorder, assign: &hasBorder)
-        defaults.ifPresent(key: Defaults.menuBarBorderWidth, assign: &borderWidth)
-        defaults.ifPresent(key: Defaults.menuBarTintKind) { tintKind = MenuBarTintKind(rawValue: $0) ?? .none }
-
         do {
-            if let borderColorData = defaults.data(forKey: Defaults.menuBarBorderColor) {
-                borderColor = try decoder.decode(CodableColor.self, from: borderColorData).cgColor
-            }
-            if let tintColorData = defaults.data(forKey: Defaults.menuBarTintColor) {
-                tintColor = try decoder.decode(CodableColor.self, from: tintColorData).cgColor
-            }
-            if let tintGradientData = defaults.data(forKey: Defaults.menuBarTintGradient) {
-                tintGradient = try decoder.decode(CustomGradient.self, from: tintGradientData)
-            }
-            if let shapeKindData = defaults.data(forKey: Defaults.menuBarShapeKind) {
-                shapeKind = try decoder.decode(MenuBarShapeKind.self, from: shapeKindData)
-            }
-            if let fullShapeData = defaults.data(forKey: Defaults.menuBarFullShapeInfo) {
-                fullShapeInfo = try decoder.decode(MenuBarFullShapeInfo.self, from: fullShapeData)
-            }
-            if let splitShapeData = defaults.data(forKey: Defaults.menuBarSplitShapeInfo) {
-                splitShapeInfo = try decoder.decode(MenuBarSplitShapeInfo.self, from: splitShapeData)
-            }
+            configuration = try MenuBarAppearanceConfiguration(
+                migratingFrom: defaults,
+                encoder: encoder,
+                decoder: decoder
+            )
         } catch {
-            Logger.appearanceManager.error("Error decoding value: \(error)")
+            Logger.appearanceManager.error("Error decoding configuration: \(error)")
         }
     }
 
@@ -189,95 +140,14 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
             .store(in: &c)
 
-        $hasShadow
-            .sink { [weak self] hasShadow in
-                self?.defaults.set(hasShadow, forKey: Defaults.menuBarHasShadow)
-            }
-            .store(in: &c)
-
-        $hasBorder
-            .sink { [weak self] hasBorder in
-                self?.defaults.set(hasBorder, forKey: Defaults.menuBarHasBorder)
-            }
-            .store(in: &c)
-
-        $borderColor
-            .map(\.codable)
+        $configuration
             .encode(encoder: encoder)
             .sink { completion in
                 if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding border color: \(error)")
+                    Logger.appearanceManager.error("Error encoding configuration: \(error)")
                 }
             } receiveValue: { [weak self] data in
-                self?.defaults.set(data, forKey: Defaults.menuBarBorderColor)
-            }
-            .store(in: &c)
-
-        $borderWidth
-            .sink { [weak self] borderWidth in
-                self?.defaults.set(borderWidth, forKey: Defaults.menuBarBorderWidth)
-            }
-            .store(in: &c)
-
-        $tintKind
-            .sink { [weak self] tintKind in
-                self?.defaults.set(tintKind.rawValue, forKey: Defaults.menuBarTintKind)
-            }
-            .store(in: &c)
-
-        $tintColor
-            .map(\.codable)
-            .encode(encoder: encoder)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding tint color: \(error)")
-                }
-            } receiveValue: { [weak self] data in
-                self?.defaults.set(data, forKey: Defaults.menuBarTintColor)
-            }
-            .store(in: &c)
-
-        $tintGradient
-            .encode(encoder: encoder)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding tint gradient: \(error)")
-                }
-            } receiveValue: { [weak self] data in
-                self?.defaults.set(data, forKey: Defaults.menuBarTintGradient)
-            }
-            .store(in: &c)
-
-        $shapeKind
-            .encode(encoder: encoder)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding menu bar shape kind: \(error)")
-                }
-            } receiveValue: { [weak self] data in
-                self?.defaults.set(data, forKey: Defaults.menuBarShapeKind)
-            }
-            .store(in: &c)
-
-        $fullShapeInfo
-            .encode(encoder: encoder)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding menu bar full shape info: \(error)")
-                }
-            } receiveValue: { [weak self] data in
-                self?.defaults.set(data, forKey: Defaults.menuBarFullShapeInfo)
-            }
-            .store(in: &c)
-
-        $splitShapeInfo
-            .encode(encoder: encoder)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding menu bar split shape info: \(error)")
-                }
-            } receiveValue: { [weak self] data in
-                self?.defaults.set(data, forKey: Defaults.menuBarSplitShapeInfo)
+                self?.defaults.set(data, forKey: Defaults.menuBarAppearanceConfiguration)
             }
             .store(in: &c)
 

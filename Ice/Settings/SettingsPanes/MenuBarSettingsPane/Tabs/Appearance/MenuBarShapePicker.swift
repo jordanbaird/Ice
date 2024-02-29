@@ -20,7 +20,7 @@ struct MenuBarShapePicker: View {
 
     @ViewBuilder
     private var shapeKindPicker: some View {
-        Picker("Shape Kind", selection: appearanceManager.bindings.shapeKind) {
+        Picker("Shape Kind", selection: appearanceManager.bindings.configuration.shapeKind) {
             ForEach(MenuBarShapeKind.allCases, id: \.self) { shape in
                 switch shape {
                 case .none:
@@ -36,17 +36,17 @@ struct MenuBarShapePicker: View {
 
     @ViewBuilder
     private var exampleView: some View {
-        switch appearanceManager.shapeKind {
+        switch appearanceManager.configuration.shapeKind {
         case .none:
             Text("No shape kind selected")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         case .full:
-            MenuBarFullShapeExampleView(info: appearanceManager.bindings.fullShapeInfo)
+            MenuBarFullShapeExampleView(info: appearanceManager.bindings.configuration.fullShapeInfo)
                 .equatable()
                 .foregroundStyle(colorScheme == .dark ? .primary : .secondary)
         case .split:
-            MenuBarSplitShapeExampleView(info: appearanceManager.bindings.splitShapeInfo)
+            MenuBarSplitShapeExampleView(info: appearanceManager.bindings.configuration.splitShapeInfo)
                 .equatable()
                 .foregroundStyle(colorScheme == .dark ? .primary : .secondary)
         }

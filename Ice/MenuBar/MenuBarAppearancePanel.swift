@@ -30,6 +30,8 @@ class MenuBarAppearancePanel: NSPanel {
     /// saver is currently active.
     private var screenSaverIsActive = false
 
+    @Published var needsUpdate = false
+
     /// The menu bar associated with the panel.
     @Published private(set) var menuBar: UIElement?
 
@@ -119,23 +121,50 @@ class MenuBarAppearancePanel: NSPanel {
             }
             .store(in: &c)
 
-        ScreenCaptureManager.shared.$windows
+        // update when light/dark mode changes
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("AppleInterfaceThemeChangedNotification"))
+            .delay(for: 0.1, scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.needsUpdate = true
+            }
+            .store(in: &c)
+
+        // update when active space changes
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .delay(for: 0.1, scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.needsUpdate = true
+            }
+            .store(in: &c)
+
+        // update when frontmost application changes
+        NSWorkspace.shared
+            .publisher(for: \.frontmostApplication)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
+                self?.needsUpdate = true
+            }
+            .store(in: &c)
+
+        $needsUpdate
+            .removeDuplicates()
+            .sink { [weak self] needsUpdate in
                 guard
                     let self,
-                    let owningDisplay = getOwningDisplay(),
-                    let wallpaperWindow = getWallpaperWindow(owningDisplay: owningDisplay),
-                    let menuBarWindow = getMenuBarWindow(owningDisplay: owningDisplay)
+                    needsUpdate
                 else {
                     return
                 }
-                updateDesktopWallpaper(
-                    owningDisplay: owningDisplay,
-                    wallpaperWindow: wallpaperWindow,
-                    menuBarWindow: menuBarWindow
-                )
-                updateMenuBar(menuBarWindow: menuBarWindow)
+                defer {
+                    self.needsUpdate = false
+                }
+                ScreenCaptureManager.shared.update()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.updateDesktopWallpaper()
+                    self.updateMenuBar()
+                }
             }
             .store(in: &c)
 
@@ -172,15 +201,16 @@ class MenuBarAppearancePanel: NSPanel {
         }
     }
 
-    /// Stores the area of the desktop wallpaper that is under
-    /// the menu bar using the given owning display, wallpaper
-    /// window, and menu bar window.
-    private func updateDesktopWallpaper(
-        owningDisplay: SCDisplay,
-        wallpaperWindow: SCWindow,
-        menuBarWindow: SCWindow
-    ) {
-        if screenIsLocked || screenSaverIsActive {
+    /// Stores the area of the desktop wallpaper that is
+    /// under the menu bar.
+    private func updateDesktopWallpaper() {
+        guard
+            !screenIsLocked,
+            !screenSaverIsActive,
+            let owningDisplay = getOwningDisplay(),
+            let wallpaperWindow = getWallpaperWindow(owningDisplay: owningDisplay),
+            let menuBarWindow = getMenuBarWindow(owningDisplay: owningDisplay)
+        else {
             return
         }
         Task {
@@ -200,7 +230,13 @@ class MenuBarAppearancePanel: NSPanel {
 
     /// Stores a reference to the menu bar using the given
     /// menu bar window.
-    private func updateMenuBar(menuBarWindow: SCWindow) {
+    private func updateMenuBar() {
+        guard
+            let owningDisplay = getOwningDisplay(),
+            let menuBarWindow = getMenuBarWindow(owningDisplay: owningDisplay)
+        else {
+            return
+        }
         do {
             guard
                 let menuBar = try systemWideElement.elementAtPosition(
@@ -294,41 +330,6 @@ private class MenuBarAppearancePanelContentView: NSView {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
-
-        // update when dark/light mode changes
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("AppleInterfaceThemeChangedNotification"))
-            .delay(for: 0.1, scheduler: DispatchQueue.global(qos: .background))
-            .sink { _ in
-                ScreenCaptureManager.shared.update()
-            }
-            .store(in: &c)
-
-        // update when active space changes
-        NSWorkspace.shared.notificationCenter
-            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .receive(on: DispatchQueue.global(qos: .background))
-            .sink { _ in
-                ScreenCaptureManager.shared.update()
-            }
-            .store(in: &c)
-
-        // update when frontmost application changes
-        NSWorkspace.shared
-            .publisher(for: \.frontmostApplication)
-            .receive(on: DispatchQueue.global(qos: .background))
-            .sink { _ in
-                ScreenCaptureManager.shared.update()
-            }
-            .store(in: &c)
-
-        // redraw whenever ScreenCaptureManager's windows change
-        ScreenCaptureManager.shared.$windows
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.needsDisplay = true
-            }
-            .store(in: &c)
 
         if let appearancePanel {
             appearancePanel.$menuBar

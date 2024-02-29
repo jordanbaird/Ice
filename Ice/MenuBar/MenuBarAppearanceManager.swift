@@ -44,15 +44,6 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// The user's currently chosen tint gradient.
     @Published var tintGradient: CustomGradient = .defaultMenuBarTint
 
-    /// A Boolean value that indicates whether the appearance
-    /// manager should retain any appearance panels.
-    var shouldRetainAppearancePanels: Bool {
-        hasShadow ||
-        hasBorder ||
-        shapeKind != .none ||
-        tintKind != .none
-    }
-
     private var cancellables = Set<AnyCancellable>()
 
     private let encoder: JSONEncoder
@@ -64,6 +55,17 @@ final class MenuBarAppearanceManager: ObservableObject {
     private(set) weak var menuBarManager: MenuBarManager?
 
     private(set) var appearancePanels = Set<MenuBarAppearancePanel>()
+
+    private var cachedScreenCount = NSScreen.screens.count
+
+    /// A Boolean value that indicates whether the appearance
+    /// manager should retain any appearance panels.
+    var shouldRetainAppearancePanels: Bool {
+        hasShadow ||
+        hasBorder ||
+        shapeKind != .none ||
+        tintKind != .none
+    }
 
     /// A Boolean value that indicates whether an app is fullscreen.
     var isFullscreen: Bool {
@@ -149,6 +151,13 @@ final class MenuBarAppearanceManager: ObservableObject {
             .sink { [weak self] _ in
                 guard let self else {
                     return
+                }
+                let screenCount = NSScreen.screens.count
+                guard cachedScreenCount != screenCount else {
+                    return
+                }
+                defer {
+                    cachedScreenCount = screenCount
                 }
                 while let panel = appearancePanels.popFirst() {
                     panel.orderOut(self)

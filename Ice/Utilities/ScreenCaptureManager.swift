@@ -125,8 +125,9 @@ class ScreenCaptureManager: ObservableObject {
         startContinuouslyUpdating()
     }
 
-    /// Immediately updates the manager's content.
-    func update() {
+    /// Immediately updates the manager's content, performing the
+    /// given completion handler when finished.
+    func updateWithCompletionHandler(_ completionHandler: @escaping () -> Void) {
         guard hasScreenCapturePermissions else {
             Logger.screenCaptureManager.notice("Missing screen capture permissions")
             return
@@ -138,6 +139,7 @@ class ScreenCaptureManager: ObservableObject {
             self.applications = content?.applications ?? []
             self.displays = content?.displays ?? []
             self.windows = content?.windows ?? []
+            completionHandler()
         }
     }
 
@@ -146,11 +148,11 @@ class ScreenCaptureManager: ObservableObject {
     /// The content will update according to the value set by
     /// the manager's ``interval`` property.
     func startContinuouslyUpdating() {
-        update()
+        updateWithCompletionHandler { }
         updateTimer = Timer.publish(every: interval, on: runLoop, in: mode)
             .autoconnect()
             .sink { [weak self] _ in
-                self?.update()
+                self?.updateWithCompletionHandler { }
             }
     }
 

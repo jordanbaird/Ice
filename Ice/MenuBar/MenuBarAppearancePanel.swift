@@ -160,10 +160,11 @@ class MenuBarAppearancePanel: NSPanel {
                 defer {
                     self.needsUpdate = false
                 }
-                ScreenCaptureManager.shared.update()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    self.updateDesktopWallpaper()
-                    self.updateMenuBar()
+                ScreenCaptureManager.shared.updateWithCompletionHandler {
+                    DispatchQueue.main.async {
+                        self.updateDesktopWallpaper()
+                        self.updateMenuBar()
+                    }
                 }
             }
             .store(in: &c)

@@ -25,6 +25,12 @@ final class MenuBarSection: ObservableObject {
     /// A Boolean value that indicates whether the section is hidden.
     @Published private(set) var isHidden: Bool
 
+    /// The window frame of the section's current control item.
+    @Published private(set) var windowFrame: CGRect?
+
+    /// The screen of the section's current control item.
+    @Published private(set) var screen: NSScreen?
+
     /// The control item that manages the visibility of the section.
     @Published var controlItem: ControlItem {
         didSet {
@@ -58,14 +64,14 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    /// A Boolean value that indicates whether the section's hotkey is
-    /// enabled.
+    /// A Boolean value that indicates whether the section's
+    /// hotkey is enabled.
     var hotkeyIsEnabled: Bool {
         listener != nil
     }
 
-    /// Creates a menu bar section with the given name, control item,
-    /// hotkey, and unique identifier.
+    /// Creates a menu bar section with the given name, control
+    /// item, hotkey, and unique identifier.
     init(name: Name, controlItem: ControlItem, hotkey: Hotkey? = nil) {
         self.name = name
         self.controlItem = controlItem
@@ -115,6 +121,18 @@ final class MenuBarSection: ObservableObject {
         controlItem.$state
             .sink { [weak self] state in
                 self?.isHidden = state == .hideItems
+            }
+            .store(in: &c)
+
+        controlItem.$windowFrame
+            .sink { [weak self] frame in
+                self?.windowFrame = frame
+            }
+            .store(in: &c)
+
+        controlItem.$screen
+            .sink { [weak self] screen in
+                self?.screen = screen
             }
             .store(in: &c)
 

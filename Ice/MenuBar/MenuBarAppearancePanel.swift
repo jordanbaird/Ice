@@ -350,14 +350,15 @@ private class MenuBarAppearancePanelContentView: NSView {
                 .store(in: &c)
 
             if let appearanceManager = appearancePanel.appearanceManager {
-                // redraw whenever a control item moves, if its maxX
-                // remains on screen
+                // redraw whenever a section's control item moves, if
+                // its maxX remains on screen
                 for section in appearanceManager.menuBarManager?.sections ?? [] {
-                    section.controlItem.$windowFrame
-                        .filter { [weak section] windowFrame in
+                    section.$windowFrame
+                        .combineLatest(section.$screen)
+                        .filter { windowFrame, screen in
                             guard
                                 let windowFrame,
-                                let screen = section?.controlItem.screen
+                                let screen
                             else {
                                 return false
                             }
@@ -439,139 +440,168 @@ private class MenuBarAppearancePanelContentView: NSView {
 
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
     private func pathForSplitShapeKind(in rect: CGRect, info: MenuBarSplitShapeInfo) -> NSBezierPath {
+        enum Context {
+            static let previousPathForSplitShapeKindStorage = ObjectAssociation<NSBezierPath>()
+            static let previousTrailingPathStorage = ObjectAssociation<NSBezierPath>()
+        }
+
+        var previousPathForSplitShapeKind: NSBezierPath? {
+            get { Context.previousPathForSplitShapeKindStorage[self] }
+            set { Context.previousPathForSplitShapeKindStorage[self] = newValue }
+        }
+
         guard
             let menuBarManager = appearancePanel?.appearanceManager?.menuBarManager,
             let hiddenSection = menuBarManager.section(withName: .hidden),
             let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden),
             let mainMenuMaxX
         else {
-            return NSBezierPath(rect: rect)
+            return previousPathForSplitShapeKind ?? NSBezierPath(rect: rect)
         }
 
-        guard alwaysHiddenSection.isHidden else {
-            let info = MenuBarFullShapeInfo(
-                leadingEndCap: info.leading.leadingEndCap,
-                trailingEndCap: info.trailing.trailingEndCap
-            )
-            return pathForFullShapeKind(in: rect, info: info)
-        }
+        let result: NSBezierPath
 
-        let padding: CGFloat = 8
+        if alwaysHiddenSection.isHidden {
+            let padding: CGFloat = 8
 
-        let leadingPath: NSBezierPath = {
-            let shapeBounds = CGRect(
-                x: rect.height / 2,
-                y: rect.origin.y,
-                width: (mainMenuMaxX - (rect.height / 2)) + padding,
-                height: rect.height
-            )
-            let leadingEndCapBounds = CGRect(
-                x: rect.origin.x,
-                y: rect.origin.y,
-                width: rect.height,
-                height: rect.height
-            )
-            let trailingEndCapBounds = CGRect(
-                x: (mainMenuMaxX - (rect.height / 2)) + padding,
-                y: rect.origin.y,
-                width: rect.height,
-                height: rect.height
-            )
+            let leadingPath: NSBezierPath = {
+                let shapeBounds = CGRect(
+                    x: rect.height / 2,
+                    y: rect.origin.y,
+                    width: (mainMenuMaxX - (rect.height / 2)) + padding,
+                    height: rect.height
+                )
+                let leadingEndCapBounds = CGRect(
+                    x: rect.origin.x,
+                    y: rect.origin.y,
+                    width: rect.height,
+                    height: rect.height
+                )
+                let trailingEndCapBounds = CGRect(
+                    x: (mainMenuMaxX - (rect.height / 2)) + padding,
+                    y: rect.origin.y,
+                    width: rect.height,
+                    height: rect.height
+                )
 
-            var path = NSBezierPath(rect: shapeBounds)
+                var path = NSBezierPath(rect: shapeBounds)
 
-            path = switch info.leading.leadingEndCap {
-            case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
-            case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
-            }
-
-            path = switch info.leading.trailingEndCap {
-            case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
-            case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
-            }
-
-            return path
-        }()
-
-        let trailingPath: NSBezierPath = {
-            guard
-                let mainScreen = NSScreen.main,
-                let owningScreen = appearancePanel?.owningScreen
-            else {
-                return NSBezierPath(rect: rect)
-            }
-
-            let scale = mainScreen.frame.width / owningScreen.frame.width
-
-            var position: CGFloat
-            if hiddenSection.isHidden {
-                guard let frame = hiddenSection.controlItem.windowFrame else {
-                    return NSBezierPath(rect: rect)
+                path = switch info.leading.leadingEndCap {
+                case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
+                case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
                 }
-                position = (owningScreen.frame.width * scale) - frame.maxX
+
+                path = switch info.leading.trailingEndCap {
+                case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
+                case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
+                }
+
+                return path
+            }()
+
+            let trailingPath: NSBezierPath = {
+                var previousTrailingPath: NSBezierPath? {
+                    get { Context.previousTrailingPathStorage[self] }
+                    set { Context.previousTrailingPathStorage[self] = newValue }
+                }
+
+                guard
+                    let mainScreen = NSScreen.main,
+                    let owningScreen = appearancePanel?.owningScreen
+                else {
+                    return previousTrailingPath ?? NSBezierPath(rect: rect)
+                }
+
+                let scale = mainScreen.frame.width / owningScreen.frame.width
+
+                var position: CGFloat
+                if hiddenSection.isHidden {
+                    guard
+                        let frame = hiddenSection.windowFrame,
+                        (owningScreen.frame.minX...owningScreen.frame.maxX).contains(frame.maxX)
+                    else {
+                        return previousTrailingPath ?? NSBezierPath(rect: rect)
+                    }
+                    position = (owningScreen.frame.width * scale) - frame.maxX
+                } else {
+                    guard
+                        let frame = alwaysHiddenSection.windowFrame,
+                        (owningScreen.frame.minX...owningScreen.frame.maxX).contains(frame.maxX)
+                    else {
+                        return previousTrailingPath ?? NSBezierPath(rect: rect)
+                    }
+                    position = (owningScreen.frame.width * scale) - frame.maxX
+                }
+
+                // offset the position by the origin of the main screen
+                position += mainScreen.frame.origin.x
+
+                // add extra padding after the last menu bar item
+                position += padding
+
+                // compute the final position based on the maxX of the
+                // provided rectangle
+                position = rect.maxX - position
+
+                let shapeBounds = CGRect(
+                    x: position + (rect.height / 2),
+                    y: rect.origin.y,
+                    width: rect.maxX - (position + rect.height),
+                    height: rect.height
+                )
+                let leadingEndCapBounds = CGRect(
+                    x: position,
+                    y: rect.origin.y,
+                    width: rect.height,
+                    height: rect.height
+                )
+                let trailingEndCapBounds = CGRect(
+                    x: rect.maxX - rect.height,
+                    y: rect.origin.y,
+                    width: rect.height,
+                    height: rect.height
+                )
+
+                var path = NSBezierPath(rect: shapeBounds)
+
+                path = switch info.trailing.leadingEndCap {
+                case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
+                case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
+                }
+
+                path = switch info.trailing.trailingEndCap {
+                case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
+                case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
+                }
+
+                previousTrailingPath = path
+
+                return path
+            }()
+
+            if leadingPath.intersects(trailingPath) {
+                let info = MenuBarFullShapeInfo(
+                    leadingEndCap: info.leading.leadingEndCap,
+                    trailingEndCap: info.trailing.trailingEndCap
+                )
+                result = pathForFullShapeKind(in: rect, info: info)
             } else {
-                guard let frame = alwaysHiddenSection.controlItem.windowFrame else {
-                    return NSBezierPath(rect: rect)
-                }
-                position = (owningScreen.frame.width * scale) - frame.maxX
+                let path = NSBezierPath()
+                path.append(leadingPath)
+                path.append(trailingPath)
+                result = path
             }
-
-            // offset the position by the origin of the main screen
-            position += mainScreen.frame.origin.x
-
-            // add extra padding after the last menu bar item
-            position += padding
-
-            // compute the final position based on the maxX of the
-            // provided rectangle
-            position = rect.maxX - position
-
-            let shapeBounds = CGRect(
-                x: position + (rect.height / 2),
-                y: rect.origin.y,
-                width: rect.maxX - (position + rect.height),
-                height: rect.height
-            )
-            let leadingEndCapBounds = CGRect(
-                x: position,
-                y: rect.origin.y,
-                width: rect.height,
-                height: rect.height
-            )
-            let trailingEndCapBounds = CGRect(
-                x: rect.maxX - rect.height,
-                y: rect.origin.y,
-                width: rect.height,
-                height: rect.height
-            )
-
-            var path = NSBezierPath(rect: shapeBounds)
-
-            path = switch info.trailing.leadingEndCap {
-            case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
-            case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
-            }
-
-            path = switch info.trailing.trailingEndCap {
-            case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
-            case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
-            }
-
-            return path
-        }()
-
-        if leadingPath.intersects(trailingPath) {
+        } else {
             let info = MenuBarFullShapeInfo(
                 leadingEndCap: info.leading.leadingEndCap,
                 trailingEndCap: info.trailing.trailingEndCap
             )
-            return pathForFullShapeKind(in: rect, info: info)
-        } else {
-            let path = NSBezierPath()
-            path.append(leadingPath)
-            path.append(trailingPath)
-            return path
+            result = pathForFullShapeKind(in: rect, info: info)
         }
+
+        previousPathForSplitShapeKind = result
+
+        return result
     }
 
     private func drawTint(with appearanceManager: MenuBarAppearanceManager) {

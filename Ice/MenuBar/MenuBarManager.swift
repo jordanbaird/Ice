@@ -121,6 +121,14 @@ final class MenuBarManager: ObservableObject {
         defaults.ifPresent(key: Defaults.autoRehide, assign: &autoRehide)
         defaults.ifPresent(key: Defaults.rehideInterval, assign: &rehideInterval)
         defaults.ifPresent(key: Defaults.hideApplicationMenus, assign: &hideApplicationMenus)
+        defaults.ifPresent(key: Defaults.secondaryActionModifier) { rawValue in
+            secondaryActionModifier = Hotkey.Modifiers(rawValue: rawValue)
+        }
+        defaults.ifPresent(key: Defaults.rehideStrategy) { rawValue in
+            if let strategy = RehideStrategy(rawValue: rawValue) {
+                rehideStrategy = strategy
+            }
+        }
 
         if let data = defaults.data(forKey: Defaults.iceIcon) {
             do {
@@ -131,15 +139,6 @@ final class MenuBarManager: ObservableObject {
             if case .custom = iceIcon.name {
                 lastCustomIceIcon = iceIcon
             }
-        }
-        if let rawValue = defaults.object(forKey: Defaults.secondaryActionModifier) as? Int {
-            secondaryActionModifier = Hotkey.Modifiers(rawValue: rawValue)
-        }
-        if
-            let rawValue = defaults.object(forKey: Defaults.rehideStrategy) as? Int,
-            let strategy = RehideStrategy(rawValue: rawValue)
-        {
-            rehideStrategy = strategy
         }
     }
 

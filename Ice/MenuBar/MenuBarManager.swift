@@ -357,9 +357,6 @@ final class MenuBarManager: ObservableObject {
             return
         }
 
-        let appID = frontmostApplication.localizedName ?? "PID \(frontmostApplication.processIdentifier)"
-        Logger.menuBarManager.debug("New frontmost application: \(appID)")
-
         if
             case .focusedApp = rehideStrategy,
             let hiddenSection = section(withName: .hidden)
@@ -370,55 +367,24 @@ final class MenuBarManager: ObservableObject {
             }
         }
 
-        // FIXME: Find a better way to cancel the observation from within the call
-        // to `sink`, other than storing the cancellable in an Optional box object
-
-        // wait until the application is finished launching
-        var box: BoxObject<AnyCancellable?>? = BoxObject()
-        box?.base = frontmostApplication.publisher(for: \.isFinishedLaunching)
-            .combineLatest(frontmostApplication.publisher(for: \.ownsMenuBar))
-            .sink { [weak self] isFinishedLaunching, ownsMenuBar in
-                // Ice never actually owns the menu bar, so exclude it from the check
-                if frontmostApplication.processIdentifier != ProcessInfo.processInfo.processIdentifier {
-                    guard ownsMenuBar else {
-                        Logger.menuBarManager.debug("\(appID) does not own menu bar")
-                        return
-                    }
-                }
-                guard isFinishedLaunching else {
-                    Logger.menuBarManager.debug("\(appID) is launching...")
-                    return
-                }
-
-                Logger.menuBarManager.debug("\(appID) is finished launching")
-
-                defer {
-                    box = nil
-                }
-
-                guard let self else {
-                    return
-                }
-
-                do {
-                    guard
-                        let application = Application(frontmostApplication),
-                        let menuBar: UIElement = try application.attribute(.menuBar),
-                        let children: [UIElement] = try menuBar.arrayAttribute(.children)
-                    else {
-                        mainMenuMaxX = 0
-                        return
-                    }
-                    mainMenuMaxX = try children.reduce(into: 0) { result, child in
-                        if let frame: CGRect = try child.attribute(.frame) {
-                            result += frame.width
-                        }
-                    }
-                } catch {
-                    mainMenuMaxX = 0
-                    Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
+        do {
+            guard
+                let application = Application(frontmostApplication),
+                let menuBar: UIElement = try application.attribute(.menuBar),
+                let children: [UIElement] = try menuBar.arrayAttribute(.children)
+            else {
+                mainMenuMaxX = 0
+                return
+            }
+            mainMenuMaxX = try children.reduce(into: 0) { result, child in
+                if let frame: CGRect = try child.attribute(.frame) {
+                    result += frame.width
                 }
             }
+        } catch {
+            mainMenuMaxX = 0
+            Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
+        }
     }
 
     /// Updates the control item for each section based on the

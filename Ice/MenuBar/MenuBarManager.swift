@@ -366,23 +366,25 @@ final class MenuBarManager: ObservableObject {
             }
         }
 
-        do {
-            guard
-                let application = Application(frontmostApplication),
-                let menuBar: UIElement = try application.attribute(.menuBar),
-                let children: [UIElement] = try menuBar.arrayAttribute(.children)
-            else {
-                mainMenuMaxX = 0
-                return
-            }
-            mainMenuMaxX = try children.reduce(into: 0) { result, child in
-                if let frame: CGRect = try child.attribute(.frame) {
-                    result += frame.width
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
+            do {
+                guard
+                    let application = Application(frontmostApplication),
+                    let menuBar: UIElement = try application.attribute(.menuBar),
+                    let children: [UIElement] = try menuBar.arrayAttribute(.children)
+                else {
+                    mainMenuMaxX = 0
+                    return
                 }
+                mainMenuMaxX = try children.reduce(into: 0) { result, child in
+                    if let frame: CGRect = try child.attribute(.frame) {
+                        result += frame.width
+                    }
+                }
+            } catch {
+                mainMenuMaxX = 0
+                Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
             }
-        } catch {
-            mainMenuMaxX = 0
-            Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
         }
     }
 

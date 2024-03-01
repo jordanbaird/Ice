@@ -27,15 +27,6 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private var cachedScreenCount = NSScreen.screens.count
 
-    /// A Boolean value that indicates whether the appearance
-    /// manager should retain any appearance panels.
-    var shouldRetainAppearancePanels: Bool {
-        configuration.hasShadow ||
-        configuration.hasBorder ||
-        configuration.shapeKind != .none ||
-        configuration.tintKind != .none
-    }
-
     /// A Boolean value that indicates whether an app is fullscreen.
     var isFullscreen: Bool {
         guard let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) else {
@@ -76,7 +67,7 @@ final class MenuBarAppearanceManager: ObservableObject {
             while let panel = appearancePanels.popFirst() {
                 panel.orderOut(self)
             }
-            configureAppearancePanels()
+            configureAppearancePanels(with: configuration)
         }
     }
 
@@ -113,7 +104,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 while let panel = appearancePanels.popFirst() {
                     panel.orderOut(self)
                 }
-                configureAppearancePanels()
+                configureAppearancePanels(with: configuration)
             }
             .store(in: &c)
 
@@ -127,7 +118,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                     appearancePanels.isEmpty,
                     !isFullscreen
                 {
-                    configureAppearancePanels()
+                    configureAppearancePanels(with: configuration)
                 } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         if self.isFullscreen {
@@ -151,8 +142,8 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
             .store(in: &c)
 
-        objectWillChange
-            .sink { [weak self] in
+        $configuration
+            .sink { [weak self] configuration in
                 guard let self else {
                     return
                 }
@@ -160,7 +151,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 // since some of the properties on the manager might
                 // call for them, try to configure now
                 if appearancePanels.isEmpty {
-                    configureAppearancePanels()
+                    configureAppearancePanels(with: configuration)
                 }
             }
             .store(in: &c)
@@ -168,8 +159,17 @@ final class MenuBarAppearanceManager: ObservableObject {
         cancellables = c
     }
 
-    private func configureAppearancePanels() {
-        guard shouldRetainAppearancePanels else {
+    /// Returns a Boolean value that indicates whether the
+    /// manager should retain its appearance panels.
+    private func shouldRetainAppearancePanels(for configuration: MenuBarAppearanceConfiguration) -> Bool {
+        configuration.hasShadow ||
+        configuration.hasBorder ||
+        configuration.shapeKind != .none ||
+        configuration.tintKind != .none
+    }
+
+    private func configureAppearancePanels(with configuration: MenuBarAppearanceConfiguration) {
+        guard shouldRetainAppearancePanels(for: configuration) else {
             // remove all appearance panels if none of the properties
             // on the manager call for them
             appearancePanels.removeAll()

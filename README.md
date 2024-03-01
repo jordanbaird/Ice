@@ -69,11 +69,11 @@ Because your menu bar becomes like ice, allowing your menu bar items to slide aw
 ## Gallery
 
 #### Choose your own icon to show in the menu bar
-![Custom Icon Example](https://github.com/jordanbaird/Ice/assets/90936861/df0613b6-16b9-4e36-acae-acf93cb4f4ad)
+![Custom Icon Example](https://github.com/jordanbaird/Ice/assets/90936861/7bfd94b1-8645-4976-a0e7-d4dc3f0f8e84)
 
 #### Customize the menu bar's appearance
-![Menu Bar Appearance Example 1](https://github.com/jordanbaird/Ice/assets/90936861/3a666903-59f7-4833-a843-8c44be8c6b6e)
-![Menu Bar Appearance Example 2](https://github.com/jordanbaird/Ice/assets/90936861/440e7426-94e4-4c08-bace-639e5a83c240)
+![Menu Bar Appearance Example 1](https://github.com/jordanbaird/Ice/assets/90936861/5248137b-dc8a-41bd-b5a9-5d77fc7d477c)
+![Menu Bar Appearance Example 2](https://github.com/jordanbaird/Ice/assets/90936861/17fc4a99-cce5-4773-a811-37828cd7f9af)
 
 ## License
 

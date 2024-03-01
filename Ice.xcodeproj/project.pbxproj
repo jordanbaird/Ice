@@ -399,6 +399,19 @@
 			path = CGColor;
 			sourceTree = "<group>";
 		};
+		179F13BC2B91E7F700EC6B52 /* MenuBarAppearance */ = {
+			isa = PBXGroup;
+			children = (
+				179F13B92B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift */,
+				175812532B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift */,
+				17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */,
+				174AA5D52B71D97100E3FE74 /* MenuBarAppearancePanel.swift */,
+				177354652B1B8502001CF731 /* MenuBarShape.swift */,
+				1787C43A2B187187002F50DF /* MenuBarTintKind.swift */,
+			);
+			path = MenuBarAppearance;
+			sourceTree = "<group>";
+		};
 		17C261E72B5AEB7A0076F129 /* Main */ = {
 			isa = PBXGroup;
 			children = (
@@ -610,15 +623,10 @@
 			isa = PBXGroup;
 			children = (
 				17CC22BB2B8CDE6F001A0582 /* EventMonitorManager.swift */,
-				179F13B92B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift */,
-				175812532B80FBFA00D622DA /* MenuBarAppearanceEditorHelperPanel.swift */,
-				17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */,
-				174AA5D52B71D97100E3FE74 /* MenuBarAppearancePanel.swift */,
 				7166834F2A7681AF006ABF84 /* MenuBarManager.swift */,
 				7162406E2AA0A323003EC671 /* MenuBarSection.swift */,
-				177354652B1B8502001CF731 /* MenuBarShape.swift */,
-				1787C43A2B187187002F50DF /* MenuBarTintKind.swift */,
 				17F71BB12B87E37800905CBA /* RehideStrategy.swift */,
+				179F13BC2B91E7F700EC6B52 /* MenuBarAppearance */,
 			);
 			path = MenuBar;
 			sourceTree = "<group>";

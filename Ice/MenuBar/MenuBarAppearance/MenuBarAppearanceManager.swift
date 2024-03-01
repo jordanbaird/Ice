@@ -29,21 +29,10 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     /// A Boolean value that indicates whether an app is fullscreen.
     var isFullscreen: Bool {
-        guard let windows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) else {
-            return false
+        WindowInfo.getCurrent(option: .optionOnScreenOnly).contains { window in
+            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            window.title == "Fullscreen Backdrop"
         }
-        for window in windows as NSArray {
-            guard let info = window as? NSDictionary else {
-                continue
-            }
-            if
-                info[kCGWindowOwnerName] as? String == "Dock",
-                info[kCGWindowName] as? String == "Fullscreen Backdrop"
-            {
-                return true
-            }
-        }
-        return false
     }
 
     init(

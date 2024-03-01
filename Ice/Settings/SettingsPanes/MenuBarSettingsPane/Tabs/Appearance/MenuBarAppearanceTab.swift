@@ -6,7 +6,14 @@
 import SwiftUI
 
 struct MenuBarAppearanceTab: View {
+    enum Location {
+        case settings
+        case popover(closePopover: () -> Void)
+    }
+
     @EnvironmentObject var appState: AppState
+
+    let location: Location
 
     private var appearanceManager: MenuBarAppearanceManager {
         appState.menuBarManager.appearanceManager
@@ -16,18 +23,41 @@ struct MenuBarAppearanceTab: View {
         VStack(alignment: .leading, spacing: 0) {
             headerText
             mainForm
+            HStack {
+                Button("Reset") {
+                    appearanceManager.configuration = .defaultConfiguration
+                }
+                if case .popover(let closePopover) = location {
+                    Spacer()
+                    Button("Done", action: closePopover)
+                }
+            }
+            .padding()
+            .controlSize(.large)
         }
     }
 
     @ViewBuilder
     private var headerText: some View {
-        Text("Menu Bar Appearance")
-            .font(.title2)
-            .annotation {
-                Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
+        switch location {
+        case .settings:
+            Text("Menu Bar Appearance")
+                .font(.title2)
+                .annotation {
+                    Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
+                }
+                .padding(.top)
+                .padding(.horizontal, 20)
+        case .popover:
+            HStack {
+                Spacer()
+                Text("Menu Bar Appearance")
+                    .font(.title2)
+                    .padding(.top)
+                    .padding(.horizontal, 20)
+                Spacer()
             }
-            .padding(.top)
-            .padding(.horizontal, 20)
+        }
     }
 
     @ViewBuilder
@@ -128,7 +158,8 @@ struct MenuBarAppearanceTab: View {
 }
 
 #Preview {
-    MenuBarAppearanceTab()
+    MenuBarAppearanceTab(location: .settings)
         .environmentObject(AppState.shared)
+        .buttonStyle(.custom)
         .frame(width: 500, height: 300)
 }

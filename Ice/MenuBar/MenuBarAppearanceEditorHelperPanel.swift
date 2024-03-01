@@ -80,17 +80,11 @@ private class MenuBarAppearanceEditorPopover: NSPopover {
 
     @ViewBuilder
     private var contentView: some View {
-        VStack {
-            MenuBarAppearanceTab()
-            HStack {
-                Spacer()
-                Button("Done") { [weak self] in
-                    self?.performClose(self)
-                }
-                .controlSize(.large)
-            }
-            .padding()
-        }
+        MenuBarAppearanceTab(
+            location: .popover(closePopover: { [weak self] in
+                self?.performClose(self)
+            })
+        )
         .environmentObject(AppState.shared)
         .buttonStyle(.custom)
     }

@@ -302,6 +302,13 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
+        $hideApplicationMenus
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] shouldHide in
+                self?.defaults.set(shouldHide, forKey: Defaults.hideApplicationMenus)
+            }
+            .store(in: &c)
+
         // propagate changes up from child observable objects
         appearanceManager.objectWillChange
             .sink { [weak self] in

@@ -119,44 +119,37 @@ final class EventMonitorManager {
     private(set) lazy var leftMouseDownMonitor = UniversalEventMonitor(mask: .leftMouseDown) { [weak self] event in
         guard
             let menuBarManager = self?.menuBarManager,
+            let screen = NSScreen.main,
             let visibleSection = menuBarManager.section(withName: .visible),
-            let visibleControlItemFrame = visibleSection.controlItem.windowFrame
+            let hiddenSection = menuBarManager.section(withName: .hidden),
+            let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
         else {
             return event
         }
 
-        func isMouseInEmptyMenuBarSpace() -> Bool {
-            guard
-                let screen = NSScreen.main,
-                screen.isMouseInMenuBar,
-                let hiddenSection = menuBarManager.section(withName: .hidden),
-                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
-            else {
-                return false
-            }
-
-            func check(section: MenuBarSection) -> Bool {
-                if let controlItemPosition = section.controlItem.position {
-                    return NSEvent.mouseLocation.x - screen.frame.origin.x > menuBarManager.mainMenuMaxX &&
-                    screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
-                }
-                return false
-            }
-
-            if hiddenSection.isHidden {
-                return check(section: hiddenSection)
+        func check(section: MenuBarSection) -> Bool {
+            if let controlItemPosition = section.controlItem.position {
+                NSEvent.mouseLocation.x - screen.frame.origin.x > menuBarManager.mainMenuMaxX &&
+                screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
             } else {
-                return check(section: alwaysHiddenSection)
+                false
+            }
+        }
+
+        func isMouseInEmptyMenuBarSpace() -> Bool {
+            guard screen.isMouseInMenuBar else {
+                return false
+            }
+            return if hiddenSection.isHidden {
+                check(section: hiddenSection)
+            } else {
+                check(section: alwaysHiddenSection)
             }
         }
 
         if isMouseInEmptyMenuBarSpace() {
             menuBarManager.showOnHoverPreventedByUserInteraction = true
-            if
-                menuBarManager.showOnClick,
-                let hiddenSection = menuBarManager.section(withName: .hidden),
-                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
-            {
+            if menuBarManager.showOnClick {
                 // small delay for better user experience
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     if hiddenSection.isHidden {
@@ -166,7 +159,12 @@ final class EventMonitorManager {
                     }
                 }
             }
-        } else if visibleControlItemFrame.contains(NSEvent.mouseLocation) {
+        } else if check(section: hiddenSection) {
+            menuBarManager.showOnHoverPreventedByUserInteraction = true
+        } else if
+            let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
+            visibleControlItemFrame.contains(NSEvent.mouseLocation)
+        {
             menuBarManager.showOnHoverPreventedByUserInteraction = true
         }
 

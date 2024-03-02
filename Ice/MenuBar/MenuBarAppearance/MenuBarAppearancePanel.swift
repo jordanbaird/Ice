@@ -30,16 +30,19 @@ class MenuBarAppearancePanel: NSPanel {
     /// saver is currently active.
     private var screenSaverIsActive = false
 
-    /// A Boolean value that indicates whether the user
-    /// is dragging a menu bar item.
-    @Published var isDraggingMenuBarItem = false
-
     /// A Boolean value that indicates whether the panel
     /// needs to be updated.
     @Published var needsUpdate = false
 
+    /// A Boolean value that indicates whether the user
+    /// is dragging a menu bar item.
+    @Published var isDraggingMenuBarItem = false
+
     /// The menu bar associated with the panel.
     @Published private(set) var menuBar: UIElement?
+
+    /// The max X position of the main menu.
+    @Published private(set) var mainMenuMaxX: CGFloat?
 
     /// The current desktop wallpaper, clipped to the bounds
     /// of the menu bar.
@@ -75,7 +78,7 @@ class MenuBarAppearancePanel: NSPanel {
         self.hasShadow = false
         self.ignoresMouseEvents = true
         self.collectionBehavior = [.fullScreenNone, .ignoresCycle, .moveToActiveSpace]
-        self.contentView = MenuBarAppearancePanelContentView(appearancePanel: self)
+        self.contentView = MenuBarAppearancePanelContentView()
         configureCancellables()
     }
 
@@ -145,14 +148,16 @@ class MenuBarAppearancePanel: NSPanel {
             }
             .store(in: &c)
 
-        // update when frontmost application changes
-        NSWorkspace.shared
-            .publisher(for: \.frontmostApplication)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.needsUpdate = true
-            }
-            .store(in: &c)
+        // update when frontmost application changes,
+        // or when it owns the menu bar
+        Publishers.CombineLatest(
+            NSWorkspace.shared.publisher(for: \.frontmostApplication),
+            NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
+        )
+        .sink { [weak self] _ in
+            self?.needsUpdate = true
+        }
+        .store(in: &c)
 
         $needsUpdate
             .removeDuplicates()
@@ -175,10 +180,9 @@ class MenuBarAppearancePanel: NSPanel {
             }
             .store(in: &c)
 
-        $isDraggingMenuBarItem
-            .removeDuplicates()
-            .sink { [weak self] isDragging in
-                self?.contentView?.needsDisplay = true
+        $menuBar
+            .sink { [weak self] menuBar in
+                self?.updateMainMenuMaxX(menuBar: menuBar)
             }
             .store(in: &c)
 
@@ -268,6 +272,26 @@ class MenuBarAppearancePanel: NSPanel {
         }
     }
 
+    /// Stores the maxX position of the menu bar.
+    private func updateMainMenuMaxX(menuBar: UIElement?) {
+        guard let menuBar else {
+            return
+        }
+        do {
+            guard let children: [UIElement] = try menuBar.arrayAttribute(.children) else {
+                mainMenuMaxX = nil
+                return
+            }
+            mainMenuMaxX = try children.reduce(into: 0) { result, child in
+                if let frame: CGRect = try child.attribute(.frame) {
+                    result += frame.width
+                }
+            }
+        } catch {
+            Logger.appearancePanel.error("Error updating main menu maxX: \(error)")
+        }
+    }
+
     /// Shows the panel.
     func show() {
         guard !AppState.shared.isPreview else {
@@ -307,18 +331,19 @@ class MenuBarAppearancePanel: NSPanel {
     }
 }
 
-// MARK: - ContentView
+// MARK: - Content View
 
 private class MenuBarAppearancePanelContentView: NSView {
     private var cancellables = Set<AnyCancellable>()
 
-    private weak var appearancePanel: MenuBarAppearancePanel?
+    /// The appearance panel that contains the content view.
+    private var appearancePanel: MenuBarAppearancePanel? {
+        window as? MenuBarAppearancePanel
+    }
 
-    /// The max X position of the main menu.
-    private var mainMenuMaxX: CGFloat? {
-        didSet {
-            needsDisplay = true
-        }
+    /// The appearance manager that manages the content view's panel.
+    private var appearanceManager: MenuBarAppearanceManager? {
+        appearancePanel?.appearanceManager
     }
 
     /// The bounds that the view's drawn content can occupy.
@@ -331,63 +356,50 @@ private class MenuBarAppearancePanelContentView: NSView {
         )
     }
 
-    init(appearancePanel: MenuBarAppearancePanel) {
-        self.appearancePanel = appearancePanel
-        super.init(frame: .zero)
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
         configureCancellables()
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
     }
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
         if let appearancePanel {
-            appearancePanel.$menuBar
-                .sink { [weak self] menuBar in
-                    guard
-                        let self,
-                        let menuBar
-                    else {
-                        return
-                    }
-                    updateMainMenuMaxX(menuBar: menuBar)
+            // redraw whenever a menu bar item is being dragged
+            appearancePanel.$isDraggingMenuBarItem
+                .removeDuplicates()
+                .sink { [weak self] _ in
+                    self?.needsDisplay = true
                 }
                 .store(in: &c)
+            // redraw whenever the main menu maxX changes
+            appearancePanel.$mainMenuMaxX
+                .sink { [weak self] _ in
+                    self?.needsDisplay = true
+                }
+                .store(in: &c)
+            // redraw whenever the desktop wallpaper changes
             appearancePanel.$desktopWallpaper
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
                 }
                 .store(in: &c)
+        }
 
-            if let appearanceManager = appearancePanel.appearanceManager {
-                // redraw whenever a section's control item moves, if
-                // its maxX remains on screen
-                for section in appearanceManager.menuBarManager?.sections ?? [] {
-                    section.$windowFrame
-                        .combineLatest(section.$screen)
-                        .filter { windowFrame, screen in
-                            guard
-                                let windowFrame,
-                                let screen
-                            else {
-                                return false
-                            }
-                            let xRange = screen.frame.minX...screen.frame.maxX
-                            return xRange.contains(windowFrame.maxX)
-                        }
-                        .receive(on: DispatchQueue.main)
-                        .sink { [weak self] _ in
-                            self?.needsDisplay = true
-                        }
-                        .store(in: &c)
+        if let appearanceManager {
+            // redraw whenever the manager's parameters change
+            appearanceManager.$configuration
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.needsDisplay = true
                 }
+                .store(in: &c)
+        }
 
-                // redraw whenever appearanceManager's parameters change
-                appearanceManager.objectWillChange
+        if let menuBarManager = appearanceManager?.menuBarManager {
+            // redraw whenever a section hides or shows
+            for section in menuBarManager.sections {
+                section.$isHidden
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
                         self?.needsDisplay = true
@@ -397,23 +409,6 @@ private class MenuBarAppearancePanelContentView: NSView {
         }
 
         cancellables = c
-    }
-
-    /// Stores the maxX position of the menu bar.
-    private func updateMainMenuMaxX(menuBar: UIElement) {
-        do {
-            guard let children: [UIElement] = try menuBar.arrayAttribute(.children) else {
-                mainMenuMaxX = nil
-                return
-            }
-            mainMenuMaxX = try children.reduce(into: 0) { result, child in
-                if let frame: CGRect = try child.attribute(.frame) {
-                    result += frame.width
-                }
-            }
-        } catch {
-            Logger.appearancePanel.error("Error updating main menu maxX: \(error)")
-        }
     }
 
     /// Returns a path for the ``MenuBarShapeKind/full`` shape kind.
@@ -454,21 +449,11 @@ private class MenuBarAppearancePanelContentView: NSView {
 
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
     private func pathForSplitShapeKind(in rect: CGRect, info: MenuBarSplitShapeInfo) -> NSBezierPath {
-        enum Context {
-            static let previousPathForSplitShapeKindStorage = ObjectAssociation<NSBezierPath>()
-            static let previousTrailingPathStorage = ObjectAssociation<NSBezierPath>()
-        }
-
-        var previousPathForSplitShapeKind: NSBezierPath? {
-            get { Context.previousPathForSplitShapeKindStorage[self] }
-            set { Context.previousPathForSplitShapeKindStorage[self] = newValue }
-        }
-
         guard
             let menuBarManager = appearancePanel?.appearanceManager?.menuBarManager,
-            let mainMenuMaxX
+            let mainMenuMaxX = appearancePanel?.mainMenuMaxX
         else {
-            return previousPathForSplitShapeKind ?? NSBezierPath(rect: rect)
+            return NSBezierPath(rect: rect)
         }
 
         let result: NSBezierPath
@@ -521,16 +506,11 @@ private class MenuBarAppearancePanelContentView: NSView {
             }()
 
             let trailingPath: NSBezierPath = {
-                var previousTrailingPath: NSBezierPath? {
-                    get { Context.previousTrailingPathStorage[self] }
-                    set { Context.previousTrailingPathStorage[self] = newValue }
-                }
-
                 guard
                     let mainScreen = NSScreen.main,
                     let owningScreen = appearancePanel?.owningScreen
                 else {
-                    return previousTrailingPath ?? NSBezierPath(rect: rect)
+                    return NSBezierPath(rect: rect)
                 }
 
                 let itemWindows = menuBarManager.menuBarItemManager.getOnScreenMenuBarItemWindows()
@@ -581,9 +561,6 @@ private class MenuBarAppearancePanelContentView: NSView {
                 case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
                 }
 
-                // cache previous path to prevent visual glitching
-                previousTrailingPath = path
-
                 return path
             }()
 
@@ -600,9 +577,6 @@ private class MenuBarAppearancePanelContentView: NSView {
                 result = path
             }
         }
-
-        // cache previous path to prevent visual glitching
-        previousPathForSplitShapeKind = result
 
         return result
     }

@@ -87,10 +87,10 @@ final class EventMonitorManager {
         // get the window that the user has clicked into
         guard
             let hiddenSection = menuBarManager.section(withName: .hidden),
-            let flippedMouseLocation = NSEvent.flippedMouseLocation,
+            let mouseLocation = CGEvent(source: nil)?.location,
             let windowUnderMouse = WindowInfo.getCurrent(option: .optionOnScreenOnly)
                 .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
-                .first(where: { $0.frame.contains(flippedMouseLocation) }),
+                .first(where: { $0.frame.contains(mouseLocation) }),
             let owningApplication = windowUnderMouse.owningApplication
         else {
             return event

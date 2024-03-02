@@ -55,7 +55,6 @@
 		17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */; };
 		17C3C5F72B75A36100B9648C /* NSScreen+displayID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C3C5F62B75A36100B9648C /* NSScreen+displayID.swift */; };
 		17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */; };
-		17CC22B32B8A5595001A0582 /* NSEvent+flippedMouseLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22B22B8A5595001A0582 /* NSEvent+flippedMouseLocation.swift */; };
 		17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22B42B8A55E7001A0582 /* WindowInfo.swift */; };
 		17CC22B82B8B5628001A0582 /* RectangleCornerRadii+init.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22B72B8B5628001A0582 /* RectangleCornerRadii+init.swift */; };
 		17CC22BC2B8CDE6F001A0582 /* EventMonitorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22BB2B8CDE6F001A0582 /* EventMonitorManager.swift */; };
@@ -149,7 +148,6 @@
 		17C261E22B5AC03C0076F129 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		17C3C5F62B75A36100B9648C /* NSScreen+displayID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+displayID.swift"; sourceTree = "<group>"; };
 		17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeysSettingsPane.swift; sourceTree = "<group>"; };
-		17CC22B22B8A5595001A0582 /* NSEvent+flippedMouseLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSEvent+flippedMouseLocation.swift"; sourceTree = "<group>"; };
 		17CC22B42B8A55E7001A0582 /* WindowInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowInfo.swift; sourceTree = "<group>"; };
 		17CC22B72B8B5628001A0582 /* RectangleCornerRadii+init.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RectangleCornerRadii+init.swift"; sourceTree = "<group>"; };
 		17CC22BB2B8CDE6F001A0582 /* EventMonitorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMonitorManager.swift; sourceTree = "<group>"; };
@@ -433,14 +431,6 @@
 			path = NSScreen;
 			sourceTree = "<group>";
 		};
-		17CC22B12B8A558D001A0582 /* NSEvent */ = {
-			isa = PBXGroup;
-			children = (
-				17CC22B22B8A5595001A0582 /* NSEvent+flippedMouseLocation.swift */,
-			);
-			path = NSEvent;
-			sourceTree = "<group>";
-		};
 		17CC22B62B8B561F001A0582 /* RectangleCornerRadii */ = {
 			isa = PBXGroup;
 			children = (
@@ -596,7 +586,6 @@
 				716683442A76811C006ABF84 /* Logger */,
 				7133ED5F2A855ADA000A7E1B /* NSApplication */,
 				177354822B1F9AE1001CF731 /* NSBezierPath */,
-				17CC22B12B8A558D001A0582 /* NSEvent */,
 				17C3C5F52B75A35000B9648C /* NSScreen */,
 				716683462A76811C006ABF84 /* NSStatusItem */,
 				17CC22B62B8B561F001A0582 /* RectangleCornerRadii */,
@@ -769,7 +758,6 @@
 				17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */,
 				17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
-				17CC22B32B8A5595001A0582 /* NSEvent+flippedMouseLocation.swift in Sources */,
 				1750850E2B683A4C00CFF13A /* StateView.swift in Sources */,
 				7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */,
 				71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */,

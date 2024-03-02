@@ -130,23 +130,40 @@ final class EventMonitorManager {
                 let screen = NSScreen.main,
                 screen.isMouseInMenuBar,
                 let hiddenSection = menuBarManager.section(withName: .hidden),
-                let controlItemPosition = hiddenSection.controlItem.position
+                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
             else {
                 return false
             }
-            return NSEvent.mouseLocation.x > menuBarManager.mainMenuMaxX &&
-            screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
+
+            func check(section: MenuBarSection) -> Bool {
+                if let controlItemPosition = section.controlItem.position {
+                    return NSEvent.mouseLocation.x > menuBarManager.mainMenuMaxX &&
+                    screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
+                }
+                return false
+            }
+
+            if hiddenSection.isHidden {
+                return check(section: hiddenSection)
+            } else {
+                return check(section: alwaysHiddenSection)
+            }
         }
 
         if isMouseInEmptyMenuBarSpace() {
             menuBarManager.showOnHoverPreventedByUserInteraction = true
             if
                 menuBarManager.showOnClick,
-                let hiddenSection = menuBarManager.section(withName: .hidden)
+                let hiddenSection = menuBarManager.section(withName: .hidden),
+                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
             {
                 // small delay for better user experience
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    hiddenSection.show()
+                    if hiddenSection.isHidden {
+                        hiddenSection.show()
+                    } else {
+                        alwaysHiddenSection.show()
+                    }
                 }
             }
         } else if visibleControlItemFrame.contains(NSEvent.mouseLocation) {

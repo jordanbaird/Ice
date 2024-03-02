@@ -65,6 +65,9 @@ final class EventMonitorManager {
             return event
         }
 
+        // mouse up means dragging has stopped
+        self?.setIsDraggingMenuBarItem(false)
+
         // make sure auto-rehide is enabled and set to smart
         guard
             menuBarManager.autoRehide,
@@ -196,6 +199,7 @@ final class EventMonitorManager {
             return event
         }
         menuBarManager.showAllSections()
+        self?.setIsDraggingMenuBarItem(true)
         return event
     }
 
@@ -209,5 +213,14 @@ final class EventMonitorManager {
         leftMouseDownMonitor.start()
         rightMouseDownMonitor.start()
         leftMouseDraggedMonitor.start()
+    }
+
+    func setIsDraggingMenuBarItem(_ isDragging: Bool) {
+        guard let menuBarManager else {
+            return
+        }
+        for panel in menuBarManager.appearanceManager.appearancePanels {
+            panel.isDraggingMenuBarItem = isDragging
+        }
     }
 }

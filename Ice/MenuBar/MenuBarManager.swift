@@ -89,6 +89,8 @@ final class MenuBarManager: ObservableObject {
 
     private(set) weak var appState: AppState?
 
+    let menuBarItemManager = MenuBarItemManager()
+
     private(set) lazy var appearanceManager = MenuBarAppearanceManager(
         menuBarManager: self,
         encoder: encoder,

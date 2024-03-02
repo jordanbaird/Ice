@@ -30,6 +30,12 @@ class MenuBarAppearancePanel: NSPanel {
     /// saver is currently active.
     private var screenSaverIsActive = false
 
+    /// A Boolean value that indicates whether the user
+    /// is dragging a menu bar item.
+    @Published var isDraggingMenuBarItem = false
+
+    /// A Boolean value that indicates whether the panel
+    /// needs to be updated.
     @Published var needsUpdate = false
 
     /// The menu bar associated with the panel.
@@ -166,6 +172,13 @@ class MenuBarAppearancePanel: NSPanel {
                         self.updateMenuBar()
                     }
                 }
+            }
+            .store(in: &c)
+
+        $isDraggingMenuBarItem
+            .removeDuplicates()
+            .sink { [weak self] isDragging in
+                self?.contentView?.needsDisplay = true
             }
             .store(in: &c)
 
@@ -453,8 +466,6 @@ private class MenuBarAppearancePanelContentView: NSView {
 
         guard
             let menuBarManager = appearancePanel?.appearanceManager?.menuBarManager,
-            let hiddenSection = menuBarManager.section(withName: .hidden),
-            let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden),
             let mainMenuMaxX
         else {
             return previousPathForSplitShapeKind ?? NSBezierPath(rect: rect)
@@ -462,7 +473,16 @@ private class MenuBarAppearancePanelContentView: NSView {
 
         let result: NSBezierPath
 
-        if alwaysHiddenSection.isHidden {
+        if
+            let appearancePanel,
+            appearancePanel.isDraggingMenuBarItem
+        {
+            let info = MenuBarFullShapeInfo(
+                leadingEndCap: info.leading.leadingEndCap,
+                trailingEndCap: info.trailing.trailingEndCap
+            )
+            result = pathForFullShapeKind(in: rect, info: info)
+        } else {
             let padding: CGFloat = 8
 
             let leadingPath: NSBezierPath = {
@@ -513,36 +533,22 @@ private class MenuBarAppearancePanelContentView: NSView {
                     return previousTrailingPath ?? NSBezierPath(rect: rect)
                 }
 
+                let itemWindows = menuBarManager.menuBarItemManager.getOnScreenMenuBarItemWindows()
+                let totalWidth = itemWindows.reduce(into: 0) { width, window in
+                    width += window.frame.width
+                }
+
                 let scale = mainScreen.frame.width / owningScreen.frame.width
 
-                var position: CGFloat
-                if hiddenSection.isHidden {
-                    guard
-                        let frame = hiddenSection.windowFrame,
-                        (owningScreen.frame.minX...owningScreen.frame.maxX).contains(frame.maxX)
-                    else {
-                        return previousTrailingPath ?? NSBezierPath(rect: rect)
-                    }
-                    position = (owningScreen.frame.width * scale) - frame.maxX
-                } else {
-                    guard
-                        let frame = alwaysHiddenSection.windowFrame,
-                        (owningScreen.frame.minX...owningScreen.frame.maxX).contains(frame.maxX)
-                    else {
-                        return previousTrailingPath ?? NSBezierPath(rect: rect)
-                    }
-                    position = (owningScreen.frame.width * scale) - frame.maxX
-                }
+                // compute the position by subtracting the total on-screen
+                // menu bar item width from the owning screen's scaled width
+                var position = (owningScreen.frame.width * scale) - totalWidth
 
                 // offset the position by the origin of the main screen
                 position += mainScreen.frame.origin.x
 
-                // add extra padding after the last menu bar item
-                position += padding
-
-                // compute the final position based on the maxX of the
-                // provided rectangle
-                position = rect.maxX - position
+                // extra padding goes after the last menu bar item
+                position -= padding
 
                 let shapeBounds = CGRect(
                     x: position + (rect.height / 2),
@@ -575,6 +581,7 @@ private class MenuBarAppearancePanelContentView: NSView {
                 case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
                 }
 
+                // cache previous path to prevent visual glitching
                 previousTrailingPath = path
 
                 return path
@@ -592,14 +599,9 @@ private class MenuBarAppearancePanelContentView: NSView {
                 path.append(trailingPath)
                 result = path
             }
-        } else {
-            let info = MenuBarFullShapeInfo(
-                leadingEndCap: info.leading.leadingEndCap,
-                trailingEndCap: info.trailing.trailingEndCap
-            )
-            result = pathForFullShapeKind(in: rect, info: info)
         }
 
+        // cache previous path to prevent visual glitching
         previousPathForSplitShapeKind = result
 
         return result

@@ -397,9 +397,17 @@ private class MenuBarAppearancePanelContentView: NSView {
         }
 
         if let menuBarManager = appearanceManager?.menuBarManager {
-            // redraw whenever a section hides or shows
+            // redraw whenever the window frame of a section's control item changes
+            //
+            // - NOTE: A previous attempt was made to redraw the view when a section's
+            //   isHidden property was changed. This would be semantically ideal, but
+            //   the property sometimes changes before the menu bar items are actually
+            //   hidden or shown on-screen. Since the view's drawing process relies on
+            //   getting an accurate position of each menu bar item, we need to use
+            //   something that publishes its changes only after the showing/hiding
+            //   process is finished
             for section in menuBarManager.sections {
-                section.$isHidden
+                section.$windowFrame
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
                         self?.needsDisplay = true
@@ -506,29 +514,11 @@ private class MenuBarAppearancePanelContentView: NSView {
             }()
 
             let trailingPath: NSBezierPath = {
-                guard
-                    let mainScreen = NSScreen.main,
-                    let owningScreen = appearancePanel?.owningScreen
-                else {
-                    return NSBezierPath(rect: rect)
-                }
-
                 let itemWindows = menuBarManager.menuBarItemManager.getOnScreenMenuBarItemWindows()
                 let totalWidth = itemWindows.reduce(into: 0) { width, window in
                     width += window.frame.width
                 }
-
-                let scale = mainScreen.frame.width / owningScreen.frame.width
-
-                // compute the position by subtracting the total on-screen
-                // menu bar item width from the owning screen's scaled width
-                var position = (owningScreen.frame.width * scale) - totalWidth
-
-                // offset the position by the origin of the main screen
-                position += mainScreen.frame.origin.x
-
-                // extra padding goes after the last menu bar item
-                position -= padding
+                let position = rect.maxX - totalWidth - padding
 
                 let shapeBounds = CGRect(
                     x: position + (rect.height / 2),

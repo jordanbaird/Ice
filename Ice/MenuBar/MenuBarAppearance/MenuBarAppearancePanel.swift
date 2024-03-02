@@ -190,7 +190,7 @@ class MenuBarAppearancePanel: NSPanel {
     }
 
     /// Returns the `SCDisplay` equivalent of the owning screen.
-    private func getOwningDisplay() -> SCDisplay? {
+    func getOwningDisplay() -> SCDisplay? {
         ScreenCaptureManager.shared.displays.first { display in
             display.displayID == owningScreen.displayID
         }
@@ -514,7 +514,11 @@ private class MenuBarAppearancePanelContentView: NSView {
             }()
 
             let trailingPath: NSBezierPath = {
-                let itemWindows = menuBarManager.menuBarItemManager.getOnScreenMenuBarItemWindows()
+                guard let owningDisplay = appearancePanel?.getOwningDisplay() else {
+                    return NSBezierPath(rect: rect)
+                }
+
+                let itemWindows = menuBarManager.menuBarItemManager.getOnScreenMenuBarItemWindows(for: owningDisplay)
                 let totalWidth = itemWindows.reduce(into: 0) { width, window in
                     width += window.frame.width
                 }

@@ -194,11 +194,14 @@ final class MenuBarManager: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        NSWorkspace.shared.publisher(for: \.frontmostApplication)
-            .sink { [weak self] frontmostApplication in
-                self?.handleFrontmostApplication(frontmostApplication)
-            }
-            .store(in: &c)
+        Publishers.CombineLatest(
+            NSWorkspace.shared.publisher(for: \.frontmostApplication), 
+            NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar).map { $0 ?? false }
+        )
+        .sink { [weak self] frontmostApplication, ownsMenuBar in
+            self?.handleFrontmostApplication(frontmostApplication, ownsMenuBar: ownsMenuBar)
+        }
+        .store(in: &c)
 
         Publishers.MergeMany(sections.map { $0.controlItem.$position })
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
@@ -360,7 +363,7 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Handles changes to the frontmost application.
-    private func handleFrontmostApplication(_ frontmostApplication: NSRunningApplication?) {
+    private func handleFrontmostApplication(_ frontmostApplication: NSRunningApplication?, ownsMenuBar: Bool) {
         guard let frontmostApplication else {
             return
         }
@@ -373,6 +376,10 @@ final class MenuBarManager: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 hiddenSection.hide()
             }
+        }
+
+        guard ownsMenuBar else {
+            return
         }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in

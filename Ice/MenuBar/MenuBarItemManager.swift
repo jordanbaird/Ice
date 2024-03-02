@@ -3,14 +3,16 @@
 //  Ice
 //
 
+import Cocoa
 import Combine
-import CoreGraphics
+import ScreenCaptureKit
 
 class MenuBarItemManager: ObservableObject {
-    /// Returns an array of the windows belonging to the
-    /// on-screen items in the menu bar.
-    func getOnScreenMenuBarItemWindows() -> [WindowInfo] {
+    /// Returns an array of windows belonging to the on-screen
+    /// menu bar items in the menu bar for the given display.
+    func getOnScreenMenuBarItemWindows(for display: SCDisplay) -> [WindowInfo] {
         let menuBarWindowPredicate: (WindowInfo) -> Bool = { window in
+            display.frame.contains(window.frame) &&
             // menu bar window belongs to the WindowServer process
             // (identified by a `nil` owningApplication)
             window.owningApplication == nil &&
@@ -21,7 +23,6 @@ class MenuBarItemManager: ObservableObject {
         let windows = WindowInfo.getCurrent(option: .optionOnScreenOnly)
 
         guard let menuBarWindow = windows.first(where: menuBarWindowPredicate) else {
-            print("NONE")
             return []
         }
 

@@ -28,7 +28,7 @@ final class EventMonitorManager {
                 else {
                     return false
                 }
-                return NSEvent.mouseLocation.x > menuBarManager.mainMenuMaxX &&
+                return NSEvent.mouseLocation.x - screen.frame.origin.x > menuBarManager.mainMenuMaxX &&
                 screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
             }
             if isMouseInEmptyMenuBarSpace() {
@@ -137,7 +137,7 @@ final class EventMonitorManager {
 
             func check(section: MenuBarSection) -> Bool {
                 if let controlItemPosition = section.controlItem.position {
-                    return NSEvent.mouseLocation.x > menuBarManager.mainMenuMaxX &&
+                    return NSEvent.mouseLocation.x - screen.frame.origin.x > menuBarManager.mainMenuMaxX &&
                     screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
                 }
                 return false
@@ -180,14 +180,16 @@ final class EventMonitorManager {
 
         func handleSection(_ section: MenuBarSection) {
             guard
+                let screen = NSScreen.main,
                 let controlItemPosition = section.controlItem.position,
-                NSEvent.mouseLocation.x > menuBarManager.mainMenuMaxX,
+                NSEvent.mouseLocation.x - screen.frame.origin.x > menuBarManager.mainMenuMaxX,
                 let screen = NSScreen.main,
                 screen.isMouseInMenuBar,
                 screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
             else {
                 return
             }
+            menuBarManager.showOnHoverPreventedByUserInteraction = true
             menuBarManager.showRightClickMenu(at: NSEvent.mouseLocation)
         }
 

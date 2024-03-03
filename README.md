@@ -19,7 +19,7 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 
 ### Manual Installation
 
-Download the "Ice.zip" file from the [latest release](https://github.com/jordanbaird/Ice/releases/latest), unzip the app, and move it into your Applications folder.
+Download the "Ice.zip" file from the [latest release](https://github.com/jordanbaird/Ice/releases/latest) and move the unzipped app into your `Applications` folder.
 
 ### Homebrew
 
@@ -39,7 +39,7 @@ brew install jordanbaird-ice
 - [x] Show hidden items when an empty area in the menu bar is clicked 
 - [x] Automatically rehide
 - [ ] Drag and drop interface to arrange individual items
-- [ ] Item search
+- [ ] Search menu bar items
 - [ ] Display hidden items in a separate bar (e.g. for MacBooks with the notch)
 - [ ] Custom spacing between items
 

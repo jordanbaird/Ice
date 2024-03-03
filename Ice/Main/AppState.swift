@@ -34,6 +34,13 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// The window that contains the permissions interface.
+    private(set) weak var permissionsWindow: NSWindow? {
+        didSet {
+            configureCancellables()
+        }
+    }
+
     private var cancellables = Set<AnyCancellable>()
 
     /// A Boolean value that indicates whether the app is running
@@ -98,9 +105,18 @@ final class AppState: ObservableObject {
         self.settingsWindow = settingsWindow
     }
 
+    func assignPermissionsWindow(_ permissionsWindow: NSWindow) {
+        guard self.permissionsWindow == nil else {
+            Logger.appState.warning("Multiple attempts made to assign permissions window")
+            return
+        }
+        self.permissionsWindow = permissionsWindow
+    }
+
     func performSetup() {
         permissionsManager.stopAllChecks()
         menuBarManager.performSetup()
+        permissionsWindow?.close()
     }
 }
 

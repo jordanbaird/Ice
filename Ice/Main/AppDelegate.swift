@@ -17,16 +17,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             appState.assignSettingsWindow(settingsWindow)
             // give the settings window a custom background
             settingsWindow.backgroundColor = .settingsWindowBackground
+            settingsWindow.close()
         }
 
-        // close all windows
-        for window in NSApp.windows {
-            window.close()
+        // assign the permissions window to the shared app state
+        if let permissionsWindow = NSApp.window(withIdentifier: Constants.permissionsWindowID) {
+            appState.assignPermissionsWindow(permissionsWindow)
         }
 
         if !appState.isPreview {
-            // if we have the required permissions, stop all checks
-            // and set up the menu bar
+            // if we have the required permissions, set up the
+            // shared app state
             if appState.permissionsManager.hasPermission {
                 appState.performSetup()
             }

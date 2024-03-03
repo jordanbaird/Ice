@@ -178,6 +178,12 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         self.appearancePanels = appearancePanels
     }
+
+    func setIsDraggingMenuBarItem(_ isDragging: Bool) {
+        for panel in appearancePanels {
+            panel.isDraggingMenuBarItem = isDragging
+        }
+    }
 }
 
 // MARK: MenuBarAppearanceManager: BindingExposable

@@ -9,29 +9,41 @@ import Cocoa
 final class EventMonitorManager {
     private weak var menuBarManager: MenuBarManager?
 
-    private(set) lazy var mouseMovedMonitor = UniversalEventMonitor(mask: .mouseMoved) { [weak self] event in
+    // MARK: - Monitors
+
+    // MARK: Mouse Moved
+    private(set) lazy var mouseMovedMonitor = UniversalEventMonitor(
+        mask: .mouseMoved
+    ) { [weak menuBarManager] event in
         guard
-            let menuBarManager = self?.menuBarManager,
+            let menuBarManager,
             menuBarManager.showOnHover,
             !menuBarManager.showOnHoverPreventedByUserInteraction,
+            let screen = NSScreen.main,
             let hiddenSection = menuBarManager.section(withName: .hidden)
         else {
             return event
         }
 
-        if hiddenSection.isHidden {
-            func isMouseInEmptyMenuBarSpace() -> Bool {
-                guard
-                    let screen = NSScreen.main,
-                    screen.isMouseInMenuBar,
-                    let controlItemPosition = hiddenSection.controlItem.position
-                else {
-                    return false
-                }
-                return NSEvent.mouseLocation.x - screen.frame.origin.x > menuBarManager.mainMenuMaxX &&
-                screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
+        func isMouseInEmptyMenuBarSpace() -> Bool {
+            guard
+                screen.isMouseInMenuBar,
+                let controlItemPosition = hiddenSection.controlItem.position
+            else {
+                return false
             }
+            return NSEvent.mouseLocation.x - screen.frame.origin.x > menuBarManager.mainMenuMaxX &&
+            screen.frame.maxX - NSEvent.mouseLocation.x > controlItemPosition
+        }
+
+        func isMouseOutsideMenuBar() -> Bool {
+            NSEvent.mouseLocation.y < screen.visibleFrame.maxY ||
+            NSEvent.mouseLocation.y > screen.frame.maxY
+        }
+
+        if hiddenSection.isHidden {
             if isMouseInEmptyMenuBarSpace() {
+                // small delay for better user experience
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     // make sure the mouse is still inside
                     if isMouseInEmptyMenuBarSpace() {
@@ -40,14 +52,8 @@ final class EventMonitorManager {
                 }
             }
         } else {
-            func isMouseOutsideMenuBar() -> Bool {
-                guard let screen = NSScreen.main else {
-                    return false
-                }
-                return NSEvent.mouseLocation.y < screen.visibleFrame.maxY ||
-                NSEvent.mouseLocation.y > screen.frame.maxY
-            }
             if isMouseOutsideMenuBar() {
+                // small delay for better user experience
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     // make sure the mouse is still outside
                     if isMouseOutsideMenuBar() {
@@ -60,13 +66,16 @@ final class EventMonitorManager {
         return event
     }
 
-    private(set) lazy var leftMouseUpMonitor = UniversalEventMonitor(mask: .leftMouseUp) { [weak self] event in
-        guard let menuBarManager = self?.menuBarManager else {
+    // MARK: Left Mouse Up
+    private(set) lazy var leftMouseUpMonitor = UniversalEventMonitor(
+        mask: .leftMouseUp
+    ) { [weak menuBarManager] event in
+        guard let menuBarManager else {
             return event
         }
 
         // mouse up means dragging has stopped
-        self?.setIsDraggingMenuBarItem(false)
+        menuBarManager.appearanceManager.setIsDraggingMenuBarItem(false)
 
         // make sure auto-rehide is enabled and set to smart
         guard
@@ -116,9 +125,12 @@ final class EventMonitorManager {
         return event
     }
 
-    private(set) lazy var leftMouseDownMonitor = UniversalEventMonitor(mask: .leftMouseDown) { [weak self] event in
+    // MARK: Left Mouse Down
+    private(set) lazy var leftMouseDownMonitor = UniversalEventMonitor(
+        mask: .leftMouseDown
+    ) { [weak menuBarManager] event in
         guard
-            let menuBarManager = self?.menuBarManager,
+            let menuBarManager,
             let screen = NSScreen.main,
             let visibleSection = menuBarManager.section(withName: .visible),
             let hiddenSection = menuBarManager.section(withName: .hidden),
@@ -171,8 +183,11 @@ final class EventMonitorManager {
         return event
     }
 
-    private(set) lazy var rightMouseDownMonitor = UniversalEventMonitor(mask: .rightMouseDown) { [weak self] event in
-        guard let menuBarManager = self?.menuBarManager else {
+    // MARK: Right Mouse Down
+    private(set) lazy var rightMouseDownMonitor = UniversalEventMonitor(
+        mask: .rightMouseDown
+    ) { [weak menuBarManager] event in
+        guard let menuBarManager else {
             return event
         }
 
@@ -206,9 +221,12 @@ final class EventMonitorManager {
         return event
     }
 
-    private(set) lazy var leftMouseDraggedMonitor = UniversalEventMonitor(mask: .leftMouseDragged) { [weak self] event in
+    // MARK: Left Mouse Dragged
+    private(set) lazy var leftMouseDraggedMonitor = UniversalEventMonitor(
+        mask: .leftMouseDragged
+    ) { [weak menuBarManager] event in
         guard
-            let menuBarManager = self?.menuBarManager,
+            let menuBarManager,
             event.modifierFlags.contains(.command),
             let screen = NSScreen.main,
             screen.isMouseInMenuBar
@@ -216,9 +234,11 @@ final class EventMonitorManager {
             return event
         }
         menuBarManager.showAllSections()
-        self?.setIsDraggingMenuBarItem(true)
+        menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
         return event
     }
+
+    // MARK: --
 
     init(menuBarManager: MenuBarManager) {
         self.menuBarManager = menuBarManager
@@ -230,14 +250,5 @@ final class EventMonitorManager {
         leftMouseDownMonitor.start()
         rightMouseDownMonitor.start()
         leftMouseDraggedMonitor.start()
-    }
-
-    func setIsDraggingMenuBarItem(_ isDragging: Bool) {
-        guard let menuBarManager else {
-            return
-        }
-        for panel in menuBarManager.appearanceManager.appearancePanels {
-            panel.isDraggingMenuBarItem = isDragging
-        }
     }
 }

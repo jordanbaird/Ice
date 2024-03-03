@@ -28,18 +28,10 @@ final class AppState: ObservableObject {
     private(set) weak var appDelegate: AppDelegate?
 
     /// The window that contains the settings interface.
-    private(set) weak var settingsWindow: NSWindow? {
-        didSet {
-            configureCancellables()
-        }
-    }
+    private(set) weak var settingsWindow: NSWindow?
 
     /// The window that contains the permissions interface.
-    private(set) weak var permissionsWindow: NSWindow? {
-        didSet {
-            configureCancellables()
-        }
-    }
+    private(set) weak var permissionsWindow: NSWindow?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -103,6 +95,7 @@ final class AppState: ObservableObject {
             return
         }
         self.settingsWindow = settingsWindow
+        configureCancellables()
     }
 
     func assignPermissionsWindow(_ permissionsWindow: NSWindow) {

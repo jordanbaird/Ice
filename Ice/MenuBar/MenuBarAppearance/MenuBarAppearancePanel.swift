@@ -159,6 +159,14 @@ class MenuBarAppearancePanel: NSPanel {
         }
         .store(in: &c)
 
+        // fallback
+        Timer.publish(every: 5, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.needsUpdate = true
+            }
+            .store(in: &c)
+
         $needsUpdate
             .removeDuplicates()
             .sink { [weak self] needsUpdate in
@@ -365,11 +373,15 @@ private class MenuBarAppearancePanelContentView: NSView {
         var c = Set<AnyCancellable>()
 
         if let appearancePanel {
-            // redraw whenever a menu bar item is being dragged
+            // fade out whenever a menu bar item is being dragged
             appearancePanel.$isDraggingMenuBarItem
                 .removeDuplicates()
-                .sink { [weak self] _ in
-                    self?.needsDisplay = true
+                .sink { [weak self] isDragging in
+                    if isDragging {
+                        self?.animator().alphaValue = 0
+                    } else {
+                        self?.animator().alphaValue = 1
+                    }
                 }
                 .store(in: &c)
             // redraw whenever the main menu maxX changes
@@ -397,17 +409,25 @@ private class MenuBarAppearancePanelContentView: NSView {
         }
 
         if let menuBarManager = appearanceManager?.menuBarManager {
-            // redraw whenever the window frame of a section's control item changes
-            //
-            // - NOTE: A previous attempt was made to redraw the view when a section's
-            //   isHidden property was changed. This would be semantically ideal, but
-            //   the property sometimes changes before the menu bar items are actually
-            //   hidden or shown on-screen. Since the view's drawing process relies on
-            //   getting an accurate position of each menu bar item, we need to use
-            //   something that publishes its changes only after the showing/hiding
-            //   process is finished
             for section in menuBarManager.sections {
+                // redraw whenever the window frame of a section's control
+                // item changes
+                //
+                // - NOTE: A previous attempt was made to redraw the view when the
+                //   section's `isHidden` property was changed. This would be
+                //   semantically ideal, but the property sometimes changes before
+                //   the menu bar items are actually updated on-screen. Since the
+                //   view's drawing process relies on getting an accurate position
+                //   of each menu bar item, we need to use something that publishes
+                //   its changes only after the items are updated.
                 section.$windowFrame
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] _ in
+                        self?.needsDisplay = true
+                    }
+                    .store(in: &c)
+                // redraw whenever a section is enabled or disabled
+                section.$isEnabled
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
                         self?.needsDisplay = true
@@ -464,115 +484,100 @@ private class MenuBarAppearancePanelContentView: NSView {
             return NSBezierPath(rect: rect)
         }
 
-        let result: NSBezierPath
+        let padding: CGFloat = 8
 
-        if
-            let appearancePanel,
-            appearancePanel.isDraggingMenuBarItem
-        {
+        let leadingPath: NSBezierPath = {
+            let shapeBounds = CGRect(
+                x: rect.height / 2,
+                y: rect.origin.y,
+                width: (mainMenuMaxX - (rect.height / 2)) + padding,
+                height: rect.height
+            )
+            let leadingEndCapBounds = CGRect(
+                x: rect.origin.x,
+                y: rect.origin.y,
+                width: rect.height,
+                height: rect.height
+            )
+            let trailingEndCapBounds = CGRect(
+                x: (mainMenuMaxX - (rect.height / 2)) + padding,
+                y: rect.origin.y,
+                width: rect.height,
+                height: rect.height
+            )
+
+            var path = NSBezierPath(rect: shapeBounds)
+
+            path = switch info.leading.leadingEndCap {
+            case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
+            case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
+            }
+
+            path = switch info.leading.trailingEndCap {
+            case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
+            case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
+            }
+
+            return path
+        }()
+
+        let trailingPath: NSBezierPath = {
+            guard let owningDisplay = appearancePanel?.getOwningDisplay() else {
+                return NSBezierPath(rect: rect)
+            }
+
+            let itemWindows = menuBarManager.menuBarItemManager.getOnScreenMenuBarItemWindows(for: owningDisplay)
+            let totalWidth = itemWindows.reduce(into: 0) { width, window in
+                width += window.frame.width
+            }
+            let position = rect.maxX - totalWidth - padding
+
+            let shapeBounds = CGRect(
+                x: position + (rect.height / 2),
+                y: rect.origin.y,
+                width: rect.maxX - (position + rect.height),
+                height: rect.height
+            )
+            let leadingEndCapBounds = CGRect(
+                x: position,
+                y: rect.origin.y,
+                width: rect.height,
+                height: rect.height
+            )
+            let trailingEndCapBounds = CGRect(
+                x: rect.maxX - rect.height,
+                y: rect.origin.y,
+                width: rect.height,
+                height: rect.height
+            )
+
+            var path = NSBezierPath(rect: shapeBounds)
+
+            path = switch info.trailing.leadingEndCap {
+            case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
+            case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
+            }
+
+            path = switch info.trailing.trailingEndCap {
+            case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
+            case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
+            }
+
+            return path
+        }()
+
+        if leadingPath.intersects(trailingPath) {
             let info = MenuBarFullShapeInfo(
                 leadingEndCap: info.leading.leadingEndCap,
                 trailingEndCap: info.trailing.trailingEndCap
             )
-            result = pathForFullShapeKind(in: rect, info: info)
+            return pathForFullShapeKind(in: rect, info: info)
         } else {
-            let padding: CGFloat = 8
-
-            let leadingPath: NSBezierPath = {
-                let shapeBounds = CGRect(
-                    x: rect.height / 2,
-                    y: rect.origin.y,
-                    width: (mainMenuMaxX - (rect.height / 2)) + padding,
-                    height: rect.height
-                )
-                let leadingEndCapBounds = CGRect(
-                    x: rect.origin.x,
-                    y: rect.origin.y,
-                    width: rect.height,
-                    height: rect.height
-                )
-                let trailingEndCapBounds = CGRect(
-                    x: (mainMenuMaxX - (rect.height / 2)) + padding,
-                    y: rect.origin.y,
-                    width: rect.height,
-                    height: rect.height
-                )
-
-                var path = NSBezierPath(rect: shapeBounds)
-
-                path = switch info.leading.leadingEndCap {
-                case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
-                case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
-                }
-
-                path = switch info.leading.trailingEndCap {
-                case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
-                case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
-                }
-
-                return path
-            }()
-
-            let trailingPath: NSBezierPath = {
-                guard let owningDisplay = appearancePanel?.getOwningDisplay() else {
-                    return NSBezierPath(rect: rect)
-                }
-
-                let itemWindows = menuBarManager.menuBarItemManager.getOnScreenMenuBarItemWindows(for: owningDisplay)
-                let totalWidth = itemWindows.reduce(into: 0) { width, window in
-                    width += window.frame.width
-                }
-                let position = rect.maxX - totalWidth - padding
-
-                let shapeBounds = CGRect(
-                    x: position + (rect.height / 2),
-                    y: rect.origin.y,
-                    width: rect.maxX - (position + rect.height),
-                    height: rect.height
-                )
-                let leadingEndCapBounds = CGRect(
-                    x: position,
-                    y: rect.origin.y,
-                    width: rect.height,
-                    height: rect.height
-                )
-                let trailingEndCapBounds = CGRect(
-                    x: rect.maxX - rect.height,
-                    y: rect.origin.y,
-                    width: rect.height,
-                    height: rect.height
-                )
-
-                var path = NSBezierPath(rect: shapeBounds)
-
-                path = switch info.trailing.leadingEndCap {
-                case .square: path.union(NSBezierPath(rect: leadingEndCapBounds))
-                case .round: path.union(NSBezierPath(ovalIn: leadingEndCapBounds))
-                }
-
-                path = switch info.trailing.trailingEndCap {
-                case .square: path.union(NSBezierPath(rect: trailingEndCapBounds))
-                case .round: path.union(NSBezierPath(ovalIn: trailingEndCapBounds))
-                }
-
-                return path
-            }()
-
-            if leadingPath.intersects(trailingPath) {
-                let info = MenuBarFullShapeInfo(
-                    leadingEndCap: info.leading.leadingEndCap,
-                    trailingEndCap: info.trailing.trailingEndCap
-                )
-                result = pathForFullShapeKind(in: rect, info: info)
-            } else {
-                let path = NSBezierPath()
-                path.append(leadingPath)
-                path.append(trailingPath)
-                result = path
-            }
+            let path = NSBezierPath()
+            path.append(leadingPath)
+            path.append(trailingPath)
+            return path
         }
-
-        return result
     }
 
     private func drawTint(configuration: MenuBarAppearanceConfiguration) {

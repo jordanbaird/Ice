@@ -166,7 +166,7 @@ final class EventMonitorManager {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     if hiddenSection.isHidden {
                         hiddenSection.show()
-                    } else {
+                    } else if alwaysHiddenSection.isHidden {
                         alwaysHiddenSection.show()
                     }
                 }
@@ -233,7 +233,12 @@ final class EventMonitorManager {
         else {
             return event
         }
-        menuBarManager.showAllSections()
+        for section in menuBarManager.sections {
+            if section.isHidden {
+                section.show()
+            }
+            section.controlItem.isVisible = true
+        }
         menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
         return event
     }

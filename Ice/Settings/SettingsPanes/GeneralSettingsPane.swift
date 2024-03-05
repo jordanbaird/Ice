@@ -32,9 +32,6 @@ struct GeneralSettingsPane: View {
                 launchAtLogin
             }
             Section {
-                alwaysHiddenOptions
-            }
-            Section {
                 iceIconOptions
             }
             Section {
@@ -46,6 +43,7 @@ struct GeneralSettingsPane: View {
             }
             Section {
                 hideApplicationMenus
+                showSectionDividers
             }
         }
         .formStyle(.grouped)
@@ -63,26 +61,6 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private var launchAtLogin: some View {
         LaunchAtLogin.Toggle()
-    }
-
-    @ViewBuilder
-    private var alwaysHiddenOptions: some View {
-        if let section = menuBarManager.section(withName: .alwaysHidden) {
-            Toggle(isOn: section.bindings.isEnabled) {
-                Text("Enable \"\(section.name.rawValue)\" section")
-                if section.isEnabled {
-                    Text("\(menuBarManager.secondaryActionModifier.label) (\(menuBarManager.secondaryActionModifier.stringValue)) + click either of \(Constants.appName)'s menu bar items to temporarily show this section")
-                }
-            }
-
-            if section.isEnabled {
-                Picker("Modifier", selection: menuBarManager.bindings.secondaryActionModifier) {
-                    ForEach(ControlItem.secondaryActionModifiers, id: \.self) { modifier in
-                        Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
-                    }
-                }
-            }
-        }
     }
 
     @ViewBuilder
@@ -222,6 +200,13 @@ struct GeneralSettingsPane: View {
         Toggle(isOn: menuBarManager.bindings.hideApplicationMenus) {
             Text("Hide application menus when showing menu bar items")
             Text("Make more room in the menu bar by hiding the left application menus")
+        }
+    }
+
+    @ViewBuilder
+    private var showSectionDividers: some View {
+        Toggle(isOn: menuBarManager.bindings.showSectionDividers) {
+            Text("Show section dividers")
         }
     }
 }

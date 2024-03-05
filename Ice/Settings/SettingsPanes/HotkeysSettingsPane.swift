@@ -28,10 +28,8 @@ struct HotkeysSettingsPane: View {
 
     @ViewBuilder
     private func hotkeyRecorder(forToggling section: MenuBarSection) -> some View {
-        if section.isEnabled {
-            HotkeyRecorder(section: section) {
-                Text("Toggle the \"\(section.name.rawValue)\" menu bar section")
-            }
+        HotkeyRecorder(section: section) {
+            Text("Toggle the \"\(section.name.rawValue)\" menu bar section")
         }
     }
 

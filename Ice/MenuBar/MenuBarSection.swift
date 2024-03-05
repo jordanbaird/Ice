@@ -19,9 +19,6 @@ final class MenuBarSection: ObservableObject {
     /// User-visible name that describes the section.
     @Published var name: Name
 
-    /// A Boolean value that indicates whether the section is enabled.
-    @Published var isEnabled: Bool
-
     /// A Boolean value that indicates whether the section is hidden.
     @Published private(set) var isHidden: Bool
 
@@ -76,7 +73,6 @@ final class MenuBarSection: ObservableObject {
         self.name = name
         self.controlItem = controlItem
         self.hotkey = hotkey
-        self.isEnabled = controlItem.isVisible
         self.isHidden = controlItem.state == .hideItems
         enableHotkey()
         configureCancellables()
@@ -105,19 +101,6 @@ final class MenuBarSection: ObservableObject {
             }
             .store(in: &c)
 
-        controlItem.$isVisible
-            .removeDuplicates()
-            .sink { [weak self] isVisible in
-                guard
-                    let self,
-                    isEnabled != isVisible
-                else {
-                    return
-                }
-                isEnabled = isVisible
-            }
-            .store(in: &c)
-
         controlItem.$state
             .sink { [weak self] state in
                 self?.isHidden = state == .hideItems
@@ -133,24 +116,6 @@ final class MenuBarSection: ObservableObject {
         controlItem.$screen
             .sink { [weak self] screen in
                 self?.screen = screen
-            }
-            .store(in: &c)
-
-        $isEnabled
-            .removeDuplicates()
-            .sink { [weak self] isEnabled in
-                guard
-                    let self,
-                    controlItem.isVisible != isEnabled
-                else {
-                    return
-                }
-                controlItem.isVisible = isEnabled
-                if isEnabled {
-                    enableHotkey()
-                } else {
-                    disableHotkey()
-                }
             }
             .store(in: &c)
 

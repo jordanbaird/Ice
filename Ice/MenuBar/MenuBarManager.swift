@@ -58,6 +58,10 @@ final class MenuBarManager: ObservableObject {
     /// should be hidden if needed to show all menu bar items.
     @Published var hideApplicationMenus: Bool = false
 
+    /// A Boolean value that indicates whether section divider
+    /// control items should be shown.
+    @Published var showSectionDividers = false
+
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
@@ -118,6 +122,7 @@ final class MenuBarManager: ObservableObject {
         defaults.ifPresent(key: Defaults.autoRehide, assign: &autoRehide)
         defaults.ifPresent(key: Defaults.rehideInterval, assign: &rehideInterval)
         defaults.ifPresent(key: Defaults.hideApplicationMenus, assign: &hideApplicationMenus)
+        defaults.ifPresent(key: Defaults.showSectionDividers, assign: &showSectionDividers)
         defaults.ifPresent(key: Defaults.secondaryActionModifier) { rawValue in
             secondaryActionModifier = Hotkey.Modifiers(rawValue: rawValue)
         }
@@ -197,13 +202,6 @@ final class MenuBarManager: ObservableObject {
             self?.handleFrontmostApplication(frontmostApplication, ownsMenuBar: ownsMenuBar)
         }
         .store(in: &c)
-
-        Publishers.MergeMany(sections.map { $0.controlItem.$position })
-            .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
-            .sink { [weak self] _ in
-                self?.assignControlItemsByPosition()
-            }
-            .store(in: &c)
 
         Publishers.MergeMany(sections.map { $0.$isHidden })
             .delay(for: 0.1, scheduler: DispatchQueue.main)
@@ -307,6 +305,13 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
+        $showSectionDividers
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] shouldShow in
+                self?.defaults.set(shouldShow, forKey: Defaults.showSectionDividers)
+            }
+            .store(in: &c)
+
         // propagate changes up from child observable objects
         itemManager.objectWillChange
             .sink { [weak self] in
@@ -404,47 +409,9 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
-    /// Updates the control item for each section based on the
-    /// current control item positions.
-    private func assignControlItemsByPosition() {
-        let sortedControlItems = sections.lazy
-            .map { section in
-                section.controlItem
-            }
-            .sorted { first, second in
-                // invisible items should preserve their ordering
-                if !first.isVisible {
-                    return false
-                }
-                if !second.isVisible {
-                    return true
-                }
-                // expanded items should preserve their ordering
-                switch (first.state, second.state) {
-                case (.showItems, .showItems):
-                    return (first.position ?? 0) < (second.position ?? 0)
-                case (.hideItems, _):
-                    return !first.expandsOnHide
-                case (_, .hideItems):
-                    return second.expandsOnHide
-                }
-            }
-        // assign the items to their new sections
-        for index in 0..<sections.count {
-            sections[index].controlItem = sortedControlItems[index]
-        }
-    }
-
     /// Returns the menu bar section with the given name.
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
-    }
-
-    /// Shows all sections controlled by the manager.
-    func showAllSections() {
-        for section in sections where section.isHidden {
-            section.show()
-        }
     }
 }
 

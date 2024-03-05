@@ -94,6 +94,18 @@ final class ControlItem: ObservableObject {
     }
 
     /// A Boolean value that indicates whether the control item
+    /// is a section divider
+    var isSectionDivider: Bool {
+        guard
+            let section,
+            let index = menuBarManager?.sections.firstIndex(of: section)
+        else {
+            return false
+        }
+        return index != 0
+    }
+
+    /// A Boolean value that indicates whether the control item
     /// is expanded.
     ///
     /// Expanded control items have a length that is equal to the
@@ -107,8 +119,16 @@ final class ControlItem: ObservableObject {
         set {
             objectWillChange.send()
             if newValue {
+                isVisible = true
                 statusItem.length = Lengths.expanded
             } else {
+                if
+                    let menuBarManager,
+                    !menuBarManager.showSectionDividers,
+                    isSectionDivider
+                {
+                    isVisible = false
+                }
                 statusItem.length = Lengths.standard
             }
         }
@@ -358,8 +378,7 @@ final class ControlItem: ObservableObject {
         case .leftMouseUp:
             if
                 NSEvent.modifierFlags == menuBarManager.secondaryActionModifier.nsEventFlags,
-                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden),
-                alwaysHiddenSection.isEnabled
+                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
             {
                 alwaysHiddenSection.show()
             } else {
@@ -381,10 +400,7 @@ final class ControlItem: ObservableObject {
         // sections, if each section is enabled
         let sectionNames: [MenuBarSection.Name] = [.hidden, .alwaysHidden]
         for name in sectionNames {
-            guard
-                let section = menuBarManager.section(withName: name),
-                section.isEnabled
-            else {
+            guard let section = menuBarManager.section(withName: name) else {
                 continue
             }
             let item = NSMenuItem(

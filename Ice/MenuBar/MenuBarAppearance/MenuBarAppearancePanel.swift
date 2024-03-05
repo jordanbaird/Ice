@@ -426,13 +426,6 @@ private class MenuBarAppearancePanelContentView: NSView {
                         self?.needsDisplay = true
                     }
                     .store(in: &c)
-                // redraw whenever a section is enabled or disabled
-                section.$isEnabled
-                    .receive(on: DispatchQueue.main)
-                    .sink { [weak self] _ in
-                        self?.needsDisplay = true
-                    }
-                    .store(in: &c)
             }
         }
 
@@ -526,9 +519,9 @@ private class MenuBarAppearancePanelContentView: NSView {
                 return NSBezierPath(rect: rect)
             }
 
-            let itemWindows = menuBarManager.itemManager.getOnScreenMenuBarItemWindows(for: owningDisplay)
-            let totalWidth = itemWindows.reduce(into: 0) { width, window in
-                width += window.frame.width
+            let items = menuBarManager.itemManager.getMenuBarItems(for: owningDisplay, onScreenOnly: true)
+            let totalWidth = items.reduce(into: 0) { width, item in
+                width += item.frame.width
             }
             let position = rect.maxX - totalWidth - padding
 

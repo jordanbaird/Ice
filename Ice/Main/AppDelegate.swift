@@ -52,30 +52,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         if appState.permissionsManager.hasPermission {
-            deactivate(withPolicy: .accessory)
+            appState.deactivate(withPolicy: .accessory)
             return false
         }
         return true
-    }
-
-    /// Activates the app and sets its activation policy to the given value.
-    func activate(withPolicy policy: NSApplication.ActivationPolicy) {
-        if let frontApp = NSWorkspace.shared.frontmostApplication {
-            NSRunningApplication.current.activate(from: frontApp)
-        } else {
-            NSApp.activate()
-        }
-        NSApp.setActivationPolicy(policy)
-    }
-
-    /// Deactivates the app and sets its activation policy to the given value.
-    func deactivate(withPolicy policy: NSApplication.ActivationPolicy) {
-        if let nextApp = NSWorkspace.shared.runningApplications.first(where: { $0 != .current }) {
-            NSApp.yieldActivation(to: nextApp)
-        } else {
-            NSApp.deactivate()
-        }
-        NSApp.setActivationPolicy(policy)
     }
 
     /// Opens the settings window and activates the app.
@@ -83,7 +63,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let settingsWindow = appState.settingsWindow else {
             return
         }
-        activate(withPolicy: .regular)
+        appState.activate(withPolicy: .regular)
         settingsWindow.center()
         settingsWindow.makeKeyAndOrderFront(self)
     }

@@ -205,7 +205,7 @@ final class MenuBarSection: ObservableObject {
             hiddenSection.controlItem.state = .showItems
             visibleSection.controlItem.state = .showItems
         }
-        startRehideMonitor()
+        startRehideChecks()
     }
 
     /// Hides the status items in the section.
@@ -238,10 +238,7 @@ final class MenuBarSection: ObservableObject {
             controlItem.state = .hideItems
         }
         menuBarManager.showOnHoverPreventedByUserInteraction = false
-        rehideTimer?.invalidate()
-        rehideMonitor?.stop()
-        rehideTimer = nil
-        rehideMonitor = nil
+        stopRehideChecks()
     }
 
     /// Toggles the visibility of the status items in the section.
@@ -252,7 +249,7 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    private func startRehideMonitor() {
+    private func startRehideChecks() {
         rehideTimer?.invalidate()
         rehideMonitor?.stop()
 
@@ -286,7 +283,7 @@ final class MenuBarSection: ObservableObject {
                         if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
                             hide()
                         } else {
-                            startRehideMonitor()
+                            startRehideChecks()
                         }
                     }
                 }
@@ -298,6 +295,13 @@ final class MenuBarSection: ObservableObject {
         }
 
         rehideMonitor?.start()
+    }
+
+    private func stopRehideChecks() {
+        rehideTimer?.invalidate()
+        rehideMonitor?.stop()
+        rehideTimer = nil
+        rehideMonitor = nil
     }
 }
 

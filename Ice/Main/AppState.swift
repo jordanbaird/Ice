@@ -9,6 +9,11 @@ import SwiftUI
 
 /// The model for app-wide state.
 final class AppState: ObservableObject {
+    /// Application modes.
+    enum Mode {
+        case idle, settings
+    }
+
     /// The shared app state singleton.
     static let shared = AppState()
 
@@ -81,6 +86,12 @@ final class AppState: ObservableObject {
         cancellables = c
     }
 
+    func performSetup() {
+        permissionsManager.stopAllChecks()
+        menuBarManager.performSetup()
+        permissionsWindow?.close()
+    }
+
     func assignAppDelegate(_ appDelegate: AppDelegate) {
         guard self.appDelegate == nil else {
             Logger.appState.warning("Multiple attempts made to assign app delegate")
@@ -106,22 +117,29 @@ final class AppState: ObservableObject {
         self.permissionsWindow = permissionsWindow
     }
 
-    func performSetup() {
-        permissionsManager.stopAllChecks()
-        menuBarManager.performSetup()
-        permissionsWindow?.close()
+    /// Activates the app and sets its activation policy to the given value.
+    func activate(withPolicy policy: NSApplication.ActivationPolicy) {
+        if let frontApp = NSWorkspace.shared.frontmostApplication {
+            NSRunningApplication.current.activate(from: frontApp)
+        } else {
+            NSApp.activate()
+        }
+        NSApp.setActivationPolicy(policy)
+    }
+
+    /// Deactivates the app and sets its activation policy to the given value.
+    func deactivate(withPolicy policy: NSApplication.ActivationPolicy) {
+        if let nextApp = NSWorkspace.shared.runningApplications.first(where: { $0 != .current }) {
+            NSApp.yieldActivation(to: nextApp)
+        } else {
+            NSApp.deactivate()
+        }
+        NSApp.setActivationPolicy(policy)
     }
 }
 
 // MARK: AppState: BindingExposable
 extension AppState: BindingExposable { }
-
-extension AppState {
-    enum Mode {
-        case idle
-        case settings
-    }
-}
 
 // MARK: - Logger
 private extension Logger {

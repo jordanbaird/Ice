@@ -32,7 +32,7 @@ class MenuBarAppearancePanel: NSPanel {
 
     /// A Boolean value that indicates whether the panel
     /// needs to be updated.
-    @Published var needsUpdate = false
+    @Published var needsUpdate = true
 
     /// A Boolean value that indicates whether the user
     /// is dragging a menu bar item.
@@ -526,7 +526,7 @@ private class MenuBarAppearancePanelContentView: NSView {
                 return NSBezierPath(rect: rect)
             }
 
-            let itemWindows = menuBarManager.menuBarItemManager.getOnScreenMenuBarItemWindows(for: owningDisplay)
+            let itemWindows = menuBarManager.itemManager.getOnScreenMenuBarItemWindows(for: owningDisplay)
             let totalWidth = itemWindows.reduce(into: 0) { width, window in
                 width += window.frame.width
             }

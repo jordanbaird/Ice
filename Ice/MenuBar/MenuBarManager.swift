@@ -89,14 +89,9 @@ final class MenuBarManager: ObservableObject {
 
     private(set) weak var appState: AppState?
 
-    let menuBarItemManager = MenuBarItemManager()
+    private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
 
-    private(set) lazy var appearanceManager = MenuBarAppearanceManager(
-        menuBarManager: self,
-        encoder: encoder,
-        decoder: decoder,
-        defaults: defaults
-    )
+    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBarManager: self)
 
     private(set) lazy var eventMonitorManager = EventMonitorManager(menuBarManager: self)
 
@@ -211,20 +206,20 @@ final class MenuBarManager: ObservableObject {
             .store(in: &c)
 
         Publishers.MergeMany(sections.map { $0.$isHidden })
+            .delay(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard
                     let self,
+                    let appState,
                     hideApplicationMenus,
-                    case .idle = appState?.mode
+                    case .idle = appState.mode
                 else {
                     return
                 }
                 if sections.contains(where: { !$0.isHidden }) {
-                    NSApp.setActivationPolicy(.regular)
-                    NSApp.activate()
+                    appState.activate(withPolicy: .regular)
                 } else {
-                    NSApp.setActivationPolicy(.accessory)
-                    NSApp.deactivate()
+                    appState.deactivate(withPolicy: .accessory)
                 }
             }
             .store(in: &c)
@@ -313,6 +308,11 @@ final class MenuBarManager: ObservableObject {
             .store(in: &c)
 
         // propagate changes up from child observable objects
+        itemManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
         appearanceManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()

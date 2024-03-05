@@ -15,11 +15,11 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    private let encoder: JSONEncoder
+    private let encoder = JSONEncoder()
 
-    private let decoder: JSONDecoder
+    private let decoder = JSONDecoder()
 
-    private let defaults: UserDefaults
+    private let defaults = UserDefaults.standard
 
     private(set) weak var menuBarManager: MenuBarManager?
 
@@ -35,16 +35,8 @@ final class MenuBarAppearanceManager: ObservableObject {
         }
     }
 
-    init(
-        menuBarManager: MenuBarManager,
-        encoder: JSONEncoder,
-        decoder: JSONDecoder,
-        defaults: UserDefaults
-    ) {
+    init(menuBarManager: MenuBarManager) {
         self.menuBarManager = menuBarManager
-        self.encoder = encoder
-        self.decoder = decoder
-        self.defaults = defaults
     }
 
     func performSetup() {

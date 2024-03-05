@@ -8,6 +8,12 @@ import Combine
 import ScreenCaptureKit
 
 class MenuBarItemManager: ObservableObject {
+    private(set) weak var menuBarManager: MenuBarManager?
+
+    init(menuBarManager: MenuBarManager) {
+        self.menuBarManager = menuBarManager
+    }
+
     /// Returns an array of windows belonging to the on-screen
     /// menu bar items in the menu bar for the given display.
     func getOnScreenMenuBarItemWindows(for display: SCDisplay) -> [WindowInfo] {

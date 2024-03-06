@@ -39,6 +39,7 @@ struct GeneralSettingsPane: View {
             Section {
                 showOnClick
                 showOnHover
+                showOnScroll
             }
             Section {
                 autoRehideOptions
@@ -146,6 +147,14 @@ struct GeneralSettingsPane: View {
         Toggle(isOn: menuBarManager.bindings.showOnHover) {
             Text("Show on hover")
             Text("Hover over an empty area of the menu bar to show hidden items")
+        }
+    }
+
+    @ViewBuilder
+    private var showOnScroll: some View {
+        Toggle(isOn: menuBarManager.bindings.showOnScroll) {
+            Text("Show on scroll")
+            Text("Scroll or swipe in the menu bar to toggle hidden items")
         }
     }
 

@@ -17,6 +17,7 @@ enum Defaults {
 
     static let showOnClick = "ShowOnClick"
     static let showOnHover = "ShowOnHover"
+    static let showOnScroll = "ShowOnScroll"
 
     static let autoRehide = "AutoRehide"
     static let rehideStrategy = "RehideStrategy"

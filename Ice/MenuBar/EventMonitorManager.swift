@@ -252,6 +252,27 @@ final class EventMonitorManager {
         return event
     }
 
+    // MARK: Scroll Wheel
+    private(set) lazy var scrollWheelMonitor = UniversalEventMonitor(
+        mask: .scrollWheel
+    ) { [weak menuBarManager] event in
+        guard
+            let menuBarManager,
+            menuBarManager.showOnScroll,
+            let screen = NSScreen.main,
+            screen.isMouseInMenuBar,
+            let hiddenSection = menuBarManager.section(withName: .hidden)
+        else {
+            return event
+        }
+        if (event.scrollingDeltaX + event.scrollingDeltaY) / 2 > 5 {
+            hiddenSection.show()
+        } else if (event.scrollingDeltaX + event.scrollingDeltaY) / 2 < -5 {
+            hiddenSection.hide()
+        }
+        return event
+    }
+
     // MARK: --
 
     init(menuBarManager: MenuBarManager) {
@@ -264,5 +285,6 @@ final class EventMonitorManager {
         leftMouseDownMonitor.start()
         rightMouseDownMonitor.start()
         leftMouseDraggedMonitor.start()
+        scrollWheelMonitor.start()
     }
 }

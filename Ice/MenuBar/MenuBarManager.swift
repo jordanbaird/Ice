@@ -38,6 +38,11 @@ final class MenuBarManager: ObservableObject {
     /// empty area of the menu bar.
     @Published var showOnHover = false
 
+    /// A Boolean value that indicates whether the hidden section
+    /// should be shown or hidden when the user scrolls in the
+    /// menu bar.
+    @Published var showOnScroll = false
+
     /// A Boolean value that indicates whether the user has
     /// interacted with the menu bar, preventing the "show on
     /// hover" feature from activating.
@@ -123,6 +128,7 @@ final class MenuBarManager: ObservableObject {
         defaults.ifPresent(key: Defaults.customIceIconIsTemplate, assign: &customIceIconIsTemplate)
         defaults.ifPresent(key: Defaults.showOnClick, assign: &showOnClick)
         defaults.ifPresent(key: Defaults.showOnHover, assign: &showOnHover)
+        defaults.ifPresent(key: Defaults.showOnScroll, assign: &showOnScroll)
         defaults.ifPresent(key: Defaults.autoRehide, assign: &autoRehide)
         defaults.ifPresent(key: Defaults.rehideInterval, assign: &rehideInterval)
         defaults.ifPresent(key: Defaults.hideApplicationMenus, assign: &hideApplicationMenus)
@@ -279,6 +285,13 @@ final class MenuBarManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] showOnClick in
                 self?.defaults.set(showOnClick, forKey: Defaults.showOnClick)
+            }
+            .store(in: &c)
+
+        $showOnScroll
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] showOnScroll in
+                self?.defaults.set(showOnScroll, forKey: Defaults.showOnScroll)
             }
             .store(in: &c)
 

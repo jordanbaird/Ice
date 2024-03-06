@@ -17,7 +17,7 @@ enum ControlItemImage: Codable, Hashable {
     case data(_ data: Data)
 
     /// A Cocoa representation of this image.
-    func nsImage(for menuBarManager: MenuBarManager) -> NSImage? {
+    func nsImage(for appState: AppState) -> NSImage? {
         switch self {
         case .builtin(let name):
             return switch name {
@@ -44,7 +44,8 @@ enum ControlItemImage: Codable, Hashable {
             return resizedImage
         case .data(let data):
             let image = NSImage(data: data)
-            image?.isTemplate = menuBarManager.customIceIconIsTemplate
+            let generalSettingsManager = appState.settingsManager.generalSettingsManager
+            image?.isTemplate = generalSettingsManager.customIceIconIsTemplate
             return image
         }
     }

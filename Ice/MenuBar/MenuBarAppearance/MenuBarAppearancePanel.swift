@@ -197,15 +197,8 @@ class MenuBarAppearancePanel: NSPanel {
         cancellables = c
     }
 
-    /// Returns the `SCDisplay` equivalent of the owning screen.
-    func getOwningDisplay() -> SCDisplay? {
-        ScreenCaptureManager.shared.displays.first { display in
-            display.displayID == owningScreen.displayID
-        }
-    }
-
     /// Returns the wallpaper window for the given display.
-    private func getWallpaperWindow(owningDisplay: SCDisplay) -> SCWindow? {
+    private func getWallpaperWindow(owningDisplay: DisplayInfo) -> SCWindow? {
         ScreenCaptureManager.shared.windows.first { window in
             // wallpaper window belongs to the Dock process
             window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
@@ -216,7 +209,7 @@ class MenuBarAppearancePanel: NSPanel {
     }
 
     /// Returns the menu bar window for the given display.
-    private func getMenuBarWindow(owningDisplay: SCDisplay) -> SCWindow? {
+    private func getMenuBarWindow(owningDisplay: DisplayInfo) -> SCWindow? {
         ScreenCaptureManager.shared.windows.first { window in
             // menu bar window belongs to the WindowServer process
             // (identified by an empty string)
@@ -233,7 +226,7 @@ class MenuBarAppearancePanel: NSPanel {
         guard
             !screenIsLocked,
             !screenSaverIsActive,
-            let owningDisplay = getOwningDisplay(),
+            let owningDisplay = DisplayInfo(displayID: owningScreen.displayID),
             let wallpaperWindow = getWallpaperWindow(owningDisplay: owningDisplay),
             let menuBarWindow = getMenuBarWindow(owningDisplay: owningDisplay)
         else {
@@ -243,8 +236,8 @@ class MenuBarAppearancePanel: NSPanel {
             do {
                 desktopWallpaper = try await ScreenCaptureManager.shared.captureImage(
                     withTimeout: .milliseconds(500),
-                    window: wallpaperWindow,
-                    display: owningDisplay,
+                    windowPredicate: { $0.windowID == wallpaperWindow.windowID },
+                    displayPredicate: { $0.displayID == owningDisplay.displayID },
                     captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
                     options: .ignoreFraming
                 )
@@ -258,7 +251,7 @@ class MenuBarAppearancePanel: NSPanel {
     /// menu bar window.
     private func updateMenuBar() {
         guard
-            let owningDisplay = getOwningDisplay(),
+            let owningDisplay = DisplayInfo(displayID: owningScreen.displayID),
             let menuBarWindow = getMenuBarWindow(owningDisplay: owningDisplay)
         else {
             return
@@ -420,7 +413,7 @@ private class MenuBarAppearancePanelContentView: NSView {
                 //   view's drawing process relies on getting an accurate position
                 //   of each menu bar item, we need to use something that publishes
                 //   its changes only after the items are updated.
-                section.$windowFrame
+                section.controlItem.$windowFrame
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
                         self?.needsDisplay = true
@@ -527,7 +520,10 @@ private class MenuBarAppearancePanelContentView: NSView {
         }()
 
         let trailingPath: NSBezierPath = {
-            guard let owningDisplay = appearancePanel?.getOwningDisplay() else {
+            guard 
+                let appearancePanel,
+                let owningDisplay = DisplayInfo(displayID: appearancePanel.owningScreen.displayID)
+            else {
                 return NSBezierPath(rect: rect)
             }
 

@@ -33,7 +33,9 @@ struct CustomColorPicker: NSViewRepresentable {
                 .removeDuplicates()
                 .sink { [weak self] color in
                     DispatchQueue.main.async {
-                        self?.selection = color.cgColor
+                        if self?.selection != color.cgColor {
+                            self?.selection = color.cgColor
+                        }
                     }
                 }
                 .store(in: &c)

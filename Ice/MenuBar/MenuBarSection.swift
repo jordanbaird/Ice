@@ -17,24 +17,13 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// User-visible name that describes the section.
-    @Published var name: Name
-
-    /// A Boolean value that indicates whether the section is hidden.
-    @Published private(set) var isHidden: Bool
-
-    /// The window frame of the section's current control item.
-    @Published private(set) var windowFrame: CGRect?
-
-    /// The screen of the section's current control item.
-    @Published private(set) var screen: NSScreen?
+    let name: Name
 
     /// The control item that manages the visibility of the section.
-    @Published var controlItem: ControlItem {
-        didSet {
-            controlItem.updateStatusItem(with: controlItem.state)
-            configureCancellables()
-        }
-    }
+    let controlItem: ControlItem
+
+    /// A Boolean value that indicates whether the section is hidden.
+    @Published var isHidden: Bool
 
     /// The hotkey associated with the section.
     @Published var hotkey: Hotkey? {
@@ -54,11 +43,19 @@ final class MenuBarSection: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
+    /// The shared app state.
+    private(set) weak var appState: AppState? {
+        didSet {
+            guard let appState else {
+                return
+            }
+            controlItem.assignAppState(appState)
+        }
+    }
+
     /// The menu bar manager associated with the section.
     weak var menuBarManager: MenuBarManager? {
-        didSet {
-            controlItem.menuBarManager = menuBarManager
-        }
+        appState?.menuBarManager
     }
 
     /// A Boolean value that indicates whether the section's
@@ -94,6 +91,12 @@ final class MenuBarSection: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
+        controlItem.$state
+            .sink { [weak self] state in
+                self?.isHidden = state == .hideItems
+            }
+            .store(in: &c)
+
         // propagate changes from the section's control item
         controlItem.objectWillChange
             .sink { [weak self] in
@@ -101,25 +104,16 @@ final class MenuBarSection: ObservableObject {
             }
             .store(in: &c)
 
-        controlItem.$state
-            .sink { [weak self] state in
-                self?.isHidden = state == .hideItems
-            }
-            .store(in: &c)
-
-        controlItem.$windowFrame
-            .sink { [weak self] frame in
-                self?.windowFrame = frame
-            }
-            .store(in: &c)
-
-        controlItem.$screen
-            .sink { [weak self] screen in
-                self?.screen = screen
-            }
-            .store(in: &c)
-
         cancellables = c
+    }
+
+    /// Assigns the section's app state.
+    func assignAppState(_ appState: AppState) {
+        guard self.appState == nil else {
+            Logger.menuBarSection.warning("Multiple attempts made to assign app state")
+            return
+        }
+        self.appState = appState
     }
 
     /// Enables the hotkey associated with the section.
@@ -129,9 +123,8 @@ final class MenuBarSection: ObservableObject {
                 return
             }
             toggle()
-            // prevent the section from automatically rehiding
-            // after mouse movement
-            menuBarManager?.showOnHoverPreventedByUserInteraction = !isHidden
+            // prevent the section from automatically rehiding after mouse movement
+            appState?.showOnHoverPreventedByUserInteraction = !isHidden
         }
     }
 
@@ -202,7 +195,7 @@ final class MenuBarSection: ObservableObject {
         case .alwaysHidden:
             controlItem.state = .hideItems
         }
-        menuBarManager.showOnHoverPreventedByUserInteraction = false
+        appState?.showOnHoverPreventedByUserInteraction = false
         stopRehideChecks()
     }
 
@@ -219,9 +212,9 @@ final class MenuBarSection: ObservableObject {
         rehideMonitor?.stop()
 
         guard
-            let menuBarManager,
-            menuBarManager.autoRehide,
-            case .timed = menuBarManager.rehideStrategy
+            let appState = menuBarManager?.appState,
+            appState.settingsManager.generalSettingsManager.autoRehide,
+            case .timed = appState.settingsManager.generalSettingsManager.rehideStrategy
         else {
             return
         }
@@ -236,7 +229,7 @@ final class MenuBarSection: ObservableObject {
             if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
                 if rehideTimer == nil {
                     rehideTimer = .scheduledTimer(
-                        withTimeInterval: menuBarManager.rehideInterval,
+                        withTimeInterval: appState.settingsManager.generalSettingsManager.rehideInterval,
                         repeats: false
                     ) { [weak self] _ in
                         guard
@@ -315,3 +308,8 @@ extension MenuBarSection: Hashable {
 
 // MARK: MenuBarSection: BindingExposable
 extension MenuBarSection: BindingExposable { }
+
+// MARK: - Logger
+private extension Logger {
+    static let menuBarSection = Logger(category: "MenuBarSection")
+}

@@ -13,13 +13,13 @@ struct GeneralSettingsPane: View {
     @State private var isPresentingError = false
     @State private var presentedError: LocalizedErrorBox?
 
-    private var menuBarManager: MenuBarManager {
-        appState.menuBarManager
+    private var manager: GeneralSettingsManager {
+        appState.settingsManager.generalSettingsManager
     }
 
     private var rehideInterval: LocalizedStringKey {
-        let formatted = menuBarManager.rehideInterval.formatted()
-        return if menuBarManager.rehideInterval == 1 {
+        let formatted = manager.rehideInterval.formatted()
+        return if manager.rehideInterval == 1 {
             LocalizedStringKey(formatted + " second")
         } else {
             LocalizedStringKey(formatted + " seconds")
@@ -31,7 +31,7 @@ struct GeneralSettingsPane: View {
             Section {
                 launchAtLogin
             }
-            if menuBarManager.showIceIcon {
+            if appState.settingsManager.advancedSettingsManager.showIceIcon {
                 Section {
                     iceIconOptions
                 }
@@ -67,7 +67,7 @@ struct GeneralSettingsPane: View {
         Label {
             Text(imageSet.name.rawValue)
         } icon: {
-            if let nsImage = imageSet.hidden.nsImage(for: menuBarManager) {
+            if let nsImage = imageSet.hidden.nsImage(for: appState) {
                 Image(nsImage: nsImage)
             }
         }
@@ -78,12 +78,12 @@ struct GeneralSettingsPane: View {
     private var iceIconOptions: some View {
         LabeledContent {
             Menu {
-                Picker("\(Constants.appName) icon", selection: menuBarManager.bindings.iceIcon) {
+                Picker("\(Constants.appName) icon", selection: manager.bindings.iceIcon) {
                     ForEach(ControlItemImageSet.userSelectableImageSets) { imageSet in
                         label(for: imageSet)
                     }
 
-                    if let lastCustomIceIcon = menuBarManager.lastCustomIceIcon {
+                    if let lastCustomIceIcon = manager.lastCustomIceIcon {
                         label(for: lastCustomIceIcon)
                     }
                 }
@@ -94,7 +94,7 @@ struct GeneralSettingsPane: View {
                     isImportingCustomIceIcon = true
                 }
             } label: {
-                label(for: menuBarManager.iceIcon)
+                label(for: manager.iceIcon)
             }
             .labelStyle(.titleAndIcon)
             .scaledToFit()
@@ -114,7 +114,7 @@ struct GeneralSettingsPane: View {
                         url.stopAccessingSecurityScopedResource()
                     }
                     let data = try Data(contentsOf: url)
-                    menuBarManager.iceIcon = ControlItemImageSet(
+                    manager.iceIcon = ControlItemImageSet(
                         name: .custom,
                         hidden: .data(data),
                         visible: .data(data)
@@ -126,8 +126,8 @@ struct GeneralSettingsPane: View {
             }
         }
 
-        if case .custom = menuBarManager.iceIcon.name {
-            Toggle(isOn: menuBarManager.bindings.customIceIconIsTemplate) {
+        if case .custom = manager.iceIcon.name {
+            Toggle(isOn: manager.bindings.customIceIconIsTemplate) {
                 Text("Use template image")
                 Text("Display the icon as a monochrome image matching the system appearance")
             }
@@ -136,7 +136,7 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var showOnClick: some View {
-        Toggle(isOn: menuBarManager.bindings.showOnClick) {
+        Toggle(isOn: manager.bindings.showOnClick) {
             Text("Show on click")
             Text("Click inside an empty area of the menu bar to show hidden items")
         }
@@ -144,7 +144,7 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var showOnHover: some View {
-        Toggle(isOn: menuBarManager.bindings.showOnHover) {
+        Toggle(isOn: manager.bindings.showOnHover) {
             Text("Show on hover")
             Text("Hover over an empty area of the menu bar to show hidden items")
         }
@@ -152,7 +152,7 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var showOnScroll: some View {
-        Toggle(isOn: menuBarManager.bindings.showOnScroll) {
+        Toggle(isOn: manager.bindings.showOnScroll) {
             Text("Show on scroll")
             Text("Scroll or swipe in the menu bar to toggle hidden items")
         }
@@ -160,13 +160,13 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var rehideStrategyPicker: some View {
-        Picker(selection: menuBarManager.bindings.rehideStrategy) {
+        Picker(selection: manager.bindings.rehideStrategy) {
             ForEach(RehideStrategy.allCases) { strategy in
                 Text(strategy.localized).tag(strategy)
             }
         } label: {
             Text("Strategy")
-            switch menuBarManager.rehideStrategy {
+            switch manager.rehideStrategy {
             case .smart:
                 Text("Menu bar items are rehidden using a smart algorithm")
             case .timed:
@@ -179,15 +179,15 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var autoRehideOptions: some View {
-        Toggle(isOn: menuBarManager.bindings.autoRehide) {
+        Toggle(isOn: manager.bindings.autoRehide) {
             Text("Automatically rehide")
         }
-        if menuBarManager.autoRehide {
-            if case .timed = menuBarManager.rehideStrategy {
+        if manager.autoRehide {
+            if case .timed = manager.rehideStrategy {
                 VStack(alignment: .trailing) {
                     rehideStrategyPicker
                     CompactSlider(
-                        value: menuBarManager.bindings.rehideInterval,
+                        value: manager.bindings.rehideInterval,
                         in: 0...30,
                         step: 1,
                         handleVisibility: .hovering(width: 1)

@@ -17,17 +17,22 @@ final class AppState: ObservableObject {
     /// The shared app state singleton.
     static let shared = AppState()
 
+    private var cancellables = Set<AnyCancellable>()
+
+    /// Manager for events received by the app.
+    private(set) lazy var eventManager = EventManager(appState: self)
+
     /// Manager for the state of the menu bar.
     private(set) lazy var menuBarManager = MenuBarManager(appState: self)
 
     /// Manager for app permissions.
     private(set) lazy var permissionsManager = PermissionsManager(appState: self)
 
+    /// Manager for the app's settings.
+    private(set) lazy var settingsManager = SettingsManager(appState: self)
+
     /// Manager for app updates.
     let updatesManager = UpdatesManager()
-
-    /// The application's current mode.
-    @Published private(set) var mode: Mode = .idle
 
     /// The application's delegate.
     private(set) weak var appDelegate: AppDelegate?
@@ -38,10 +43,15 @@ final class AppState: ObservableObject {
     /// The window that contains the permissions interface.
     private(set) weak var permissionsWindow: NSWindow?
 
-    private var cancellables = Set<AnyCancellable>()
+    /// The application's current mode.
+    private(set) var mode: Mode = .idle
 
-    /// A Boolean value that indicates whether the app is running
-    /// as a SwiftUI preview.
+    /// A Boolean value that indicates whether the user has interacted with
+    /// the menu bar, preventing the "ShowOnHover" feature from activating.
+    var showOnHoverPreventedByUserInteraction = false
+
+    /// A Boolean value that indicates whether the app is running as a
+    /// SwiftUI preview.
     let isPreview: Bool = {
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
@@ -77,6 +87,11 @@ final class AppState: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &c)
+        settingsManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
         updatesManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
@@ -88,7 +103,9 @@ final class AppState: ObservableObject {
 
     func performSetup() {
         permissionsManager.stopAllChecks()
+        eventManager.performSetup()
         menuBarManager.performSetup()
+        settingsManager.performSetup()
         permissionsWindow?.close()
     }
 

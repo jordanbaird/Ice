@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import ScreenCaptureKit
 
 class MenuBarItemManager: ObservableObject {
     private(set) weak var menuBarManager: MenuBarManager?
@@ -15,7 +14,7 @@ class MenuBarItemManager: ObservableObject {
     }
 
     /// Returns an array of menu bar items in the menu bar of the given display.
-    func getMenuBarItems(for display: SCDisplay, onScreenOnly: Bool) -> [MenuBarItem] {
+    func getMenuBarItems(for display: DisplayInfo, onScreenOnly: Bool) -> [MenuBarItem] {
         let menuBarWindowPredicate: (WindowInfo) -> Bool = { window in
             window.isOnScreen &&
             display.frame.contains(window.frame) &&

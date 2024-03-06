@@ -6,7 +6,8 @@
 import SwiftUI
 
 struct AboutSettingsPane: View {
-    @AppStorage(Defaults.aboutSettingsPaneSelectedTab) var selection: Int = 0
+    @AppStorage("AboutSettingsPaneSelectedTab")
+    var selection: Int = 0
 
     var body: some View {
         CustomTabView(selection: $selection) {

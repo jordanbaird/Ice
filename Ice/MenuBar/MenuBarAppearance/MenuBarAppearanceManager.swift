@@ -42,25 +42,13 @@ final class MenuBarAppearanceManager: ObservableObject {
     func performSetup() {
         loadInitialState()
         configureCancellables()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [self] in
-            // make sure all panels are ordered out before configuring
-            // TODO: We may not need this...investigate.
-            while let panel = appearancePanels.popFirst() {
-                panel.orderOut(self)
-            }
-            configureAppearancePanels(with: configuration)
-        }
     }
 
     /// Loads data from storage and sets the initial state
     /// of the manager from that data.
     private func loadInitialState() {
         do {
-            configuration = try MenuBarAppearanceConfiguration(
-                migratingFrom: defaults,
-                encoder: encoder,
-                decoder: decoder
-            )
+            configuration = try .migrate(encoder: encoder, decoder: decoder)
         } catch {
             Logger.appearanceManager.error("Error decoding configuration: \(error)")
         }
@@ -118,8 +106,8 @@ final class MenuBarAppearanceManager: ObservableObject {
                 if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding configuration: \(error)")
                 }
-            } receiveValue: { [weak self] data in
-                self?.defaults.set(data, forKey: Defaults.menuBarAppearanceConfiguration)
+            } receiveValue: { data in
+                Defaults.set(data, forKey: .menuBarAppearanceConfiguration)
             }
             .store(in: &c)
 

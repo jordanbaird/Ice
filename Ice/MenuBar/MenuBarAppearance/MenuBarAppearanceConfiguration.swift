@@ -47,66 +47,64 @@ struct MenuBarAppearanceConfiguration {
     /// Creates a configuration by migrating from the deprecated
     /// appearance-related keys stored in `UserDefaults`, storing
     /// the new configuration and deleting the deprecated keys.
-    init(
-        migratingFrom defaults: UserDefaults,
-        encoder: JSONEncoder,
-        decoder: JSONDecoder
-    ) throws {
+    static func migrate(encoder: JSONEncoder, decoder: JSONDecoder) throws -> Self {
         // try to load an already-migrated configuration first;
         // otherwise, load each value from the deprecated keys
-        if let data = defaults.data(forKey: Defaults.menuBarAppearanceConfiguration) {
-            self = try decoder.decode(Self.self, from: data)
+        if let data = Defaults.data(forKey: .menuBarAppearanceConfiguration) {
+            return try decoder.decode(Self.self, from: data)
         } else {
-            self = .defaultConfiguration
+            var configuration = Self.defaultConfiguration
 
-            defaults.ifPresent(key: Defaults.menuBarHasShadow, assign: &hasShadow)
-            defaults.ifPresent(key: Defaults.menuBarHasBorder, assign: &hasBorder)
-            defaults.ifPresent(key: Defaults.menuBarBorderWidth, assign: &borderWidth)
-            defaults.ifPresent(key: Defaults.menuBarTintKind) { rawValue in
+            Defaults.ifPresent(key: .menuBarHasShadow, assign: &configuration.hasShadow)
+            Defaults.ifPresent(key: .menuBarHasBorder, assign: &configuration.hasBorder)
+            Defaults.ifPresent(key: .menuBarBorderWidth, assign: &configuration.borderWidth)
+            Defaults.ifPresent(key: .menuBarTintKind) { rawValue in
                 if let tintKind = MenuBarTintKind(rawValue: rawValue) {
-                    self.tintKind = tintKind
+                    configuration.tintKind = tintKind
                 }
             }
 
-            if let borderColorData = defaults.data(forKey: Defaults.menuBarBorderColor) {
-                borderColor = try decoder.decode(CodableColor.self, from: borderColorData).cgColor
+            if let borderColorData = Defaults.data(forKey: .menuBarBorderColor) {
+                configuration.borderColor = try decoder.decode(CodableColor.self, from: borderColorData).cgColor
             }
-            if let tintColorData = defaults.data(forKey: Defaults.menuBarTintColor) {
-                tintColor = try decoder.decode(CodableColor.self, from: tintColorData).cgColor
+            if let tintColorData = Defaults.data(forKey: .menuBarTintColor) {
+                configuration.tintColor = try decoder.decode(CodableColor.self, from: tintColorData).cgColor
             }
-            if let tintGradientData = defaults.data(forKey: Defaults.menuBarTintGradient) {
-                tintGradient = try decoder.decode(CustomGradient.self, from: tintGradientData)
+            if let tintGradientData = Defaults.data(forKey: .menuBarTintGradient) {
+                configuration.tintGradient = try decoder.decode(CustomGradient.self, from: tintGradientData)
             }
-            if let shapeKindData = defaults.data(forKey: Defaults.menuBarShapeKind) {
-                shapeKind = try decoder.decode(MenuBarShapeKind.self, from: shapeKindData)
+            if let shapeKindData = Defaults.data(forKey: .menuBarShapeKind) {
+                configuration.shapeKind = try decoder.decode(MenuBarShapeKind.self, from: shapeKindData)
             }
-            if let fullShapeData = defaults.data(forKey: Defaults.menuBarFullShapeInfo) {
-                fullShapeInfo = try decoder.decode(MenuBarFullShapeInfo.self, from: fullShapeData)
+            if let fullShapeData = Defaults.data(forKey: .menuBarFullShapeInfo) {
+                configuration.fullShapeInfo = try decoder.decode(MenuBarFullShapeInfo.self, from: fullShapeData)
             }
-            if let splitShapeData = defaults.data(forKey: Defaults.menuBarSplitShapeInfo) {
-                splitShapeInfo = try decoder.decode(MenuBarSplitShapeInfo.self, from: splitShapeData)
+            if let splitShapeData = Defaults.data(forKey: .menuBarSplitShapeInfo) {
+                configuration.splitShapeInfo = try decoder.decode(MenuBarSplitShapeInfo.self, from: splitShapeData)
             }
 
             // store the configuration to complete the migration
-            let configurationData = try encoder.encode(self)
-            defaults.set(configurationData, forKey: Defaults.menuBarAppearanceConfiguration)
+            let configurationData = try encoder.encode(configuration)
+            Defaults.set(configurationData, forKey: .menuBarAppearanceConfiguration)
 
             // remove the deprecated keys
-            let keys = [
-                Defaults.menuBarHasShadow,
-                Defaults.menuBarHasBorder,
-                Defaults.menuBarBorderWidth,
-                Defaults.menuBarTintKind,
-                Defaults.menuBarBorderColor,
-                Defaults.menuBarTintColor,
-                Defaults.menuBarTintGradient,
-                Defaults.menuBarShapeKind,
-                Defaults.menuBarFullShapeInfo,
-                Defaults.menuBarSplitShapeInfo,
+            let keys: [Defaults.Key] = [
+                .menuBarHasShadow,
+                .menuBarHasBorder,
+                .menuBarBorderWidth,
+                .menuBarTintKind,
+                .menuBarBorderColor,
+                .menuBarTintColor,
+                .menuBarTintGradient,
+                .menuBarShapeKind,
+                .menuBarFullShapeInfo,
+                .menuBarSplitShapeInfo,
             ]
             for key in keys {
-                defaults.removeObject(forKey: key)
+                Defaults.removeObject(forKey: key)
             }
+
+            return configuration
         }
     }
 }

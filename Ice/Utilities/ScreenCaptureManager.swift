@@ -178,8 +178,8 @@ class ScreenCaptureManager: ObservableObject {
     ///   - options: Additional parameters for the capture.
     func captureImage(
         withTimeout timeout: Duration,
-        window: SCWindow,
-        display: SCDisplay,
+        windowPredicate: (SCWindow) throws -> Bool,
+        displayPredicate: (SCDisplay) throws -> Bool,
         captureRect: CGRect? = nil,
         resolution: SCCaptureResolutionType = .automatic,
         options: CaptureOptions = []
@@ -187,10 +187,10 @@ class ScreenCaptureManager: ObservableObject {
         guard hasScreenCapturePermissions else {
             throw CaptureError.missingPermissions
         }
-        guard let window = windows.first(where: { $0.windowID == window.windowID }) else {
+        guard let window = try windows.first(where: windowPredicate) else {
             throw CaptureError.noMatchingWindow
         }
-        guard let display = displays.first(where: { $0.displayID == display.displayID }) else {
+        guard let display = try displays.first(where: displayPredicate) else {
             throw CaptureError.noMatchingDisplay
         }
         guard window.isOnScreen else {

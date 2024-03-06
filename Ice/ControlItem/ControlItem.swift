@@ -9,7 +9,7 @@ import Combine
 /// A status item that controls the visibility of a section in
 /// the menu bar.
 final class ControlItem: ObservableObject {
-    /// Hiding state of a control item.
+    /// The hiding state of a control item.
     enum HidingState: Int, Hashable, Codable {
         /// Status items in the control item's section are hidden.
         case hideItems
@@ -17,12 +17,14 @@ final class ControlItem: ObservableObject {
         case showItems
     }
 
-    /// Lengths for a control item.
-    enum Lengths {
+    /// The length of a control item.
+    enum Length: CGFloat, CaseIterable {
+        /// The zero length.
+        case zero = 0
         /// The length of a control item when its section is visible.
-        static let standard: CGFloat = 25
+        case standard = 25
         /// The length of a control item when its section is hidden.
-        static let expanded: CGFloat = 10_000
+        case expanded = 10_000
     }
 
     /// Valid modifiers that can be used to trigger the control
@@ -48,6 +50,9 @@ final class ControlItem: ObservableObject {
     /// This value corresponds to whether the item's section is
     /// enabled.
     @Published var isVisible: Bool
+
+    /// The length of the control item.
+    @Published var length: Length
 
     /// The hiding state of the control item.
     ///
@@ -114,13 +119,13 @@ final class ControlItem: ObservableObject {
     /// constant.
     var isExpanded: Bool {
         get {
-            statusItem.length == Lengths.expanded
+            length == .expanded
         }
         set {
             objectWillChange.send()
             if newValue {
                 isVisible = true
-                statusItem.length = Lengths.expanded
+                length = .expanded
             } else {
                 if
                     let menuBarManager,
@@ -129,7 +134,7 @@ final class ControlItem: ObservableObject {
                 {
                     isVisible = false
                 }
-                statusItem.length = Lengths.standard
+                length = .standard
             }
         }
     }
@@ -161,10 +166,11 @@ final class ControlItem: ObservableObject {
             StatusItemDefaults[.preferredPosition, autosaveName] = position
         }
 
-        self.statusItem = NSStatusBar.system.statusItem(withLength: Lengths.standard)
+        self.statusItem = NSStatusBar.system.statusItem(withLength: Length.standard.rawValue)
         self.statusItem.autosaveName = autosaveName
         self.position = position
         self.isVisible = statusItem.isVisible
+        self.length = .standard
         self.state = state ?? .showItems
 
         // NOTE: cache needs to be restored after the status item
@@ -234,6 +240,13 @@ final class ControlItem: ObservableObject {
             }
             .store(in: &c)
 
+        $length
+            .removeDuplicates()
+            .sink { [weak self] length in
+                self?.statusItem.length = length.rawValue
+            }
+            .store(in: &c)
+
         $windowFrame
             .combineLatest($screen)
             .compactMap { frame, screen in
@@ -257,6 +270,13 @@ final class ControlItem: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] isVisible in
                 self?.isVisible = isVisible
+            }
+            .store(in: &c)
+
+        statusItem.publisher(for: \.length)
+            .removeDuplicates()
+            .sink { [weak self] length in
+                self?.length = Length.allCases.first { $0.rawValue == length } ?? .standard
             }
             .store(in: &c)
 

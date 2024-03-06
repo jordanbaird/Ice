@@ -13,6 +13,7 @@ enum Defaults {
 
     static let hideApplicationMenus = "HideApplicationMenus"
     static let showSectionDividers = "ShowSectionDividers"
+    static let showIceIcon = "ShowIceIcon"
 
     static let showOnClick = "ShowOnClick"
     static let showOnHover = "ShowOnHover"

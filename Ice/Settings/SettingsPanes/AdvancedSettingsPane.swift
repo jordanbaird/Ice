@@ -17,6 +17,7 @@ struct AdvancedSettingsPane: View {
             Section {
                 hideApplicationMenus
                 showSectionDividers
+                showIceIcon
             }
         }
         .formStyle(.grouped)
@@ -51,6 +52,13 @@ struct AdvancedSettingsPane: View {
                 }
                 Text("are inserted between adjacent sections")
             }
+        }
+    }
+
+    @ViewBuilder
+    private var showIceIcon: some View {
+        Toggle(isOn: menuBarManager.bindings.showIceIcon) {
+            Text("Show Ice icon")
         }
     }
 }

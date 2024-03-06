@@ -31,8 +31,10 @@ struct GeneralSettingsPane: View {
             Section {
                 launchAtLogin
             }
-            Section {
-                iceIconOptions
+            if menuBarManager.showIceIcon {
+                Section {
+                    iceIconOptions
+                }
             }
             Section {
                 showOnClick

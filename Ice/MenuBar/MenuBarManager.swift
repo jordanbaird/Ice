@@ -62,6 +62,10 @@ final class MenuBarManager: ObservableObject {
     /// control items should be shown.
     @Published var showSectionDividers = false
 
+    /// A Boolean value that indicates whether the Ice icon should
+    /// be shown.
+    @Published var showIceIcon = true
+
     /// The sections currently in the menu bar.
     @Published private(set) var sections = [MenuBarSection]() {
         willSet {
@@ -123,6 +127,7 @@ final class MenuBarManager: ObservableObject {
         defaults.ifPresent(key: Defaults.rehideInterval, assign: &rehideInterval)
         defaults.ifPresent(key: Defaults.hideApplicationMenus, assign: &hideApplicationMenus)
         defaults.ifPresent(key: Defaults.showSectionDividers, assign: &showSectionDividers)
+        defaults.ifPresent(key: Defaults.showIceIcon, assign: &showIceIcon)
         defaults.ifPresent(key: Defaults.secondaryActionModifier) { rawValue in
             secondaryActionModifier = Hotkey.Modifiers(rawValue: rawValue)
         }
@@ -309,6 +314,13 @@ final class MenuBarManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] shouldShow in
                 self?.defaults.set(shouldShow, forKey: Defaults.showSectionDividers)
+            }
+            .store(in: &c)
+
+        $showIceIcon
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] showIceIcon in
+                self?.defaults.set(showIceIcon, forKey: Defaults.showIceIcon)
             }
             .store(in: &c)
 

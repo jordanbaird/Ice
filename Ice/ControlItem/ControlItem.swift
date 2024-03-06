@@ -301,6 +301,19 @@ final class ControlItem: ObservableObject {
                     updateStatusItem(with: state)
                 }
                 .store(in: &c)
+
+            menuBarManager.$showIceIcon
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] showIceIcon in
+                    guard
+                        let self,
+                        !isSectionDivider
+                    else {
+                        return
+                    }
+                    isVisible = showIceIcon
+                }
+                .store(in: &c)
         }
 
         cancellables = c

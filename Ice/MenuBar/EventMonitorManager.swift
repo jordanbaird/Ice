@@ -233,11 +233,20 @@ final class EventMonitorManager {
         else {
             return event
         }
-        for section in menuBarManager.sections {
-            if section.isHidden {
+        if menuBarManager.showSectionDividers {
+            for section in menuBarManager.sections where section.isHidden {
                 section.show()
             }
-            section.controlItem.isVisible = true
+        } else {
+            for section in menuBarManager.sections {
+                if section.isHidden {
+                    section.show()
+                }
+                if section.controlItem.isSectionDivider {
+                    section.controlItem.isVisible = true
+                    section.controlItem.length = .zero
+                }
+            }
         }
         menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
         return event

@@ -426,6 +426,18 @@ private class MenuBarAppearancePanelContentView: NSView {
                         self?.needsDisplay = true
                     }
                     .store(in: &c)
+
+                // redraw whenever the visibility of a section's control item changes
+                //
+                // - NOTE: If the "ShowSectionDividers" setting is disabled, the window
+                //   frame does not update when the section is hidden or shown, but the
+                //   visibility does. We observe both to ensure the update occurs.
+                section.controlItem.$isVisible
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] _ in
+                        self?.needsDisplay = true
+                    }
+                    .store(in: &c)
             }
         }
 

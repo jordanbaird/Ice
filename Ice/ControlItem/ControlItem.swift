@@ -302,6 +302,20 @@ final class ControlItem: ObservableObject {
                 }
                 .store(in: &c)
 
+            menuBarManager.$showSectionDividers
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] shouldShow in
+                    guard
+                        let self,
+                        isSectionDivider,
+                        state == .showItems
+                    else {
+                        return
+                    }
+                    isVisible = shouldShow
+                }
+                .store(in: &c)
+
             menuBarManager.$showIceIcon
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] showIceIcon in

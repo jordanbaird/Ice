@@ -16,6 +16,7 @@ extension SettingsNavigationItem {
         case general = "General"
         case menuBar = "Menu Bar"
         case hotkeys = "Hotkeys"
+        case advanced = "Advanced"
         case about = "About"
 
         var localized: LocalizedStringKey {

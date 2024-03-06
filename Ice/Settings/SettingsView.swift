@@ -20,6 +20,10 @@ struct SettingsView: View {
             icon: .systemSymbol("keyboard")
         ),
         SettingsNavigationItem(
+            name: .advanced,
+            icon: .systemSymbol("gearshape.2")
+        ),
+        SettingsNavigationItem(
             name: .about,
             icon: .assetCatalog(.iceCube)
         ),
@@ -79,6 +83,8 @@ struct SettingsView: View {
             MenuBarSettingsPane()
         case .hotkeys:
             HotkeysSettingsPane()
+        case .advanced:
+            AdvancedSettingsPane()
         case .about:
             AboutSettingsPane()
         }

@@ -41,10 +41,6 @@ struct GeneralSettingsPane: View {
             Section {
                 autoRehideOptions
             }
-            Section {
-                hideApplicationMenus
-                showSectionDividers
-            }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
@@ -192,21 +188,6 @@ struct GeneralSettingsPane: View {
             } else {
                 rehideStrategyPicker
             }
-        }
-    }
-
-    @ViewBuilder
-    private var hideApplicationMenus: some View {
-        Toggle(isOn: menuBarManager.bindings.hideApplicationMenus) {
-            Text("Hide application menus when showing menu bar items")
-            Text("Make more room in the menu bar by hiding the left application menus")
-        }
-    }
-
-    @ViewBuilder
-    private var showSectionDividers: some View {
-        Toggle(isOn: menuBarManager.bindings.showSectionDividers) {
-            Text("Show section dividers")
         }
     }
 }

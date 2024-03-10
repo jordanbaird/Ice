@@ -80,7 +80,11 @@ struct HotkeyRecorder<Label: View>: View {
         Button {
             model.startRecording()
         } label: {
-            segment1Label.frame(maxWidth: .infinity)
+            segment1Label
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: .infinity
+                )
         }
         .help(segment1HelpString)
         .customButtonConfiguration { configuration in
@@ -100,7 +104,10 @@ struct HotkeyRecorder<Label: View>: View {
                 model.startRecording()
             }
         } label: {
-            Color.clear.overlay { segment2Label }
+            Color.clear.overlay {
+                segment2Label
+                    .offset(y: 0.5)
+            }
         }
         .frame(width: frame.height)
         .onHover { isInside in

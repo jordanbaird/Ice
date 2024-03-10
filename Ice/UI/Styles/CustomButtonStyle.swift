@@ -39,7 +39,7 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
             .foregroundStyle(customButtonConfiguration.labelForegroundColor)
             .font(customButtonConfiguration.font)
             .padding(padding)
-            .baselineOffset(1)
+            .offset(y: -0.5)
             .lineLimit(1)
             .background {
                 Color.primary

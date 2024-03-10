@@ -168,9 +168,9 @@ final class MenuBarManager: ObservableObject {
                         return
                     }
 
-                    // offset the leftmost item's minX by its width to give ourselves
-                    // a little wiggle room
-                    let offsetMinX = leftmostItem.frame.minX - leftmostItem.frame.width
+                    // offset the leftmost item's minX by twice its width to give
+                    // ourselves a little wiggle room
+                    let offsetMinX = leftmostItem.frame.minX - (leftmostItem.frame.width * 2)
 
                     // if the offset value is less than or equal to the maxX of the
                     // application menu, activate the app to hide the menu

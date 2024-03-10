@@ -27,6 +27,11 @@ struct AboutTab: View {
         contributeURL.appendingPathComponent("issues")
     }
 
+    private var sponsorURL: URL {
+        // swiftlint:disable:next force_unwrapping
+        URL(string: "https://github.com/sponsors/jordanbaird")!
+    }
+
     var body: some View {
         HStack {
             if let nsImage = NSImage(named: NSImage.applicationIconName) {
@@ -74,6 +79,11 @@ struct AboutTab: View {
                 }
                 Button("Report a Bug") {
                     openURL(issuesURL)
+                }
+                Button {
+                    openURL(sponsorURL)
+                } label: {
+                    Label("Support Ice", systemImage: "heart.circle.fill")
                 }
             }
             .padding()

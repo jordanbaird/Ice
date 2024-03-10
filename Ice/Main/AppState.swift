@@ -9,11 +9,6 @@ import SwiftUI
 
 /// The model for app-wide state.
 final class AppState: ObservableObject {
-    /// Application modes.
-    enum Mode {
-        case idle, settings
-    }
-
     /// The shared app state singleton.
     static let shared = AppState()
 
@@ -43,9 +38,6 @@ final class AppState: ObservableObject {
     /// The window that contains the permissions interface.
     private(set) weak var permissionsWindow: NSWindow?
 
-    /// The application's current mode.
-    private(set) var mode: Mode = .idle
-
     /// A Boolean value that indicates whether the user has interacted with
     /// the menu bar, preventing the "ShowOnHover" feature from activating.
     var showOnHoverPreventedByUserInteraction = false
@@ -68,14 +60,6 @@ final class AppState: ObservableObject {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
-
-        if let settingsWindow {
-            settingsWindow.publisher(for: \.isVisible)
-                .sink { [weak self] isVisible in
-                    self?.mode = isVisible ? .settings : .idle
-                }
-                .store(in: &c)
-        }
 
         menuBarManager.objectWillChange
             .sink { [weak self] in

@@ -16,7 +16,6 @@ final class MenuBarManager: ObservableObject {
     /// The maximum X coordinate of the menu bar's main menu.
     @Published private(set) var mainMenuMaxX: CGFloat = 0
 
-    /// The sections in the menu bar.
     private(set) var sections = [MenuBarSection]()
 
     private(set) weak var appState: AppState?
@@ -24,6 +23,8 @@ final class MenuBarManager: ObservableObject {
     private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
 
     private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBarManager: self)
+
+    private var isHidingApplicationMenus = false
 
     private let encoder = JSONEncoder()
 
@@ -150,8 +151,7 @@ final class MenuBarManager: ObservableObject {
                 guard
                     let self,
                     let appState,
-                    appState.settingsManager.advancedSettingsManager.hideApplicationMenus,
-                    case .idle = appState.mode
+                    appState.settingsManager.advancedSettingsManager.hideApplicationMenus
                 else {
                     return
                 }
@@ -176,10 +176,15 @@ final class MenuBarManager: ObservableObject {
                     // application menu, activate the app to hide the menu
                     if offsetMinX <= mainMenuMaxX {
                         appState.activate(withPolicy: .regular)
+                        isHidingApplicationMenus = true
                     }
-                } else {
+                } else if 
+                    isHidingApplicationMenus,
+                    appState.settingsWindow?.isVisible == false
+                {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         appState.deactivate(withPolicy: .accessory)
+                        self.isHidingApplicationMenus = false
                     }
                 }
             }

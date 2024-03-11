@@ -11,7 +11,7 @@ enum SecondaryAction: Int, CaseIterable {
     var localized: LocalizedStringKey {
         switch self {
         case .toggleAlwaysHiddenSection:
-            "Toggle \"Always Hidden\" section"
+            "Toggle \"always hidden\" section"
         }
     }
 }

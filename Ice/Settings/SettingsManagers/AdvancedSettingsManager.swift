@@ -19,9 +19,6 @@ final class AdvancedSettingsManager: ObservableObject {
     /// should be shown.
     @Published var showSectionDividers = true
 
-    /// A Boolean value that indicates whether the Ice icon should be shown.
-    @Published var showIceIcon = true
-
     /// The secondary action to perform when a control item is clicked.
     @Published var secondaryAction: SecondaryAction = .toggleAlwaysHiddenSection
 
@@ -45,7 +42,6 @@ final class AdvancedSettingsManager: ObservableObject {
     private func loadInitialState() {
         Defaults.ifPresent(key: .hideApplicationMenus, assign: &hideApplicationMenus)
         Defaults.ifPresent(key: .showSectionDividers, assign: &showSectionDividers)
-        Defaults.ifPresent(key: .showIceIcon, assign: &showIceIcon)
         Defaults.ifPresent(key: .secondaryAction) { rawValue in
             if let action = SecondaryAction(rawValue: rawValue) {
                 secondaryAction = action
@@ -70,13 +66,6 @@ final class AdvancedSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { shouldShow in
                 Defaults.set(shouldShow, forKey: .showSectionDividers)
-            }
-            .store(in: &c)
-
-        $showIceIcon
-            .receive(on: DispatchQueue.main)
-            .sink { showIceIcon in
-                Defaults.set(showIceIcon, forKey: .showIceIcon)
             }
             .store(in: &c)
 

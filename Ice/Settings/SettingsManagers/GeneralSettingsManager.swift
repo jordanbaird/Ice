@@ -8,6 +8,10 @@ import Foundation
 import OSLog
 
 final class GeneralSettingsManager: ObservableObject {
+    /// A Boolean value that indicates whether the Ice icon
+    /// should be shown.
+    @Published var showIceIcon = true
+
     /// An icon to show in the menu bar, with a different image
     /// for when items are visible or hidden.
     @Published var iceIcon: ControlItemImageSet = .defaultIceIcon
@@ -63,6 +67,7 @@ final class GeneralSettingsManager: ObservableObject {
     }
 
     private func loadInitialState() {
+        Defaults.ifPresent(key: .showIceIcon, assign: &showIceIcon)
         Defaults.ifPresent(key: .customIceIconIsTemplate, assign: &customIceIconIsTemplate)
         Defaults.ifPresent(key: .showOnClick, assign: &showOnClick)
         Defaults.ifPresent(key: .showOnHover, assign: &showOnHover)
@@ -89,6 +94,13 @@ final class GeneralSettingsManager: ObservableObject {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
+
+        $showIceIcon
+            .receive(on: DispatchQueue.main)
+            .sink { showIceIcon in
+                Defaults.set(showIceIcon, forKey: .showIceIcon)
+            }
+            .store(in: &c)
 
         $iceIcon
             .receive(on: DispatchQueue.main)

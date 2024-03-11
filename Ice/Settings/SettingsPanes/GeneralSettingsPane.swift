@@ -31,10 +31,8 @@ struct GeneralSettingsPane: View {
             Section {
                 launchAtLogin
             }
-            if appState.settingsManager.advancedSettingsManager.showIceIcon {
-                Section {
-                    iceIconOptions
-                }
+            Section {
+                iceIconOptions
             }
             Section {
                 showOnClick
@@ -76,60 +74,68 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var iceIconOptions: some View {
-        LabeledContent {
-            Menu {
-                Picker("\(Constants.appName) icon", selection: manager.bindings.iceIcon) {
-                    ForEach(ControlItemImageSet.userSelectableImageSets) { imageSet in
-                        label(for: imageSet)
-                    }
+        Toggle(isOn: manager.bindings.showIceIcon) {
+            Text("Show Ice icon")
+            if !manager.showIceIcon {
+                Text("You can still access \(Constants.appName)'s settings by right-clicking an empty area in the menu bar")
+            }
+        }
+        if manager.showIceIcon {
+            LabeledContent {
+                Menu {
+                    Picker("\(Constants.appName) icon", selection: manager.bindings.iceIcon) {
+                        ForEach(ControlItemImageSet.userSelectableImageSets) { imageSet in
+                            label(for: imageSet)
+                        }
 
-                    if let lastCustomIceIcon = manager.lastCustomIceIcon {
-                        label(for: lastCustomIceIcon)
+                        if let lastCustomIceIcon = manager.lastCustomIceIcon {
+                            label(for: lastCustomIceIcon)
+                        }
                     }
-                }
-                .pickerStyle(.inline)
-                .labelsHidden()
+                    .pickerStyle(.inline)
+                    .labelsHidden()
 
-                Button("Choose image…") {
-                    isImportingCustomIceIcon = true
+                    Button("Choose image…") {
+                        isImportingCustomIceIcon = true
+                    }
+                } label: {
+                    label(for: manager.iceIcon)
                 }
+                .labelStyle(.titleAndIcon)
+                .scaledToFit()
+                .fixedSize()
             } label: {
-                label(for: manager.iceIcon)
+                Text("\(Constants.appName) icon")
+                Text("Choose a custom icon to show in the menu bar")
             }
-            .labelStyle(.titleAndIcon)
-            .scaledToFit()
-            .fixedSize()
-        } label: {
-            Text("\(Constants.appName) icon")
-            Text("Choose a custom icon to show in the menu bar")
-        }
-        .fileImporter(
-            isPresented: $isImportingCustomIceIcon,
-            allowedContentTypes: [.image]
-        ) { result in
-            do {
-                let url = try result.get()
-                if url.startAccessingSecurityScopedResource() {
-                    defer {
-                        url.stopAccessingSecurityScopedResource()
+            .fileImporter(
+                isPresented: $isImportingCustomIceIcon,
+                allowedContentTypes: [.image]
+            ) { result in
+                do {
+                    let url = try result.get()
+                    if url.startAccessingSecurityScopedResource() {
+                        defer {
+                            url.stopAccessingSecurityScopedResource()
+                        }
+                        let data = try Data(contentsOf: url)
+                        manager.iceIcon = ControlItemImageSet(
+                            name: .custom,
+                            hidden: .data(data),
+                            visible: .data(data)
+                        )
                     }
-                    let data = try Data(contentsOf: url)
-                    manager.iceIcon = ControlItemImageSet(
-                        name: .custom,
-                        hidden: .data(data),
-                        visible: .data(data)
-                    )
+                } catch {
+                    presentedError = LocalizedErrorBox(error: error)
+                    isPresentingError = true
                 }
-            } catch {
-                presentedError = LocalizedErrorBox(error: error)
-                isPresentingError = true
             }
-        }
 
-        if case .custom = manager.iceIcon.name {
-            Toggle(isOn: manager.bindings.customIceIconIsTemplate) {
-                Text("Use template image")
-                Text("Display the icon as a monochrome image matching the system appearance")
+            if case .custom = manager.iceIcon.name {
+                Toggle(isOn: manager.bindings.customIceIconIsTemplate) {
+                    Text("Use template image")
+                    Text("Display the icon as a monochrome image matching the system appearance")
+                }
             }
         }
     }

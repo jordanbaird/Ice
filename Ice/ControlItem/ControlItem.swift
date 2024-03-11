@@ -298,6 +298,19 @@ final class ControlItem: ObservableObject {
         }
 
         if let appState {
+            appState.settingsManager.generalSettingsManager.$showIceIcon
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] showIceIcon in
+                    guard
+                        let self,
+                        !isSectionDivider
+                    else {
+                        return
+                    }
+                    isVisible = showIceIcon
+                }
+                .store(in: &c)
+
             appState.settingsManager.generalSettingsManager.$iceIcon
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
@@ -329,19 +342,6 @@ final class ControlItem: ObservableObject {
                         return
                     }
                     isVisible = shouldShow
-                }
-                .store(in: &c)
-
-            appState.settingsManager.advancedSettingsManager.$showIceIcon
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] showIceIcon in
-                    guard
-                        let self,
-                        !isSectionDivider
-                    else {
-                        return
-                    }
-                    isVisible = showIceIcon
                 }
                 .store(in: &c)
         }

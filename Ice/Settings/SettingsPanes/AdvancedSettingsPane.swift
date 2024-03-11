@@ -19,21 +19,41 @@ struct AdvancedSettingsPane: View {
     var body: some View {
         Form {
             Section {
+                secondaryAction
+                secondaryActionModifier
+            }
+            Section {
                 hideApplicationMenus
             }
             Section {
                 showSectionDividers
-                showIceIcon
-            }
-            Section {
-                secondaryAction
-                secondaryActionModifier
             }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
         .frame(maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var secondaryAction: some View {
+        Picker(selection: manager.bindings.secondaryAction) {
+            ForEach(SecondaryAction.allCases, id: \.self) { action in
+                Text(action.localized).tag(action)
+            }
+        } label: {
+            Text("Secondary action")
+            Text("\(manager.secondaryActionModifier.label) (\(manager.secondaryActionModifier.stringValue)) + click one of \(Constants.appName)'s menu bar items to perform the action")
+        }
+    }
+
+    @ViewBuilder
+    private var secondaryActionModifier: some View {
+        Picker("Modifier", selection: manager.bindings.secondaryActionModifier) {
+            ForEach(AdvancedSettingsManager.validSecondaryActionModifiers, id: \.self) { modifier in
+                Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
+            }
+        }
     }
 
     @ViewBuilder
@@ -61,37 +81,6 @@ struct AdvancedSettingsPane: View {
                     }
                 }
                 Text("between adjacent sections")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var showIceIcon: some View {
-        Toggle(isOn: manager.bindings.showIceIcon) {
-            Text("Show Ice icon")
-            if !manager.showIceIcon {
-                Text("You can access \(Constants.appName)'s settings by right-clicking an empty area in the menu bar")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var secondaryAction: some View {
-        Picker(selection: manager.bindings.secondaryAction) {
-            ForEach(SecondaryAction.allCases, id: \.self) { action in
-                Text(action.localized).tag(action)
-            }
-        } label: {
-            Text("Secondary action")
-            Text("\(manager.secondaryActionModifier.label) (\(manager.secondaryActionModifier.stringValue)) + click either of \(Constants.appName)'s menu bar items to perform the action")
-        }
-    }
-
-    @ViewBuilder
-    private var secondaryActionModifier: some View {
-        Picker("Modifier", selection: manager.bindings.secondaryActionModifier) {
-            ForEach(AdvancedSettingsManager.validSecondaryActionModifiers, id: \.self) { modifier in
-                Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
             }
         }
     }

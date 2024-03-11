@@ -42,6 +42,7 @@ brew install jordanbaird-ice
 - [ ] Search menu bar items
 - [ ] Display hidden items in a separate bar (e.g. for MacBooks with the notch)
 - [ ] Custom spacing between items
+- [ ] Profiles for menu bar layout
 
 ### Menu bar appearance
 

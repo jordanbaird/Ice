@@ -12,7 +12,7 @@ struct SettingsWindow: Scene {
     var body: some Scene {
         Window(Constants.appName, id: Constants.settingsWindowID) {
             SettingsView()
-                .frame(minWidth: 700, minHeight: 400)
+                .frame(minWidth: 840, minHeight: 520)
                 .background {
                     Color.clear
                         .overlay(Material.thin)

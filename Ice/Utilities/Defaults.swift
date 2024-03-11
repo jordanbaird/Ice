@@ -135,6 +135,8 @@ extension Defaults {
         case customIceIconIsTemplate = "CustomIceIconIsTemplate"
 
         case sections = "Sections"
+        case secondaryAction = "SecondaryAction"
+        case secondaryActionModifier = "SecondaryActionModifier"
 
         case hideApplicationMenus = "HideApplicationMenus"
         case showSectionDividers = "ShowSectionDividers"
@@ -151,8 +153,6 @@ extension Defaults {
         case menuBarAppearanceConfiguration = "MenuBarAppearanceConfiguration"
 
         // MARK: Deprecated
-
-        case secondaryActionModifier = "SecondaryActionModifier"
 
         case menuBarHasBorder = "MenuBarHasBorder"
         case menuBarBorderColor = "MenuBarBorderColor"

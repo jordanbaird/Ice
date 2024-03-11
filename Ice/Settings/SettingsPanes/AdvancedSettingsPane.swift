@@ -8,6 +8,10 @@ import SwiftUI
 struct AdvancedSettingsPane: View {
     @EnvironmentObject var appState: AppState
 
+    private var menuBarManager: MenuBarManager {
+        appState.menuBarManager
+    }
+
     private var manager: AdvancedSettingsManager {
         appState.settingsManager.advancedSettingsManager
     }
@@ -20,6 +24,10 @@ struct AdvancedSettingsPane: View {
             Section {
                 showSectionDividers
                 showIceIcon
+            }
+            Section {
+                secondaryAction
+                secondaryActionModifier
             }
         }
         .formStyle(.grouped)
@@ -62,7 +70,28 @@ struct AdvancedSettingsPane: View {
         Toggle(isOn: manager.bindings.showIceIcon) {
             Text("Show Ice icon")
             if !manager.showIceIcon {
-                Text("You can access Ice's settings by right-clicking an empty area in the menu bar")
+                Text("You can access \(Constants.appName)'s settings by right-clicking an empty area in the menu bar")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var secondaryAction: some View {
+        Picker(selection: manager.bindings.secondaryAction) {
+            ForEach(SecondaryAction.allCases, id: \.self) { action in
+                Text(action.localized).tag(action)
+            }
+        } label: {
+            Text("Secondary action")
+            Text("\(manager.secondaryActionModifier.label) (\(manager.secondaryActionModifier.stringValue)) + click either of \(Constants.appName)'s menu bar items to perform the action")
+        }
+    }
+
+    @ViewBuilder
+    private var secondaryActionModifier: some View {
+        Picker("Modifier", selection: manager.bindings.secondaryActionModifier) {
+            ForEach(AdvancedSettingsManager.validSecondaryActionModifiers, id: \.self) { modifier in
+                Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
             }
         }
     }

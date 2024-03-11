@@ -76,6 +76,11 @@ final class ControlItem: ObservableObject {
         menuBarManager?.sections.first { $0.controlItem == self }
     }
 
+    /// The advanced settings manager.
+    weak var advancedSettingsManager: AdvancedSettingsManager? {
+        appState?.settingsManager.advancedSettingsManager
+    }
+
     /// The control item's autosave name.
     var autosaveName: String {
         statusItem.autosaveName
@@ -425,7 +430,21 @@ final class ControlItem: ObservableObject {
         }
         switch event.type {
         case .leftMouseUp:
-            section?.toggle()
+            if 
+
+                let advancedSettingsManager,
+                NSEvent.modifierFlags == advancedSettingsManager.secondaryActionModifier.nsEventFlags
+            {
+                // perform the secondary action
+                switch advancedSettingsManager.secondaryAction {
+                case .toggleAlwaysHiddenSection:
+                    if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
+                        alwaysHiddenSection.toggle()
+                    }
+                }
+            } else {
+                section?.toggle()
+            }
         case .rightMouseUp:
             statusItem.showMenu(createMenu(with: appState))
         default:

@@ -7,6 +7,10 @@ import Combine
 import Foundation
 
 final class AdvancedSettingsManager: ObservableObject {
+    /// Valid modifier keys that can be used to trigger the secondary action
+    /// of all control items.
+    static let validSecondaryActionModifiers: [Hotkey.Modifiers] = [.control, .option, .shift]
+
     /// A Boolean value that indicates whether the application menus should
     /// be hidden if needed to show all menu bar items.
     @Published var hideApplicationMenus: Bool = false
@@ -17,6 +21,13 @@ final class AdvancedSettingsManager: ObservableObject {
 
     /// A Boolean value that indicates whether the Ice icon should be shown.
     @Published var showIceIcon = true
+
+    /// The secondary action to perform when a control item is clicked.
+    @Published var secondaryAction: SecondaryAction = .toggleAlwaysHiddenSection
+
+    /// The modifier key that is used to trigger the secondary action of all
+    /// control items.
+    @Published var secondaryActionModifier: Hotkey.Modifiers = .option
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -35,6 +46,14 @@ final class AdvancedSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .hideApplicationMenus, assign: &hideApplicationMenus)
         Defaults.ifPresent(key: .showSectionDividers, assign: &showSectionDividers)
         Defaults.ifPresent(key: .showIceIcon, assign: &showIceIcon)
+        Defaults.ifPresent(key: .secondaryAction) { rawValue in
+            if let action = SecondaryAction(rawValue: rawValue) {
+                secondaryAction = action
+            }
+        }
+        Defaults.ifPresent(key: .secondaryActionModifier) { rawValue in
+            secondaryActionModifier = Hotkey.Modifiers(rawValue: rawValue)
+        }
     }
 
     private func configureCancellables() {
@@ -58,6 +77,20 @@ final class AdvancedSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { showIceIcon in
                 Defaults.set(showIceIcon, forKey: .showIceIcon)
+            }
+            .store(in: &c)
+
+        $secondaryAction
+            .receive(on: DispatchQueue.main)
+            .sink { action in
+                Defaults.set(action.rawValue, forKey: .secondaryAction)
+            }
+            .store(in: &c)
+
+        $secondaryActionModifier
+            .receive(on: DispatchQueue.main)
+            .sink { modifier in
+                Defaults.set(modifier.rawValue, forKey: .secondaryActionModifier)
             }
             .store(in: &c)
 

@@ -1,5 +1,5 @@
 //
-//  MenuBarAppearancePanel.swift
+//  MenuBarOverlayPanel.swift
 //  Ice
 //
 
@@ -9,11 +9,11 @@ import Combine
 import OSLog
 import ScreenCaptureKit
 
-// MARK: - MenuBarAppearancePanel
+// MARK: - MenuBarOverlayPanel
 
 /// A subclass of `NSPanel` that sits atop the menu bar
 /// to alter its appearance.
-class MenuBarAppearancePanel: NSPanel {
+class MenuBarOverlayPanel: NSPanel {
     private var cancellables = Set<AnyCancellable>()
 
     /// The appearance manager that manages the panel.
@@ -61,7 +61,7 @@ class MenuBarAppearancePanel: NSPanel {
         )
     }
 
-    /// Creates an appearance panel with the given appearance
+    /// Creates an overlay panel with the given appearance
     /// manager and owning screen.
     init(appearanceManager: MenuBarAppearanceManager, owningScreen: NSScreen) {
         self.appearanceManager = appearanceManager
@@ -78,7 +78,7 @@ class MenuBarAppearancePanel: NSPanel {
         self.hasShadow = false
         self.ignoresMouseEvents = true
         self.collectionBehavior = [.fullScreenNone, .ignoresCycle, .moveToActiveSpace]
-        self.contentView = MenuBarAppearancePanelContentView()
+        self.contentView = MenuBarOverlayPanelContentView()
         configureCancellables()
     }
 
@@ -242,7 +242,7 @@ class MenuBarAppearancePanel: NSPanel {
                     options: .ignoreFraming
                 )
             } catch {
-                Logger.appearancePanel.error("Error updating desktop wallpaper: \(error)")
+                Logger.overlayPanel.error("Error updating desktop wallpaper: \(error)")
             }
         }
     }
@@ -269,7 +269,7 @@ class MenuBarAppearancePanel: NSPanel {
             }
             self.menuBar = menuBar
         } catch {
-            Logger.appearancePanel.error("Error updating menu bar: \(error)")
+            Logger.overlayPanel.error("Error updating menu bar: \(error)")
         }
     }
 
@@ -289,7 +289,7 @@ class MenuBarAppearancePanel: NSPanel {
                 }
             }
         } catch {
-            Logger.appearancePanel.error("Error updating main menu maxX: \(error)")
+            Logger.overlayPanel.error("Error updating main menu maxX: \(error)")
         }
     }
 
@@ -300,7 +300,7 @@ class MenuBarAppearancePanel: NSPanel {
         }
 
         guard let frameForDisplay else {
-            Logger.appearancePanel.notice("Missing frame for display")
+            Logger.overlayPanel.notice("Missing frame for display")
             return
         }
 
@@ -308,9 +308,9 @@ class MenuBarAppearancePanel: NSPanel {
         // a reference to this panel
         guard
             let appearanceManager,
-            appearanceManager.appearancePanels.contains(self)
+            appearanceManager.overlayPanels.contains(self)
         else {
-            Logger.appearancePanel.notice("Appearance panel \(self) not retained")
+            Logger.overlayPanel.notice("Overlay panel \(self) not retained")
             return
         }
 
@@ -334,17 +334,17 @@ class MenuBarAppearancePanel: NSPanel {
 
 // MARK: - Content View
 
-private class MenuBarAppearancePanelContentView: NSView {
+private class MenuBarOverlayPanelContentView: NSView {
     private var cancellables = Set<AnyCancellable>()
 
-    /// The appearance panel that contains the content view.
-    private var appearancePanel: MenuBarAppearancePanel? {
-        window as? MenuBarAppearancePanel
+    /// The overlay panel that contains the content view.
+    private var overlayPanel: MenuBarOverlayPanel? {
+        window as? MenuBarOverlayPanel
     }
 
     /// The appearance manager that manages the content view's panel.
     private var appearanceManager: MenuBarAppearanceManager? {
-        appearancePanel?.appearanceManager
+        overlayPanel?.appearanceManager
     }
 
     /// The bounds that the view's drawn content can occupy.
@@ -365,9 +365,9 @@ private class MenuBarAppearancePanelContentView: NSView {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        if let appearancePanel {
+        if let overlayPanel {
             // fade out whenever a menu bar item is being dragged
-            appearancePanel.$isDraggingMenuBarItem
+            overlayPanel.$isDraggingMenuBarItem
                 .removeDuplicates()
                 .sink { [weak self] isDragging in
                     if isDragging {
@@ -378,13 +378,13 @@ private class MenuBarAppearancePanelContentView: NSView {
                 }
                 .store(in: &c)
             // redraw whenever the main menu maxX changes
-            appearancePanel.$mainMenuMaxX
+            overlayPanel.$mainMenuMaxX
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
                 }
                 .store(in: &c)
             // redraw whenever the desktop wallpaper changes
-            appearancePanel.$desktopWallpaper
+            overlayPanel.$desktopWallpaper
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
                 }
@@ -476,8 +476,8 @@ private class MenuBarAppearancePanelContentView: NSView {
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
     private func pathForSplitShapeKind(in rect: CGRect, info: MenuBarSplitShapeInfo) -> NSBezierPath {
         guard
-            let menuBarManager = appearancePanel?.appearanceManager?.menuBarManager,
-            let mainMenuMaxX = appearancePanel?.mainMenuMaxX
+            let menuBarManager = overlayPanel?.appearanceManager?.menuBarManager,
+            let mainMenuMaxX = overlayPanel?.mainMenuMaxX
         else {
             return NSBezierPath(rect: rect)
         }
@@ -521,8 +521,8 @@ private class MenuBarAppearancePanelContentView: NSView {
 
         let trailingPath: NSBezierPath = {
             guard 
-                let appearancePanel,
-                let owningDisplay = DisplayInfo(displayID: appearancePanel.owningScreen.displayID)
+                let overlayPanel,
+                let owningDisplay = DisplayInfo(displayID: overlayPanel.owningScreen.displayID)
             else {
                 return NSBezierPath(rect: rect)
             }
@@ -599,7 +599,7 @@ private class MenuBarAppearancePanelContentView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         guard
-            let appearanceManager = appearancePanel?.appearanceManager,
+            let appearanceManager = overlayPanel?.appearanceManager,
             let context = NSGraphicsContext.current
         else {
             return
@@ -658,7 +658,7 @@ private class MenuBarAppearancePanelContentView: NSView {
                 NSBezierPath(rect: borderBounds).fill()
             }
         case .full, .split:
-            if let desktopWallpaper = appearancePanel?.desktopWallpaper {
+            if let desktopWallpaper = overlayPanel?.desktopWallpaper {
                 context.saveGraphicsState()
                 defer {
                     context.restoreGraphicsState()
@@ -711,5 +711,5 @@ private class MenuBarAppearancePanelContentView: NSView {
 
 // MARK: - Logger
 private extension Logger {
-    static let appearancePanel = Logger(category: "MenuBarAppearancePanel")
+    static let overlayPanel = Logger(category: "MenuBarOverlayPanel")
 }

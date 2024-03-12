@@ -23,7 +23,7 @@ final class MenuBarSection: ObservableObject {
     let controlItem: ControlItem
 
     /// A Boolean value that indicates whether the section is hidden.
-    @Published var isHidden: Bool
+    @Published private(set) var isHidden: Bool
 
     /// The hotkey associated with the section.
     @Published var hotkey: Hotkey? {
@@ -285,24 +285,6 @@ extension MenuBarSection: Codable {
         try container.encode(name, forKey: .name)
         try container.encode(controlItem, forKey: .controlItem)
         try container.encodeIfPresent(hotkey, forKey: .hotkey)
-    }
-}
-
-// MARK: MenuBarSection: Equatable
-extension MenuBarSection: Equatable {
-    static func == (lhs: MenuBarSection, rhs: MenuBarSection) -> Bool {
-        lhs.name == rhs.name &&
-        lhs.controlItem == rhs.controlItem &&
-        lhs.hotkey == rhs.hotkey
-    }
-}
-
-// MARK: MenuBarSection: Hashable
-extension MenuBarSection: Hashable {
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(name)
-        hasher.combine(controlItem)
-        hasher.combine(hotkey)
     }
 }
 

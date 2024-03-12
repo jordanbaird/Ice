@@ -1,16 +1,15 @@
 //
-//  MenuBarAppearanceEditorHelperPanel.swift
+//  MenuBarAppearanceEditorPanel.swift
 //  Ice
 //
 
 import Combine
 import SwiftUI
 
-// MARK: - MenuBarAppearanceEditorHelperPanel
+// MARK: - MenuBarAppearanceEditorPanel
 
-/// A panel that manages the menu that appears when the user
-/// right-clicks on the menu bar.
-class MenuBarAppearanceEditorHelperPanel: NSPanel {
+/// A panel that manages the appearance editor popover.
+class MenuBarAppearanceEditorPanel: NSPanel {
     private var cancellables = Set<AnyCancellable>()
 
     init() {
@@ -57,8 +56,8 @@ class MenuBarAppearanceEditorHelperPanel: NSPanel {
     }
 }
 
-// MARK: MenuBarAppearanceEditorHelperPanel: NSPopoverDelegate
-extension MenuBarAppearanceEditorHelperPanel: NSPopoverDelegate {
+// MARK: MenuBarAppearanceEditorPanel: NSPopoverDelegate
+extension MenuBarAppearanceEditorPanel: NSPopoverDelegate {
     func popoverDidClose(_ notification: Notification) {
         if let popover = notification.object as? MenuBarAppearanceEditorPopover {
             popover.mouseDownMonitor.stop()

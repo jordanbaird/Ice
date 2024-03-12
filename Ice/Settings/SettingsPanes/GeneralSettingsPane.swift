@@ -84,7 +84,7 @@ struct GeneralSettingsPane: View {
             LabeledContent {
                 Menu {
                     Picker("\(Constants.appName) icon", selection: manager.bindings.iceIcon) {
-                        ForEach(ControlItemImageSet.userSelectableImageSets) { imageSet in
+                        ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
                             label(for: imageSet)
                         }
 

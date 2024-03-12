@@ -32,13 +32,13 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
     @Environment(\.customButtonConfiguration) private var customButtonConfiguration
     @State private var frame = CGRect.zero
     @State private var isPressed = false
-    @State private var padding = EdgeInsets(top: 2, leading: 7, bottom: 2, trailing: 7)
+    @State private var padding = EdgeInsets()
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(customButtonConfiguration.labelForegroundColor)
             .font(customButtonConfiguration.font)
-            .padding(padding)
+            .padding(padding + customButtonConfiguration.labelPadding)
             .offset(y: -0.5)
             .lineLimit(1)
             .background {
@@ -131,6 +131,9 @@ struct CustomButtonConfiguration {
     /// The font of the button's label.
     var font = Font.body.weight(.regular)
 
+    /// Extra padding for the button's label.
+    var labelPadding = EdgeInsets()
+
     /// The shape of the button.
     var shape = ButtonShape()
 }
@@ -153,7 +156,7 @@ extension View {
     /// - Parameter configure: A closure that updates the current
     ///   environment's custom button configuration with new values.
     func customButtonConfiguration(
-        configure: @escaping (inout CustomButtonConfiguration) -> Void
+        configure: @escaping (_ configuration: inout CustomButtonConfiguration) -> Void
     ) -> some View {
         transformEnvironment(\.customButtonConfiguration, transform: configure)
     }

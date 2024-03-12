@@ -7,78 +7,40 @@ import Cocoa
 import Combine
 import OSLog
 
-/// A status item that controls the visibility of a section in
-/// the menu bar.
+/// A status item that controls the visibility of a section
+/// in the menu bar.
 final class ControlItem: ObservableObject {
-    /// The hiding state of a control item.
     enum HidingState: Int, Hashable, Codable {
-        /// Status items in the control item's section are hidden.
         case hideItems
-        /// Status items in the control item's section are visible.
         case showItems
     }
 
-    /// The length of a control item.
-    enum Length: CGFloat, CaseIterable {
-        /// The zero length.
-        case zero = 0
-        /// The length of a control item when its section is visible.
-        case standard = 25
-        /// The length of a control item when its section is hidden.
-        case expanded = 10_000
+    enum Lengths {
+        static let standard: CGFloat = 25
+        static let expanded: CGFloat = 10_000
     }
 
-    /// Storage to temporarily associate menu bar sections with
-    /// specific menu items.
     private static let sectionStorage = ObjectAssociation<MenuBarSection>()
-
-    /// The control item's underlying status item.
-    private let statusItem: NSStatusItem
-
-    /// The position of the control item in the menu bar.
-    @Published private(set) var position: CGFloat?
-
-    /// A Boolean value that indicates whether the control item
-    /// is visible.
-    @Published var isVisible: Bool
-
-    /// The length of the control item.
-    @Published var length: Length
-
-    /// The hiding state of the control item.
-    ///
-    /// Setting this value marks the item as needing an update.
-    @Published var state: HidingState
-
-    /// The frame of the control item's window.
-    @Published var windowFrame: CGRect?
-
-    /// The screen containing the control item.
-    @Published var screen: NSScreen?
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// The shared app state.
-    private(set) weak var appState: AppState? {
-        didSet {
-            configureCancellables()
-            updateStatusItem(with: state)
-        }
-    }
+    private weak var appState: AppState?
 
-    /// The menu bar manager associated with the control item.
-    weak var menuBarManager: MenuBarManager? {
-        appState?.menuBarManager
-    }
+    private let statusItem: NSStatusItem
+
+    /// A Boolean value that indicates whether the control
+    /// item is visible.
+    @Published var isVisible: Bool
+
+    /// The hiding state of the control item.
+    @Published var state: HidingState
+
+    /// The frame of the control item's window.
+    @Published private(set) var windowFrame: CGRect?
 
     /// The menu bar section associated with the control item.
-    weak var section: MenuBarSection? {
-        menuBarManager?.sections.first { $0.controlItem == self }
-    }
-
-    /// The advanced settings manager.
-    weak var advancedSettingsManager: AdvancedSettingsManager? {
-        appState?.settingsManager.advancedSettingsManager
+    private weak var section: MenuBarSection? {
+        appState?.menuBarManager.sections.first { $0.controlItem === self }
     }
 
     /// The control item's autosave name.
@@ -86,7 +48,7 @@ final class ControlItem: ObservableObject {
         statusItem.autosaveName
     }
 
-    /// The window identifier for the control item.
+    /// The identifier of the control item's window.
     var windowID: CGWindowID? {
         guard let window = statusItem.button?.window else {
             return nil
@@ -95,44 +57,12 @@ final class ControlItem: ObservableObject {
     }
 
     /// A Boolean value that indicates whether the control item
-    /// is a section divider
+    /// is a section divider.
     var isSectionDivider: Bool {
-        guard
-            let section,
-            let index = menuBarManager?.sections.firstIndex(of: section)
-        else {
+        guard let section else {
             return false
         }
-        return index != 0
-    }
-
-    /// A Boolean value that indicates whether the control item
-    /// is expanded.
-    ///
-    /// Expanded control items have a length that is equal to the
-    /// ``Length/expanded`` constant, while non-expanded control
-    /// items have a length that is equal to the ``Length/standard``
-    /// constant.
-    var isExpanded: Bool {
-        get {
-            length == .expanded
-        }
-        set {
-            objectWillChange.send()
-            if newValue {
-                isVisible = true
-                length = .expanded
-            } else {
-                if
-                    let appState,
-                    !appState.settingsManager.advancedSettingsManager.showSectionDividers,
-                    isSectionDivider
-                {
-                    isVisible = false
-                }
-                length = .standard
-            }
-        }
+        return section.name != .visible
     }
 
     /// Creates a control item with the given autosave name, position,
@@ -141,6 +71,7 @@ final class ControlItem: ObservableObject {
     /// - Parameters:
     ///   - autosaveName: The control item's autosave name.
     ///   - position: The position of the control item in the menu bar.
+    ///     Pass `nil` to add the control item to the end of the menu bar.
     ///   - state: The hiding state of the control item.
     init(
         autosaveName: String,
@@ -162,11 +93,9 @@ final class ControlItem: ObservableObject {
             StatusItemDefaults[.preferredPosition, autosaveName] = position
         }
 
-        self.statusItem = NSStatusBar.system.statusItem(withLength: Length.standard.rawValue)
+        self.statusItem = NSStatusBar.system.statusItem(withLength: Lengths.standard)
         self.statusItem.autosaveName = autosaveName
-        self.position = position
         self.isVisible = statusItem.isVisible
-        self.length = .standard
         self.state = state ?? .showItems
 
         // NOTE: cache needs to be restored after the status item
@@ -190,7 +119,6 @@ final class ControlItem: ObservableObject {
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
-    /// Sets the initial configuration for the status item.
     private func configureStatusItem() {
         defer {
             configureCancellables()
@@ -231,34 +159,8 @@ final class ControlItem: ObservableObject {
                     }
                 }
                 statusItem.isVisible = isVisible
-                menuBarManager?.needsSave = true
+                appState?.menuBarManager.needsSave = true
                 deferredBlock?()
-            }
-            .store(in: &c)
-
-        $length
-            .removeDuplicates()
-            .sink { [weak self] length in
-                self?.statusItem.length = length.rawValue
-            }
-            .store(in: &c)
-
-        $windowFrame
-            .combineLatest($screen)
-            .compactMap { frame, screen in
-                // calculate the position relative to the trailing
-                // edge of the screen
-                guard
-                    let frame,
-                    let screen
-                else {
-                    return nil
-                }
-                return screen.frame.maxX - frame.maxX
-            }
-            .removeDuplicates()
-            .sink { [weak self] position in
-                self?.position = position
             }
             .store(in: &c)
 
@@ -266,13 +168,6 @@ final class ControlItem: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] isVisible in
                 self?.isVisible = isVisible
-            }
-            .store(in: &c)
-
-        statusItem.publisher(for: \.length)
-            .removeDuplicates()
-            .sink { [weak self] length in
-                self?.length = Length.allCases.first { $0.rawValue == length } ?? .standard
             }
             .store(in: &c)
 
@@ -287,12 +182,6 @@ final class ControlItem: ObservableObject {
                         return
                     }
                     windowFrame = frame
-                }
-                .store(in: &c)
-
-            window.publisher(for: \.screen)
-                .sink { [weak self] screen in
-                    self?.screen = screen
                 }
                 .store(in: &c)
         }
@@ -349,21 +238,9 @@ final class ControlItem: ObservableObject {
         cancellables = c
     }
 
-    /// Assigns the control item's app state.
-    func assignAppState(_ appState: AppState) {
-        guard self.appState == nil else {
-            Logger.controlItem.warning("Multiple attempts made to assign app state")
-            return
-        }
-        self.appState = appState
-    }
-
-    /// Updates the control item's status item to match
-    /// the given state.
-    func updateStatusItem(with state: HidingState) {
+    private func updateStatusItem(with state: HidingState) {
         guard
             let appState,
-            let menuBarManager,
             let section,
             let button = statusItem.button
         else {
@@ -371,56 +248,59 @@ final class ControlItem: ObservableObject {
         }
 
         defer {
-            menuBarManager.needsSave = true
+            appState.menuBarManager.needsSave = true
         }
 
-        switch state {
-        case .hideItems where isSectionDivider:
-            isExpanded = true
-            // prevent the cell from highlighting while expanded
-            button.cell?.isEnabled = false
-            // cell still sometimes briefly flashes on expansion
-            // unless manually unhighlighted
-            button.isHighlighted = false
-            button.image = nil
-        case .hideItems, .showItems:
-            isExpanded = false
+        switch section.name {
+        case .visible:
+            statusItem.length = Lengths.standard
             // enable cell, as it may have been previously disabled
             button.cell?.isEnabled = true
-            // set the image based on section name and state
-            switch section.name {
-            case .visible:
-                let icon = appState.settingsManager.generalSettingsManager.iceIcon
-                // we can usually just set the image directly from the icon
-                button.image = switch state {
-                case .hideItems: icon.hidden.nsImage(for: appState)
-                case .showItems: icon.visible.nsImage(for: appState)
+            let icon = appState.settingsManager.generalSettingsManager.iceIcon
+            // we can usually just set the image directly from the icon
+            button.image = switch state {
+            case .hideItems: icon.hidden.nsImage(for: appState)
+            case .showItems: icon.visible.nsImage(for: appState)
+            }
+            if
+                case .custom = icon.name,
+                let originalImage = button.image
+            {
+                // custom icons need to be resized to fit inside the button
+                let originalWidth = originalImage.size.width
+                let originalHeight = originalImage.size.height
+                let ratio = max(originalWidth / 25, originalHeight / 17)
+                let newSize = CGSize(width: originalWidth / ratio, height: originalHeight / ratio)
+                button.image = originalImage.resized(to: newSize)
+            }
+        case .hidden, .alwaysHidden:
+            switch state {
+            case .hideItems:
+                isVisible = true
+                statusItem.length = Lengths.expanded
+                // prevent the cell from highlighting while expanded
+                button.cell?.isEnabled = false
+                // cell still sometimes briefly flashes on expansion
+                // unless manually unhighlighted
+                button.isHighlighted = false
+                button.image = nil
+            case .showItems:
+                isVisible = appState.settingsManager.advancedSettingsManager.showSectionDividers
+                statusItem.length = Lengths.standard
+                // enable cell, as it may have been previously disabled
+                button.cell?.isEnabled = true
+                // set the image based on section name and state
+                switch section.name {
+                case .hidden:
+                    button.image = ControlItemImage.builtin(.chevronLarge).nsImage(for: appState)
+                case .alwaysHidden:
+                    button.image = ControlItemImage.builtin(.chevronSmall).nsImage(for: appState)
+                case .visible: break
                 }
-                if
-                    case .custom = icon.name,
-                    let originalImage = button.image
-                {
-                    // custom icons need to be resized to fit inside the button
-                    let originalWidth = originalImage.size.width
-                    let originalHeight = originalImage.size.height
-                    let ratio = max(originalWidth / 25, originalHeight / 17)
-                    let newSize = CGSize(width: originalWidth / ratio, height: originalHeight / ratio)
-                    let resizedImage = NSImage(size: newSize, flipped: false) { bounds in
-                        originalImage.draw(in: bounds)
-                        return true
-                    }
-                    resizedImage.isTemplate = originalImage.isTemplate
-                    button.image = resizedImage
-                }
-            case .hidden:
-                button.image = ControlItemImage.builtin(.chevronLarge).nsImage(for: appState)
-            case .alwaysHidden:
-                button.image = ControlItemImage.builtin(.chevronSmall).nsImage(for: appState)
             }
         }
     }
 
-    /// Performs an action for the control item's status item.
     @objc private func performAction() {
         guard
             let appState,
@@ -430,11 +310,8 @@ final class ControlItem: ObservableObject {
         }
         switch event.type {
         case .leftMouseUp:
-            if 
-
-                let advancedSettingsManager,
-                NSEvent.modifierFlags == advancedSettingsManager.secondaryActionModifier.nsEventFlags
-            {
+            let advancedSettingsManager = appState.settingsManager.advancedSettingsManager
+            if NSEvent.modifierFlags == advancedSettingsManager.secondaryActionModifier.nsEventFlags {
                 // perform the secondary action
                 switch advancedSettingsManager.secondaryAction {
                 case .toggleAlwaysHiddenSection:
@@ -452,8 +329,6 @@ final class ControlItem: ObservableObject {
         }
     }
 
-    /// Creates and returns a menu to show when the control item is
-    /// right-clicked.
     private func createMenu(with appState: AppState) -> NSMenu {
         let menu = NSMenu(title: Constants.appName)
 
@@ -511,19 +386,31 @@ final class ControlItem: ObservableObject {
         return menu
     }
 
-    /// Action for a menu item in the control item's menu to perform.
     @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
         Self.sectionStorage[menuItem]?.toggle()
     }
 
-    /// Opens the settings window and checks for updates.
     @objc private func checkForUpdates() {
-        if let appDelegate = AppState.shared.appDelegate {
-            // open the settings window in case an alert needs
-            // to be displayed
-            appDelegate.openSettingsWindow()
-            AppState.shared.updatesManager.checkForUpdates()
+        guard 
+            let appState,
+            let appDelegate = appState.appDelegate
+        else {
+            return
         }
+        // open the settings window in case an alert needs to be displayed
+        appDelegate.openSettingsWindow()
+        appState.updatesManager.checkForUpdates()
+    }
+
+    /// Assigns the app state to the control item.
+    func assignAppState(_ appState: AppState) {
+        guard self.appState == nil else {
+            Logger.controlItem.warning("Multiple attempts made to assign app state")
+            return
+        }
+        self.appState = appState
+        configureCancellables()
+        updateStatusItem(with: state)
     }
 }
 
@@ -547,26 +434,6 @@ extension ControlItem: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(autosaveName, forKey: .autosaveName)
         try container.encode(state, forKey: .state)
-    }
-}
-
-// MARK: ControlItem: Equatable
-extension ControlItem: Equatable {
-    static func == (lhs: ControlItem, rhs: ControlItem) -> Bool {
-        lhs.statusItem == rhs.statusItem &&
-        lhs.autosaveName == rhs.autosaveName &&
-        lhs.position == rhs.position &&
-        lhs.state == rhs.state
-    }
-}
-
-// MARK: ControlItem: Hashable
-extension ControlItem: Hashable {
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(statusItem)
-        hasher.combine(autosaveName)
-        hasher.combine(position)
-        hasher.combine(state)
     }
 }
 

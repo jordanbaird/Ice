@@ -36,12 +36,7 @@ enum ControlItemImage: Codable, Hashable {
             let originalHeight = originalImage.size.height
             let ratio = max(originalWidth / 25, originalHeight / 17)
             let newSize = CGSize(width: originalWidth / ratio, height: originalHeight / ratio)
-            let resizedImage = NSImage(size: newSize, flipped: false) { bounds in
-                originalImage.draw(in: bounds)
-                return true
-            }
-            resizedImage.isTemplate = originalImage.isTemplate
-            return resizedImage
+            return originalImage.resized(to: newSize)
         case .data(let data):
             let image = NSImage(data: data)
             let generalSettingsManager = appState.settingsManager.generalSettingsManager
@@ -52,8 +47,7 @@ enum ControlItemImage: Codable, Hashable {
 }
 
 extension ControlItemImage {
-    /// A name for an image that is created from drawing code
-    /// in the app.
+    /// A name for an image that is created from drawing code in the app.
     enum ImageBuiltinName: Codable, Hashable {
         /// A large chevron.
         case chevronLarge
@@ -65,9 +59,9 @@ extension ControlItemImage {
 extension ControlItemImage {
     /// A namespace for static builtin images.
     ///
-    /// - Note: We use static properties to avoid repeatedly
-    ///   executing code every time the ``nsImage`` property
-    ///   is accessed.
+    /// - Note: We use the static properties `large` and `small` to avoid
+    ///   repeatedly executing code every time the ``nsImage`` property is
+    ///   accessed.
     private enum StaticBuiltins {
         /// A namespace for static builtin chevron images.
         enum Chevron {

@@ -26,37 +26,22 @@ struct MenuBarItem {
     ///   - menuBarWindow: A window that contains information about the item's menu bar.
     ///   - display: The display that contains the item's menu bar.
     init?(itemWindow: WindowInfo, menuBarWindow: WindowInfo, display: DisplayInfo) {
-        // validate menuBarWindow
-        var menuBarIsValid: Bool {
-            menuBarWindow.isOnScreen &&
-            display.frame.contains(menuBarWindow.frame) &&
-            menuBarWindow.owningApplication == nil &&
-            menuBarWindow.windowLayer == kCGMainMenuWindowLevel &&
+        // verify menuBarWindow
+        guard
+            menuBarWindow.isOnScreen,
+            display.frame.contains(menuBarWindow.frame),
+            menuBarWindow.owningApplication == nil,
+            menuBarWindow.windowLayer == kCGMainMenuWindowLevel,
             menuBarWindow.title == "Menubar"
+        else {
+            return nil
         }
 
-        // validate itemWindow
-        var itemWindowIsValid: Bool {
-            guard
-                itemWindow.windowLayer == kCGStatusWindowLevel,
-                itemWindow.frame.minX != display.frame.minX,
-                itemWindow.frame.minY == menuBarWindow.frame.minY,
-                itemWindow.frame.maxY == menuBarWindow.frame.maxY
-            else {
-                return false
-            }
-            // AudioVideoModule doesn't seem to appear on screen, yet it still
-            // returns `true` from the `isOnScreen` property; manually exclude
-            // !!!: It *must* appear on screen under certain conditions. Investigate this.
-            if itemWindow.owningApplication?.bundleIdentifier == "com.apple.controlcenter" {
-                return itemWindow.title != "AudioVideoModule"
-            }
-            return true
-        }
-
-        guard 
-            menuBarIsValid,
-            itemWindowIsValid
+        // verify itemWindow
+        guard
+            itemWindow.windowLayer == kCGStatusWindowLevel,
+            itemWindow.frame.minY == menuBarWindow.frame.minY,
+            itemWindow.frame.maxY == menuBarWindow.frame.maxY
         else {
             return nil
         }

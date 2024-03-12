@@ -29,7 +29,7 @@ extension ControlItemImageSet {
         visible: .catalog("DotStroke")
     )
 
-    static let userSelectableImageSets = [
+    static let userSelectableIceIcons = [
         ControlItemImageSet(
             name: .arrow,
             hidden: .symbol("arrowshape.left.fill"),

@@ -23,7 +23,7 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private(set) weak var menuBarManager: MenuBarManager?
 
-    private(set) var appearancePanels = Set<MenuBarAppearancePanel>()
+    private(set) var overlayPanels = Set<MenuBarOverlayPanel>()
 
     private var cachedScreenCount = NSScreen.screens.count
 
@@ -70,10 +70,10 @@ final class MenuBarAppearanceManager: ObservableObject {
                 defer {
                     cachedScreenCount = screenCount
                 }
-                while let panel = appearancePanels.popFirst() {
+                while let panel = overlayPanels.popFirst() {
                     panel.orderOut(self)
                 }
-                configureAppearancePanels(with: configuration)
+                configureOverlayPanels(with: configuration)
             }
             .store(in: &c)
 
@@ -84,14 +84,14 @@ final class MenuBarAppearanceManager: ObservableObject {
                     return
                 }
                 if
-                    appearancePanels.isEmpty,
+                    overlayPanels.isEmpty,
                     !isFullscreen
                 {
-                    configureAppearancePanels(with: configuration)
+                    configureOverlayPanels(with: configuration)
                 } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         if self.isFullscreen {
-                            while let panel = self.appearancePanels.popFirst() {
+                            while let panel = self.overlayPanels.popFirst() {
                                 panel.orderOut(self)
                             }
                         }
@@ -116,11 +116,11 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                // appearance panels may not have been configured yet;
+                // overlay panels may not have been configured yet;
                 // since some of the properties on the manager might
                 // call for them, try to configure now
-                if appearancePanels.isEmpty {
-                    configureAppearancePanels(with: configuration)
+                if overlayPanels.isEmpty {
+                    configureOverlayPanels(with: configuration)
                 }
             }
             .store(in: &c)
@@ -129,26 +129,26 @@ final class MenuBarAppearanceManager: ObservableObject {
     }
 
     /// Returns a Boolean value that indicates whether the
-    /// manager should retain its appearance panels.
-    private func shouldRetainAppearancePanels(for configuration: MenuBarAppearanceConfiguration) -> Bool {
+    /// manager should retain its overlay panels.
+    private func shouldRetainOverlayPanels(for configuration: MenuBarAppearanceConfiguration) -> Bool {
         configuration.hasShadow ||
         configuration.hasBorder ||
         configuration.shapeKind != .none ||
         configuration.tintKind != .none
     }
 
-    private func configureAppearancePanels(with configuration: MenuBarAppearanceConfiguration) {
-        guard shouldRetainAppearancePanels(for: configuration) else {
-            // remove all appearance panels if none of the properties
+    private func configureOverlayPanels(with configuration: MenuBarAppearanceConfiguration) {
+        guard shouldRetainOverlayPanels(for: configuration) else {
+            // remove all overlay panels if none of the properties
             // on the manager call for them
-            appearancePanels.removeAll()
+            overlayPanels.removeAll()
             return
         }
 
-        var appearancePanels = Set<MenuBarAppearancePanel>()
+        var overlayPanels = Set<MenuBarOverlayPanel>()
         for screen in NSScreen.screens {
-            let panel = MenuBarAppearancePanel(appearanceManager: self, owningScreen: screen)
-            appearancePanels.insert(panel)
+            let panel = MenuBarOverlayPanel(appearanceManager: self, owningScreen: screen)
+            overlayPanels.insert(panel)
             // panel needs a reference to the menu bar frame, which is retrieved asynchronously; wait a bit before showing
             // FIXME: Show after the panel has the menu bar reference instead of waiting an arbitrary amount of time
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -156,11 +156,11 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
         }
 
-        self.appearancePanels = appearancePanels
+        self.overlayPanels = overlayPanels
     }
 
     func setIsDraggingMenuBarItem(_ isDragging: Bool) {
-        for panel in appearancePanels {
+        for panel in overlayPanels {
             panel.isDraggingMenuBarItem = isDragging
         }
     }

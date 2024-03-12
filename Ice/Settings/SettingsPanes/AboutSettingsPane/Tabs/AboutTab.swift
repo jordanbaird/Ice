@@ -83,10 +83,20 @@ struct AboutTab: View {
                 Button {
                     openURL(sponsorURL)
                 } label: {
-                    Label("Support Ice", systemImage: "heart.circle.fill")
+                    Label(
+                        "Support \(Constants.appName)",
+                        systemImage: "heart.circle.fill"
+                    )
                 }
             }
             .padding()
+            .customButtonConfiguration { configuration in
+                configuration.labelPadding.top = 1
+                configuration.labelPadding.leading = 1
+                configuration.labelPadding.bottom = 1
+                configuration.labelPadding.trailing = 1
+                configuration.font = .body.weight(.medium)
+            }
         }
     }
 }

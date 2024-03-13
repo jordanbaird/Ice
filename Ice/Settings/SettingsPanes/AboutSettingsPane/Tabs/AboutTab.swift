@@ -90,13 +90,6 @@ struct AboutTab: View {
                 }
             }
             .padding()
-            .customButtonConfiguration { configuration in
-                configuration.labelPadding.top = 1
-                configuration.labelPadding.leading = 1
-                configuration.labelPadding.bottom = 1
-                configuration.labelPadding.trailing = 1
-                configuration.font = .body.weight(.medium)
-            }
         }
     }
 }

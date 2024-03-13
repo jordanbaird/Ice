@@ -99,6 +99,12 @@ private struct CustomTabButton: View {
             isHovering = hovering
         }
         .buttonStyle(.custom)
+        .customButtonConfiguration { configuration in
+            configuration.labelPadding.top = -1
+            configuration.labelPadding.bottom = -1
+            configuration.labelPadding.leading = -1
+            configuration.labelPadding.trailing = -1
+        }
     }
 }
 

@@ -70,15 +70,15 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
             .onAppear {
                 switch controlSize {
                 case .mini:
-                    padding = EdgeInsets(top: 0, leading: 2, bottom: 0, trailing: 2)
+                    padding = EdgeInsets(top: 1, leading: 3, bottom: 1, trailing: 3)
                 case .small:
-                    padding = EdgeInsets(top: 1, leading: 4, bottom: 1, trailing: 4)
+                    padding = EdgeInsets(top: 2, leading: 5, bottom: 2, trailing: 5)
                 case .regular:
-                    padding = EdgeInsets(top: 2, leading: 7, bottom: 2, trailing: 7)
+                    padding = EdgeInsets(top: 3, leading: 8, bottom: 3, trailing: 8)
                 case .large:
-                    padding = EdgeInsets(top: 6, leading: 8, bottom: 6, trailing: 8)
+                    padding = EdgeInsets(top: 7, leading: 9, bottom: 7, trailing: 9)
                 case .extraLarge:
-                    padding = EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
+                    padding = EdgeInsets(top: 9, leading: 13, bottom: 9, trailing: 13)
                 @unknown default:
                     break
                 }
@@ -129,7 +129,7 @@ struct CustomButtonConfiguration {
     var labelForegroundColor = Color.primary
 
     /// The font of the button's label.
-    var font = Font.body.weight(.regular)
+    var font = Font.body.weight(.medium)
 
     /// Extra padding for the button's label.
     var labelPadding = EdgeInsets()

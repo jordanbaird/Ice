@@ -58,10 +58,13 @@ struct HotkeyRecorder<Label: View>: View {
                 segment1
                 segment2
             }
-            .frame(width: 130, height: 21)
+            .frame(width: 137, height: 24)
             .onFrameChange(update: $frame)
             .overlay(error: model.failure)
             .buttonStyle(.custom)
+            .customButtonConfiguration { configuration in
+                configuration.font = .headline
+            }
         } label: {
             label
         }

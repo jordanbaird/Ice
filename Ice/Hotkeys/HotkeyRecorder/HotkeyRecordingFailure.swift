@@ -11,8 +11,8 @@ enum HotkeyRecordingFailure: LocalizedError, Hashable {
     case noModifiers
     /// Shift was the only modifier being pressed.
     case onlyShift
-    /// The given hotkey is reserved by macOS.
-    case reserved(Hotkey)
+    /// The given key combination is reserved by macOS.
+    case reserved(KeyCombination)
 
     /// Description of the failure.
     var errorDescription: String? {
@@ -21,8 +21,8 @@ enum HotkeyRecordingFailure: LocalizedError, Hashable {
             return "Hotkey should include at least one modifier"
         case .onlyShift:
             return "Shift (⇧) cannot be a hotkey's only modifier"
-        case .reserved(let hotkey):
-            return "Hotkey \(hotkey.stringValue) is reserved by macOS"
+        case .reserved(let keyCombination):
+            return "Hotkey \(keyCombination.stringValue) is reserved by macOS"
         }
     }
 }

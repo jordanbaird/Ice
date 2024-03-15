@@ -5,49 +5,44 @@
 
 import SwiftUI
 
-/// A view that records user-chosen key combinations for a hotkey.
 struct HotkeyRecorder<Label: View>: View {
+    @EnvironmentObject private var appState: AppState
     @StateObject private var model: HotkeyRecorderModel
     @State private var frame: CGRect = .zero
-    @State private var isInsideSegment2 = false
     @State private var timer: Timer?
 
     private let label: Label
 
+    private let segment1Transition = AnyTransition.scale.animation(.default.speed(2))
+
     private var modifierString: String {
-        model.section?.hotkey?.modifiers.stringValue ?? ""
+        model.hotkey.keyCombination?.modifiers.symbolicValue ?? ""
     }
 
     private var keyString: String {
-        model.section?.hotkey?.key.stringValue.capitalized ?? ""
+        model.hotkey.keyCombination?.key.stringValue.capitalized ?? ""
     }
 
     private var symbolString: String {
         if model.isRecording {
-            "escape"
-        } else if model.isEnabled {
-            "xmark.circle.fill"
-        } else {
-            "record.circle"
+            return "escape"
         }
+        if model.hotkey.isEnabled {
+            return "xmark.circle.fill"
+        }
+        return "record.circle"
     }
 
     private var segment1HelpString: String {
-        if model.isRecording { "" } else { "Click to record" }
+        model.isRecording ? "" : "Click to record"
     }
 
     private var segment2HelpString: String {
-        if model.isEnabled { "Delete" } else { segment1HelpString }
+        model.hotkey.isEnabled ? "Delete" : segment1HelpString
     }
 
-    /// Creates a hotkey recorder that records user-chosen key
-    /// combinations for the given section.
-    ///
-    /// - Parameters:
-    ///   - section: The menu bar section whose hotkey is recorded.
-    ///   - label: A label for the recorder.
-    init(section: MenuBarSection?, @ViewBuilder label: () -> Label) {
-        let model = HotkeyRecorderModel(section: section)
+    init(hotkey: Hotkey, @ViewBuilder label: () -> Label) {
+        let model = HotkeyRecorderModel(hotkey: hotkey)
         self._model = StateObject(wrappedValue: model)
         self.label = label()
     }
@@ -58,12 +53,13 @@ struct HotkeyRecorder<Label: View>: View {
                 segment1
                 segment2
             }
-            .frame(width: 137, height: 24)
+            .frame(width: 133, height: 24)
             .onFrameChange(update: $frame)
             .overlay(error: model.failure)
             .buttonStyle(.custom)
-            .customButtonConfiguration { configuration in
-                configuration.font = .headline
+            .overlay {
+                RoundedRectangle(cornerRadius: 5)
+                    .strokeBorder(.foreground.opacity(0.25))
             }
         } label: {
             label
@@ -76,6 +72,9 @@ struct HotkeyRecorder<Label: View>: View {
                 }
             }
         }
+        .task {
+            model.assignAppState(appState)
+        }
     }
 
     @ViewBuilder
@@ -83,11 +82,9 @@ struct HotkeyRecorder<Label: View>: View {
         Button {
             model.startRecording()
         } label: {
-            segment1Label
-                .frame(
-                    maxWidth: .infinity,
-                    maxHeight: .infinity
-                )
+            Color.clear.overlay {
+                segment1Label
+            }
         }
         .help(segment1HelpString)
         .customButtonConfiguration { configuration in
@@ -101,8 +98,8 @@ struct HotkeyRecorder<Label: View>: View {
         Button {
             if model.isRecording {
                 model.stopRecording()
-            } else if model.isEnabled {
-                model.section?.hotkey = nil
+            } else if model.hotkey.isEnabled {
+                model.hotkey.keyCombination = nil
             } else {
                 model.startRecording()
             }
@@ -113,9 +110,6 @@ struct HotkeyRecorder<Label: View>: View {
             }
         }
         .frame(width: frame.height)
-        .onHover { isInside in
-            isInsideSegment2 = isInside
-        }
         .help(segment2HelpString)
         .customButtonConfiguration { configuration in
             configuration.shape = .trailingSegment
@@ -125,26 +119,27 @@ struct HotkeyRecorder<Label: View>: View {
     @ViewBuilder
     private var segment1Label: some View {
         if model.isRecording {
-            if isInsideSegment2 {
-                Text("Cancel")
-            } else if !model.pressedModifierStrings.isEmpty {
+            if model.pressedModifierStrings.isEmpty {
+                Text("Type Hotkey")
+                    .transition(segment1Transition)
+            } else {
                 HStack(spacing: 1) {
                     ForEach(model.pressedModifierStrings, id: \.self) { string in
-                        Text(string)
-                            .frame(width: frame.height - 4)
-                            .background { keyCap }
+                        keyCap(string)
                     }
                 }
-            } else {
-                Text("Type Hotkey")
+                .offset(y: 0.5)
+                .transition(segment1Transition)
             }
-        } else if model.isEnabled {
+        } else if model.hotkey.isEnabled {
             HStack(spacing: 0) {
                 Text(modifierString)
                 Text(keyString)
             }
+            .transition(segment1Transition)
         } else {
             Text("Record Hotkey")
+                .transition(segment1Transition)
         }
     }
 
@@ -157,30 +152,21 @@ struct HotkeyRecorder<Label: View>: View {
     }
 
     @ViewBuilder
-    private var keyCap: some View {
-        RoundedRectangle(cornerRadius: 4, style: .circular)
-            .fill(.background.opacity(0.5))
-            .overlay {
-                RoundedRectangle(cornerRadius: 4, style: .circular)
-                    .inset(by: -2)
-                    .offset(y: -2)
-                    .strokeBorder(.background.opacity(0.5))
-                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .circular))
-            }
-            .shadow(
-                color: .black.opacity(0.25),
-                radius: 1
-            )
-            .frame(
-                width: frame.height - 4,
-                height: frame.height - 4
-            )
+    private func keyCap(_ label: String) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 4, style: .circular)
+                .fill(.background.opacity(0.5))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 4, style: .circular)
+                        .strokeBorder(.foreground.opacity(0.25))
+                }
+                .shadow(
+                    color: .black.opacity(0.25),
+                    radius: 1
+                )
+            Text(label)
+                .padding(1)
+        }
+        .transition(segment1Transition)
     }
-}
-
-#Preview {
-    HotkeyRecorder(section: nil) {
-        EmptyView()
-    }
-    .padding()
 }

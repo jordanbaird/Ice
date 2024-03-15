@@ -25,25 +25,12 @@ final class MenuBarSection: ObservableObject {
     /// A Boolean value that indicates whether the section is hidden.
     @Published private(set) var isHidden: Bool
 
-    /// The hotkey associated with the section.
-    @Published var hotkey: Hotkey? {
-        didSet {
-            if listener != nil {
-                enableHotkey()
-            }
-            menuBarManager?.needsSave = true
-        }
-    }
-
-    private var listener: Hotkey.Listener?
-
     private var rehideTimer: Timer?
 
     private var rehideMonitor: UniversalEventMonitor?
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// The shared app state.
     private(set) weak var appState: AppState? {
         didSet {
             guard let appState else {
@@ -53,25 +40,14 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    /// The menu bar manager associated with the section.
     weak var menuBarManager: MenuBarManager? {
         appState?.menuBarManager
     }
 
-    /// A Boolean value that indicates whether the section's
-    /// hotkey is enabled.
-    var hotkeyIsEnabled: Bool {
-        listener != nil
-    }
-
-    /// Creates a menu bar section with the given name, control
-    /// item, hotkey, and unique identifier.
-    init(name: Name, controlItem: ControlItem, hotkey: Hotkey? = nil) {
+    init(name: Name, controlItem: ControlItem) {
         self.name = name
         self.controlItem = controlItem
-        self.hotkey = hotkey
         self.isHidden = controlItem.state == .hideItems
-        enableHotkey()
         configureCancellables()
     }
 
@@ -85,7 +61,7 @@ final class MenuBarSection: ObservableObject {
         case .alwaysHidden:
             ControlItem(autosaveName: "Item-3", position: nil, state: .hideItems)
         }
-        self.init(name: name, controlItem: controlItem, hotkey: nil)
+        self.init(name: name, controlItem: controlItem)
     }
 
     private func configureCancellables() {
@@ -114,24 +90,6 @@ final class MenuBarSection: ObservableObject {
             return
         }
         self.appState = appState
-    }
-
-    /// Enables the hotkey associated with the section.
-    func enableHotkey() {
-        listener = hotkey?.onKeyDown { [weak self] in
-            guard let self else {
-                return
-            }
-            toggle()
-            // prevent the section from automatically rehiding after mouse movement
-            appState?.showOnHoverPreventedByUserInteraction = !isHidden
-        }
-    }
-
-    /// Disables the hotkey associated with the section.
-    func disableHotkey() {
-        listener?.invalidate()
-        listener = nil
     }
 
     /// Shows the status items in the section.
@@ -268,15 +226,13 @@ extension MenuBarSection: Codable {
     private enum CodingKeys: String, CodingKey {
         case name
         case controlItem
-        case hotkey
     }
 
     convenience init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try self.init(
             name: container.decode(Name.self, forKey: .name),
-            controlItem: container.decode(ControlItem.self, forKey: .controlItem),
-            hotkey: container.decodeIfPresent(Hotkey.self, forKey: .hotkey)
+            controlItem: container.decode(ControlItem.self, forKey: .controlItem)
         )
     }
 
@@ -284,7 +240,6 @@ extension MenuBarSection: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(name, forKey: .name)
         try container.encode(controlItem, forKey: .controlItem)
-        try container.encodeIfPresent(hotkey, forKey: .hotkey)
     }
 }
 

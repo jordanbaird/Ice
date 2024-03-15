@@ -8,11 +8,9 @@ import Cocoa
 import Combine
 import OSLog
 
-/// A namespace for the registration, storage, and unregistration
-/// of hotkeys.
-enum HotkeyRegistry {
-    /// Constants representing the possible event kinds that the
-    /// hotkey registry can handle.
+/// An object that manages the registration, storage, and unregistration of hotkeys.
+class HotkeyRegistry {
+    /// The event kinds that a hotkey can be registered for.
     enum EventKind {
         case keyUp
         case keyDown
@@ -29,20 +27,19 @@ enum HotkeyRegistry {
         }
     }
 
-    /// Storable event handler containing the information needed
-    /// to cancel a hotkey registration.
+    /// An object that stores the information needed to cancel a registration.
     private class Registration {
         let eventKind: EventKind
-        let key: Hotkey.Key
-        let modifiers: Hotkey.Modifiers
+        let key: KeyCode
+        let modifiers: Modifiers
         let hotKeyID: EventHotKeyID
         var hotKeyRef: EventHotKeyRef?
         let handler: () -> Void
 
         init(
             eventKind: EventKind,
-            key: Hotkey.Key,
-            modifiers: Hotkey.Modifiers,
+            key: KeyCode,
+            modifiers: Modifiers,
             hotKeyID: EventHotKeyID,
             hotKeyRef: EventHotKeyRef,
             handler: @escaping () -> Void
@@ -56,49 +53,53 @@ enum HotkeyRegistry {
         }
     }
 
-    private static var eventHandlerRef: EventHandlerRef?
-    private static var registrations = [UInt32: Registration]()
-    private static var cancellables = Set<AnyCancellable>()
+    private let signature = OSType(1231250720) // OSType for Ice
+    private var eventHandlerRef: EventHandlerRef?
+    private var registrations = [UInt32: Registration]()
+    private var cancellables = Set<AnyCancellable>()
 
-    private static let eventTypes: [EventTypeSpec] = [
-        EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed)),
-        EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased)),
-    ]
-    private static let signature: OSType = {
-        let code = "Ice " // code must be 4 characters
-        return NSHFSTypeCodeFromFileType("'\(code)'")
-    }()
-
-    /// Installs the global event handler reference, if it hasn't
-    /// already been installed.
-    private static func installIfNeeded() -> OSStatus {
+    /// Installs the global event handler reference, if it isn't already installed.
+    private func installIfNeeded() -> OSStatus {
         guard eventHandlerRef == nil else {
             return noErr
         }
 
         NotificationCenter.default
             .publisher(for: NSMenu.didBeginTrackingNotification)
-            .sink { _ in
-                unregisterAndRetainAll()
+            .sink { [weak self] _ in
+                self?.unregisterAndRetainAll()
             }
             .store(in: &cancellables)
 
         NotificationCenter.default
             .publisher(for: NSMenu.didEndTrackingNotification)
-            .sink { _ in
-                registerAllRetained()
+            .sink { [weak self] _ in
+                self?.registerAllRetained()
             }
             .store(in: &cancellables)
 
-        let handler: EventHandlerUPP = { _, event, _ in
-            Self.performEventHandler(for: event)
+        let handler: EventHandlerUPP = { _, event, userData in
+            guard
+                let event,
+                let userData
+            else {
+                return OSStatus(eventNotHandledErr)
+            }
+            let registry = Unmanaged<HotkeyRegistry>.fromOpaque(userData).takeUnretainedValue()
+            return registry.performEventHandler(for: event)
         }
+
+        let eventTypes: [EventTypeSpec] = [
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed)),
+            EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased)),
+        ]
+
         return InstallEventHandler(
             GetEventDispatcherTarget(),
             handler,
             eventTypes.count,
             eventTypes,
-            nil,
+            Unmanaged.passUnretained(self).toOpaque(),
             &eventHandlerRef
         )
     }
@@ -116,13 +117,18 @@ enum HotkeyRegistry {
     ///     the event kind specified by `eventKind`.
     ///
     /// - Returns: The registration's identifier on success, `nil` on failure.
-    static func register(hotkey: Hotkey, eventKind: EventKind, handler: @escaping () -> Void) -> UInt32? {
+    func register(hotkey: Hotkey, eventKind: EventKind, handler: @escaping () -> Void) -> UInt32? {
         enum Context {
             static var currentID: UInt32 = 0
         }
 
         defer {
             Context.currentID += 1
+        }
+
+        guard let keyCombination = hotkey.keyCombination else {
+            Logger.hotkeyRegistry.error("Hotkey does not have a valid key combination")
+            return nil
         }
 
         var status = installIfNeeded()
@@ -142,8 +148,8 @@ enum HotkeyRegistry {
         let hotKeyID = EventHotKeyID(signature: signature, id: id)
         var hotKeyRef: EventHotKeyRef?
         status = RegisterEventHotKey(
-            UInt32(hotkey.key.rawValue),
-            UInt32(hotkey.modifiers.carbonFlags),
+            UInt32(keyCombination.key.rawValue),
+            UInt32(keyCombination.modifiers.carbonFlags),
             hotKeyID,
             GetEventDispatcherTarget(),
             0,
@@ -162,8 +168,8 @@ enum HotkeyRegistry {
 
         let registration = Registration(
             eventKind: eventKind,
-            key: hotkey.key,
-            modifiers: hotkey.modifiers,
+            key: keyCombination.key,
+            modifiers: keyCombination.modifiers,
             hotKeyID: hotKeyID,
             hotKeyRef: hotKeyRef,
             handler: handler
@@ -173,11 +179,11 @@ enum HotkeyRegistry {
         return id
     }
 
-    /// Unregisters the hotkey with the given identifier, retaining its
-    /// registration in an inactive state.
-    private static func retainedUnregister(_ id: UInt32) {
+    /// Unregisters the key combination with the given identifier, retaining
+    /// its registration in an inactive state.
+    private func retainedUnregister(_ id: UInt32) {
         guard let registration = registrations[id] else {
-            Logger.hotkeyRegistry.error("No registered hotkey for id \(id)")
+            Logger.hotkeyRegistry.error("No registered key combination for id \(id)")
             return
         }
         let status = UnregisterEventHotKey(registration.hotKeyRef)
@@ -188,22 +194,26 @@ enum HotkeyRegistry {
         registration.hotKeyRef = nil
     }
 
-    /// Unregisters the hotkey with the given identifier.
+    /// Unregisters the key combination with the given identifier.
     ///
     /// - Parameter id: An identifier returned from a call to the
     ///   ``register(hotkey:eventKind:handler:)`` function.
-    static func unregister(_ id: UInt32) {
+    func unregister(_ id: UInt32) {
         retainedUnregister(id)
         registrations.removeValue(forKey: id)
     }
 
-    private static func unregisterAndRetainAll() {
+    /// Unregisters all key combinations, retaining their registrations
+    /// in an inactive state.
+    private func unregisterAndRetainAll() {
         for (id, _) in registrations {
             retainedUnregister(id)
         }
     }
 
-    private static func registerAllRetained() {
+    /// Registers all registrations that were retained during a call to
+    /// ``retainedUnregister(_:)``
+    private func registerAllRetained() {
         for registration in registrations.values {
             guard registration.hotKeyRef == nil else {
                 continue
@@ -234,7 +244,7 @@ enum HotkeyRegistry {
 
     /// Retrieves and performs the event handler stored under the
     /// identifier for the specified event.
-    private static func performEventHandler(for event: EventRef?) -> OSStatus {
+    private func performEventHandler(for event: EventRef?) -> OSStatus {
         guard let event else {
             return OSStatus(eventNotHandledErr)
         }

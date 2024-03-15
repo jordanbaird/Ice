@@ -17,10 +17,15 @@
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
 		1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */; };
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
+		1737E3E52BA3C4AA009F0EFA /* HotkeyAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1737E3E42BA3C4AA009F0EFA /* HotkeyAction.swift */; };
 		173C24892B8E80830096F7A1 /* AboutTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173C24882B8E80830096F7A1 /* AboutTab.swift */; };
 		173C248C2B8E821C0096F7A1 /* UpdatesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173C248B2B8E821C0096F7A1 /* UpdatesTab.swift */; };
 		174AA5D62B71D97100E3FE74 /* MenuBarOverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174AA5D52B71D97100E3FE74 /* MenuBarOverlayPanel.swift */; };
 		174AA5F52B730A0B00E3FE74 /* ScreenCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174AA5F42B730A0B00E3FE74 /* ScreenCaptureManager.swift */; };
+		174D4E242BA1D28700D11129 /* HotkeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174D4E232BA1D28700D11129 /* HotkeyRecorder.swift */; };
+		174D4E262BA1D35D00D11129 /* HotkeyRecorderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174D4E252BA1D35D00D11129 /* HotkeyRecorderModel.swift */; };
+		174D4E282BA2089100D11129 /* Hotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174D4E272BA2089100D11129 /* Hotkey.swift */; };
+		174D4E2A2BA230FB00D11129 /* HotkeySettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174D4E292BA230FB00D11129 /* HotkeySettingsManager.swift */; };
 		175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 175061902B1543DD003144CD /* LaunchAtLogin */; };
 		1750850E2B683A4C00CFF13A /* StateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1750850D2B683A4C00CFF13A /* StateView.swift */; };
 		175085132B69C4C100CFF13A /* CustomTabBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175085122B69C4C100CFF13A /* CustomTabBuilder.swift */; };
@@ -80,10 +85,10 @@
 		7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED692A85870E000A7E1B /* SettingsView.swift */; };
 		7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED702A85AE6A000A7E1B /* SettingsNavigationItem.swift */; };
 		714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 714BB9BA2AAB1D690057FB1D /* AboutSettingsPane.swift */; };
-		7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7AC2AA4265F0045EA68 /* Hotkey.swift */; };
+		7150A7AD2AA4265F0045EA68 /* KeyCombination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7AC2AA4265F0045EA68 /* KeyCombination.swift */; };
 		7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */; };
-		7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B02AA427F80045EA68 /* Hotkey+Key.swift */; };
-		7150A7B32AA42B640045EA68 /* Hotkey+Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B22AA42B640045EA68 /* Hotkey+Modifiers.swift */; };
+		7150A7B12AA427F80045EA68 /* KeyCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B02AA427F80045EA68 /* KeyCode.swift */; };
+		7150A7B32AA42B640045EA68 /* Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B22AA42B640045EA68 /* Modifiers.swift */; };
 		71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71604D602AAE62DA002FE96F /* BottomBar.swift */; };
 		71604D632AAE84ED002FE96F /* ErrorOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71604D622AAE84ED002FE96F /* ErrorOverlay.swift */; };
 		71623BC72A8B0961002FD331 /* GeneralSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */; };
@@ -97,13 +102,11 @@
 		716683502A7681AF006ABF84 /* MenuBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166834F2A7681AF006ABF84 /* MenuBarManager.swift */; };
 		716683522A76820A006ABF84 /* ControlItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683512A76820A006ABF84 /* ControlItem.swift */; };
 		71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C152A9B6A0D00250044 /* OnFrameChange.swift */; };
-		718AFF2C2AB360AD00BC49CB /* HotkeyRecorderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */; };
 		71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C400312AAD76A8006FDB1C /* ReadWindow.swift */; };
 		71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */; };
 		71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */; };
 		71D36C4B2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */; };
 		71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */; };
-		71FEA2502A8D5D590048341A /* HotkeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */; };
 		71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */; };
 /* End PBXBuildFile section */
 
@@ -118,10 +121,15 @@
 		1726A3F82B3378B8008B09DD /* Acknowledgements.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Acknowledgements.rtf; sourceTree = "<group>"; };
 		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
+		1737E3E42BA3C4AA009F0EFA /* HotkeyAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyAction.swift; sourceTree = "<group>"; };
 		173C24882B8E80830096F7A1 /* AboutTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutTab.swift; sourceTree = "<group>"; };
 		173C248B2B8E821C0096F7A1 /* UpdatesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesTab.swift; sourceTree = "<group>"; };
 		174AA5D52B71D97100E3FE74 /* MenuBarOverlayPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarOverlayPanel.swift; sourceTree = "<group>"; };
 		174AA5F42B730A0B00E3FE74 /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
+		174D4E232BA1D28700D11129 /* HotkeyRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorder.swift; sourceTree = "<group>"; };
+		174D4E252BA1D35D00D11129 /* HotkeyRecorderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderModel.swift; sourceTree = "<group>"; };
+		174D4E272BA2089100D11129 /* Hotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hotkey.swift; sourceTree = "<group>"; };
+		174D4E292BA230FB00D11129 /* HotkeySettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeySettingsManager.swift; sourceTree = "<group>"; };
 		1750850D2B683A4C00CFF13A /* StateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateView.swift; sourceTree = "<group>"; };
 		175085122B69C4C100CFF13A /* CustomTabBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTabBuilder.swift; sourceTree = "<group>"; };
 		175085142B69C50C00CFF13A /* CustomTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTab.swift; sourceTree = "<group>"; };
@@ -179,10 +187,10 @@
 		7133ED692A85870E000A7E1B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7133ED702A85AE6A000A7E1B /* SettingsNavigationItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNavigationItem.swift; sourceTree = "<group>"; };
 		714BB9BA2AAB1D690057FB1D /* AboutSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsPane.swift; sourceTree = "<group>"; };
-		7150A7AC2AA4265F0045EA68 /* Hotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hotkey.swift; sourceTree = "<group>"; };
+		7150A7AC2AA4265F0045EA68 /* KeyCombination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCombination.swift; sourceTree = "<group>"; };
 		7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRegistry.swift; sourceTree = "<group>"; };
-		7150A7B02AA427F80045EA68 /* Hotkey+Key.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Hotkey+Key.swift"; sourceTree = "<group>"; };
-		7150A7B22AA42B640045EA68 /* Hotkey+Modifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Hotkey+Modifiers.swift"; sourceTree = "<group>"; };
+		7150A7B02AA427F80045EA68 /* KeyCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCode.swift; sourceTree = "<group>"; };
+		7150A7B22AA42B640045EA68 /* Modifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modifiers.swift; sourceTree = "<group>"; };
 		71604D602AAE62DA002FE96F /* BottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBar.swift; sourceTree = "<group>"; };
 		71604D622AAE84ED002FE96F /* ErrorOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorOverlay.swift; sourceTree = "<group>"; };
 		71623BC62A8B0961002FD331 /* GeneralSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsPane.swift; sourceTree = "<group>"; };
@@ -198,13 +206,11 @@
 		7166834F2A7681AF006ABF84 /* MenuBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarManager.swift; sourceTree = "<group>"; };
 		716683512A76820A006ABF84 /* ControlItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItem.swift; sourceTree = "<group>"; };
 		71839C152A9B6A0D00250044 /* OnFrameChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnFrameChange.swift; sourceTree = "<group>"; };
-		718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderModel.swift; sourceTree = "<group>"; };
 		71C400312AAD76A8006FDB1C /* ReadWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadWindow.swift; sourceTree = "<group>"; };
 		71D2B02B2AAFD8A80002B6C8 /* Bundle+displayName.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+displayName.swift"; sourceTree = "<group>"; };
 		71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+versionString.swift"; sourceTree = "<group>"; };
 		71D36C4A2A88F12F00D89CD5 /* NSSplitViewItem+swizzledCanCollapse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSSplitViewItem+swizzledCanCollapse.swift"; sourceTree = "<group>"; };
 		71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
-		71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorder.swift; sourceTree = "<group>"; };
 		71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalEventMonitor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -234,8 +240,8 @@
 		1706D7582B5302A60053D1E8 /* HotkeyRecorder */ = {
 			isa = PBXGroup;
 			children = (
-				71FEA24F2A8D5D590048341A /* HotkeyRecorder.swift */,
-				718AFF2B2AB360AD00BC49CB /* HotkeyRecorderModel.swift */,
+				174D4E232BA1D28700D11129 /* HotkeyRecorder.swift */,
+				174D4E252BA1D35D00D11129 /* HotkeyRecorderModel.swift */,
 				170CF88B2B0ED4FA0073F982 /* HotkeyRecordingFailure.swift */,
 			);
 			path = HotkeyRecorder;
@@ -447,6 +453,7 @@
 			isa = PBXGroup;
 			children = (
 				17B331D42B991D8D0084EBB0 /* AdvancedSettingsManager.swift */,
+				174D4E292BA230FB00D11129 /* HotkeySettingsManager.swift */,
 				17B331D22B991D290084EBB0 /* GeneralSettingsManager.swift */,
 				17B331CF2B9916E70084EBB0 /* SettingsManager.swift */,
 			);
@@ -519,7 +526,6 @@
 				7133ED692A85870E000A7E1B /* SettingsView.swift */,
 				71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */,
 				7162406A2A9F1565003EC671 /* Helpers */,
-				1706D7582B5302A60053D1E8 /* HotkeyRecorder */,
 				17B331D12B991D180084EBB0 /* SettingsManagers */,
 				7162406B2A9F1607003EC671 /* SettingsPanes */,
 			);
@@ -529,10 +535,13 @@
 		7150A7AB2AA4262F0045EA68 /* Hotkeys */ = {
 			isa = PBXGroup;
 			children = (
-				7150A7AC2AA4265F0045EA68 /* Hotkey.swift */,
-				7150A7B02AA427F80045EA68 /* Hotkey+Key.swift */,
-				7150A7B22AA42B640045EA68 /* Hotkey+Modifiers.swift */,
+				174D4E272BA2089100D11129 /* Hotkey.swift */,
+				1737E3E42BA3C4AA009F0EFA /* HotkeyAction.swift */,
 				7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */,
+				7150A7B02AA427F80045EA68 /* KeyCode.swift */,
+				7150A7AC2AA4265F0045EA68 /* KeyCombination.swift */,
+				7150A7B22AA42B640045EA68 /* Modifiers.swift */,
+				1706D7582B5302A60053D1E8 /* HotkeyRecorder */,
 			);
 			path = Hotkeys;
 			sourceTree = "<group>";
@@ -788,7 +797,6 @@
 				17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */,
 				179F139A2B8EECC600EC6B52 /* CGColor+codable.swift in Sources */,
 				175584122B541CFC00EDC9D3 /* CustomTabView.swift in Sources */,
-				718AFF2C2AB360AD00BC49CB /* HotkeyRecorderModel.swift in Sources */,
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,
 				1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */,
 				71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */,
@@ -796,11 +804,13 @@
 				17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,
 				1750850E2B683A4C00CFF13A /* StateView.swift in Sources */,
-				7150A7AD2AA4265F0045EA68 /* Hotkey.swift in Sources */,
+				7150A7AD2AA4265F0045EA68 /* KeyCombination.swift in Sources */,
 				71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */,
 				170749C82B12078F009DDF73 /* GlobalEventMonitor.swift in Sources */,
 				17ECD4EE2B290F8D00E33147 /* PermissionsWindow.swift in Sources */,
+				174D4E242BA1D28700D11129 /* HotkeyRecorder.swift in Sources */,
 				71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */,
+				174D4E262BA1D35D00D11129 /* HotkeyRecorderModel.swift in Sources */,
 				1787C42C2B16AE0B002F50DF /* Permission.swift in Sources */,
 				1787C4342B16AECF002F50DF /* PermissionsView.swift in Sources */,
 				175523EC2B92B978005EDF9F /* MenuBarItemManager.swift in Sources */,
@@ -814,7 +824,7 @@
 				17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */,
 				17D1AC8D2B97BB5900726180 /* MenuBarItem.swift in Sources */,
 				173C248C2B8E821C0096F7A1 /* UpdatesTab.swift in Sources */,
-				7150A7B12AA427F80045EA68 /* Hotkey+Key.swift in Sources */,
+				7150A7B12AA427F80045EA68 /* KeyCode.swift in Sources */,
 				175584152B541D6F00EDC9D3 /* MenuBarLayoutTab.swift in Sources */,
 				17B331D02B9916E70084EBB0 /* SettingsManager.swift in Sources */,
 				17B331D32B991D290084EBB0 /* GeneralSettingsManager.swift in Sources */,
@@ -825,10 +835,11 @@
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				17CC22B82B8B5628001A0582 /* RectangleCornerRadii+init.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
-				7150A7B32AA42B640045EA68 /* Hotkey+Modifiers.swift in Sources */,
+				7150A7B32AA42B640045EA68 /* Modifiers.swift in Sources */,
 				1795B46C2B9A61D6005A684C /* DisplayInfo.swift in Sources */,
 				71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */,
 				71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */,
+				174D4E282BA2089100D11129 /* Hotkey.swift in Sources */,
 				7166834B2A76811C006ABF84 /* Logger+initWithCategory.swift in Sources */,
 				17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */,
 				177354702B1BFF65001CF731 /* HorizontalEdge+cgRectEdge.swift in Sources */,
@@ -840,10 +851,12 @@
 				714BB9BB2AAB1D690057FB1D /* AboutSettingsPane.swift in Sources */,
 				174AA5F52B730A0B00E3FE74 /* ScreenCaptureManager.swift in Sources */,
 				17CC22BC2B8CDE6F001A0582 /* EventManager.swift in Sources */,
+				1737E3E52BA3C4AA009F0EFA /* HotkeyAction.swift in Sources */,
 				71623BD32A8B6744002FD331 /* CustomButtonStyle.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */,
 				174AA5D62B71D97100E3FE74 /* MenuBarOverlayPanel.swift in Sources */,
 				71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */,
+				174D4E2A2BA230FB00D11129 /* HotkeySettingsManager.swift in Sources */,
 				179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */,
 				17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPane.swift in Sources */,
 				170423DD2B56E77D004A2549 /* UpdatesManager.swift in Sources */,
@@ -858,7 +871,6 @@
 				170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */,
 				175812542B80FBFA00D622DA /* MenuBarAppearanceEditorPanel.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
-				71FEA2502A8D5D590048341A /* HotkeyRecorder.swift in Sources */,
 				17C3C5F72B75A36100B9648C /* NSScreen+displayID.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
 			);

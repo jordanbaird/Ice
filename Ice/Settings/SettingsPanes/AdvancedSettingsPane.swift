@@ -43,7 +43,7 @@ struct AdvancedSettingsPane: View {
             }
         } label: {
             Text("Secondary action")
-            Text("\(manager.secondaryActionModifier.label) (\(manager.secondaryActionModifier.stringValue)) + click one of \(Constants.appName)'s menu bar items to perform the action")
+            Text("\(manager.secondaryActionModifier.combinedValue) + click one of \(Constants.appName)'s menu bar items to perform the action")
         }
     }
 
@@ -51,7 +51,7 @@ struct AdvancedSettingsPane: View {
     private var secondaryActionModifier: some View {
         Picker("Modifier", selection: manager.bindings.secondaryActionModifier) {
             ForEach(AdvancedSettingsManager.validSecondaryActionModifiers, id: \.self) { modifier in
-                Text("\(modifier.stringValue) \(modifier.label)").tag(modifier)
+                Text("\(modifier.symbolicValue) \(modifier.labelValue)").tag(modifier)
             }
         }
     }

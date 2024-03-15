@@ -4,136 +4,150 @@
 //
 
 import Carbon.HIToolbox
-import Cocoa
+import Combine
 import OSLog
 
-/// A combination of keys that can be used to trigger actions
-/// on system-wide key-up or key-down events.
-struct Hotkey: Codable, Hashable {
-    /// The key component of the hotkey.
-    var key: Key
+/// A combination of a key and modifiers that can be used to
+/// trigger actions on system-wide key-up or key-down events.
+final class Hotkey: ObservableObject {
+    @Published var keyCombination: KeyCombination?
 
-    /// The modifiers component of the hotkey.
-    var modifiers: Modifiers
+    let action: HotkeyAction
 
-    /// A string representation of the hotkey.
-    var stringValue: String {
-        modifiers.stringValue + key.stringValue
+    private var listener: Listener?
+
+    private weak var appState: AppState?
+
+    private var cancellables = Set<AnyCancellable>()
+
+    var isEnabled: Bool {
+        listener != nil
     }
 
-    /// Creates a hotkey with the given key and modifiers.
-    ///
-    /// - Parameters:
-    ///   - key: The key component of the hotkey.
-    ///   - modifiers: The modifiers component of the hotkey.
-    init(key: Key, modifiers: Modifiers) {
-        self.key = key
-        self.modifiers = modifiers
+    init(keyCombination: KeyCombination?, action: HotkeyAction) {
+        self.keyCombination = keyCombination
+        self.action = action
     }
 
-    /// Creates a hotkey from the key code and modifier flags
-    /// in the given event.
-    init(event: NSEvent) {
-        self.init(
-            key: Key(rawValue: Int(event.keyCode)),
-            modifiers: Modifiers(nsEventFlags: event.modifierFlags)
-        )
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        $keyCombination
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.enable()
+            }
+            .store(in: &c)
+
+        cancellables = c
+    }
+
+    func assignAppState(_ appState: AppState) {
+        self.appState = appState
+        configureCancellables()
+    }
+
+    func enable() {
+        disable()
+        guard let appState else {
+            return
+        }
+        listener = Listener(hotkey: self, eventKind: .keyDown, appState: appState)
+    }
+
+    func disable() {
+        listener?.invalidate()
+        listener = nil
     }
 }
 
 extension Hotkey {
-    /// An array hotkeys reserved by the system.
-    static var reservedHotkeys: [Hotkey] {
-        var symbolicHotkeys: Unmanaged<CFArray>?
-        let status = CopySymbolicHotKeys(&symbolicHotkeys)
-        guard status == noErr else {
-            Logger.hotkey.error("CopySymbolicHotKeys returned invalid status \(status)")
-            return []
+    /// An object that manges the lifetime of a hotkey observation.
+    class Listener {
+        private weak var appState: AppState?
+        private var id: UInt32?
+
+        var isValid: Bool {
+            id != nil
         }
-        guard let reservedHotkeys = symbolicHotkeys?.takeRetainedValue() as? [[String: Any]] else {
-            Logger.hotkey.error("Failed to serialize symbolic hotkeys")
-            return []
-        }
-        return reservedHotkeys.compactMap { hotkey in
-            guard
-                hotkey[kHISymbolicHotKeyEnabled] as? Bool == true,
-                let carbonKeyCode = hotkey[kHISymbolicHotKeyCode] as? Int,
-                let carbonModifiers = hotkey[kHISymbolicHotKeyModifiers] as? Int
-            else {
+
+        fileprivate init?(hotkey: Hotkey, eventKind: HotkeyRegistry.EventKind, appState: AppState) {
+            guard hotkey.keyCombination != nil else {
                 return nil
             }
-            return Hotkey(
-                key: Key(rawValue: carbonKeyCode),
-                modifiers: Modifiers(carbonFlags: carbonModifiers)
-            )
-        }
-    }
-
-    /// Returns a Boolean value that indicates whether this hotkey
-    /// is reserved for system use.
-    var isReservedBySystem: Bool {
-        Self.reservedHotkeys.contains(self)
-    }
-}
-
-extension Hotkey {
-    /// Registers the hotkey to observe system-wide key down events and
-    /// returns a listener that manages the lifetime of the observation.
-    func onKeyDown(_ body: @escaping () -> Void) -> Listener {
-        let id = HotkeyRegistry.register(
-            hotkey: self,
-            eventKind: .keyDown,
-            handler: body
-        )
-        return Listener(id: id)
-    }
-
-    /// Registers the hotkey to observe system-wide key up events and
-    /// returns a listener that manages the lifetime of the observation.
-    func onKeyUp(_ body: @escaping () -> Void) -> Listener {
-        let id = HotkeyRegistry.register(
-            hotkey: self,
-            eventKind: .keyUp,
-            handler: body
-        )
-        return Listener(id: id)
-    }
-}
-
-extension Hotkey {
-    /// A type that manges the lifetime of hotkey observations.
-    struct Listener {
-        private class HotkeyListenerContext {
-            private var id: UInt32?
-
-            var isValid: Bool { id != nil }
-
-            init(id: UInt32?) {
-                self.id = id
+            let id = appState.hotkeyRegistry.register(
+                hotkey: hotkey,
+                eventKind: eventKind
+            ) { [weak appState] in
+                guard let appState else {
+                    return
+                }
+                hotkey.action.perform(appState: appState)
             }
-
-            func invalidate() {
-                defer { id = nil }
-                if let id { HotkeyRegistry.unregister(id) }
+            guard let id else {
+                return nil
             }
-
-            deinit { invalidate() }
+            self.appState = appState
+            self.id = id
         }
 
-        private let context: HotkeyListenerContext
-
-        /// A Boolean value that indicates whether the listener is
-        /// currently valid.
-        var isValid: Bool { context.isValid }
-
-        fileprivate init(id: UInt32?) {
-            self.context = HotkeyListenerContext(id: id)
-        }
-
-        /// Invalidates the listener, stopping the observation.
         func invalidate() {
-            context.invalidate()
+            guard isValid else {
+                return
+            }
+            guard let appState else {
+                Logger.hotkey.error("Error invalidating hotkey: Missing AppState")
+                return
+            }
+            defer {
+                id = nil
+            }
+            if let id {
+                appState.hotkeyRegistry.unregister(id)
+            }
         }
+
+        deinit {
+            invalidate()
+        }
+    }
+}
+
+// MARK: Hotkey: Codable
+extension Hotkey: Codable {
+    private enum CodingKeys: CodingKey {
+        case keyCombination
+        case action
+    }
+
+    convenience init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try self.init(
+            keyCombination: container.decode(KeyCombination?.self, forKey: .keyCombination), 
+            action: container.decode(HotkeyAction.self, forKey: .action)
+        )
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(keyCombination, forKey: .keyCombination)
+        try container.encode(action, forKey: .action)
+    }
+}
+
+// MARK: Hotkey: Equatable
+extension Hotkey: Equatable {
+    static func == (lhs: Hotkey, rhs: Hotkey) -> Bool {
+        lhs.keyCombination == rhs.keyCombination &&
+        lhs.action == rhs.action
+    }
+}
+
+// MARK: Hotkey: Hashable
+extension Hotkey: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(keyCombination)
+        hasher.combine(action)
     }
 }
 

@@ -8,15 +8,18 @@ import SwiftUI
 struct HotkeysSettingsPane: View {
     @EnvironmentObject var appState: AppState
 
-    private var menuBarManager: MenuBarManager {
-        appState.menuBarManager
+    private var hotkeySettingsManager: HotkeySettingsManager {
+        appState.settingsManager.hotkeySettingsManager
     }
 
     var body: some View {
         Form {
             Section("Menu Bar Sections") {
-                toggleHiddenSection
-                toggleAlwaysHiddenSection
+                hotkeyRecorder(forAction: .toggleHiddenSection)
+                hotkeyRecorder(forAction: .toggleAlwaysHiddenSection)
+            }
+            Section("Other") {
+                hotkeyRecorder(forAction: .toggleApplicationMenus)
             }
         }
         .formStyle(.grouped)
@@ -27,23 +30,18 @@ struct HotkeysSettingsPane: View {
     }
 
     @ViewBuilder
-    private func hotkeyRecorder(forToggling section: MenuBarSection) -> some View {
-        HotkeyRecorder(section: section) {
-            Text("Toggle the \"\(section.name.rawValue)\" menu bar section")
-        }
-    }
-
-    @ViewBuilder
-    private var toggleHiddenSection: some View {
-        if let section = menuBarManager.section(withName: .hidden) {
-            hotkeyRecorder(forToggling: section)
-        }
-    }
-
-    @ViewBuilder
-    private var toggleAlwaysHiddenSection: some View {
-        if let section = menuBarManager.section(withName: .alwaysHidden) {
-            hotkeyRecorder(forToggling: section)
+    private func hotkeyRecorder(forAction action: HotkeyAction) -> some View {
+        if let hotkey = hotkeySettingsManager.hotkey(withAction: action) {
+            HotkeyRecorder(hotkey: hotkey) {
+                switch action {
+                case .toggleHiddenSection:
+                    Text("Toggle the \"hidden\" section")
+                case .toggleAlwaysHiddenSection:
+                    Text("Toggle the \"always hidden\" section")
+                case .toggleApplicationMenus:
+                    Text("Toggle application menus")
+                }
+            }
         }
     }
 }

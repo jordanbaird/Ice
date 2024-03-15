@@ -175,16 +175,14 @@ final class MenuBarManager: ObservableObject {
                     // if the offset value is less than or equal to the maxX of the
                     // application menu, activate the app to hide the menu
                     if offsetMinX <= mainMenuMaxX {
-                        appState.activate(withPolicy: .regular)
-                        isHidingApplicationMenus = true
+                        hideApplicationMenus()
                     }
                 } else if 
                     isHidingApplicationMenus,
                     appState.settingsWindow?.isVisible == false
                 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        appState.deactivate(withPolicy: .accessory)
-                        self.isHidingApplicationMenus = false
+                        self.showApplicationMenus()
                     }
                 }
             }
@@ -245,6 +243,24 @@ final class MenuBarManager: ObservableObject {
         menu.addItem(settingsItem)
 
         menu.popUp(positioning: nil, at: point, in: nil)
+    }
+
+    func hideApplicationMenus() {
+        appState?.activate(withPolicy: .regular)
+        isHidingApplicationMenus = true
+    }
+
+    func showApplicationMenus() {
+        appState?.deactivate(withPolicy: .accessory)
+        isHidingApplicationMenus = false
+    }
+
+    func toggleApplicationMenus() {
+        if isHidingApplicationMenus {
+            showApplicationMenus()
+        } else {
+            hideApplicationMenus()
+        }
     }
 
     /// Shows the appearance editor popover, centered under the menu bar.

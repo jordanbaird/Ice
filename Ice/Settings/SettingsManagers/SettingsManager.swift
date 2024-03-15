@@ -7,7 +7,10 @@ import Combine
 
 final class SettingsManager: ObservableObject {
     let generalSettingsManager: GeneralSettingsManager
+
     let advancedSettingsManager: AdvancedSettingsManager
+
+    let hotkeySettingsManager: HotkeySettingsManager
 
     private(set) weak var appState: AppState?
 
@@ -16,6 +19,7 @@ final class SettingsManager: ObservableObject {
     init(appState: AppState) {
         self.generalSettingsManager = GeneralSettingsManager(appState: appState)
         self.advancedSettingsManager = AdvancedSettingsManager(appState: appState)
+        self.hotkeySettingsManager = HotkeySettingsManager(appState: appState)
         self.appState = appState
     }
 
@@ -23,6 +27,7 @@ final class SettingsManager: ObservableObject {
         configureCancellables()
         generalSettingsManager.performSetup()
         advancedSettingsManager.performSetup()
+        hotkeySettingsManager.performSetup()
     }
 
     private func configureCancellables() {

@@ -346,9 +346,26 @@ final class ControlItem: ObservableObject {
             )
             item.target = self
             Self.sectionStorage[item] = section
-            if let hotkey = section.hotkey {
-                item.keyEquivalent = hotkey.key.keyEquivalent
-                item.keyEquivalentModifierMask = hotkey.modifiers.nsEventFlags
+            let hotkeySettingsManager = appState.settingsManager.hotkeySettingsManager
+            switch name {
+            case .visible:
+                break
+            case .hidden:
+                if 
+                    let hotkey = hotkeySettingsManager.hotkey(withAction: .toggleHiddenSection),
+                    let keyCombination = hotkey.keyCombination
+                {
+                    item.keyEquivalent = keyCombination.key.keyEquivalent
+                    item.keyEquivalentModifierMask = keyCombination.modifiers.nsEventFlags
+                }
+            case .alwaysHidden:
+                if
+                    let hotkey = hotkeySettingsManager.hotkey(withAction: .toggleAlwaysHiddenSection),
+                    let keyCombination = hotkey.keyCombination
+                {
+                    item.keyEquivalent = keyCombination.key.keyEquivalent
+                    item.keyEquivalentModifierMask = keyCombination.modifiers.nsEventFlags
+                }
             }
             menu.addItem(item)
         }

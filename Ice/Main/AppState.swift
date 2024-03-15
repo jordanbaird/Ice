@@ -29,6 +29,9 @@ final class AppState: ObservableObject {
     /// Manager for app updates.
     let updatesManager = UpdatesManager()
 
+    /// Global hotkey registry.
+    let hotkeyRegistry = HotkeyRegistry()
+
     /// The application's delegate.
     private(set) weak var appDelegate: AppDelegate?
 

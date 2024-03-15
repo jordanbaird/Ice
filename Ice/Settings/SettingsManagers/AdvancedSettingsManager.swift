@@ -9,7 +9,7 @@ import Foundation
 final class AdvancedSettingsManager: ObservableObject {
     /// Valid modifier keys that can be used to trigger the secondary action
     /// of all control items.
-    static let validSecondaryActionModifiers: [Hotkey.Modifiers] = [.control, .option, .shift]
+    static let validSecondaryActionModifiers: [Modifiers] = [.control, .option, .shift]
 
     /// A Boolean value that indicates whether the application menus should
     /// be hidden if needed to show all menu bar items.
@@ -24,7 +24,7 @@ final class AdvancedSettingsManager: ObservableObject {
 
     /// The modifier key that is used to trigger the secondary action of all
     /// control items.
-    @Published var secondaryActionModifier: Hotkey.Modifiers = .option
+    @Published var secondaryActionModifier: Modifiers = .option
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -48,7 +48,7 @@ final class AdvancedSettingsManager: ObservableObject {
             }
         }
         Defaults.ifPresent(key: .secondaryActionModifier) { rawValue in
-            secondaryActionModifier = Hotkey.Modifiers(rawValue: rawValue)
+            secondaryActionModifier = Modifiers(rawValue: rawValue)
         }
     }
 

@@ -151,6 +151,7 @@ extension Defaults {
         case rehideInterval = "RehideInterval"
 
         case menuBarAppearanceConfiguration = "MenuBarAppearanceConfiguration"
+        case hotkeys = "Hotkeys"
 
         // MARK: Deprecated
 

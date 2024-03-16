@@ -135,8 +135,10 @@ extension Defaults {
         case customIceIconIsTemplate = "CustomIceIconIsTemplate"
 
         case sections = "Sections"
+
         case secondaryAction = "SecondaryAction"
         case secondaryActionModifier = "SecondaryActionModifier"
+        case performSecondaryActionInEmptySpace = "PerformSecondaryActionInEmptySpace"
 
         case hideApplicationMenus = "HideApplicationMenus"
         case showSectionDividers = "ShowSectionDividers"

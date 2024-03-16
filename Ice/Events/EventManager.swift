@@ -125,9 +125,18 @@ final class EventManager {
 
         if isMouseInEmptyMenuBarSpace(of: screen) {
             appState.showOnHoverPreventedByUserInteraction = true
-            if appState.settingsManager.generalSettingsManager.showOnClick {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    hiddenSection.toggle()
+            let advancedSettingsManager = appState.settingsManager.advancedSettingsManager
+            if
+                advancedSettingsManager.performSecondaryActionInEmptySpace,
+                NSEvent.modifierFlags == advancedSettingsManager.secondaryActionModifier.nsEventFlags,
+                advancedSettingsManager.secondaryAction.perform(with: appState)
+            {
+                return event
+            } else {
+                if appState.settingsManager.generalSettingsManager.showOnClick {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        hiddenSection.toggle()
+                    }
                 }
             }
         } else if

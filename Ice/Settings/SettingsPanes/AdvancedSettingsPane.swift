@@ -20,6 +20,7 @@ struct AdvancedSettingsPane: View {
         Form {
             Section {
                 secondaryAction
+                performSecondaryActionInEmptySpace
                 secondaryActionModifier
             }
             Section {
@@ -48,10 +49,22 @@ struct AdvancedSettingsPane: View {
     }
 
     @ViewBuilder
+    private var performSecondaryActionInEmptySpace: some View {
+        if manager.secondaryAction != .noAction {
+            Toggle(isOn: manager.bindings.performSecondaryActionInEmptySpace) {
+                Text("Perform in empty menu bar space")
+                Text("\(manager.secondaryActionModifier.combinedValue) + click inside an empty area of the menu bar to perform the action")
+            }
+        }
+    }
+
+    @ViewBuilder
     private var secondaryActionModifier: some View {
-        Picker("Modifier", selection: manager.bindings.secondaryActionModifier) {
-            ForEach(AdvancedSettingsManager.validSecondaryActionModifiers, id: \.self) { modifier in
-                Text("\(modifier.symbolicValue) \(modifier.labelValue)").tag(modifier)
+        if manager.secondaryAction != .noAction {
+            Picker("Modifier", selection: manager.bindings.secondaryActionModifier) {
+                ForEach(AdvancedSettingsManager.validSecondaryActionModifiers, id: \.self) { modifier in
+                    Text("\(modifier.symbolicValue) \(modifier.labelValue)").tag(modifier)
+                }
             }
         }
     }

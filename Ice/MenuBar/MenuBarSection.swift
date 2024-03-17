@@ -55,11 +55,11 @@ final class MenuBarSection: ObservableObject {
     convenience init(name: Name) {
         let controlItem = switch name {
         case .visible:
-            ControlItem(autosaveName: "Item-1", position: 0, state: nil)
+            ControlItem(identifier: .iceIcon, position: 0, state: nil)
         case .hidden:
-            ControlItem(autosaveName: "Item-2", position: 1, state: nil)
+            ControlItem(identifier: .hidden, position: 1, state: nil)
         case .alwaysHidden:
-            ControlItem(autosaveName: "Item-3", position: nil, state: .hideItems)
+            ControlItem(identifier: .alwaysHidden, position: nil, state: .hideItems)
         }
         self.init(name: name, controlItem: controlItem)
     }

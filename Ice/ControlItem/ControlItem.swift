@@ -10,6 +10,12 @@ import OSLog
 /// A status item that controls the visibility of a section
 /// in the menu bar.
 final class ControlItem: ObservableObject {
+    enum Identifier: String, Hashable, Codable {
+        case iceIcon = "IceIcon"
+        case hidden = "HiddenItem"
+        case alwaysHidden = "AlwaysHiddenItem"
+    }
+
     enum HidingState: Int, Hashable, Codable {
         case hideItems
         case showItems
@@ -37,6 +43,9 @@ final class ControlItem: ObservableObject {
 
     /// The frame of the control item's window.
     @Published private(set) var windowFrame: CGRect?
+
+    /// The control item's identifier.
+    let identifier: Identifier
 
     /// The menu bar section associated with the control item.
     private weak var section: MenuBarSection? {
@@ -73,11 +82,9 @@ final class ControlItem: ObservableObject {
     ///   - position: The position of the control item in the menu bar.
     ///     Pass `nil` to add the control item to the end of the menu bar.
     ///   - state: The hiding state of the control item.
-    init(
-        autosaveName: String,
-        position: CGFloat?,
-        state: HidingState? = nil
-    ) {
+    init(identifier: Identifier, position: CGFloat?, state: HidingState? = nil) {
+        let autosaveName = identifier.rawValue
+
         // if the isVisible property has been previously set, it will have
         // been stored in user defaults; if a status item is created in an
         // invisible state, its preferred position is deleted; to prevent
@@ -97,6 +104,7 @@ final class ControlItem: ObservableObject {
         self.statusItem.autosaveName = autosaveName
         self.isVisible = statusItem.isVisible
         self.state = state ?? .showItems
+        self.identifier = identifier
 
         // NOTE: cache needs to be restored after the status item
         // is created, but before the call to configureStatusItem()
@@ -431,14 +439,14 @@ final class ControlItem: ObservableObject {
 // MARK: ControlItem: Codable
 extension ControlItem: Codable {
     private enum CodingKeys: String, CodingKey {
-        case autosaveName
+        case identifier
         case state
     }
 
     convenience init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try self.init(
-            autosaveName: container.decode(String.self, forKey: .autosaveName),
+            identifier: container.decode(Identifier.self, forKey: .identifier),
             position: nil,
             state: container.decode(HidingState.self, forKey: .state)
         )
@@ -446,7 +454,7 @@ extension ControlItem: Codable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(autosaveName, forKey: .autosaveName)
+        try container.encode(identifier, forKey: .identifier)
         try container.encode(state, forKey: .state)
     }
 }

@@ -50,9 +50,13 @@ struct MigrationManager0_8_0 {
     /// Performs all migrations for the `0.8.0` release, catching
     /// any thrown errors and rethrowing them as a combined error.
     func migrateAll() throws {
+        guard !Defaults.bool(forKey: .hasMigrated0_8_0) else {
+            return
+        }
         let results = [
             Result(catching: migrateHotkeys),
             Result(catching: migrateControlItems),
+            Result(catching: migrateSections),
         ]
         let errors = results.compactMap { result in
             if case .failure(let error) = result {
@@ -63,6 +67,7 @@ struct MigrationManager0_8_0 {
         if !errors.isEmpty {
             throw MigrationError.combinedError(errors)
         }
+        Defaults.set(true, forKey: .hasMigrated0_8_0)
     }
 
     // MARK: Migrate Hotkeys
@@ -71,10 +76,6 @@ struct MigrationManager0_8_0 {
     /// them in their corresponding menu bar sections to the new method
     /// of storing them as stand-alone data in the `0.8.0` release.
     private func migrateHotkeys() throws {
-        guard !Defaults.bool(forKey: .hasMigratedHotkeys0_8_0) else {
-            return
-        }
-
         let sectionsArray: [[String: Any]]
         do {
             guard let array = try getMenuBarSectionArray() else {
@@ -112,8 +113,6 @@ struct MigrationManager0_8_0 {
                 }
             }
         }
-
-        Defaults.set(true, forKey: .hasMigratedHotkeys0_8_0)
     }
 
     // MARK: Migrate Control Items
@@ -121,10 +120,6 @@ struct MigrationManager0_8_0 {
     /// Migrates the control items from their old serialized representations
     /// to their new representations in the `0.8.0` release.
     private func migrateControlItems() throws {
-        guard !Defaults.bool(forKey: .hasMigratedControlItems0_8_0) else {
-            return
-        }
-
         let sectionsArray: [[String: Any]]
         do {
             guard let array = try getMenuBarSectionArray() else {
@@ -175,8 +170,11 @@ struct MigrationManager0_8_0 {
         } catch {
             throw MigrationError.controlItemMigrationError(error)
         }
+    }
 
-        Defaults.set(true, forKey: .hasMigratedControlItems0_8_0)
+    /// Migrates away from storing the menu bar sections in UserDefaults.
+    private func migrateSections() {
+        Defaults.set(nil, forKey: .sections)
     }
 
     // MARK: Helpers

@@ -155,8 +155,7 @@ extension Defaults {
         case menuBarAppearanceConfiguration = "MenuBarAppearanceConfiguration"
         case hotkeys = "Hotkeys"
 
-        case hasMigratedHotkeys0_8_0 = "hasMigratedHotkeys0_8_0"
-        case hasMigratedControlItems0_8_0 = "hasMigratedControlItems0_8_0"
+        case hasMigrated0_8_0 = "hasMigrated0_8_0"
 
         // MARK: Deprecated
 

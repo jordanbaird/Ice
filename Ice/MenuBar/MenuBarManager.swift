@@ -10,9 +10,6 @@ import SwiftUI
 
 /// Manager for the state of the menu bar.
 final class MenuBarManager: ObservableObject {
-    /// Set to `true` to tell the menu bar to save its sections.
-    @Published var needsSave = false
-
     /// The maximum X coordinate of the menu bar's main menu.
     @Published private(set) var mainMenuMaxX: CGFloat = 0
 
@@ -52,43 +49,17 @@ final class MenuBarManager: ObservableObject {
             return
         }
 
-        // load sections from persistent storage
-        if let sectionsData = Defaults.data(forKey: .sections) {
-            do {
-                sections = try decoder.decode([MenuBarSection].self, from: sectionsData)
-            } catch {
-                Logger.menuBarManager.error("Decoding error: \(error)")
-                sections = []
-            }
-        } else {
-            sections = []
-        }
-
-        // validate section count or reinitialize
-        if sections.count != 3 {
-            sections = [
-                MenuBarSection(name: .visible),
-                MenuBarSection(name: .hidden),
-                MenuBarSection(name: .alwaysHidden),
-            ]
-        }
+        sections = [
+            MenuBarSection(name: .visible),
+            MenuBarSection(name: .hidden),
+            MenuBarSection(name: .alwaysHidden),
+        ]
 
         // assign the global app state to each section
         if let appState {
             for section in sections {
                 section.assignAppState(appState)
             }
-        }
-    }
-
-    /// Save all control items in the menu bar to persistent storage.
-    private func saveSections() {
-        do {
-            let serializedSections = try encoder.encode(sections)
-            Defaults.set(serializedSections, forKey: .sections)
-            needsSave = false
-        } catch {
-            Logger.menuBarManager.error("Encoding error: \(error)")
         }
     }
 
@@ -184,15 +155,6 @@ final class MenuBarManager: ObservableObject {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                         self.showApplicationMenus()
                     }
-                }
-            }
-            .store(in: &c)
-
-        $needsSave
-            .debounce(for: 1, scheduler: DispatchQueue.main)
-            .sink { [weak self] needsSave in
-                if needsSave {
-                    self?.saveSections()
                 }
             }
             .store(in: &c)

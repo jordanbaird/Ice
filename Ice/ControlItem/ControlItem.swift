@@ -10,13 +10,13 @@ import OSLog
 /// A status item that controls the visibility of a section
 /// in the menu bar.
 final class ControlItem: ObservableObject {
-    enum Identifier: String, Hashable, Codable {
+    enum Identifier: String, Hashable {
         case iceIcon = "IceIcon"
         case hidden = "HiddenItem"
         case alwaysHidden = "AlwaysHiddenItem"
     }
 
-    enum HidingState: Int, Hashable, Codable {
+    enum HidingState: Int, Hashable {
         case hideItems
         case showItems
     }
@@ -34,6 +34,9 @@ final class ControlItem: ObservableObject {
 
     private let statusItem: NSStatusItem
 
+    /// The control item's identifier.
+    let identifier: Identifier
+
     /// A Boolean value that indicates whether the control
     /// item is visible.
     @Published var isVisible: Bool
@@ -43,9 +46,6 @@ final class ControlItem: ObservableObject {
 
     /// The frame of the control item's window.
     @Published private(set) var windowFrame: CGRect?
-
-    /// The control item's identifier.
-    let identifier: Identifier
 
     /// The menu bar section associated with the control item.
     private weak var section: MenuBarSection? {
@@ -74,15 +74,7 @@ final class ControlItem: ObservableObject {
         return section.name != .visible
     }
 
-    /// Creates a control item with the given autosave name, position,
-    /// and hiding state.
-    ///
-    /// - Parameters:
-    ///   - autosaveName: The control item's autosave name.
-    ///   - position: The position of the control item in the menu bar.
-    ///     Pass `nil` to add the control item to the end of the menu bar.
-    ///   - state: The hiding state of the control item.
-    init(identifier: Identifier, position: CGFloat?, state: HidingState? = nil) {
+    init(identifier: Identifier) {
         let autosaveName = identifier.rawValue
 
         // if the isVisible property has been previously set, it will have
@@ -94,17 +86,24 @@ final class ControlItem: ObservableObject {
         let cachedIsVisible = StatusItemDefaults[.isVisible, autosaveName]
         StatusItemDefaults[.isVisible, autosaveName] = nil
 
-        if let position {
-            // set the preferred position first to ensure that
-            // the status item appears in the correct position
-            StatusItemDefaults[.preferredPosition, autosaveName] = position
+        // if the status item doesn't have a preferred position, set it
+        // according to the identifier
+        if StatusItemDefaults[.preferredPosition, autosaveName] == nil {
+            switch identifier {
+            case .iceIcon:
+                StatusItemDefaults[.preferredPosition, autosaveName] = 0
+            case .hidden:
+                StatusItemDefaults[.preferredPosition, autosaveName] = 1
+            case .alwaysHidden:
+                break
+            }
         }
 
         self.statusItem = NSStatusBar.system.statusItem(withLength: Lengths.standard)
         self.statusItem.autosaveName = autosaveName
-        self.isVisible = statusItem.isVisible
-        self.state = state ?? .showItems
         self.identifier = identifier
+        self.isVisible = statusItem.isVisible
+        self.state = .showItems
 
         // NOTE: cache needs to be restored after the status item
         // is created, but before the call to configureStatusItem()
@@ -167,7 +166,6 @@ final class ControlItem: ObservableObject {
                     }
                 }
                 statusItem.isVisible = isVisible
-                appState?.menuBarManager.needsSave = true
                 deferredBlock?()
             }
             .store(in: &c)
@@ -253,10 +251,6 @@ final class ControlItem: ObservableObject {
             let button = statusItem.button
         else {
             return
-        }
-
-        defer {
-            appState.menuBarManager.needsSave = true
         }
 
         switch section.name {
@@ -433,29 +427,6 @@ final class ControlItem: ObservableObject {
         self.appState = appState
         configureCancellables()
         updateStatusItem(with: state)
-    }
-}
-
-// MARK: ControlItem: Codable
-extension ControlItem: Codable {
-    private enum CodingKeys: String, CodingKey {
-        case identifier
-        case state
-    }
-
-    convenience init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        try self.init(
-            identifier: container.decode(Identifier.self, forKey: .identifier),
-            position: nil,
-            state: container.decode(HidingState.self, forKey: .state)
-        )
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(identifier, forKey: .identifier)
-        try container.encode(state, forKey: .state)
     }
 }
 

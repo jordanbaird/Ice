@@ -1,5 +1,5 @@
 //
-//  MigrationManagers.swift
+//  MigrationManager.swift
 //  Ice
 //
 
@@ -7,22 +7,6 @@ import Foundation
 import OSLog
 
 struct MigrationManager {
-    let manager0_8_0: MigrationManager0_8_0
-
-    let appState: AppState
-
-    init(appState: AppState) {
-        self.appState = appState
-        self.manager0_8_0 = MigrationManager0_8_0(appState: appState)
-    }
-
-    func migrateAll() throws {
-        try manager0_8_0.migrateAll()
-    }
-}
-
-/// The migration manager for the `0.8.0` release.
-struct MigrationManager0_8_0 {
     enum MigrationError: Error, CustomStringConvertible {
         case invalidMenuBarSectionsJSONObject(Any)
         case hotkeyMigrationError(any Error)
@@ -47,26 +31,23 @@ struct MigrationManager0_8_0 {
 
     // MARK: Migrate All
 
-    /// Performs all migrations for the `0.8.0` release, catching
-    /// any thrown errors and rethrowing them as a combined error.
+    /// Performs all migrations, catching any thrown errors and rethrowing
+    /// them as a combined error.
     func migrateAll() throws {
+        try performAll(blocks: [migrate0_8_0])
+    }
+
+    /// Performs all migrations for the `0.8.0` release, catching any thrown
+    /// errors and rethrowing them as a combined error.
+    private func migrate0_8_0() throws {
         guard !Defaults.bool(forKey: .hasMigrated0_8_0) else {
             return
         }
-        let results = [
-            Result(catching: migrateHotkeys),
-            Result(catching: migrateControlItems),
-            Result(catching: migrateSections),
-        ]
-        let errors = results.compactMap { result in
-            if case .failure(let error) = result {
-                return error
-            }
-            return nil
-        }
-        if !errors.isEmpty {
-            throw MigrationError.combinedError(errors)
-        }
+        try performAll(blocks: [
+            migrateHotkeys0_8_0,
+            migrateControlItems0_8_0,
+            migrateSections0_8_0,
+        ])
         Defaults.set(true, forKey: .hasMigrated0_8_0)
     }
 
@@ -75,7 +56,7 @@ struct MigrationManager0_8_0 {
     /// Migrates the user's saved hotkeys from the old method of storing
     /// them in their corresponding menu bar sections to the new method
     /// of storing them as stand-alone data in the `0.8.0` release.
-    private func migrateHotkeys() throws {
+    private func migrateHotkeys0_8_0() throws {
         let sectionsArray: [[String: Any]]
         do {
             guard let array = try getMenuBarSectionArray() else {
@@ -119,7 +100,7 @@ struct MigrationManager0_8_0 {
 
     /// Migrates the control items from their old serialized representations
     /// to their new representations in the `0.8.0` release.
-    private func migrateControlItems() throws {
+    private func migrateControlItems0_8_0() throws {
         let sectionsArray: [[String: Any]]
         do {
             guard let array = try getMenuBarSectionArray() else {
@@ -172,12 +153,30 @@ struct MigrationManager0_8_0 {
         }
     }
 
-    /// Migrates away from storing the menu bar sections in UserDefaults.
-    private func migrateSections() {
+    /// Migrates away from storing the menu bar sections in UserDefaults
+    /// for the `0.8.0` release.
+    private func migrateSections0_8_0() {
         Defaults.set(nil, forKey: .sections)
     }
 
     // MARK: Helpers
+
+    /// Performs every block in the given array, catching any thrown
+    /// errors and rethrowing them as a combined error.
+    private func performAll(blocks: [() throws -> Void]) throws {
+        let results = blocks.map { block in
+            Result(catching: block)
+        }
+        let errors = results.compactMap { result in
+            if case .failure(let error) = result {
+                return error
+            }
+            return nil
+        }
+        if !errors.isEmpty {
+            throw MigrationError.combinedError(errors)
+        }
+    }
 
     /// Returns an array of dictionaries that represent the sections in
     /// the menu bar, as stored in UserDefaults.

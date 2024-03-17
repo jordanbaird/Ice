@@ -462,7 +462,7 @@ extension ControlItem: Codable {
 // MARK: - StatusItemDefaultsKey
 
 /// Keys used to look up user defaults for status items.
-private struct StatusItemDefaultsKey<Value> {
+struct StatusItemDefaultsKey<Value> {
     let rawValue: String
 }
 
@@ -477,7 +477,7 @@ extension StatusItemDefaultsKey<Bool> {
 // MARK: - StatusItemDefaults
 
 /// Proxy getters and setters for a status item's user default values.
-private enum StatusItemDefaults {
+enum StatusItemDefaults {
     private static func stringKey<Value>(
         forKey key: StatusItemDefaultsKey<Value>,
         autosaveName: String
@@ -498,6 +498,17 @@ private enum StatusItemDefaults {
             let key = stringKey(forKey: key, autosaveName: autosaveName)
             UserDefaults.standard.set(newValue, forKey: key)
         }
+    }
+
+    /// Migrates the given status item defaults key from an old
+    /// autosave name to a new autosave name.
+    static func migrate<Value>(
+        key: StatusItemDefaultsKey<Value>,
+        from oldAutosaveName: String,
+        to newAutosaveName: String
+    ) {
+        Self[key, newAutosaveName] = Self[key, oldAutosaveName]
+        Self[key, oldAutosaveName] = nil
     }
 }
 

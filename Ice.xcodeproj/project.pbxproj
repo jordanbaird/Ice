@@ -64,6 +64,7 @@
 		17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */; };
 		17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */; };
 		17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */; };
+		17C303782BA62CD20079755B /* MigrationManagers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C303772BA62CD20079755B /* MigrationManagers.swift */; };
 		17C3C5F72B75A36100B9648C /* NSScreen+displayID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C3C5F62B75A36100B9648C /* NSScreen+displayID.swift */; };
 		17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */; };
 		17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22B42B8A55E7001A0582 /* WindowInfo.swift */; };
@@ -167,6 +168,7 @@
 		17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalEventMonitorModifier.swift; sourceTree = "<group>"; };
 		17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceManager.swift; sourceTree = "<group>"; };
 		17C261E22B5AC03C0076F129 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		17C303772BA62CD20079755B /* MigrationManagers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationManagers.swift; sourceTree = "<group>"; };
 		17C3C5F62B75A36100B9648C /* NSScreen+displayID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+displayID.swift"; sourceTree = "<group>"; };
 		17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeysSettingsPane.swift; sourceTree = "<group>"; };
 		17CC22B42B8A55E7001A0582 /* WindowInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowInfo.swift; sourceTree = "<group>"; };
@@ -614,6 +616,7 @@
 				17928F192AC5DF9C0016C615 /* Defaults.swift */,
 				1795B46B2B9A61D6005A684C /* DisplayInfo.swift */,
 				170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */,
+				17C303772BA62CD20079755B /* MigrationManagers.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
 				174AA5F42B730A0B00E3FE74 /* ScreenCaptureManager.swift */,
 				17CC22B42B8A55E7001A0582 /* WindowInfo.swift */,
@@ -800,6 +803,7 @@
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,
 				1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */,
 				71D2B02C2AAFD8A80002B6C8 /* Bundle+displayName.swift in Sources */,
+				17C303782BA62CD20079755B /* MigrationManagers.swift in Sources */,
 				17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */,
 				17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */,
 				716683522A76820A006ABF84 /* ControlItem.swift in Sources */,

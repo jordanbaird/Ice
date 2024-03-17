@@ -58,7 +58,11 @@ final class AppState: ObservableObject {
     }()
 
     private init() {
-        migrateHotkeys()
+        do {
+            try MigrationManager(appState: self).migrateAll()
+        } catch {
+            Logger.appState.error("Migration failed with error: \(error)")
+        }
         configureCancellables()
     }
 
@@ -140,57 +144,6 @@ final class AppState: ObservableObject {
             NSApp.deactivate()
         }
         NSApp.setActivationPolicy(policy)
-    }
-}
-
-// MARK: Migrate Hotkeys
-extension AppState {
-    /// Migrates the user's saved hotkeys from the old method of storing
-    /// them in their corresponding menu bar sections to the new method
-    /// of storing them as stand-alone data.
-    private func migrateHotkeys() {
-        // deserialize the stored sections into an array of dictionaries
-        let sectionsArray: [[String: Any]]
-        do {
-            guard
-                let data = Defaults.data(forKey: .sections),
-                let array = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-            else {
-                Logger.appState.error("Error deserializing menu bar sections")
-                return
-            }
-            sectionsArray = array
-        } catch {
-            Logger.appState.error("Error migrating hotkeys: \(error)")
-            return
-        }
-        // get the hotkey data from the hidden and always hidden sections,
-        // if available, and create equivalent key combinations to assign
-        // to the corresponding hotkeys
-        for name: MenuBarSection.Name in [.hidden, .alwaysHidden] {
-            guard
-                let sectionDict = sectionsArray.first(where: { $0["name"] as? String == name.rawValue }),
-                let hotkeyDict = sectionDict["hotkey"] as? [String: Int],
-                let key = hotkeyDict["key"],
-                let modifiers = hotkeyDict["modifiers"]
-            else {
-                continue
-            }
-            let keyCombination = KeyCombination(
-                key: KeyCode(rawValue: key),
-                modifiers: Modifiers(rawValue: modifiers)
-            )
-            let hotkeySettingsManager = settingsManager.hotkeySettingsManager
-            if case .hidden = name {
-                if let hotkey = hotkeySettingsManager.hotkey(withAction: .toggleHiddenSection) {
-                    hotkey.keyCombination = keyCombination
-                }
-            } else if case .alwaysHidden = name {
-                if let hotkey = hotkeySettingsManager.hotkey(withAction: .toggleAlwaysHiddenSection) {
-                    hotkey.keyCombination = keyCombination
-                }
-            }
-        }
     }
 }
 

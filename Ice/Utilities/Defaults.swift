@@ -138,6 +138,7 @@ extension Defaults {
         case iceIcon = "IceIcon"
         case customIceIconIsTemplate = "CustomIceIconIsTemplate"
         case showOnClick = "ShowOnClick"
+        case secondClickShowsAlwaysHiddenSection = "SecondClickShowsAlwaysHiddenSection"
         case showOnHover = "ShowOnHover"
         case showOnScroll = "ShowOnScroll"
         case autoRehide = "AutoRehide"

@@ -28,6 +28,10 @@ final class GeneralSettingsManager: ObservableObject {
     /// area of the menu bar.
     @Published var showOnClick = true
 
+    /// A Boolean value that indicates whether a second click in an
+    /// empty area of the menu bar shows the always hidden section.
+    @Published var secondClickShowsAlwaysHiddenSection = false
+
     /// A Boolean value that indicates whether the hidden section
     /// should be shown when the mouse pointer hovers over an
     /// empty area of the menu bar.
@@ -70,6 +74,7 @@ final class GeneralSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .showIceIcon, assign: &showIceIcon)
         Defaults.ifPresent(key: .customIceIconIsTemplate, assign: &customIceIconIsTemplate)
         Defaults.ifPresent(key: .showOnClick, assign: &showOnClick)
+        Defaults.ifPresent(key: .secondClickShowsAlwaysHiddenSection, assign: &secondClickShowsAlwaysHiddenSection)
         Defaults.ifPresent(key: .showOnHover, assign: &showOnHover)
         Defaults.ifPresent(key: .showOnScroll, assign: &showOnScroll)
         Defaults.ifPresent(key: .autoRehide, assign: &autoRehide)
@@ -131,6 +136,13 @@ final class GeneralSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { showOnClick in
                 Defaults.set(showOnClick, forKey: .showOnClick)
+            }
+            .store(in: &c)
+
+        $secondClickShowsAlwaysHiddenSection
+            .receive(on: DispatchQueue.main)
+            .sink { shows in
+                Defaults.set(shows, forKey: .secondClickShowsAlwaysHiddenSection)
             }
             .store(in: &c)
 

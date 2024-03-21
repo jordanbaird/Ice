@@ -134,8 +134,16 @@ final class EventManager {
                 return event
             } else {
                 if appState.settingsManager.generalSettingsManager.showOnClick {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        hiddenSection.toggle()
+                    if appState.settingsManager.generalSettingsManager.secondClickShowsAlwaysHiddenSection {
+                        if hiddenSection.isHidden {
+                            hiddenSection.show()
+                        } else {
+                            alwaysHiddenSection.show()
+                        }
+                    } else {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            hiddenSection.toggle()
+                        }
                     }
                 }
             }

@@ -67,12 +67,12 @@ struct MigrationManager {
             throw MigrationError.hotkeyMigrationError(error)
         }
 
-        // get the hotkey data from the hidden and always hidden sections,
+        // get the hotkey data from the hidden and always-hidden sections,
         // if available, and create equivalent key combinations to assign
         // to the corresponding hotkeys
         for name: MenuBarSection.Name in [.hidden, .alwaysHidden] {
             guard
-                let sectionDict = sectionsArray.first(where: { $0["name"] as? String == name.rawValue }),
+                let sectionDict = sectionsArray.first(where: { $0["name"] as? String == name.deprecatedRawValue }),
                 let hotkeyDict = sectionDict["hotkey"] as? [String: Int],
                 let key = hotkeyDict["key"],
                 let modifiers = hotkeyDict["modifiers"]
@@ -115,7 +115,7 @@ struct MigrationManager {
 
         for name: MenuBarSection.Name in [.visible, .hidden, .alwaysHidden] {
             guard
-                var sectionDict = sectionsArray.first(where: { $0["name"] as? String == name.rawValue }),
+                var sectionDict = sectionsArray.first(where: { $0["name"] as? String == name.deprecatedRawValue }),
                 var controlItemDict = sectionDict["controlItem"] as? [String: Any],
                 // remove the "autosaveName" key from the dictionary
                 let autosaveName = controlItemDict.removeValue(forKey: "autosaveName") as? String

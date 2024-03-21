@@ -332,7 +332,7 @@ final class ControlItem: ObservableObject {
                 continue
             }
             let item = NSMenuItem(
-                title: "\(section.isHidden ? "Show" : "Hide") \"\(name.rawValue)\" Section",
+                title: "\(section.isHidden ? "Show" : "Hide") the \(name.menuString) Section",
                 action: #selector(toggleMenuBarSection),
                 keyEquivalent: ""
             )

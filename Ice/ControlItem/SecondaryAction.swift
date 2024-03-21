@@ -14,7 +14,7 @@ enum SecondaryAction: Int, CaseIterable {
         case .noAction:
             "No action"
         case .toggleAlwaysHiddenSection:
-            "Toggle \"always hidden\" section"
+            "Toggle the always-hidden section"
         }
     }
 

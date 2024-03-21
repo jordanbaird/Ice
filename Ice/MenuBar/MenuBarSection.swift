@@ -9,21 +9,11 @@ import OSLog
 
 /// A representation of a section in a menu bar.
 final class MenuBarSection: ObservableObject {
-    /// User-visible name that describes a menu bar section.
-    enum Name: String, Codable, Hashable {
-        case visible = "Visible"
-        case hidden = "Hidden"
-        case alwaysHidden = "Always Hidden"
-    }
+    @Published private(set) var isHidden: Bool
 
-    /// User-visible name that describes the section.
     let name: Name
 
-    /// The control item that manages the visibility of the section.
     let controlItem: ControlItem
-
-    /// A Boolean value that indicates whether the section is hidden.
-    @Published private(set) var isHidden: Bool
 
     private var rehideTimer: Timer?
 
@@ -223,6 +213,32 @@ final class MenuBarSection: ObservableObject {
 
 // MARK: MenuBarSection: BindingExposable
 extension MenuBarSection: BindingExposable { }
+
+// MARK: MenuBarSection.Name
+extension MenuBarSection {
+    /// The name of a menu bar section.
+    enum Name {
+        case visible
+        case hidden
+        case alwaysHidden
+
+        var deprecatedRawValue: String {
+            switch self {
+            case .visible: "Visible"
+            case .hidden: "Hidden"
+            case .alwaysHidden: "Always Hidden"
+            }
+        }
+
+        var menuString: String {
+            switch self {
+            case .visible: "Visible"
+            case .hidden: "Hidden"
+            case .alwaysHidden: "Always-Hidden"
+            }
+        }
+    }
+}
 
 // MARK: - Logger
 private extension Logger {

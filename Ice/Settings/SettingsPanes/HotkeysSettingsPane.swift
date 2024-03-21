@@ -35,9 +35,9 @@ struct HotkeysSettingsPane: View {
             HotkeyRecorder(hotkey: hotkey) {
                 switch action {
                 case .toggleHiddenSection:
-                    Text("Toggle the \"hidden\" section")
+                    Text("Toggle the hidden section")
                 case .toggleAlwaysHiddenSection:
-                    Text("Toggle the \"always hidden\" section")
+                    Text("Toggle the always-hidden section")
                 case .toggleApplicationMenus:
                     Text("Toggle application menus")
                 }

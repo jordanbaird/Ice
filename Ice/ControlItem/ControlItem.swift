@@ -7,8 +7,7 @@ import Cocoa
 import Combine
 import OSLog
 
-/// A status item that controls the visibility of a section
-/// in the menu bar.
+/// A status item that controls the visibility of a section in the menu bar.
 final class ControlItem: ObservableObject {
     enum Identifier: String, Hashable {
         case iceIcon = "IceIcon"
@@ -37,8 +36,7 @@ final class ControlItem: ObservableObject {
     /// The control item's identifier.
     let identifier: Identifier
 
-    /// A Boolean value that indicates whether the control
-    /// item is visible.
+    /// A Boolean value that indicates whether the control item is visible.
     @Published var isVisible: Bool
 
     /// The hiding state of the control item.
@@ -65,8 +63,7 @@ final class ControlItem: ObservableObject {
         return CGWindowID(window.windowNumber)
     }
 
-    /// A Boolean value that indicates whether the control item
-    /// is a section divider.
+    /// A Boolean value that indicates whether the control item is a section divider.
     var isSectionDivider: Bool {
         guard let section else {
             return false
@@ -77,17 +74,16 @@ final class ControlItem: ObservableObject {
     init(identifier: Identifier) {
         let autosaveName = identifier.rawValue
 
-        // if the isVisible property has been previously set, it will have
-        // been stored in user defaults; if a status item is created in an
-        // invisible state, its preferred position is deleted; to prevent
-        // this, cache the current visibility, if any, and delete it from
-        // defaults; then, initialize the status item and set its visibility
-        // to the cached value
+        // if the isVisible property has been previously set, it will have been stored
+        // in UserDefaults; if a status item is created in an invisible state, its
+        // preferredPosition is deleted; to prevent this, cache the current visibility,
+        // if any, and delete it from UserDefaults; then, initialize the status item
+        // and set its visibility to the cached value
         let cachedIsVisible = StatusItemDefaults[.isVisible, autosaveName]
         StatusItemDefaults[.isVisible, autosaveName] = nil
 
-        // if the status item doesn't have a preferred position, set it
-        // according to the identifier
+        // if the status item doesn't have a preferred position, set it according to
+        // the identifier
         if StatusItemDefaults[.preferredPosition, autosaveName] == nil {
             switch identifier {
             case .iceIcon:
@@ -105,8 +101,8 @@ final class ControlItem: ObservableObject {
         self.isVisible = statusItem.isVisible
         self.state = .showItems
 
-        // NOTE: cache needs to be restored after the status item
-        // is created, but before the call to configureStatusItem()
+        // cache needs to be restored after the status item is created, but before the
+        // call to configureStatusItem()
         if let cachedIsVisible {
             self.isVisible = cachedIsVisible
         }
@@ -115,9 +111,8 @@ final class ControlItem: ObservableObject {
     }
 
     deinit {
-        // removing the status item has the unwanted side effect 
-        // of deleting the preferred position; cache and restore
-        // after removing
+        // removing the status item has the unwanted side effect of deleting the
+        // preferredPosition; cache and restore after removing
         let autosaveName = autosaveName
         let cached = StatusItemDefaults[.preferredPosition, autosaveName]
         defer {
@@ -156,9 +151,8 @@ final class ControlItem: ObservableObject {
                 }
                 var deferredBlock: (() -> Void)?
                 if !isVisible {
-                    // setting the status item to invisible has the unwanted
-                    // side effect of deleting the preferred position; cache
-                    // and restore afterwards
+                    // setting the status item to invisible has the unwanted side effect
+                    // of deleting the preferred position; cache and restore afterwards
                     let autosaveName = autosaveName
                     let cached = StatusItemDefaults[.preferredPosition, autosaveName]
                     deferredBlock = {
@@ -331,8 +325,7 @@ final class ControlItem: ObservableObject {
     private func createMenu(with appState: AppState) -> NSMenu {
         let menu = NSMenu(title: Constants.appName)
 
-        // add menu items to toggle the hidden and always-hidden 
-        // sections, if each section is enabled
+        // add menu items to toggle the hidden and always-hidden sections
         let sectionNames: [MenuBarSection.Name] = [.hidden, .alwaysHidden]
         for name in sectionNames {
             guard let section = appState.menuBarManager.section(withName: name) else {
@@ -471,8 +464,8 @@ enum StatusItemDefaults {
         }
     }
 
-    /// Migrates the given status item defaults key from an old
-    /// autosave name to a new autosave name.
+    /// Migrates the given status item defaults key from an old autosave name
+    /// to a new autosave name.
     static func migrate<Value>(
         key: StatusItemDefaultsKey<Value>,
         from oldAutosaveName: String,

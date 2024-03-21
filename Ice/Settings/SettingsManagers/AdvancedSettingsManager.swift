@@ -13,11 +13,11 @@ final class AdvancedSettingsManager: ObservableObject {
 
     /// A Boolean value that indicates whether the application menus
     /// should be hidden if needed to show all menu bar items.
-    @Published var hideApplicationMenus: Bool = false
+    @Published var hideApplicationMenus = true
 
     /// A Boolean value that indicates whether section divider control
     /// items should be shown.
-    @Published var showSectionDividers = true
+    @Published var showSectionDividers = false
 
     /// The secondary action to perform when a control item is clicked.
     @Published var secondaryAction: SecondaryAction = .toggleAlwaysHiddenSection

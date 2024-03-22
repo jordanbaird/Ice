@@ -19,54 +19,15 @@ struct AdvancedSettingsPane: View {
     var body: some View {
         Form {
             Section {
-                secondaryAction
-                performSecondaryActionInEmptySpace
-                secondaryActionModifier
-            }
-            Section {
                 hideApplicationMenus
-            }
-            Section {
                 showSectionDividers
+                canToggleAlwaysHiddenSection
             }
         }
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
         .frame(maxHeight: .infinity)
-    }
-
-    @ViewBuilder
-    private var secondaryAction: some View {
-        Picker(selection: manager.bindings.secondaryAction) {
-            ForEach(SecondaryAction.allCases, id: \.self) { action in
-                Text(action.localized).tag(action)
-            }
-        } label: {
-            Text("Secondary action")
-            Text("\(manager.secondaryActionModifier.combinedValue) + click one of \(Constants.appName)'s menu bar items to perform the action")
-        }
-    }
-
-    @ViewBuilder
-    private var performSecondaryActionInEmptySpace: some View {
-        if manager.secondaryAction != .noAction {
-            Toggle(isOn: manager.bindings.performSecondaryActionInEmptySpace) {
-                Text("Perform in empty menu bar space")
-                Text("\(manager.secondaryActionModifier.combinedValue) + click inside an empty area of the menu bar to perform the action")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var secondaryActionModifier: some View {
-        if manager.secondaryAction != .noAction {
-            Picker("Modifier", selection: manager.bindings.secondaryActionModifier) {
-                ForEach(AdvancedSettingsManager.validSecondaryActionModifiers, id: \.self) { modifier in
-                    Text("\(modifier.symbolicValue) \(modifier.labelValue)").tag(modifier)
-                }
-            }
-        }
     }
 
     @ViewBuilder
@@ -94,6 +55,18 @@ struct AdvancedSettingsPane: View {
                     }
                 }
                 Text("between adjacent sections")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var canToggleAlwaysHiddenSection: some View {
+        Toggle(isOn: manager.bindings.canToggleAlwaysHiddenSection) {
+            Text("Can toggle the always-hidden section")
+            if appState.settingsManager.generalSettingsManager.showOnClick {
+                Text("\(Modifiers.option.combinedValue) + click one of \(Constants.appName)'s menu bar items, or inside an empty area of the menu bar to toggle the section")
+            } else {
+                Text("\(Modifiers.option.combinedValue) + click one of \(Constants.appName)'s menu bar items to toggle the section")
             }
         }
     }

@@ -19,17 +19,9 @@ final class AdvancedSettingsManager: ObservableObject {
     /// items should be shown.
     @Published var showSectionDividers = false
 
-    /// The secondary action to perform when a control item is clicked.
-    @Published var secondaryAction: SecondaryAction = .toggleAlwaysHiddenSection
-
-    /// The modifier key that is used to trigger the secondary action
-    /// of all control items.
-    @Published var secondaryActionModifier: Modifiers = .option
-
-    /// A Boolean value that indicates whether clicking an empty space
-    /// in the menu bar while holding down the secondary action modifier
-    /// should perform the secondary action.
-    @Published var performSecondaryActionInEmptySpace = true
+    /// A Boolean value that indicates whether the always-hidden section
+    /// can be toggled by holding down the Option key.
+    @Published var canToggleAlwaysHiddenSection = true
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -47,15 +39,7 @@ final class AdvancedSettingsManager: ObservableObject {
     private func loadInitialState() {
         Defaults.ifPresent(key: .hideApplicationMenus, assign: &hideApplicationMenus)
         Defaults.ifPresent(key: .showSectionDividers, assign: &showSectionDividers)
-        Defaults.ifPresent(key: .performSecondaryActionInEmptySpace, assign: &performSecondaryActionInEmptySpace)
-        Defaults.ifPresent(key: .secondaryAction) { rawValue in
-            if let action = SecondaryAction(rawValue: rawValue) {
-                secondaryAction = action
-            }
-        }
-        Defaults.ifPresent(key: .secondaryActionModifier) { rawValue in
-            secondaryActionModifier = Modifiers(rawValue: rawValue)
-        }
+        Defaults.ifPresent(key: .canToggleAlwaysHiddenSection, assign: &canToggleAlwaysHiddenSection)
     }
 
     private func configureCancellables() {
@@ -75,24 +59,10 @@ final class AdvancedSettingsManager: ObservableObject {
             }
             .store(in: &c)
 
-        $secondaryAction
+        $canToggleAlwaysHiddenSection
             .receive(on: DispatchQueue.main)
-            .sink { action in
-                Defaults.set(action.rawValue, forKey: .secondaryAction)
-            }
-            .store(in: &c)
-
-        $secondaryActionModifier
-            .receive(on: DispatchQueue.main)
-            .sink { modifier in
-                Defaults.set(modifier.rawValue, forKey: .secondaryActionModifier)
-            }
-            .store(in: &c)
-
-        $performSecondaryActionInEmptySpace
-            .receive(on: DispatchQueue.main)
-            .sink { shouldPerform in
-                Defaults.set(shouldPerform, forKey: .performSecondaryActionInEmptySpace)
+            .sink { canToggle in
+                Defaults.set(canToggle, forKey: .canToggleAlwaysHiddenSection)
             }
             .store(in: &c)
 

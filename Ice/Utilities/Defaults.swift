@@ -152,9 +152,7 @@ extension Defaults {
 
         case hideApplicationMenus = "HideApplicationMenus"
         case showSectionDividers = "ShowSectionDividers"
-        case secondaryAction = "SecondaryAction"
-        case secondaryActionModifier = "SecondaryActionModifier"
-        case performSecondaryActionInEmptySpace = "PerformSecondaryActionInEmptySpace"
+        case canToggleAlwaysHiddenSection = "CanToggleAlwaysHiddenSection"
 
         // MARK: Menu Bar Appearance Settings
 

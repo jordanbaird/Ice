@@ -306,12 +306,13 @@ final class ControlItem: ObservableObject {
         }
         switch event.type {
         case .leftMouseUp:
-            let advancedSettingsManager = appState.settingsManager.advancedSettingsManager
-            if 
-                NSEvent.modifierFlags == advancedSettingsManager.secondaryActionModifier.nsEventFlags,
-                advancedSettingsManager.secondaryAction.perform(with: appState)
+            if
+                NSEvent.modifierFlags == .option,
+                appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
             {
-                break
+                if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
+                    alwaysHiddenSection.toggle()
+                }
             } else {
                 section?.toggle()
             }

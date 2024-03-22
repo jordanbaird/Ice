@@ -34,20 +34,10 @@ struct GeneralSettingsPane: View {
             Section {
                 iceIconOptions
             }
-            if manager.showOnClick {
-                Section {
-                    showOnClickOptions
-                }
-                Section {
-                    showOnHover
-                    showOnScroll
-                }
-            } else {
-                Section {
-                    showOnClickOptions
-                    showOnHover
-                    showOnScroll
-                }
+            Section {
+                showOnClick
+                showOnHover
+                showOnScroll
             }
             Section {
                 autoRehideOptions
@@ -151,17 +141,10 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private var showOnClickOptions: some View {
+    private var showOnClick: some View {
         Toggle(isOn: manager.bindings.showOnClick) {
             Text("Show on click")
             Text("Click inside an empty area of the menu bar to show hidden items")
-        }
-
-        if manager.showOnClick {
-            Toggle(isOn: manager.bindings.secondClickShowsAlwaysHiddenSection) {
-                Text("Second click shows always-hidden section")
-                Text("Click twice inside an empty area of the menu bar to show always-hidden items")
-            }
         }
     }
 

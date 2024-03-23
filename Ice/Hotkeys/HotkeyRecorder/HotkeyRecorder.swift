@@ -13,8 +13,6 @@ struct HotkeyRecorder<Label: View>: View {
 
     private let label: Label
 
-    private let segment1Transition = AnyTransition.scale.animation(.default.speed(2))
-
     private var modifierString: String {
         model.hotkey.keyCombination?.modifiers.symbolicValue ?? ""
     }
@@ -57,10 +55,6 @@ struct HotkeyRecorder<Label: View>: View {
             .onFrameChange(update: $frame)
             .overlay(error: model.failure)
             .buttonStyle(.custom)
-            .overlay {
-                RoundedRectangle(cornerRadius: 5)
-                    .strokeBorder(.foreground.opacity(0.25))
-            }
         } label: {
             label
         }
@@ -121,7 +115,6 @@ struct HotkeyRecorder<Label: View>: View {
         if model.isRecording {
             if model.pressedModifierStrings.isEmpty {
                 Text("Type Hotkey")
-                    .transition(segment1Transition)
             } else {
                 HStack(spacing: 1) {
                     ForEach(model.pressedModifierStrings, id: \.self) { string in
@@ -129,17 +122,14 @@ struct HotkeyRecorder<Label: View>: View {
                     }
                 }
                 .offset(y: 0.5)
-                .transition(segment1Transition)
             }
         } else if model.hotkey.isEnabled {
             HStack(spacing: 0) {
                 Text(modifierString)
                 Text(keyString)
             }
-            .transition(segment1Transition)
         } else {
             Text("Record Hotkey")
-                .transition(segment1Transition)
         }
     }
 
@@ -167,6 +157,6 @@ struct HotkeyRecorder<Label: View>: View {
             Text(label)
                 .padding(1)
         }
-        .transition(segment1Transition)
+        .aspectRatio(1, contentMode: .fit)
     }
 }

@@ -106,10 +106,8 @@ class HotkeyRecorderModel: ObservableObject {
     }
 
     private func handleFlagsChanged(event: NSEvent) {
-        withAnimation(.default.speed(2)) {
-            pressedModifierStrings = Modifiers.canonicalOrder.compactMap {
-                event.modifierFlags.contains($0.nsEventFlags) ? $0.symbolicValue : nil
-            }
+        pressedModifierStrings = Modifiers.canonicalOrder.compactMap {
+            event.modifierFlags.contains($0.nsEventFlags) ? $0.symbolicValue : nil
         }
     }
 }

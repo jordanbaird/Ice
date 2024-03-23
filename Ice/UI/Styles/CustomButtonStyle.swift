@@ -42,9 +42,8 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
             .offset(y: -0.5)
             .lineLimit(1)
             .background {
-                Color.primary
-                    .opacity(customButtonConfiguration.isHighlighted ? 0.2 : 0)
-                    .blendMode(.overlay)
+                customButtonConfiguration.highlightColor
+                    .opacity(customButtonConfiguration.isHighlighted ? 1 : 0)
                     .background(isPressed ? .tertiary : .quaternary)
                     .background {
                         MouseDownInterceptor()
@@ -124,6 +123,9 @@ struct CustomButtonConfiguration {
     /// This value is distinct from the button's pressed state;
     /// that is, the button can be pressed, highlighted, or both.
     var isHighlighted = false
+
+    /// The color of the button when it is highlighted.
+    var highlightColor = Color.primary.opacity(0.2)
 
     /// The foreground color of the button's label.
     var labelForegroundColor = Color.primary

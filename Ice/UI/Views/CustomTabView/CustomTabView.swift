@@ -74,6 +74,7 @@ struct CustomTabView: View {
 
 /// Custom button to display as a tab above a tab view.
 private struct CustomTabButton: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHovering = false
     @Binding var selection: Int
 
@@ -93,18 +94,29 @@ private struct CustomTabButton: View {
         .customButtonConfiguration { configuration in
             configuration.bezelOpacity = isSelected ? 1 : isHovering ? 0.5 : 0
             configuration.isHighlighted = isSelected
-            configuration.labelForegroundColor = .primary.opacity(isSelected ? 1 : 0.75)
-        }
-        .onHover { hovering in
-            isHovering = hovering
-        }
-        .buttonStyle(.custom)
-        .customButtonConfiguration { configuration in
+            configuration.highlightColor = .accentColor.opacity(0.75)
+            configuration.labelForegroundColor = if colorScheme == .dark {
+                if isSelected {
+                    Color.primary
+                } else {
+                    Color.primary.opacity(0.75)
+                }
+            } else {
+                if isSelected {
+                    Color.white
+                } else {
+                    Color.primary.opacity(0.75)
+                }
+            }
             configuration.labelPadding.top = -1
             configuration.labelPadding.bottom = -1
             configuration.labelPadding.leading = -1
             configuration.labelPadding.trailing = -1
         }
+        .onHover { hovering in
+            isHovering = hovering
+        }
+        .buttonStyle(.custom)
     }
 }
 

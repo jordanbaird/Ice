@@ -60,7 +60,13 @@ class ScreenCaptureManager: ObservableObject {
     /// The shared screen capture manager.
     static let shared = ScreenCaptureManager(interval: 3, runLoop: .main, mode: .default)
 
+    private var cancellables = Set<AnyCancellable>()
+
     private var updateTimer: AnyCancellable?
+
+    private var screenIsLocked = false
+
+    private var screenSaverIsActive = false
 
     /// The apps that are available to capture.
     @Published private(set) var applications = [SCRunningApplication]()
@@ -122,7 +128,42 @@ class ScreenCaptureManager: ObservableObject {
         self.interval = interval
         self.runLoop = runLoop
         self.mode = mode
+        configureCancellables()
         startContinuouslyUpdating()
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("com.apple.screenIsLocked"))
+            .sink { [weak self] _ in
+                self?.screenIsLocked = true
+            }
+            .store(in: &c)
+
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("com.apple.screenIsUnlocked"))
+            .sink { [weak self] _ in
+                self?.screenIsLocked = false
+            }
+            .store(in: &c)
+
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("com.apple.screensaver.didstart"))
+            .sink { [weak self] _ in
+                self?.screenSaverIsActive = true
+            }
+            .store(in: &c)
+
+        DistributedNotificationCenter.default()
+            .publisher(for: Notification.Name("com.apple.screensaver.didstop"))
+            .sink { [weak self] _ in
+                self?.screenSaverIsActive = false
+            }
+            .store(in: &c)
+
+        cancellables = c
     }
 
     /// Immediately updates the manager's content, performing the
@@ -163,6 +204,49 @@ class ScreenCaptureManager: ObservableObject {
     func stopContinuouslyUpdating() {
         updateTimer?.cancel()
         updateTimer = nil
+    }
+
+    /// Returns the wallpaper window for the given display.
+    func wallpaperWindow(for display: DisplayInfo) -> SCWindow? {
+        windows.first { window in
+            // wallpaper window belongs to the Dock process
+            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            window.isOnScreen &&
+            window.title?.hasPrefix("Wallpaper-") == true &&
+            display.frame.contains(window.frame)
+        }
+    }
+
+    /// Returns the menu bar window for the given display.
+    func menuBarWindow(for display: DisplayInfo) -> SCWindow? {
+        windows.first { window in
+            // menu bar window belongs to the WindowServer process
+            // (identified by an empty string)
+            window.owningApplication?.bundleIdentifier == "" &&
+            window.windowLayer == kCGMainMenuWindowLevel &&
+            window.title == "Menubar" &&
+            display.frame.contains(window.frame)
+        }
+    }
+
+    /// Returns an image containing the area of the desktop wallpaper
+    /// that is below the menu bar for the given display.
+    func desktopWallpaperBelowMenuBar(for display: DisplayInfo) async throws -> CGImage? {
+        guard
+            !screenIsLocked,
+            !screenSaverIsActive,
+            let wallpaperWindow = wallpaperWindow(for: display),
+            let menuBarWindow = menuBarWindow(for: display)
+        else {
+            return nil
+        }
+        return try await captureImage(
+            withTimeout: .milliseconds(500),
+            windowPredicate: { $0.windowID == wallpaperWindow.windowID },
+            displayPredicate: { $0.displayID == display.displayID },
+            captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
+            options: .ignoreFraming
+        )
     }
 
     /// Captures the given window as an image.

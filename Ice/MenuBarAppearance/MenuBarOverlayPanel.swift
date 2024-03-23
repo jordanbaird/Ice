@@ -19,16 +19,10 @@ class MenuBarOverlayPanel: NSPanel {
     /// The appearance manager that manages the panel.
     private(set) weak var appearanceManager: MenuBarAppearanceManager?
 
+    private let screenCaptureManager = ScreenCaptureManager.shared
+
     /// The screen that owns the panel.
     let owningScreen: NSScreen
-
-    /// A Boolean value that indicates whether the screen
-    /// is currently locked.
-    private var screenIsLocked = false
-
-    /// A Boolean value that indicates whether the screen
-    /// saver is currently active.
-    private var screenSaverIsActive = false
 
     /// A Boolean value that indicates whether the panel
     /// needs to be updated.
@@ -84,34 +78,6 @@ class MenuBarOverlayPanel: NSPanel {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screenIsLocked"))
-            .sink { [weak self] _ in
-                self?.screenIsLocked = true
-            }
-            .store(in: &c)
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screenIsUnlocked"))
-            .sink { [weak self] _ in
-                self?.screenIsLocked = false
-            }
-            .store(in: &c)
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screensaver.didstart"))
-            .sink { [weak self] _ in
-                self?.screenSaverIsActive = true
-            }
-            .store(in: &c)
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screensaver.didstop"))
-            .sink { [weak self] _ in
-                self?.screenSaverIsActive = false
-            }
-            .store(in: &c)
 
         // show the panel on the active space
         NSWorkspace.shared.notificationCenter
@@ -179,7 +145,7 @@ class MenuBarOverlayPanel: NSPanel {
                 defer {
                     self.needsUpdate = false
                 }
-                ScreenCaptureManager.shared.updateWithCompletionHandler {
+                screenCaptureManager.updateWithCompletionHandler {
                     DispatchQueue.main.async {
                         self.updateDesktopWallpaper()
                         self.updateMenuBar()
@@ -197,50 +163,18 @@ class MenuBarOverlayPanel: NSPanel {
         cancellables = c
     }
 
-    /// Returns the wallpaper window for the given display.
-    private func getWallpaperWindow(owningDisplay: DisplayInfo) -> SCWindow? {
-        ScreenCaptureManager.shared.windows.first { window in
-            // wallpaper window belongs to the Dock process
-            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            window.isOnScreen &&
-            window.title?.hasPrefix("Wallpaper-") == true &&
-            owningDisplay.frame.contains(window.frame)
-        }
-    }
-
-    /// Returns the menu bar window for the given display.
-    private func getMenuBarWindow(owningDisplay: DisplayInfo) -> SCWindow? {
-        ScreenCaptureManager.shared.windows.first { window in
-            // menu bar window belongs to the WindowServer process
-            // (identified by an empty string)
-            window.owningApplication?.bundleIdentifier == "" &&
-            window.windowLayer == kCGMainMenuWindowLevel &&
-            window.title == "Menubar" &&
-            owningDisplay.frame.contains(window.frame)
-        }
-    }
-
     /// Stores the area of the desktop wallpaper that is
     /// under the menu bar.
     private func updateDesktopWallpaper() {
-        guard
-            !screenIsLocked,
-            !screenSaverIsActive,
-            let owningDisplay = DisplayInfo(displayID: owningScreen.displayID),
-            let wallpaperWindow = getWallpaperWindow(owningDisplay: owningDisplay),
-            let menuBarWindow = getMenuBarWindow(owningDisplay: owningDisplay)
-        else {
-            return
-        }
         Task {
             do {
-                desktopWallpaper = try await ScreenCaptureManager.shared.captureImage(
-                    withTimeout: .milliseconds(500),
-                    windowPredicate: { $0.windowID == wallpaperWindow.windowID },
-                    displayPredicate: { $0.displayID == owningDisplay.displayID },
-                    captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
-                    options: .ignoreFraming
-                )
+                guard
+                    let owningDisplay = DisplayInfo(displayID: owningScreen.displayID),
+                    let wallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
+                else {
+                    return
+                }
+                desktopWallpaper = wallpaper
             } catch {
                 Logger.overlayPanel.error("Error updating desktop wallpaper: \(error)")
             }
@@ -252,7 +186,7 @@ class MenuBarOverlayPanel: NSPanel {
     private func updateMenuBar() {
         guard
             let owningDisplay = DisplayInfo(displayID: owningScreen.displayID),
-            let menuBarWindow = getMenuBarWindow(owningDisplay: owningDisplay)
+            let menuBarWindow = screenCaptureManager.menuBarWindow(for: owningDisplay)
         else {
             return
         }

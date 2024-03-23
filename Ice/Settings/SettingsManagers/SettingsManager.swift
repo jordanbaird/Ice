@@ -43,6 +43,11 @@ final class SettingsManager: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &c)
+        hotkeySettingsManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
 
         cancellables = c
     }

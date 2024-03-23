@@ -56,7 +56,6 @@
 		179F139A2B8EECC600EC6B52 /* CGColor+codable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F13992B8EECC600EC6B52 /* CGColor+codable.swift */; };
 		179F13BA2B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F13B92B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift */; };
 		179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */; };
-		17AB36292B9F5A5D00F50C0F /* SecondaryAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AB36282B9F5A5D00F50C0F /* SecondaryAction.swift */; };
 		17AB36322BA081D800F50C0F /* NSImage+resized.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AB36312BA081D800F50C0F /* NSImage+resized.swift */; };
 		17B331D02B9916E70084EBB0 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B331CF2B9916E70084EBB0 /* SettingsManager.swift */; };
 		17B331D32B991D290084EBB0 /* GeneralSettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B331D22B991D290084EBB0 /* GeneralSettingsManager.swift */; };
@@ -159,7 +158,6 @@
 		179F13992B8EECC600EC6B52 /* CGColor+codable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGColor+codable.swift"; sourceTree = "<group>"; };
 		179F13B92B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceConfiguration.swift; sourceTree = "<group>"; };
 		179F3C422ACE746700A76EE8 /* RemoveSidebarToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveSidebarToggle.swift; sourceTree = "<group>"; };
-		17AB36282B9F5A5D00F50C0F /* SecondaryAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondaryAction.swift; sourceTree = "<group>"; };
 		17AB36312BA081D800F50C0F /* NSImage+resized.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSImage+resized.swift"; sourceTree = "<group>"; };
 		17B331CF2B9916E70084EBB0 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
 		17B331D22B991D290084EBB0 /* GeneralSettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsManager.swift; sourceTree = "<group>"; };
@@ -373,7 +371,6 @@
 				716683512A76820A006ABF84 /* ControlItem.swift */,
 				177386F22B092A0700448BBF /* ControlItemImage.swift */,
 				177386F42B0A654D00448BBF /* ControlItemImageSet.swift */,
-				17AB36282B9F5A5D00F50C0F /* SecondaryAction.swift */,
 			);
 			path = ControlItem;
 			sourceTree = "<group>";
@@ -788,7 +785,6 @@
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
 				175085152B69C50C00CFF13A /* CustomTab.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
-				17AB36292B9F5A5D00F50C0F /* SecondaryAction.swift in Sources */,
 				177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */,
 				173C24892B8E80830096F7A1 /* AboutTab.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,

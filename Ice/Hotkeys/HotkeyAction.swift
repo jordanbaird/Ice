@@ -7,6 +7,7 @@ enum HotkeyAction: String, Codable, CaseIterable {
     case toggleHiddenSection = "ToggleHiddenSection"
     case toggleAlwaysHiddenSection = "ToggleAlwaysHiddenSection"
     case toggleApplicationMenus = "ToggleApplicationMenus"
+    case showSectionDividers = "ShowSectionDividers"
 
     func perform(appState: AppState) {
         switch self {
@@ -26,6 +27,8 @@ enum HotkeyAction: String, Codable, CaseIterable {
             appState.showOnHoverPreventedByUserInteraction = !section.isHidden
         case .toggleApplicationMenus:
             appState.menuBarManager.toggleApplicationMenus()
+        case .showSectionDividers:
+            appState.settingsManager.advancedSettingsManager.showSectionDividers.toggle()
         }
     }
 }

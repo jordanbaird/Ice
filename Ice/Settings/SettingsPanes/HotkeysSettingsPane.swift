@@ -20,6 +20,7 @@ struct HotkeysSettingsPane: View {
             }
             Section("Other") {
                 hotkeyRecorder(forAction: .toggleApplicationMenus)
+                hotkeyRecorder(forAction: .showSectionDividers)
             }
         }
         .formStyle(.grouped)
@@ -40,6 +41,8 @@ struct HotkeysSettingsPane: View {
                     Text("Toggle the always-hidden section")
                 case .toggleApplicationMenus:
                     Text("Toggle application menus")
+                case .showSectionDividers:
+                    Text("Show section dividers")
                 }
             }
         }

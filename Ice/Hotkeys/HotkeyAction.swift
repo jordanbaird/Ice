@@ -3,10 +3,10 @@
 //  Ice
 //
 
-enum HotkeyAction: Codable, CaseIterable {
-    case toggleHiddenSection
-    case toggleAlwaysHiddenSection
-    case toggleApplicationMenus
+enum HotkeyAction: String, Codable, CaseIterable {
+    case toggleHiddenSection = "ToggleHiddenSection"
+    case toggleAlwaysHiddenSection = "ToggleAlwaysHiddenSection"
+    case toggleApplicationMenus = "ToggleApplicationMenus"
 
     func perform(appState: AppState) {
         switch self {

@@ -29,11 +29,15 @@ final class HotkeySettingsManager: ObservableObject {
     }
 
     private func loadInitialState() {
-        if let data = Defaults.data(forKey: .hotkeys) {
-            do {
-                hotkeys = try decoder.decode([Hotkey].self, from: data)
-            } catch {
-                Logger.hotkeySettingsManager.error("Error decoding hotkeys: \(error)")
+        if let dict = Defaults.dictionary(forKey: .hotkeys) as? [String: Data] {
+            for hotkey in hotkeys {
+                if let data = dict[hotkey.action.rawValue] {
+                    do {
+                        hotkey.keyCombination = try decoder.decode(KeyCombination?.self, from: data)
+                    } catch {
+                        Logger.hotkeySettingsManager.error("Error decoding hotkey: \(error)")
+                    }
+                }
             }
         }
     }
@@ -50,15 +54,16 @@ final class HotkeySettingsManager: ObservableObject {
                 else {
                     return
                 }
+                var dict = [String: Data]()
                 for hotkey in hotkeys {
                     hotkey.assignAppState(appState)
+                    do {
+                        dict[hotkey.action.rawValue] = try self.encoder.encode(hotkey.keyCombination)
+                    } catch {
+                        Logger.hotkeySettingsManager.error("Error encoding hotkey: \(error)")
+                    }
                 }
-                do {
-                    let data = try encoder.encode(hotkeys)
-                    Defaults.set(data, forKey: .hotkeys)
-                } catch {
-                    Logger.hotkeySettingsManager.error("Error encoding hotkeys: \(error)")
-                }
+                Defaults.set(dict, forKey: .hotkeys)
             }
             .store(in: &c)
 

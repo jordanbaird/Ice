@@ -7,7 +7,7 @@ import Carbon.HIToolbox
 import Cocoa
 import OSLog
 
-struct KeyCombination: Codable, Hashable {
+struct KeyCombination: Hashable {
     let key: KeyCode
     let modifiers: Modifiers
 
@@ -60,6 +60,28 @@ extension KeyCombination {
     /// combination is reserved for system use.
     var isReservedBySystem: Bool {
         getSystemReservedKeyCombinations().contains(self)
+    }
+}
+
+extension KeyCombination: Codable {
+    init(from decoder: any Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        guard container.count == 2 else {
+            throw DecodingError.dataCorrupted(
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Expected 2 encoded values, found \(container.count ?? 0)"
+                )
+            )
+        }
+        self.key = try KeyCode(rawValue: container.decode(Int.self))
+        self.modifiers = try Modifiers(rawValue: container.decode(Int.self))
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(key.rawValue)
+        try container.encode(modifiers.rawValue)
     }
 }
 

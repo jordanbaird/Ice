@@ -5,7 +5,7 @@
 
 Ice is a powerful menu bar management tool. While its primary function is hiding and showing menu bar items, it aims to cover a wide variety of additional features to make it one of the most versatile menu bar tools available.
 
-![Banner](https://github.com/jordanbaird/Ice/assets/90936861/9577d06f-dae8-4cfd-b398-0f0237d0d79f)
+![Banner](https://github.com/jordanbaird/Ice/assets/90936861/bbbfebc2-c239-4f49-b0dd-34d1f3477314)
 
 [![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
@@ -36,8 +36,10 @@ brew install jordanbaird-ice
 - [x] Hide menu bar items
 - [x] "Always Hidden" menu bar section
 - [x] Show hidden items when hovering over the menu bar
-- [x] Show hidden items when an empty area in the menu bar is clicked 
+- [x] Show hidden items when an empty area in the menu bar is clicked
+- [x] Show hidden items by scrolling or swiping in the menu bar
 - [x] Automatically rehide
+- [x] Hide application menus when they overlap with shown menu bar items
 - [ ] Drag and drop interface to arrange individual items
 - [ ] Search menu bar items
 - [ ] Display hidden items in a separate bar (e.g. for MacBooks with the notch)
@@ -54,6 +56,8 @@ brew install jordanbaird-ice
 ### Hotkeys
 
 - [x] Toggle individual menu bar sections
+- [x] Toggle application menus
+- [x] Show/hide section divider icons
 - [ ] Temporarily show individual menu bar items
 - [ ] Enable/disable auto rehide
 
@@ -70,11 +74,11 @@ Because your menu bar becomes like ice, allowing your menu bar items to slide aw
 ## Gallery
 
 #### Choose your own icon to show in the menu bar
-![Custom Icon Example](https://github.com/jordanbaird/Ice/assets/90936861/7bfd94b1-8645-4976-a0e7-d4dc3f0f8e84)
+![Custom Icon Example](https://github.com/jordanbaird/Ice/assets/90936861/ded03af0-f6cf-4bc1-a094-af0cf32ead96)
 
 #### Customize the menu bar's appearance
-![Menu Bar Appearance Example 1](https://github.com/jordanbaird/Ice/assets/90936861/5248137b-dc8a-41bd-b5a9-5d77fc7d477c)
-![Menu Bar Appearance Example 2](https://github.com/jordanbaird/Ice/assets/90936861/17fc4a99-cce5-4773-a811-37828cd7f9af)
+![Menu Bar Appearance Example 1](https://github.com/jordanbaird/Ice/assets/90936861/99a59cc7-914a-4f8a-af4b-11a5193534da)
+![Menu Bar Appearance Example 2](https://github.com/jordanbaird/Ice/assets/90936861/ba3bd8d9-0eeb-447b-8a62-1bc811319132)
 
 ## License
 

@@ -86,11 +86,12 @@ class MenuBarOverlayPanel: NSPanel {
             .sink { [weak self] _ in
                 guard
                     let self,
-                    let appearanceManager
+                    let appearanceManager,
+                    let menuBarManager = appearanceManager.menuBarManager
                 else {
                     return
                 }
-                if !appearanceManager.isFullscreen && !isOnActiveSpace {
+                if !menuBarManager.isMenuBarHidden(for: owningScreen) && !isOnActiveSpace {
                     show()
                 }
             }
@@ -533,7 +534,9 @@ private class MenuBarOverlayPanelContentView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         guard
-            let appearanceManager = overlayPanel?.appearanceManager,
+            let overlayPanel,
+            let appearanceManager = overlayPanel.appearanceManager,
+            let menuBarManager = appearanceManager.menuBarManager,
             let context = NSGraphicsContext.current
         else {
             return
@@ -544,7 +547,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             context.restoreGraphicsState()
         }
 
-        if appearanceManager.isFullscreen {
+        if menuBarManager.isMenuBarHidden(for: overlayPanel.owningScreen) {
             return
         }
 
@@ -592,7 +595,7 @@ private class MenuBarOverlayPanelContentView: NSView {
                 NSBezierPath(rect: borderBounds).fill()
             }
         case .full, .split:
-            if let desktopWallpaper = overlayPanel?.desktopWallpaper {
+            if let desktopWallpaper = overlayPanel.desktopWallpaper {
                 context.saveGraphicsState()
                 defer {
                     context.restoreGraphicsState()

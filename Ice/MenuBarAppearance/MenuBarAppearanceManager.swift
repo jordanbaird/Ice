@@ -27,14 +27,6 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private var cachedScreenCount = NSScreen.screens.count
 
-    /// A Boolean value that indicates whether an app is fullscreen.
-    var isFullscreen: Bool {
-        WindowInfo.getCurrent(option: .optionOnScreenOnly).contains { window in
-            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            window.title == "Fullscreen Backdrop"
-        }
-    }
-
     init(menuBarManager: MenuBarManager) {
         self.menuBarManager = menuBarManager
     }
@@ -79,18 +71,23 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .delay(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self else {
+                guard
+                    let self,
+                    let menuBarManager,
+                    let screen = NSScreen.main
+                else {
                     return
                 }
                 if
                     overlayPanels.isEmpty,
-                    !isFullscreen
+                    !menuBarManager.isMenuBarHidden(for: screen)
                 {
                     configureOverlayPanels(with: configuration)
                 } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        if self.isFullscreen {
+                        if menuBarManager.isMenuBarHidden(for: screen) {
                             while let panel = self.overlayPanels.popFirst() {
                                 panel.orderOut(self)
                             }

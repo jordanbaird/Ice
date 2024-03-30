@@ -127,7 +127,11 @@ final class MenuBarManager: ObservableObject {
                     return
                 }
                 if sections.contains(where: { !$0.isHidden }) {
-                    guard let display = DisplayInfo.main else {
+                    guard
+                        let screen = NSScreen.main,
+                        !isMenuBarHidden(for: screen),
+                        let display = DisplayInfo(displayID: screen.displayID)
+                    else {
                         return
                     }
 
@@ -235,6 +239,27 @@ final class MenuBarManager: ObservableObject {
     /// Returns the menu bar section with the given name.
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
+    }
+
+    /// Returns a Boolean value that indicates whether the menu bar is
+    /// hidden for the given screen.
+    func isMenuBarHidden(for screen: NSScreen) -> Bool {
+        for info in WindowInfo.getCurrent(option: [.excludeDesktopElements, .optionOnScreenOnly]) {
+            guard info.frame.width >= screen.visibleFrame.width else {
+                continue
+            }
+            var isHidden = false
+            if NSApp.presentationOptions.contains(.autoHideMenuBar) {
+                isHidden = info.frame.maxY >= screen.visibleFrame.height
+            } else {
+                isHidden = info.frame.height > screen.visibleFrame.height
+            }
+            guard isHidden else {
+                continue
+            }
+            return true
+        }
+        return false
     }
 }
 

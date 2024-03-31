@@ -52,8 +52,11 @@ final class EventManager {
     // MARK: Left Mouse Up
     private(set) lazy var leftMouseUpMonitor = UniversalEventMonitor(
         mask: .leftMouseUp
-    ) { [weak appState] event in
-        guard let appState else {
+    ) { [weak self, weak appState] event in
+        guard
+            let self,
+            let appState
+        else {
             return event
         }
 
@@ -70,8 +73,8 @@ final class EventManager {
 
         // make sure the mouse is not in the menu bar
         guard
-            let screen = NSScreen.main,
-            !screen.isMouseInMenuBar
+            let display = DisplayInfo.main,
+            !isMouseInMenuBar(of: display)
         else {
             return event
         }
@@ -177,12 +180,13 @@ final class EventManager {
     // MARK: Left Mouse Dragged
     private(set) lazy var leftMouseDraggedMonitor = UniversalEventMonitor(
         mask: .leftMouseDragged
-    ) { [weak appState] event in
+    ) { [weak self, weak appState] event in
         guard
+            let self,
             let appState,
             event.modifierFlags.contains(.command),
-            let screen = NSScreen.main,
-            screen.isMouseInMenuBar
+            let display = DisplayInfo.main,
+            isMouseInMenuBar(of: display)
         else {
             return event
         }
@@ -210,12 +214,13 @@ final class EventManager {
     // MARK: Scroll Wheel
     private(set) lazy var scrollWheelMonitor = UniversalEventMonitor(
         mask: .scrollWheel
-    ) { [weak appState] event in
+    ) { [weak self, weak appState] event in
         guard
+            let self,
             let appState,
             appState.settingsManager.generalSettingsManager.showOnScroll,
-            let screen = NSScreen.main,
-            screen.isMouseInMenuBar,
+            let display = DisplayInfo.main,
+            isMouseInMenuBar(of: display),
             let hiddenSection = appState.menuBarManager.section(withName: .hidden)
         else {
             return event

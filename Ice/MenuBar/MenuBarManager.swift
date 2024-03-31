@@ -130,6 +130,7 @@ final class MenuBarManager: ObservableObject {
                     guard
                         let screen = NSScreen.main,
                         !isMenuBarHidden(for: screen),
+                        !isFullscreen(for: screen),
                         let display = DisplayInfo(displayID: screen.displayID)
                     else {
                         return
@@ -244,25 +245,23 @@ final class MenuBarManager: ObservableObject {
     /// Returns a Boolean value that indicates whether the menu bar is
     /// hidden for the given screen.
     func isMenuBarHidden(for screen: NSScreen) -> Bool {
-        for info in WindowInfo.getCurrent(option: [.excludeDesktopElements, .optionOnScreenOnly]) {
-            guard info.title != "Dock" else {
-                continue
-            }
-            guard info.frame.width >= screen.visibleFrame.width else {
-                continue
-            }
-            var isHidden = false
-            if NSApp.presentationOptions.contains(.autoHideMenuBar) {
-                isHidden = info.frame.maxY >= screen.visibleFrame.height
-            } else {
-                isHidden = info.frame.height > screen.visibleFrame.height
-            }
-            guard isHidden else {
-                continue
-            }
+        guard
+            let display = DisplayInfo(displayID: screen.displayID),
+            let menuBarWindow = itemManager.getMenuBarWindow(for: display)
+        else {
             return true
         }
-        return false
+        return !menuBarWindow.isOnScreen
+    }
+
+    /// Returns a Boolean value that indicates whether an app is fullscreen
+    /// on the given screen.
+    func isFullscreen(for screen: NSScreen) -> Bool {
+        WindowInfo.getCurrent(option: .optionOnScreenOnly).contains { window in
+            window.frame == screen.frame &&
+            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            window.title == "Fullscreen Backdrop"
+        }
     }
 }
 

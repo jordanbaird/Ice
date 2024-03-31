@@ -3,20 +3,32 @@
 //  Ice
 //
 
-import CoreGraphics
+import Cocoa
 
 struct DisplayInfo {
     let displayID: CGDirectDisplayID
     let frame: CGRect
     let scaleFactor: CGFloat
+    let refreshRate: CGRefreshRate
+    let colorSpace: CGColorSpace
 
     init?(displayID: CGDirectDisplayID) {
         guard let mode = CGDisplayCopyDisplayMode(displayID) else {
             return nil
         }
         self.displayID = displayID
-        self.frame = CGRect(x: 0, y: 0, width: mode.width, height: mode.height)
+        self.frame = CGDisplayBounds(displayID)
         self.scaleFactor = CGFloat(mode.pixelWidth) / CGFloat(mode.width)
+        self.refreshRate = mode.refreshRate
+        self.colorSpace = CGDisplayCopyColorSpace(displayID)
+    }
+
+    init?(nsScreen: NSScreen) {
+        self.init(displayID: nsScreen.displayID)
+    }
+
+    func getNSScreen() -> NSScreen? {
+        NSScreen.screens.first { $0.displayID == displayID }
     }
 }
 

@@ -245,6 +245,9 @@ final class MenuBarManager: ObservableObject {
     /// hidden for the given screen.
     func isMenuBarHidden(for screen: NSScreen) -> Bool {
         for info in WindowInfo.getCurrent(option: [.excludeDesktopElements, .optionOnScreenOnly]) {
+            guard info.title != "Dock" else {
+                continue
+            }
             guard info.frame.width >= screen.visibleFrame.width else {
                 continue
             }

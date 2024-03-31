@@ -101,7 +101,7 @@ final class EventManager {
         }
 
         // if all the above checks have passed, hide
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             hiddenSection.hide()
         }
 

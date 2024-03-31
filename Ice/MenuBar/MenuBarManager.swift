@@ -84,7 +84,7 @@ final class MenuBarManager: ObservableObject {
 
         // update the main menu maxX
         Publishers.CombineLatest(
-            NSWorkspace.shared.publisher(for: \.frontmostApplication), 
+            NSWorkspace.shared.publisher(for: \.frontmostApplication),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
         )
         .sink { [weak self] frontmostApplication, _ in
@@ -153,7 +153,7 @@ final class MenuBarManager: ObservableObject {
                     if offsetMinX <= mainMenuMaxX {
                         hideApplicationMenus()
                     }
-                } else if 
+                } else if
                     isHidingApplicationMenus,
                     appState.settingsWindow?.isVisible == false
                 {

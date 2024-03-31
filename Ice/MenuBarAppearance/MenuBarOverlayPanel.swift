@@ -455,7 +455,7 @@ private class MenuBarOverlayPanelContentView: NSView {
         }()
 
         let trailingPath: NSBezierPath = {
-            guard 
+            guard
                 let overlayPanel,
                 let owningDisplay = DisplayInfo(displayID: overlayPanel.owningScreen.displayID)
             else {

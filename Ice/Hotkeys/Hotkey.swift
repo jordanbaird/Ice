@@ -123,7 +123,7 @@ extension Hotkey: Codable {
     convenience init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try self.init(
-            keyCombination: container.decode(KeyCombination?.self, forKey: .keyCombination), 
+            keyCombination: container.decode(KeyCombination?.self, forKey: .keyCombination),
             action: container.decode(HotkeyAction.self, forKey: .action)
         )
     }

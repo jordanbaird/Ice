@@ -19,31 +19,6 @@ struct MenuBarAppearanceConfiguration {
     var tintColor: CGColor
     var tintGradient: CustomGradient
 
-    /// Creates a configuration with the given values.
-    init(
-        hasShadow: Bool,
-        hasBorder: Bool,
-        borderColor: CGColor,
-        borderWidth: Double,
-        shapeKind: MenuBarShapeKind,
-        fullShapeInfo: MenuBarFullShapeInfo,
-        splitShapeInfo: MenuBarSplitShapeInfo,
-        tintKind: MenuBarTintKind,
-        tintColor: CGColor,
-        tintGradient: CustomGradient
-    ) {
-        self.hasShadow = hasShadow
-        self.hasBorder = hasBorder
-        self.borderColor = borderColor
-        self.borderWidth = borderWidth
-        self.shapeKind = shapeKind
-        self.fullShapeInfo = fullShapeInfo
-        self.splitShapeInfo = splitShapeInfo
-        self.tintKind = tintKind
-        self.tintColor = tintColor
-        self.tintGradient = tintGradient
-    }
-
     /// Creates a configuration by migrating from the deprecated
     /// appearance-related keys stored in `UserDefaults`, storing
     /// the new configuration and deleting the deprecated keys.

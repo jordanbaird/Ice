@@ -34,7 +34,7 @@ enum Defaults {
     ///
     /// - Parameter key: The key in the UserDefaults database
     ///   to retrieve the value for.
-    static func dictionary(forKey key: Key) -> [String : Any]? {
+    static func dictionary(forKey key: Key) -> [String: Any]? {
         UserDefaults.standard.dictionary(forKey: key.rawValue)
     }
 

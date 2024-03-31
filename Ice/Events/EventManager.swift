@@ -228,7 +228,7 @@ final class EventManager {
         return event
     }
 
-    // MARK: --
+    // MARK: -
 
     init(appState: AppState) {
         self.appState = appState

@@ -344,7 +344,7 @@ final class ControlItem: ObservableObject {
             case .visible:
                 break
             case .hidden:
-                if 
+                if
                     let hotkey = hotkeySettingsManager.hotkey(withAction: .toggleHiddenSection),
                     let keyCombination = hotkey.keyCombination
                 {
@@ -401,7 +401,7 @@ final class ControlItem: ObservableObject {
     }
 
     @objc private func checkForUpdates() {
-        guard 
+        guard
             let appState,
             let appDelegate = appState.appDelegate
         else {

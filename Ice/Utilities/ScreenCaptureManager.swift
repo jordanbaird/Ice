@@ -57,31 +57,11 @@ class ScreenCaptureManager: ObservableObject {
         case timeout
     }
 
-    /// The shared screen capture manager.
-    static let shared = ScreenCaptureManager(interval: 3, runLoop: .main, mode: .default)
-
     private var cancellables = Set<AnyCancellable>()
-
-    private var updateTimer: AnyCancellable?
 
     private var screenIsLocked = false
 
     private var screenSaverIsActive = false
-
-    /// The apps that are available to capture.
-    @Published private(set) var applications = [SCRunningApplication]()
-
-    /// The displays that are available to capture.
-    @Published private(set) var displays = [SCDisplay]()
-
-    /// The windows that are available to capture.
-    @Published private(set) var windows = [SCWindow]()
-
-    /// A Boolean value that indicates whether the manager is
-    /// continuously updating its content.
-    var isContinuouslyUpdating: Bool {
-        updateTimer != nil
-    }
 
     /// A Boolean value that indicates whether the app has
     /// screen capture permissions.
@@ -89,47 +69,10 @@ class ScreenCaptureManager: ObservableObject {
         CGPreflightScreenCaptureAccess()
     }
 
-    /// The time interval at which to continuously update the
-    /// manager's content.
-    var interval: TimeInterval {
-        didSet {
-            if isContinuouslyUpdating {
-                // reinitialize the timer using the new interval
-                startContinuouslyUpdating()
-            }
-        }
-    }
-
-    /// The run loop on which to continuously update the
-    /// manager's content.
-    var runLoop: RunLoop {
-        didSet {
-            if isContinuouslyUpdating {
-                // reinitialize the timer using the new run loop
-                startContinuouslyUpdating()
-            }
-        }
-    }
-
-    /// The run loop mode in which to continuously update the
-    /// manager's content.
-    var mode: RunLoop.Mode {
-        didSet {
-            if isContinuouslyUpdating {
-                // reinitialize the timer using the new mode
-                startContinuouslyUpdating()
-            }
-        }
-    }
-
     /// Creates a screen capture manager with the given interval,
     /// run loop, and run loop mode.
-    init(interval: TimeInterval, runLoop: RunLoop, mode: RunLoop.Mode) {
-        self.interval = interval
-        self.runLoop = runLoop
-        self.mode = mode
+    init() {
         configureCancellables()
-        startContinuouslyUpdating()
     }
 
     private func configureCancellables() {
@@ -166,84 +109,20 @@ class ScreenCaptureManager: ObservableObject {
         cancellables = c
     }
 
-    /// Immediately updates the manager's content, performing the
-    /// given completion handler when finished.
-    func updateWithCompletionHandler(_ completionHandler: @escaping () -> Void) {
-        guard hasScreenCapturePermissions else {
-            Logger.screenCaptureManager.notice("Missing screen capture permissions")
-            return
-        }
-        SCShareableContent.getWithCompletionHandler { content, error in
-            if let error {
-                Logger.screenCaptureManager.error("Error updating shareable content: \(error)")
-            }
-            self.applications = content?.applications ?? []
-            self.displays = content?.displays ?? []
-            self.windows = content?.windows ?? []
-            completionHandler()
-        }
-    }
-
-    /// Starts continuously updating the manager's content.
-    ///
-    /// The content will update according to the value set by
-    /// the manager's ``interval`` property.
-    func startContinuouslyUpdating() {
-        updateWithCompletionHandler { }
-        updateTimer = Timer.publish(every: interval, on: runLoop, in: mode)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.updateWithCompletionHandler { }
-            }
-    }
-
-    /// Stops the manager's content from continuously updating.
-    ///
-    /// The manager will retain the current content, but it will
-    /// not stay up to date.
-    func stopContinuouslyUpdating() {
-        updateTimer?.cancel()
-        updateTimer = nil
-    }
-
-    /// Returns the wallpaper window for the given display.
-    func wallpaperWindow(for display: DisplayInfo) -> SCWindow? {
-        windows.first { window in
-            // wallpaper window belongs to the Dock process
-            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            window.isOnScreen &&
-            window.title?.hasPrefix("Wallpaper-") == true &&
-            display.frame.contains(window.frame)
-        }
-    }
-
-    /// Returns the menu bar window for the given display.
-    func menuBarWindow(for display: DisplayInfo) -> SCWindow? {
-        windows.first { window in
-            // menu bar window belongs to the WindowServer process
-            // (identified by an empty string)
-            window.owningApplication?.bundleIdentifier == "" &&
-            window.windowLayer == kCGMainMenuWindowLevel &&
-            window.title == "Menubar" &&
-            display.frame.contains(window.frame)
-        }
-    }
-
     /// Returns an image containing the area of the desktop wallpaper
     /// that is below the menu bar for the given display.
     func desktopWallpaperBelowMenuBar(for display: DisplayInfo) async throws -> CGImage? {
         guard
             !screenIsLocked,
             !screenSaverIsActive,
-            let wallpaperWindow = wallpaperWindow(for: display),
-            let menuBarWindow = menuBarWindow(for: display)
+            let wallpaperWindow = WindowInfo.wallpaperWindow(for: display),
+            let menuBarWindow = WindowInfo.menuBarWindow(for: display)
         else {
             return nil
         }
         return try await captureImage(
             withTimeout: .milliseconds(500),
-            windowPredicate: { $0.windowID == wallpaperWindow.windowID },
-            displayPredicate: { $0.displayID == display.displayID },
+            window: wallpaperWindow,
             captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
             options: .ignoreFraming
         )
@@ -262,8 +141,7 @@ class ScreenCaptureManager: ObservableObject {
     ///   - options: Additional parameters for the capture.
     func captureImage(
         withTimeout timeout: Duration,
-        windowPredicate: (SCWindow) throws -> Bool,
-        displayPredicate: (SCDisplay) throws -> Bool,
+        window: WindowInfo,
         captureRect: CGRect? = nil,
         resolution: SCCaptureResolutionType = .automatic,
         options: CaptureOptions = []
@@ -271,27 +149,24 @@ class ScreenCaptureManager: ObservableObject {
         guard hasScreenCapturePermissions else {
             throw CaptureError.missingPermissions
         }
-        guard let window = try windows.first(where: windowPredicate) else {
+
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+
+        guard let scWindow = content.windows.first(where: { $0.windowID == window.windowID }) else {
             throw CaptureError.noMatchingWindow
         }
-        guard let display = try displays.first(where: displayPredicate) else {
+        guard let display = DisplayInfo.getCurrent(activeDisplaysOnly: false).first(where: { $0.frame.contains(window.frame) }) else {
             throw CaptureError.noMatchingDisplay
         }
-        guard window.isOnScreen else {
-            throw CaptureError.windowOffScreen
-        }
 
-        let sourceRect = try getSourceRect(captureRect: captureRect, window: window)
+        let sourceRect = try getSourceRect(captureRect: captureRect, window: scWindow)
 
-        let contentFilter = SCContentFilter(desktopIndependentWindow: window)
+        let contentFilter = SCContentFilter(desktopIndependentWindow: scWindow)
         let configuration = SCStreamConfiguration()
 
-        let displayID = display.displayID
-        let scale = getDisplayScaleFactor(displayID)
-
         configuration.sourceRect = sourceRect
-        configuration.width = Int(sourceRect.width * scale)
-        configuration.height = Int(sourceRect.height * scale)
+        configuration.width = Int(sourceRect.width * display.scaleFactor)
+        configuration.height = Int(sourceRect.height * display.scaleFactor)
         configuration.captureResolution = resolution
         configuration.colorSpaceName = CGColorSpace.displayP3
         configuration.ignoreShadowsSingleWindow = options.contains(.ignoreFraming)
@@ -335,13 +210,6 @@ class ScreenCaptureManager: ObservableObject {
             throw CaptureError.sourceRectOutOfBounds
         }
         return sourceRect
-    }
-
-    private func getDisplayScaleFactor(_ displayID: CGDirectDisplayID) -> CGFloat {
-        guard let mode = CGDisplayCopyDisplayMode(displayID) else {
-            return 1
-        }
-        return CGFloat(mode.pixelWidth) / CGFloat(mode.width)
     }
 }
 

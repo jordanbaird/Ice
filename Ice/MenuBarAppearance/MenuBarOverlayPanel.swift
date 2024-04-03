@@ -11,25 +11,23 @@ import ScreenCaptureKit
 
 // MARK: - MenuBarOverlayPanel
 
-/// A subclass of `NSPanel` that sits atop the menu bar
-/// to alter its appearance.
+/// A subclass of `NSPanel` that sits atop the menu bar to alter its appearance.
 class MenuBarOverlayPanel: NSPanel {
     private var cancellables = Set<AnyCancellable>()
 
     /// The appearance manager that manages the panel.
     private(set) weak var appearanceManager: MenuBarAppearanceManager?
 
-    private let screenCaptureManager = ScreenCaptureManager.shared
+    /// The screen capture manager for the panel.
+    private(set) weak var screenCaptureManager: ScreenCaptureManager?
 
     /// The screen that owns the panel.
     let owningScreen: NSScreen
 
-    /// A Boolean value that indicates whether the panel
-    /// needs to be updated.
+    /// A Boolean value that indicates whether the panel needs to be updated.
     @Published var needsUpdate = true
 
-    /// A Boolean value that indicates whether the user
-    /// is dragging a menu bar item.
+    /// A Boolean value that indicates whether the user is dragging a menu bar item.
     @Published var isDraggingMenuBarItem = false
 
     /// The menu bar associated with the panel.
@@ -55,10 +53,15 @@ class MenuBarOverlayPanel: NSPanel {
         )
     }
 
-    /// Creates an overlay panel with the given appearance
-    /// manager and owning screen.
-    init(appearanceManager: MenuBarAppearanceManager, owningScreen: NSScreen) {
+    /// Creates an overlay panel with the given appearance manager,
+    /// screen capture manager, and owning screen.
+    init(
+        appearanceManager: MenuBarAppearanceManager,
+        screenCaptureManager: ScreenCaptureManager,
+        owningScreen: NSScreen
+    ) {
         self.appearanceManager = appearanceManager
+        self.screenCaptureManager = screenCaptureManager
         self.owningScreen = owningScreen
         super.init(
             contentRect: .zero,
@@ -146,12 +149,8 @@ class MenuBarOverlayPanel: NSPanel {
                 defer {
                     self.needsUpdate = false
                 }
-                screenCaptureManager.updateWithCompletionHandler {
-                    DispatchQueue.main.async {
-                        self.updateDesktopWallpaper()
-                        self.updateMenuBar()
-                    }
-                }
+                updateDesktopWallpaper()
+                updateMenuBar()
             }
             .store(in: &c)
 
@@ -170,8 +169,8 @@ class MenuBarOverlayPanel: NSPanel {
         Task {
             do {
                 guard
-                    let owningDisplay = DisplayInfo(displayID: owningScreen.displayID),
-                    let wallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
+                    let owningDisplay = DisplayInfo(nsScreen: owningScreen),
+                    let wallpaper = try await screenCaptureManager?.desktopWallpaperBelowMenuBar(for: owningDisplay)
                 else {
                     return
                 }
@@ -186,8 +185,8 @@ class MenuBarOverlayPanel: NSPanel {
     /// menu bar window.
     private func updateMenuBar() {
         guard
-            let owningDisplay = DisplayInfo(displayID: owningScreen.displayID),
-            let menuBarWindow = screenCaptureManager.menuBarWindow(for: owningDisplay)
+            let owningDisplay = DisplayInfo(nsScreen: owningScreen),
+            let menuBarWindow = WindowInfo.menuBarWindow(for: owningDisplay)
         else {
             return
         }

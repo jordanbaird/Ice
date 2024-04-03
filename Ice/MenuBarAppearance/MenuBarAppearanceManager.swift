@@ -21,14 +21,18 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private let defaults = UserDefaults.standard
 
-    private(set) weak var menuBarManager: MenuBarManager?
+    private(set) weak var appState: AppState?
 
     private(set) var overlayPanels = Set<MenuBarOverlayPanel>()
 
     private var cachedScreenCount = NSScreen.screens.count
 
-    init(menuBarManager: MenuBarManager) {
-        self.menuBarManager = menuBarManager
+    weak var menuBarManager: MenuBarManager? {
+        appState?.menuBarManager
+    }
+
+    init(appState: AppState) {
+        self.appState = appState
     }
 
     func performSetup() {
@@ -135,6 +139,10 @@ final class MenuBarAppearanceManager: ObservableObject {
     }
 
     private func configureOverlayPanels(with configuration: MenuBarAppearanceConfiguration) {
+        guard let appState else {
+            return
+        }
+
         guard shouldRetainOverlayPanels(for: configuration) else {
             // remove all overlay panels if none of the properties
             // on the manager call for them
@@ -144,7 +152,11 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         var overlayPanels = Set<MenuBarOverlayPanel>()
         for screen in NSScreen.screens {
-            let panel = MenuBarOverlayPanel(appearanceManager: self, owningScreen: screen)
+            let panel = MenuBarOverlayPanel(
+                appearanceManager: self,
+                screenCaptureManager: appState.screenCaptureManager,
+                owningScreen: screen
+            )
             overlayPanels.insert(panel)
             // panel needs a reference to the menu bar frame, which is retrieved asynchronously; wait a bit before showing
             // FIXME: Show after the panel has the menu bar reference instead of waiting an arbitrary amount of time

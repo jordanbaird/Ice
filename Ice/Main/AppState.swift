@@ -26,6 +26,9 @@ final class AppState: ObservableObject {
     /// Manager for the app's settings.
     private(set) lazy var settingsManager = SettingsManager(appState: self)
 
+    /// Manager for screen capture operations.
+    let screenCaptureManager = ScreenCaptureManager()
+
     /// Manager for app updates.
     let updatesManager = UpdatesManager()
 

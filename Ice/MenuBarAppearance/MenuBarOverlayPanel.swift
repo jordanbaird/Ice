@@ -7,7 +7,6 @@ import AXSwift
 import Cocoa
 import Combine
 import OSLog
-import ScreenCaptureKit
 
 // MARK: - MenuBarOverlayPanel
 
@@ -19,7 +18,7 @@ class MenuBarOverlayPanel: NSPanel {
     private(set) weak var appearanceManager: MenuBarAppearanceManager?
 
     /// The screen capture manager for the panel.
-    private(set) weak var screenCaptureManager: ScreenCaptureManager?
+    let screenCaptureManager: ScreenCaptureManager
 
     /// The screen that owns the panel.
     let owningScreen: NSScreen
@@ -36,8 +35,7 @@ class MenuBarOverlayPanel: NSPanel {
     /// The max X position of the main menu.
     @Published private(set) var mainMenuMaxX: CGFloat?
 
-    /// The current desktop wallpaper, clipped to the bounds
-    /// of the menu bar.
+    /// The current desktop wallpaper, clipped to the bounds of the menu bar.
     @Published private(set) var desktopWallpaper: CGImage?
 
     /// The frame that should be used to display the panel.
@@ -53,8 +51,8 @@ class MenuBarOverlayPanel: NSPanel {
         )
     }
 
-    /// Creates an overlay panel with the given appearance manager,
-    /// screen capture manager, and owning screen.
+    /// Creates an overlay panel with the given appearance manager, screen capture
+    /// manager, and owning screen.
     init(
         appearanceManager: MenuBarAppearanceManager,
         screenCaptureManager: ScreenCaptureManager,
@@ -109,7 +107,7 @@ class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
-        // update when active space changes
+        // update when the active space changes
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .delay(for: 0.1, scheduler: DispatchQueue.main)
@@ -118,12 +116,12 @@ class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
-        // update when frontmost application changes,
-        // or when it owns the menu bar
+        // update when frontmost application changes, or when it owns the menu bar
         Publishers.CombineLatest(
             NSWorkspace.shared.publisher(for: \.frontmostApplication),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
         )
+        .delay(for: 0.1, scheduler: DispatchQueue.main)
         .sink { [weak self] _ in
             self?.needsUpdate = true
         }
@@ -139,6 +137,7 @@ class MenuBarOverlayPanel: NSPanel {
 
         $needsUpdate
             .removeDuplicates()
+            .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] needsUpdate in
                 guard
                     let self,
@@ -163,14 +162,13 @@ class MenuBarOverlayPanel: NSPanel {
         cancellables = c
     }
 
-    /// Stores the area of the desktop wallpaper that is
-    /// under the menu bar.
+    /// Stores the area of the desktop wallpaper that is under the menu bar.
     private func updateDesktopWallpaper() {
         Task {
             do {
                 guard
                     let owningDisplay = DisplayInfo(nsScreen: owningScreen),
-                    let wallpaper = try await screenCaptureManager?.desktopWallpaperBelowMenuBar(for: owningDisplay)
+                    let wallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
                 else {
                     return
                 }
@@ -181,8 +179,7 @@ class MenuBarOverlayPanel: NSPanel {
         }
     }
 
-    /// Stores a reference to the menu bar using the given
-    /// menu bar window.
+    /// Stores a reference to the menu bar using the given menu bar window.
     private func updateMenuBar() {
         guard
             let owningDisplay = DisplayInfo(nsScreen: owningScreen),
@@ -238,8 +235,7 @@ class MenuBarOverlayPanel: NSPanel {
             return
         }
 
-        // only continue if the appearance manager holds
-        // a reference to this panel
+        // only continue if the appearance manager holds a reference to this panel
         guard
             let appearanceManager,
             appearanceManager.overlayPanels.contains(self)
@@ -337,16 +333,14 @@ private class MenuBarOverlayPanelContentView: NSView {
 
         if let menuBarManager = appearanceManager?.menuBarManager {
             for section in menuBarManager.sections {
-                // redraw whenever the window frame of a section's control
-                // item changes
+                // redraw whenever the window frame of a control item changes
                 //
                 // - NOTE: A previous attempt was made to redraw the view when the
-                //   section's `isHidden` property was changed. This would be
-                //   semantically ideal, but the property sometimes changes before
-                //   the menu bar items are actually updated on-screen. Since the
-                //   view's drawing process relies on getting an accurate position
-                //   of each menu bar item, we need to use something that publishes
-                //   its changes only after the items are updated.
+                //   section's `isHidden` property was changed. This would be semantically
+                //   ideal, but the property sometimes changes before the menu bar items
+                //   are actually updated on-screen. Since the view's drawing process relies
+                //   on getting an accurate position of each menu bar item, we need to use
+                //   something that publishes its changes only after the items are updated.
                 section.controlItem.$windowFrame
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
@@ -354,7 +348,7 @@ private class MenuBarOverlayPanelContentView: NSView {
                     }
                     .store(in: &c)
 
-                // redraw whenever the visibility of a section's control item changes
+                // redraw whenever the visibility of a control item changes
                 //
                 // - NOTE: If the "ShowSectionDividers" setting is disabled, the window
                 //   frame does not update when the section is hidden or shown, but the

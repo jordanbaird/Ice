@@ -150,12 +150,13 @@ class ScreenCaptureManager: ObservableObject {
             throw CaptureError.missingPermissions
         }
 
-        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-
-        guard let scWindow = content.windows.first(where: { $0.windowID == window.windowID }) else {
+        let windows = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true).windows
+        guard let scWindow = windows.first(where: { $0.windowID == window.windowID }) else {
             throw CaptureError.noMatchingWindow
         }
-        guard let display = DisplayInfo.getCurrent(activeDisplaysOnly: false).first(where: { $0.frame.contains(window.frame) }) else {
+
+        let displays = try await DisplayInfo.current(activeDisplaysOnly: false)
+        guard let display = displays.first(where: { $0.frame.contains(window.frame) }) else {
             throw CaptureError.noMatchingDisplay
         }
 

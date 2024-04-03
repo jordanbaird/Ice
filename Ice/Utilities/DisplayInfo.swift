@@ -53,6 +53,51 @@ extension DisplayInfo {
     static var main: DisplayInfo? {
         DisplayInfo(displayID: CGMainDisplayID())
     }
+}
+
+extension DisplayInfo {
+    enum DisplayListError: Error {
+        case cannotComplete
+        case failure
+        case illegalArgument
+        case invalidConnection
+        case invalidContext
+        case invalidOperation
+        case noneAvailable
+        case notImplemented
+        case rangeCheck
+        case typeCheck
+        case unknown
+
+        init?(cgError: CGError) {
+            switch cgError {
+            case .success:
+                return nil
+            case .failure:
+                self = .failure
+            case .illegalArgument:
+                self = .illegalArgument
+            case .invalidConnection:
+                self = .invalidConnection
+            case .invalidContext:
+                self = .invalidContext
+            case .cannotComplete:
+                self = .cannotComplete
+            case .notImplemented:
+                self = .notImplemented
+            case .rangeCheck:
+                self = .rangeCheck
+            case .typeCheck:
+                self = .typeCheck
+            case .invalidOperation:
+                self = .invalidOperation
+            case .noneAvailable:
+                self = .noneAvailable
+            @unknown default:
+                self = .unknown
+            }
+        }
+    }
 
     /// Returns the current number of displays.
     ///
@@ -72,16 +117,22 @@ extension DisplayInfo {
     ///
     /// - Parameter activeDisplaysOnly: A Boolean value that indicates whether
     ///   to return only the active displays.
-    static func getCurrent(activeDisplaysOnly: Bool) -> [DisplayInfo] {
-        let displayCount = getDisplayCount(activeDisplaysOnly: activeDisplaysOnly)
-        var displayIDs = Array(repeating: kCGNullDirectDisplay, count: displayCount)
-        if activeDisplaysOnly {
-            CGGetActiveDisplayList(UInt32(displayCount), &displayIDs, nil)
-        } else {
-            CGGetOnlineDisplayList(UInt32(displayCount), &displayIDs, nil)
+    static func current(activeDisplaysOnly: Bool) async throws -> [DisplayInfo] {
+        let task = Task {
+            let displayCount = getDisplayCount(activeDisplaysOnly: activeDisplaysOnly)
+            var displayIDs = Array(repeating: kCGNullDirectDisplay, count: displayCount)
+            let result = if activeDisplaysOnly {
+                CGGetActiveDisplayList(UInt32(displayCount), &displayIDs, nil)
+            } else {
+                CGGetOnlineDisplayList(UInt32(displayCount), &displayIDs, nil)
+            }
+            if let error = DisplayListError(cgError: result) {
+                throw error
+            }
+            return displayIDs.compactMap { displayID in
+                DisplayInfo(displayID: displayID)
+            }
         }
-        return displayIDs.compactMap { displayID in
-            DisplayInfo(displayID: displayID)
-        }
+        return try await task.value
     }
 }

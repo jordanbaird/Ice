@@ -276,7 +276,7 @@ final class EventManager {
             width += item.frame.width
         }
         let mouseLocation = NSEvent.mouseLocation
-        return mouseLocation.x - display.frame.origin.x > appState.menuBarManager.mainMenuMaxX
+        return mouseLocation.x - display.frame.origin.x > appState.menuBarManager.mainMenuMaxX + 10
             && mouseLocation.x < display.frame.maxX - totalWidth
     }
 

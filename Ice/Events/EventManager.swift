@@ -258,8 +258,8 @@ final class EventManager {
             }
         }
         if let screen = display.getNSScreen() {
-            let mouseLocation = NSEvent.mouseLocation
-            return mouseLocation.y > screen.visibleFrame.maxY && mouseLocation.y <= screen.frame.maxY
+            let mouseY = NSEvent.mouseLocation.y
+            return mouseY > screen.visibleFrame.maxY && mouseY <= screen.frame.maxY
         }
         return false
     }
@@ -275,16 +275,16 @@ final class EventManager {
         let totalWidth = items.reduce(into: 0) { width, item in
             width += item.frame.width
         }
-        let mouseLocation = NSEvent.mouseLocation
-        return mouseLocation.x - display.frame.origin.x > appState.menuBarManager.mainMenuMaxX + 10
-            && mouseLocation.x < display.frame.maxX - totalWidth
+        let mouseX = NSEvent.mouseLocation.x
+        let mainMenuMaxX = appState.menuBarManager.mainMenuMaxX
+        return mouseX - display.frame.origin.x > mainMenuMaxX + 10 && mouseX < display.frame.maxX - totalWidth
     }
 
     private func isMouseOutsideMenuBar(of display: DisplayInfo) -> Bool {
         guard let screen = display.getNSScreen() else {
             return false
         }
-        let mouseLocation = NSEvent.mouseLocation
-        return mouseLocation.y < screen.visibleFrame.maxY || mouseLocation.y > screen.frame.maxY
+        let mouseY = NSEvent.mouseLocation.y
+        return mouseY < screen.visibleFrame.maxY || mouseY > screen.frame.maxY
     }
 }

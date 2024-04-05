@@ -11,8 +11,8 @@ import OSLog
 final class ControlItem: ObservableObject {
     enum Identifier: String, Hashable {
         case iceIcon = "IceIcon"
-        case hidden = "HiddenItem"
-        case alwaysHidden = "AlwaysHiddenItem"
+        case hidden = "HItem"
+        case alwaysHidden = "AHItem"
     }
 
     enum HidingState: Int, Hashable {

@@ -61,11 +61,7 @@ final class AppState: ObservableObject {
     }()
 
     private init() {
-        do {
-            try MigrationManager(appState: self).migrateAll()
-        } catch {
-            Logger.appState.error("Migration failed with error: \(error)")
-        }
+        MigrationManager(appState: self).migrateAll()
         configureCancellables()
     }
 

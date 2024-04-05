@@ -31,10 +31,13 @@ struct MigrationManager {
 
     // MARK: Migrate All
 
-    /// Performs all migrations, catching any thrown errors and rethrowing
-    /// them as a combined error.
-    func migrateAll() throws {
-        try performAll(blocks: [migrate0_8_0])
+    /// Performs all migrations.
+    func migrateAll() {
+        do {
+            try performAll(blocks: [migrate0_8_0])
+        } catch {
+            Logger.migration.error("Migration failed with error: \(error)")
+        }
     }
 
     /// Performs all migrations for the `0.8.0` release, catching any thrown
@@ -49,6 +52,7 @@ struct MigrationManager {
             migrateSections0_8_0,
         ])
         Defaults.set(true, forKey: .hasMigrated0_8_0)
+        Logger.migration.info("Successfully migrated to 0.8.0 settings")
     }
 
     // MARK: Migrate Hotkeys
@@ -194,5 +198,5 @@ struct MigrationManager {
 
 // MARK: - Logger
 private extension Logger {
-    static let migrationManager = Logger(category: "MigrationManager")
+    static let migration = Logger(category: "Migration")
 }

@@ -32,10 +32,10 @@ final class AppState: ObservableObject {
     /// Manager for app updates.
     let updatesManager = UpdatesManager()
 
-    /// Global hotkey registry.
+    /// The app's hotkey registry.
     let hotkeyRegistry = HotkeyRegistry()
 
-    /// The application's delegate.
+    /// The app's delegate.
     private(set) weak var appDelegate: AppDelegate?
 
     /// The window that contains the settings interface.
@@ -44,12 +44,11 @@ final class AppState: ObservableObject {
     /// The window that contains the permissions interface.
     private(set) weak var permissionsWindow: NSWindow?
 
-    /// A Boolean value that indicates whether the user has interacted with
-    /// the menu bar, preventing the "ShowOnHover" feature from activating.
-    var showOnHoverPreventedByUserInteraction = false
+    /// A Boolean value that indicates whether the user has interacted with the menu
+    /// bar, preventing the "ShowOnHover" feature from activating.
+    var showOnHoverIsPreventedByUserInteraction = false
 
-    /// A Boolean value that indicates whether the app is running as a
-    /// SwiftUI preview.
+    /// A Boolean value that indicates whether the app is running as a SwiftUI preview.
     let isPreview: Bool = {
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment

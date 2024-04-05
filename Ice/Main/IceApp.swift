@@ -9,7 +9,6 @@ import SwiftUI
 struct IceApp: App {
     @NSApplicationDelegateAdaptor var appDelegate: AppDelegate
     @ObservedObject var appState = AppState.shared
-
     @Environment(\.openWindow) private var openWindow
 
     init() {
@@ -22,7 +21,6 @@ struct IceApp: App {
                 openWindow(id: Constants.permissionsWindowID)
             }
         })
-
         PermissionsWindow(appState: appState, onContinue: {
             appState.performSetup()
             openWindow(id: Constants.settingsWindowID)

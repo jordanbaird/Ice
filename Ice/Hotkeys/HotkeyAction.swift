@@ -17,14 +17,14 @@ enum HotkeyAction: String, Codable, CaseIterable {
             }
             section.toggle()
             // prevent the section from automatically rehiding after mouse movement
-            appState.showOnHoverPreventedByUserInteraction = !section.isHidden
+            appState.showOnHoverIsPreventedByUserInteraction = !section.isHidden
         case .toggleAlwaysHiddenSection:
             guard let section = appState.menuBarManager.section(withName: .alwaysHidden) else {
                 return
             }
             section.toggle()
             // prevent the section from automatically rehiding after mouse movement
-            appState.showOnHoverPreventedByUserInteraction = !section.isHidden
+            appState.showOnHoverIsPreventedByUserInteraction = !section.isHidden
         case .toggleApplicationMenus:
             appState.menuBarManager.toggleApplicationMenus()
         case .showSectionDividers:

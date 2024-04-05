@@ -19,7 +19,7 @@ final class MenuBarManager: ObservableObject {
 
     private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
 
-    private(set) lazy var appearanceManager = MenuBarAppearanceManager(menuBarManager: self)
+    let appearanceManager: MenuBarAppearanceManager
 
     private var isHidingApplicationMenus = false
 
@@ -31,6 +31,7 @@ final class MenuBarManager: ObservableObject {
 
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
+        self.appearanceManager = MenuBarAppearanceManager(appState: appState)
         self.appState = appState
     }
 

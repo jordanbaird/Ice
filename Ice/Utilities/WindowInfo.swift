@@ -43,4 +43,26 @@ struct WindowInfo {
             WindowInfo(info: info)
         }
     }
+
+    /// Returns the wallpaper window for the given display.
+    static func wallpaperWindow(for display: DisplayInfo) -> WindowInfo? {
+        getCurrent(option: .optionOnScreenOnly).first { window in
+            // wallpaper window belongs to the Dock process
+            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            window.title?.hasPrefix("Wallpaper-") == true &&
+            display.frame.contains(window.frame)
+        }
+    }
+
+    /// Returns the menu bar window for the given display.
+    static func menuBarWindow(for display: DisplayInfo) -> WindowInfo? {
+        getCurrent(option: .optionOnScreenOnly).first { window in
+            // menu bar window belongs to the WindowServer process
+            // (owningApplication should be nil)
+            window.owningApplication == nil &&
+            window.title == "Menubar" &&
+            window.windowLayer == kCGMainMenuWindowLevel &&
+            display.frame.contains(window.frame)
+        }
+    }
 }

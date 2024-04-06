@@ -8,7 +8,6 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 ![Banner](https://github.com/jordanbaird/Ice/assets/90936861/bbbfebc2-c239-4f49-b0dd-34d1f3477314)
 
 [![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
-[![Sponsor](https://img.shields.io/badge/sponsor-%E2%99%A5%EF%B8%8E-hotpink?style=flat-square)](https://github.com/sponsors/jordanbaird)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
 ![Requirements](https://img.shields.io/badge/requirements-macOS%2014%2B-fa4e49?style=flat-square)
 [![License](https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square)](LICENSE)
@@ -67,10 +66,6 @@ brew install jordanbaird-ice
 - [x] Launch at login
 - [x] Automatic updates
 - [ ] Menu bar widgets
-
-## Sponsor
-
-I chose to make Ice available for free. If you feel like it's worth something, please consider [sponsoring](https://github.com/sponsors/jordanbaird) so that I am able to continue with future development. Any amount is appreciated.
 
 ## Why the name?
 

@@ -15,6 +15,10 @@
 		170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88D2B0EDD780073F982 /* LocalizedErrorBox.swift */; };
 		170CF8902B101D980073F982 /* ColorStop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88F2B101D980073F982 /* ColorStop.swift */; };
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
+		172D827A2BC1F29E0048DD88 /* AccessibilityMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */; };
+		172D827C2BC1F2C10048DD88 /* AccessibilityError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D827B2BC1F2C10048DD88 /* AccessibilityError.swift */; };
+		172D827E2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D827D2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift */; };
+		172D82802BC1F3270048DD88 /* AccessibilityApplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D827F2BC1F3270048DD88 /* AccessibilityApplication.swift */; };
 		1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */; };
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
 		1737E3E52BA3C4AA009F0EFA /* HotkeyAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1737E3E42BA3C4AA009F0EFA /* HotkeyAction.swift */; };
@@ -118,6 +122,10 @@
 		170CF88F2B101D980073F982 /* ColorStop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorStop.swift; sourceTree = "<group>"; };
 		1725FC692AED973800A59081 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1726A3F82B3378B8008B09DD /* Acknowledgements.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Acknowledgements.rtf; sourceTree = "<group>"; };
+		172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMenuBar.swift; sourceTree = "<group>"; };
+		172D827B2BC1F2C10048DD88 /* AccessibilityError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityError.swift; sourceTree = "<group>"; };
+		172D827D2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMenuBarItem.swift; sourceTree = "<group>"; };
+		172D827F2BC1F3270048DD88 /* AccessibilityApplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityApplication.swift; sourceTree = "<group>"; };
 		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
 		1737E3E42BA3C4AA009F0EFA /* HotkeyAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyAction.swift; sourceTree = "<group>"; };
@@ -270,6 +278,17 @@
 				17CC22BB2B8CDE6F001A0582 /* EventManager.swift */,
 			);
 			path = Events;
+			sourceTree = "<group>";
+		};
+		172D82782BC1F2950048DD88 /* Accessibility */ = {
+			isa = PBXGroup;
+			children = (
+				172D827B2BC1F2C10048DD88 /* AccessibilityError.swift */,
+				172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */,
+				172D827F2BC1F3270048DD88 /* AccessibilityApplication.swift */,
+				172D827D2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift */,
+			);
+			path = Accessibility;
 			sourceTree = "<group>";
 		};
 		1736F7762ADBBEF10073428E /* CustomGradientPicker */ = {
@@ -581,6 +600,7 @@
 		7166832C2A767E6A006ABF84 /* Ice */ = {
 			isa = PBXGroup;
 			children = (
+				172D82782BC1F2950048DD88 /* Accessibility */,
 				177386F62B0A656100448BBF /* ControlItem */,
 				17147FBE2B99513200C4A435 /* Events */,
 				716683412A76811C006ABF84 /* Extensions */,
@@ -805,6 +825,7 @@
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
 				175085152B69C50C00CFF13A /* CustomTab.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
+				172D827A2BC1F29E0048DD88 /* AccessibilityMenuBar.swift in Sources */,
 				177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */,
 				173C24892B8E80830096F7A1 /* AboutTab.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
@@ -838,10 +859,12 @@
 				175085132B69C4C100CFF13A /* CustomTabBuilder.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */,
+				172D827C2BC1F2C10048DD88 /* AccessibilityError.swift in Sources */,
 				177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */,
 				17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */,
 				1773546A2B1BBACF001CF731 /* MenuBarAppearanceTab.swift in Sources */,
 				17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */,
+				172D827E2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift in Sources */,
 				17D1AC8D2B97BB5900726180 /* MenuBarItem.swift in Sources */,
 				173C248C2B8E821C0096F7A1 /* UpdatesTab.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* KeyCode.swift in Sources */,
@@ -890,6 +913,7 @@
 				170CF88E2B0EDD780073F982 /* LocalizedErrorBox.swift in Sources */,
 				175812542B80FBFA00D622DA /* MenuBarAppearanceEditorPanel.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
+				172D82802BC1F3270048DD88 /* AccessibilityApplication.swift in Sources */,
 				17C3C5F72B75A36100B9648C /* NSScreen+displayID.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
 			);

@@ -10,8 +10,8 @@ import SwiftUI
 
 /// Manager for the state of the menu bar.
 final class MenuBarManager: ObservableObject {
-    /// The maximum X coordinate of the menu bar's main menu.
-    @Published private(set) var mainMenuMaxX: CGFloat = 0
+    /// The frame of the menu bar's application menu.
+    @Published private(set) var applicationMenuFrame = CGRect.zero
 
     private(set) var sections = [MenuBarSection]()
 
@@ -84,34 +84,27 @@ final class MenuBarManager: ObservableObject {
             .store(in: &c)
 
         // update the main menu maxX
-        Publishers.CombineLatest(
+        Publishers.CombineLatest3(
             NSWorkspace.shared.publisher(for: \.frontmostApplication),
+            NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
         )
-        .sink { [weak self] frontmostApplication, _ in
+        .sink { [weak self] frontmostApplication, isFinishedLaunching, _ in
             guard
                 let self,
-                let frontmostApplication
+                let frontmostApplication,
+                isFinishedLaunching == true
             else {
                 return
             }
             do {
-                guard
-                    let application = Application(frontmostApplication),
-                    let menuBar: UIElement = try application.attribute(.menuBar),
-                    let children: [UIElement] = try menuBar.arrayAttribute(.children)
-                else {
-                    mainMenuMaxX = 0
-                    return
-                }
-                mainMenuMaxX = try children.reduce(into: 0) { result, child in
-                    if let frame: CGRect = try child.attribute(.frame) {
-                        result += frame.width
-                    }
+                let items = try AccessibilityApplication(frontmostApplication).menuBar().menuBarItems()
+                applicationMenuFrame = try items.reduce(into: .zero) { result, item in
+                    result = try result.union(item.frame())
                 }
             } catch {
-                mainMenuMaxX = 0
-                Logger.menuBarManager.error("Error updating main menu maxX: \(error)")
+                applicationMenuFrame = .zero
+                Logger.menuBarManager.error("Error updating application menu frame: \(error)")
             }
         }
         .store(in: &c)
@@ -151,8 +144,8 @@ final class MenuBarManager: ObservableObject {
                             let offsetMinX = leftmostItem.frame.minX - (leftmostItem.frame.width * 2)
 
                             // if the offset value is less than or equal to the maxX of the
-                            // application menu, activate the app to hide the menu
-                            if offsetMinX <= self.mainMenuMaxX {
+                            // application menu frame, activate the app to hide the menu
+                            if offsetMinX <= self.applicationMenuFrame.maxX {
                                 await self.hideApplicationMenus()
                             }
                         } else if

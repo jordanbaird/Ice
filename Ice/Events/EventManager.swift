@@ -176,7 +176,7 @@ final class EventManager {
                     }
                 } else if
                     let mouseLocation = self.getMouseLocation(using: .nsEvent),
-                    mouseLocation.x - display.frame.origin.x > appState.menuBarManager.mainMenuMaxX,
+                    mouseLocation.x - display.frame.origin.x > appState.menuBarManager.applicationMenuFrame.maxX,
                     try await self.isMouseInMenuBar(of: display)
                 {
                     appState.showOnHoverIsPreventedByUserInteraction = true
@@ -352,8 +352,8 @@ final class EventManager {
         let totalWidth = items.reduce(into: 0) { width, item in
             width += item.frame.width
         }
-        let mainMenuMaxX = appState.menuBarManager.mainMenuMaxX
-        return mouseX - display.frame.origin.x > mainMenuMaxX + 10 && mouseX < display.frame.maxX - totalWidth
+        let applicationMenuMaxX = appState.menuBarManager.applicationMenuFrame.maxX
+        return mouseX - display.frame.origin.x > applicationMenuMaxX + 10 && mouseX < display.frame.maxX - totalWidth
     }
 
     private func isMouseOutsideMenuBar(of display: DisplayInfo) -> Bool {

@@ -88,13 +88,14 @@ class MenuBarOverlayPanel: NSPanel {
                 guard
                     let self,
                     let appearanceManager,
-                    let menuBarManager = appearanceManager.menuBarManager
+                    let menuBarManager = appearanceManager.menuBarManager,
+                    !self.isOnActiveSpace,
+                    let owningDisplay = DisplayInfo(nsScreen: self.owningScreen),
+                    !menuBarManager.isMenuBarHidden(for: owningDisplay)
                 else {
                     return
                 }
-                if !menuBarManager.isMenuBarHidden(for: owningScreen) && !isOnActiveSpace {
-                    show()
-                }
+                self.show()
             }
             .store(in: &c)
 
@@ -148,8 +149,20 @@ class MenuBarOverlayPanel: NSPanel {
                 defer {
                     self.needsUpdate = false
                 }
-                updateDesktopWallpaper()
-                updateMenuBar()
+                Task {
+                    do {
+                        try await self.updateDesktopWallpaper()
+                    } catch {
+                        Logger.overlayPanel.error("Error updating desktop wallpaper: \(error)")
+                    }
+                }
+                Task {
+                    do {
+                        try await self.updateMenuBar()
+                    } catch {
+                        Logger.overlayPanel.error("Error updating menu bar: \(error)")
+                    }
+                }
             }
             .store(in: &c)
 
@@ -163,45 +176,35 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Stores the area of the desktop wallpaper that is under the menu bar.
-    private func updateDesktopWallpaper() {
-        Task {
-            do {
-                guard
-                    let owningDisplay = DisplayInfo(nsScreen: owningScreen),
-                    let wallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
-                else {
-                    return
-                }
-                desktopWallpaper = wallpaper
-            } catch {
-                Logger.overlayPanel.error("Error updating desktop wallpaper: \(error)")
-            }
-        }
-    }
-
-    /// Stores a reference to the menu bar using the given menu bar window.
-    private func updateMenuBar() {
+    private func updateDesktopWallpaper() async throws {
         guard
             let owningDisplay = DisplayInfo(nsScreen: owningScreen),
-            let menuBarWindow = WindowInfo.menuBarWindow(for: owningDisplay)
+            let wallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
         else {
             return
         }
-        do {
-            guard
-                let menuBar = try systemWideElement.elementAtPosition(
-                    Float(menuBarWindow.frame.origin.x),
-                    Float(menuBarWindow.frame.origin.y)
-                ),
-                try menuBar.role() == .menuBar
-            else {
-                self.menuBar = nil
-                return
-            }
-            self.menuBar = menuBar
-        } catch {
-            Logger.overlayPanel.error("Error updating menu bar: \(error)")
+        desktopWallpaper = wallpaper
+    }
+
+    /// Stores a reference to the menu bar using the given menu bar window.
+    private func updateMenuBar() async throws {
+        guard
+            let owningDisplay = DisplayInfo(nsScreen: owningScreen),
+            let menuBarWindow = try await WindowInfo.menuBarWindow(for: owningDisplay)
+        else {
+            return
         }
+        guard
+            let menuBar = try systemWideElement.elementAtPosition(
+                Float(menuBarWindow.frame.origin.x),
+                Float(menuBarWindow.frame.origin.y)
+            ),
+            try menuBar.role() == .menuBar
+        else {
+            self.menuBar = nil
+            return
+        }
+        self.menuBar = menuBar
     }
 
     /// Stores the maxX position of the menu bar.
@@ -450,12 +453,12 @@ private class MenuBarOverlayPanelContentView: NSView {
         let trailingPath: NSBezierPath = {
             guard
                 let overlayPanel,
-                let owningDisplay = DisplayInfo(displayID: overlayPanel.owningScreen.displayID)
+                let owningDisplay = DisplayInfo(displayID: overlayPanel.owningScreen.displayID),
+                let items = try? menuBarManager.itemManager.getMenuBarItems(for: owningDisplay, onScreenOnly: true)
             else {
                 return NSBezierPath(rect: rect)
             }
 
-            let items = menuBarManager.itemManager.getMenuBarItems(for: owningDisplay, onScreenOnly: true)
             let totalWidth = items.reduce(into: 0) { width, item in
                 width += item.frame.width
             }
@@ -530,7 +533,8 @@ private class MenuBarOverlayPanelContentView: NSView {
             let overlayPanel,
             let appearanceManager = overlayPanel.appearanceManager,
             let menuBarManager = appearanceManager.menuBarManager,
-            let context = NSGraphicsContext.current
+            let context = NSGraphicsContext.current,
+            let owningDisplay = DisplayInfo(nsScreen: overlayPanel.owningScreen)
         else {
             return
         }
@@ -540,7 +544,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             context.restoreGraphicsState()
         }
 
-        if menuBarManager.isMenuBarHidden(for: overlayPanel.owningScreen) {
+        if menuBarManager.isMenuBarHidden(for: owningDisplay) {
             return
         }
 

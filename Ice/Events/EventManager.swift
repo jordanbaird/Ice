@@ -4,9 +4,22 @@
 //
 
 import Cocoa
+import OSLog
 
 /// Manager for the various event monitors maintained by the app.
 final class EventManager {
+    /// A method used to retrieve the mouse location.
+    enum MouseLocationMethod {
+        /// The mouse location is retrieved using `NSEvent`'s method.
+        /// It is based on screen coordinates, with the origin at the
+        /// bottom left of the screen.
+        case nsEvent
+        /// The mouse location is retrieved using `CGEvent`'s method.
+        /// It is based on display coordinates, with the origin at the
+        /// top left of the display.
+        case cgEvent
+    }
+
     private weak var appState: AppState?
 
     // MARK: - Monitors
@@ -19,33 +32,43 @@ final class EventManager {
             let self,
             let appState,
             appState.settingsManager.generalSettingsManager.showOnHover,
-            !appState.showOnHoverIsPreventedByUserInteraction,
-            let display = DisplayInfo.main,
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden)
+            !appState.showOnHoverIsPreventedByUserInteraction
         else {
             return event
         }
-
-        if hiddenSection.isHidden {
-            if isMouseInEmptyMenuBarSpace(of: display) {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    // make sure the mouse is still inside
-                    if self.isMouseInEmptyMenuBarSpace(of: display) {
-                        hiddenSection.show()
-                    }
-                }
+        Task {
+            guard
+                let display = DisplayInfo.main,
+                let hiddenSection = appState.menuBarManager.section(withName: .hidden)
+            else {
+                return
             }
-        } else {
-            if isMouseOutsideMenuBar(of: display) {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    // make sure the mouse is still outside
-                    if self.isMouseOutsideMenuBar(of: display) {
-                        hiddenSection.hide()
+            do {
+                if hiddenSection.isHidden {
+                    guard try await self.isMouseInEmptyMenuBarSpace(of: display) else {
+                        return
                     }
+                    try await Task.sleep(for: .seconds(0.2))
+                    // make sure the mouse is still inside
+                    guard try await self.isMouseInEmptyMenuBarSpace(of: display) else {
+                        return
+                    }
+                    await hiddenSection.show()
+                } else {
+                    guard self.isMouseOutsideMenuBar(of: display) else {
+                        return
+                    }
+                    try await Task.sleep(for: .seconds(0.2))
+                    // make sure the mouse is still outside
+                    guard self.isMouseOutsideMenuBar(of: display) else {
+                        return
+                    }
+                    await hiddenSection.hide()
                 }
+            } catch {
+                Logger.eventManager.error("ERROR: \(error)")
             }
         }
-
         return event
     }
 
@@ -71,41 +94,47 @@ final class EventManager {
             return event
         }
 
-        // make sure the mouse is not in the menu bar
-        guard
-            let display = DisplayInfo.main,
-            !isMouseInMenuBar(of: display)
-        else {
-            return event
-        }
+        Task {
+            do {
+                // make sure the mouse is not in the menu bar
+                guard
+                    let display = DisplayInfo.main,
+                    try await !self.isMouseInMenuBar(of: display)
+                else {
+                    return
+                }
 
-        // get the window that the user has clicked into
-        guard
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-            let mouseLocation = CGEvent(source: nil)?.location,
-            let windowUnderMouse = WindowInfo.getCurrent(option: .optionOnScreenOnly)
-                .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
-                .first(where: { $0.frame.contains(mouseLocation) }),
-            let owningApplication = windowUnderMouse.owningApplication
-        else {
-            return event
-        }
+                // get the window that the user has clicked into
+                guard
+                    let hiddenSection = appState.menuBarManager.section(withName: .hidden),
+                    let mouseLocation = self.getMouseLocation(using: .cgEvent),
+                    let windowUnderMouse = try await WindowInfo.current(option: .optionOnScreenOnly)
+                        .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
+                        .first(where: { $0.frame.contains(mouseLocation) }),
+                    let owningApplication = windowUnderMouse.owningApplication
+                else {
+                    return
+                }
 
-        // the dock is an exception to the following check
-        if owningApplication.bundleIdentifier != "com.apple.dock" {
-            // only continue if the user has clicked into an
-            // active window with a regular activation policy
-            guard
-                owningApplication.isActive,
-                owningApplication.activationPolicy == .regular
-            else {
-                return event
+                // the dock is an exception to the following check
+                if owningApplication.bundleIdentifier != "com.apple.dock" {
+                    // only continue if the user has clicked into an
+                    // active window with a regular activation policy
+                    guard
+                        owningApplication.isActive,
+                        owningApplication.activationPolicy == .regular
+                    else {
+                        return
+                    }
+                }
+
+                try await Task.sleep(for: .seconds(0.25))
+
+                // if all the above checks have passed, hide
+                await hiddenSection.hide()
+            } catch {
+                Logger.eventManager.error("ERROR: \(error)")
             }
-        }
-
-        // if all the above checks have passed, hide
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            hiddenSection.hide()
         }
 
         return event
@@ -117,43 +146,51 @@ final class EventManager {
     ) { [weak self, weak appState] event in
         guard
             let self,
-            let appState,
-            let display = DisplayInfo.main,
-            let visibleSection = appState.menuBarManager.section(withName: .visible),
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-            let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden)
+            let appState
         else {
             return event
         }
-
-        if isMouseInEmptyMenuBarSpace(of: display) {
-            appState.showOnHoverIsPreventedByUserInteraction = true
-            if appState.settingsManager.generalSettingsManager.showOnClick {
-                if
-                    NSEvent.modifierFlags == .option,
-                    appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
-                {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        alwaysHiddenSection.toggle()
-                    }
-                } else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        hiddenSection.toggle()
-                    }
-                }
+        Task {
+            guard
+                let display = DisplayInfo.main,
+                let visibleSection = appState.menuBarManager.section(withName: .visible),
+                let hiddenSection = appState.menuBarManager.section(withName: .hidden),
+                let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden)
+            else {
+                return
             }
-        } else if
-            NSEvent.mouseLocation.x - display.frame.origin.x > appState.menuBarManager.mainMenuMaxX,
-            isMouseInMenuBar(of: display)
-        {
-            appState.showOnHoverIsPreventedByUserInteraction = true
-        } else if
-            let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
-            visibleControlItemFrame.contains(NSEvent.mouseLocation)
-        {
-            appState.showOnHoverIsPreventedByUserInteraction = true
+            do {
+                if try await self.isMouseInEmptyMenuBarSpace(of: display) {
+                    appState.showOnHoverIsPreventedByUserInteraction = true
+                    if appState.settingsManager.generalSettingsManager.showOnClick {
+                        if
+                            NSEvent.modifierFlags == .option,
+                            appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
+                        {
+                            try await Task.sleep(for: .seconds(0.05))
+                            await alwaysHiddenSection.toggle()
+                        } else {
+                            try await Task.sleep(for: .seconds(0.05))
+                            await hiddenSection.toggle()
+                        }
+                    }
+                } else if
+                    let mouseLocation = self.getMouseLocation(using: .nsEvent),
+                    mouseLocation.x - display.frame.origin.x > appState.menuBarManager.mainMenuMaxX,
+                    try await self.isMouseInMenuBar(of: display)
+                {
+                    appState.showOnHoverIsPreventedByUserInteraction = true
+                } else if
+                    let mouseLocation = self.getMouseLocation(using: .nsEvent),
+                    let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
+                    visibleControlItemFrame.contains(mouseLocation)
+                {
+                    appState.showOnHoverIsPreventedByUserInteraction = true
+                }
+            } catch {
+                Logger.eventManager.error("ERROR: \(error)")
+            }
         }
-
         return event
     }
 
@@ -163,17 +200,26 @@ final class EventManager {
     ) { [weak self, weak appState] event in
         guard
             let self,
-            let appState,
-            let display = DisplayInfo.main
+            let appState
         else {
             return event
         }
-
-        if isMouseInEmptyMenuBarSpace(of: display) {
-            appState.showOnHoverIsPreventedByUserInteraction = true
-            appState.menuBarManager.showRightClickMenu(at: NSEvent.mouseLocation)
+        Task {
+            guard let display = DisplayInfo.main else {
+                return
+            }
+            do {
+                if
+                    try await self.isMouseInEmptyMenuBarSpace(of: display),
+                    let mouseLocation = self.getMouseLocation(using: .nsEvent)
+                {
+                    appState.showOnHoverIsPreventedByUserInteraction = true
+                    await appState.menuBarManager.showRightClickMenu(at: mouseLocation)
+                }
+            } catch {
+                Logger.eventManager.error("ERROR: \(error)")
+            }
         }
-
         return event
     }
 
@@ -184,30 +230,40 @@ final class EventManager {
         guard
             let self,
             let appState,
-            event.modifierFlags.contains(.command),
-            let display = DisplayInfo.main,
-            isMouseInMenuBar(of: display)
+            event.modifierFlags.contains(.command)
         else {
             return event
         }
-        if appState.settingsManager.advancedSettingsManager.showSectionDividers {
-            for section in appState.menuBarManager.sections where section.isHidden {
-                section.show()
-            }
-        } else {
-            for section in appState.menuBarManager.sections {
-                if section.isHidden {
-                    section.show()
+        Task {
+            do {
+                guard
+                    let display = DisplayInfo.main,
+                    try await self.isMouseInMenuBar(of: display)
+                else {
+                    return
                 }
-                if
-                    section.controlItem.isSectionDivider,
-                    !section.controlItem.isVisible
-                {
-                    section.controlItem.isVisible = true
+                if appState.settingsManager.advancedSettingsManager.showSectionDividers {
+                    for section in appState.menuBarManager.sections where section.isHidden {
+                        await section.show()
+                    }
+                } else {
+                    for section in appState.menuBarManager.sections {
+                        if section.isHidden {
+                            await section.show()
+                        }
+                        if
+                            section.controlItem.isSectionDivider,
+                            !section.controlItem.isVisible
+                        {
+                            section.controlItem.isVisible = true
+                        }
+                    }
                 }
+                appState.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
+            } catch {
+                Logger.eventManager.error("ERROR: \(error)")
             }
         }
-        appState.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
         return event
     }
 
@@ -218,17 +274,28 @@ final class EventManager {
         guard
             let self,
             let appState,
-            appState.settingsManager.generalSettingsManager.showOnScroll,
-            let display = DisplayInfo.main,
-            isMouseInMenuBar(of: display),
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden)
+            appState.settingsManager.generalSettingsManager.showOnScroll
         else {
             return event
         }
-        if (event.scrollingDeltaX + event.scrollingDeltaY) / 2 > 5 {
-            hiddenSection.show()
-        } else if (event.scrollingDeltaX + event.scrollingDeltaY) / 2 < -5 {
-            hiddenSection.hide()
+        let averageDelta = (event.scrollingDeltaX + event.scrollingDeltaY) / 2
+        Task {
+            do {
+                guard
+                    let display = DisplayInfo.main,
+                    try await self.isMouseInMenuBar(of: display),
+                    let hiddenSection = appState.menuBarManager.section(withName: .hidden)
+                else {
+                    return
+                }
+                if averageDelta > 5 {
+                    await hiddenSection.show()
+                } else if averageDelta < -5 {
+                    await hiddenSection.hide()
+                }
+            } catch {
+                Logger.eventManager.error("ERROR: \(error)")
+            }
         }
         return event
     }
@@ -248,43 +315,59 @@ final class EventManager {
         scrollWheelMonitor.start()
     }
 
-    private func isMouseInMenuBar(of display: DisplayInfo) -> Bool {
-        if NSApp.presentationOptions.contains(.autoHideMenuBar) {
+    private func getMouseLocation(using method: MouseLocationMethod) -> CGPoint? {
+        switch method {
+        case .nsEvent: NSEvent.mouseLocation
+        case .cgEvent: CGEvent(source: nil)?.location
+        }
+    }
+
+    private func isMouseInMenuBar(of display: DisplayInfo) async throws -> Bool {
+        if await NSApp.presentationOptions.contains(.autoHideMenuBar) {
             if
-                let mouseLocation = CGEvent(source: nil)?.location,
-                let menuBar = appState?.menuBarManager.itemManager.getMenuBarWindow(for: display)
+                let mouseLocation = getMouseLocation(using: .cgEvent),
+                let menuBar = try await WindowInfo.menuBarWindow(for: display)
             {
                 return menuBar.frame.contains(mouseLocation)
             }
         }
-        if let screen = display.getNSScreen() {
-            let mouseY = NSEvent.mouseLocation.y
+        if
+            let screen = display.getNSScreen(),
+            let mouseY = getMouseLocation(using: .nsEvent)?.y
+        {
             return mouseY > screen.visibleFrame.maxY && mouseY <= screen.frame.maxY
         }
         return false
     }
 
-    private func isMouseInEmptyMenuBarSpace(of display: DisplayInfo) -> Bool {
+    private func isMouseInEmptyMenuBarSpace(of display: DisplayInfo) async throws -> Bool {
         guard
             let appState,
-            isMouseInMenuBar(of: display)
+            let mouseX = getMouseLocation(using: .nsEvent)?.x,
+            try await isMouseInMenuBar(of: display)
         else {
             return false
         }
-        let items = appState.menuBarManager.itemManager.getMenuBarItems(for: display, onScreenOnly: true)
+        let items = try await appState.menuBarManager.itemManager.menuBarItems(for: display, onScreenOnly: true)
         let totalWidth = items.reduce(into: 0) { width, item in
             width += item.frame.width
         }
-        let mouseX = NSEvent.mouseLocation.x
         let mainMenuMaxX = appState.menuBarManager.mainMenuMaxX
         return mouseX - display.frame.origin.x > mainMenuMaxX + 10 && mouseX < display.frame.maxX - totalWidth
     }
 
     private func isMouseOutsideMenuBar(of display: DisplayInfo) -> Bool {
-        guard let screen = display.getNSScreen() else {
+        guard
+            let screen = display.getNSScreen(),
+            let mouseY = getMouseLocation(using: .nsEvent)?.y
+        else {
             return false
         }
-        let mouseY = NSEvent.mouseLocation.y
         return mouseY < screen.visibleFrame.maxY || mouseY > screen.frame.maxY
     }
+}
+
+// MARK: - Logger
+private extension Logger {
+    static let eventManager = Logger(category: "EventManager")
 }

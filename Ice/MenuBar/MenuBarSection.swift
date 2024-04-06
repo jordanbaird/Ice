@@ -83,6 +83,7 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Shows the status items in the section.
+    @MainActor
     func show() {
         guard let menuBarManager else {
             return
@@ -115,6 +116,7 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Hides the status items in the section.
+    @MainActor
     func hide() {
         guard let menuBarManager else {
             return
@@ -148,6 +150,7 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Toggles the visibility of the status items in the section.
+    @MainActor
     func toggle() {
         switch controlItem.state {
         case .hideItems: show()
@@ -187,7 +190,9 @@ final class MenuBarSection: ObservableObject {
                             return
                         }
                         if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
-                            hide()
+                            Task {
+                                await self.hide()
+                            }
                         } else {
                             startRehideChecks()
                         }

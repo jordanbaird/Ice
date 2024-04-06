@@ -80,18 +80,18 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard
                     let self,
                     let menuBarManager,
-                    let screen = NSScreen.main
+                    let display = DisplayInfo.main
                 else {
                     return
                 }
                 if
                     overlayPanels.isEmpty,
-                    !menuBarManager.isMenuBarHidden(for: screen)
+                    !menuBarManager.isMenuBarHidden(for: display)
                 {
                     configureOverlayPanels(with: configuration)
                 } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        if menuBarManager.isMenuBarHidden(for: screen) {
+                        if menuBarManager.isMenuBarHidden(for: display) {
                             while let panel = self.overlayPanels.popFirst() {
                                 panel.orderOut(self)
                             }

@@ -306,15 +306,17 @@ final class ControlItem: ObservableObject {
         }
         switch event.type {
         case .leftMouseUp:
-            if
-                NSEvent.modifierFlags == .option,
-                appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
-            {
-                if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
-                    alwaysHiddenSection.toggle()
+            Task {
+                if
+                    NSEvent.modifierFlags == .option,
+                    appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
+                {
+                    if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
+                        await alwaysHiddenSection.toggle()
+                    }
+                } else {
+                    await section?.toggle()
                 }
-            } else {
-                section?.toggle()
             }
         case .rightMouseUp:
             statusItem.showMenu(createMenu(with: appState))
@@ -397,7 +399,10 @@ final class ControlItem: ObservableObject {
     }
 
     @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
-        Self.sectionStorage[menuItem]?.toggle()
+        let section = Self.sectionStorage[menuItem]
+        Task {
+            await section?.toggle()
+        }
     }
 
     @objc private func checkForUpdates() {

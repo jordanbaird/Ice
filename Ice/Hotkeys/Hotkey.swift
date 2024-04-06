@@ -82,7 +82,9 @@ extension Hotkey {
                 guard let appState else {
                     return
                 }
-                hotkey.action.perform(appState: appState)
+                Task {
+                    await hotkey.action.perform(appState: appState)
+                }
             }
             guard let id else {
                 return nil

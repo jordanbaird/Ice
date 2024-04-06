@@ -9,6 +9,7 @@ enum HotkeyAction: String, Codable, CaseIterable {
     case toggleApplicationMenus = "ToggleApplicationMenus"
     case showSectionDividers = "ShowSectionDividers"
 
+    @MainActor
     func perform(appState: AppState) {
         switch self {
         case .toggleHiddenSection:

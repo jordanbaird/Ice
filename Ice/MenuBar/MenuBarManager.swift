@@ -127,39 +127,43 @@ final class MenuBarManager: ObservableObject {
                 else {
                     return
                 }
-                if sections.contains(where: { !$0.isHidden }) {
-                    guard
-                        let screen = NSScreen.main,
-                        !isMenuBarHidden(for: screen),
-                        !isFullscreen(for: screen),
-                        let display = DisplayInfo(displayID: screen.displayID)
-                    else {
-                        return
-                    }
+                Task {
+                    do {
+                        if self.sections.contains(where: { !$0.isHidden }) {
+                            guard
+                                let display = DisplayInfo.main,
+                                !self.isMenuBarHidden(for: display),
+                                !self.isFullscreen(for: display)
+                            else {
+                                return
+                            }
 
-                    let items = itemManager.getMenuBarItems(for: display, onScreenOnly: true)
+                            let items = try await self.itemManager.menuBarItems(for: display, onScreenOnly: true)
 
-                    // get the leftmost item on the screen; the application menu should
-                    // be hidden if the item's minX is close to the maxX of the menu
-                    guard let leftmostItem = items.min(by: { $0.frame.minX < $1.frame.minX }) else {
-                        return
-                    }
+                            // get the leftmost item on the screen; the application menu should
+                            // be hidden if the item's minX is close to the maxX of the menu
+                            guard let leftmostItem = items.min(by: { $0.frame.minX < $1.frame.minX }) else {
+                                return
+                            }
 
-                    // offset the leftmost item's minX by twice its width to give
-                    // ourselves a little wiggle room
-                    let offsetMinX = leftmostItem.frame.minX - (leftmostItem.frame.width * 2)
+                            // offset the leftmost item's minX by twice its width to give
+                            // ourselves a little wiggle room
+                            let offsetMinX = leftmostItem.frame.minX - (leftmostItem.frame.width * 2)
 
-                    // if the offset value is less than or equal to the maxX of the
-                    // application menu, activate the app to hide the menu
-                    if offsetMinX <= mainMenuMaxX {
-                        hideApplicationMenus()
-                    }
-                } else if
-                    isHidingApplicationMenus,
-                    appState.settingsWindow?.isVisible == false
-                {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.showApplicationMenus()
+                            // if the offset value is less than or equal to the maxX of the
+                            // application menu, activate the app to hide the menu
+                            if offsetMinX <= self.mainMenuMaxX {
+                                await self.hideApplicationMenus()
+                            }
+                        } else if
+                            self.isHidingApplicationMenus,
+                            await appState.settingsWindow?.isVisible == false
+                        {
+                            try await Task.sleep(for: .seconds(0.1))
+                            await self.showApplicationMenus()
+                        }
+                    } catch {
+                        Logger.menuBarManager.error("ERROR: \(error)")
                     }
                 }
             }
@@ -190,6 +194,7 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Shows the right-click menu.
+    @MainActor
     func showRightClickMenu(at point: CGPoint) {
         let menu = NSMenu(title: Constants.appName)
 
@@ -213,16 +218,19 @@ final class MenuBarManager: ObservableObject {
         menu.popUp(positioning: nil, at: point, in: nil)
     }
 
+    @MainActor
     func hideApplicationMenus() {
         appState?.activate(withPolicy: .regular)
         isHidingApplicationMenus = true
     }
 
+    @MainActor
     func showApplicationMenus() {
         appState?.deactivate(withPolicy: .accessory)
         isHidingApplicationMenus = false
     }
 
+    @MainActor
     func toggleApplicationMenus() {
         if isHidingApplicationMenus {
             showApplicationMenus()
@@ -244,22 +252,25 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Returns a Boolean value that indicates whether the menu bar is
-    /// hidden for the given screen.
-    func isMenuBarHidden(for screen: NSScreen) -> Bool {
-        guard
-            let display = DisplayInfo(displayID: screen.displayID),
-            let menuBarWindow = itemManager.getMenuBarWindow(for: display)
-        else {
+    /// hidden for the given display.
+    func isMenuBarHidden(for display: DisplayInfo) -> Bool {
+        guard let menuBarWindow = try? WindowInfo.getMenuBarWindow(for: display) else {
             return true
         }
         return !menuBarWindow.isOnScreen
     }
 
     /// Returns a Boolean value that indicates whether an app is fullscreen
-    /// on the given screen.
-    func isFullscreen(for screen: NSScreen) -> Bool {
-        WindowInfo.getCurrent(option: .optionOnScreenOnly).contains { window in
-            window.frame == screen.frame &&
+    /// on the given display.
+    func isFullscreen(for display: DisplayInfo) -> Bool {
+        let windows: [WindowInfo]
+        do {
+            windows = try WindowInfo.getCurrent(option: .optionOnScreenOnly)
+        } catch {
+            return false
+        }
+        return windows.contains { window in
+            window.frame == display.frame &&
             window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
             window.title == "Fullscreen Backdrop"
         }

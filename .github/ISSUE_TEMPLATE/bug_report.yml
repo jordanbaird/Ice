@@ -9,7 +9,7 @@ body:
       description: Check existing issues to prevent duplicates. Only submit a new issue if you feel it has not been covered by an existing issue, or if a regression has occurred.
       options:
         - label: I have checked existing issues and believe that my issue is not a duplicate
-        - required: true
+          required: true
   - type: textarea
     attributes:
       label: Description

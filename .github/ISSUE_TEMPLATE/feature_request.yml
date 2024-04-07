@@ -1,0 +1,16 @@
+name: Feature Request
+description: Request a feature or suggest an idea
+title: "[Feature Request]: <feature title>"
+labels: enhancement
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      placeholder: A clear and concise description of the feature...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Screenshots
+      description: Relevant screenshots or screen recordings.
+      placeholder: (optional)

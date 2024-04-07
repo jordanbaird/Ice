@@ -4,15 +4,15 @@
 //
 
 import AXSwift
+import Cocoa
 
 /// An accessibility representation of a menu bar.
+@MainActor
 struct AccessibilityMenuBar {
     /// The underyling UI element.
     let uiElement: UIElement
 
     /// Creates an accessibility menu bar from the given UI element.
-    /// 
-    /// This initializer throws an error if the provided UI element is not a menu bar.
     ///
     /// - Parameter uiElement: A UI element that represents a menu bar.
     init(uiElement: UIElement) throws {
@@ -25,6 +25,50 @@ struct AccessibilityMenuBar {
             throw error
         } catch {
             throw AccessibilityError(message: "Invalid menu bar", underlyingError: error)
+        }
+    }
+
+    /// Creates an accessibility menu bar for the given display.
+    ///
+    /// - Parameter display: The display to get the menu bar for.
+    init(display: DisplayInfo) async throws {
+        do {
+            guard let menuBarWindow = try await WindowInfo.menuBarWindow(for: display) else {
+                throw AccessibilityError(message: "No menu bar window for display \(display)")
+            }
+            let position = menuBarWindow.frame.origin
+            guard let uiElement = try systemWideElement.elementAtPosition(Float(position.x), Float(position.y)) else {
+                throw AccessibilityError(message: "No menu bar at position \(position)")
+            }
+            try self.init(uiElement: uiElement)
+        } catch let error as AccessibilityError {
+            throw error
+        } catch {
+            throw AccessibilityError(message: "Invalid menu bar for display \(display)", underlyingError: error)
+        }
+    }
+
+    /// Creates an accessibility menu bar for the given screen.
+    ///
+    /// - Parameter display: The screen to get the menu bar for.
+    init(screen: NSScreen) async throws {
+        guard let display = DisplayInfo(nsScreen: screen) else {
+            throw AccessibilityError(message: "Cannot retrieve DisplayInfo for screen")
+        }
+        try await self.init(display: display)
+    }
+
+    /// Returns the menu bar's frame.
+    func frame() throws -> CGRect {
+        do {
+            guard let frame: CGRect = try uiElement.attribute(.frame) else {
+                throw AccessibilityError(message: "Missing frame")
+            }
+            return frame
+        } catch let error as AccessibilityError {
+            throw error
+        } catch {
+            throw AccessibilityError(message: "Invalid frame", underlyingError: error)
         }
     }
 

@@ -7,6 +7,7 @@ import AXSwift
 import Cocoa
 
 /// An accessibility representation of an application.
+@MainActor
 struct AccessibilityApplication {
     let application: Application
 
@@ -16,9 +17,9 @@ struct AccessibilityApplication {
         self.application = application
     }
 
-    /// Creates an accessibility application from a running application.
-    init(_ runningApplication: NSRunningApplication) throws {
-        guard let application = Application(runningApplication) else {
+    /// Creates an accessibility application from a process identifier.
+    init(forProcessID processID: pid_t) throws {
+        guard let application = Application(forProcessID: processID) else {
             throw AccessibilityError(message: "Could not create application")
         }
         self.init(application: application)

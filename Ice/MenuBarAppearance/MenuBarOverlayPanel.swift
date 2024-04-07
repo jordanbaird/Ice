@@ -30,17 +30,17 @@ class MenuBarOverlayPanel: NSPanel {
     @Published var isDraggingMenuBarItem = false
 
     /// The menu bar associated with the panel.
-    @Published private(set) var menuBar: UIElement?
+    @Published private(set) var menuBar: AccessibilityMenuBar?
 
-    /// The max X position of the main menu.
-    @Published private(set) var mainMenuMaxX: CGFloat?
+    /// The frame of the menu bar's application menu.
+    @Published private(set) var applicationMenuFrame: CGRect?
 
     /// The current desktop wallpaper, clipped to the bounds of the menu bar.
     @Published private(set) var desktopWallpaper: CGImage?
 
     /// The frame that should be used to display the panel.
     private var frameForDisplay: CGRect? {
-        guard let menuBarFrame: CGRect = try? menuBar?.attribute(.frame) else {
+        guard let menuBarFrame: CGRect = try? menuBar?.frame() else {
             return nil
         }
         return CGRect(
@@ -118,8 +118,9 @@ class MenuBarOverlayPanel: NSPanel {
             .store(in: &c)
 
         // update when frontmost application changes, or when it owns the menu bar
-        Publishers.CombineLatest(
+        Publishers.CombineLatest3(
             NSWorkspace.shared.publisher(for: \.frontmostApplication),
+            NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
         )
         .delay(for: 0.1, scheduler: DispatchQueue.main)
@@ -138,7 +139,6 @@ class MenuBarOverlayPanel: NSPanel {
 
         $needsUpdate
             .removeDuplicates()
-            .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] needsUpdate in
                 guard
                     let self,
@@ -151,16 +151,16 @@ class MenuBarOverlayPanel: NSPanel {
                 }
                 Task {
                     do {
-                        try await self.updateDesktopWallpaper()
+                        try await self.updateMenuBar()
                     } catch {
-                        Logger.overlayPanel.error("Error updating desktop wallpaper: \(error)")
+                        Logger.overlayPanel.error("Error updating menu bar: \(error)")
                     }
                 }
                 Task {
                     do {
-                        try await self.updateMenuBar()
+                        try await self.updateDesktopWallpaper()
                     } catch {
-                        Logger.overlayPanel.error("Error updating menu bar: \(error)")
+                        Logger.overlayPanel.error("Error updating desktop wallpaper: \(error)")
                     }
                 }
             }
@@ -168,7 +168,7 @@ class MenuBarOverlayPanel: NSPanel {
 
         $menuBar
             .sink { [weak self] menuBar in
-                self?.updateMainMenuMaxX(menuBar: menuBar)
+                self?.updateApplicationMenuFrame(menuBar: menuBar)
             }
             .store(in: &c)
 
@@ -186,44 +186,29 @@ class MenuBarOverlayPanel: NSPanel {
         desktopWallpaper = wallpaper
     }
 
-    /// Stores a reference to the menu bar using the given menu bar window.
+    /// Stores a reference to the owning screen's menu bar.
     private func updateMenuBar() async throws {
-        guard
-            let owningDisplay = DisplayInfo(nsScreen: owningScreen),
-            let menuBarWindow = try await WindowInfo.menuBarWindow(for: owningDisplay)
-        else {
-            return
+        do {
+            menuBar = try await AccessibilityMenuBar(screen: owningScreen)
+        } catch {
+            menuBar = nil
+            Logger.overlayPanel.error("Error updating menu bar: \(error)")
         }
-        guard
-            let menuBar = try systemWideElement.elementAtPosition(
-                Float(menuBarWindow.frame.origin.x),
-                Float(menuBarWindow.frame.origin.y)
-            ),
-            try menuBar.role() == .menuBar
-        else {
-            self.menuBar = nil
-            return
-        }
-        self.menuBar = menuBar
     }
 
-    /// Stores the maxX position of the menu bar.
-    private func updateMainMenuMaxX(menuBar: UIElement?) {
+    /// Stores the frame of the menu bar's application menu.
+    private func updateApplicationMenuFrame(menuBar: AccessibilityMenuBar?) {
         guard let menuBar else {
             return
         }
         do {
-            guard let children: [UIElement] = try menuBar.arrayAttribute(.children) else {
-                mainMenuMaxX = nil
-                return
+            let items = try menuBar.menuBarItems()
+            let frame: CGRect = try items.reduce(into: .zero) { result, item in
+                result = try result.union(item.frame())
             }
-            mainMenuMaxX = try children.reduce(into: 0) { result, child in
-                if let frame: CGRect = try child.attribute(.frame) {
-                    result += frame.width
-                }
-            }
+            applicationMenuFrame = frame
         } catch {
-            Logger.overlayPanel.error("Error updating main menu maxX: \(error)")
+            Logger.overlayPanel.error("Error updating application menu frame: \(error)")
         }
     }
 
@@ -310,8 +295,8 @@ private class MenuBarOverlayPanelContentView: NSView {
                     }
                 }
                 .store(in: &c)
-            // redraw whenever the main menu maxX changes
-            overlayPanel.$mainMenuMaxX
+            // redraw whenever the application menu frame changes
+            overlayPanel.$applicationMenuFrame
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
                 }
@@ -408,18 +393,16 @@ private class MenuBarOverlayPanelContentView: NSView {
     private func pathForSplitShapeKind(in rect: CGRect, info: MenuBarSplitShapeInfo) -> NSBezierPath {
         guard
             let menuBarManager = overlayPanel?.appearanceManager?.menuBarManager,
-            let mainMenuMaxX = overlayPanel?.mainMenuMaxX
+            let applicationMenuMaxX = overlayPanel?.applicationMenuFrame?.maxX
         else {
             return NSBezierPath(rect: rect)
         }
-
-        let padding: CGFloat = 8
 
         let leadingPath: NSBezierPath = {
             let shapeBounds = CGRect(
                 x: rect.height / 2,
                 y: rect.origin.y,
-                width: (mainMenuMaxX - (rect.height / 2)) + padding,
+                width: (applicationMenuMaxX - (rect.height / 2)) - 2,
                 height: rect.height
             )
             let leadingEndCapBounds = CGRect(
@@ -429,7 +412,7 @@ private class MenuBarOverlayPanelContentView: NSView {
                 height: rect.height
             )
             let trailingEndCapBounds = CGRect(
-                x: (mainMenuMaxX - (rect.height / 2)) + padding,
+                x: (applicationMenuMaxX - (rect.height / 2)) - 2,
                 y: rect.origin.y,
                 width: rect.height,
                 height: rect.height
@@ -462,7 +445,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             let totalWidth = items.reduce(into: 0) { width, item in
                 width += item.frame.width
             }
-            let position = rect.maxX - totalWidth - padding
+            let position = rect.maxX - totalWidth - 7
 
             let shapeBounds = CGRect(
                 x: position + (rect.height / 2),

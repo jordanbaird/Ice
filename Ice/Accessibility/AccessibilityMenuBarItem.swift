@@ -7,6 +7,7 @@ import AXSwift
 import CoreGraphics
 
 /// An accessibility representation of an item in a menu bar.
+@MainActor
 struct AccessibilityMenuBarItem {
     /// The underyling UI element.
     let uiElement: UIElement

@@ -83,7 +83,7 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        // update the main menu maxX
+        // update the application menu frame
         Publishers.CombineLatest3(
             NSWorkspace.shared.publisher(for: \.frontmostApplication),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
@@ -92,19 +92,21 @@ final class MenuBarManager: ObservableObject {
         .sink { [weak self] frontmostApplication, isFinishedLaunching, _ in
             guard
                 let self,
-                let frontmostApplication,
+                let processID = frontmostApplication?.processIdentifier,
                 isFinishedLaunching == true
             else {
                 return
             }
-            do {
-                let items = try AccessibilityApplication(frontmostApplication).menuBar().menuBarItems()
-                applicationMenuFrame = try items.reduce(into: .zero) { result, item in
-                    result = try result.union(item.frame())
+            Task { @MainActor in
+                do {
+                    let items = try AccessibilityApplication(forProcessID: processID).menuBar().menuBarItems()
+                    self.applicationMenuFrame = try items.reduce(into: .zero) { result, item in
+                        result = try result.union(item.frame())
+                    }
+                } catch {
+                    self.applicationMenuFrame = .zero
+                    Logger.menuBarManager.error("Error updating application menu frame: \(error)")
                 }
-            } catch {
-                applicationMenuFrame = .zero
-                Logger.menuBarManager.error("Error updating application menu frame: \(error)")
             }
         }
         .store(in: &c)

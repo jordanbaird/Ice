@@ -182,7 +182,7 @@ final class EventManager {
                     appState.showOnHoverIsPreventedByUserInteraction = true
                 } else if
                     let mouseLocation = self.getMouseLocation(using: .nsEvent),
-                    let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
+                    let visibleControlItemFrame = await visibleSection.controlItem.windowFrame,
                     visibleControlItemFrame.contains(mouseLocation)
                 {
                     appState.showOnHoverIsPreventedByUserInteraction = true
@@ -234,7 +234,7 @@ final class EventManager {
         else {
             return event
         }
-        Task {
+        Task { @MainActor in
             do {
                 guard
                     let display = DisplayInfo.main,
@@ -244,12 +244,12 @@ final class EventManager {
                 }
                 if appState.settingsManager.advancedSettingsManager.showSectionDividers {
                     for section in appState.menuBarManager.sections where section.isHidden {
-                        await section.show()
+                        section.show()
                     }
                 } else {
                     for section in appState.menuBarManager.sections {
                         if section.isHidden {
-                            await section.show()
+                            section.show()
                         }
                         if
                             section.controlItem.isSectionDivider,

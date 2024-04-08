@@ -36,6 +36,7 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Performs the initial setup of the menu bar.
+    @MainActor
     func performSetup() {
         initializeSections()
         configureCancellables()
@@ -43,6 +44,7 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Performs the initial setup of the menu bar's section list.
+    @MainActor
     private func initializeSections() {
         // make sure initialization can only happen once
         guard sections.isEmpty else {

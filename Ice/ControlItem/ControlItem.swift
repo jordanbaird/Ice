@@ -37,12 +37,15 @@ final class ControlItem: ObservableObject {
     let identifier: Identifier
 
     /// A Boolean value that indicates whether the control item is visible.
+    @MainActor
     @Published var isVisible: Bool
 
     /// The hiding state of the control item.
+    @MainActor
     @Published var state: HidingState
 
     /// The frame of the control item's window.
+    @MainActor
     @Published private(set) var windowFrame: CGRect?
 
     /// The menu bar section associated with the control item.
@@ -71,6 +74,7 @@ final class ControlItem: ObservableObject {
         return section.name != .visible
     }
 
+    @MainActor
     init(identifier: Identifier) {
         let autosaveName = identifier.rawValue
 
@@ -121,6 +125,7 @@ final class ControlItem: ObservableObject {
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
+    @MainActor
     private func configureStatusItem() {
         defer {
             configureCancellables()
@@ -134,6 +139,7 @@ final class ControlItem: ObservableObject {
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
+    @MainActor
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -238,6 +244,7 @@ final class ControlItem: ObservableObject {
         cancellables = c
     }
 
+    @MainActor
     private func updateStatusItem(with state: HidingState) {
         guard
             let appState,
@@ -418,6 +425,7 @@ final class ControlItem: ObservableObject {
     }
 
     /// Assigns the app state to the control item.
+    @MainActor
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
             Logger.controlItem.warning("Multiple attempts made to assign app state")

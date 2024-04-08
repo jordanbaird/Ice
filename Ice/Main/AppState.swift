@@ -91,6 +91,7 @@ final class AppState: ObservableObject {
         cancellables = c
     }
 
+    @MainActor
     func performSetup() {
         permissionsManager.stopAllChecks()
         eventManager.performSetup()

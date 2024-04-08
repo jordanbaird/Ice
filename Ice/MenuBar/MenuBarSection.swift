@@ -21,6 +21,7 @@ final class MenuBarSection: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
+    @MainActor
     private(set) weak var appState: AppState? {
         didSet {
             guard let appState else {
@@ -30,10 +31,12 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
+    @MainActor
     weak var menuBarManager: MenuBarManager? {
         appState?.menuBarManager
     }
 
+    @MainActor
     init(name: Name, controlItem: ControlItem) {
         self.name = name
         self.controlItem = controlItem
@@ -42,6 +45,7 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Creates a menu bar section with the given name.
+    @MainActor
     convenience init(name: Name) {
         let controlItem = switch name {
         case .visible:
@@ -74,6 +78,7 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Assigns the section's app state.
+    @MainActor
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
             Logger.menuBarSection.warning("Multiple attempts made to assign app state")
@@ -158,6 +163,7 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
+    @MainActor
     private func startRehideChecks() {
         rehideTimer?.invalidate()
         rehideMonitor?.stop()
@@ -194,7 +200,9 @@ final class MenuBarSection: ObservableObject {
                                 await self.hide()
                             }
                         } else {
-                            startRehideChecks()
+                            Task {
+                                await self.startRehideChecks()
+                            }
                         }
                     }
                 }

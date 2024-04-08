@@ -177,13 +177,10 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Stores the area of the desktop wallpaper that is under the menu bar.
     private func updateDesktopWallpaper() async throws {
-        guard
-            let owningDisplay = DisplayInfo(nsScreen: owningScreen),
-            let wallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
-        else {
+        guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
             return
         }
-        desktopWallpaper = wallpaper
+        desktopWallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
     }
 
     /// Stores a reference to the owning screen's menu bar.
@@ -265,16 +262,6 @@ private class MenuBarOverlayPanelContentView: NSView {
         overlayPanel?.appearanceManager
     }
 
-    /// The bounds that the view's drawn content can occupy.
-    var drawableBounds: CGRect {
-        CGRect(
-            x: bounds.origin.x,
-            y: bounds.origin.y + 5,
-            width: bounds.width,
-            height: bounds.height - 5
-        )
-    }
-
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         configureCancellables()
@@ -354,7 +341,7 @@ private class MenuBarOverlayPanelContentView: NSView {
     }
 
     /// Returns a path for the ``MenuBarShapeKind/full`` shape kind.
-    private func pathForFullShapeKind(in rect: CGRect, info: MenuBarFullShapeInfo) -> NSBezierPath {
+    private func pathForFullShape(in rect: CGRect, info: MenuBarFullShapeInfo) -> NSBezierPath {
         let shapeBounds = CGRect(
             x: rect.height / 2,
             y: rect.origin.y,
@@ -390,7 +377,7 @@ private class MenuBarOverlayPanelContentView: NSView {
     }
 
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
-    private func pathForSplitShapeKind(in rect: CGRect, info: MenuBarSplitShapeInfo) -> NSBezierPath {
+    private func pathForSplitShape(in rect: CGRect, info: MenuBarSplitShapeInfo, display: DisplayInfo) -> NSBezierPath {
         guard
             let menuBarManager = overlayPanel?.appearanceManager?.menuBarManager,
             let applicationMenuMaxX = overlayPanel?.applicationMenuFrame?.maxX
@@ -434,11 +421,8 @@ private class MenuBarOverlayPanelContentView: NSView {
         }()
 
         let trailingPath: NSBezierPath = {
-            guard
-                let overlayPanel,
-                let owningDisplay = DisplayInfo(displayID: overlayPanel.owningScreen.displayID),
-                let items = try? menuBarManager.itemManager.getMenuBarItems(for: owningDisplay, onScreenOnly: true)
-            else {
+            let itemManager = menuBarManager.itemManager
+            guard let items = try? itemManager.getMenuBarItems(for: display, onScreenOnly: true) else {
                 return NSBezierPath(rect: rect)
             }
 
@@ -486,7 +470,7 @@ private class MenuBarOverlayPanelContentView: NSView {
                 leadingEndCap: info.leading.leadingEndCap,
                 trailingEndCap: info.trailing.trailingEndCap
             )
-            return pathForFullShapeKind(in: rect, info: info)
+            return pathForFullShape(in: rect, info: info)
         } else {
             let path = NSBezierPath()
             path.append(leadingPath)
@@ -495,7 +479,17 @@ private class MenuBarOverlayPanelContentView: NSView {
         }
     }
 
-    private func drawTint(configuration: MenuBarAppearanceConfiguration) {
+    /// Returns the bounds that the view's drawn content can occupy.
+    private func getDrawableBounds() -> CGRect {
+        return CGRect(
+            x: bounds.origin.x,
+            y: bounds.origin.y + 5,
+            width: bounds.width,
+            height: bounds.height - 5
+        )
+    }
+
+    private func drawTint(configuration: MenuBarAppearanceConfiguration, drawableBounds: CGRect) {
         switch configuration.tintKind {
         case .none:
             break
@@ -532,14 +526,15 @@ private class MenuBarOverlayPanelContentView: NSView {
         }
 
         let configuration = appearanceManager.configuration
+        let drawableBounds = getDrawableBounds()
 
         let shapePath = switch configuration.shapeKind {
         case .none:
             NSBezierPath(rect: drawableBounds)
         case .full:
-            pathForFullShapeKind(in: drawableBounds, info: configuration.fullShapeInfo)
+            pathForFullShape(in: drawableBounds, info: configuration.fullShapeInfo)
         case .split:
-            pathForSplitShapeKind(in: drawableBounds, info: configuration.splitShapeInfo)
+            pathForSplitShape(in: drawableBounds, info: configuration.splitShapeInfo, display: owningDisplay)
         }
 
         var hasBorder = false
@@ -562,7 +557,7 @@ private class MenuBarOverlayPanelContentView: NSView {
                 gradient?.draw(in: shadowBounds, angle: 90)
             }
 
-            drawTint(configuration: configuration)
+            drawTint(configuration: configuration, drawableBounds: drawableBounds)
 
             if configuration.hasBorder {
                 let borderBounds = CGRect(
@@ -607,7 +602,7 @@ private class MenuBarOverlayPanelContentView: NSView {
 
             shapePath.setClip()
 
-            drawTint(configuration: configuration)
+            drawTint(configuration: configuration, drawableBounds: drawableBounds)
 
             if
                 hasBorder,

@@ -32,7 +32,7 @@ class MenuBarItemManager: ObservableObject {
     /// Returns an array of menu bar items in the menu bar for the given display.
     func getMenuBarItems(for display: DisplayInfo, onScreenOnly: Bool) throws -> [MenuBarItem] {
         let windows = try WindowInfo.getCurrent(option: onScreenOnly ? .optionOnScreenOnly : .optionAll)
-        guard let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display) else {
+        guard let menuBarWindow = try? WindowInfo.getMenuBarWindow(from: windows, for: display) else {
             throw MenuBarItemError.noMenuBarWindow
         }
         return getMenuBarItems(windows: windows, menuBarWindow: menuBarWindow, display: display)
@@ -41,7 +41,7 @@ class MenuBarItemManager: ObservableObject {
     /// Asynchronously returns an array of menu bar items in the menu bar for the given display.
     func menuBarItems(for display: DisplayInfo, onScreenOnly: Bool) async throws -> [MenuBarItem] {
         let windows = try await WindowInfo.current(option: onScreenOnly ? .optionOnScreenOnly : .optionAll)
-        guard let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display) else {
+        guard let menuBarWindow = try? WindowInfo.getMenuBarWindow(from: windows, for: display) else {
             throw MenuBarItemError.noMenuBarWindow
         }
         return getMenuBarItems(windows: windows, menuBarWindow: menuBarWindow, display: display)

@@ -109,13 +109,10 @@ class ScreenCaptureManager {
 
     /// Returns an image containing the area of the desktop wallpaper
     /// that is below the menu bar for the given display.
-    func desktopWallpaperBelowMenuBar(for display: DisplayInfo) async throws -> CGImage? {
-        guard
-            let wallpaperWindow = try await WindowInfo.wallpaperWindow(for: display),
-            let menuBarWindow = try await WindowInfo.menuBarWindow(for: display)
-        else {
-            return nil
-        }
+    func desktopWallpaperBelowMenuBar(for display: DisplayInfo) async throws -> CGImage {
+        let windows = try await WindowInfo.current(option: .optionOnScreenOnly)
+        let wallpaperWindow = try WindowInfo.getWallpaperWindow(from: windows, for: display)
+        let menuBarWindow = try WindowInfo.getMenuBarWindow(from: windows, for: display)
         return try await captureImage(
             timeout: .milliseconds(500),
             onScreenWindow: wallpaperWindow,

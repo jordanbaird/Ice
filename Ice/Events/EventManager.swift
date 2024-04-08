@@ -325,10 +325,8 @@ final class EventManager {
 
     private func isMouseInMenuBar(of display: DisplayInfo) async throws -> Bool {
         if NSApp.presentationOptions.contains(.autoHideMenuBar) {
-            if
-                let mouseLocation = getMouseLocation(using: .cgEvent),
+            if let mouseLocation = getMouseLocation(using: .cgEvent) {
                 let menuBar = try await WindowInfo.menuBarWindow(for: display)
-            {
                 return menuBar.frame.contains(mouseLocation)
             }
         }

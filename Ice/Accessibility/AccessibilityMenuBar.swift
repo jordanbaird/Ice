@@ -33,8 +33,11 @@ struct AccessibilityMenuBar {
     /// - Parameter display: The display to get the menu bar for.
     init(display: DisplayInfo) async throws {
         do {
-            guard let menuBarWindow = try await WindowInfo.menuBarWindow(for: display) else {
-                throw AccessibilityError(message: "No menu bar window for display \(display)")
+            let menuBarWindow: WindowInfo
+            do {
+                menuBarWindow = try await WindowInfo.menuBarWindow(for: display)
+            } catch {
+                throw AccessibilityError(message: "No menu bar window for display \(display)", underlyingError: error)
             }
             let position = menuBarWindow.frame.origin
             guard let uiElement = try systemWideElement.elementAtPosition(Float(position.x), Float(position.y)) else {

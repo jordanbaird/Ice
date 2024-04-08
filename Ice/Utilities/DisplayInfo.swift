@@ -118,8 +118,12 @@ extension DisplayInfo {
     /// - Parameter activeDisplaysOnly: A Boolean value that indicates whether
     ///   to return only the active displays.
     static func current(activeDisplaysOnly: Bool) async throws -> [DisplayInfo] {
-        let task = Task {
+        let task = Task.detached {
             let displayCount = getDisplayCount(activeDisplaysOnly: activeDisplaysOnly)
+
+            try Task.checkCancellation()
+            await Task.yield()
+
             var displayIDs = Array(repeating: kCGNullDirectDisplay, count: displayCount)
             let result = if activeDisplaysOnly {
                 CGGetActiveDisplayList(UInt32(displayCount), &displayIDs, nil)
@@ -129,10 +133,26 @@ extension DisplayInfo {
             if let error = DisplayListError(cgError: result) {
                 throw error
             }
-            return displayIDs.compactMap { displayID in
-                DisplayInfo(displayID: displayID)
+
+            try Task.checkCancellation()
+            await Task.yield()
+
+            var displays = [DisplayInfo]()
+            for displayID in displayIDs {
+                try Task.checkCancellation()
+                await Task.yield()
+                if let display = DisplayInfo(displayID: displayID) {
+                    displays.append(display)
+                }
             }
+
+            return displays
         }
-        return try await task.value
+
+        return try await withTaskCancellationHandler {
+            try await task.value
+        } onCancel: {
+            task.cancel()
+        }
     }
 }

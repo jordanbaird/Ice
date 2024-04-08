@@ -14,8 +14,6 @@ struct AccessibilityMenuBarItem {
 
     /// Creates an accessibility menu bar item from the given UI element.
     ///
-    /// This initializer throws an error if the provided UI element is not a menu bar item.
-    ///
     /// - Parameter uiElement: A UI element that represents a menu bar item.
     init(uiElement: UIElement) throws {
         do {

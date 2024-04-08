@@ -3,8 +3,6 @@
 //  Ice
 //
 
-import AXSwift
-
 /// An error that provides more context about an accessibility failure.
 struct AccessibilityError: Error, CustomStringConvertible {
     /// A message associated with the error.

@@ -25,6 +25,7 @@ struct AccessibilityApplication {
         self.init(application: application)
     }
 
+    /// Returns the menu bar associated with the application.
     func menuBar() throws -> AccessibilityMenuBar {
         do {
             guard let uiElement: UIElement = try application.attribute(.menuBar) else {

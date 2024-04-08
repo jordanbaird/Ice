@@ -10,6 +10,7 @@ class MenuBarItemManager: ObservableObject {
     enum MenuBarItemError: Error {
         case noMenuBarWindow
     }
+
     private(set) weak var menuBarManager: MenuBarManager?
 
     init(menuBarManager: MenuBarManager) {

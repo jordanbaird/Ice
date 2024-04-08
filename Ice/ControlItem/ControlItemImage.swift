@@ -17,6 +17,7 @@ enum ControlItemImage: Codable, Hashable {
     case data(_ data: Data)
 
     /// A Cocoa representation of this image.
+    @MainActor
     func nsImage(for appState: AppState) -> NSImage? {
         switch self {
         case .builtin(let name):

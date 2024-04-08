@@ -8,6 +8,7 @@ import OSLog
 import SwiftUI
 
 /// The model for app-wide state.
+@MainActor
 final class AppState: ObservableObject {
     /// The shared app state singleton.
     static let shared = AppState()
@@ -91,7 +92,6 @@ final class AppState: ObservableObject {
         cancellables = c
     }
 
-    @MainActor
     func performSetup() {
         permissionsManager.stopAllChecks()
         eventManager.performSetup()

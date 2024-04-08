@@ -5,6 +5,7 @@
 
 import SwiftUI
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState.shared
 

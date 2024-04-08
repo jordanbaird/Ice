@@ -6,6 +6,7 @@
 import Foundation
 import OSLog
 
+@MainActor
 struct MigrationManager {
     enum MigrationError: Error, CustomStringConvertible {
         case invalidMenuBarSectionsJSONObject(Any)

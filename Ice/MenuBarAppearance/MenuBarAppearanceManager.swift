@@ -9,6 +9,7 @@ import ScreenCaptureKit
 import SwiftUI
 
 /// A type that manages the appearance of the menu bar.
+@MainActor
 final class MenuBarAppearanceManager: ObservableObject {
     /// The configuration that defines the appearance of the menu bar.
     @Published var configuration: MenuBarAppearanceConfiguration = .defaultConfiguration
@@ -90,7 +91,8 @@ final class MenuBarAppearanceManager: ObservableObject {
                 {
                     configureOverlayPanels(with: configuration)
                 } else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    Task {
+                        try await Task.sleep(for: .seconds(0.5))
                         if menuBarManager.isMenuBarHidden(for: display) {
                             while let panel = self.overlayPanels.popFirst() {
                                 panel.orderOut(self)
@@ -160,7 +162,8 @@ final class MenuBarAppearanceManager: ObservableObject {
             overlayPanels.insert(panel)
             // panel needs a reference to the menu bar frame, which is retrieved asynchronously; wait a bit before showing
             // FIXME: Show after the panel has the menu bar reference instead of waiting an arbitrary amount of time
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            Task {
+                try await Task.sleep(for: .seconds(0.5))
                 panel.show()
             }
         }

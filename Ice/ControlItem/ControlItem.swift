@@ -8,6 +8,7 @@ import Combine
 import OSLog
 
 /// A status item that controls the visibility of a section in the menu bar.
+@MainActor
 final class ControlItem: ObservableObject {
     enum Identifier: String, Hashable {
         case iceIcon = "IceIcon"
@@ -37,25 +38,17 @@ final class ControlItem: ObservableObject {
     let identifier: Identifier
 
     /// A Boolean value that indicates whether the control item is visible.
-    @MainActor
     @Published var isVisible: Bool
 
     /// The hiding state of the control item.
-    @MainActor
     @Published var state: HidingState
 
     /// The frame of the control item's window.
-    @MainActor
     @Published private(set) var windowFrame: CGRect?
 
     /// The menu bar section associated with the control item.
     private weak var section: MenuBarSection? {
         appState?.menuBarManager.sections.first { $0.controlItem === self }
-    }
-
-    /// The control item's autosave name.
-    var autosaveName: String {
-        statusItem.autosaveName
     }
 
     /// The identifier of the control item's window.
@@ -74,7 +67,6 @@ final class ControlItem: ObservableObject {
         return section.name != .visible
     }
 
-    @MainActor
     init(identifier: Identifier) {
         let autosaveName = identifier.rawValue
 
@@ -115,9 +107,11 @@ final class ControlItem: ObservableObject {
     }
 
     deinit {
+        guard let autosaveName = statusItem.autosaveName else {
+            return
+        }
         // removing the status item has the unwanted side effect of deleting the
         // preferredPosition; cache and restore after removing
-        let autosaveName = autosaveName
         let cached = StatusItemDefaults[.preferredPosition, autosaveName]
         defer {
             StatusItemDefaults[.preferredPosition, autosaveName] = cached
@@ -125,7 +119,6 @@ final class ControlItem: ObservableObject {
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
-    @MainActor
     private func configureStatusItem() {
         defer {
             configureCancellables()
@@ -139,7 +132,6 @@ final class ControlItem: ObservableObject {
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
-    @MainActor
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -159,7 +151,9 @@ final class ControlItem: ObservableObject {
                 if !isVisible {
                     // setting the status item to invisible has the unwanted side effect
                     // of deleting the preferred position; cache and restore afterwards
-                    let autosaveName = autosaveName
+                    guard let autosaveName = statusItem.autosaveName else {
+                        return
+                    }
                     let cached = StatusItemDefaults[.preferredPosition, autosaveName]
                     deferredBlock = {
                         StatusItemDefaults[.preferredPosition, autosaveName] = cached
@@ -244,7 +238,6 @@ final class ControlItem: ObservableObject {
         cancellables = c
     }
 
-    @MainActor
     private func updateStatusItem(with state: HidingState) {
         guard
             let appState,
@@ -313,17 +306,15 @@ final class ControlItem: ObservableObject {
         }
         switch event.type {
         case .leftMouseUp:
-            Task {
-                if
-                    NSEvent.modifierFlags == .option,
-                    appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
-                {
-                    if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
-                        await alwaysHiddenSection.toggle()
-                    }
-                } else {
-                    await section?.toggle()
+            if
+                NSEvent.modifierFlags == .option,
+                appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
+            {
+                if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
+                    alwaysHiddenSection.toggle()
                 }
+            } else {
+                section?.toggle()
             }
         case .rightMouseUp:
             statusItem.showMenu(createMenu(with: appState))
@@ -406,10 +397,7 @@ final class ControlItem: ObservableObject {
     }
 
     @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
-        let section = Self.sectionStorage[menuItem]
-        Task {
-            await section?.toggle()
-        }
+        Self.sectionStorage[menuItem]?.toggle()
     }
 
     @objc private func checkForUpdates() {
@@ -425,7 +413,6 @@ final class ControlItem: ObservableObject {
     }
 
     /// Assigns the app state to the control item.
-    @MainActor
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
             Logger.controlItem.warning("Multiple attempts made to assign app state")

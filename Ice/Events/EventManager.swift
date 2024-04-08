@@ -7,6 +7,7 @@ import Cocoa
 import OSLog
 
 /// Manager for the various event monitors maintained by the app.
+@MainActor
 final class EventManager {
     /// A method used to retrieve the mouse location.
     enum MouseLocationMethod {
@@ -53,7 +54,7 @@ final class EventManager {
                     guard try await self.isMouseInEmptyMenuBarSpace(of: display) else {
                         return
                     }
-                    await hiddenSection.show()
+                    hiddenSection.show()
                 } else {
                     guard self.isMouseOutsideMenuBar(of: display) else {
                         return
@@ -63,7 +64,7 @@ final class EventManager {
                     guard self.isMouseOutsideMenuBar(of: display) else {
                         return
                     }
-                    await hiddenSection.hide()
+                    hiddenSection.hide()
                 }
             } catch {
                 Logger.eventManager.error("ERROR: \(error)")
@@ -131,7 +132,7 @@ final class EventManager {
                 try await Task.sleep(for: .seconds(0.25))
 
                 // if all the above checks have passed, hide
-                await hiddenSection.hide()
+                hiddenSection.hide()
             } catch {
                 Logger.eventManager.error("ERROR: \(error)")
             }
@@ -168,10 +169,10 @@ final class EventManager {
                             appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
                         {
                             try await Task.sleep(for: .seconds(0.05))
-                            await alwaysHiddenSection.toggle()
+                            alwaysHiddenSection.toggle()
                         } else {
                             try await Task.sleep(for: .seconds(0.05))
-                            await hiddenSection.toggle()
+                            hiddenSection.toggle()
                         }
                     }
                 } else if
@@ -182,7 +183,7 @@ final class EventManager {
                     appState.showOnHoverIsPreventedByUserInteraction = true
                 } else if
                     let mouseLocation = self.getMouseLocation(using: .nsEvent),
-                    let visibleControlItemFrame = await visibleSection.controlItem.windowFrame,
+                    let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
                     visibleControlItemFrame.contains(mouseLocation)
                 {
                     appState.showOnHoverIsPreventedByUserInteraction = true
@@ -214,7 +215,7 @@ final class EventManager {
                     let mouseLocation = self.getMouseLocation(using: .nsEvent)
                 {
                     appState.showOnHoverIsPreventedByUserInteraction = true
-                    await appState.menuBarManager.showRightClickMenu(at: mouseLocation)
+                    appState.menuBarManager.showRightClickMenu(at: mouseLocation)
                 }
             } catch {
                 Logger.eventManager.error("ERROR: \(error)")
@@ -234,7 +235,7 @@ final class EventManager {
         else {
             return event
         }
-        Task { @MainActor in
+        Task {
             do {
                 guard
                     let display = DisplayInfo.main,
@@ -289,9 +290,9 @@ final class EventManager {
                     return
                 }
                 if averageDelta > 5 {
-                    await hiddenSection.show()
+                    hiddenSection.show()
                 } else if averageDelta < -5 {
-                    await hiddenSection.hide()
+                    hiddenSection.hide()
                 }
             } catch {
                 Logger.eventManager.error("ERROR: \(error)")
@@ -323,7 +324,7 @@ final class EventManager {
     }
 
     private func isMouseInMenuBar(of display: DisplayInfo) async throws -> Bool {
-        if await NSApp.presentationOptions.contains(.autoHideMenuBar) {
+        if NSApp.presentationOptions.contains(.autoHideMenuBar) {
             if
                 let mouseLocation = getMouseLocation(using: .cgEvent),
                 let menuBar = try await WindowInfo.menuBarWindow(for: display)

@@ -8,6 +8,7 @@ import Combine
 import OSLog
 
 /// A representation of a section in a menu bar.
+@MainActor
 final class MenuBarSection: ObservableObject {
     @Published private(set) var isHidden: Bool
 
@@ -21,7 +22,6 @@ final class MenuBarSection: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    @MainActor
     private(set) weak var appState: AppState? {
         didSet {
             guard let appState else {
@@ -31,12 +31,10 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    @MainActor
     weak var menuBarManager: MenuBarManager? {
         appState?.menuBarManager
     }
 
-    @MainActor
     init(name: Name, controlItem: ControlItem) {
         self.name = name
         self.controlItem = controlItem
@@ -45,7 +43,6 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Creates a menu bar section with the given name.
-    @MainActor
     convenience init(name: Name) {
         let controlItem = switch name {
         case .visible:
@@ -78,7 +75,6 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Assigns the section's app state.
-    @MainActor
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
             Logger.menuBarSection.warning("Multiple attempts made to assign app state")
@@ -88,7 +84,6 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Shows the status items in the section.
-    @MainActor
     func show() {
         guard let menuBarManager else {
             return
@@ -121,7 +116,6 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Hides the status items in the section.
-    @MainActor
     func hide() {
         guard let menuBarManager else {
             return
@@ -155,7 +149,6 @@ final class MenuBarSection: ObservableObject {
     }
 
     /// Toggles the visibility of the status items in the section.
-    @MainActor
     func toggle() {
         switch controlItem.state {
         case .hideItems: show()
@@ -163,7 +156,6 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
-    @MainActor
     private func startRehideChecks() {
         rehideTimer?.invalidate()
         rehideMonitor?.stop()

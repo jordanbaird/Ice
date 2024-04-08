@@ -9,6 +9,7 @@ import OSLog
 import SwiftUI
 
 /// Manager for the state of the menu bar.
+@MainActor
 final class MenuBarManager: ObservableObject {
     /// The frame of the menu bar's application menu.
     @Published private(set) var applicationMenuFrame = CGRect.zero
@@ -36,7 +37,6 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Performs the initial setup of the menu bar.
-    @MainActor
     func performSetup() {
         initializeSections()
         configureCancellables()
@@ -44,7 +44,6 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Performs the initial setup of the menu bar's section list.
-    @MainActor
     private func initializeSections() {
         // make sure initialization can only happen once
         guard sections.isEmpty else {
@@ -78,7 +77,8 @@ final class MenuBarManager: ObservableObject {
                     case .focusedApp = appState.settingsManager.generalSettingsManager.rehideStrategy,
                     let hiddenSection = section(withName: .hidden)
                 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    Task {
+                        try await Task.sleep(for: .seconds(0.1))
                         hiddenSection.hide()
                     }
                 }
@@ -99,7 +99,7 @@ final class MenuBarManager: ObservableObject {
             else {
                 return
             }
-            Task { @MainActor in
+            Task {
                 do {
                     let items = try AccessibilityApplication(forProcessID: processID).menuBar().menuBarItems()
                     self.applicationMenuFrame = try items.reduce(into: .zero) { result, item in
@@ -150,14 +150,14 @@ final class MenuBarManager: ObservableObject {
                             // if the offset value is less than or equal to the maxX of the
                             // application menu frame, activate the app to hide the menu
                             if offsetMinX <= self.applicationMenuFrame.maxX {
-                                await self.hideApplicationMenus()
+                                self.hideApplicationMenus()
                             }
                         } else if
                             self.isHidingApplicationMenus,
-                            await appState.settingsWindow?.isVisible == false
+                            appState.settingsWindow?.isVisible == false
                         {
                             try await Task.sleep(for: .seconds(0.1))
-                            await self.showApplicationMenus()
+                            self.showApplicationMenus()
                         }
                     } catch {
                         Logger.menuBarManager.error("ERROR: \(error)")
@@ -191,7 +191,6 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Shows the right-click menu.
-    @MainActor
     func showRightClickMenu(at point: CGPoint) {
         let menu = NSMenu(title: Constants.appName)
 
@@ -215,19 +214,16 @@ final class MenuBarManager: ObservableObject {
         menu.popUp(positioning: nil, at: point, in: nil)
     }
 
-    @MainActor
     func hideApplicationMenus() {
         appState?.activate(withPolicy: .regular)
         isHidingApplicationMenus = true
     }
 
-    @MainActor
     func showApplicationMenus() {
         appState?.deactivate(withPolicy: .accessory)
         isHidingApplicationMenus = false
     }
 
-    @MainActor
     func toggleApplicationMenus() {
         if isHidingApplicationMenus {
             showApplicationMenus()

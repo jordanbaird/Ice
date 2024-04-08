@@ -353,7 +353,7 @@ final class EventManager {
             width += item.frame.width
         }
         let applicationMenuMaxX = appState.menuBarManager.applicationMenuFrame.maxX
-        return mouseX - display.frame.origin.x > applicationMenuMaxX + 10 && mouseX < display.frame.maxX - totalWidth
+        return mouseX - display.frame.origin.x > applicationMenuMaxX && mouseX < display.frame.maxX - totalWidth
     }
 
     private func isMouseOutsideMenuBar(of display: DisplayInfo) -> Bool {

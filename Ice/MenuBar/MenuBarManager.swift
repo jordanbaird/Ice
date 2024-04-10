@@ -32,7 +32,7 @@ final class MenuBarManager: ObservableObject {
 
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
-        self.appearanceManager = MenuBarAppearanceManager(appState: appState)
+        appearanceManager = MenuBarAppearanceManager(appState: appState)
         self.appState = appState
     }
 
@@ -264,16 +264,18 @@ final class MenuBarManager: ObservableObject {
         }
         return windows.contains { window in
             window.frame == display.frame &&
-            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            window.title == "Fullscreen Backdrop"
+                window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+                window.title == "Fullscreen Backdrop"
         }
     }
 }
 
 // MARK: MenuBarManager: BindingExposable
-extension MenuBarManager: BindingExposable { }
+
+extension MenuBarManager: BindingExposable {}
 
 // MARK: - Logger
+
 private extension Logger {
     static let menuBarManager = Logger(category: "MenuBarManager")
 }

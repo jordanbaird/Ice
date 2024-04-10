@@ -31,7 +31,7 @@ private struct WindowReader: NSViewRepresentable {
         Coordinator()
     }
 
-    func updateNSView(_: NSView, context: Context) { }
+    func updateNSView(_: NSView, context _: Context) {}
 }
 
 extension View {

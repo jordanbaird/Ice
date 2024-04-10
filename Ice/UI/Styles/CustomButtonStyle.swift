@@ -15,17 +15,19 @@ struct CustomButtonStyle: PrimitiveButtonStyle {
         private class Represented: NSView {
             override var mouseDownCanMoveWindow: Bool { false }
         }
-        func makeNSView(context: Context) -> NSView { Represented() }
-        func updateNSView(_: NSView, context: Context) { }
+
+        func makeNSView(context _: Context) -> NSView { Represented() }
+        func updateNSView(_: NSView, context _: Context) {}
     }
 
     /// Custom view that ensures that the button accepts the first mouse input.
     private struct FirstMouseOverlay: NSViewRepresentable {
         private class Represented: NSView {
-            override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+            override func acceptsFirstMouse(for _: NSEvent?) -> Bool { true }
         }
-        func makeNSView(context: Context) -> NSView { Represented() }
-        func updateNSView(_: NSView, context: Context) { }
+
+        func makeNSView(context _: Context) -> NSView { Represented() }
+        func updateNSView(_: NSView, context _: Context) {}
     }
 
     @Environment(\.controlSize) private var controlSize

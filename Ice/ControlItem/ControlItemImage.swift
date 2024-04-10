@@ -20,16 +20,16 @@ enum ControlItemImage: Codable, Hashable {
     @MainActor
     func nsImage(for appState: AppState) -> NSImage? {
         switch self {
-        case .builtin(let name):
+        case let .builtin(name):
             return switch name {
             case .chevronLarge: StaticBuiltins.Chevron.large
             case .chevronSmall: StaticBuiltins.Chevron.small
             }
-        case .symbol(let name):
+        case let .symbol(name):
             let image = NSImage(systemSymbolName: name, accessibilityDescription: "")
             image?.isTemplate = true
             return image
-        case .catalog(let name):
+        case let .catalog(name):
             guard let originalImage = NSImage(named: name) else {
                 return nil
             }
@@ -38,7 +38,7 @@ enum ControlItemImage: Codable, Hashable {
             let ratio = max(originalWidth / 25, originalHeight / 17)
             let newSize = CGSize(width: originalWidth / ratio, height: originalHeight / ratio)
             return originalImage.resized(to: newSize)
-        case .data(let data):
+        case let .data(data):
             let image = NSImage(data: data)
             let generalSettingsManager = appState.settingsManager.generalSettingsManager
             image?.isTemplate = generalSettingsManager.customIceIconIsTemplate

@@ -38,7 +38,7 @@ final class MenuBarSection: ObservableObject {
     init(name: Name, controlItem: ControlItem) {
         self.name = name
         self.controlItem = controlItem
-        self.isHidden = controlItem.state == .hideItems
+        isHidden = controlItem.state == .hideItems
         configureCancellables()
     }
 
@@ -217,9 +217,11 @@ final class MenuBarSection: ObservableObject {
 }
 
 // MARK: MenuBarSection: BindingExposable
-extension MenuBarSection: BindingExposable { }
+
+extension MenuBarSection: BindingExposable {}
 
 // MARK: MenuBarSection.Name
+
 extension MenuBarSection {
     /// The name of a menu bar section.
     enum Name {
@@ -246,6 +248,7 @@ extension MenuBarSection {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let menuBarSection = Logger(category: "MenuBarSection")
 }

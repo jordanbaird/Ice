@@ -194,7 +194,7 @@ struct GeneralSettingsPane: View {
                     rehideStrategyPicker
                     CompactSlider(
                         value: manager.bindings.rehideInterval,
-                        in: 0...30,
+                        in: 0 ... 30,
                         step: 1,
                         handleVisibility: .hovering(width: 1)
                     ) {

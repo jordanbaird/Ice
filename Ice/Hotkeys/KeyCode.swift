@@ -151,6 +151,7 @@ struct KeyCode: Codable, Hashable, RawRepresentable {
 }
 
 // MARK: Key Equivalent
+
 extension KeyCode {
     /// System representation.
     var keyEquivalent: String {
@@ -192,6 +193,7 @@ extension KeyCode {
 }
 
 // MARK: Custom String Mappings
+
 private let customStringMappings = [
     // standard keys
     KeyCode.space: "Space",
@@ -240,9 +242,9 @@ private let customStringMappings = [
     KeyCode.keypadClear: "⌧",
     KeyCode.keypadEnter: "⌤",
     // media keys
-    KeyCode.volumeUp: "\u{1F50A}",   // 'SPEAKER WITH THREE SOUND WAVES'
+    KeyCode.volumeUp: "\u{1F50A}", // 'SPEAKER WITH THREE SOUND WAVES'
     KeyCode.volumeDown: "\u{1F509}", // 'SPEAKER WITH ONE SOUND WAVE'
-    KeyCode.mute: "\u{1F507}",       // 'SPEAKER WITH CANCELLATION STROKE'
+    KeyCode.mute: "\u{1F507}", // 'SPEAKER WITH CANCELLATION STROKE'
     // keypad keys
     KeyCode.keypad0: "0⃣",
     KeyCode.keypad1: "1⃣",
@@ -266,6 +268,7 @@ private let customStringMappings = [
 ]
 
 // MARK: String Value
+
 extension KeyCode {
     /// Custom string representation.
     var stringValue: String {

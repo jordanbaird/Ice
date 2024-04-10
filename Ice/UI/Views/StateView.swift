@@ -32,7 +32,7 @@ struct StateView<Value, Content: View>: View {
         initialValue: Value,
         @ViewBuilder content: @escaping (_ state: Binding<Value>) -> Content
     ) {
-        self._value = State(wrappedValue: initialValue)
+        _value = State(wrappedValue: initialValue)
         self.content = content
     }
 

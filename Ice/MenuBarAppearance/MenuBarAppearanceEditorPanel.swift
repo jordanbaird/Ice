@@ -57,6 +57,7 @@ class MenuBarAppearanceEditorPanel: NSPanel {
 }
 
 // MARK: MenuBarAppearanceEditorPanel: NSPopoverDelegate
+
 extension MenuBarAppearanceEditorPanel: NSPopoverDelegate {
     func popoverDidClose(_ notification: Notification) {
         if let popover = notification.object as? MenuBarAppearanceEditorPopover {
@@ -90,14 +91,14 @@ private class MenuBarAppearanceEditorPopover: NSPopover {
 
     override init() {
         super.init()
-        self.contentViewController = NSHostingController(rootView: contentView)
-        self.contentSize = CGSize(width: 500, height: 500)
-        self.behavior = .applicationDefined
-        self.mouseDownMonitor.start()
+        contentViewController = NSHostingController(rootView: contentView)
+        contentSize = CGSize(width: 500, height: 500)
+        behavior = .applicationDefined
+        mouseDownMonitor.start()
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) {
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 }

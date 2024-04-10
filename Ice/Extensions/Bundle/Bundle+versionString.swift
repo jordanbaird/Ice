@@ -14,6 +14,6 @@ extension Bundle {
     /// returns `nil`.
     var versionString: String? {
         object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ??
-        object(forInfoDictionaryKey: "CFBundleVersion") as? String
+            object(forInfoDictionaryKey: "CFBundleVersion") as? String
     }
 }

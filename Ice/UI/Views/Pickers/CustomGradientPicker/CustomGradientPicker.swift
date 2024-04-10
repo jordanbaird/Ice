@@ -33,8 +33,8 @@ struct CustomGradientPicker: View {
         allowsEmptySelections: Bool,
         mode: NSColorPanel.Mode
     ) {
-        self._gradient = gradient
-        self.zOrderedStops = gradient.wrappedValue.stops
+        _gradient = gradient
+        zOrderedStops = gradient.wrappedValue.stops
         self.supportsOpacity = supportsOpacity
         self.allowsEmptySelections = allowsEmptySelections
         self.mode = mode
@@ -154,8 +154,8 @@ struct CustomGradientPicker: View {
     /// Inserts a new stop with the appropriate color
     /// at the given location in the gradient.
     private func insertStop(at location: CGFloat) {
-        var location = location.clamped(to: 0...1)
-        if (0.48...0.52).contains(location) {
+        var location = location.clamped(to: 0 ... 1)
+        if (0.48 ... 0.52).contains(location) {
             location = 0.5
         }
         let newStop: ColorStop
@@ -365,7 +365,7 @@ private struct CustomGradientPickerHandle: View {
         let isSelected = selectedStop == stop
         if
             shouldSnap,
-            (0.48...0.52).contains(newLocation)
+            (0.48 ... 0.52).contains(newLocation)
         {
             stop.location = 0.5
         } else {
@@ -437,26 +437,26 @@ private struct CustomGradientPickerHandle: View {
 }
 
 #if DEBUG
-private struct CustomGradientPickerPreview: View {
-    @State private var gradient = CustomGradient(unsortedStops: [
-        ColorStop(color: NSColor.systemRed.cgColor, location: 0),
-        ColorStop(color: NSColor.systemBlue.cgColor, location: 1 / 3),
-        ColorStop(color: NSColor.systemIndigo.cgColor, location: 2 / 3),
-        ColorStop(color: NSColor.systemPurple.cgColor, location: 1),
-    ])
+    private struct CustomGradientPickerPreview: View {
+        @State private var gradient = CustomGradient(unsortedStops: [
+            ColorStop(color: NSColor.systemRed.cgColor, location: 0),
+            ColorStop(color: NSColor.systemBlue.cgColor, location: 1 / 3),
+            ColorStop(color: NSColor.systemIndigo.cgColor, location: 2 / 3),
+            ColorStop(color: NSColor.systemPurple.cgColor, location: 1),
+        ])
 
-    var body: some View {
-        CustomGradientPicker(
-            gradient: $gradient,
-            supportsOpacity: false,
-            allowsEmptySelections: false,
-            mode: .crayon
-        )
+        var body: some View {
+            CustomGradientPicker(
+                gradient: $gradient,
+                supportsOpacity: false,
+                allowsEmptySelections: false,
+                mode: .crayon
+            )
+        }
     }
-}
 
-#Preview {
-    CustomGradientPickerPreview()
-        .padding()
-}
+    #Preview {
+        CustomGradientPickerPreview()
+            .padding()
+    }
 #endif

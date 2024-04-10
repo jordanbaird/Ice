@@ -16,13 +16,13 @@ struct MigrationManager {
 
         var description: String {
             switch self {
-            case .invalidMenuBarSectionsJSONObject(let object):
+            case let .invalidMenuBarSectionsJSONObject(object):
                 "Invalid menu bar sections JSON object: \(object)"
-            case .hotkeyMigrationError(let error):
+            case let .hotkeyMigrationError(error):
                 "Error migrating hotkeys: \(error)"
-            case .controlItemMigrationError(let error):
+            case let .controlItemMigrationError(error):
                 "Error migrating control items: \(error)"
-            case .combinedError(let errors):
+            case let .combinedError(errors):
                 "The following errors occurred: \(errors)"
             }
         }
@@ -173,7 +173,7 @@ struct MigrationManager {
             Result(catching: block)
         }
         let errors = results.compactMap { result in
-            if case .failure(let error) = result {
+            if case let .failure(error) = result {
                 return error
             }
             return nil
@@ -198,6 +198,7 @@ struct MigrationManager {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let migration = Logger(category: "Migration")
 }

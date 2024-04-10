@@ -23,7 +23,7 @@ final class ControlItem: ObservableObject {
 
     enum Lengths {
         static let standard: CGFloat = 25
-        static let expanded: CGFloat = 10_000
+        static let expanded: CGFloat = 10000
     }
 
     private static let sectionStorage = ObjectAssociation<MenuBarSection>()
@@ -91,16 +91,16 @@ final class ControlItem: ObservableObject {
             }
         }
 
-        self.statusItem = NSStatusBar.system.statusItem(withLength: Lengths.standard)
-        self.statusItem.autosaveName = autosaveName
+        statusItem = NSStatusBar.system.statusItem(withLength: Lengths.standard)
+        statusItem.autosaveName = autosaveName
         self.identifier = identifier
-        self.isVisible = statusItem.isVisible
-        self.state = .showItems
+        isVisible = statusItem.isVisible
+        state = .showItems
 
         // cache needs to be restored after the status item is created, but before the
         // call to configureStatusItem()
         if let cachedIsVisible {
-            self.isVisible = cachedIsVisible
+            isVisible = cachedIsVisible
         }
 
         configureStatusItem()
@@ -478,6 +478,7 @@ enum StatusItemDefaults {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let controlItem = Logger(category: "ControlItem")
 }

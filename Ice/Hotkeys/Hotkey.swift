@@ -116,6 +116,7 @@ extension Hotkey {
 }
 
 // MARK: Hotkey: Codable
+
 extension Hotkey: Codable {
     private enum CodingKeys: CodingKey {
         case keyCombination
@@ -138,14 +139,16 @@ extension Hotkey: Codable {
 }
 
 // MARK: Hotkey: Equatable
+
 extension Hotkey: Equatable {
     static func == (lhs: Hotkey, rhs: Hotkey) -> Bool {
         lhs.keyCombination == rhs.keyCombination &&
-        lhs.action == rhs.action
+            lhs.action == rhs.action
     }
 }
 
 // MARK: Hotkey: Hashable
+
 extension Hotkey: Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(keyCombination)
@@ -154,6 +157,7 @@ extension Hotkey: Hashable {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let hotkey = Logger(category: "Hotkey")
 }

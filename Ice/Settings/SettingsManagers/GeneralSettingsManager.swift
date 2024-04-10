@@ -174,9 +174,11 @@ final class GeneralSettingsManager: ObservableObject {
 }
 
 // MARK: GeneralSettingsManager: BindingExposable
-extension GeneralSettingsManager: BindingExposable { }
+
+extension GeneralSettingsManager: BindingExposable {}
 
 // MARK: - Logger
+
 private extension Logger {
     static let generalSettingsManager = Logger(category: "GeneralSettingsManager")
 }

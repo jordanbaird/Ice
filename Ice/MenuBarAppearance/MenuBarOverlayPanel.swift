@@ -67,13 +67,13 @@ class MenuBarOverlayPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
-        self.level = .statusBar
-        self.title = String(describing: Self.self)
-        self.backgroundColor = .clear
-        self.hasShadow = false
-        self.ignoresMouseEvents = true
-        self.collectionBehavior = [.fullScreenNone, .ignoresCycle, .moveToActiveSpace]
-        self.contentView = MenuBarOverlayPanelContentView()
+        level = .statusBar
+        title = String(describing: Self.self)
+        backgroundColor = .clear
+        hasShadow = false
+        ignoresMouseEvents = true
+        collectionBehavior = [.fullScreenNone, .ignoresCycle, .moveToActiveSpace]
+        contentView = MenuBarOverlayPanelContentView()
         configureCancellables()
     }
 
@@ -505,7 +505,7 @@ private class MenuBarOverlayPanelContentView: NSView {
         }
     }
 
-    override func draw(_ dirtyRect: NSRect) {
+    override func draw(_: NSRect) {
         guard
             let overlayPanel,
             let appearanceManager = overlayPanel.appearanceManager,
@@ -622,6 +622,7 @@ private class MenuBarOverlayPanelContentView: NSView {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let overlayPanel = Logger(category: "MenuBarOverlayPanel")
 }

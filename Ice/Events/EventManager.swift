@@ -26,6 +26,7 @@ final class EventManager {
     // MARK: - Monitors
 
     // MARK: Mouse Moved
+
     private(set) lazy var mouseMovedMonitor = UniversalEventMonitor(
         mask: .mouseMoved
     ) { [weak self, weak appState] event in
@@ -74,6 +75,7 @@ final class EventManager {
     }
 
     // MARK: Left Mouse Up
+
     private(set) lazy var leftMouseUpMonitor = UniversalEventMonitor(
         mask: .leftMouseUp
     ) { [weak self, weak appState] event in
@@ -110,8 +112,8 @@ final class EventManager {
                     let hiddenSection = appState.menuBarManager.section(withName: .hidden),
                     let mouseLocation = self.getMouseLocation(using: .cgEvent),
                     let windowUnderMouse = try await WindowInfo.current(option: .optionOnScreenOnly)
-                        .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
-                        .first(where: { $0.frame.contains(mouseLocation) }),
+                    .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
+                    .first(where: { $0.frame.contains(mouseLocation) }),
                     let owningApplication = windowUnderMouse.owningApplication
                 else {
                     return
@@ -142,6 +144,7 @@ final class EventManager {
     }
 
     // MARK: Left Mouse Down
+
     private(set) lazy var leftMouseDownMonitor = UniversalEventMonitor(
         mask: .leftMouseDown
     ) { [weak self, weak appState] event in
@@ -196,6 +199,7 @@ final class EventManager {
     }
 
     // MARK: Right Mouse Down
+
     private(set) lazy var rightMouseDownMonitor = UniversalEventMonitor(
         mask: .rightMouseDown
     ) { [weak self, weak appState] event in
@@ -225,6 +229,7 @@ final class EventManager {
     }
 
     // MARK: Left Mouse Dragged
+
     private(set) lazy var leftMouseDraggedMonitor = UniversalEventMonitor(
         mask: .leftMouseDragged
     ) { [weak self, weak appState] event in
@@ -269,6 +274,7 @@ final class EventManager {
     }
 
     // MARK: Scroll Wheel
+
     private(set) lazy var scrollWheelMonitor = UniversalEventMonitor(
         mask: .scrollWheel
     ) { [weak self, weak appState] event in
@@ -367,6 +373,7 @@ final class EventManager {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let eventManager = Logger(category: "EventManager")
 }

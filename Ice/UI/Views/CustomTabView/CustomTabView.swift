@@ -20,7 +20,7 @@ struct CustomTabView: View {
         selection: Binding<Int>,
         @CustomTabBuilder tabs: () -> [CustomTab]
     ) {
-        self._selection = selection
+        _selection = selection
         self.tabs = tabs()
     }
 
@@ -40,7 +40,7 @@ struct CustomTabView: View {
     @ViewBuilder
     private var tabBar: some View {
         HStack(spacing: 5) {
-            ForEach(0..<tabs.count, id: \.self) { index in
+            ForEach(0 ..< tabs.count, id: \.self) { index in
                 CustomTabButton(
                     selection: $selection,
                     tab: tabs[index],

@@ -106,7 +106,7 @@ final class MenuBarAppearanceManager: ObservableObject {
         $configuration
             .encode(encoder: encoder)
             .sink { completion in
-                if case .failure(let error) = completion {
+                if case let .failure(error) = completion {
                     Logger.appearanceManager.error("Error encoding configuration: \(error)")
                 }
             } receiveValue: { data in
@@ -135,9 +135,9 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// manager should retain its overlay panels.
     private func shouldRetainOverlayPanels(for configuration: MenuBarAppearanceConfiguration) -> Bool {
         configuration.hasShadow ||
-        configuration.hasBorder ||
-        configuration.shapeKind != .none ||
-        configuration.tintKind != .none
+            configuration.hasBorder ||
+            configuration.shapeKind != .none ||
+            configuration.tintKind != .none
     }
 
     private func configureOverlayPanels(with configuration: MenuBarAppearanceConfiguration) {
@@ -179,9 +179,11 @@ final class MenuBarAppearanceManager: ObservableObject {
 }
 
 // MARK: MenuBarAppearanceManager: BindingExposable
-extension MenuBarAppearanceManager: BindingExposable { }
+
+extension MenuBarAppearanceManager: BindingExposable {}
 
 // MARK: - Logger
+
 private extension Logger {
     static let appearanceManager = Logger(category: "MenuBarAppearanceManager")
 }

@@ -113,6 +113,6 @@ extension CustomGradient {
     )
 }
 
-extension CustomGradient: Codable { }
+extension CustomGradient: Codable {}
 
-extension CustomGradient: Hashable { }
+extension CustomGradient: Hashable {}

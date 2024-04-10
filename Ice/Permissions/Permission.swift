@@ -4,8 +4,8 @@
 //
 
 import AXSwift
-import Combine
 import Cocoa
+import Combine
 
 // MARK: - Permission
 
@@ -42,7 +42,7 @@ class Permission: ObservableObject {
         self.notes = notes
         self.check = check
         self.request = request
-        self.hasPermission = check()
+        hasPermission = check()
     }
 
     deinit {

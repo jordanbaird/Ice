@@ -27,7 +27,7 @@ struct MenuBarAppearanceTab: View {
                 Button("Reset") {
                     appearanceManager.configuration = .defaultConfiguration
                 }
-                if case .popover(let closePopover) = location {
+                if case let .popover(closePopover) = location {
                     Spacer()
                     Button("Done", action: closePopover)
                 }

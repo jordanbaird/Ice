@@ -48,7 +48,7 @@ final class UpdatesManager: ObservableObject {
     }
 
     init() {
-        self.updaterController = SPUStandardUpdaterController(
+        updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
             userDriverDelegate: nil
@@ -65,14 +65,14 @@ final class UpdatesManager: ObservableObject {
 
     @objc func checkForUpdates() {
         #if DEBUG
-        // checking for updates hangs in debug mode
-        let alert = NSAlert()
-        alert.messageText = "Checking for updates is not supported in debug mode."
-        alert.runModal()
+            // checking for updates hangs in debug mode
+            let alert = NSAlert()
+            alert.messageText = "Checking for updates is not supported in debug mode."
+            alert.runModal()
         #else
-        updater.checkForUpdates()
+            updater.checkForUpdates()
         #endif
     }
 }
 
-extension UpdatesManager: BindingExposable { }
+extension UpdatesManager: BindingExposable {}

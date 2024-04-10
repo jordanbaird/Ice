@@ -17,9 +17,9 @@ final class SettingsManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     init(appState: AppState) {
-        self.generalSettingsManager = GeneralSettingsManager(appState: appState)
-        self.advancedSettingsManager = AdvancedSettingsManager(appState: appState)
-        self.hotkeySettingsManager = HotkeySettingsManager(appState: appState)
+        generalSettingsManager = GeneralSettingsManager(appState: appState)
+        advancedSettingsManager = AdvancedSettingsManager(appState: appState)
+        hotkeySettingsManager = HotkeySettingsManager(appState: appState)
         self.appState = appState
     }
 
@@ -54,4 +54,5 @@ final class SettingsManager: ObservableObject {
 }
 
 // MARK: SettingsManager: BindingExposable
-extension SettingsManager: BindingExposable { }
+
+extension SettingsManager: BindingExposable {}

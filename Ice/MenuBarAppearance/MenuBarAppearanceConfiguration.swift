@@ -85,6 +85,7 @@ struct MenuBarAppearanceConfiguration {
 }
 
 // MARK: Default Configuration
+
 extension MenuBarAppearanceConfiguration {
     static let defaultConfiguration = MenuBarAppearanceConfiguration(
         hasShadow: false,
@@ -101,6 +102,7 @@ extension MenuBarAppearanceConfiguration {
 }
 
 // MARK: MenuBarAppearanceConfiguration: Codable
+
 extension MenuBarAppearanceConfiguration: Codable {
     private enum CodingKeys: CodingKey {
         case hasShadow

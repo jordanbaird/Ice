@@ -52,11 +52,11 @@ final class AppState: ObservableObject {
     /// A Boolean value that indicates whether the app is running as a SwiftUI preview.
     let isPreview: Bool = {
         #if DEBUG
-        let environment = ProcessInfo.processInfo.environment
-        let key = "XCODE_RUNNING_FOR_PREVIEWS"
-        return environment[key] != nil
+            let environment = ProcessInfo.processInfo.environment
+            let key = "XCODE_RUNNING_FOR_PREVIEWS"
+            return environment[key] != nil
         #else
-        return false
+            return false
         #endif
     }()
 
@@ -147,9 +147,11 @@ final class AppState: ObservableObject {
 }
 
 // MARK: AppState: BindingExposable
-extension AppState: BindingExposable { }
+
+extension AppState: BindingExposable {}
 
 // MARK: - Logger
+
 private extension Logger {
     static let appState = Logger(category: "AppState")
 }

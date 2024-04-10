@@ -71,4 +71,5 @@ final class AdvancedSettingsManager: ObservableObject {
 }
 
 // MARK: AdvancedSettingsManager: BindingExposable
-extension AdvancedSettingsManager: BindingExposable { }
+
+extension AdvancedSettingsManager: BindingExposable {}

@@ -41,9 +41,9 @@ extension SettingsNavigationItem {
             // lets us apply the resizable() modifier just once, in the `view`
             // property above
             switch self {
-            case .systemSymbol(let name):
+            case let .systemSymbol(name):
                 return Image(systemName: name)
-            case .assetCatalog(let resource):
+            case let .assetCatalog(resource):
                 return Image(resource)
             }
         }

@@ -9,8 +9,8 @@ private class LocalEventMonitorModifierState: ObservableObject {
     let monitor: LocalEventMonitor
 
     init(mask: NSEvent.EventTypeMask, action: @escaping (NSEvent) -> NSEvent?) {
-        self.monitor = LocalEventMonitor(mask: mask, handler: action)
-        self.monitor.start()
+        monitor = LocalEventMonitor(mask: mask, handler: action)
+        monitor.start()
     }
 
     deinit {
@@ -23,7 +23,7 @@ private struct LocalEventMonitorModifier: ViewModifier {
 
     init(mask: NSEvent.EventTypeMask, action: @escaping (NSEvent) -> NSEvent?) {
         let state = LocalEventMonitorModifierState(mask: mask, action: action)
-        self._state = StateObject(wrappedValue: state)
+        _state = StateObject(wrappedValue: state)
     }
 
     func body(content: Content) -> some View {

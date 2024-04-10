@@ -131,7 +131,6 @@ enum Defaults {
 
 extension Defaults {
     enum Key: String {
-
         // MARK: General Settings
 
         case showIceIcon = "ShowIceIcon"
@@ -160,7 +159,7 @@ extension Defaults {
 
         // MARK: Migration
 
-        case hasMigrated0_8_0 = "hasMigrated0_8_0"
+        case hasMigrated0_8_0
 
         // MARK: Deprecated
 

@@ -20,7 +20,7 @@ struct CustomColorPicker: NSViewRepresentable {
             supportsOpacity: Bool,
             mode: NSColorPanel.Mode
         ) {
-            self._selection = selection
+            _selection = selection
             self.supportsOpacity = supportsOpacity
             self.mode = mode
         }
@@ -92,7 +92,7 @@ struct CustomColorPicker: NSViewRepresentable {
         return nsView
     }
 
-    func updateNSView(_ nsView: NSColorWell, context: Context) {
+    func updateNSView(_ nsView: NSColorWell, context _: Context) {
         if let color = NSColor(cgColor: selection) {
             nsView.color = color
         }
@@ -108,9 +108,9 @@ struct CustomColorPicker: NSViewRepresentable {
     }
 
     func sizeThatFits(
-        _ proposal: ProposedViewSize,
+        _: ProposedViewSize,
         nsView: NSColorWell,
-        context: Context
+        context _: Context
     ) -> CGSize? {
         switch nsView.controlSize {
         case .large:

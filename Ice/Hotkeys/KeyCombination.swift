@@ -74,8 +74,8 @@ extension KeyCombination: Codable {
                 )
             )
         }
-        self.key = try KeyCode(rawValue: container.decode(Int.self))
-        self.modifiers = try Modifiers(rawValue: container.decode(Int.self))
+        key = try KeyCode(rawValue: container.decode(Int.self))
+        modifiers = try Modifiers(rawValue: container.decode(Int.self))
     }
 
     func encode(to encoder: any Encoder) throws {
@@ -86,6 +86,7 @@ extension KeyCombination: Codable {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let keyCombination = Logger(category: "KeyCombination")
 }

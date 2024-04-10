@@ -233,6 +233,7 @@ class ScreenCaptureManager {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let screenCaptureManager = Logger(category: "ScreenCaptureManager")
 }

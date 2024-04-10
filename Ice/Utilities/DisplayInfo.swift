@@ -31,10 +31,10 @@ struct DisplayInfo {
             return nil
         }
         self.displayID = displayID
-        self.frame = CGDisplayBounds(displayID)
-        self.scaleFactor = CGFloat(mode.pixelWidth) / CGFloat(mode.width)
-        self.refreshRate = mode.refreshRate
-        self.colorSpace = CGDisplayCopyColorSpace(displayID)
+        frame = CGDisplayBounds(displayID)
+        scaleFactor = CGFloat(mode.pixelWidth) / CGFloat(mode.width)
+        refreshRate = mode.refreshRate
+        colorSpace = CGDisplayCopyColorSpace(displayID)
     }
 
     /// Creates a display from the given `Cocoa` screen.

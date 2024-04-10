@@ -53,7 +53,7 @@ class HotkeyRegistry {
         }
     }
 
-    private let signature = OSType(1231250720) // OSType for Ice
+    private let signature = OSType(1_231_250_720) // OSType for Ice
     private var eventHandlerRef: EventHandlerRef?
     private var registrations = [UInt32: Registration]()
     private var cancellables = Set<AnyCancellable>()
@@ -284,6 +284,7 @@ class HotkeyRegistry {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let hotkeyRegistry = Logger(category: "HotkeyRegistry")
 }

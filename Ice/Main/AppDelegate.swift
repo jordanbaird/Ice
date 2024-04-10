@@ -9,7 +9,7 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState.shared
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_: Notification) {
         // assign the delegate to the shared app state
         appState.assignAppDelegate(self)
 
@@ -47,11 +47,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+    func applicationSupportsSecureRestorableState(_: NSApplication) -> Bool {
         return true
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         if appState.permissionsManager.hasPermission {
             appState.deactivate(withPolicy: .accessory)
             return false

@@ -34,7 +34,7 @@ class HotkeyRecorderModel: ObservableObject {
         guard !appState.isPreview else {
             return
         }
-        self.monitor = LocalEventMonitor(mask: [.keyDown, .flagsChanged]) { [weak self] event in
+        monitor = LocalEventMonitor(mask: [.keyDown, .flagsChanged]) { [weak self] event in
             guard let self else {
                 return event
             }
@@ -113,6 +113,7 @@ class HotkeyRecorderModel: ObservableObject {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let hotkeyRecorderModel = Logger(category: "HotkeyRecorderModel")
 }

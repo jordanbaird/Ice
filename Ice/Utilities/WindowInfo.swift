@@ -28,10 +28,10 @@ struct WindowInfo {
         }
         self.windowID = windowID
         self.frame = frame
-        self.title = info[kCGWindowName] as? String
+        title = info[kCGWindowName] as? String
         self.windowLayer = windowLayer
-        self.owningApplication = NSRunningApplication(processIdentifier: pid_t(ownerPID))
-        self.isOnScreen = info[kCGWindowIsOnscreen] as? Bool ?? false
+        owningApplication = NSRunningApplication(processIdentifier: pid_t(ownerPID))
+        isOnScreen = info[kCGWindowIsOnscreen] as? Bool ?? false
     }
 }
 
@@ -95,8 +95,8 @@ extension WindowInfo {
         return { window in
             // wallpaper window belongs to the Dock process
             window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            window.title?.hasPrefix("Wallpaper-") == true &&
-            display.frame.contains(window.frame)
+                window.title?.hasPrefix("Wallpaper-") == true &&
+                display.frame.contains(window.frame)
         }
     }
 
@@ -125,9 +125,9 @@ extension WindowInfo {
         return { window in
             // menu bar window belongs to the WindowServer process (owningApplication should be nil)
             window.owningApplication == nil &&
-            window.title == "Menubar" &&
-            window.windowLayer == kCGMainMenuWindowLevel &&
-            display.frame.contains(window.frame)
+                window.title == "Menubar" &&
+                window.windowLayer == kCGMainMenuWindowLevel &&
+                display.frame.contains(window.frame)
         }
     }
 

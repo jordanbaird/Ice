@@ -41,7 +41,7 @@ struct HotkeyRecorder<Label: View>: View {
 
     init(hotkey: Hotkey, @ViewBuilder label: () -> Label) {
         let model = HotkeyRecorderModel(hotkey: hotkey)
-        self._model = StateObject(wrappedValue: model)
+        _model = StateObject(wrappedValue: model)
         self.label = label()
     }
 

@@ -76,6 +76,7 @@ final class HotkeySettingsManager: ObservableObject {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let hotkeySettingsManager = Logger(category: "HotkeySettingsManager")
 }

@@ -17,8 +17,8 @@ class UniversalEventMonitor {
     ///   - handler: A handler to execute when the event monitor receives
     ///     an event corresponding to the event types in `mask`.
     init(mask: NSEvent.EventTypeMask, handler: @escaping (_ event: NSEvent) -> NSEvent?) {
-        self.local = LocalEventMonitor(mask: mask, handler: handler)
-        self.global = GlobalEventMonitor(mask: mask, handler: { _ = handler($0) })
+        local = LocalEventMonitor(mask: mask, handler: handler)
+        global = GlobalEventMonitor(mask: mask, handler: { _ = handler($0) })
     }
 
     deinit {

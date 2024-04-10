@@ -13,6 +13,7 @@ struct CodableColor {
 }
 
 // MARK: CodableColor: Codable
+
 extension CodableColor: Codable {
     private enum CodingKeys: CodingKey {
         case components

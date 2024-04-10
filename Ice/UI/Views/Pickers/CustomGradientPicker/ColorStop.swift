@@ -29,8 +29,8 @@ extension ColorStop: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.color = try container.decode(CodableColor.self, forKey: .color).cgColor
-        self.location = try container.decode(CGFloat.self, forKey: .location)
+        color = try container.decode(CodableColor.self, forKey: .color).cgColor
+        location = try container.decode(CGFloat.self, forKey: .location)
     }
 
     func encode(to encoder: Encoder) throws {

@@ -46,10 +46,10 @@ struct MenuBarItem {
             return nil
         }
 
-        self.windowID = itemWindow.windowID
-        self.frame = itemWindow.frame
-        self.title = itemWindow.title
-        self.owningApplication = itemWindow.owningApplication
-        self.isOnScreen = itemWindow.isOnScreen
+        windowID = itemWindow.windowID
+        frame = itemWindow.frame
+        title = itemWindow.title
+        owningApplication = itemWindow.owningApplication
+        isOnScreen = itemWindow.isOnScreen
     }
 }

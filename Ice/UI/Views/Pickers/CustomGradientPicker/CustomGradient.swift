@@ -90,8 +90,8 @@ struct CustomGradient: View {
     /// Returns a copy of the gradient with the given alpha value.
     func withAlphaComponent(_ alpha: CGFloat) -> CustomGradient {
         var copy = self
-        copy.stops = copy.stops.compactMap { stop in
-            stop.withAlphaComponent(alpha)
+        copy.stops = copy.stops.map { stop in
+            stop.withAlphaComponent(alpha) ?? stop
         }
         return copy
     }

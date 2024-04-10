@@ -51,16 +51,6 @@ struct AccessibilityMenuBar {
         }
     }
 
-    /// Creates an accessibility menu bar for the given screen.
-    ///
-    /// - Parameter display: The screen to get the menu bar for.
-    init(screen: NSScreen) async throws {
-        guard let display = DisplayInfo(nsScreen: screen) else {
-            throw AccessibilityError(message: "Cannot retrieve DisplayInfo for screen")
-        }
-        try await self.init(display: display)
-    }
-
     /// Returns the menu bar's frame.
     func frame() throws -> CGRect {
         do {

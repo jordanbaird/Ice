@@ -76,7 +76,7 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .delay(for: 0.1, scheduler: DispatchQueue.main)
+            .delay(for: 0.5, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard
                     let self,

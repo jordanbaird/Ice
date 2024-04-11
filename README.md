@@ -71,6 +71,10 @@ brew install jordanbaird-ice
 
 Because your menu bar becomes like ice, allowing your menu bar items to slide away 🧊🧊🧊
 
+## Why not support earlier operating systems?
+
+There are a number of system APIs that Ice uses that are only available starting with macOS 14.
+
 ## Gallery
 
 #### Choose your own icon to show in the menu bar

@@ -28,9 +28,10 @@ struct WindowInfo {
     /// A Boolean value that indicates whether the window is on screen.
     let isOnScreen: Bool
 
-    private init?(info: CFDictionary) {
+    /// Creates a window with the given dictionary.
+    private init?(dictionary: CFDictionary) {
         guard
-            let info = info as? [CFString: CFTypeRef],
+            let info = dictionary as? [CFString: CFTypeRef],
             let windowID = info[kCGWindowNumber] as? CGWindowID,
             let boundsDict = info[kCGWindowBounds] as? NSDictionary,
             let frame = CGRect(dictionaryRepresentation: boundsDict),
@@ -65,63 +66,78 @@ extension WindowInfo {
 
 // MARK: Private
 extension WindowInfo {
-    private enum OnScreenOption {
-        case above(window: WindowInfo, include: Bool)
-        case below(window: WindowInfo, include: Bool)
+    /// Options to use to retrieve on screen windows.
+    private enum OnScreenWindowListOption {
+        case above(_ window: WindowInfo, includeWindow: Bool)
+        case below(_ window: WindowInfo, includeWindow: Bool)
         case onScreenOnly
     }
 
-    private static func copyWindowList(option: CGWindowListOption, windowID: CGWindowID?) throws -> [CFDictionary] {
-        guard let list = CGWindowListCopyWindowInfo(option, windowID ?? kCGNullWindowID) as? [CFDictionary] else {
+    /// A context that contains the information needed to retrieve a window list.
+    private struct WindowListContext {
+        let windowListOption: CGWindowListOption
+        let referenceWindow: WindowInfo?
+
+        init(windowListOption: CGWindowListOption, referenceWindow: WindowInfo?) {
+            self.windowListOption = windowListOption
+            self.referenceWindow = referenceWindow
+        }
+
+        init(onScreenOption: OnScreenWindowListOption, excludeDesktopWindows: Bool) {
+            var windowListOption: CGWindowListOption = []
+            var referenceWindow: WindowInfo?
+            switch onScreenOption {
+            case .above(let window, let includeWindow):
+                windowListOption.insert(.optionOnScreenAboveWindow)
+                if includeWindow {
+                    windowListOption.insert(.optionIncludingWindow)
+                }
+                referenceWindow = window
+            case .below(let window, let includeWindow):
+                windowListOption.insert(.optionOnScreenBelowWindow)
+                if includeWindow {
+                    windowListOption.insert(.optionIncludingWindow)
+                }
+                referenceWindow = window
+            case .onScreenOnly:
+                windowListOption.insert(.optionOnScreenOnly)
+            }
+            if excludeDesktopWindows {
+                windowListOption.insert(.excludeDesktopElements)
+            }
+            self.init(windowListOption: windowListOption, referenceWindow: referenceWindow)
+        }
+    }
+
+    /// Retrieves a copy of the current window list as an array of dictionaries.
+    private static func copyWindowListArray(context: WindowListContext) throws -> [CFDictionary] {
+        let option = context.windowListOption
+        let windowID = context.referenceWindow?.windowID ?? kCGNullWindowID
+        guard let list = CGWindowListCopyWindowInfo(option, windowID) as? [CFDictionary] else {
             throw WindowListError.invalidConnection
         }
         return list
     }
 
-    private static func getCurrent(option: CGWindowListOption, relativeTo window: WindowInfo?) throws -> [WindowInfo] {
-        let list = try copyWindowList(option: option, windowID: window?.windowID)
-        return list.compactMap { info in
-            WindowInfo(info: info)
-        }
+    /// Synchronously returns the current window list using the given context.
+    private static func getWindowList(context: WindowListContext) throws -> [WindowInfo] {
+        let list = try copyWindowListArray(context: context)
+        return list.compactMap { WindowInfo(dictionary: $0) }
     }
 
-    private static func getOnScreenWindows(option: OnScreenOption, excludeDesktopWindows: Bool) throws -> [WindowInfo] {
-        var listOption: CGWindowListOption = []
-        var referenceWindow: WindowInfo?
-        switch option {
-        case .above(let window, let include):
-            listOption.insert(.optionOnScreenAboveWindow)
-            if include {
-                listOption.insert(.optionIncludingWindow)
-            }
-            referenceWindow = window
-        case .below(let window, let include):
-            listOption.insert(.optionOnScreenBelowWindow)
-            if include {
-                listOption.insert(.optionIncludingWindow)
-            }
-            referenceWindow = window
-        case .onScreenOnly:
-            listOption.insert(.optionOnScreenOnly)
-        }
-        if excludeDesktopWindows {
-            listOption.insert(.excludeDesktopElements)
-        }
-        return try getCurrent(option: listOption, relativeTo: referenceWindow)
-    }
-
-    private static func current(option: CGWindowListOption, relativeTo window: WindowInfo?) async throws -> [WindowInfo] {
+    /// Asynchronously returns the current window list using the given context.
+    private static func windowList(context: WindowListContext) async throws -> [WindowInfo] {
         let task = Task.detached {
-            let list = try copyWindowList(option: option, windowID: window?.windowID)
+            let list = try copyWindowListArray(context: context)
 
             try Task.checkCancellation()
             await Task.yield()
 
             var windows = [WindowInfo]()
-            for info in list {
+            for dictionary in list {
                 try Task.checkCancellation()
                 await Task.yield()
-                if let window = WindowInfo(info: info) {
+                if let window = WindowInfo(dictionary: dictionary) {
                     windows.append(window)
                 }
             }
@@ -134,31 +150,6 @@ extension WindowInfo {
         } onCancel: {
             task.cancel()
         }
-    }
-
-    private static func onScreenWindows(option: OnScreenOption, excludeDesktopWindows: Bool) async throws -> [WindowInfo] {
-        var listOption: CGWindowListOption = []
-        var referenceWindow: WindowInfo?
-        switch option {
-        case .above(let window, let include):
-            listOption.insert(.optionOnScreenAboveWindow)
-            if include {
-                listOption.insert(.optionIncludingWindow)
-            }
-            referenceWindow = window
-        case .below(let window, let include):
-            listOption.insert(.optionOnScreenBelowWindow)
-            if include {
-                listOption.insert(.optionIncludingWindow)
-            }
-            referenceWindow = window
-        case .onScreenOnly:
-            listOption.insert(.optionOnScreenOnly)
-        }
-        if excludeDesktopWindows {
-            listOption.insert(.excludeDesktopElements)
-        }
-        return try await current(option: listOption, relativeTo: referenceWindow)
     }
 }
 
@@ -173,7 +164,8 @@ extension WindowInfo {
         if excludeDesktopWindows {
             option.insert(.excludeDesktopElements)
         }
-        return try getCurrent(option: option, relativeTo: nil)
+        let context = WindowListContext(windowListOption: option, referenceWindow: nil)
+        return try getWindowList(context: context)
     }
 
     /// Asynchronously returns the current windows.
@@ -185,7 +177,8 @@ extension WindowInfo {
         if excludeDesktopWindows {
             option.insert(.excludeDesktopElements)
         }
-        return try await current(option: option, relativeTo: nil)
+        let context = WindowListContext(windowListOption: option, referenceWindow: nil)
+        return try await windowList(context: context)
     }
 }
 
@@ -199,10 +192,11 @@ extension WindowInfo {
     /// - Parameter excludeDesktopWindows: A Boolean value that indicates whether
     ///   to exclude desktop owned windows, such as the wallpaper and desktop icons.
     static func getOnScreenWindows(excludeDesktopWindows: Bool = false) throws -> [WindowInfo] {
-        try getOnScreenWindows(
-            option: .onScreenOnly,
+        let context = WindowListContext(
+            onScreenOption: .onScreenOnly,
             excludeDesktopWindows: excludeDesktopWindows
         )
+        return try getWindowList(context: context)
     }
 
     /// Returns the on screen windows above the given window.
@@ -219,10 +213,11 @@ extension WindowInfo {
         includeWindow: Bool = false,
         excludeDesktopWindows: Bool = false
     ) throws -> [WindowInfo] {
-        try getOnScreenWindows(
-            option: .above(window: window, include: includeWindow),
+        let context = WindowListContext(
+            onScreenOption: .above(window, includeWindow: includeWindow),
             excludeDesktopWindows: excludeDesktopWindows
         )
+        return try getWindowList(context: context)
     }
 
     /// Returns the on screen windows below the given window.
@@ -239,10 +234,11 @@ extension WindowInfo {
         includeWindow: Bool = false,
         excludeDesktopWindows: Bool = false
     ) throws -> [WindowInfo] {
-        try getOnScreenWindows(
-            option: .below(window: window, include: includeWindow),
+        let context = WindowListContext(
+            onScreenOption: .below(window, includeWindow: includeWindow),
             excludeDesktopWindows: excludeDesktopWindows
         )
+        return try getWindowList(context: context)
     }
 
     // MARK: Async
@@ -252,10 +248,11 @@ extension WindowInfo {
     /// - Parameter excludeDesktopWindows: A Boolean value that indicates whether
     ///   to exclude desktop owned windows, such as the wallpaper and desktop icons.
     static func onScreenWindows(excludeDesktopWindows: Bool = false) async throws -> [WindowInfo] {
-        try await onScreenWindows(
-            option: .onScreenOnly,
+        let context = WindowListContext(
+            onScreenOption: .onScreenOnly,
             excludeDesktopWindows: excludeDesktopWindows
         )
+        return try await windowList(context: context)
     }
 
     /// Asynchronously returns the on screen windows above the given window.
@@ -272,10 +269,11 @@ extension WindowInfo {
         includeWindow: Bool = false,
         excludeDesktopWindows: Bool = false
     ) async throws -> [WindowInfo] {
-        try await onScreenWindows(
-            option: .above(window: window, include: includeWindow),
+        let context = WindowListContext(
+            onScreenOption: .above(window, includeWindow: includeWindow),
             excludeDesktopWindows: excludeDesktopWindows
         )
+        return try await windowList(context: context)
     }
 
     /// Asynchronously returns the on screen windows below the given window.
@@ -292,10 +290,11 @@ extension WindowInfo {
         includeWindow: Bool = false,
         excludeDesktopWindows: Bool = false
     ) async throws -> [WindowInfo] {
-        try await onScreenWindows(
-            option: .below(window: window, include: includeWindow),
+        let context = WindowListContext(
+            onScreenOption: .below(window, includeWindow: includeWindow),
             excludeDesktopWindows: excludeDesktopWindows
         )
+        return try await windowList(context: context)
     }
 }
 

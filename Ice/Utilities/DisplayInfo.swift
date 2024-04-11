@@ -10,7 +10,9 @@ struct DisplayInfo {
     /// The display identifier associated with the display.
     let displayID: CGDirectDisplayID
 
-    /// The frame of the display, in the global display coordinate space.
+    /// The frame of the display.
+    ///
+    /// The frame is specified in the global display coordinate space.
     let frame: CGRect
 
     /// The scale factor of the display.
@@ -30,6 +32,9 @@ struct DisplayInfo {
     }
 
     /// Creates a display with the given display identifier.
+    ///
+    /// - Note: If the display identifier is equivalent to `kCGNullDirectDisplay`,
+    ///   or is otherwise invalid, this initializer returns `nil`.
     init?(displayID: CGDirectDisplayID) {
         guard
             displayID != kCGNullDirectDisplay,
@@ -140,7 +145,7 @@ extension DisplayInfo {
         }
     }
 
-    /// Returns the current displays.
+    /// Asynchronously returns the current displays.
     ///
     /// - Parameter activeDisplaysOnly: A Boolean value that indicates whether
     ///   to return only the active displays.

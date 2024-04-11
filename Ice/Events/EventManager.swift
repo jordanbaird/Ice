@@ -109,7 +109,7 @@ final class EventManager {
                 guard
                     let hiddenSection = appState.menuBarManager.section(withName: .hidden),
                     let mouseLocation = self.getMouseLocation(using: .cgEvent),
-                    let windowUnderMouse = try await WindowInfo.current(option: .optionOnScreenOnly)
+                    let windowUnderMouse = try await WindowInfo.onScreenWindows(excludeDesktopWindows: true)
                         .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
                         .first(where: { $0.frame.contains(mouseLocation) }),
                     let owningApplication = windowUnderMouse.owningApplication

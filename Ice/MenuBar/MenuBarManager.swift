@@ -258,7 +258,7 @@ final class MenuBarManager: ObservableObject {
     func isFullscreen(for display: DisplayInfo) -> Bool {
         let windows: [WindowInfo]
         do {
-            windows = try WindowInfo.getCurrent(option: .optionOnScreenOnly)
+            windows = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
         } catch {
             return false
         }

@@ -331,7 +331,7 @@ final class EventManager {
             }
         }
         if
-            let screen = display.getNSScreen(),
+            let screen = display.nsScreen,
             let mouseY = getMouseLocation(using: .nsEvent)?.y
         {
             return mouseY > screen.visibleFrame.maxY && mouseY <= screen.frame.maxY
@@ -357,7 +357,7 @@ final class EventManager {
 
     private func isMouseOutsideMenuBar(of display: DisplayInfo) -> Bool {
         guard
-            let screen = display.getNSScreen(),
+            let screen = display.nsScreen,
             let mouseY = getMouseLocation(using: .nsEvent)?.y
         else {
             return false

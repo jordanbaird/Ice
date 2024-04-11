@@ -22,6 +22,13 @@ struct DisplayInfo {
     /// The color space of the display.
     let colorSpace: CGColorSpace
 
+    /// The `Cocoa` screen equivalent of the display.
+    var nsScreen: NSScreen? {
+        NSScreen.screens.first { screen in
+            screen.displayID == displayID
+        }
+    }
+
     /// Creates a display with the given display identifier.
     init?(displayID: CGDirectDisplayID) {
         guard
@@ -37,25 +44,21 @@ struct DisplayInfo {
         self.colorSpace = CGDisplayCopyColorSpace(displayID)
     }
 
-    /// Creates a display from the given `Cocoa` screen.
+    /// Creates a display from the given `Cocoa` screen equivalent.
     init?(nsScreen: NSScreen) {
         self.init(displayID: nsScreen.displayID)
-    }
-
-    /// Returns the `Cocoa` screen for the display.
-    func getNSScreen() -> NSScreen? {
-        NSScreen.screens.first { $0.displayID == displayID }
     }
 }
 
 extension DisplayInfo {
-    /// Returns the main display.
+    /// The main display.
     static var main: DisplayInfo? {
         DisplayInfo(displayID: CGMainDisplayID())
     }
 }
 
 extension DisplayInfo {
+    /// An error that can be thrown during display list operations.
     enum DisplayListError: Error {
         case cannotComplete
         case failure
@@ -99,18 +102,42 @@ extension DisplayInfo {
         }
     }
 
-    /// Returns the current number of displays.
-    ///
-    /// - Parameter activeDisplaysOnly: A Boolean value that indicates whether
-    ///   to return only the number of active displays.
-    static func getDisplayCount(activeDisplaysOnly: Bool) -> Int {
+    private static func getDisplayCount(activeDisplaysOnly: Bool) throws -> UInt32 {
         var displayCount: UInt32 = 0
-        if activeDisplaysOnly {
+        let result = if activeDisplaysOnly {
             CGGetActiveDisplayList(0, nil, &displayCount)
         } else {
             CGGetOnlineDisplayList(0, nil, &displayCount)
         }
-        return Int(displayCount)
+        if let error = DisplayListError(cgError: result) {
+            throw error
+        }
+        return displayCount
+    }
+
+    private static func getDisplayList(activeDisplaysOnly: Bool) throws -> [CGDirectDisplayID] {
+        let displayCount = try getDisplayCount(activeDisplaysOnly: activeDisplaysOnly)
+        var displayIDs = Array(repeating: kCGNullDirectDisplay, count: Int(displayCount))
+        let result = if activeDisplaysOnly {
+            CGGetActiveDisplayList(displayCount, &displayIDs, nil)
+        } else {
+            CGGetOnlineDisplayList(displayCount, &displayIDs, nil)
+        }
+        if let error = DisplayListError(cgError: result) {
+            throw error
+        }
+        return displayIDs
+    }
+
+    /// Returns the current displays.
+    ///
+    /// - Parameter activeDisplaysOnly: A Boolean value that indicates whether
+    ///   to return only the active displays.
+    static func getCurrent(activeDisplaysOnly: Bool) throws -> [DisplayInfo] {
+        let displayIDs = try getDisplayList(activeDisplaysOnly: activeDisplaysOnly)
+        return displayIDs.compactMap { displayID in
+            DisplayInfo(displayID: displayID)
+        }
     }
 
     /// Returns the current displays.
@@ -119,20 +146,7 @@ extension DisplayInfo {
     ///   to return only the active displays.
     static func current(activeDisplaysOnly: Bool) async throws -> [DisplayInfo] {
         let task = Task.detached {
-            let displayCount = getDisplayCount(activeDisplaysOnly: activeDisplaysOnly)
-
-            try Task.checkCancellation()
-            await Task.yield()
-
-            var displayIDs = Array(repeating: kCGNullDirectDisplay, count: displayCount)
-            let result = if activeDisplaysOnly {
-                CGGetActiveDisplayList(UInt32(displayCount), &displayIDs, nil)
-            } else {
-                CGGetOnlineDisplayList(UInt32(displayCount), &displayIDs, nil)
-            }
-            if let error = DisplayListError(cgError: result) {
-                throw error
-            }
+            let displayIDs = try getDisplayList(activeDisplaysOnly: activeDisplaysOnly)
 
             try Task.checkCancellation()
             await Task.yield()

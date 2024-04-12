@@ -38,19 +38,6 @@ class MenuBarOverlayPanel: NSPanel {
     /// The current desktop wallpaper, clipped to the bounds of the menu bar.
     @Published private(set) var desktopWallpaper: CGImage?
 
-    /// The frame that should be used to display the panel.
-    private var frameForDisplay: CGRect? {
-        guard let menuBarFrame: CGRect = try? menuBar?.frame() else {
-            return nil
-        }
-        return CGRect(
-            x: owningScreen.frame.origin.x,
-            y: (owningScreen.frame.maxY - menuBarFrame.height) - 5,
-            width: owningScreen.frame.width,
-            height: menuBarFrame.height + 5
-        )
-    }
-
     /// Creates an overlay panel with the given appearance manager, screen capture
     /// manager, and owning screen.
     init(
@@ -83,26 +70,31 @@ class MenuBarOverlayPanel: NSPanel {
         // show the panel on the active space
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .delay(for: 0.5, scheduler: DispatchQueue.main)
+            .debounce(for: 0.5, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard
                     let self,
                     let appearanceManager,
                     let menuBarManager = appearanceManager.menuBarManager,
-                    !self.isOnActiveSpace,
                     let owningDisplay = DisplayInfo(nsScreen: self.owningScreen),
-                    !menuBarManager.isMenuBarHidden(for: owningDisplay)
+                    !menuBarManager.isFullscreen(for: owningDisplay)
                 else {
                     return
                 }
-                self.show()
+                Task {
+                    do {
+                        try await self.show()
+                    } catch {
+                        Logger.overlayPanel.error("ERROR: \(error)")
+                    }
+                }
             }
             .store(in: &c)
 
         // update when light/dark mode changes
         DistributedNotificationCenter.default()
             .publisher(for: Notification.Name("AppleInterfaceThemeChangedNotification"))
-            .delay(for: 1, scheduler: DispatchQueue.main)
+            .debounce(for: 1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.needsUpdate = true
             }
@@ -111,7 +103,7 @@ class MenuBarOverlayPanel: NSPanel {
         // update when the active space changes
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .delay(for: 0.1, scheduler: DispatchQueue.main)
+            .debounce(for: 0.5, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.needsUpdate = true
             }
@@ -123,7 +115,7 @@ class MenuBarOverlayPanel: NSPanel {
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
         )
-        .delay(for: 0.1, scheduler: DispatchQueue.main)
+        .debounce(for: 0.1, scheduler: DispatchQueue.main)
         .sink { [weak self] _ in
             self?.needsUpdate = true
         }
@@ -148,6 +140,14 @@ class MenuBarOverlayPanel: NSPanel {
                 }
                 defer {
                     self.needsUpdate = false
+                }
+                guard
+                    let menuBarManager = appearanceManager?.menuBarManager,
+                    let owningDisplay = DisplayInfo(nsScreen: owningScreen),
+                    !menuBarManager.isFullscreen(for: owningDisplay)
+                else {
+                    Logger.overlayPanel.debug("Full screen window found. Preventing update of menu bar and desktop wallpaper.")
+                    return
                 }
                 Task {
                     do {
@@ -175,6 +175,21 @@ class MenuBarOverlayPanel: NSPanel {
         cancellables = c
     }
 
+    /// Returns the frame that should be used to display the panel.
+    private func getFrameForDisplay() async throws -> CGRect {
+        guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
+            return .null
+        }
+        let menuBar = try await AccessibilityMenuBar(display: owningDisplay)
+        let menuBarFrame: CGRect = try menuBar.frame()
+        return CGRect(
+            x: owningScreen.frame.origin.x,
+            y: (owningScreen.frame.maxY - menuBarFrame.height) - 5,
+            width: owningScreen.frame.width,
+            height: menuBarFrame.height + 5
+        )
+    }
+
     /// Stores the area of the desktop wallpaper that is under the menu bar.
     private func updateDesktopWallpaper() async throws {
         guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
@@ -190,7 +205,7 @@ class MenuBarOverlayPanel: NSPanel {
         }
         if
             let menuBarManager = appearanceManager?.menuBarManager,
-            menuBarManager.isMenuBarHidden(for: owningDisplay)
+            menuBarManager.isFullscreen(for: owningDisplay)
         {
             menuBar = nil
         } else {
@@ -220,15 +235,12 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Shows the panel.
-    func show() {
+    func show() async throws {
         guard !AppState.shared.isPreview else {
             return
         }
 
-        guard let frameForDisplay else {
-            Logger.overlayPanel.notice("Missing frame for display")
-            return
-        }
+        let frameForDisplay = try await getFrameForDisplay()
 
         // only continue if the appearance manager holds a reference to this panel
         guard
@@ -242,9 +254,8 @@ class MenuBarOverlayPanel: NSPanel {
         alphaValue = 0
         setFrame(frameForDisplay, display: true)
         orderFrontRegardless()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.animator().alphaValue = 1
-        }
+        try await Task.sleep(for: .seconds(0.1))
+        animator().alphaValue = 1
     }
 
     /// Hides the panel.
@@ -515,7 +526,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             return
         }
 
-        if menuBarManager.isMenuBarHidden(for: owningDisplay) {
+        if menuBarManager.isFullscreen(for: owningDisplay) {
             return
         }
 

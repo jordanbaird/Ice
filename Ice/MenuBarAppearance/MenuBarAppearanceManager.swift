@@ -76,29 +76,13 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .delay(for: 0.5, scheduler: DispatchQueue.main)
+            .debounce(for: 0.5, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard
-                    let self,
-                    let menuBarManager,
-                    let display = DisplayInfo.main
-                else {
+                guard let self else {
                     return
                 }
-                if
-                    overlayPanels.isEmpty,
-                    !menuBarManager.isMenuBarHidden(for: display)
-                {
+                if overlayPanels.isEmpty {
                     configureOverlayPanels(with: configuration)
-                } else {
-                    Task {
-                        try await Task.sleep(for: .seconds(0.5))
-                        if menuBarManager.isMenuBarHidden(for: display) {
-                            while let panel = self.overlayPanels.popFirst() {
-                                panel.orderOut(self)
-                            }
-                        }
-                    }
                 }
             }
             .store(in: &c)
@@ -160,11 +144,12 @@ final class MenuBarAppearanceManager: ObservableObject {
                 owningScreen: screen
             )
             overlayPanels.insert(panel)
-            // panel needs a reference to the menu bar frame, which is retrieved asynchronously; wait a bit before showing
-            // FIXME: Show after the panel has the menu bar reference instead of waiting an arbitrary amount of time
             Task {
-                try await Task.sleep(for: .seconds(0.5))
-                panel.show()
+                do {
+                    try await panel.show()
+                } catch {
+                    Logger.appearanceManager.error("ERROR: \(error)")
+                }
             }
         }
 

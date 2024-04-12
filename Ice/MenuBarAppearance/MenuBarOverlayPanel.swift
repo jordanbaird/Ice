@@ -75,14 +75,18 @@ class MenuBarOverlayPanel: NSPanel {
                 guard
                     let self,
                     let appearanceManager,
-                    let menuBarManager = appearanceManager.menuBarManager,
-                    let owningDisplay = DisplayInfo(nsScreen: self.owningScreen),
-                    !menuBarManager.isFullscreen(for: owningDisplay)
+                    let menuBarManager = appearanceManager.menuBarManager
                 else {
                     return
                 }
                 Task {
                     do {
+                        guard
+                            let owningDisplay = DisplayInfo(nsScreen: self.owningScreen),
+                            try await !menuBarManager.isFullscreen(for: owningDisplay)
+                        else {
+                            return
+                        }
                         try await self.show()
                     } catch {
                         Logger.overlayPanel.error("ERROR: \(error)")
@@ -141,26 +145,32 @@ class MenuBarOverlayPanel: NSPanel {
                 defer {
                     self.needsUpdate = false
                 }
-                guard
-                    let menuBarManager = appearanceManager?.menuBarManager,
-                    let owningDisplay = DisplayInfo(nsScreen: owningScreen),
-                    !menuBarManager.isFullscreen(for: owningDisplay)
-                else {
-                    Logger.overlayPanel.debug("Full screen window found. Preventing update of menu bar and desktop wallpaper.")
-                    return
-                }
                 Task {
                     do {
-                        try await self.updateMenuBar()
+                        guard
+                            let menuBarManager = self.appearanceManager?.menuBarManager,
+                            let owningDisplay = DisplayInfo(nsScreen: self.owningScreen),
+                            try await !menuBarManager.isFullscreen(for: owningDisplay)
+                        else {
+                            Logger.overlayPanel.debug("Found full screen window. Preventing update of menu bar and desktop wallpaper.")
+                            return
+                        }
+                        Task.detached {
+                            do {
+                                try await self.updateMenuBar()
+                            } catch {
+                                Logger.overlayPanel.error("Error updating menu bar: \(error)")
+                            }
+                        }
+                        Task.detached {
+                            do {
+                                try await self.updateDesktopWallpaper()
+                            } catch {
+                                Logger.overlayPanel.error("Error updating desktop wallpaper: \(error)")
+                            }
+                        }
                     } catch {
-                        Logger.overlayPanel.error("Error updating menu bar: \(error)")
-                    }
-                }
-                Task {
-                    do {
-                        try await self.updateDesktopWallpaper()
-                    } catch {
-                        Logger.overlayPanel.error("Error updating desktop wallpaper: \(error)")
+                        Logger.overlayPanel.error("ERROR: \(error)")
                     }
                 }
             }
@@ -205,7 +215,7 @@ class MenuBarOverlayPanel: NSPanel {
         }
         if
             let menuBarManager = appearanceManager?.menuBarManager,
-            menuBarManager.isFullscreen(for: owningDisplay)
+            try await menuBarManager.isFullscreen(for: owningDisplay)
         {
             menuBar = nil
         } else {
@@ -526,7 +536,12 @@ private class MenuBarOverlayPanelContentView: NSView {
             return
         }
 
-        if menuBarManager.isFullscreen(for: owningDisplay) {
+        do {
+            if try menuBarManager.isFullscreen(for: owningDisplay) {
+                return
+            }
+        } catch {
+            Logger.overlayPanel.error("ERROR: \(error)")
             return
         }
 

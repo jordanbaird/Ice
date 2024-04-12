@@ -129,7 +129,7 @@ final class MenuBarManager: ObservableObject {
                         if self.sections.contains(where: { !$0.isHidden }) {
                             guard
                                 let display = DisplayInfo.main,
-                                !self.isFullscreen(for: display)
+                                try await !self.isFullscreen(for: display)
                             else {
                                 return
                             }
@@ -242,20 +242,29 @@ final class MenuBarManager: ObservableObject {
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
     }
+}
+
+extension MenuBarManager {
+    private func fullscreenPredicate(for display: DisplayInfo) -> (WindowInfo) -> Bool {
+        return { window in
+            window.frame == display.frame &&
+            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            window.title == "Fullscreen Backdrop"
+        }
+    }
 
     /// Returns a Boolean value that indicates whether a window is
     /// fullscreen on the given display.
-    func isFullscreen(for display: DisplayInfo) -> Bool {
-        do {
-            let windows = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
-            return windows.contains { window in
-                window.frame == display.frame &&
-                window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-                window.title == "Fullscreen Backdrop"
-            }
-        } catch {
-            return false
-        }
+    func isFullscreen(for display: DisplayInfo) throws -> Bool {
+        let windows = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
+        return windows.contains(where: fullscreenPredicate(for: display))
+    }
+
+    /// Asynchronously returns a Boolean value that indicates whether
+    /// a window is fullscreen on the given display.
+    func isFullscreen(for display: DisplayInfo) async throws -> Bool {
+        let windows = try await WindowInfo.onScreenWindows(excludeDesktopWindows: false)
+        return windows.contains(where: fullscreenPredicate(for: display))
     }
 }
 

@@ -76,7 +76,7 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .debounce(for: 0.5, scheduler: DispatchQueue.main)
+            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else {
                     return
@@ -138,19 +138,16 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         var overlayPanels = Set<MenuBarOverlayPanel>()
         for screen in NSScreen.screens {
+            guard let display = DisplayInfo(nsScreen: screen) else {
+                continue
+            }
             let panel = MenuBarOverlayPanel(
                 appearanceManager: self,
                 screenCaptureManager: appState.screenCaptureManager,
-                owningScreen: screen
+                owningDisplay: display
             )
             overlayPanels.insert(panel)
-            Task {
-                do {
-                    try await panel.show()
-                } catch {
-                    Logger.appearanceManager.error("ERROR: \(error)")
-                }
-            }
+            panel.needsShow = true
         }
 
         self.overlayPanels = overlayPanels

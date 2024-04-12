@@ -20,17 +20,17 @@ class MenuBarOverlayPanel: NSPanel {
     /// The screen capture manager for the panel.
     let screenCaptureManager: ScreenCaptureManager
 
-    /// The screen that owns the panel.
-    let owningScreen: NSScreen
+    /// The display that owns the panel.
+    let owningDisplay: DisplayInfo
+
+    /// A Boolean value that indicates whether the panel needs to be shown.
+    @Published var needsShow = false
 
     /// A Boolean value that indicates whether the panel needs to be updated.
     @Published var needsUpdate = true
 
     /// A Boolean value that indicates whether the user is dragging a menu bar item.
     @Published var isDraggingMenuBarItem = false
-
-    /// The menu bar associated with the panel.
-    @Published private(set) var menuBar: AccessibilityMenuBar?
 
     /// The frame of the menu bar's application menu.
     @Published private(set) var applicationMenuFrame: CGRect?
@@ -39,15 +39,15 @@ class MenuBarOverlayPanel: NSPanel {
     @Published private(set) var desktopWallpaper: CGImage?
 
     /// Creates an overlay panel with the given appearance manager, screen capture
-    /// manager, and owning screen.
+    /// manager, and owning display.
     init(
         appearanceManager: MenuBarAppearanceManager,
         screenCaptureManager: ScreenCaptureManager,
-        owningScreen: NSScreen
+        owningDisplay: DisplayInfo
     ) {
         self.appearanceManager = appearanceManager
         self.screenCaptureManager = screenCaptureManager
-        self.owningScreen = owningScreen
+        self.owningDisplay = owningDisplay
         super.init(
             contentRect: .zero,
             styleMask: [.borderless, .fullSizeContentView, .nonactivatingPanel],
@@ -70,28 +70,9 @@ class MenuBarOverlayPanel: NSPanel {
         // show the panel on the active space
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .debounce(for: 0.5, scheduler: DispatchQueue.main)
+            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard
-                    let self,
-                    let appearanceManager,
-                    let menuBarManager = appearanceManager.menuBarManager
-                else {
-                    return
-                }
-                Task {
-                    do {
-                        guard
-                            let owningDisplay = DisplayInfo(nsScreen: self.owningScreen),
-                            try await !menuBarManager.isFullscreen(for: owningDisplay)
-                        else {
-                            return
-                        }
-                        try await self.show()
-                    } catch {
-                        Logger.overlayPanel.error("ERROR: \(error)")
-                    }
-                }
+                self?.needsShow = true
             }
             .store(in: &c)
 
@@ -99,15 +80,6 @@ class MenuBarOverlayPanel: NSPanel {
         DistributedNotificationCenter.default()
             .publisher(for: Notification.Name("AppleInterfaceThemeChangedNotification"))
             .debounce(for: 1, scheduler: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.needsUpdate = true
-            }
-            .store(in: &c)
-
-        // update when the active space changes
-        NSWorkspace.shared.notificationCenter
-            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .debounce(for: 0.5, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.needsUpdate = true
             }
@@ -133,6 +105,42 @@ class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
+        // fallback
+        Timer.publish(every: 2.5, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard
+                    let self,
+                    !isOnActiveSpace
+                else {
+                    return
+                }
+                needsShow = true
+            }
+            .store(in: &c)
+
+        $needsShow
+            .removeDuplicates()
+            .sink { [weak self] needsShow in
+                guard
+                    let self,
+                    needsShow
+                else {
+                    return
+                }
+                defer {
+                    self.needsShow = false
+                }
+                Task {
+                    do {
+                        try await self.show()
+                    } catch {
+                        Logger.overlayPanel.error("Error showing menu bar overlay panel: \(error)")
+                    }
+                }
+            }
+            .store(in: &c)
+
         $needsUpdate
             .removeDuplicates()
             .sink { [weak self] needsUpdate in
@@ -149,15 +157,14 @@ class MenuBarOverlayPanel: NSPanel {
                     do {
                         guard
                             let menuBarManager = self.appearanceManager?.menuBarManager,
-                            let owningDisplay = DisplayInfo(nsScreen: self.owningScreen),
-                            try await !menuBarManager.isFullscreen(for: owningDisplay)
+                            try await !menuBarManager.isFullscreen(for: self.owningDisplay)
                         else {
-                            Logger.overlayPanel.debug("Found full screen window. Preventing update of menu bar and desktop wallpaper.")
+                            Logger.overlayPanel.notice("Found fullscreen window. Preventing update of menu bar and desktop wallpaper.")
                             return
                         }
                         Task.detached {
                             do {
-                                try await self.updateMenuBar()
+                                try await self.updateApplicationMenuFrame()
                             } catch {
                                 Logger.overlayPanel.error("Error updating menu bar: \(error)")
                             }
@@ -176,72 +183,47 @@ class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
-        $menuBar
-            .sink { [weak self] menuBar in
-                self?.updateApplicationMenuFrame(menuBar: menuBar)
-            }
-            .store(in: &c)
-
         cancellables = c
     }
 
-    /// Returns the frame that should be used to display the panel.
-    private func getFrameForDisplay() async throws -> CGRect {
-        guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
-            return .null
-        }
+    /// Returns the frame that should be used to show the panel on the given display.
+    private func getDisplayFrame() async throws -> CGRect {
         let menuBar = try await AccessibilityMenuBar(display: owningDisplay)
         let menuBarFrame: CGRect = try menuBar.frame()
         return CGRect(
-            x: owningScreen.frame.origin.x,
-            y: (owningScreen.frame.maxY - menuBarFrame.height) - 5,
-            width: owningScreen.frame.width,
+            x: owningDisplay.frame.minX,
+            y: (owningDisplay.frame.maxY - menuBarFrame.height) - 5,
+            width: owningDisplay.frame.width,
             height: menuBarFrame.height + 5
         )
     }
 
-    /// Stores the area of the desktop wallpaper that is under the menu bar.
-    private func updateDesktopWallpaper() async throws {
-        guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
-            return
-        }
-        desktopWallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
-    }
-
-    /// Stores a reference to the owning screen's menu bar.
-    private func updateMenuBar() async throws {
-        guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
-            return
-        }
-        if
-            let menuBarManager = appearanceManager?.menuBarManager,
-            try await menuBarManager.isFullscreen(for: owningDisplay)
-        {
-            menuBar = nil
-        } else {
-            do {
-                menuBar = try await AccessibilityMenuBar(display: owningDisplay)
-            } catch {
-                menuBar = nil
-                Logger.overlayPanel.error("Error updating menu bar: \(error)")
-            }
-        }
-    }
-
     /// Stores the frame of the menu bar's application menu.
-    private func updateApplicationMenuFrame(menuBar: AccessibilityMenuBar?) {
-        guard let menuBar else {
-            return
-        }
+    private func updateApplicationMenuFrame() async throws {
         do {
-            let items = try menuBar.menuBarItems()
-            let frame: CGRect = try items.reduce(into: .zero) { result, item in
-                result = try result.union(item.frame())
+            if
+                let menuBarManager = appearanceManager?.menuBarManager,
+                try await menuBarManager.isFullscreen(for: owningDisplay)
+            {
+                applicationMenuFrame = nil
+            } else {
+                let menuBar = try await AccessibilityMenuBar(display: owningDisplay)
+                let items = try menuBar.menuBarItems()
+                let frame: CGRect = try items.reduce(into: .zero) { result, item in
+                    result = try result.union(item.frame())
+                }
+                applicationMenuFrame = frame
             }
-            applicationMenuFrame = frame
         } catch {
+            applicationMenuFrame = nil
             Logger.overlayPanel.error("Error updating application menu frame: \(error)")
         }
+    }
+
+    /// Stores the area of the desktop wallpaper that is under the menu bar
+    /// of the given display.
+    private func updateDesktopWallpaper() async throws {
+        desktopWallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
     }
 
     /// Shows the panel.
@@ -250,20 +232,27 @@ class MenuBarOverlayPanel: NSPanel {
             return
         }
 
-        let frameForDisplay = try await getFrameForDisplay()
-
-        // only continue if the appearance manager holds a reference to this panel
         guard
             let appearanceManager,
-            appearanceManager.overlayPanels.contains(self)
+            let menuBarManager = appearanceManager.menuBarManager,
+            try await !menuBarManager.isFullscreen(for: owningDisplay)
         else {
+            Logger.overlayPanel.notice("Found fullscreen window")
+            return
+        }
+
+        let displayFrame = try await getDisplayFrame()
+
+        // only continue if the appearance manager holds a reference to this panel
+        guard appearanceManager.overlayPanels.contains(self) else {
             Logger.overlayPanel.notice("Overlay panel \(self) not retained")
             return
         }
 
         alphaValue = 0
-        setFrame(frameForDisplay, display: true)
+        setFrame(displayFrame, display: true)
         orderFrontRegardless()
+        needsUpdate = true
         try await Task.sleep(for: .seconds(0.1))
         animator().alphaValue = 1
     }
@@ -530,14 +519,13 @@ private class MenuBarOverlayPanelContentView: NSView {
             let overlayPanel,
             let appearanceManager,
             let menuBarManager = appearanceManager.menuBarManager,
-            let context = NSGraphicsContext.current,
-            let owningDisplay = DisplayInfo(nsScreen: overlayPanel.owningScreen)
+            let context = NSGraphicsContext.current
         else {
             return
         }
 
         do {
-            if try menuBarManager.isFullscreen(for: owningDisplay) {
+            if try menuBarManager.isFullscreen(for: overlayPanel.owningDisplay) {
                 return
             }
         } catch {
@@ -562,7 +550,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             pathForSplitShape(
                 in: drawableBounds,
                 info: configuration.splitShapeInfo,
-                display: owningDisplay,
+                display: overlayPanel.owningDisplay,
                 insetX: 2,
                 insetY: 1
             )
@@ -665,7 +653,7 @@ private class MenuBarOverlayPanelContentView: NSView {
                     pathForSplitShape(
                         in: drawableBounds,
                         info: configuration.splitShapeInfo,
-                        display: owningDisplay,
+                        display: overlayPanel.owningDisplay,
                         insetX: 1,
                         insetY: 0
                     )

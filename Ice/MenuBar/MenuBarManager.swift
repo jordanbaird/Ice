@@ -91,6 +91,7 @@ final class MenuBarManager: ObservableObject {
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
         )
+        .debounce(for: 0.1, scheduler: DispatchQueue.main)
         .sink { [weak self] frontmostApplication, isFinishedLaunching, _ in
             guard
                 let self,

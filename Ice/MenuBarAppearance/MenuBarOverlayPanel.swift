@@ -12,6 +12,20 @@ import OSLog
 
 /// A subclass of `NSPanel` that sits atop the menu bar to alter its appearance.
 class MenuBarOverlayPanel: NSPanel {
+    enum UpdateError: Error, CustomStringConvertible {
+        case applicationMenuFrame(any Error)
+        case desktopWallpaper(any Error)
+
+        var description: String {
+            switch self {
+            case .applicationMenuFrame(let error):
+                "Application menu frame update failed: \(error)"
+            case .desktopWallpaper(let error):
+                "Desktop wallpaper update failed: \(error)"
+            }
+        }
+    }
+
     private var cancellables = Set<AnyCancellable>()
 
     /// The appearance manager that manages the panel.
@@ -155,27 +169,17 @@ class MenuBarOverlayPanel: NSPanel {
                 }
                 Task {
                     do {
-                        guard
-                            let menuBarManager = self.appearanceManager?.menuBarManager,
-                            try await !menuBarManager.isFullscreen(for: self.owningDisplay)
-                        else {
-                            Logger.overlayPanel.notice("Found fullscreen window. Preventing update of menu bar and desktop wallpaper.")
+                        if let menuBarManager = self.appearanceManager?.menuBarManager {
+                            guard try await !menuBarManager.isFullscreen(for: self.owningDisplay) else {
+                                Logger.overlayPanel.notice("Found fullscreen window. Preventing panel update.")
+                                return
+                            }
+                        }
+                        guard await AccessibilityMenuBar.hasValidMenuBar(for: self.owningDisplay) else {
+                            Logger.overlayPanel.notice("No valid menu bar found. Preventing panel update.")
                             return
                         }
-                        Task.detached {
-                            do {
-                                try await self.updateApplicationMenuFrame()
-                            } catch {
-                                Logger.overlayPanel.error("Error updating application menu frame: \(error)")
-                            }
-                        }
-                        Task.detached {
-                            do {
-                                try await self.updateDesktopWallpaper()
-                            } catch {
-                                Logger.overlayPanel.error("Error updating desktop wallpaper: \(error)")
-                            }
-                        }
+                        try await self.performUpdates()
                     } catch {
                         Logger.overlayPanel.error("ERROR: \(error)")
                     }
@@ -231,6 +235,26 @@ class MenuBarOverlayPanel: NSPanel {
         }
     }
 
+    /// Updates the panel to prepare for display.
+    private func performUpdates() async throws {
+        let applicationMenuFrameTask = Task.detached {
+            do {
+                try await self.updateApplicationMenuFrame()
+            } catch {
+                throw UpdateError.applicationMenuFrame(error)
+            }
+        }
+        let desktopWallpaperTask = Task.detached {
+            do {
+                try await self.updateDesktopWallpaper()
+            } catch {
+                throw UpdateError.desktopWallpaper(error)
+            }
+        }
+        try await applicationMenuFrameTask.value
+        try await desktopWallpaperTask.value
+    }
+
     /// Shows the panel.
     func show() async throws {
         guard !AppState.shared.isPreview else {
@@ -242,7 +266,6 @@ class MenuBarOverlayPanel: NSPanel {
             let menuBarManager = appearanceManager.menuBarManager,
             try await !menuBarManager.isFullscreen(for: owningDisplay)
         else {
-            Logger.overlayPanel.notice("Found fullscreen window")
             return
         }
 

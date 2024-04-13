@@ -51,6 +51,19 @@ struct AccessibilityMenuBar {
         }
     }
 
+    /// Returns a Boolean value that indicates whether the given display
+    /// has a valid menu bar.
+    static func hasValidMenuBar(for display: DisplayInfo) async -> Bool {
+        do {
+            let menuBarWindow = try await WindowInfo.menuBarWindow(for: display)
+            let position = menuBarWindow.frame.origin
+            let uiElement = try systemWideElement.elementAtPosition(Float(position.x), Float(position.y))
+            return try uiElement?.role() == .menuBar
+        } catch {
+            return false
+        }
+    }
+
     /// Returns the menu bar's frame.
     func frame() throws -> CGRect {
         do {

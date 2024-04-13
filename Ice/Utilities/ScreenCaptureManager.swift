@@ -49,9 +49,8 @@ class ScreenCaptureManager {
         /// provided window.
         case sourceRectOutOfBounds
 
-        /// The screen is in an invalid state for capture, such as being locked,
-        /// or the screensaver being active.
-        case invalidScreenState
+        /// The screen is in an invalid state for capture.
+        case invalidScreenState(ScreenState)
 
         /// The capture operation timed out.
         case timeout
@@ -59,52 +58,9 @@ class ScreenCaptureManager {
 
     private var cancellables = Set<AnyCancellable>()
 
-    private var screenIsLocked = false
-
-    private var screenSaverIsActive = false
-
     /// A Boolean value that indicates whether the app has screen capture permissions.
     var hasScreenCapturePermissions: Bool {
         CGPreflightScreenCaptureAccess()
-    }
-
-    /// Creates a screen capture manager.
-    init() {
-        configureCancellables()
-    }
-
-    private func configureCancellables() {
-        var c = Set<AnyCancellable>()
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screenIsLocked"))
-            .sink { [weak self] _ in
-                self?.screenIsLocked = true
-            }
-            .store(in: &c)
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screenIsUnlocked"))
-            .sink { [weak self] _ in
-                self?.screenIsLocked = false
-            }
-            .store(in: &c)
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screensaver.didstart"))
-            .sink { [weak self] _ in
-                self?.screenSaverIsActive = true
-            }
-            .store(in: &c)
-
-        DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("com.apple.screensaver.didstop"))
-            .sink { [weak self] _ in
-                self?.screenSaverIsActive = false
-            }
-            .store(in: &c)
-
-        cancellables = c
     }
 
     /// Returns an image containing the area of the desktop wallpaper
@@ -139,11 +95,9 @@ class ScreenCaptureManager {
             throw CaptureError.missingPermissions
         }
 
-        guard
-            !screenIsLocked,
-            !screenSaverIsActive
-        else {
-            throw CaptureError.invalidScreenState
+        switch ScreenState.current {
+        case .unlocked: break
+        case let state: throw CaptureError.invalidScreenState(state)
         }
 
         let windows = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true).windows

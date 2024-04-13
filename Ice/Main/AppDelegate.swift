@@ -9,10 +9,15 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState.shared
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationWillFinishLaunching(_ notification: Notification) {
         // assign the delegate to the shared app state
         appState.assignAppDelegate(self)
 
+        // set up the shared screen state manager
+        ScreenStateManager.setUpSharedManager()
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
         // assign the settings window to the shared app state
         if let settingsWindow = NSApp.window(withIdentifier: Constants.settingsWindowID) {
             appState.assignSettingsWindow(settingsWindow)

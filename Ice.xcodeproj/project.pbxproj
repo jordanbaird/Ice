@@ -81,6 +81,8 @@
 		17ECD4EE2B290F8D00E33147 /* PermissionsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17ECD4ED2B290F8D00E33147 /* PermissionsWindow.swift */; };
 		17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F71BB12B87E37800905CBA /* RehideStrategy.swift */; };
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
+		17FE5AD32BCA7A7500E4F8D9 /* ScreenStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE5AD22BCA7A7500E4F8D9 /* ScreenStateManager.swift */; };
+		17FE5AD52BCA9BE200E4F8D9 /* ScreenState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */; };
 		71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */; };
 		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
 		7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED5D2A853FCF000A7E1B /* Constants.swift */; };
@@ -186,6 +188,8 @@
 		17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+clamped.swift"; sourceTree = "<group>"; };
 		17ECD4ED2B290F8D00E33147 /* PermissionsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsWindow.swift; sourceTree = "<group>"; };
 		17F71BB12B87E37800905CBA /* RehideStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RehideStrategy.swift; sourceTree = "<group>"; };
+		17FE5AD22BCA7A7500E4F8D9 /* ScreenStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenStateManager.swift; sourceTree = "<group>"; };
+		17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenState.swift; sourceTree = "<group>"; };
 		71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectAssociation.swift; sourceTree = "<group>"; };
 		711535F12AB9F6C1003193AD /* BindingExposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingExposable.swift; sourceTree = "<group>"; };
 		7133ED5D2A853FCF000A7E1B /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
@@ -527,6 +531,15 @@
 			path = Comparable;
 			sourceTree = "<group>";
 		};
+		17FE5AD62BCA9BEC00E4F8D9 /* ScreenState */ = {
+			isa = PBXGroup;
+			children = (
+				17FE5AD22BCA7A7500E4F8D9 /* ScreenStateManager.swift */,
+				17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */,
+			);
+			path = ScreenState;
+			sourceTree = "<group>";
+		};
 		7133ED5F2A855ADA000A7E1B /* NSApplication */ = {
 			isa = PBXGroup;
 			children = (
@@ -633,6 +646,7 @@
 				17C303772BA62CD20079755B /* MigrationManager.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
 				174AA5F42B730A0B00E3FE74 /* ScreenCaptureManager.swift */,
+				17FE5AD62BCA9BEC00E4F8D9 /* ScreenState */,
 				17CC22B42B8A55E7001A0582 /* WindowInfo.swift */,
 				170749CB2B120951009DDF73 /* EventMonitors */,
 				71D36C492A88EDD200D89CD5 /* Swizzling */,
@@ -849,6 +863,7 @@
 				71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */,
 				170749C82B12078F009DDF73 /* GlobalEventMonitor.swift in Sources */,
 				17ECD4EE2B290F8D00E33147 /* PermissionsWindow.swift in Sources */,
+				17FE5AD32BCA7A7500E4F8D9 /* ScreenStateManager.swift in Sources */,
 				174D4E242BA1D28700D11129 /* HotkeyRecorder.swift in Sources */,
 				71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */,
 				174D4E262BA1D35D00D11129 /* HotkeyRecorderModel.swift in Sources */,
@@ -902,6 +917,7 @@
 				174D4E2A2BA230FB00D11129 /* HotkeySettingsManager.swift in Sources */,
 				179F3C432ACE746700A76EE8 /* RemoveSidebarToggle.swift in Sources */,
 				17DFF4AC2AD5FB3300B5177A /* MenuBarSettingsPane.swift in Sources */,
+				17FE5AD52BCA9BE200E4F8D9 /* ScreenState.swift in Sources */,
 				170423DD2B56E77D004A2549 /* UpdatesManager.swift in Sources */,
 				177354662B1B8502001CF731 /* MenuBarShape.swift in Sources */,
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,

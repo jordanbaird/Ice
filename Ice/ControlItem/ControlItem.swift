@@ -272,8 +272,9 @@ final class ControlItem: ObservableObject {
         case .hidden, .alwaysHidden:
             switch state {
             case .hideItems:
-                isVisible = true
+                // important that length gets set before isVisible
                 statusItem.length = Lengths.expanded
+                isVisible = true
                 // prevent the cell from highlighting while expanded
                 button.cell?.isEnabled = false
                 // cell still sometimes briefly flashes on expansion
@@ -281,8 +282,9 @@ final class ControlItem: ObservableObject {
                 button.isHighlighted = false
                 button.image = nil
             case .showItems:
-                isVisible = appState.settingsManager.advancedSettingsManager.showSectionDividers
+                // important that length gets set before isVisible
                 statusItem.length = Lengths.standard
+                isVisible = appState.settingsManager.advancedSettingsManager.showSectionDividers
                 // enable cell, as it may have been previously disabled
                 button.cell?.isEnabled = true
                 // set the image based on section name and state

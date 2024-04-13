@@ -166,7 +166,7 @@ class MenuBarOverlayPanel: NSPanel {
                             do {
                                 try await self.updateApplicationMenuFrame()
                             } catch {
-                                Logger.overlayPanel.error("Error updating menu bar: \(error)")
+                                Logger.overlayPanel.error("Error updating application menu frame: \(error)")
                             }
                         }
                         Task.detached {
@@ -216,14 +216,19 @@ class MenuBarOverlayPanel: NSPanel {
             }
         } catch {
             applicationMenuFrame = nil
-            Logger.overlayPanel.error("Error updating application menu frame: \(error)")
+            throw error
         }
     }
 
     /// Stores the area of the desktop wallpaper that is under the menu bar
     /// of the given display.
     private func updateDesktopWallpaper() async throws {
-        desktopWallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
+        do {
+            desktopWallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
+        } catch {
+            desktopWallpaper = nil
+            throw error
+        }
     }
 
     /// Shows the panel.

@@ -46,8 +46,8 @@ class MenuBarOverlayPanel: NSPanel {
     /// A Boolean value that indicates whether the user is dragging a menu bar item.
     @Published var isDraggingMenuBarItem = false
 
-    /// The frame of the menu bar's application menu.
-    @Published private(set) var applicationMenuFrame: CGRect?
+    /// The frames of the menu bar's application menus.
+    @Published private(set) var applicationMenuFrames = [CGRect]()
 
     /// The current desktop wallpaper, clipped to the bounds of the menu bar.
     @Published private(set) var desktopWallpaper: CGImage?
@@ -202,24 +202,23 @@ class MenuBarOverlayPanel: NSPanel {
         )
     }
 
-    /// Stores the frame of the menu bar's application menu.
-    private func updateApplicationMenuFrame() async throws {
+    /// Stores the frames of the menu bar's application menus.
+    private func updateApplicationMenuFrames() async throws {
         do {
             if
                 let menuBarManager = appearanceManager?.menuBarManager,
                 try await menuBarManager.isFullscreen(for: owningDisplay)
             {
-                applicationMenuFrame = nil
+                applicationMenuFrames.removeAll()
             } else {
                 let menuBar = try await AccessibilityMenuBar(display: owningDisplay)
                 let items = try menuBar.menuBarItems()
-                let frame: CGRect = try items.reduce(into: .zero) { result, item in
-                    result = try result.union(item.frame())
+                applicationMenuFrames = try items.map { item in
+                    try item.frame()
                 }
-                applicationMenuFrame = frame
             }
         } catch {
-            applicationMenuFrame = nil
+            applicationMenuFrames.removeAll()
             throw error
         }
     }
@@ -237,9 +236,9 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Updates the panel to prepare for display.
     private func performUpdates() async throws {
-        let applicationMenuFrameTask = Task.detached {
+        let applicationMenuFramesTask = Task.detached {
             do {
-                try await self.updateApplicationMenuFrame()
+                try await self.updateApplicationMenuFrames()
             } catch {
                 throw UpdateError.applicationMenuFrame(error)
             }
@@ -251,8 +250,16 @@ class MenuBarOverlayPanel: NSPanel {
                 throw UpdateError.desktopWallpaper(error)
             }
         }
-        try await applicationMenuFrameTask.value
+        try await applicationMenuFramesTask.value
         try await desktopWallpaperTask.value
+    }
+
+    /// Returns the combined application menu frame, that is, the result of performing
+    /// the `union` operation on every element in the ``applicationMenuFrames`` array.
+    func getCombinedApplicationMenuFrame() -> CGRect {
+        return applicationMenuFrames.reduce(into: .zero) { result, frame in
+            result = result.union(frame)
+        }
     }
 
     /// Shows the panel.
@@ -330,8 +337,8 @@ private class MenuBarOverlayPanelContentView: NSView {
                     }
                 }
                 .store(in: &c)
-            // redraw whenever the application menu frame changes
-            overlayPanel.$applicationMenuFrame
+            // redraw whenever the application menu frames change
+            overlayPanel.$applicationMenuFrames
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
                 }
@@ -355,6 +362,13 @@ private class MenuBarOverlayPanelContentView: NSView {
         }
 
         if let menuBarManager = appearanceManager?.menuBarManager {
+            // redraw when the application menus are hidden
+            menuBarManager.$isHidingApplicationMenus
+                .sink { [weak self] _ in
+                    self?.needsDisplay = true
+                }
+                .store(in: &c)
+
             for section in menuBarManager.sections {
                 // redraw whenever the window frame of a control item changes
                 //
@@ -455,19 +469,28 @@ private class MenuBarOverlayPanelContentView: NSView {
         insetY: CGFloat
     ) -> NSBezierPath {
         let leadingPathBounds: CGRect = {
-            guard let applicationMenuMaxX = overlayPanel?.applicationMenuFrame?.maxX else {
+            var maxX: CGFloat = 0
+            if
+                let menuBarManager = appearanceManager?.menuBarManager,
+                menuBarManager.isHidingApplicationMenus,
+                let appleMenuMaxX = overlayPanel?.applicationMenuFrames.first?.maxX
+            {
+                // special case to prevent the leading path from jittering when hiding the
+                // application menus; this technically changes the shape just _before_ the
+                // menus hide, but it looks the best
+                maxX = appleMenuMaxX
+            } else if let applicationMenuMaxX = overlayPanel?.getCombinedApplicationMenuFrame().maxX {
+                maxX = applicationMenuMaxX
+            }
+            guard maxX != 0 else {
                 return .zero
             }
-            return CGRect(
-                x: rect.minX,
-                y: rect.minY,
-                width: applicationMenuMaxX + 10,
-                height: rect.height
-            )
+            maxX += 10 // padding so the shape is even on both sides
+            return CGRect(x: rect.minX, y: rect.minY, width: maxX, height: rect.height)
         }()
         let trailingPathBounds: CGRect = {
             guard
-                let itemManager = overlayPanel?.appearanceManager?.menuBarManager?.itemManager,
+                let itemManager = appearanceManager?.menuBarManager?.itemManager,
                 let items = try? itemManager.getMenuBarItems(for: display, onScreenOnly: true)
             else {
                 return .zero
@@ -475,13 +498,9 @@ private class MenuBarOverlayPanelContentView: NSView {
             let totalWidth = items.reduce(into: 0) { width, item in
                 width += item.frame.width
             }
-            let position = rect.maxX - totalWidth - 7
-            return CGRect(
-                x: position,
-                y: rect.minY,
-                width: rect.maxX - position,
-                height: rect.height
-            )
+            var position = rect.maxX - totalWidth
+            position -= 7 // padding so the shape is even on both sides
+            return CGRect(x: position, y: rect.minY, width: rect.maxX - position, height: rect.height)
         }()
 
         if leadingPathBounds == .zero || trailingPathBounds == .zero {

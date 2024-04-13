@@ -11,8 +11,9 @@ import SwiftUI
 /// Manager for the state of the menu bar.
 @MainActor
 final class MenuBarManager: ObservableObject {
-    /// The frame of the menu bar's application menu.
     @Published private(set) var applicationMenuFrame = CGRect.zero
+
+    @Published private(set) var isHidingApplicationMenus = false
 
     private(set) var sections = [MenuBarSection]()
 
@@ -21,8 +22,6 @@ final class MenuBarManager: ObservableObject {
     private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
 
     let appearanceManager: MenuBarAppearanceManager
-
-    private var isHidingApplicationMenus = false
 
     private let encoder = JSONEncoder()
 
@@ -215,8 +214,8 @@ final class MenuBarManager: ObservableObject {
     }
 
     func hideApplicationMenus() {
-        appState?.activate(withPolicy: .regular)
         isHidingApplicationMenus = true
+        appState?.activate(withPolicy: .regular)
     }
 
     func showApplicationMenus() {

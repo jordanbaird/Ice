@@ -139,7 +139,19 @@ class MenuBarOverlayPanel: NSPanel {
         )
         .debounce(for: 0.1, scheduler: DispatchQueue.main)
         .sink { [weak self] _ in
-            self?.updateFlags.insert(.applicationMenuFrames)
+            guard let self else {
+                return
+            }
+            updateFlags.insert(.applicationMenuFrames)
+            // HACK: some applications seem to delay a bit before setting the
+            // application menu; if we update now, we might not have access to
+            // the current menu; until we can find a good workaround, our best
+            // bet is to wait and request another update (inefficient, but not
+            // too bad, since application switches don't happen very often)
+            Task {
+                try await Task.sleep(for: .seconds(0.5))
+                self.updateFlags.insert(.applicationMenuFrames)
+            }
         }
         .store(in: &c)
 

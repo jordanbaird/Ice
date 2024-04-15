@@ -34,8 +34,8 @@ class MenuBarOverlayPanel: NSPanel {
     /// The screen capture manager for the panel.
     let screenCaptureManager: ScreenCaptureManager
 
-    /// The display that owns the panel.
-    let owningDisplay: DisplayInfo
+    /// The screen that owns the panel.
+    let owningScreen: NSScreen
 
     /// A Boolean value that indicates whether the panel needs to be shown.
     @Published var needsShow = false
@@ -57,11 +57,11 @@ class MenuBarOverlayPanel: NSPanel {
     init(
         appearanceManager: MenuBarAppearanceManager,
         screenCaptureManager: ScreenCaptureManager,
-        owningDisplay: DisplayInfo
+        owningScreen: NSScreen
     ) {
         self.appearanceManager = appearanceManager
         self.screenCaptureManager = screenCaptureManager
-        self.owningDisplay = owningDisplay
+        self.owningScreen = owningScreen
         super.init(
             contentRect: .zero,
             styleMask: [.borderless, .fullSizeContentView, .nonactivatingPanel],
@@ -169,13 +169,17 @@ class MenuBarOverlayPanel: NSPanel {
                 }
                 Task {
                     do {
+                        guard let owningDisplay = DisplayInfo(nsScreen: self.owningScreen) else {
+                            Logger.overlayPanel.notice("No owning display. Preventing panel update.")
+                            return
+                        }
                         if let menuBarManager = self.appearanceManager?.menuBarManager {
-                            guard try await !menuBarManager.isFullscreen(for: self.owningDisplay) else {
+                            guard try await !menuBarManager.isFullscreen(for: owningDisplay) else {
                                 Logger.overlayPanel.notice("Found fullscreen window. Preventing panel update.")
                                 return
                             }
                         }
-                        guard await AccessibilityMenuBar.hasValidMenuBar(for: self.owningDisplay) else {
+                        guard await AccessibilityMenuBar.hasValidMenuBar(for: owningDisplay) else {
                             Logger.overlayPanel.notice("No valid menu bar found. Preventing panel update.")
                             return
                         }
@@ -190,14 +194,14 @@ class MenuBarOverlayPanel: NSPanel {
         cancellables = c
     }
 
-    /// Returns the frame that should be used to show the panel on the given display.
-    private func getDisplayFrame() async throws -> CGRect {
-        let menuBar = try await AccessibilityMenuBar(display: owningDisplay)
+    /// Returns the frame that should be used to show the panel on its owning screen.
+    private func getFrame(for display: DisplayInfo) async throws -> CGRect {
+        let menuBar = try await AccessibilityMenuBar(display: display)
         let menuBarFrame: CGRect = try menuBar.frame()
         return CGRect(
-            x: owningDisplay.frame.minX,
-            y: (owningDisplay.frame.maxY - menuBarFrame.height) - 5,
-            width: owningDisplay.frame.width,
+            x: owningScreen.frame.minX,
+            y: (owningScreen.frame.maxY - menuBarFrame.height) - 5,
+            width: owningScreen.frame.width,
             height: menuBarFrame.height + 5
         )
     }
@@ -205,6 +209,9 @@ class MenuBarOverlayPanel: NSPanel {
     /// Stores the frames of the menu bar's application menus.
     private func updateApplicationMenuFrames() async throws {
         do {
+            guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
+                throw DisplayInfo.DisplayError.cannotComplete
+            }
             if
                 let menuBarManager = appearanceManager?.menuBarManager,
                 try await menuBarManager.isFullscreen(for: owningDisplay)
@@ -227,6 +234,9 @@ class MenuBarOverlayPanel: NSPanel {
     /// of the given display.
     private func updateDesktopWallpaper() async throws {
         do {
+            guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
+                throw DisplayInfo.DisplayError.cannotComplete
+            }
             desktopWallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
         } catch {
             desktopWallpaper = nil
@@ -268,6 +278,10 @@ class MenuBarOverlayPanel: NSPanel {
             return
         }
 
+        guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
+            throw DisplayInfo.DisplayError.cannotComplete
+        }
+
         guard
             let appearanceManager,
             let menuBarManager = appearanceManager.menuBarManager,
@@ -276,7 +290,7 @@ class MenuBarOverlayPanel: NSPanel {
             return
         }
 
-        let displayFrame = try await getDisplayFrame()
+        let displayFrame = try await getFrame(for: owningDisplay)
 
         // only continue if the appearance manager holds a reference to this panel
         guard appearanceManager.overlayPanels.contains(self) else {
@@ -473,19 +487,21 @@ private class MenuBarOverlayPanelContentView: NSView {
             if
                 let menuBarManager = appearanceManager?.menuBarManager,
                 menuBarManager.isHidingApplicationMenus,
-                let appleMenuMaxX = overlayPanel?.applicationMenuFrames.first?.maxX
+                let overlayPanel,
+                overlayPanel.owningScreen.displayID == CGMainDisplayID(),
+                let appleMenuMaxX = overlayPanel.applicationMenuFrames.first?.width
             {
                 // special case to prevent the leading path from jittering when hiding the
                 // application menus; this technically changes the shape just _before_ the
                 // menus hide, but it looks the best
                 maxX = appleMenuMaxX
-            } else if let applicationMenuMaxX = overlayPanel?.getCombinedApplicationMenuFrame().maxX {
-                maxX = applicationMenuMaxX
+            } else if let overlayPanel {
+                maxX = overlayPanel.applicationMenuFrames.reduce(into: 0) { $0 += $1.width }
             }
             guard maxX != 0 else {
                 return .zero
             }
-            maxX += 10 // padding so the shape is even on both sides
+            maxX += 20 // padding so the shape is even on both sides
             return CGRect(x: rect.minX, y: rect.minY, width: maxX, height: rect.height)
         }()
         let trailingPathBounds: CGRect = {
@@ -566,13 +582,14 @@ private class MenuBarOverlayPanelContentView: NSView {
             let overlayPanel,
             let appearanceManager,
             let menuBarManager = appearanceManager.menuBarManager,
-            let context = NSGraphicsContext.current
+            let context = NSGraphicsContext.current,
+            let owningDisplay = DisplayInfo(nsScreen: overlayPanel.owningScreen)
         else {
             return
         }
 
         do {
-            if try menuBarManager.isFullscreen(for: overlayPanel.owningDisplay) {
+            if try menuBarManager.isFullscreen(for: owningDisplay) {
                 return
             }
         } catch {
@@ -597,7 +614,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             pathForSplitShape(
                 in: drawableBounds,
                 info: configuration.splitShapeInfo,
-                display: overlayPanel.owningDisplay,
+                display: owningDisplay,
                 insetX: 2,
                 insetY: 1
             )
@@ -700,7 +717,7 @@ private class MenuBarOverlayPanelContentView: NSView {
                     pathForSplitShape(
                         in: drawableBounds,
                         info: configuration.splitShapeInfo,
-                        display: overlayPanel.owningDisplay,
+                        display: owningDisplay,
                         insetX: 1,
                         insetY: 0
                     )

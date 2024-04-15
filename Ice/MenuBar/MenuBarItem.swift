@@ -29,7 +29,7 @@ struct MenuBarItem {
         // verify menuBarWindow
         guard
             menuBarWindow.isOnScreen,
-            display.frame.contains(menuBarWindow.frame),
+            display.bounds.contains(menuBarWindow.frame),
             menuBarWindow.owningApplication == nil,
             menuBarWindow.windowLayer == kCGMainMenuWindowLevel,
             menuBarWindow.title == "Menubar"

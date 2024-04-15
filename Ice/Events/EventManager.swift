@@ -76,6 +76,15 @@ final class EventManager {
     // MARK: Left Mouse Up
     private(set) lazy var leftMouseUpMonitor = UniversalEventMonitor(
         mask: .leftMouseUp
+    ) { [weak appState] event in
+        // mouse up means dragging has stopped
+        appState?.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(false)
+        return event
+    }
+
+    // MARK: Smart Rehide
+    private(set) lazy var smartRehideMonitor = UniversalEventMonitor(
+        mask: .leftMouseDown
     ) { [weak self, weak appState] event in
         guard
             let self,
@@ -83,9 +92,6 @@ final class EventManager {
         else {
             return event
         }
-
-        // mouse up means dragging has stopped
-        appState.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(false)
 
         // make sure auto-rehide is enabled and set to smart
         guard
@@ -129,8 +135,6 @@ final class EventManager {
                     }
                 }
 
-                try await Task.sleep(for: .seconds(0.25))
-
                 // if all the above checks have passed, hide
                 hiddenSection.hide()
             } catch {
@@ -141,8 +145,8 @@ final class EventManager {
         return event
     }
 
-    // MARK: Left Mouse Down
-    private(set) lazy var leftMouseDownMonitor = UniversalEventMonitor(
+    // MARK: Show On Click
+    private(set) lazy var showOnClickMonitor = UniversalEventMonitor(
         mask: .leftMouseDown
     ) { [weak self, weak appState] event in
         guard
@@ -177,7 +181,7 @@ final class EventManager {
                     }
                 } else if
                     let mouseLocation = self.getMouseLocation(using: .nsEvent),
-                    mouseLocation.x - display.frame.origin.x > appState.menuBarManager.applicationMenuFrame.maxX,
+                    mouseLocation.x - display.bounds.origin.x > appState.menuBarManager.applicationMenuFrame.maxX,
                     try await self.isMouseInMenuBar(of: display)
                 {
                     appState.showOnHoverIsPreventedByUserInteraction = true
@@ -310,7 +314,8 @@ final class EventManager {
     func performSetup() {
         mouseMovedMonitor.start()
         leftMouseUpMonitor.start()
-        leftMouseDownMonitor.start()
+        smartRehideMonitor.start()
+        showOnClickMonitor.start()
         rightMouseDownMonitor.start()
         leftMouseDraggedMonitor.start()
         scrollWheelMonitor.start()
@@ -352,7 +357,7 @@ final class EventManager {
             width += item.frame.width
         }
         let applicationMenuMaxX = appState.menuBarManager.applicationMenuFrame.maxX
-        return mouseX - display.frame.origin.x > applicationMenuMaxX && mouseX < display.frame.maxX - totalWidth
+        return mouseX - display.bounds.origin.x > applicationMenuMaxX && mouseX < display.bounds.maxX - totalWidth
     }
 
     private func isMouseOutsideMenuBar(of display: DisplayInfo) -> Bool {

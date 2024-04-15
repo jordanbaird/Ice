@@ -309,7 +309,7 @@ extension WindowInfo {
             // wallpaper window belongs to the Dock process
             window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
             window.title?.hasPrefix("Wallpaper-") == true &&
-            display.frame.contains(window.frame)
+            display.bounds.contains(window.frame)
         }
     }
 
@@ -357,7 +357,7 @@ extension WindowInfo {
             window.owningApplication == nil &&
             window.title == "Menubar" &&
             window.windowLayer == kCGMainMenuWindowLevel &&
-            display.frame.contains(window.frame)
+            display.bounds.contains(window.frame)
         }
     }
 

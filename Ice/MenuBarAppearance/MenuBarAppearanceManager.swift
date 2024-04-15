@@ -99,6 +99,7 @@ final class MenuBarAppearanceManager: ObservableObject {
             .store(in: &c)
 
         $configuration
+            .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] configuration in
                 guard let self else {
                     return
@@ -138,13 +139,10 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         var overlayPanels = Set<MenuBarOverlayPanel>()
         for screen in NSScreen.screens {
-            guard let display = DisplayInfo(nsScreen: screen) else {
-                continue
-            }
             let panel = MenuBarOverlayPanel(
                 appearanceManager: self,
                 screenCaptureManager: appState.screenCaptureManager,
-                owningDisplay: display
+                owningScreen: screen
             )
             overlayPanels.insert(panel)
             panel.needsShow = true

@@ -106,7 +106,7 @@ class ScreenCaptureManager {
         }
 
         let displays = try await DisplayInfo.current(activeDisplaysOnly: false)
-        guard let display = displays.first(where: { $0.frame.contains(window.frame) }) else {
+        guard let display = displays.first(where: { $0.bounds.contains(window.frame) }) else {
             throw CaptureError.noMatchingDisplay
         }
 

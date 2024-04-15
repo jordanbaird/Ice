@@ -4,16 +4,34 @@
 //
 
 import Cocoa
+import Combine
 
 /// Information for a display.
 struct DisplayInfo {
+    /// An error that can be thrown during display operations.
+    enum DisplayError: Error {
+        case cannotComplete
+        case failure
+        case illegalArgument
+        case invalidConnection
+        case invalidContext
+        case invalidOperation
+        case invalidDisplayID
+        case noneAvailable
+        case notImplemented
+        case rangeCheck
+        case typeCheck
+        case unknown
+    }
+
     /// The display identifier associated with the display.
     let displayID: CGDirectDisplayID
 
-    /// The frame of the display.
+    /// The bounds of the display.
     ///
-    /// The frame is specified in the global display coordinate space.
-    let frame: CGRect
+    /// The bounds are expressed in the global display coordinate space,
+    /// relative to the upper left corner of the main display.
+    let bounds: CGRect
 
     /// The scale factor of the display.
     let scaleFactor: CGFloat
@@ -24,11 +42,21 @@ struct DisplayInfo {
     /// The color space of the display.
     let colorSpace: CGColorSpace
 
+    /// The frame of the display.
+    ///
+    /// The frame is expressed in screen coordinates.
+    var frame: CGRect {
+        DisplayFrameHelper.shared.getFrame(for: self)
+    }
+
     /// The `Cocoa` screen equivalent of the display.
     var nsScreen: NSScreen? {
-        NSScreen.screens.first { screen in
-            screen.displayID == displayID
-        }
+        NSScreen.screens.first { $0.displayID == displayID }
+    }
+
+    /// A Boolean value that indicates whether the display is the main display.
+    var isMain: Bool {
+        CGDisplayIsMain(displayID) != 0
     }
 
     /// Creates a display with the given display identifier.
@@ -43,7 +71,7 @@ struct DisplayInfo {
             return nil
         }
         self.displayID = displayID
-        self.frame = CGDisplayBounds(displayID)
+        self.bounds = CGDisplayBounds(displayID)
         self.scaleFactor = CGFloat(mode.pixelWidth) / CGFloat(mode.width)
         self.refreshRate = mode.refreshRate
         self.colorSpace = CGDisplayCopyColorSpace(displayID)
@@ -63,47 +91,20 @@ extension DisplayInfo {
 }
 
 extension DisplayInfo {
-    /// An error that can be thrown during display list operations.
-    enum DisplayListError: Error {
-        case cannotComplete
-        case failure
-        case illegalArgument
-        case invalidConnection
-        case invalidContext
-        case invalidOperation
-        case noneAvailable
-        case notImplemented
-        case rangeCheck
-        case typeCheck
-        case unknown
-
-        init?(cgError: CGError) {
-            switch cgError {
-            case .success:
-                return nil
-            case .failure:
-                self = .failure
-            case .illegalArgument:
-                self = .illegalArgument
-            case .invalidConnection:
-                self = .invalidConnection
-            case .invalidContext:
-                self = .invalidContext
-            case .cannotComplete:
-                self = .cannotComplete
-            case .notImplemented:
-                self = .notImplemented
-            case .rangeCheck:
-                self = .rangeCheck
-            case .typeCheck:
-                self = .typeCheck
-            case .invalidOperation:
-                self = .invalidOperation
-            case .noneAvailable:
-                self = .noneAvailable
-            @unknown default:
-                self = .unknown
-            }
+    private static func getDisplayError(for cgError: CGError) -> DisplayError? {
+        switch cgError {
+        case .success: nil
+        case .failure: .failure
+        case .illegalArgument: .illegalArgument
+        case .invalidConnection: .invalidConnection
+        case .invalidContext: .invalidContext
+        case .cannotComplete: .cannotComplete
+        case .notImplemented: .notImplemented
+        case .rangeCheck: .rangeCheck
+        case .typeCheck: .typeCheck
+        case .invalidOperation: .invalidOperation
+        case .noneAvailable: .noneAvailable
+        @unknown default: .unknown
         }
     }
 
@@ -114,7 +115,7 @@ extension DisplayInfo {
         } else {
             CGGetOnlineDisplayList(0, nil, &displayCount)
         }
-        if let error = DisplayListError(cgError: result) {
+        if let error = getDisplayError(for: result) {
             throw error
         }
         return displayCount
@@ -128,7 +129,7 @@ extension DisplayInfo {
         } else {
             CGGetOnlineDisplayList(displayCount, &displayIDs, nil)
         }
-        if let error = DisplayListError(cgError: result) {
+        if let error = getDisplayError(for: result) {
             throw error
         }
         return displayIDs
@@ -173,5 +174,39 @@ extension DisplayInfo {
         } onCancel: {
             task.cancel()
         }
+    }
+}
+
+// MARK: Helper
+private class DisplayFrameHelper {
+    static let shared = DisplayFrameHelper()
+
+    private var cancellables = Set<AnyCancellable>()
+
+    private var mainDisplayBounds = CGDisplayBounds(CGMainDisplayID())
+
+    private init() {
+        configureCancellables()
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        NotificationCenter.default
+            .publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .sink { [weak self] _ in
+                self?.mainDisplayBounds = CGDisplayBounds(CGMainDisplayID())
+            }
+            .store(in: &c)
+
+        cancellables = c
+    }
+
+    func getFrame(for display: DisplayInfo) -> CGRect {
+        let origin = CGPoint(
+            x: display.bounds.origin.x,
+            y: mainDisplayBounds.height - display.bounds.origin.y
+        )
+        return CGRect(origin: origin, size: display.bounds.size)
     }
 }

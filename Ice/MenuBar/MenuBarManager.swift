@@ -115,7 +115,7 @@ final class MenuBarManager: ObservableObject {
 
         // hide application menus when a section is shown (if applicable)
         Publishers.MergeMany(sections.map { $0.$isHidden })
-            .throttle(for: 0.01, scheduler: DispatchQueue.main, latest: true)
+            .removeDuplicates()
             .sink { [weak self] _ in
                 guard
                     let self,
@@ -155,7 +155,7 @@ final class MenuBarManager: ObservableObject {
                             self.isHidingApplicationMenus,
                             appState.settingsWindow?.isVisible == false
                         {
-                            try await Task.sleep(for: .seconds(0.1))
+                            try await Task.sleep(for: .milliseconds(25))
                             self.showApplicationMenus()
                         }
                     } catch {
@@ -247,7 +247,7 @@ final class MenuBarManager: ObservableObject {
 extension MenuBarManager {
     private func fullscreenPredicate(for display: DisplayInfo) -> (WindowInfo) -> Bool {
         return { window in
-            window.frame == display.frame &&
+            window.frame == display.bounds &&
             window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
             window.title == "Fullscreen Backdrop"
         }

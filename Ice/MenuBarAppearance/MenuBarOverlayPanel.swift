@@ -12,21 +12,44 @@ import OSLog
 
 /// A subclass of `NSPanel` that sits atop the menu bar to alter its appearance.
 class MenuBarOverlayPanel: NSPanel {
-    enum UpdateError: Error, CustomStringConvertible {
-        case applicationMenuFrame(any Error)
+    /// Flags representing the updatable components of a panel.
+    enum UpdateFlag: String, CustomStringConvertible {
+        case applicationMenuFrames
+        case desktopWallpaper
+
+        var description: String { rawValue }
+    }
+
+    /// The kind of validation that occurs before an update.
+    private enum ValidationKind {
+        case showing
+        case updates
+    }
+
+    /// An error that can occur during an update.
+    private enum UpdateError: Error, CustomStringConvertible {
+        case applicationMenuFrames(any Error)
         case desktopWallpaper(any Error)
 
         var description: String {
             switch self {
-            case .applicationMenuFrame(let error):
-                "Application menu frame update failed: \(error)"
+            case .applicationMenuFrames(let error):
+                "Update of application menu frames failed: \(error)"
             case .desktopWallpaper(let error):
-                "Desktop wallpaper update failed: \(error)"
+                "Update of desktop wallpaper failed: \(error)"
             }
         }
     }
 
     private var cancellables = Set<AnyCancellable>()
+
+    /// Callbacks to perform after the panel is updated.
+    ///
+    /// - Note: The callbacks are removed after each update.
+    private var updateCallbacks = [() -> Void]()
+
+    /// The keyed times of the last successful updates.
+    private var lastSuccessfulUpdateTimes = [UpdateFlag: Date]()
 
     /// The appearance manager that manages the panel.
     private(set) weak var appearanceManager: MenuBarAppearanceManager?
@@ -40,8 +63,8 @@ class MenuBarOverlayPanel: NSPanel {
     /// A Boolean value that indicates whether the panel needs to be shown.
     @Published var needsShow = false
 
-    /// A Boolean value that indicates whether the panel needs to be updated.
-    @Published var needsUpdate = true
+    /// Flags representing the components of the panel currently in need of an update.
+    @Published var updateFlags = Set<UpdateFlag>()
 
     /// A Boolean value that indicates whether the user is dragging a menu bar item.
     @Published var isDraggingMenuBarItem = false
@@ -93,9 +116,18 @@ class MenuBarOverlayPanel: NSPanel {
         // update when light/dark mode changes
         DistributedNotificationCenter.default()
             .publisher(for: Notification.Name("AppleInterfaceThemeChangedNotification"))
-            .debounce(for: 1, scheduler: DispatchQueue.main)
+            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.needsUpdate = true
+                guard let self else {
+                    return
+                }
+                Task {
+                    let startTime = Date.now
+                    while Date.now < startTime + 5 {
+                        self.updateFlags.insert(.desktopWallpaper)
+                        try await Task.sleep(for: .seconds(1))
+                    }
+                }
             }
             .store(in: &c)
 
@@ -107,39 +139,56 @@ class MenuBarOverlayPanel: NSPanel {
         )
         .debounce(for: 0.1, scheduler: DispatchQueue.main)
         .sink { [weak self] _ in
-            self?.needsUpdate = true
+            self?.updateFlags.insert(.applicationMenuFrames)
         }
         .store(in: &c)
 
-        // fallback
-        Timer.publish(every: 5, on: .main, in: .default)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.needsUpdate = true
-            }
-            .store(in: &c)
-
-        // fallback
-        Timer.publish(every: 2.5, on: .main, in: .default)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard
-                    let self,
-                    !isOnActiveSpace
-                else {
-                    return
+        // fallbacks
+        do {
+            // cache the last update flag locally and alternate between flags
+            // each time the timer fires
+            var lastUpdate: UpdateFlag?
+            Timer.publish(every: 5, on: .main, in: .default)
+                .autoconnect()
+                .sink { [weak self] _ in
+                    guard let self else {
+                        return
+                    }
+                    let nextUpdate: UpdateFlag = switch lastUpdate {
+                    case .applicationMenuFrames: .desktopWallpaper
+                    case .desktopWallpaper, nil: .applicationMenuFrames
+                    }
+                    defer {
+                        lastUpdate = nextUpdate
+                    }
+                    // if an update has occurred for the next update flag from any
+                    // source within the last 10 seconds, skip this update
+                    if
+                        let time = lastSuccessfulUpdateTimes[nextUpdate],
+                        Date.now.timeIntervalSince(time) < 10
+                    {
+                        Logger.overlayPanel.debug("\(nextUpdate) updated within the last 10 seconds")
+                        return
+                    }
+                    updateFlags.insert(nextUpdate)
                 }
-                needsShow = true
-            }
-            .store(in: &c)
+                .store(in: &c)
+
+            Timer.publish(every: 2.5, on: .main, in: .default)
+                .autoconnect()
+                .sink { [weak self] _ in
+                    guard let self, !isOnActiveSpace else {
+                        return
+                    }
+                    needsShow = true
+                }
+                .store(in: &c)
+        }
 
         $needsShow
-            .removeDuplicates()
+            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] needsShow in
-                guard
-                    let self,
-                    needsShow
-                else {
+                guard let self, needsShow else {
                     return
                 }
                 defer {
@@ -147,7 +196,10 @@ class MenuBarOverlayPanel: NSPanel {
                 }
                 Task {
                     do {
-                        try await self.show()
+                        guard let owningDisplay = await self.validate(for: .showing) else {
+                            return
+                        }
+                        try await self.show(on: owningDisplay)
                     } catch {
                         Logger.overlayPanel.error("Error showing menu bar overlay panel: \(error)")
                     }
@@ -155,35 +207,28 @@ class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
-        $needsUpdate
-            .removeDuplicates()
-            .sink { [weak self] needsUpdate in
-                guard
-                    let self,
-                    needsUpdate
-                else {
+        $updateFlags
+            .debounce(for: 0.1, scheduler: DispatchQueue.main)
+            .sink { [weak self] flags in
+                guard let self, !flags.isEmpty else {
                     return
                 }
                 defer {
-                    self.needsUpdate = false
+                    updateFlags.removeAll()
                 }
                 Task {
+                    defer {
+                        let updateCallbacks = self.updateCallbacks
+                        self.updateCallbacks.removeAll()
+                        for callback in updateCallbacks {
+                            callback()
+                        }
+                    }
                     do {
-                        guard let owningDisplay = DisplayInfo(nsScreen: self.owningScreen) else {
-                            Logger.overlayPanel.notice("No owning display. Preventing panel update.")
+                        guard let owningDisplay = await self.validate(for: .updates) else {
                             return
                         }
-                        if let menuBarManager = self.appearanceManager?.menuBarManager {
-                            guard try await !menuBarManager.isFullscreen(for: owningDisplay) else {
-                                Logger.overlayPanel.notice("Found fullscreen window. Preventing panel update.")
-                                return
-                            }
-                        }
-                        guard await AccessibilityMenuBar.hasValidMenuBar(for: owningDisplay) else {
-                            Logger.overlayPanel.notice("No valid menu bar found. Preventing panel update.")
-                            return
-                        }
-                        try await self.performUpdates()
+                        try await self.performUpdates(for: flags, display: owningDisplay)
                     } catch {
                         Logger.overlayPanel.error("ERROR: \(error)")
                     }
@@ -194,10 +239,41 @@ class MenuBarOverlayPanel: NSPanel {
         cancellables = c
     }
 
+    /// Performs validation for the given validation kind. Returns the panel's
+    /// owning display if successful. Returns `nil` on failure.
+    private func validate(for kind: ValidationKind) async -> DisplayInfo? {
+        lazy var actionMessage = switch kind {
+        case .showing: "Preventing overlay panel from showing."
+        case .updates: "Preventing overlay panel from updating."
+        }
+        do {
+            guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
+                Logger.overlayPanel.notice("No owning display. \(actionMessage)")
+                return nil
+            }
+            guard let menuBarManager = appearanceManager?.menuBarManager else {
+                Logger.overlayPanel.notice("No menu bar manager. \(actionMessage)")
+                return nil
+            }
+            guard try await !menuBarManager.isFullscreen(for: owningDisplay) else {
+                Logger.overlayPanel.notice("Found fullscreen window. \(actionMessage)")
+                return nil
+            }
+            guard await AccessibilityMenuBar.hasValidMenuBar(for: owningDisplay) else {
+                Logger.overlayPanel.notice("No valid menu bar found. \(actionMessage)")
+                return nil
+            }
+            return owningDisplay
+        } catch {
+            Logger.overlayPanel.notice("Validation failed with error \"\(error)\". \(actionMessage)")
+            return nil
+        }
+    }
+
     /// Returns the frame that should be used to show the panel on its owning screen.
     private func getFrame(for display: DisplayInfo) async throws -> CGRect {
         let menuBar = try await AccessibilityMenuBar(display: display)
-        let menuBarFrame: CGRect = try menuBar.frame()
+        let menuBarFrame = try menuBar.frame()
         return CGRect(
             x: owningScreen.frame.minX,
             y: (owningScreen.frame.maxY - menuBarFrame.height) - 5,
@@ -207,23 +283,21 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Stores the frames of the menu bar's application menus.
-    private func updateApplicationMenuFrames() async throws {
+    private func updateApplicationMenuFrames(for display: DisplayInfo) async throws {
         do {
-            guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
-                throw DisplayInfo.DisplayError.cannotComplete
-            }
             if
                 let menuBarManager = appearanceManager?.menuBarManager,
-                try await menuBarManager.isFullscreen(for: owningDisplay)
+                try await menuBarManager.isFullscreen(for: display)
             {
                 applicationMenuFrames.removeAll()
             } else {
-                let menuBar = try await AccessibilityMenuBar(display: owningDisplay)
+                let menuBar = try await AccessibilityMenuBar(display: display)
                 let items = try menuBar.menuBarItems()
                 applicationMenuFrames = try items.map { item in
                     try item.frame()
                 }
             }
+            lastSuccessfulUpdateTimes[.applicationMenuFrames] = .now
         } catch {
             applicationMenuFrames.removeAll()
             throw error
@@ -232,12 +306,10 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Stores the area of the desktop wallpaper that is under the menu bar
     /// of the given display.
-    private func updateDesktopWallpaper() async throws {
+    private func updateDesktopWallpaper(for display: DisplayInfo) async throws {
         do {
-            guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
-                throw DisplayInfo.DisplayError.cannotComplete
-            }
-            desktopWallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: owningDisplay)
+            desktopWallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: display)
+            lastSuccessfulUpdateTimes[.desktopWallpaper] = .now
         } catch {
             desktopWallpaper = nil
             throw error
@@ -245,52 +317,45 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Updates the panel to prepare for display.
-    private func performUpdates() async throws {
-        let applicationMenuFramesTask = Task.detached {
-            do {
-                try await self.updateApplicationMenuFrames()
-            } catch {
-                throw UpdateError.applicationMenuFrame(error)
+    private func performUpdates(for flags: Set<UpdateFlag>, display: DisplayInfo) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            if flags.contains(.applicationMenuFrames) {
+                group.addTask {
+                    do {
+                        try await self.updateApplicationMenuFrames(for: display)
+                    } catch {
+                        throw UpdateError.applicationMenuFrames(error)
+                    }
+                }
             }
-        }
-        let desktopWallpaperTask = Task.detached {
-            do {
-                try await self.updateDesktopWallpaper()
-            } catch {
-                throw UpdateError.desktopWallpaper(error)
+            if flags.contains(.desktopWallpaper) {
+                group.addTask {
+                    do {
+                        try await self.updateDesktopWallpaper(for: display)
+                    } catch {
+                        throw UpdateError.desktopWallpaper(error)
+                    }
+                }
             }
-        }
-        try await applicationMenuFramesTask.value
-        try await desktopWallpaperTask.value
-    }
-
-    /// Returns the combined application menu frame, that is, the result of performing
-    /// the `union` operation on every element in the ``applicationMenuFrames`` array.
-    func getCombinedApplicationMenuFrame() -> CGRect {
-        return applicationMenuFrames.reduce(into: .zero) { result, frame in
-            result = result.union(frame)
+            try await group.waitForAll()
         }
     }
 
     /// Shows the panel.
-    func show() async throws {
+    private func show(on display: DisplayInfo) async throws {
         guard !AppState.shared.isPreview else {
             return
-        }
-
-        guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
-            throw DisplayInfo.DisplayError.cannotComplete
         }
 
         guard
             let appearanceManager,
             let menuBarManager = appearanceManager.menuBarManager,
-            try await !menuBarManager.isFullscreen(for: owningDisplay)
+            try await !menuBarManager.isFullscreen(for: display)
         else {
             return
         }
 
-        let displayFrame = try await getFrame(for: owningDisplay)
+        let displayFrame = try await getFrame(for: display)
 
         // only continue if the appearance manager holds a reference to this panel
         guard appearanceManager.overlayPanels.contains(self) else {
@@ -299,16 +364,12 @@ class MenuBarOverlayPanel: NSPanel {
         }
 
         alphaValue = 0
-        setFrame(displayFrame, display: true)
+        setFrame(displayFrame, display: false)
         orderFrontRegardless()
-        needsUpdate = true
-        try await Task.sleep(for: .seconds(0.1))
-        animator().alphaValue = 1
-    }
-
-    /// Hides the panel.
-    func hide() {
-        close()
+        updateFlags = [.applicationMenuFrames, .desktopWallpaper]
+        updateCallbacks.append { [weak self] in
+            self?.animator().alphaValue = 1
+        }
     }
 
     override func isAccessibilityElement() -> Bool {

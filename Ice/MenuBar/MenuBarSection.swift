@@ -85,7 +85,10 @@ final class MenuBarSection: ObservableObject {
 
     /// Shows the status items in the section.
     func show() {
-        guard let menuBarManager else {
+        guard
+            let menuBarManager,
+            controlItem.state == .hideItems
+        else {
             return
         }
         switch name {
@@ -117,7 +120,10 @@ final class MenuBarSection: ObservableObject {
 
     /// Hides the status items in the section.
     func hide() {
-        guard let menuBarManager else {
+        guard
+            let menuBarManager,
+            controlItem.state == .showItems
+        else {
             return
         }
         switch name {
@@ -144,7 +150,7 @@ final class MenuBarSection: ObservableObject {
         case .alwaysHidden:
             controlItem.state = .hideItems
         }
-        appState?.showOnHoverIsPreventedByUserInteraction = false
+        appState?.allowShowOnHover()
         stopRehideChecks()
     }
 

@@ -45,9 +45,9 @@ final class AppState: ObservableObject {
     /// The window that contains the permissions interface.
     private(set) weak var permissionsWindow: NSWindow?
 
-    /// A Boolean value that indicates whether the user has interacted with the menu
-    /// bar, preventing the "ShowOnHover" feature from activating.
-    var showOnHoverIsPreventedByUserInteraction = false
+    /// A Boolean value that indicates whether the "ShowOnHover" feature is being
+    /// prevented from activating.
+    private(set) var showOnHoverIsPrevented = false
 
     /// A Boolean value that indicates whether the app is running as a SwiftUI preview.
     let isPreview: Bool = {
@@ -143,6 +143,14 @@ final class AppState: ObservableObject {
             NSApp.deactivate()
         }
         NSApp.setActivationPolicy(policy)
+    }
+
+    func preventShowOnHover() {
+        showOnHoverIsPrevented = true
+    }
+
+    func allowShowOnHover() {
+        showOnHoverIsPrevented = false
     }
 }
 

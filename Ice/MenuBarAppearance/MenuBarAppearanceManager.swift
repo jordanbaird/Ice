@@ -3,15 +3,13 @@
 //  Ice
 //
 
+import Cocoa
 import Combine
 import OSLog
-import ScreenCaptureKit
-import SwiftUI
 
-/// A type that manages the appearance of the menu bar.
+/// A manager for the appearance of the menu bar.
 @MainActor
 final class MenuBarAppearanceManager: ObservableObject {
-    /// The configuration that defines the appearance of the menu bar.
     @Published var configuration: MenuBarAppearanceConfiguration = .defaultConfiguration
 
     private var cancellables = Set<AnyCancellable>()
@@ -26,8 +24,6 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private(set) var overlayPanels = Set<MenuBarOverlayPanel>()
 
-    private var cachedScreenCount = NSScreen.screens.count
-
     weak var menuBarManager: MenuBarManager? {
         appState?.menuBarManager
     }
@@ -41,8 +37,6 @@ final class MenuBarAppearanceManager: ObservableObject {
         configureCancellables()
     }
 
-    /// Loads data from storage and sets the initial state
-    /// of the manager from that data.
     private func loadInitialState() {
         do {
             configuration = try .migrate(encoder: encoder, decoder: decoder)
@@ -56,21 +50,17 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         NotificationCenter.default
             .publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else {
                     return
                 }
-                let screenCount = NSScreen.screens.count
-                guard cachedScreenCount != screenCount else {
-                    return
-                }
-                defer {
-                    cachedScreenCount = screenCount
-                }
                 while let panel = overlayPanels.popFirst() {
                     panel.orderOut(self)
                 }
-                configureOverlayPanels(with: configuration)
+                if Set(overlayPanels.map { $0.owningScreen }) != Set(NSScreen.screens) {
+                    configureOverlayPanels(with: configuration)
+                }
             }
             .store(in: &c)
 
@@ -81,7 +71,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                if overlayPanels.isEmpty {
+                if Set(overlayPanels.map { $0.owningScreen }) != Set(NSScreen.screens) {
                     configureOverlayPanels(with: configuration)
                 }
             }
@@ -104,9 +94,8 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                // overlay panels may not have been configured yet;
-                // since some of the properties on the manager might
-                // call for them, try to configure now
+                // overlay panels may not have been configured yet; since some of the
+                // properties on the manager might call for them, try to configure now
                 if overlayPanels.isEmpty {
                     configureOverlayPanels(with: configuration)
                 }
@@ -116,34 +105,36 @@ final class MenuBarAppearanceManager: ObservableObject {
         cancellables = c
     }
 
-    /// Returns a Boolean value that indicates whether the
-    /// manager should retain its overlay panels.
-    private func shouldRetainOverlayPanels(for configuration: MenuBarAppearanceConfiguration) -> Bool {
-        configuration.hasShadow ||
-        configuration.hasBorder ||
-        configuration.shapeKind != .none ||
-        configuration.tintKind != .none
+    /// Returns a Boolean value that indicates whether a set of overlay panels
+    /// is needed for the given configuration.
+    private func needsOverlayPanels(for configuration: MenuBarAppearanceConfiguration) -> Bool {
+        if configuration.hasShadow {
+            return true
+        }
+        if configuration.hasBorder {
+            return true
+        }
+        if configuration.shapeKind != .none {
+            return true
+        }
+        if configuration.tintKind != .none {
+            return true
+        }
+        return false
     }
 
+    /// Configures the manager's overlay panels, if required by the given configuration.
     private func configureOverlayPanels(with configuration: MenuBarAppearanceConfiguration) {
-        guard let appState else {
-            return
-        }
-
-        guard shouldRetainOverlayPanels(for: configuration) else {
-            // remove all overlay panels if none of the properties
-            // on the manager call for them
-            overlayPanels.removeAll()
+        guard needsOverlayPanels(for: configuration) else {
+            while let panel = overlayPanels.popFirst() {
+                panel.close()
+            }
             return
         }
 
         var overlayPanels = Set<MenuBarOverlayPanel>()
         for screen in NSScreen.screens {
-            let panel = MenuBarOverlayPanel(
-                appearanceManager: self,
-                screenCaptureManager: appState.screenCaptureManager,
-                owningScreen: screen
-            )
+            let panel = MenuBarOverlayPanel(appearanceManager: self, owningScreen: screen)
             overlayPanels.insert(panel)
             panel.needsShow = true
         }
@@ -151,6 +142,8 @@ final class MenuBarAppearanceManager: ObservableObject {
         self.overlayPanels = overlayPanels
     }
 
+    /// Sets the value of ``MenuBarOverlayPanel/isDraggingMenuBarItem`` for each
+    /// of the manager's overlay panels.
     func setIsDraggingMenuBarItem(_ isDragging: Bool) {
         for panel in overlayPanels {
             panel.isDraggingMenuBarItem = isDragging

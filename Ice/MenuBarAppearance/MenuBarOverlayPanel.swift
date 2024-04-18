@@ -3,12 +3,11 @@
 //  Ice
 //
 
-import AXSwift
 import Cocoa
 import Combine
 import OSLog
 
-// MARK: - MenuBarOverlayPanel
+// MARK: - Overlay Panel
 
 /// A subclass of `NSPanel` that sits atop the menu bar to alter its appearance.
 class MenuBarOverlayPanel: NSPanel {
@@ -54,9 +53,6 @@ class MenuBarOverlayPanel: NSPanel {
     /// The appearance manager that manages the panel.
     private(set) weak var appearanceManager: MenuBarAppearanceManager?
 
-    /// The screen capture manager for the panel.
-    let screenCaptureManager: ScreenCaptureManager
-
     /// The screen that owns the panel.
     let owningScreen: NSScreen
 
@@ -75,15 +71,9 @@ class MenuBarOverlayPanel: NSPanel {
     /// The current desktop wallpaper, clipped to the bounds of the menu bar.
     @Published private(set) var desktopWallpaper: CGImage?
 
-    /// Creates an overlay panel with the given appearance manager, screen capture
-    /// manager, and owning display.
-    init(
-        appearanceManager: MenuBarAppearanceManager,
-        screenCaptureManager: ScreenCaptureManager,
-        owningScreen: NSScreen
-    ) {
+    /// Creates an overlay panel with the given appearance manager and owning screen.
+    init(appearanceManager: MenuBarAppearanceManager, owningScreen: NSScreen) {
         self.appearanceManager = appearanceManager
-        self.screenCaptureManager = screenCaptureManager
         self.owningScreen = owningScreen
         super.init(
             contentRect: .zero,
@@ -92,7 +82,7 @@ class MenuBarOverlayPanel: NSPanel {
             defer: false
         )
         self.level = .statusBar
-        self.title = String(describing: Self.self)
+        self.title = "Menu Bar Overlay"
         self.backgroundColor = .clear
         self.hasShadow = false
         self.ignoresMouseEvents = true
@@ -131,23 +121,22 @@ class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
-        // update when frontmost application changes, or when it owns the menu bar
+        // update the application frames when the focused app changes
         Publishers.CombineLatest3(
             NSWorkspace.shared.publisher(for: \.frontmostApplication),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
         )
-        .debounce(for: 0.1, scheduler: DispatchQueue.main)
+        .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
         .sink { [weak self] _ in
             guard let self else {
                 return
             }
             updateFlags.insert(.applicationMenuFrames)
-            // HACK: some applications seem to delay a bit before setting the
-            // application menu; if we update now, we might not have access to
-            // the current menu; until we can find a good workaround, our best
-            // bet is to wait and request another update (inefficient, but not
-            // too bad, since application switches don't happen very often)
+            // HACK: due to an occasional delay between the focused app changing and the
+            // menu updating, we may not have access to the current menu; until we have
+            // a good workaround, our best bet is to wait and request another update
+            // (inefficient, but not terrible, since app switches are semi-rare)
             Task {
                 try await Task.sleep(for: .seconds(0.5))
                 self.updateFlags.insert(.applicationMenuFrames)
@@ -155,47 +144,34 @@ class MenuBarOverlayPanel: NSPanel {
         }
         .store(in: &c)
 
-        // fallbacks
-        do {
-            // cache the last update flag locally and alternate between flags
-            // each time the timer fires
-            var lastUpdate: UpdateFlag?
-            Timer.publish(every: 5, on: .main, in: .default)
-                .autoconnect()
-                .sink { [weak self] _ in
-                    guard let self else {
-                        return
-                    }
-                    let nextUpdate: UpdateFlag = switch lastUpdate {
-                    case .applicationMenuFrames: .desktopWallpaper
-                    case .desktopWallpaper, nil: .applicationMenuFrames
-                    }
-                    defer {
-                        lastUpdate = nextUpdate
-                    }
-                    // if an update has occurred for the next update flag from any
-                    // source within the last 10 seconds, skip this update
-                    if
-                        let time = lastSuccessfulUpdateTimes[nextUpdate],
-                        Date.now.timeIntervalSince(time) < 10
-                    {
-                        Logger.overlayPanel.debug("\(nextUpdate) updated within the last 10 seconds")
-                        return
-                    }
-                    updateFlags.insert(nextUpdate)
+        // perform updates as follows:
+        //
+        //  - application frames after 10 seconds without an update
+        //  - desktop wallpaper after 5 seconds without an update
+        //
+        // this ensures that cases we haven't covered are eventually handled, such
+        // as wallpaper changes, which can't be reliably observed in Sonoma
+        Timer.publish(every: 1, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
                 }
-                .store(in: &c)
+                insertUpdateFlagIfNeeded(.applicationMenuFrames, interval: 10)
+                insertUpdateFlagIfNeeded(.desktopWallpaper, interval: 5)
+            }
+            .store(in: &c)
 
-            Timer.publish(every: 2.5, on: .main, in: .default)
-                .autoconnect()
-                .sink { [weak self] _ in
-                    guard let self, !isOnActiveSpace else {
-                        return
-                    }
-                    needsShow = true
+        // make sure the panel switches to the active space
+        Timer.publish(every: 2.5, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self, !isOnActiveSpace else {
+                    return
                 }
-                .store(in: &c)
-        }
+                needsShow = true
+            }
+            .store(in: &c)
 
         $needsShow
             .debounce(for: 0.1, scheduler: DispatchQueue.main)
@@ -251,6 +227,18 @@ class MenuBarOverlayPanel: NSPanel {
         cancellables = c
     }
 
+    /// Inserts the given update flag if the given time interval has passed
+    /// since the last successful update.
+    private func insertUpdateFlagIfNeeded(_ flag: UpdateFlag, interval: TimeInterval) {
+        guard
+            let time = lastSuccessfulUpdateTimes[flag],
+            Date.now.timeIntervalSince(time) >= interval
+        else {
+            return
+        }
+        updateFlags.insert(flag)
+    }
+
     /// Performs validation for the given validation kind. Returns the panel's
     /// owning display if successful. Returns `nil` on failure.
     private func validate(for kind: ValidationKind) async -> DisplayInfo? {
@@ -283,7 +271,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Returns the frame that should be used to show the panel on its owning screen.
-    private func getFrame(for display: DisplayInfo) async throws -> CGRect {
+    private func getPanelFrame(for display: DisplayInfo) async throws -> CGRect {
         let menuBar = try await AccessibilityMenuBar(display: display)
         let menuBarFrame = try menuBar.frame()
         return CGRect(
@@ -320,7 +308,7 @@ class MenuBarOverlayPanel: NSPanel {
     /// of the given display.
     private func updateDesktopWallpaper(for display: DisplayInfo) async throws {
         do {
-            desktopWallpaper = try await screenCaptureManager.desktopWallpaperBelowMenuBar(for: display)
+            desktopWallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBar(for: display)
             lastSuccessfulUpdateTimes[.desktopWallpaper] = .now
         } catch {
             desktopWallpaper = nil
@@ -359,24 +347,26 @@ class MenuBarOverlayPanel: NSPanel {
             return
         }
 
+        guard let appearanceManager else {
+            return
+        }
+
+        guard appearanceManager.overlayPanels.contains(self) else {
+            Logger.overlayPanel.notice("Overlay panel \(self) not retained")
+            return
+        }
+
         guard
-            let appearanceManager,
             let menuBarManager = appearanceManager.menuBarManager,
             try await !menuBarManager.isFullscreen(for: display)
         else {
             return
         }
 
-        let displayFrame = try await getFrame(for: display)
-
-        // only continue if the appearance manager holds a reference to this panel
-        guard appearanceManager.overlayPanels.contains(self) else {
-            Logger.overlayPanel.notice("Overlay panel \(self) not retained")
-            return
-        }
+        let newFrame = try await getPanelFrame(for: display)
 
         alphaValue = 0
-        setFrame(displayFrame, display: false)
+        setFrame(newFrame, display: false)
         orderFrontRegardless()
         updateFlags = [.applicationMenuFrames, .desktopWallpaper]
         updateCallbacks.append { [weak self] in
@@ -489,6 +479,8 @@ private class MenuBarOverlayPanelContentView: NSView {
         cancellables = c
     }
 
+    /// Returns a path in the given rectangle, with the given end caps,
+    /// and inset by the given amounts.
     private func shapePath(
         in rect: CGRect,
         leadingEndCap: MenuBarEndCap,
@@ -634,6 +626,7 @@ private class MenuBarOverlayPanelContentView: NSView {
         )
     }
 
+    /// Draws the tint defined by the given configuration in the given rectangle.
     private func drawTint(in rect: CGRect, configuration: MenuBarAppearanceConfiguration) {
         switch configuration.tintKind {
         case .none:

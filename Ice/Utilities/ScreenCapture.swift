@@ -1,27 +1,25 @@
 //
-//  ScreenCaptureManager.swift
+//  ScreenCapture.swift
 //  Ice
 //
 
-import Combine
-import OSLog
 import ScreenCaptureKit
 
-/// A manager for screen capture operations.
-class ScreenCaptureManager {
-    /// Options that define additional parameters for a capture.
+/// A namespace for screen capture operations.
+enum ScreenCapture {
+    /// Options that define additional parameters for a capture operation.
     struct CaptureOptions: OptionSet {
         let rawValue: Int
 
-        /// If the `screenBounds` parameter of the capture is `nil`, captures only
-        /// the window area and ignores the area occupied by any framing effects.
+        /// If the `screenBounds` parameter of the capture is `nil`, captures only the window
+        /// area and ignores the area occupied by any framing effects.
         static let ignoreFraming = CaptureOptions(rawValue: 1 << 0)
 
         /// Captures only the shadow effects of the provided windows.
         static let onlyShadows = CaptureOptions(rawValue: 1 << 1)
 
-        /// Fills the partially or fully transparent areas of the capture with a
-        /// solid white backing color, resulting in an image that is fully opaque.
+        /// Fills the partially or fully transparent areas of the capture with a solid white
+        /// backing color, resulting in an image that is fully opaque.
         static let shouldBeOpaque = CaptureOptions(rawValue: 1 << 2)
 
         /// The cursor is shown in the capture.
@@ -31,7 +29,7 @@ class ScreenCaptureManager {
         static let scalesToFit = CaptureOptions(rawValue: 1 << 4)
     }
 
-    /// An error that can occur during a capture.
+    /// An error that can occur during a capture operation.
     enum CaptureError: Error {
         /// The app does not have screen capture permissions.
         case missingPermissions
@@ -45,8 +43,7 @@ class ScreenCaptureManager {
         /// The provided window is not on screen.
         case windowOffScreen
 
-        /// The source rectangle of the capture is outside the bounds of the
-        /// provided window.
+        /// The source rectangle of the capture is outside the bounds of the provided window.
         case sourceRectOutOfBounds
 
         /// The screen is in an invalid state for capture.
@@ -56,42 +53,26 @@ class ScreenCaptureManager {
         case timeout
     }
 
-    private var cancellables = Set<AnyCancellable>()
-
     /// A Boolean value that indicates whether the app has screen capture permissions.
-    var hasScreenCapturePermissions: Bool {
+    static var hasPermissions: Bool {
         CGPreflightScreenCaptureAccess()
-    }
-
-    /// Returns an image containing the area of the desktop wallpaper
-    /// that is below the menu bar for the given display.
-    func desktopWallpaperBelowMenuBar(for display: DisplayInfo) async throws -> CGImage {
-        let windows = try await WindowInfo.onScreenWindows()
-        let wallpaperWindow = try WindowInfo.getWallpaperWindow(from: windows, for: display)
-        let menuBarWindow = try WindowInfo.getMenuBarWindow(from: windows, for: display)
-        return try await captureImage(
-            timeout: .milliseconds(500),
-            onScreenWindow: wallpaperWindow,
-            captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
-            options: .ignoreFraming
-        )
     }
 
     /// Captures the given window as an image.
     ///
     /// - Parameters:
     ///   - window: The window to capture. The window must be on screen.
-    ///   - captureRect: The rectangle to capture, relative to the coordinate
-    ///     space of the window. Pass `nil` to capture the entire window.
+    ///   - captureRect: The rectangle to capture, relative to the coordinate space of the
+    ///     window. Pass `nil` to capture the entire window.
     ///   - resolution: The resolution of the capture.
     ///   - options: Additional parameters for the capture.
-    func captureImage(
+    static func captureImage(
         onScreenWindow window: WindowInfo,
         captureRect: CGRect? = nil,
         resolution: SCCaptureResolutionType = .automatic,
         options: CaptureOptions = []
     ) async throws -> CGImage {
-        guard hasScreenCapturePermissions else {
+        guard hasPermissions else {
             throw CaptureError.missingPermissions
         }
 
@@ -132,14 +113,14 @@ class ScreenCaptureManager {
     /// Captures the given window as an image.
     ///
     /// - Parameters:
-    ///   - timeout: The amount of time to wait before cancelling the task
-    ///     and throwing a timeout error.
+    ///   - timeout: The amount of time to wait before cancelling the task and throwing a
+    ///     timeout error.
     ///   - window: The window to capture. The window must be on screen.
-    ///   - captureRect: The rectangle to capture, relative to the coordinate
-    ///     space of the window. Pass `nil` to capture the entire window.
+    ///   - captureRect: The rectangle to capture, relative to the coordinate space of the
+    ///     window. Pass `nil` to capture the entire window.
     ///   - resolution: The resolution of the capture.
     ///   - options: Additional parameters for the capture.
-    func captureImage(
+    static func captureImage(
         timeout: Duration,
         onScreenWindow window: WindowInfo,
         captureRect: CGRect? = nil,
@@ -171,7 +152,7 @@ class ScreenCaptureManager {
         }
     }
 
-    private func getSourceRect(captureRect: CGRect?, window: SCWindow) throws -> CGRect {
+    private static func getSourceRect(captureRect: CGRect?, window: SCWindow) throws -> CGRect {
         let captureRect = captureRect ?? .null
         let windowBounds = CGRect(origin: .zero, size: window.frame.size)
         let sourceRect = if captureRect.isNull {
@@ -186,7 +167,18 @@ class ScreenCaptureManager {
     }
 }
 
-// MARK: - Logger
-private extension Logger {
-    static let screenCaptureManager = Logger(category: "ScreenCaptureManager")
+extension ScreenCapture {
+    /// Returns an image containing the area of the desktop wallpaper that is below the
+    /// menu bar for the given display.
+    static func desktopWallpaperBelowMenuBar(for display: DisplayInfo) async throws -> CGImage {
+        let windows = try await WindowInfo.onScreenWindows()
+        let wallpaperWindow = try await WindowInfo.wallpaperWindow(from: windows, for: display)
+        let menuBarWindow = try await WindowInfo.menuBarWindow(from: windows, for: display)
+        return try await captureImage(
+            timeout: .milliseconds(500),
+            onScreenWindow: wallpaperWindow,
+            captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
+            options: .ignoreFraming
+        )
+    }
 }

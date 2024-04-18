@@ -84,13 +84,6 @@ struct DisplayInfo {
 }
 
 extension DisplayInfo {
-    /// The main display.
-    static var main: DisplayInfo? {
-        DisplayInfo(displayID: CGMainDisplayID())
-    }
-}
-
-extension DisplayInfo {
     private static func getDisplayError(for cgError: CGError) -> DisplayError? {
         switch cgError {
         case .success: nil

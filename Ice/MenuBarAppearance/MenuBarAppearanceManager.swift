@@ -50,7 +50,6 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         NotificationCenter.default
             .publisher(for: NSApplication.didChangeScreenParametersNotification)
-            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else {
                     return

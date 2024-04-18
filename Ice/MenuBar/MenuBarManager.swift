@@ -90,7 +90,7 @@ final class MenuBarManager: ObservableObject {
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
         )
-        .debounce(for: 0.1, scheduler: DispatchQueue.main)
+        .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
         .sink { [weak self] frontmostApplication, isFinishedLaunching, _ in
             guard
                 let self,
@@ -128,7 +128,8 @@ final class MenuBarManager: ObservableObject {
                     do {
                         if self.sections.contains(where: { !$0.isHidden }) {
                             guard
-                                let display = DisplayInfo.main,
+                                let screen = NSScreen.main,
+                                let display = DisplayInfo(nsScreen: screen),
                                 try await !self.isFullscreen(for: display)
                             else {
                                 return

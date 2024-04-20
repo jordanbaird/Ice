@@ -141,7 +141,9 @@ final class EventManager {
                 hiddenSection.toggle()
             }
         } else if
-            NSEvent.mouseLocation.x - screen.frame.origin.x > appState.menuBarManager.applicationMenuFrame.maxX,
+            let display = DisplayInfo(nsScreen: screen),
+            let applicationMenuFrame = appState.menuBarManager.applicationMenuFrame(for: display),
+            NSEvent.mouseLocation.x - screen.frame.origin.x > applicationMenuFrame.maxX,
             try await isMouseInMenuBar(of: screen)
         {
             appState.preventShowOnHover()
@@ -270,7 +272,8 @@ final class EventManager {
         guard
             let appState,
             let display = DisplayInfo(nsScreen: screen),
-            try await isMouseInMenuBar(of: screen)
+            try await isMouseInMenuBar(of: screen),
+            let applicationMenuFrame = appState.menuBarManager.applicationMenuFrame(for: display)
         else {
             return false
         }
@@ -278,10 +281,8 @@ final class EventManager {
         let totalWidth = items.reduce(into: 0) { width, item in
             width += item.frame.width
         }
-        let screenOriginX = screen.frame.origin.x
-        let applicationMenuMaxX = appState.menuBarManager.applicationMenuFrame.maxX + screenOriginX
         let mouseX = NSEvent.mouseLocation.x
-        return mouseX - screenOriginX > applicationMenuMaxX && mouseX < screen.frame.maxX - totalWidth
+        return mouseX - screen.frame.origin.x > applicationMenuFrame.maxX && mouseX < screen.frame.maxX - totalWidth
     }
 
     private func isMouseOutsideMenuBar(of screen: NSScreen) -> Bool {

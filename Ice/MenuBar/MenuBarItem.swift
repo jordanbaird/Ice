@@ -27,13 +27,7 @@ struct MenuBarItem {
     ///   - display: The display that contains the item's menu bar.
     init?(itemWindow: WindowInfo, menuBarWindow: WindowInfo, display: DisplayInfo) {
         // verify menuBarWindow
-        guard
-            menuBarWindow.isOnScreen,
-            display.bounds.contains(menuBarWindow.frame),
-            menuBarWindow.owningApplication == nil,
-            menuBarWindow.windowLayer == kCGMainMenuWindowLevel,
-            menuBarWindow.title == "Menubar"
-        else {
+        guard Predicates.menuBarWindow(for: display)(menuBarWindow) else {
             return nil
         }
 

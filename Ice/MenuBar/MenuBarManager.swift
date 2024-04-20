@@ -11,27 +11,28 @@ import SwiftUI
 /// Manager for the state of the menu bar.
 @MainActor
 final class MenuBarManager: ObservableObject {
-    @Published private(set) var applicationMenuFrame = CGRect.zero
-
     @Published private(set) var isHidingApplicationMenus = false
-
-    private(set) var sections = [MenuBarSection]()
 
     private(set) weak var appState: AppState?
 
-    private(set) lazy var itemManager = MenuBarItemManager(menuBarManager: self)
+    private(set) var sections = [MenuBarSection]()
 
     let appearanceManager: MenuBarAppearanceManager
+
+    let itemManager: MenuBarItemManager
 
     private let encoder = JSONEncoder()
 
     private let decoder = JSONDecoder()
+
+    private var applicationMenuFrames = [CGDirectDisplayID: CGRect]()
 
     private var cancellables = Set<AnyCancellable>()
 
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
         self.appearanceManager = MenuBarAppearanceManager(appState: appState)
+        self.itemManager = MenuBarItemManager(appState: appState)
         self.appState = appState
     }
 
@@ -84,31 +85,16 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        // update the application menu frame
+        // update the application menu frames
         Publishers.CombineLatest3(
             NSWorkspace.shared.publisher(for: \.frontmostApplication),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
         )
-        .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
-        .sink { [weak self] frontmostApplication, isFinishedLaunching, _ in
-            guard
-                let self,
-                let processID = frontmostApplication?.processIdentifier,
-                isFinishedLaunching == true
-            else {
-                return
-            }
+        .throttle(for: 1, scheduler: DispatchQueue.main, latest: true)
+        .sink { [weak self] _ in
             Task {
-                do {
-                    let items = try AccessibilityApplication(forProcessID: processID).menuBar().menuBarItems()
-                    self.applicationMenuFrame = try items.reduce(into: .zero) { result, item in
-                        result = try result.union(item.frame())
-                    }
-                } catch {
-                    self.applicationMenuFrame = .zero
-                    Logger.menuBarManager.error("Error updating application menu frame: \(error)")
-                }
+                await self?.updateApplicationMenuFrames()
             }
         }
         .store(in: &c)
@@ -135,6 +121,11 @@ final class MenuBarManager: ObservableObject {
                                 return
                             }
 
+                            // get the application menu frame for the display
+                            guard let applicationMenuFrame = self.applicationMenuFrames[display.displayID] else {
+                                return
+                            }
+
                             let items = try await self.itemManager.menuBarItems(for: display, onScreenOnly: true)
 
                             // get the leftmost item on the screen; the application menu should
@@ -149,14 +140,14 @@ final class MenuBarManager: ObservableObject {
 
                             // if the offset value is less than or equal to the maxX of the
                             // application menu frame, activate the app to hide the menu
-                            if offsetMinX <= self.applicationMenuFrame.maxX {
+                            if offsetMinX <= applicationMenuFrame.maxX {
                                 self.hideApplicationMenus()
                             }
                         } else if
                             self.isHidingApplicationMenus,
                             appState.settingsWindow?.isVisible == false
                         {
-                            try await Task.sleep(for: .milliseconds(25))
+                            try await Task.sleep(for: .seconds(0.1))
                             self.showApplicationMenus()
                         }
                     } catch {
@@ -188,6 +179,28 @@ final class MenuBarManager: ObservableObject {
         }
 
         cancellables = c
+    }
+
+    private func updateApplicationMenuFrames() async {
+        var applicationMenuFrames = [CGDirectDisplayID: CGRect]()
+        for screen in NSScreen.screens {
+            guard let display = DisplayInfo(nsScreen: screen) else {
+                Logger.menuBarManager.notice("No display for displayID \(screen.displayID)")
+                continue
+            }
+            do {
+                let menuBar = try await AccessibilityMenuBar(display: display)
+                let items = try menuBar.menuBarItems()
+                let frame: CGRect = try items.reduce(into: .zero) { frame, item in
+                    frame = try frame.union(item.frame())
+                }
+                applicationMenuFrames[display.displayID] = frame
+            } catch {
+                Logger.menuBarManager.error("Couldn't update application menu frame for display \(display.displayID), error: \(error)")
+                continue
+            }
+        }
+        self.applicationMenuFrames = applicationMenuFrames
     }
 
     /// Shows the right-click menu.
@@ -243,29 +256,26 @@ final class MenuBarManager: ObservableObject {
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
     }
+
+    /// Returns the frame of the application menu for the given display.
+    func applicationMenuFrame(for display: DisplayInfo) -> CGRect? {
+        applicationMenuFrames[display.displayID]
+    }
 }
 
 extension MenuBarManager {
-    private func fullscreenPredicate(for display: DisplayInfo) -> (WindowInfo) -> Bool {
-        return { window in
-            window.frame == display.bounds &&
-            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            window.title == "Fullscreen Backdrop"
-        }
-    }
-
     /// Returns a Boolean value that indicates whether a window is
     /// fullscreen on the given display.
     func isFullscreen(for display: DisplayInfo) throws -> Bool {
         let windows = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
-        return windows.contains(where: fullscreenPredicate(for: display))
+        return windows.contains(where: Predicates.fullscreenBackdropWindow(for: display))
     }
 
     /// Asynchronously returns a Boolean value that indicates whether
     /// a window is fullscreen on the given display.
     func isFullscreen(for display: DisplayInfo) async throws -> Bool {
         let windows = try await WindowInfo.onScreenWindows(excludeDesktopWindows: false)
-        return windows.contains(where: fullscreenPredicate(for: display))
+        return windows.contains(where: Predicates.fullscreenBackdropWindow(for: display))
     }
 }
 

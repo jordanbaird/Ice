@@ -3,14 +3,13 @@
 //  Ice
 //
 
-import Cocoa
 import Combine
 
 class MenuBarItemManager: ObservableObject {
-    private(set) weak var menuBarManager: MenuBarManager?
+    private(set) weak var appState: AppState?
 
-    init(menuBarManager: MenuBarManager) {
-        self.menuBarManager = menuBarManager
+    init(appState: AppState) {
+        self.appState = appState
     }
 }
 

@@ -303,21 +303,11 @@ extension WindowInfo {
 
     // MARK: - Wallpaper Window
 
-    /// A predicate that returns the wallpaper window for the given display.
-    private static func wallpaperWindowPredicate(for display: DisplayInfo) -> (WindowInfo) -> Bool {
-        return { window in
-            // wallpaper window belongs to the Dock process
-            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            window.title?.hasPrefix("Wallpaper-") == true &&
-            display.bounds.contains(window.frame)
-        }
-    }
-
     // MARK: Sync
 
     /// Returns the wallpaper window in the given windows for the given display.
     static func getWallpaperWindow(from windows: [WindowInfo], for display: DisplayInfo) throws -> WindowInfo {
-        guard let window = windows.first(where: wallpaperWindowPredicate(for: display)) else {
+        guard let window = windows.first(where: Predicates.wallpaperWindow(for: display)) else {
             throw WindowListError.noMatchingWindow
         }
         return window
@@ -332,7 +322,7 @@ extension WindowInfo {
 
     /// Asynchronously returns the wallpaper window in the given windows for the given display.
     static func wallpaperWindow(from windows: [WindowInfo], for display: DisplayInfo) async throws -> WindowInfo {
-        let predicate = wallpaperWindowPredicate(for: display)
+        let predicate = Predicates.wallpaperWindow(for: display)
         for window in windows {
             try Task.checkCancellation()
             await Task.yield()
@@ -350,22 +340,11 @@ extension WindowInfo {
 
     // MARK: - Menu Bar Window
 
-    /// A predicate that returns the menu bar window for the given display.
-    private static func menuBarWindowPredicate(for display: DisplayInfo) -> (WindowInfo) -> Bool {
-        return { window in
-            // menu bar window belongs to the WindowServer process (owningApplication should be nil)
-            window.owningApplication == nil &&
-            window.title == "Menubar" &&
-            window.windowLayer == kCGMainMenuWindowLevel &&
-            display.bounds.contains(window.frame)
-        }
-    }
-
     // MARK: Sync
 
     /// Returns the menu bar window for the given display.
     static func getMenuBarWindow(from windows: [WindowInfo], for display: DisplayInfo) throws -> WindowInfo {
-        guard let window = windows.first(where: menuBarWindowPredicate(for: display)) else {
+        guard let window = windows.first(where: Predicates.menuBarWindow(for: display)) else {
             throw WindowListError.noMatchingWindow
         }
         return window
@@ -380,7 +359,7 @@ extension WindowInfo {
 
     /// Asynchronously returns the menu bar window for the given display.
     static func menuBarWindow(from windows: [WindowInfo], for display: DisplayInfo) async throws -> WindowInfo {
-        let predicate = menuBarWindowPredicate(for: display)
+        let predicate = Predicates.menuBarWindow(for: display)
         for window in windows {
             try Task.checkCancellation()
             await Task.yield()

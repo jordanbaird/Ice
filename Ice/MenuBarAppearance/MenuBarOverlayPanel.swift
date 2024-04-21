@@ -183,10 +183,10 @@ class MenuBarOverlayPanel: NSPanel {
                     self.needsShow = false
                 }
                 Task {
+                    guard let owningDisplay = await self.validate(for: .showing) else {
+                        return
+                    }
                     do {
-                        guard let owningDisplay = await self.validate(for: .showing) else {
-                            return
-                        }
                         try await self.show(on: owningDisplay)
                     } catch {
                         Logger.overlayPanel.error("Error showing menu bar overlay panel: \(error)")
@@ -212,10 +212,10 @@ class MenuBarOverlayPanel: NSPanel {
                             callback()
                         }
                     }
+                    guard let owningDisplay = await self.validate(for: .updates) else {
+                        return
+                    }
                     do {
-                        guard let owningDisplay = await self.validate(for: .updates) else {
-                            return
-                        }
                         try await self.performUpdates(for: flags, display: owningDisplay)
                     } catch {
                         Logger.overlayPanel.error("ERROR: \(error)")

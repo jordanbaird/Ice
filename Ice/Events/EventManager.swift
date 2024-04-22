@@ -282,7 +282,7 @@ final class EventManager {
             width += item.frame.width
         }
         let mouseX = NSEvent.mouseLocation.x
-        return mouseX - screen.frame.origin.x > applicationMenuFrame.maxX && mouseX < screen.frame.maxX - totalWidth
+        return mouseX > applicationMenuFrame.maxX && mouseX < screen.frame.maxX - totalWidth
     }
 
     private func isMouseOutsideMenuBar(of screen: NSScreen) -> Bool {

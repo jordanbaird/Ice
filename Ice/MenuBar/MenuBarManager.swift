@@ -261,6 +261,11 @@ final class MenuBarManager: ObservableObject {
     func applicationMenuFrame(for display: DisplayInfo) -> CGRect? {
         applicationMenuFrames[display.displayID]
     }
+
+    /// Returns the frame of the application menu for the given screen.
+    func applicationMenuFrame(for screen: NSScreen) -> CGRect? {
+        applicationMenuFrames[screen.displayID]
+    }
 }
 
 extension MenuBarManager {

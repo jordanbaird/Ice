@@ -481,14 +481,18 @@ private class MenuBarOverlayPanelContentView: NSView {
 
     /// Returns a path in the given rectangle, with the given end caps,
     /// and inset by the given amounts.
-    private func shapePath(
-        in rect: CGRect,
-        leadingEndCap: MenuBarEndCap,
-        trailingEndCap: MenuBarEndCap,
-        insetX: CGFloat,
-        insetY: CGFloat
-    ) -> NSBezierPath {
-        let insetRect = rect.insetBy(dx: insetX, dy: insetY)
+    private func shapePath(in rect: CGRect, leadingEndCap: MenuBarEndCap, trailingEndCap: MenuBarEndCap) -> NSBezierPath {
+        let insetRect: CGRect = switch (leadingEndCap, trailingEndCap) {
+        case (.square, .square):
+            CGRect(x: rect.origin.x, y: rect.origin.y + 1, width: rect.width, height: rect.height - 2)
+        case (.square, .round):
+            CGRect(x: rect.origin.x, y: rect.origin.y + 1, width: rect.width - 1, height: rect.height - 2)
+        case (.round, .square):
+            CGRect(x: rect.origin.x + 1, y: rect.origin.y + 1, width: rect.width - 1, height: rect.height - 2)
+        case (.round, .round):
+            CGRect(x: rect.origin.x + 1, y: rect.origin.y + 1, width: rect.width - 2, height: rect.height - 2)
+        }
+
         let shapeBounds = CGRect(
             x: insetRect.minX + insetRect.height / 2,
             y: insetRect.minY,
@@ -524,36 +528,23 @@ private class MenuBarOverlayPanelContentView: NSView {
     }
 
     /// Returns a path for the ``MenuBarShapeKind/full`` shape kind.
-    private func pathForFullShape(
-        in rect: CGRect,
-        info: MenuBarFullShapeInfo,
-        insetX: CGFloat,
-        insetY: CGFloat
-    ) -> NSBezierPath {
-        return shapePath(
+    private func pathForFullShape(in rect: CGRect, info: MenuBarFullShapeInfo) -> NSBezierPath {
+        shapePath(
             in: rect,
             leadingEndCap: info.leadingEndCap,
-            trailingEndCap: info.trailingEndCap,
-            insetX: insetX,
-            insetY: insetY
+            trailingEndCap: info.trailingEndCap
         )
     }
 
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
-    private func pathForSplitShape(
-        in rect: CGRect,
-        info: MenuBarSplitShapeInfo,
-        display: DisplayInfo,
-        insetX: CGFloat,
-        insetY: CGFloat
-    ) -> NSBezierPath {
+    private func pathForSplitShape(in rect: CGRect, info: MenuBarSplitShapeInfo, display: DisplayInfo) -> NSBezierPath {
         let leadingPathBounds: CGRect = {
             var maxX: CGFloat = 0
             if
                 let menuBarManager = appearanceManager?.menuBarManager,
                 menuBarManager.isHidingApplicationMenus,
                 let overlayPanel,
-                overlayPanel.owningScreen.displayID == CGMainDisplayID(),
+                overlayPanel.owningScreen == .main,
                 let appleMenuMaxX = overlayPanel.applicationMenuFrames.first?.width
             {
                 // special case to prevent the leading path from jittering when hiding the
@@ -590,24 +581,18 @@ private class MenuBarOverlayPanelContentView: NSView {
             return shapePath(
                 in: rect,
                 leadingEndCap: info.leading.leadingEndCap,
-                trailingEndCap: info.trailing.trailingEndCap,
-                insetX: insetX,
-                insetY: insetY
+                trailingEndCap: info.trailing.trailingEndCap
             )
         } else {
             let leadingPath = shapePath(
                 in: leadingPathBounds,
                 leadingEndCap: info.leading.leadingEndCap,
-                trailingEndCap: info.leading.trailingEndCap,
-                insetX: insetX,
-                insetY: insetY
+                trailingEndCap: info.leading.trailingEndCap
             )
             let trailingPath = shapePath(
                 in: trailingPathBounds,
                 leadingEndCap: info.trailing.leadingEndCap,
-                trailingEndCap: info.trailing.trailingEndCap,
-                insetX: insetX,
-                insetY: insetY
+                trailingEndCap: info.trailing.trailingEndCap
             )
             let path = NSBezierPath()
             path.append(leadingPath)
@@ -672,17 +657,13 @@ private class MenuBarOverlayPanelContentView: NSView {
         case .full:
             pathForFullShape(
                 in: drawableBounds,
-                info: configuration.fullShapeInfo,
-                insetX: 2,
-                insetY: 1
+                info: configuration.fullShapeInfo
             )
         case .split:
             pathForSplitShape(
                 in: drawableBounds,
                 info: configuration.splitShapeInfo,
-                display: owningDisplay,
-                insetX: 2,
-                insetY: 1
+                display: owningDisplay
             )
         }
 
@@ -775,17 +756,13 @@ private class MenuBarOverlayPanelContentView: NSView {
                 case .full:
                     pathForFullShape(
                         in: drawableBounds,
-                        info: configuration.fullShapeInfo,
-                        insetX: 1,
-                        insetY: 0
+                        info: configuration.fullShapeInfo
                     )
                 case .split:
                     pathForSplitShape(
                         in: drawableBounds,
                         info: configuration.splitShapeInfo,
-                        display: owningDisplay,
-                        insetX: 1,
-                        insetY: 0
+                        display: owningDisplay
                     )
                 }
 

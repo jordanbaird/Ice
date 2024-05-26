@@ -1,11 +1,11 @@
 //
-//  AdvancedSettingsPane.swift
+//  AdvancedSettingsTab.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct AdvancedSettingsPane: View {
+struct AdvancedSettingsTab: View {
     @EnvironmentObject var appState: AppState
 
     private var menuBarManager: MenuBarManager {

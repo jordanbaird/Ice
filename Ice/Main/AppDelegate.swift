@@ -21,8 +21,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // assign the settings window to the shared app state
         if let settingsWindow = NSApp.window(withIdentifier: Constants.settingsWindowID) {
             appState.assignSettingsWindow(settingsWindow)
-            // give the settings window a custom background
-            settingsWindow.backgroundColor = .settingsWindowBackground
             settingsWindow.close()
         }
 

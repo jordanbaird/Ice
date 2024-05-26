@@ -1,11 +1,11 @@
 //
-//  MenuBarAppearanceTab.swift
+//  MenuBarAppearanceEditor.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct MenuBarAppearanceTab: View {
+struct MenuBarAppearanceEditor: View {
     enum Location {
         case settings
         case popover(closePopover: () -> Void)
@@ -41,13 +41,7 @@ struct MenuBarAppearanceTab: View {
     private var headerText: some View {
         switch location {
         case .settings:
-            Text("Menu Bar Appearance")
-                .font(.title2)
-                .annotation {
-                    Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
-                }
-                .padding(.top)
-                .padding(.horizontal, 20)
+            EmptyView()
         case .popover:
             HStack {
                 Spacer()
@@ -74,6 +68,14 @@ struct MenuBarAppearanceTab: View {
             }
             Section("Menu Bar Shape") {
                 shapePicker
+            }
+            if case .settings = location {
+                Section {
+                    Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
             }
         }
         .formStyle(.grouped)
@@ -155,11 +157,4 @@ struct MenuBarAppearanceTab: View {
     private var shapePicker: some View {
         MenuBarShapePicker()
     }
-}
-
-#Preview {
-    MenuBarAppearanceTab(location: .settings)
-        .environmentObject(AppState.shared)
-        .buttonStyle(.custom)
-        .frame(width: 500, height: 300)
 }

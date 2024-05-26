@@ -13,10 +13,9 @@ struct SettingsNavigationItem: Hashable, Identifiable {
 
 extension SettingsNavigationItem {
     enum Name: String {
-        case general = "General"
-        case menuBar = "Menu Bar"
+        case settings = "Settings"
+        case menuBarAppearance = "Menu Bar Appearance"
         case hotkeys = "Hotkeys"
-        case advanced = "Advanced"
         case about = "About"
 
         var localized: LocalizedStringKey {
@@ -31,20 +30,15 @@ extension SettingsNavigationItem {
         case assetCatalog(_ resource: ImageResource)
 
         var view: some View {
-            image
-                .resizable()
-                .aspectRatio(contentMode: .fit)
+            image.resizable().aspectRatio(contentMode: .fit)
         }
 
         private var image: Image {
-            // returning the image explicitly instead of using a @ViewBuilder
-            // lets us apply the resizable() modifier just once, in the `view`
-            // property above
             switch self {
             case .systemSymbol(let name):
-                return Image(systemName: name)
+                Image(systemName: name)
             case .assetCatalog(let resource):
-                return Image(resource)
+                Image(resource)
             }
         }
     }

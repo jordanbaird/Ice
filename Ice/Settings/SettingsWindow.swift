@@ -12,16 +12,13 @@ struct SettingsWindow: Scene {
     var body: some Scene {
         Window(Constants.appName, id: Constants.settingsWindowID) {
             SettingsView()
-                .frame(minWidth: 840, minHeight: 520)
-                .background {
-                    Color.clear
-                        .overlay(Material.thin)
-                }
+                .frame(minWidth: 700, minHeight: 400)
                 .onAppear(perform: onAppear)
                 .buttonStyle(.custom)
                 .environmentObject(appState)
         }
         .commandsRemoved()
-        .defaultSize(width: 900, height: 600)
+        .defaultSize(width: 820, height: 550)
+        .windowToolbarStyle(.unifiedCompact)
     }
 }

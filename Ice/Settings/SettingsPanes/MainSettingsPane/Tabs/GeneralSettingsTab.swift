@@ -1,5 +1,5 @@
 //
-//  GeneralSettingsPane.swift
+//  GeneralSettingsTab.swift
 //  Ice
 //
 
@@ -7,7 +7,7 @@ import CompactSlider
 import LaunchAtLogin
 import SwiftUI
 
-struct GeneralSettingsPane: View {
+struct GeneralSettingsTab: View {
     @EnvironmentObject var appState: AppState
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false
@@ -210,7 +210,7 @@ struct GeneralSettingsPane: View {
 }
 
 #Preview {
-    GeneralSettingsPane()
+    GeneralSettingsTab()
         .fixedSize()
         .buttonStyle(.custom)
         .environmentObject(AppState.shared)

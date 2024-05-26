@@ -11,10 +11,6 @@ struct IceApp: App {
     @ObservedObject var appState = AppState.shared
     @Environment(\.openWindow) private var openWindow
 
-    init() {
-        NSSplitViewItem.swizzle()
-    }
-
     var body: some Scene {
         SettingsWindow(appState: appState, onAppear: {
             if !appState.permissionsManager.hasPermission {

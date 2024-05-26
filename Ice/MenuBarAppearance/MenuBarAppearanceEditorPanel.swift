@@ -79,7 +79,7 @@ private class MenuBarAppearanceEditorPopover: NSPopover {
 
     @ViewBuilder
     private var contentView: some View {
-        MenuBarAppearanceTab(
+        MenuBarAppearanceEditor(
             location: .popover(closePopover: { [weak self] in
                 self?.performClose(self)
             })

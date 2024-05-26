@@ -6,6 +6,7 @@ disabled_rules:
   - large_tuple
   - line_length
   - nesting
+  - opening_brace
   - todo
   - type_body_length
 

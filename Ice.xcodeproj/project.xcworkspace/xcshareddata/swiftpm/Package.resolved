@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/buh/CompactSlider",
       "state" : {
-        "revision" : "6d591a76caecd583ad69fbcd06f2fb83135318c0",
-        "version" : "1.1.5"
+        "revision" : "abe4d1df6f0c85dcb133266cc07c2a5d08295726",
+        "version" : "1.1.6"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sparkle-project/Sparkle",
       "state" : {
-        "revision" : "0a4caaf7a81eea2cece651ef4b17331fa0634dff",
-        "version" : "2.6.0"
+        "revision" : "41847a58cdef7506b257591fcca6f9495df591d4",
+        "version" : "2.6.2"
       }
     }
   ],

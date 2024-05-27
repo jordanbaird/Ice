@@ -135,13 +135,13 @@ extension MenuBarAppearanceConfiguration: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(hasShadow, forKey: .hasShadow)
         try container.encode(hasBorder, forKey: .hasBorder)
-        try container.encode(borderColor.codable, forKey: .borderColor)
+        try container.encode(CodableColor(cgColor: borderColor), forKey: .borderColor)
         try container.encode(borderWidth, forKey: .borderWidth)
         try container.encode(shapeKind, forKey: .shapeKind)
         try container.encode(fullShapeInfo, forKey: .fullShapeInfo)
         try container.encode(splitShapeInfo, forKey: .splitShapeInfo)
         try container.encode(tintKind, forKey: .tintKind)
-        try container.encode(tintColor.codable, forKey: .tintColor)
+        try container.encode(CodableColor(cgColor: tintColor), forKey: .tintColor)
         try container.encode(tintGradient, forKey: .tintGradient)
     }
 }

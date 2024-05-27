@@ -97,7 +97,7 @@ private struct MenuBarFullShapeExampleView: View, Equatable {
         case .round:
             Image(size: CGSize(width: 12, height: 12)) { context in
                 let remainder = context.clipBoundingRect
-                    .divided(atDistance: context.clipBoundingRect.width / 2, from: edge.cgRectEdge)
+                    .divided(atDistance: context.clipBoundingRect.width / 2, from: cgRectEdge(for: edge))
                     .remainder
                 let path1 = Path(remainder)
                 let path2 = Path(ellipseIn: context.clipBoundingRect)
@@ -147,6 +147,13 @@ private struct MenuBarFullShapeExampleView: View, Equatable {
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.info == rhs.info
+    }
+
+    private func cgRectEdge(for edge: HorizontalEdge) -> CGRectEdge {
+        switch edge {
+        case .leading: .minXEdge
+        case .trailing: .maxXEdge
+        }
     }
 }
 

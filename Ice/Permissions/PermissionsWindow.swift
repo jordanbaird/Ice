@@ -12,7 +12,6 @@ struct PermissionsWindow: Scene {
     var body: some Scene {
         Window("Permissions", id: Constants.permissionsWindowID) {
             PermissionsView(onContinue: onContinue)
-                .buttonStyle(.custom)
                 .environmentObject(appState)
         }
         .windowResizability(.contentSize)

@@ -135,6 +135,5 @@ struct PermissionsView: View {
 
 #Preview {
     PermissionsView { }
-        .buttonStyle(.custom)
         .environmentObject(AppState.shared)
 }

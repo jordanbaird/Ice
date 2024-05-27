@@ -24,8 +24,10 @@ struct MenuBarAppearanceEditor: View {
             headerText
             mainForm
             HStack {
-                Button("Reset") {
-                    appearanceManager.configuration = .defaultConfiguration
+                if appearanceManager.configuration != .defaultConfiguration {
+                    Button("Reset") {
+                        appearanceManager.configuration = .defaultConfiguration
+                    }
                 }
                 if case .popover(let closePopover) = location {
                     Spacer()
@@ -39,18 +41,11 @@ struct MenuBarAppearanceEditor: View {
 
     @ViewBuilder
     private var headerText: some View {
-        switch location {
-        case .settings:
-            EmptyView()
-        case .popover:
-            HStack {
-                Spacer()
-                Text("Menu Bar Appearance")
-                    .font(.title2)
-                    .padding(.top)
-                    .padding(.horizontal, 20)
-                Spacer()
-            }
+        if case .popover = location {
+            Text("Menu Bar Appearance")
+                .font(.title2)
+                .padding(.top)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 

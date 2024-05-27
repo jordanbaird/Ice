@@ -85,7 +85,6 @@ private class MenuBarAppearanceEditorPopover: NSPopover {
             })
         )
         .environmentObject(AppState.shared)
-        .buttonStyle(.custom)
     }
 
     override init() {

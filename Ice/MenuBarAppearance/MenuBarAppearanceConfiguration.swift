@@ -7,7 +7,7 @@ import CoreGraphics
 import Foundation
 
 /// Configuration for the menu bar's appearance.
-struct MenuBarAppearanceConfiguration {
+struct MenuBarAppearanceConfiguration: Hashable {
     var hasShadow: Bool
     var hasBorder: Bool
     var borderColor: CGColor

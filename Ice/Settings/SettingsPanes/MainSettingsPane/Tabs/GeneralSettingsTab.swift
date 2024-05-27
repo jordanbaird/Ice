@@ -212,6 +212,5 @@ struct GeneralSettingsTab: View {
 #Preview {
     GeneralSettingsTab()
         .fixedSize()
-        .buttonStyle(.custom)
         .environmentObject(AppState.shared)
 }

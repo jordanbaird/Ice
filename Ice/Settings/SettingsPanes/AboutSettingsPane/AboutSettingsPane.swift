@@ -23,5 +23,4 @@ struct AboutSettingsPane: View {
 
 #Preview {
     AboutSettingsPane()
-        .buttonStyle(.custom)
 }

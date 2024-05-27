@@ -84,6 +84,5 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
-        .buttonStyle(.custom)
         .environmentObject(AppState.shared)
 }

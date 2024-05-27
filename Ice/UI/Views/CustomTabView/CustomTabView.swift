@@ -50,7 +50,7 @@ struct CustomTabView: View {
         }
         .padding(.vertical, 5)
         .frame(maxWidth: .infinity)
-        .background(Material.regular)
+        .background(Color.gray.opacity(0.05))
     }
 
     @ViewBuilder

@@ -26,6 +26,5 @@ struct MainSettingsPane: View {
 #Preview {
     MainSettingsPane()
         .fixedSize()
-        .buttonStyle(.custom)
         .environmentObject(AppState.shared)
 }

@@ -14,7 +14,6 @@ struct SettingsWindow: Scene {
             SettingsView()
                 .frame(minWidth: 700, minHeight: 400)
                 .onAppear(perform: onAppear)
-                .buttonStyle(.custom)
                 .environmentObject(appState)
         }
         .commandsRemoved()

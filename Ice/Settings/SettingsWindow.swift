@@ -10,7 +10,7 @@ struct SettingsWindow: Scene {
     let onAppear: () -> Void
 
     var body: some Scene {
-        Window(Constants.appName, id: Constants.settingsWindowID) {
+        Window("Ice", id: Constants.settingsWindowID) {
             SettingsView()
                 .frame(minWidth: 700, minHeight: 400)
                 .onAppear(perform: onAppear)

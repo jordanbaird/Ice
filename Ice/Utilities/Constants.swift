@@ -6,9 +6,6 @@
 import Foundation
 
 enum Constants {
-    /// The display name in the app's bundle.
-    static let appName = Bundle.main.displayName! // swiftlint:disable:this force_unwrapping
-
     /// The version string in the app's bundle.
     static let appVersion = Bundle.main.versionString! // swiftlint:disable:this force_unwrapping
 

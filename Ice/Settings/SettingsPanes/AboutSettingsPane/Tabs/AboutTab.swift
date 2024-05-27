@@ -42,7 +42,7 @@ struct AboutTab: View {
             }
 
             VStack(alignment: .leading) {
-                Text(Constants.appName)
+                Text("Ice")
                     .font(.system(size: isLarge ? 64 : 36))
                     .foregroundStyle(.primary)
 
@@ -67,7 +67,7 @@ struct AboutTab: View {
         .onFrameChange(update: $frame)
         .bottomBar {
             HStack {
-                Button("Quit \(Constants.appName)") {
+                Button("Quit Ice") {
                     NSApp.terminate(nil)
                 }
                 Spacer()
@@ -84,7 +84,7 @@ struct AboutTab: View {
                     openURL(sponsorURL)
                 } label: {
                     Label(
-                        "Support \(Constants.appName)",
+                        "Support Ice",
                         systemImage: "heart.circle.fill"
                     )
                 }

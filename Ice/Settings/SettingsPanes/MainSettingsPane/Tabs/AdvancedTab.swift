@@ -64,9 +64,9 @@ struct AdvancedTab: View {
         Toggle(isOn: manager.bindings.canToggleAlwaysHiddenSection) {
             Text("Can toggle the always-hidden section")
             if appState.settingsManager.generalSettingsManager.showOnClick {
-                Text("\(Modifiers.option.combinedValue) + click one of \(Constants.appName)'s menu bar items, or inside an empty area of the menu bar to toggle the section")
+                Text("\(Modifiers.option.combinedValue) + click one of Ice's menu bar items, or inside an empty area of the menu bar to toggle the section")
             } else {
-                Text("\(Modifiers.option.combinedValue) + click one of \(Constants.appName)'s menu bar items to toggle the section")
+                Text("\(Modifiers.option.combinedValue) + click one of Ice's menu bar items to toggle the section")
             }
         }
     }

@@ -326,7 +326,7 @@ final class ControlItem: ObservableObject {
     }
 
     private func createMenu(with appState: AppState) -> NSMenu {
-        let menu = NSMenu(title: Constants.appName)
+        let menu = NSMenu(title: "Ice")
 
         // add menu items to toggle the hidden and always-hidden sections
         let sectionNames: [MenuBarSection.Name] = [.hidden, .alwaysHidden]
@@ -388,7 +388,7 @@ final class ControlItem: ObservableObject {
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit \(Constants.appName)",
+            title: "Quit Ice",
             action: #selector(NSApp.terminate),
             keyEquivalent: "q"
         )

@@ -77,13 +77,13 @@ struct GeneralTab: View {
         Toggle(isOn: manager.bindings.showIceIcon) {
             Text("Show Ice icon")
             if !manager.showIceIcon {
-                Text("You can still access \(Constants.appName)'s settings by right-clicking an empty area in the menu bar")
+                Text("You can still access Ice's settings by right-clicking an empty area in the menu bar")
             }
         }
         if manager.showIceIcon {
             LabeledContent {
                 Menu {
-                    Picker("\(Constants.appName) icon", selection: manager.bindings.iceIcon) {
+                    Picker("Ice icon", selection: manager.bindings.iceIcon) {
                         ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
                             label(for: imageSet)
                         }
@@ -105,7 +105,7 @@ struct GeneralTab: View {
                 .scaledToFit()
                 .fixedSize()
             } label: {
-                Text("\(Constants.appName) icon")
+                Text("Ice icon")
                 Text("Choose a custom icon to show in the menu bar")
             }
             .fileImporter(

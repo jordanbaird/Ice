@@ -83,7 +83,7 @@ struct PermissionsView: View {
                     .font(.title)
                     .underline()
 
-                Text("\(Constants.appName) needs your permission to:")
+                Text("Ice needs your permission to:")
                     .font(.subheadline)
 
                 VStack(alignment: .leading) {
@@ -111,7 +111,7 @@ struct PermissionsView: View {
 
                 if permission.hasPermission {
                     Label(
-                        "\(Constants.appName) has been granted permission",
+                        "Ice has been granted permission",
                         systemImage: "checkmark"
                     )
                     .foregroundStyle(.green)

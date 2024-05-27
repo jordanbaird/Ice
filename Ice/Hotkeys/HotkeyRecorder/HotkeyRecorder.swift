@@ -9,7 +9,6 @@ struct HotkeyRecorder<Label: View>: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var model: HotkeyRecorderModel
     @State private var frame: CGRect = .zero
-    @State private var timer: Timer?
 
     private let label: Label
 
@@ -32,10 +31,10 @@ struct HotkeyRecorder<Label: View>: View {
     var body: some View {
         LabeledContent {
             HStack(spacing: 1) {
-                segment1
-                segment2
+                leadingSegment
+                trailingSegment
             }
-            .frame(width: 133, height: 22)
+            .frame(width: 130, height: 22)
             .onFrameChange(update: $frame)
             .alert(
                 model.presentedError?.localizedDescription ?? "",
@@ -54,24 +53,22 @@ struct HotkeyRecorder<Label: View>: View {
     }
 
     @ViewBuilder
-    private var segment1: some View {
+    private var leadingSegment: some View {
         Button {
             model.startRecording()
         } label: {
-            Color.clear.overlay {
-                segment1Label
-            }
+            leadingSegmentLabel
         }
         .buttonStyle(
-            SegmentButtonStyle(
-                kind: .leading,
+            HotkeyRecorderSegmentButtonStyle(
+                segment: .leading,
                 isHighlighted: model.isRecording
             )
         )
     }
 
     @ViewBuilder
-    private var segment2: some View {
+    private var trailingSegment: some View {
         Button {
             if model.isRecording {
                 model.stopRecording()
@@ -81,13 +78,11 @@ struct HotkeyRecorder<Label: View>: View {
                 model.startRecording()
             }
         } label: {
-            Color.clear.overlay {
-                segment2Label
-            }
+            trailingSegmentLabel
         }
         .buttonStyle(
-            SegmentButtonStyle(
-                kind: .trailing,
+            HotkeyRecorderSegmentButtonStyle(
+                segment: .trailing,
                 isHighlighted: false
             )
         )
@@ -95,7 +90,7 @@ struct HotkeyRecorder<Label: View>: View {
     }
 
     @ViewBuilder
-    private var segment1Label: some View {
+    private var leadingSegmentLabel: some View {
         if model.isRecording {
             Text("Type Hotkey")
         } else if model.hotkey.isEnabled {
@@ -111,7 +106,7 @@ struct HotkeyRecorder<Label: View>: View {
     }
 
     @ViewBuilder
-    private var segment2Label: some View {
+    private var trailingSegmentLabel: some View {
         Image(systemName: symbolString)
             .resizable()
             .aspectRatio(contentMode: .fill)
@@ -119,80 +114,36 @@ struct HotkeyRecorder<Label: View>: View {
     }
 }
 
-private struct SegmentButtonStyle: PrimitiveButtonStyle {
-    enum Kind {
+private struct HotkeyRecorderSegmentButtonStyle: PrimitiveButtonStyle {
+    enum Segment {
         case leading
         case trailing
-    }
-
-    /// A custom view that ensures that the button accepts the first mouse input.
-    private struct FirstMouseOverlay: NSViewRepresentable {
-        private class Represented: NSView {
-            override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
-        }
-        func makeNSView(context: Context) -> NSView { Represented() }
-        func updateNSView(_: NSView, context: Context) { }
-    }
-
-    /// A custom view that adds a button to the background of the view.
-    private struct ButtonView: NSViewRepresentable {
-        class Represented: NSView {
-            let button = NSButton(title: "", target: nil, action: nil)
-
-            init(kind: Kind) {
-                super.init(frame: .zero)
-
-                addSubview(button)
-
-                button.bezelStyle = .flexiblePush
-                button.translatesAutoresizingMaskIntoConstraints = false
-
-                button.widthAnchor.constraint(equalTo: widthAnchor, constant: 10).isActive = true
-                button.heightAnchor.constraint(equalTo: heightAnchor).isActive = true
-                button.centerYAnchor.constraint(equalTo: centerYAnchor).isActive = true
-
-                switch kind {
-                case .leading:
-                    button.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
-                case .trailing:
-                    button.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
-                }
-            }
-
-            @available(*, unavailable)
-            required init?(coder: NSCoder) {
-                fatalError("init(coder:) has not been implemented")
-            }
-        }
-
-        var kind: Kind
-        var isHighlighted: Bool
-
-        func makeNSView(context: Context) -> Represented {
-            Represented(kind: kind)
-        }
-        func updateNSView(_ nsView: Represented, context: Context) {
-            nsView.button.isHighlighted = isHighlighted
-        }
     }
 
     @State private var frame = CGRect.zero
     @State private var isPressed = false
 
-    var kind: Kind
+    var segment: Segment
     var isHighlighted: Bool
 
+    private var radii: RectangleCornerRadii {
+        switch segment {
+        case .leading:
+            RectangleCornerRadii(topLeading: 5, bottomLeading: 5)
+        case .trailing:
+            RectangleCornerRadii(bottomTrailing: 5, topTrailing: 5)
+        }
+    }
+
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(Color.primary)
-            .padding(EdgeInsets(top: 3, leading: 8, bottom: 3, trailing: 8))
-            .lineLimit(1)
-            .background {
-                ButtonView(kind: kind, isHighlighted: isHighlighted || isPressed)
-                    .allowsHitTesting(false)
-            }
+        UnevenRoundedRectangle(cornerRadii: radii)
+            .foregroundStyle(Color.primary) // explicitly specify `Color.primary`
+            .opacity(isHighlighted || isPressed ? 0.2 : 0.1)
             .overlay {
-                FirstMouseOverlay()
+                configuration.label
+                    .lineLimit(1)
+                    .foregroundStyle(.primary)
+                    .padding(EdgeInsets(top: 3, leading: 8, bottom: 3, trailing: 8))
             }
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
@@ -205,11 +156,6 @@ private struct SegmentButtonStyle: PrimitiveButtonStyle {
                             configuration.trigger()
                         }
                     }
-            )
-            .offset(x: kind == .leading ? 1 : -1, y: 1)
-            .clipShape(
-                Rectangle()
-                    .size(frame.insetBy(dx: 0, dy: -1).size)
             )
             .onFrameChange(update: $frame)
     }

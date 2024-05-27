@@ -3,22 +3,23 @@
 //  Ice
 //
 
-import Carbon.HIToolbox
 import Combine
 import OSLog
 
 /// A combination of a key and modifiers that can be used to
 /// trigger actions on system-wide key-up or key-down events.
 final class Hotkey: ObservableObject {
-    @Published var keyCombination: KeyCombination?
-
-    let action: HotkeyAction
+    private weak var appState: AppState?
 
     private var listener: Listener?
 
-    private weak var appState: AppState?
+    let action: HotkeyAction
 
-    private var cancellables = Set<AnyCancellable>()
+    @Published var keyCombination: KeyCombination? {
+        didSet {
+            enable()
+        }
+    }
 
     var isEnabled: Bool {
         listener != nil
@@ -29,29 +30,13 @@ final class Hotkey: ObservableObject {
         self.action = action
     }
 
-    private func configureCancellables() {
-        var c = Set<AnyCancellable>()
-
-        $keyCombination
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.enable()
-            }
-            .store(in: &c)
-
-        cancellables = c
-    }
-
     func assignAppState(_ appState: AppState) {
         self.appState = appState
-        configureCancellables()
+        enable()
     }
 
     func enable() {
         disable()
-        guard let appState else {
-            return
-        }
         listener = Listener(hotkey: self, eventKind: .keyDown, appState: appState)
     }
 
@@ -63,16 +48,20 @@ final class Hotkey: ObservableObject {
 
 extension Hotkey {
     /// An object that manges the lifetime of a hotkey observation.
-    class Listener {
+    private class Listener {
         private weak var appState: AppState?
+
         private var id: UInt32?
 
         var isValid: Bool {
             id != nil
         }
 
-        fileprivate init?(hotkey: Hotkey, eventKind: HotkeyRegistry.EventKind, appState: AppState) {
-            guard hotkey.keyCombination != nil else {
+        init?(hotkey: Hotkey, eventKind: HotkeyRegistry.EventKind, appState: AppState?) {
+            guard
+                let appState,
+                hotkey.keyCombination != nil
+            else {
                 return nil
             }
             let id = appState.hotkeyRegistry.register(
@@ -93,6 +82,10 @@ extension Hotkey {
             self.id = id
         }
 
+        deinit {
+            invalidate()
+        }
+
         func invalidate() {
             guard isValid else {
                 return
@@ -107,10 +100,6 @@ extension Hotkey {
             if let id {
                 appState.hotkeyRegistry.unregister(id)
             }
-        }
-
-        deinit {
-            invalidate()
         }
     }
 }

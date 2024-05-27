@@ -27,7 +27,6 @@ struct HotkeysSettingsPane: View {
         .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
         .frame(maxHeight: .infinity)
-        .errorOverlay(for: HotkeyRecordingFailure.self)
     }
 
     @ViewBuilder

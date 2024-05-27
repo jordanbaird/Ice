@@ -9,20 +9,72 @@ import OSLog
 import SwiftUI
 
 class HotkeyRecorderModel: ObservableObject {
+    enum RecordingError: LocalizedError, Hashable {
+        case reservedBySystem
+
+        var errorDescription: String? {
+            switch self {
+            case .reservedBySystem:
+                "Hotkey is reserved by macOS"
+            }
+        }
+    }
+
     @Published private(set) var isRecording = false
 
-    @Published private(set) var pressedModifierStrings = [String]()
+    @Published var presentedError: RecordingError? {
+        didSet {
+            if presentedError != nil {
+                isPresentingError = true
+            }
+        }
+    }
 
-    @Published var failure: HotkeyRecordingFailure?
+    @Published var isPresentingError = false {
+        didSet {
+            if !isPresentingError {
+                presentedError = nil
+            }
+        }
+    }
 
-    @Published var hotkey: Hotkey
+    let hotkey: Hotkey
 
     private var monitor: LocalEventMonitor?
 
-    private weak var appState: AppState?
+    private var cancellables = Set<AnyCancellable>()
+
+    private weak var appState: AppState? {
+        didSet {
+            guard appState?.isPreview == false else {
+                monitor = nil
+                return
+            }
+            monitor = LocalEventMonitor(mask: .keyDown) { [weak self] event in
+                guard let self else {
+                    return event
+                }
+                handleKeyDown(event: event)
+                return nil
+            }
+        }
+    }
 
     init(hotkey: Hotkey) {
         self.hotkey = hotkey
+        configureCancellables()
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        hotkey.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
+
+        cancellables = c
     }
 
     func assignAppState(_ appState: AppState) {
@@ -31,23 +83,6 @@ class HotkeyRecorderModel: ObservableObject {
             return
         }
         self.appState = appState
-        guard !appState.isPreview else {
-            return
-        }
-        self.monitor = LocalEventMonitor(mask: [.keyDown, .flagsChanged]) { [weak self] event in
-            guard let self else {
-                return event
-            }
-            switch event.type {
-            case .keyDown:
-                handleKeyDown(event: event)
-            case .flagsChanged:
-                handleFlagsChanged(event: event)
-            default:
-                return event
-            }
-            return nil
-        }
     }
 
     /// Disables the hotkey and starts monitoring for events.
@@ -55,10 +90,9 @@ class HotkeyRecorderModel: ObservableObject {
         guard !isRecording else {
             return
         }
-        isRecording = true
         hotkey.disable()
         monitor?.start()
-        pressedModifierStrings.removeAll()
+        isRecording = true
     }
 
     /// Enables the hotkey and stops monitoring for events.
@@ -66,49 +100,33 @@ class HotkeyRecorderModel: ObservableObject {
         guard isRecording else {
             return
         }
-        isRecording = false
         monitor?.stop()
         hotkey.enable()
-        pressedModifierStrings.removeAll()
-        failure = nil
-    }
-
-    private func handleFailure(_ failure: HotkeyRecordingFailure) {
-        // remove the modifier strings so the pressed modifiers
-        // aren't being displayed at the same time as a failure
-        pressedModifierStrings.removeAll()
-        self.failure = failure
+        isRecording = false
     }
 
     private func handleKeyDown(event: NSEvent) {
         let keyCombination = KeyCombination(event: event)
-        if keyCombination.modifiers.isEmpty {
+        guard !keyCombination.modifiers.isEmpty else {
             if keyCombination.key == .escape {
-                // escape was pressed with no modifiers
                 stopRecording()
             } else {
-                handleFailure(.noModifiers)
+                NSSound.beep()
             }
             return
         }
-        if keyCombination.modifiers == .shift {
-            handleFailure(.onlyShift)
+        guard keyCombination.modifiers != .shift else {
+            NSSound.beep()
             return
         }
-        if keyCombination.isReservedBySystem {
-            handleFailure(.reserved(keyCombination))
+        guard !keyCombination.isReservedBySystem else {
+            presentedError = .reservedBySystem
             return
         }
         // if we made it this far, all checks passed; assign the
         // new key combination and stop recording
         hotkey.keyCombination = keyCombination
         stopRecording()
-    }
-
-    private func handleFlagsChanged(event: NSEvent) {
-        pressedModifierStrings = Modifiers.canonicalOrder.compactMap {
-            event.modifierFlags.contains($0.nsEventFlags) ? $0.symbolicValue : nil
-        }
     }
 }
 

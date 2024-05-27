@@ -20,6 +20,16 @@ struct ControlItemImageSet: Codable, Hashable, Identifiable {
     let visible: ControlItemImage
 
     var id: Int { hashValue }
+
+    init(name: Name, hidden: ControlItemImage, visible: ControlItemImage) {
+        self.name = name
+        self.hidden = hidden
+        self.visible = visible
+    }
+
+    init(name: Name, image: ControlItemImage) {
+        self.init(name: name, hidden: image, visible: image)
+    }
 }
 
 extension ControlItemImageSet {

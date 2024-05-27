@@ -11,7 +11,7 @@ struct GeneralTab: View {
     @EnvironmentObject var appState: AppState
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false
-    @State private var presentedError: LocalizedErrorBox?
+    @State private var presentedError: AnyLocalizedError?
 
     private var manager: GeneralSettingsManager {
         appState.settingsManager.generalSettingsManager
@@ -119,14 +119,10 @@ struct GeneralTab: View {
                             url.stopAccessingSecurityScopedResource()
                         }
                         let data = try Data(contentsOf: url)
-                        manager.iceIcon = ControlItemImageSet(
-                            name: .custom,
-                            hidden: .data(data),
-                            visible: .data(data)
-                        )
+                        manager.iceIcon = ControlItemImageSet(name: .custom, image: .data(data))
                     }
                 } catch {
-                    presentedError = LocalizedErrorBox(error: error)
+                    presentedError = AnyLocalizedError(error: error)
                     isPresentingError = true
                 }
             }

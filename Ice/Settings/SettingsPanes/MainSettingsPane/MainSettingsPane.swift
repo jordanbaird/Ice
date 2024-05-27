@@ -3,23 +3,21 @@
 //  Ice
 //
 
-import CompactSlider
-import LaunchAtLogin
 import SwiftUI
 
 struct MainSettingsPane: View {
-    @AppStorage("MainSettingsPaneSelectedTab")
-    var selection: Int = 0
-
     var body: some View {
-        CustomTabView(selection: $selection) {
-            CustomTab("General") {
-                GeneralSettingsTab()
-            }
-            CustomTab("Advanced") {
-                AdvancedSettingsTab()
-            }
+        TabView {
+            GeneralTab()
+                .tabItem {
+                    Text("General")
+                }
+            AdvancedTab()
+                .tabItem {
+                    Text("Advanced")
+                }
         }
+        .padding()
     }
 }
 

@@ -1,11 +1,11 @@
 //
-//  AdvancedSettingsTab.swift
+//  AdvancedTab.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct AdvancedSettingsTab: View {
+struct AdvancedTab: View {
     @EnvironmentObject var appState: AppState
 
     private var menuBarManager: MenuBarManager {
@@ -70,4 +70,10 @@ struct AdvancedSettingsTab: View {
             }
         }
     }
+}
+
+#Preview {
+    AdvancedTab()
+        .fixedSize()
+        .environmentObject(AppState.shared)
 }

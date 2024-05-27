@@ -38,7 +38,7 @@ struct AboutTab: View {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: isLarge ? 300 : 200)
+                    .frame(width: isLarge ? 250 : 175)
             }
 
             VStack(alignment: .leading) {

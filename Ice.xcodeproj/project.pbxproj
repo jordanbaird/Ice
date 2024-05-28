@@ -15,6 +15,7 @@
 		170CF8902B101D980073F982 /* ColorStop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 170CF88F2B101D980073F982 /* ColorStop.swift */; };
 		171C6F982C0353CE0097A5C8 /* MenuBarAppearanceEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6F972C0353CE0097A5C8 /* MenuBarAppearanceEditor.swift */; };
 		171C6F9C2C0356BC0097A5C8 /* GeneralTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6F9B2C0356BC0097A5C8 /* GeneralTab.swift */; };
+		171C6FC62C0571510097A5C8 /* Bundle+copyrightString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6FC52C0571510097A5C8 /* Bundle+copyrightString.swift */; };
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
 		172D827A2BC1F29E0048DD88 /* AccessibilityMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */; };
 		172D827C2BC1F2C10048DD88 /* AccessibilityError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D827B2BC1F2C10048DD88 /* AccessibilityError.swift */; };
@@ -112,6 +113,7 @@
 		170CF88F2B101D980073F982 /* ColorStop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorStop.swift; sourceTree = "<group>"; };
 		171C6F972C0353CE0097A5C8 /* MenuBarAppearanceEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceEditor.swift; sourceTree = "<group>"; };
 		171C6F9B2C0356BC0097A5C8 /* GeneralTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralTab.swift; sourceTree = "<group>"; };
+		171C6FC52C0571510097A5C8 /* Bundle+copyrightString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+copyrightString.swift"; sourceTree = "<group>"; };
 		1725FC692AED973800A59081 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1726A3F82B3378B8008B09DD /* Acknowledgements.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Acknowledgements.rtf; sourceTree = "<group>"; };
 		172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMenuBar.swift; sourceTree = "<group>"; };
@@ -624,6 +626,7 @@
 		71D2B02A2AAFD88E0002B6C8 /* Bundle */ = {
 			isa = PBXGroup;
 			children = (
+				171C6FC52C0571510097A5C8 /* Bundle+copyrightString.swift */,
 				71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */,
 			);
 			path = Bundle;
@@ -745,6 +748,7 @@
 			files = (
 				17928F1A2AC5DF9C0016C615 /* Defaults.swift in Sources */,
 				179F13BA2B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift in Sources */,
+				171C6FC62C0571510097A5C8 /* Bundle+copyrightString.swift in Sources */,
 				71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */,
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,

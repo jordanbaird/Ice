@@ -17,7 +17,8 @@ struct AboutSettingsPane: View {
                     Text("Updates")
                 }
         }
-        .padding()
+        .padding([.horizontal, .bottom], 16)
+        .padding(.top, 6)
     }
 }
 

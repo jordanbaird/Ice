@@ -17,7 +17,8 @@ struct MainSettingsPane: View {
                     Text("Advanced")
                 }
         }
-        .padding()
+        .padding([.horizontal, .bottom], 16)
+        .padding(.top, 6)
     }
 }
 

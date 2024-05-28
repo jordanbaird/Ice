@@ -1,11 +1,11 @@
 //
-//  AboutTab.swift
+//  AboutSettingsPane.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct AboutTab: View {
+struct AboutSettingsPane: View {
     @Environment(\.openURL) private var openURL
     @State private var frame: CGRect = .zero
 

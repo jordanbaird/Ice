@@ -1,11 +1,11 @@
 //
-//  UpdatesTab.swift
+//  UpdatesSettingsPane.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct UpdatesTab: View {
+struct UpdatesSettingsPane: View {
     @EnvironmentObject var appState: AppState
 
     private var updatesManager: UpdatesManager {

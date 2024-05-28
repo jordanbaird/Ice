@@ -8,7 +8,7 @@ import SwiftUI
 struct SettingsView: View {
     private static let items: [SettingsNavigationItem] = [
         SettingsNavigationItem(
-            name: .settings,
+            name: .general,
             icon: .systemSymbol("gearshape")
         ),
         SettingsNavigationItem(
@@ -18,6 +18,14 @@ struct SettingsView: View {
         SettingsNavigationItem(
             name: .hotkeys,
             icon: .systemSymbol("keyboard")
+        ),
+        SettingsNavigationItem(
+            name: .advanced,
+            icon: .systemSymbol("gearshape.2")
+        ),
+        SettingsNavigationItem(
+            name: .updates,
+            icon: .systemSymbol("arrow.triangle.2.circlepath.circle")
         ),
         SettingsNavigationItem(
             name: .about,
@@ -32,9 +40,8 @@ struct SettingsView: View {
             sidebar
         } detail: {
             detailView
-                .frame(maxHeight: .infinity)
-                .navigationTitle(selection.name.localized)
         }
+        .navigationTitle(selection.name.localized)
     }
 
     @ViewBuilder
@@ -47,22 +54,22 @@ struct SettingsView: View {
             }
             .collapsible(false)
         }
-        .navigationSplitViewColumnWidth(
-            min: 210,
-            ideal: 0,
-            max: 310
-        )
+        .navigationSplitViewColumnWidth(210)
     }
 
     @ViewBuilder
     private var detailView: some View {
         switch selection.name {
-        case .settings:
-            MainSettingsPane()
+        case .general:
+            GeneralSettingsPane()
         case .menuBarAppearance:
             MenuBarAppearanceSettingsPane()
         case .hotkeys:
             HotkeysSettingsPane()
+        case .advanced:
+            AdvancedSettingsPane()
+        case .updates:
+            UpdatesSettingsPane()
         case .about:
             AboutSettingsPane()
         }

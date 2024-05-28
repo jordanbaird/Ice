@@ -13,9 +13,11 @@ struct SettingsNavigationItem: Hashable, Identifiable {
 
 extension SettingsNavigationItem {
     enum Name: String {
-        case settings = "Settings"
+        case general = "General"
         case menuBarAppearance = "Menu Bar Appearance"
         case hotkeys = "Hotkeys"
+        case advanced = "Advanced"
+        case updates = "Updates"
         case about = "About"
 
         var localized: LocalizedStringKey {

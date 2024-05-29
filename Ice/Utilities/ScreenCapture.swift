@@ -48,9 +48,6 @@ enum ScreenCapture {
 
         /// The screen is in an invalid state for capture.
         case invalidScreenState(ScreenState)
-
-        /// The capture operation timed out.
-        case timeout
     }
 
     /// A Boolean value that indicates whether the app has screen capture permissions.
@@ -81,12 +78,21 @@ enum ScreenCapture {
         case let state: throw CaptureError.invalidScreenState(state)
         }
 
-        let windows = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true).windows
-        guard let scWindow = windows.first(where: { $0.windowID == window.windowID }) else {
+        let content = try await SCShareableContent.excludingDesktopWindows(
+            false,
+            onScreenWindowsOnly: true
+        )
+
+        try Task.checkCancellation()
+
+        guard let scWindow = content.windows.first(where: { $0.windowID == window.windowID }) else {
             throw CaptureError.noMatchingWindow
         }
 
         let displays = try await DisplayInfo.current(activeDisplaysOnly: false)
+
+        try Task.checkCancellation()
+
         guard let display = displays.first(where: { $0.bounds.contains(window.frame) }) else {
             throw CaptureError.noMatchingDisplay
         }
@@ -107,7 +113,14 @@ enum ScreenCapture {
         configuration.showsCursor = options.contains(.showsCursor)
         configuration.scalesToFit = options.contains(.scalesToFit)
 
-        return try await SCScreenshotManager.captureImage(contentFilter: contentFilter, configuration: configuration)
+        let image = try await SCScreenshotManager.captureImage(
+            contentFilter: contentFilter,
+            configuration: configuration
+        )
+
+        try Task.checkCancellation()
+
+        return image
     }
 
     /// Captures the given window as an image.
@@ -127,29 +140,15 @@ enum ScreenCapture {
         resolution: SCCaptureResolutionType = .automatic,
         options: CaptureOptions = []
     ) async throws -> CGImage {
-        let captureTask = Task {
-            let image = try await captureImage(
+        let task = Task(timeout: timeout) {
+            try await captureImage(
                 onScreenWindow: window,
                 captureRect: captureRect,
                 resolution: resolution,
                 options: options
             )
-            try Task.checkCancellation()
-            return image
         }
-
-        let timeoutTask = Task {
-            try await Task.sleep(for: timeout)
-            captureTask.cancel()
-        }
-
-        do {
-            let result = try await captureTask.value
-            timeoutTask.cancel()
-            return result
-        } catch is CancellationError {
-            throw CaptureError.timeout
-        }
+        return try await task.value
     }
 
     private static func getSourceRect(captureRect: CGRect?, window: SCWindow) throws -> CGRect {
@@ -170,15 +169,17 @@ enum ScreenCapture {
 extension ScreenCapture {
     /// Returns an image containing the area of the desktop wallpaper that is below the
     /// menu bar for the given display.
-    static func desktopWallpaperBelowMenuBar(for display: DisplayInfo) async throws -> CGImage {
-        let windows = try await WindowInfo.onScreenWindows()
-        let wallpaperWindow = try await WindowInfo.wallpaperWindow(from: windows, for: display)
-        let menuBarWindow = try await WindowInfo.menuBarWindow(from: windows, for: display)
-        return try await captureImage(
-            timeout: .milliseconds(500),
-            onScreenWindow: wallpaperWindow,
-            captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
-            options: .ignoreFraming
-        )
+    static func desktopWallpaperBelowMenuBar(for display: DisplayInfo, timeout: Duration) async throws -> CGImage {
+        let task = Task(timeout: timeout) {
+            let windows = try await WindowInfo.onScreenWindows()
+            let wallpaperWindow = try await WindowInfo.wallpaperWindow(from: windows, for: display)
+            let menuBarWindow = try await WindowInfo.menuBarWindow(from: windows, for: display)
+            return try await captureImage(
+                onScreenWindow: wallpaperWindow,
+                captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
+                options: .ignoreFraming
+            )
+        }
+        return try await task.value
     }
 }

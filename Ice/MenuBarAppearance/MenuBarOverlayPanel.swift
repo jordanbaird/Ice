@@ -308,7 +308,7 @@ class MenuBarOverlayPanel: NSPanel {
     /// of the given display.
     private func updateDesktopWallpaper(for display: DisplayInfo) async throws {
         do {
-            desktopWallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBar(for: display)
+            desktopWallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBar(for: display, timeout: .seconds(1))
             lastSuccessfulUpdateTimes[.desktopWallpaper] = .now
         } catch {
             desktopWallpaper = nil

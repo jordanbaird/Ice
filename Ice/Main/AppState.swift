@@ -10,9 +10,6 @@ import SwiftUI
 /// The model for app-wide state.
 @MainActor
 final class AppState: ObservableObject {
-    /// The shared app state singleton.
-    static let shared = AppState()
-
     private var cancellables = Set<AnyCancellable>()
 
     /// Manager for events received by the app.
@@ -57,7 +54,7 @@ final class AppState: ObservableObject {
         #endif
     }()
 
-    private init() {
+    init() {
         MigrationManager(appState: self).migrateAll()
         configureCancellables()
     }

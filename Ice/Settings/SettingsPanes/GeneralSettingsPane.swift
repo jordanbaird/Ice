@@ -208,5 +208,5 @@ struct GeneralSettingsPane: View {
 #Preview {
     GeneralSettingsPane()
         .fixedSize()
-        .environmentObject(AppState.shared)
+        .environmentObject(AppState())
 }

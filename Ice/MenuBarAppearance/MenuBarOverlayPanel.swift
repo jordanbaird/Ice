@@ -343,11 +343,11 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Shows the panel.
     private func show(on display: DisplayInfo) async throws {
-        guard !AppState.shared.isPreview else {
-            return
-        }
-
-        guard let appearanceManager else {
+        guard
+            let appearanceManager,
+            let appState = appearanceManager.appState,
+            !appState.isPreview
+        else {
             return
         }
 

@@ -135,5 +135,5 @@ struct PermissionsView: View {
 
 #Preview {
     PermissionsView { }
-        .environmentObject(AppState.shared)
+        .environmentObject(AppState())
 }

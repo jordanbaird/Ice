@@ -10,17 +10,20 @@ import SwiftUI
 
 /// A panel that manages the appearance editor popover.
 class MenuBarAppearanceEditorPanel: NSPanel {
+    private weak var appState: AppState?
+
     private var cancellables = Set<AnyCancellable>()
 
-    init() {
+    init(appState: AppState) {
         super.init(
             contentRect: CGRect(x: 0, y: 0, width: 1, height: 1),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        level = .statusBar
-        backgroundColor = .clear
+        self.appState = appState
+        self.level = .statusBar
+        self.backgroundColor = .clear
         configureCancellables()
     }
 
@@ -42,13 +45,14 @@ class MenuBarAppearanceEditorPanel: NSPanel {
     /// Shows the appearance editor popover.
     func showAppearanceEditorPopover() {
         guard
+            let appState,
             let contentView,
             let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
         else {
             return
         }
         setFrameOrigin(CGPoint(x: screen.frame.midX - frame.width / 2, y: screen.visibleFrame.maxY))
-        let popover = MenuBarAppearanceEditorPopover()
+        let popover = MenuBarAppearanceEditorPopover(appState: appState)
         popover.delegate = self
         popover.show(relativeTo: .zero, of: contentView, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
@@ -73,22 +77,27 @@ extension MenuBarAppearanceEditorPanel: NSPopoverDelegate {
 /// A popover that displays the menu bar appearance editor
 /// at a centered location under the menu bar.
 private class MenuBarAppearanceEditorPopover: NSPopover {
+    private weak var appState: AppState?
+
     private(set) lazy var mouseDownMonitor = GlobalEventMonitor(mask: .leftMouseDown) { [weak self] _ in
         self?.performClose(self)
     }
 
     @ViewBuilder
     private var contentView: some View {
-        MenuBarAppearanceEditor(
-            location: .popover(closePopover: { [weak self] in
-                self?.performClose(self)
-            })
-        )
-        .environmentObject(AppState.shared)
+        if let appState {
+            MenuBarAppearanceEditor(
+                location: .popover(closePopover: { [weak self] in
+                    self?.performClose(self)
+                })
+            )
+            .environmentObject(appState)
+        }
     }
 
-    override init() {
+    init(appState: AppState) {
         super.init()
+        self.appState = appState
         self.contentViewController = NSHostingController(rootView: contentView)
         self.contentSize = CGSize(width: 500, height: 500)
         self.behavior = .applicationDefined

@@ -13,6 +13,6 @@ struct MenuBarAppearanceSettingsPane: View {
 
 #Preview {
     MenuBarAppearanceSettingsPane()
-        .environmentObject(AppState.shared)
+        .environmentObject(AppState())
         .frame(width: 500, height: 300)
 }

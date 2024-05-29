@@ -75,5 +75,5 @@ struct AdvancedSettingsPane: View {
 #Preview {
     AdvancedSettingsPane()
         .fixedSize()
-        .environmentObject(AppState.shared)
+        .environmentObject(AppState())
 }

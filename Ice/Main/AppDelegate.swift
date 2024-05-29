@@ -3,13 +3,19 @@
 //  Ice
 //
 
+import OSLog
 import SwiftUI
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
-    let appState = AppState.shared
+    private var appState: AppState?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
+        guard let appState else {
+            Logger.appDelegate.warning("\(#function) missing app state")
+            return
+        }
+
         // assign the delegate to the shared app state
         appState.assignAppDelegate(self)
 
@@ -18,6 +24,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        guard let appState else {
+            Logger.appDelegate.warning("\(#function) missing app state")
+            return
+        }
+
         // assign the settings window to the shared app state
         if let settingsWindow = NSApp.window(withIdentifier: Constants.settingsWindowID) {
             appState.assignSettingsWindow(settingsWindow)
@@ -55,20 +66,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        if appState.permissionsManager.hasPermission {
+        if
+            let appState,
+            appState.permissionsManager.hasPermission
+        {
             appState.deactivate(withPolicy: .accessory)
             return false
         }
         return true
     }
 
+    /// Assigns the app state to the delegate.
+    func assignAppState(_ appState: AppState) {
+        guard self.appState == nil else {
+            Logger.appDelegate.warning("Multiple attempts made to assign app state")
+            return
+        }
+        self.appState = appState
+    }
+
     /// Opens the settings window and activates the app.
     @objc func openSettingsWindow() {
-        guard let settingsWindow = appState.settingsWindow else {
+        guard
+            let appState,
+            let settingsWindow = appState.settingsWindow
+        else {
+            Logger.appDelegate.warning("Failed to open settings window")
             return
         }
         appState.activate(withPolicy: .regular)
         settingsWindow.center()
         settingsWindow.makeKeyAndOrderFront(self)
     }
+}
+
+// MARK: - Logger
+private extension Logger {
+    static let appDelegate = Logger(category: "AppDelegate")
 }

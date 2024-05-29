@@ -247,7 +247,10 @@ final class MenuBarManager: ObservableObject {
 
     /// Shows the appearance editor popover, centered under the menu bar.
     @objc private func showAppearanceEditorPopover() {
-        let panel = MenuBarAppearanceEditorPanel()
+        guard let appState else {
+            return
+        }
+        let panel = MenuBarAppearanceEditorPanel(appState: appState)
         panel.orderFrontRegardless()
         panel.showAppearanceEditorPopover()
     }

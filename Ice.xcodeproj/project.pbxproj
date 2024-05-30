@@ -76,7 +76,6 @@
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
 		17FE5AD32BCA7A7500E4F8D9 /* ScreenStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE5AD22BCA7A7500E4F8D9 /* ScreenStateManager.swift */; };
 		17FE5AD52BCA9BE200E4F8D9 /* ScreenState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */; };
-		17FE5AD82BCEE25100E4F8D9 /* SendableEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE5AD72BCEE25100E4F8D9 /* SendableEvent.swift */; };
 		71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */; };
 		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
 		7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED5D2A853FCF000A7E1B /* Constants.swift */; };
@@ -171,7 +170,6 @@
 		17F71BB12B87E37800905CBA /* RehideStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RehideStrategy.swift; sourceTree = "<group>"; };
 		17FE5AD22BCA7A7500E4F8D9 /* ScreenStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenStateManager.swift; sourceTree = "<group>"; };
 		17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenState.swift; sourceTree = "<group>"; };
-		17FE5AD72BCEE25100E4F8D9 /* SendableEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendableEvent.swift; sourceTree = "<group>"; };
 		71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectAssociation.swift; sourceTree = "<group>"; };
 		711535F12AB9F6C1003193AD /* BindingExposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingExposable.swift; sourceTree = "<group>"; };
 		7133ED5D2A853FCF000A7E1B /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
@@ -247,7 +245,6 @@
 				170749C72B12078F009DDF73 /* GlobalEventMonitor.swift */,
 				71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */,
 				170749C92B1207D9009DDF73 /* UniversalEventMonitor.swift */,
-				17FE5AD72BCEE25100E4F8D9 /* SendableEvent.swift */,
 			);
 			path = EventMonitors;
 			sourceTree = "<group>";
@@ -758,7 +755,6 @@
 				17B331D32B991D290084EBB0 /* GeneralSettingsManager.swift in Sources */,
 				1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
-				17FE5AD82BCEE25100E4F8D9 /* SendableEvent.swift in Sources */,
 				711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,

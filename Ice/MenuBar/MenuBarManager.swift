@@ -86,16 +86,12 @@ final class MenuBarManager: ObservableObject {
             .store(in: &c)
 
         // update the application menu frames
-        Publishers.CombineLatest3(
-            NSWorkspace.shared.publisher(for: \.frontmostApplication),
-            NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
-            NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
-        )
-        .throttle(for: 0.5, scheduler: DispatchQueue.main, latest: true)
-        .sink { [weak self] _ in
-            self?.updateApplicationMenuFrames()
-        }
-        .store(in: &c)
+        Timer.publish(every: 1, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.updateApplicationMenuFrames()
+            }
+            .store(in: &c)
 
         // hide application menus when a section is shown (if applicable)
         Publishers.MergeMany(sections.map { $0.$isHidden })

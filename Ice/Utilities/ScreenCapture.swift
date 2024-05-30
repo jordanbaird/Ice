@@ -98,6 +98,7 @@ enum ScreenCapture {
 
         let sourceRect = try getSourceRect(captureRect: captureRect, window: scWindow)
         let scaleFactor = try getScaleFactor(for: scDisplay)
+        let colorSpace = CGDisplayCopyColorSpace(scDisplay.displayID)
 
         let contentFilter = SCContentFilter(desktopIndependentWindow: scWindow)
         let configuration = SCStreamConfiguration()
@@ -106,12 +107,15 @@ enum ScreenCapture {
         configuration.width = Int(sourceRect.width * scaleFactor)
         configuration.height = Int(sourceRect.height * scaleFactor)
         configuration.captureResolution = resolution
-        configuration.colorSpaceName = CGColorSpace.displayP3
         configuration.ignoreShadowsSingleWindow = options.contains(.ignoreFraming)
         configuration.capturesShadowsOnly = options.contains(.onlyShadows)
         configuration.shouldBeOpaque = options.contains(.shouldBeOpaque)
         configuration.showsCursor = options.contains(.showsCursor)
         configuration.scalesToFit = options.contains(.scalesToFit)
+
+        if let colorSpaceName = colorSpace.name {
+            configuration.colorSpaceName = colorSpaceName
+        }
 
         let image = try await SCScreenshotManager.captureImage(
             contentFilter: contentFilter,
@@ -120,7 +124,7 @@ enum ScreenCapture {
 
         try Task.checkCancellation()
 
-        return image
+        return image.copy(colorSpace: colorSpace) ?? image
     }
 
     /// Captures the given window as an image.

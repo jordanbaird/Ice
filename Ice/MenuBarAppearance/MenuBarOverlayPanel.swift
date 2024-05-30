@@ -182,15 +182,13 @@ class MenuBarOverlayPanel: NSPanel {
                 defer {
                     self.needsShow = false
                 }
-                Task {
-                    guard let owningDisplay = await self.validate(for: .showing) else {
-                        return
-                    }
-                    do {
-                        try await self.show(on: owningDisplay)
-                    } catch {
-                        Logger.overlayPanel.error("Error showing menu bar overlay panel: \(error)")
-                    }
+                guard let owningDisplay = validate(for: .showing) else {
+                    return
+                }
+                do {
+                    try show(on: owningDisplay)
+                } catch {
+                    Logger.overlayPanel.error("Error showing menu bar overlay panel: \(error)")
                 }
             }
             .store(in: &c)
@@ -212,7 +210,7 @@ class MenuBarOverlayPanel: NSPanel {
                             callback()
                         }
                     }
-                    guard let owningDisplay = await self.validate(for: .updates) else {
+                    guard let owningDisplay = self.validate(for: .updates) else {
                         return
                     }
                     do {
@@ -241,7 +239,7 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Performs validation for the given validation kind. Returns the panel's
     /// owning display if successful. Returns `nil` on failure.
-    private func validate(for kind: ValidationKind) async -> CGDirectDisplayID? {
+    private func validate(for kind: ValidationKind) -> CGDirectDisplayID? {
         lazy var actionMessage = switch kind {
         case .showing: "Preventing overlay panel from showing."
         case .updates: "Preventing overlay panel from updating."
@@ -263,7 +261,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Returns the frame that should be used to show the panel on its owning screen.
-    private func getPanelFrame(for display: CGDirectDisplayID) async throws -> CGRect {
+    private func getPanelFrame(for display: CGDirectDisplayID) throws -> CGRect {
         let menuBar = try AccessibilityMenuBar(display: display)
         let menuBarFrame = try menuBar.frame()
         return CGRect(
@@ -275,7 +273,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Stores the frames of the menu bar's application menus.
-    private func updateApplicationMenuFrames(for display: CGDirectDisplayID) async throws {
+    private func updateApplicationMenuFrames(for display: CGDirectDisplayID) throws {
         do {
             if
                 let menuBarManager = appearanceManager?.menuBarManager,
@@ -334,7 +332,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Shows the panel.
-    private func show(on display: CGDirectDisplayID) async throws {
+    private func show(on display: CGDirectDisplayID) throws {
         guard
             let appearanceManager,
             let appState = appearanceManager.appState,
@@ -355,7 +353,7 @@ class MenuBarOverlayPanel: NSPanel {
             return
         }
 
-        let newFrame = try await getPanelFrame(for: display)
+        let newFrame = try getPanelFrame(for: display)
 
         alphaValue = 0
         setFrame(newFrame, display: false)

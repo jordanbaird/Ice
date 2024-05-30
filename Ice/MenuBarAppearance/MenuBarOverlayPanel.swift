@@ -121,28 +121,23 @@ class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
-        // update the application frames when the focused app changes
-        Publishers.CombineLatest3(
-            NSWorkspace.shared.publisher(for: \.frontmostApplication),
-            NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
-            NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
-        )
-        .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
-        .sink { [weak self] _ in
-            guard let self else {
-                return
+        // update the application frames when the menu bar owning app changes
+        NSWorkspace.shared.publisher(for: \.menuBarOwningApplication)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                updateFlags.insert(.applicationMenuFrames)
+                // HACK: due to an occasional delay between the menu bar owning app changing and
+                // the menu updating, we may not have access to the current menu; until we have
+                // a good workaround, our best option is to wait a bit and request another update
+                // (inefficient, but not terrible, since app switches are semi-rare)
+                Task {
+                    try await Task.sleep(for: .seconds(0.5))
+                    self.updateFlags.insert(.applicationMenuFrames)
+                }
             }
-            updateFlags.insert(.applicationMenuFrames)
-            // HACK: due to an occasional delay between the focused app changing and the
-            // menu updating, we may not have access to the current menu; until we have
-            // a good workaround, our best bet is to wait and request another update
-            // (inefficient, but not terrible, since app switches are semi-rare)
-            Task {
-                try await Task.sleep(for: .seconds(0.5))
-                self.updateFlags.insert(.applicationMenuFrames)
-            }
-        }
-        .store(in: &c)
+            .store(in: &c)
 
         // perform updates as follows:
         //
@@ -429,13 +424,6 @@ private class MenuBarOverlayPanelContentView: NSView {
         }
 
         if let menuBarManager = appearanceManager?.menuBarManager {
-            // redraw when the application menus are hidden
-            menuBarManager.$isHidingApplicationMenus
-                .sink { [weak self] _ in
-                    self?.needsDisplay = true
-                }
-                .store(in: &c)
-
             for section in menuBarManager.sections {
                 // redraw whenever the window frame of a control item changes
                 //
@@ -529,20 +517,9 @@ private class MenuBarOverlayPanelContentView: NSView {
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
     private func pathForSplitShape(in rect: CGRect, info: MenuBarSplitShapeInfo, display: CGDirectDisplayID) -> NSBezierPath {
         let leadingPathBounds: CGRect = {
-            var maxX: CGFloat = 0
-            if
-                let menuBarManager = appearanceManager?.menuBarManager,
-                menuBarManager.isHidingApplicationMenus,
-                let overlayPanel,
-                overlayPanel.owningScreen == .main,
-                let appleMenuMaxX = overlayPanel.applicationMenuFrames.first?.width
-            {
-                // special case to prevent the leading path from jittering when hiding the
-                // application menus; this technically changes the shape just _before_ the
-                // menus hide, but it looks the best
-                maxX = appleMenuMaxX
-            } else if let overlayPanel {
-                maxX = overlayPanel.applicationMenuFrames.reduce(into: 0) { $0 += $1.width }
+            let applicationMenuFrames = overlayPanel?.applicationMenuFrames ?? []
+            var maxX = applicationMenuFrames.reduce(into: 0) { maxX, frame in
+                maxX += frame.width
             }
             guard maxX != 0 else {
                 return .zero

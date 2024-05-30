@@ -11,8 +11,6 @@ import SwiftUI
 /// Manager for the state of the menu bar.
 @MainActor
 final class MenuBarManager: ObservableObject {
-    @Published private(set) var isHidingApplicationMenus = false
-
     private(set) weak var appState: AppState?
 
     private(set) var sections = [MenuBarSection]()
@@ -26,6 +24,8 @@ final class MenuBarManager: ObservableObject {
     private let decoder = JSONDecoder()
 
     private var applicationMenuFrames = [CGDirectDisplayID: CGRect]()
+
+    private var isHidingApplicationMenus = false
 
     private var cancellables = Set<AnyCancellable>()
 

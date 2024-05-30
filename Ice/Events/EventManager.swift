@@ -200,9 +200,9 @@ final class EventManager {
         return event
     }
 
-    // MARK: Right Mouse Down
+    // MARK: Right Click Menu
 
-    private(set) lazy var rightMouseDownMonitor = UniversalEventMonitor(
+    private(set) lazy var rightClickMenuMonitor = UniversalEventMonitor(
         mask: .rightMouseDown
     ) { [weak self] event in
         guard
@@ -283,7 +283,7 @@ final class EventManager {
         smartRehideMonitor,
         showOnClickMonitor,
         preventShowOnHoverMonitor,
-        rightMouseDownMonitor,
+        rightClickMenuMonitor,
         leftMouseDraggedMonitor,
         scrollWheelMonitor,
     ]
@@ -337,13 +337,13 @@ final class EventManager {
         guard
             isMouseInsideMenuBar(ofScreen: screen),
             let screen,
-            let mouseLocation = getMouseLocation(flipped: false),
+            let mouseLocation = getMouseLocation(flipped: true),
             let menuBarManager = appState?.menuBarManager,
             let menuFrame = menuBarManager.applicationMenuFrame(for: screen.displayID)
         else {
             return false
         }
-        return (menuFrame.minX...menuFrame.maxX).contains(mouseLocation.x)
+        return menuFrame.contains(mouseLocation)
     }
 
     private func isMouseInsideMenuBarItem(ofScreen screen: NSScreen? = .main) -> Bool {

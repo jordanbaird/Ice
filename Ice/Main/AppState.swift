@@ -39,9 +39,8 @@ final class AppState: ObservableObject {
     /// The window that contains the permissions interface.
     private(set) weak var permissionsWindow: NSWindow?
 
-    /// A Boolean value that indicates whether the "ShowOnHover" feature is being
-    /// prevented from activating.
-    private(set) var showOnHoverIsPrevented = false
+    /// A Boolean value that indicates whether the "ShowOnHover" feature is prevented.
+    private(set) var isShowOnHoverPrevented = false
 
     /// A Boolean value that indicates whether the app is running as a SwiftUI preview.
     let isPreview: Bool = {
@@ -94,6 +93,7 @@ final class AppState: ObservableObject {
         permissionsWindow?.close()
     }
 
+    /// Assigns the app delegate to the app state.
     func assignAppDelegate(_ appDelegate: AppDelegate) {
         guard self.appDelegate == nil else {
             Logger.appState.warning("Multiple attempts made to assign app delegate")
@@ -102,15 +102,16 @@ final class AppState: ObservableObject {
         self.appDelegate = appDelegate
     }
 
+    /// Assigns the settings window to the app state.
     func assignSettingsWindow(_ settingsWindow: NSWindow) {
         guard self.settingsWindow == nil else {
             Logger.appState.warning("Multiple attempts made to assign settings window")
             return
         }
         self.settingsWindow = settingsWindow
-        configureCancellables()
     }
 
+    /// Assigns the permissions window to the app state.
     func assignPermissionsWindow(_ permissionsWindow: NSWindow) {
         guard self.permissionsWindow == nil else {
             Logger.appState.warning("Multiple attempts made to assign permissions window")
@@ -139,12 +140,14 @@ final class AppState: ObservableObject {
         NSApp.setActivationPolicy(policy)
     }
 
+    /// Prevents the "ShowOnHover" feature.
     func preventShowOnHover() {
-        showOnHoverIsPrevented = true
+        isShowOnHoverPrevented = true
     }
 
+    /// Allows the "ShowOnHover" feature.
     func allowShowOnHover() {
-        showOnHoverIsPrevented = false
+        isShowOnHoverPrevented = false
     }
 }
 

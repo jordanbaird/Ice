@@ -21,7 +21,7 @@ final class EventManager {
         }
         guard
             appState.settingsManager.generalSettingsManager.showOnHover,
-            !appState.showOnHoverIsPrevented,
+            !appState.isShowOnHoverPrevented,
             let hiddenSection = appState.menuBarManager.section(withName: .hidden),
             let screen = NSScreen.main
         else {

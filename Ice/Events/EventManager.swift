@@ -23,30 +23,29 @@ final class EventManager {
             let appState,
             appState.settingsManager.generalSettingsManager.showOnHover,
             !appState.isShowOnHoverPrevented,
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-            let screen = NSScreen.main
+            let hiddenSection = appState.menuBarManager.section(withName: .hidden)
         else {
             return event
         }
         Task {
             do {
                 if hiddenSection.isHidden {
-                    guard self.isMouseInEmptyMenuBarSpace(of: screen) else {
+                    guard self.isMouseInsideEmptyMenuBarSpace() else {
                         return
                     }
                     try await Task.sleep(for: .seconds(0.2))
                     // make sure the mouse is still inside
-                    guard self.isMouseInEmptyMenuBarSpace(of: screen) else {
+                    guard self.isMouseInsideEmptyMenuBarSpace() else {
                         return
                     }
                     hiddenSection.show()
                 } else {
-                    guard self.isMouseOutsideMenuBar(of: screen) else {
+                    guard self.isMouseOutsideMenuBar() else {
                         return
                     }
                     try await Task.sleep(for: .seconds(0.2))
                     // make sure the mouse is still outside
-                    guard self.isMouseOutsideMenuBar(of: screen) else {
+                    guard self.isMouseOutsideMenuBar() else {
                         return
                     }
                     hiddenSection.hide()
@@ -89,17 +88,14 @@ final class EventManager {
 
         do {
             // make sure the mouse is not in the menu bar
-            guard
-                let screen = NSScreen.main,
-                !isMouseInMenuBar(of: screen)
-            else {
+            guard !isMouseInsideMenuBar() else {
                 return event
             }
 
             // get the window that the user has clicked into
             guard
                 let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-                let mouseLocation = getMouseLocation(for: CGEvent.self),
+                let mouseLocation = getMouseLocation(flipped: true),
                 let windowUnderMouse = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
                     .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
                     .first(where: { $0.frame.contains(mouseLocation) }),
@@ -137,14 +133,13 @@ final class EventManager {
         guard
             let self,
             let appState,
-            let screen = NSScreen.main,
             let visibleSection = appState.menuBarManager.section(withName: .visible),
             let hiddenSection = appState.menuBarManager.section(withName: .hidden),
             let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden)
         else {
             return event
         }
-        if isMouseInEmptyMenuBarSpace(of: screen) {
+        if isMouseInsideEmptyMenuBarSpace() {
             appState.preventShowOnHover()
             guard appState.settingsManager.generalSettingsManager.showOnClick else {
                 return event
@@ -175,11 +170,10 @@ final class EventManager {
         guard
             let self,
             let appState,
-            let screen = NSScreen.main,
-            isMouseInMenuBarItem(of: screen),
+            isMouseInsideMenuBarItem(),
             let visibleSection = appState.menuBarManager.section(withName: .visible),
             let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
-            let mouseLocation = getMouseLocation(for: NSEvent.self),
+            let mouseLocation = getMouseLocation(flipped: false),
             appState.menuBarManager.sections.contains(where: { !$0.isHidden }) || visibleControlItemFrame.contains(mouseLocation)
         else {
             return event
@@ -196,13 +190,13 @@ final class EventManager {
         guard
             let self,
             let appState,
-            let screen = NSScreen.main,
-            isMouseInEmptyMenuBarSpace(of: screen)
+            isMouseInsideEmptyMenuBarSpace(),
+            let mouseLocation = getMouseLocation(flipped: false)
         else {
             return event
         }
         appState.preventShowOnHover()
-        appState.menuBarManager.showRightClickMenu(at: NSEvent.mouseLocation)
+        appState.menuBarManager.showRightClickMenu(at: mouseLocation)
         return event
     }
 
@@ -215,8 +209,7 @@ final class EventManager {
             let self,
             let appState,
             event.modifierFlags.contains(.command),
-            let screen = NSScreen.main,
-            isMouseInMenuBar(of: screen)
+            isMouseInsideMenuBar()
         else {
             return event
         }
@@ -250,8 +243,7 @@ final class EventManager {
             let self,
             let appState,
             appState.settingsManager.generalSettingsManager.showOnScroll,
-            let screen = NSScreen.main,
-            isMouseInMenuBar(of: screen),
+            isMouseInsideMenuBar(),
             let hiddenSection = appState.menuBarManager.section(withName: .hidden)
         else {
             return event
@@ -294,47 +286,66 @@ final class EventManager {
 
     // MARK: - Helpers
 
-    private func getMouseLocation(for type: Any.Type) -> CGPoint? {
-        if type == CGEvent.self {
-            CGEvent(source: nil)?.location
-        } else if type == NSEvent.self {
-            NSEvent.mouseLocation
-        } else {
-            nil
+    private func getMouseLocation(flipped: Bool) -> CGPoint? {
+        CGEvent(source: nil).map { event in
+            if flipped {
+                event.location
+            } else {
+                event.unflippedLocation
+            }
         }
     }
 
-    private func isMouseInMenuBar(of screen: NSScreen) -> Bool {
+    private func isMouseOnScreen(_ screen: NSScreen? = .main) -> Bool {
+        guard
+            let screen,
+            let mouseLocation = getMouseLocation(flipped: false)
+        else {
+            return false
+        }
+        return screen.frame.contains(mouseLocation)
+    }
+
+    private func isMouseInsideMenuBar(ofScreen screen: NSScreen? = .main) -> Bool {
+        guard
+            let screen,
+            isMouseOnScreen(screen)
+        else {
+            return false
+        }
         if NSApp.presentationOptions.contains(.autoHideMenuBar) {
             if
-                let mouseLocation = getMouseLocation(for: CGEvent.self),
+                let mouseLocation = getMouseLocation(flipped: true),
                 let menuBarWindow = try? WindowInfo.getMenuBarWindow(for: screen.displayID)
             {
                 return menuBarWindow.frame.contains(mouseLocation)
             }
         } else {
-            if let mouseLocation = getMouseLocation(for: NSEvent.self) {
+            if let mouseLocation = getMouseLocation(flipped: false) {
                 return mouseLocation.y > screen.visibleFrame.maxY && mouseLocation.y <= screen.frame.maxY
             }
         }
         return false
     }
 
-    private func isMouseInApplicationMenu(of screen: NSScreen) -> Bool {
+    private func isMouseInsideApplicationMenu(ofScreen screen: NSScreen? = .main) -> Bool {
         guard
-            isMouseInMenuBar(of: screen),
+            isMouseInsideMenuBar(ofScreen: screen),
+            let screen,
+            let mouseLocation = getMouseLocation(flipped: false),
             let menuBarManager = appState?.menuBarManager,
-            let applicationMenuFrame = menuBarManager.applicationMenuFrame(for: screen.displayID)
+            let menuFrame = menuBarManager.applicationMenuFrame(for: screen.displayID)
         else {
             return false
         }
-        return (applicationMenuFrame.minX...applicationMenuFrame.maxX).contains(NSEvent.mouseLocation.x)
+        return (menuFrame.minX...menuFrame.maxX).contains(mouseLocation.x)
     }
 
-    private func isMouseInMenuBarItem(of screen: NSScreen) -> Bool {
+    private func isMouseInsideMenuBarItem(ofScreen screen: NSScreen? = .main) -> Bool {
         guard
-            isMouseInMenuBar(of: screen),
-            let mouseLocation = getMouseLocation(for: CGEvent.self),
+            isMouseInsideMenuBar(ofScreen: screen),
+            let screen,
+            let mouseLocation = getMouseLocation(flipped: true),
             let itemManager = appState?.menuBarManager.itemManager,
             let menuBarItems = try? itemManager.getMenuBarItems(for: screen.displayID, onScreenOnly: true)
         else {
@@ -343,14 +354,17 @@ final class EventManager {
         return menuBarItems.contains { $0.frame.contains(mouseLocation) }
     }
 
-    private func isMouseInEmptyMenuBarSpace(of screen: NSScreen) -> Bool {
-        isMouseInMenuBar(of: screen) &&
-        !isMouseInApplicationMenu(of: screen) &&
-        !isMouseInMenuBarItem(of: screen)
+    private func isMouseInsideEmptyMenuBarSpace(ofScreen screen: NSScreen? = .main) -> Bool {
+        isMouseInsideMenuBar(ofScreen: screen) &&
+        !isMouseInsideApplicationMenu(ofScreen: screen) &&
+        !isMouseInsideMenuBarItem(ofScreen: screen)
     }
 
-    private func isMouseOutsideMenuBar(of screen: NSScreen) -> Bool {
-        guard let mouseLocation = getMouseLocation(for: NSEvent.self) else {
+    private func isMouseOutsideMenuBar(ofScreen screen: NSScreen? = .main) -> Bool {
+        guard
+            let screen,
+            let mouseLocation = getMouseLocation(flipped: false)
+        else {
             return false
         }
         return mouseLocation.y < screen.visibleFrame.maxY || mouseLocation.y > screen.frame.maxY

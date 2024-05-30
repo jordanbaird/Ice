@@ -246,25 +246,20 @@ class MenuBarOverlayPanel: NSPanel {
         case .showing: "Preventing overlay panel from showing."
         case .updates: "Preventing overlay panel from updating."
         }
-        do {
-            let owningDisplay = owningScreen.displayID
-            guard let menuBarManager = appearanceManager?.menuBarManager else {
-                Logger.overlayPanel.notice("No menu bar manager. \(actionMessage)")
-                return nil
-            }
-            guard try !menuBarManager.isFullscreen(for: owningDisplay) else {
-                Logger.overlayPanel.notice("Found fullscreen window. \(actionMessage)")
-                return nil
-            }
-            guard AccessibilityMenuBar.hasValidMenuBar(for: owningDisplay) else {
-                Logger.overlayPanel.notice("No valid menu bar found. \(actionMessage)")
-                return nil
-            }
-            return owningDisplay
-        } catch {
-            Logger.overlayPanel.notice("Validation failed with error \"\(error)\". \(actionMessage)")
+        let owningDisplay = owningScreen.displayID
+        guard let menuBarManager = appearanceManager?.menuBarManager else {
+            Logger.overlayPanel.notice("No menu bar manager. \(actionMessage)")
             return nil
         }
+        guard !menuBarManager.isFullscreen(for: owningDisplay) else {
+            Logger.overlayPanel.notice("Found fullscreen window. \(actionMessage)")
+            return nil
+        }
+        guard AccessibilityMenuBar.hasValidMenuBar(for: owningDisplay) else {
+            Logger.overlayPanel.notice("No valid menu bar found. \(actionMessage)")
+            return nil
+        }
+        return owningDisplay
     }
 
     /// Returns the frame that should be used to show the panel on its owning screen.
@@ -284,7 +279,7 @@ class MenuBarOverlayPanel: NSPanel {
         do {
             if
                 let menuBarManager = appearanceManager?.menuBarManager,
-                try menuBarManager.isFullscreen(for: display)
+                menuBarManager.isFullscreen(for: display)
             {
                 applicationMenuFrames.removeAll()
             } else {
@@ -355,7 +350,7 @@ class MenuBarOverlayPanel: NSPanel {
 
         guard
             let menuBarManager = appearanceManager.menuBarManager,
-            try !menuBarManager.isFullscreen(for: display)
+            !menuBarManager.isFullscreen(for: display)
         else {
             return
         }
@@ -637,12 +632,7 @@ private class MenuBarOverlayPanelContentView: NSView {
 
         let owningDisplay = overlayPanel.owningScreen.displayID
 
-        do {
-            if try menuBarManager.isFullscreen(for: owningDisplay) {
-                return
-            }
-        } catch {
-            Logger.overlayPanel.error("ERROR: \(error)")
+        guard !menuBarManager.isFullscreen(for: owningDisplay) else {
             return
         }
 

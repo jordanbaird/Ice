@@ -91,17 +91,16 @@ final class MenuBarManager: ObservableObject {
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.isFinishedLaunching),
             NSWorkspace.shared.publisher(for: \.frontmostApplication?.ownsMenuBar)
         )
-        .throttle(for: 1, scheduler: DispatchQueue.main, latest: true)
+        .throttle(for: 0.5, scheduler: DispatchQueue.main, latest: true)
         .sink { [weak self] _ in
-            Task {
-                await self?.updateApplicationMenuFrames()
-            }
+            self?.updateApplicationMenuFrames()
         }
         .store(in: &c)
 
         // hide application menus when a section is shown (if applicable)
         Publishers.MergeMany(sections.map { $0.$isHidden })
             .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard
                     let self,
@@ -110,50 +109,47 @@ final class MenuBarManager: ObservableObject {
                 else {
                     return
                 }
-                Task {
-                    do {
-                        if self.sections.contains(where: { !$0.isHidden }) {
-                            guard let screen = NSScreen.main else {
-                                return
-                            }
+                if sections.contains(where: { !$0.isHidden }) {
+                    guard let screen = NSScreen.main else {
+                        return
+                    }
 
-                            let displayID = screen.displayID
+                    let displayID = screen.displayID
 
-                            guard try !self.isFullscreen(for: displayID) else {
-                                return
-                            }
+                    guard !isFullscreen(for: displayID) else {
+                        return
+                    }
 
-                            // get the application menu frame for the display
-                            guard let applicationMenuFrame = self.applicationMenuFrames[displayID] else {
-                                return
-                            }
+                    // get the application menu frame for the display
+                    guard let applicationMenuFrame = applicationMenuFrames[displayID] else {
+                        return
+                    }
 
-                            let items = try self.itemManager.getMenuBarItems(for: displayID, onScreenOnly: true)
+                    // get the leftmost item on the screen; the application menu should
+                    // be hidden if the item's minX is close to the maxX of the menu
+                    guard
+                        let items = try? itemManager.getMenuBarItems(for: displayID, onScreenOnly: true),
+                        let leftmostItem = items.min(by: { $0.frame.minX < $1.frame.minX })
+                    else {
+                        return
+                    }
 
-                            // get the leftmost item on the screen; the application menu should
-                            // be hidden if the item's minX is close to the maxX of the menu
-                            guard let leftmostItem = items.min(by: { $0.frame.minX < $1.frame.minX }) else {
-                                return
-                            }
+                    // offset the leftmost item's minX by its width to give ourselves
+                    // a little wiggle room
+                    let offsetMinX = leftmostItem.frame.minX - leftmostItem.frame.width
 
-                            // offset the leftmost item's minX by its width to give ourselves
-                            // a little wiggle room
-                            let offsetMinX = leftmostItem.frame.minX - leftmostItem.frame.width
-
-                            // if the offset value is less than or equal to the maxX of the
-                            // application menu frame, activate the app to hide the menu
-                            if offsetMinX <= applicationMenuFrame.maxX {
-                                self.hideApplicationMenus()
-                            }
-                        } else if
-                            self.isHidingApplicationMenus,
-                            appState.settingsWindow?.isVisible == false
-                        {
-                            try await Task.sleep(for: .seconds(0.1))
-                            self.showApplicationMenus()
-                        }
-                    } catch {
-                        Logger.menuBarManager.error("ERROR: \(error)")
+                    // if the offset value is less than or equal to the maxX of the
+                    // application menu frame, activate the app to hide the menu
+                    if offsetMinX <= applicationMenuFrame.maxX {
+                        hideApplicationMenus()
+                    }
+                } else if
+                    isHidingApplicationMenus,
+                    appState.settingsWindow?.isVisible == false
+                {
+                    Task {
+                        try await Task.sleep(for: .milliseconds(50))
+                        self.showApplicationMenus()
                     }
                 }
             }
@@ -183,23 +179,24 @@ final class MenuBarManager: ObservableObject {
         cancellables = c
     }
 
-    private func updateApplicationMenuFrames() async {
-        var applicationMenuFrames = [CGDirectDisplayID: CGRect]()
+    private func updateApplicationMenuFrames() {
+        var frames = [CGDirectDisplayID: CGRect]()
         for screen in NSScreen.screens {
             let displayID = screen.displayID
             do {
                 let menuBar = try AccessibilityMenuBar(display: displayID)
                 let items = try menuBar.menuBarItems()
-                let frame: CGRect = try items.reduce(into: .zero) { frame, item in
-                    frame = try frame.union(item.frame())
+                let frame = try items.reduce(CGRect.zero) { frame, item in
+                    try frame.union(item.frame())
                 }
-                applicationMenuFrames[displayID] = frame
+                frames[displayID] = frame
             } catch {
-                Logger.menuBarManager.error("Couldn't update application menu frame for display \(displayID), error: \(error)")
-                continue
+                Logger.menuBarManager.error(
+                    "Couldn't update application menu frame for display \(displayID) error: \(error)"
+                )
             }
         }
-        self.applicationMenuFrames = applicationMenuFrames
+        applicationMenuFrames = frames
     }
 
     /// Shows the right-click menu.
@@ -227,12 +224,20 @@ final class MenuBarManager: ObservableObject {
     }
 
     func hideApplicationMenus() {
+        guard let appState else {
+            Logger.menuBarManager.error("Error hiding application menus: Missing app state")
+            return
+        }
+        appState.activate(withPolicy: .regular)
         isHidingApplicationMenus = true
-        appState?.activate(withPolicy: .regular)
     }
 
     func showApplicationMenus() {
-        appState?.deactivate(withPolicy: .accessory)
+        guard let appState else {
+            Logger.menuBarManager.error("Error showing application menus: Missing app state")
+            return
+        }
+        appState.deactivate(withPolicy: .accessory)
         isHidingApplicationMenus = false
     }
 
@@ -247,6 +252,7 @@ final class MenuBarManager: ObservableObject {
     /// Shows the appearance editor popover, centered under the menu bar.
     @objc private func showAppearanceEditorPopover() {
         guard let appState else {
+            Logger.menuBarManager.error("Error showing appearance editor popover: Missing app state")
             return
         }
         let panel = MenuBarAppearanceEditorPanel(appState: appState)
@@ -263,13 +269,13 @@ final class MenuBarManager: ObservableObject {
     func applicationMenuFrame(for display: CGDirectDisplayID) -> CGRect? {
         applicationMenuFrames[display]
     }
-}
 
-extension MenuBarManager {
     /// Returns a Boolean value that indicates whether a window is
     /// fullscreen on the given display.
-    func isFullscreen(for display: CGDirectDisplayID) throws -> Bool {
-        let windows = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
+    func isFullscreen(for display: CGDirectDisplayID) -> Bool {
+        guard let windows = try? WindowInfo.getOnScreenWindows(excludeDesktopWindows: false) else {
+            return false
+        }
         return windows.contains(where: Predicates.fullscreenBackdropWindow(for: display))
     }
 }

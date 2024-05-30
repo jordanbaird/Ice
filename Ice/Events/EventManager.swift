@@ -86,40 +86,46 @@ final class EventManager {
             return event
         }
 
-        do {
-            // make sure the mouse is not in the menu bar
-            guard !isMouseInsideMenuBar() else {
-                return event
-            }
+        Task {
+            do {
+                // sleep for a little bit to give the window under
+                // the mouse a chance to focus
+                try await Task.sleep(for: .milliseconds(10))
 
-            // get the window that the user has clicked into
-            guard
-                let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-                let mouseLocation = getMouseLocation(flipped: true),
-                let windowUnderMouse = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
-                    .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
-                    .first(where: { $0.frame.contains(mouseLocation) }),
-                let owningApplication = windowUnderMouse.owningApplication
-            else {
-                return event
-            }
-
-            // the dock is an exception to the following check
-            if owningApplication.bundleIdentifier != "com.apple.dock" {
-                // only continue if the user has clicked into an
-                // active window with a regular activation policy
-                guard
-                    owningApplication.isActive,
-                    owningApplication.activationPolicy == .regular
-                else {
-                    return event
+                // make sure the mouse is not in the menu bar
+                guard !self.isMouseInsideMenuBar() else {
+                    return
                 }
-            }
 
-            // if all the above checks have passed, hide
-            hiddenSection.hide()
-        } catch {
-            Logger.eventManager.error("ERROR: \(error)")
+                // get the window that the user has clicked into
+                guard
+                    let hiddenSection = appState.menuBarManager.section(withName: .hidden),
+                    let mouseLocation = self.getMouseLocation(flipped: true),
+                    let windowUnderMouse = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
+                        .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
+                        .first(where: { $0.frame.contains(mouseLocation) }),
+                    let owningApplication = windowUnderMouse.owningApplication
+                else {
+                    return
+                }
+
+                // the dock is an exception to the following check
+                if owningApplication.bundleIdentifier != "com.apple.dock" {
+                    // only continue if the user has clicked into an
+                    // active window with a regular activation policy
+                    guard
+                        owningApplication.isActive,
+                        owningApplication.activationPolicy == .regular
+                    else {
+                        return
+                    }
+                }
+
+                // if all the above checks have passed, hide
+                hiddenSection.hide()
+            } catch {
+                Logger.eventManager.error("ERROR: \(error)")
+            }
         }
 
         return event

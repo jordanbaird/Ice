@@ -148,7 +148,7 @@ final class MenuBarManager: ObservableObject {
                     appState.settingsWindow?.isVisible == false
                 {
                     Task {
-                        try await Task.sleep(for: .milliseconds(50))
+                        try await Task.sleep(for: .milliseconds(25))
                         self.showApplicationMenus()
                     }
                 }

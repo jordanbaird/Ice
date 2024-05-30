@@ -176,15 +176,27 @@ final class EventManager {
         guard
             let self,
             let appState,
-            isMouseInsideMenuBarItem(),
-            let visibleSection = appState.menuBarManager.section(withName: .visible),
-            let visibleControlItemFrame = visibleSection.controlItem.windowFrame,
-            let mouseLocation = getMouseLocation(flipped: false),
-            appState.menuBarManager.sections.contains(where: { !$0.isHidden }) || visibleControlItemFrame.contains(mouseLocation)
+            isMouseInsideMenuBarItem()
         else {
             return event
         }
-        appState.preventShowOnHover()
+        switch event.type {
+        case .leftMouseDown:
+            if
+                let visibleSection = appState.menuBarManager.section(withName: .visible),
+                let itemFrame = visibleSection.controlItem.windowFrame,
+                let mouseLocation = getMouseLocation(flipped: false),
+                appState.menuBarManager.sections.contains(where: { !$0.isHidden }) || itemFrame.contains(mouseLocation)
+            {
+                appState.preventShowOnHover()
+            }
+        case .rightMouseDown:
+            if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) {
+                appState.preventShowOnHover()
+            }
+        default:
+            break
+        }
         return event
     }
 
@@ -302,21 +314,8 @@ final class EventManager {
         }
     }
 
-    private func isMouseOnScreen(_ screen: NSScreen? = .main) -> Bool {
-        guard
-            let screen,
-            let mouseLocation = getMouseLocation(flipped: false)
-        else {
-            return false
-        }
-        return screen.frame.contains(mouseLocation)
-    }
-
     private func isMouseInsideMenuBar(ofScreen screen: NSScreen? = .main) -> Bool {
-        guard
-            let screen,
-            isMouseOnScreen(screen)
-        else {
+        guard let screen else {
             return false
         }
         if NSApp.presentationOptions.contains(.autoHideMenuBar) {

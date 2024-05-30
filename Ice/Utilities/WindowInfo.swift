@@ -57,8 +57,8 @@ extension WindowInfo {
 
     /// An error that can be thrown during window list operations.
     enum WindowListError: Error {
-        /// Indicates an invalid connection to the window server.
-        case invalidConnection
+        /// Indicates that copying the window list failed.
+        case cannotCopyWindowList
         /// Indicates that the desired window is not present in the list.
         case noMatchingWindow
     }
@@ -114,7 +114,7 @@ extension WindowInfo {
         let option = context.windowListOption
         let windowID = context.referenceWindow?.windowID ?? kCGNullWindowID
         guard let list = CGWindowListCopyWindowInfo(option, windowID) as? [CFDictionary] else {
-            throw WindowListError.invalidConnection
+            throw WindowListError.cannotCopyWindowList
         }
         return list
     }
@@ -127,7 +127,7 @@ extension WindowInfo {
 
     /// Asynchronously returns the current window list using the given context.
     private static func windowList(context: WindowListContext) async throws -> [WindowInfo] {
-        let task = Task.detached {
+        let task = Task {
             let list = try copyWindowListArray(context: context)
 
             try Task.checkCancellation()
@@ -145,11 +145,7 @@ extension WindowInfo {
             return windows
         }
 
-        return try await withTaskCancellationHandler {
-            try await task.value
-        } onCancel: {
-            task.cancel()
-        }
+        return try await task.value
     }
 }
 

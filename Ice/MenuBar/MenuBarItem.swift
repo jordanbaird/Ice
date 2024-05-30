@@ -25,7 +25,7 @@ struct MenuBarItem {
     ///   - itemWindow: A window that contains information about the item.
     ///   - menuBarWindow: A window that contains information about the item's menu bar.
     ///   - display: The display that contains the item's menu bar.
-    init?(itemWindow: WindowInfo, menuBarWindow: WindowInfo, display: DisplayInfo) {
+    init?(itemWindow: WindowInfo, menuBarWindow: WindowInfo, display: CGDirectDisplayID) {
         // verify menuBarWindow
         guard Predicates.menuBarWindow(for: display)(menuBarWindow) else {
             return nil

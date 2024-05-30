@@ -306,7 +306,7 @@ extension WindowInfo {
     // MARK: Sync
 
     /// Returns the wallpaper window in the given windows for the given display.
-    static func getWallpaperWindow(from windows: [WindowInfo], for display: DisplayInfo) throws -> WindowInfo {
+    static func getWallpaperWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) throws -> WindowInfo {
         guard let window = windows.first(where: Predicates.wallpaperWindow(for: display)) else {
             throw WindowListError.noMatchingWindow
         }
@@ -314,14 +314,14 @@ extension WindowInfo {
     }
 
     /// Returns the wallpaper window for the given display.
-    static func getWallpaperWindow(for display: DisplayInfo) throws -> WindowInfo {
+    static func getWallpaperWindow(for display: CGDirectDisplayID) throws -> WindowInfo {
         try getWallpaperWindow(from: getOnScreenWindows(), for: display)
     }
 
     // MARK: Async
 
     /// Asynchronously returns the wallpaper window in the given windows for the given display.
-    static func wallpaperWindow(from windows: [WindowInfo], for display: DisplayInfo) async throws -> WindowInfo {
+    static func wallpaperWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) async throws -> WindowInfo {
         let predicate = Predicates.wallpaperWindow(for: display)
         for window in windows {
             try Task.checkCancellation()
@@ -334,7 +334,7 @@ extension WindowInfo {
     }
 
     /// Asynchronously returns the wallpaper window for the given display.
-    static func wallpaperWindow(for display: DisplayInfo) async throws -> WindowInfo {
+    static func wallpaperWindow(for display: CGDirectDisplayID) async throws -> WindowInfo {
         try await wallpaperWindow(from: onScreenWindows(), for: display)
     }
 
@@ -343,7 +343,7 @@ extension WindowInfo {
     // MARK: Sync
 
     /// Returns the menu bar window for the given display.
-    static func getMenuBarWindow(from windows: [WindowInfo], for display: DisplayInfo) throws -> WindowInfo {
+    static func getMenuBarWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) throws -> WindowInfo {
         guard let window = windows.first(where: Predicates.menuBarWindow(for: display)) else {
             throw WindowListError.noMatchingWindow
         }
@@ -351,14 +351,14 @@ extension WindowInfo {
     }
 
     /// Returns the menu bar window for the given display.
-    static func getMenuBarWindow(for display: DisplayInfo) throws -> WindowInfo {
+    static func getMenuBarWindow(for display: CGDirectDisplayID) throws -> WindowInfo {
         try getMenuBarWindow(from: getOnScreenWindows(excludeDesktopWindows: true), for: display)
     }
 
     // MARK: Async
 
     /// Asynchronously returns the menu bar window for the given display.
-    static func menuBarWindow(from windows: [WindowInfo], for display: DisplayInfo) async throws -> WindowInfo {
+    static func menuBarWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) async throws -> WindowInfo {
         let predicate = Predicates.menuBarWindow(for: display)
         for window in windows {
             try Task.checkCancellation()
@@ -371,7 +371,7 @@ extension WindowInfo {
     }
 
     /// Asynchronously returns the menu bar window for the given display.
-    static func menuBarWindow(for display: DisplayInfo) async throws -> WindowInfo {
+    static func menuBarWindow(for display: CGDirectDisplayID) async throws -> WindowInfo {
         try await menuBarWindow(from: onScreenWindows(excludeDesktopWindows: true), for: display)
     }
 }

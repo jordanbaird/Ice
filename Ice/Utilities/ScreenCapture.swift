@@ -40,6 +40,9 @@ enum ScreenCapture {
         /// The screen capture manager cannot find a matching display.
         case noMatchingDisplay
 
+        /// There is no valid display mode for a display.
+        case invalidDisplayMode
+
         /// The provided window is not on screen.
         case windowOffScreen
 
@@ -89,22 +92,19 @@ enum ScreenCapture {
             throw CaptureError.noMatchingWindow
         }
 
-        let displays = try await DisplayInfo.current(activeDisplaysOnly: false)
-
-        try Task.checkCancellation()
-
-        guard let display = displays.first(where: { $0.bounds.contains(window.frame) }) else {
+        guard let scDisplay = content.displays.first(where: { $0.frame.contains(window.frame) }) else {
             throw CaptureError.noMatchingDisplay
         }
 
         let sourceRect = try getSourceRect(captureRect: captureRect, window: scWindow)
+        let scaleFactor = try getScaleFactor(for: scDisplay)
 
         let contentFilter = SCContentFilter(desktopIndependentWindow: scWindow)
         let configuration = SCStreamConfiguration()
 
         configuration.sourceRect = sourceRect
-        configuration.width = Int(sourceRect.width * display.scaleFactor)
-        configuration.height = Int(sourceRect.height * display.scaleFactor)
+        configuration.width = Int(sourceRect.width * scaleFactor)
+        configuration.height = Int(sourceRect.height * scaleFactor)
         configuration.captureResolution = resolution
         configuration.colorSpaceName = CGColorSpace.displayP3
         configuration.ignoreShadowsSingleWindow = options.contains(.ignoreFraming)
@@ -164,12 +164,19 @@ enum ScreenCapture {
         }
         return sourceRect
     }
+
+    private static func getScaleFactor(for display: SCDisplay) throws -> CGFloat {
+        guard let mode = CGDisplayCopyDisplayMode(display.displayID) else {
+            throw CaptureError.invalidDisplayMode
+        }
+        return CGFloat(mode.pixelWidth) / CGFloat(mode.width)
+    }
 }
 
 extension ScreenCapture {
     /// Returns an image containing the area of the desktop wallpaper that is below the
     /// menu bar for the given display.
-    static func desktopWallpaperBelowMenuBar(for display: DisplayInfo, timeout: Duration) async throws -> CGImage {
+    static func desktopWallpaperBelowMenuBar(for display: CGDirectDisplayID, timeout: Duration) async throws -> CGImage {
         let task = Task(timeout: timeout) {
             let windows = try await WindowInfo.onScreenWindows()
             let wallpaperWindow = try await WindowInfo.wallpaperWindow(from: windows, for: display)

@@ -241,16 +241,13 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Performs validation for the given validation kind. Returns the panel's
     /// owning display if successful. Returns `nil` on failure.
-    private func validate(for kind: ValidationKind) async -> DisplayInfo? {
+    private func validate(for kind: ValidationKind) async -> CGDirectDisplayID? {
         lazy var actionMessage = switch kind {
         case .showing: "Preventing overlay panel from showing."
         case .updates: "Preventing overlay panel from updating."
         }
         do {
-            guard let owningDisplay = DisplayInfo(nsScreen: owningScreen) else {
-                Logger.overlayPanel.notice("No owning display. \(actionMessage)")
-                return nil
-            }
+            let owningDisplay = owningScreen.displayID
             guard let menuBarManager = appearanceManager?.menuBarManager else {
                 Logger.overlayPanel.notice("No menu bar manager. \(actionMessage)")
                 return nil
@@ -271,7 +268,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Returns the frame that should be used to show the panel on its owning screen.
-    private func getPanelFrame(for display: DisplayInfo) async throws -> CGRect {
+    private func getPanelFrame(for display: CGDirectDisplayID) async throws -> CGRect {
         let menuBar = try await AccessibilityMenuBar(display: display)
         let menuBarFrame = try menuBar.frame()
         return CGRect(
@@ -283,7 +280,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Stores the frames of the menu bar's application menus.
-    private func updateApplicationMenuFrames(for display: DisplayInfo) async throws {
+    private func updateApplicationMenuFrames(for display: CGDirectDisplayID) async throws {
         do {
             if
                 let menuBarManager = appearanceManager?.menuBarManager,
@@ -306,7 +303,7 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Stores the area of the desktop wallpaper that is under the menu bar
     /// of the given display.
-    private func updateDesktopWallpaper(for display: DisplayInfo) async throws {
+    private func updateDesktopWallpaper(for display: CGDirectDisplayID) async throws {
         do {
             desktopWallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBar(for: display, timeout: .seconds(1))
             lastSuccessfulUpdateTimes[.desktopWallpaper] = .now
@@ -317,7 +314,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Updates the panel to prepare for display.
-    private func performUpdates(for flags: Set<UpdateFlag>, display: DisplayInfo) async throws {
+    private func performUpdates(for flags: Set<UpdateFlag>, display: CGDirectDisplayID) async throws {
         try await withThrowingTaskGroup(of: Void.self) { group in
             if flags.contains(.applicationMenuFrames) {
                 group.addTask {
@@ -342,7 +339,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Shows the panel.
-    private func show(on display: DisplayInfo) async throws {
+    private func show(on display: CGDirectDisplayID) async throws {
         guard
             let appearanceManager,
             let appState = appearanceManager.appState,
@@ -537,7 +534,7 @@ private class MenuBarOverlayPanelContentView: NSView {
     }
 
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
-    private func pathForSplitShape(in rect: CGRect, info: MenuBarSplitShapeInfo, display: DisplayInfo) -> NSBezierPath {
+    private func pathForSplitShape(in rect: CGRect, info: MenuBarSplitShapeInfo, display: CGDirectDisplayID) -> NSBezierPath {
         let leadingPathBounds: CGRect = {
             var maxX: CGFloat = 0
             if
@@ -633,11 +630,12 @@ private class MenuBarOverlayPanelContentView: NSView {
             let overlayPanel,
             let appearanceManager,
             let menuBarManager = appearanceManager.menuBarManager,
-            let context = NSGraphicsContext.current,
-            let owningDisplay = DisplayInfo(nsScreen: overlayPanel.owningScreen)
+            let context = NSGraphicsContext.current
         else {
             return
         }
+
+        let owningDisplay = overlayPanel.owningScreen.displayID
 
         do {
             if try menuBarManager.isFullscreen(for: owningDisplay) {

@@ -265,11 +265,8 @@ final class EventManager {
 
     private func isMouseInMenuBar(of screen: NSScreen) async throws -> Bool {
         if NSApp.presentationOptions.contains(.autoHideMenuBar) {
-            if
-                let mouseLocation = CGEvent(source: nil)?.location,
-                let display = DisplayInfo(nsScreen: screen)
-            {
-                let menuBar = try await WindowInfo.menuBarWindow(for: display)
+            if let mouseLocation = CGEvent(source: nil)?.location {
+                let menuBar = try await WindowInfo.menuBarWindow(for: screen.displayID)
                 return menuBar.frame.contains(mouseLocation)
             }
         }
@@ -291,13 +288,12 @@ final class EventManager {
         guard
             let appState,
             try await isMouseInMenuBar(of: screen),
-            let display = DisplayInfo(nsScreen: screen),
             let mouseLocation = CGEvent(source: nil)?.location
         else {
             return false
         }
         return try await appState.menuBarManager.itemManager
-            .menuBarItems(for: display, onScreenOnly: true)
+            .menuBarItems(for: screen.displayID, onScreenOnly: true)
             .contains { item in
                 item.frame.contains(mouseLocation)
             }

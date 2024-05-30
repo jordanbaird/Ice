@@ -4,6 +4,7 @@
 //
 
 import Combine
+import CoreGraphics
 
 class MenuBarItemManager: ObservableObject {
     private(set) weak var appState: AppState?
@@ -20,7 +21,7 @@ extension MenuBarItemManager {
     // MARK: Sync
 
     /// Returns an array of menu bar items in the given menu bar from the given windows.
-    func getMenuBarItems(windows: [WindowInfo], menuBarWindow: WindowInfo, display: DisplayInfo) -> [MenuBarItem] {
+    func getMenuBarItems(windows: [WindowInfo], menuBarWindow: WindowInfo, display: CGDirectDisplayID) -> [MenuBarItem] {
         let items = windows.compactMap { window in
             MenuBarItem(itemWindow: window, menuBarWindow: menuBarWindow, display: display)
         }
@@ -30,7 +31,7 @@ extension MenuBarItemManager {
     }
 
     /// Returns an array of menu bar items in the menu bar for the given display.
-    func getMenuBarItems(for display: DisplayInfo, onScreenOnly: Bool) throws -> [MenuBarItem] {
+    func getMenuBarItems(for display: CGDirectDisplayID, onScreenOnly: Bool) throws -> [MenuBarItem] {
         let windows = if onScreenOnly {
             try WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
         } else {
@@ -43,7 +44,7 @@ extension MenuBarItemManager {
     // MARK: Async
 
     /// Asynchronously returns an array of menu bar items in the given menu bar from the given windows.
-    func menuBarItems(windows: [WindowInfo], menuBarWindow: WindowInfo, display: DisplayInfo) async throws -> [MenuBarItem] {
+    func menuBarItems(windows: [WindowInfo], menuBarWindow: WindowInfo, display: CGDirectDisplayID) async throws -> [MenuBarItem] {
         var items = [MenuBarItem]()
 
         for window in windows {
@@ -65,7 +66,7 @@ extension MenuBarItemManager {
     }
 
     /// Asynchronously returns an array of menu bar items in the menu bar for the given display.
-    func menuBarItems(for display: DisplayInfo, onScreenOnly: Bool) async throws -> [MenuBarItem] {
+    func menuBarItems(for display: CGDirectDisplayID, onScreenOnly: Bool) async throws -> [MenuBarItem] {
         let windows = if onScreenOnly {
             try await WindowInfo.onScreenWindows(excludeDesktopWindows: true)
         } else {

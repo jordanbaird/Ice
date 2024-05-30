@@ -52,7 +52,6 @@
 		1787C4362B17A9EB002F50DF /* Acknowledgements.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */; };
 		1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C43A2B187187002F50DF /* MenuBarTintKind.swift */; };
 		17928F1A2AC5DF9C0016C615 /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17928F192AC5DF9C0016C615 /* Defaults.swift */; };
-		1795B46C2B9A61D6005A684C /* DisplayInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1795B46B2B9A61D6005A684C /* DisplayInfo.swift */; };
 		179F13BA2B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F13B92B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift */; };
 		17AB36322BA081D800F50C0F /* NSImage+resized.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AB36312BA081D800F50C0F /* NSImage+resized.swift */; };
 		17B331D02B9916E70084EBB0 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B331CF2B9916E70084EBB0 /* SettingsManager.swift */; };
@@ -148,7 +147,6 @@
 		1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Acknowledgements.pdf; sourceTree = "<group>"; };
 		1787C43A2B187187002F50DF /* MenuBarTintKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTintKind.swift; sourceTree = "<group>"; };
 		17928F192AC5DF9C0016C615 /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
-		1795B46B2B9A61D6005A684C /* DisplayInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayInfo.swift; sourceTree = "<group>"; };
 		179F13B92B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceConfiguration.swift; sourceTree = "<group>"; };
 		17AB36312BA081D800F50C0F /* NSImage+resized.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSImage+resized.swift"; sourceTree = "<group>"; };
 		17B331CF2B9916E70084EBB0 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
@@ -532,7 +530,6 @@
 				17DFF4BF2AD8DBC500B5177A /* CodableColor.swift */,
 				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
 				17928F192AC5DF9C0016C615 /* Defaults.swift */,
-				1795B46B2B9A61D6005A684C /* DisplayInfo.swift */,
 				17C303772BA62CD20079755B /* MigrationManager.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
 				17C298B72BD42C390074DEAC /* Predicates.swift */,
@@ -767,7 +764,6 @@
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
 				7150A7B32AA42B640045EA68 /* Modifiers.swift in Sources */,
-				1795B46C2B9A61D6005A684C /* DisplayInfo.swift in Sources */,
 				71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */,
 				71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */,
 				174D4E282BA2089100D11129 /* Hotkey.swift in Sources */,

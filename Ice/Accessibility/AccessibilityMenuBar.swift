@@ -31,7 +31,7 @@ struct AccessibilityMenuBar {
     /// Creates an accessibility menu bar for the given display.
     ///
     /// - Parameter display: The display to get the menu bar for.
-    init(display: DisplayInfo) async throws {
+    init(display: CGDirectDisplayID) async throws {
         do {
             let menuBarWindow: WindowInfo
             do {
@@ -53,7 +53,7 @@ struct AccessibilityMenuBar {
 
     /// Returns a Boolean value that indicates whether the given display
     /// has a valid menu bar.
-    static func hasValidMenuBar(for display: DisplayInfo) async -> Bool {
+    static func hasValidMenuBar(for display: CGDirectDisplayID) async -> Bool {
         do {
             let menuBarWindow = try await WindowInfo.menuBarWindow(for: display)
             let position = menuBarWindow.frame.origin

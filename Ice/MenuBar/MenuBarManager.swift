@@ -113,20 +113,22 @@ final class MenuBarManager: ObservableObject {
                 Task {
                     do {
                         if self.sections.contains(where: { !$0.isHidden }) {
-                            guard
-                                let screen = NSScreen.main,
-                                let display = DisplayInfo(nsScreen: screen),
-                                try await !self.isFullscreen(for: display)
-                            else {
+                            guard let screen = NSScreen.main else {
+                                return
+                            }
+
+                            let displayID = screen.displayID
+
+                            guard try await !self.isFullscreen(for: displayID) else {
                                 return
                             }
 
                             // get the application menu frame for the display
-                            guard let applicationMenuFrame = self.applicationMenuFrames[display.displayID] else {
+                            guard let applicationMenuFrame = self.applicationMenuFrames[displayID] else {
                                 return
                             }
 
-                            let items = try await self.itemManager.menuBarItems(for: display, onScreenOnly: true)
+                            let items = try await self.itemManager.menuBarItems(for: displayID, onScreenOnly: true)
 
                             // get the leftmost item on the screen; the application menu should
                             // be hidden if the item's minX is close to the maxX of the menu
@@ -184,19 +186,16 @@ final class MenuBarManager: ObservableObject {
     private func updateApplicationMenuFrames() async {
         var applicationMenuFrames = [CGDirectDisplayID: CGRect]()
         for screen in NSScreen.screens {
-            guard let display = DisplayInfo(nsScreen: screen) else {
-                Logger.menuBarManager.notice("No display for displayID \(screen.displayID)")
-                continue
-            }
+            let displayID = screen.displayID
             do {
-                let menuBar = try await AccessibilityMenuBar(display: display)
+                let menuBar = try await AccessibilityMenuBar(display: displayID)
                 let items = try menuBar.menuBarItems()
                 let frame: CGRect = try items.reduce(into: .zero) { frame, item in
                     frame = try frame.union(item.frame())
                 }
-                applicationMenuFrames[display.displayID] = frame
+                applicationMenuFrames[displayID] = frame
             } catch {
-                Logger.menuBarManager.error("Couldn't update application menu frame for display \(display.displayID), error: \(error)")
+                Logger.menuBarManager.error("Couldn't update application menu frame for display \(displayID), error: \(error)")
                 continue
             }
         }
@@ -261,8 +260,8 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Returns the frame of the application menu for the given display.
-    func applicationMenuFrame(for display: DisplayInfo) -> CGRect? {
-        applicationMenuFrames[display.displayID]
+    func applicationMenuFrame(for display: CGDirectDisplayID) -> CGRect? {
+        applicationMenuFrames[display]
     }
 
     /// Returns the frame of the application menu for the given screen.
@@ -274,14 +273,14 @@ final class MenuBarManager: ObservableObject {
 extension MenuBarManager {
     /// Returns a Boolean value that indicates whether a window is
     /// fullscreen on the given display.
-    func isFullscreen(for display: DisplayInfo) throws -> Bool {
+    func isFullscreen(for display: CGDirectDisplayID) throws -> Bool {
         let windows = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
         return windows.contains(where: Predicates.fullscreenBackdropWindow(for: display))
     }
 
     /// Asynchronously returns a Boolean value that indicates whether
     /// a window is fullscreen on the given display.
-    func isFullscreen(for display: DisplayInfo) async throws -> Bool {
+    func isFullscreen(for display: CGDirectDisplayID) async throws -> Bool {
         let windows = try await WindowInfo.onScreenWindows(excludeDesktopWindows: false)
         return windows.contains(where: Predicates.fullscreenBackdropWindow(for: display))
     }

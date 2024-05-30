@@ -28,36 +28,36 @@ enum Predicates<Input> {
 extension Predicates where Input == WindowInfo {
     /// Creates a predicate that returns whether a window is the wallpaper window
     /// for the given display.
-    static func wallpaperWindow(for display: DisplayInfo) -> NonThrowingPredicate {
+    static func wallpaperWindow(for display: CGDirectDisplayID) -> NonThrowingPredicate {
         predicate { window in
             // wallpaper window belongs to the Dock process
             window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
             window.title?.hasPrefix("Wallpaper") == true &&
-            display.bounds.contains(window.frame)
+            CGDisplayBounds(display).contains(window.frame)
         }
     }
 
     /// Creates a predicate that returns whether a window is the menu bar window for
     /// the given display.
-    static func menuBarWindow(for display: DisplayInfo) -> NonThrowingPredicate {
+    static func menuBarWindow(for display: CGDirectDisplayID) -> NonThrowingPredicate {
         predicate { window in
             // menu bar window belongs to the WindowServer process (owningApplication should be nil)
             window.owningApplication == nil &&
             window.isOnScreen &&
             window.windowLayer == kCGMainMenuWindowLevel &&
             window.title == "Menubar" &&
-            display.bounds.contains(window.frame)
+            CGDisplayBounds(display).contains(window.frame)
         }
     }
 
     /// Creates a predicate that returns whether a window is the fullscreen backdrop
     /// window for the given display.
-    static func fullscreenBackdropWindow(for display: DisplayInfo) -> NonThrowingPredicate {
+    static func fullscreenBackdropWindow(for display: CGDirectDisplayID) -> NonThrowingPredicate {
         predicate { window in
             // fullscreen backdrop window belongs to the Dock process
             window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
             window.title == "Fullscreen Backdrop" &&
-            window.frame == display.bounds
+            window.frame == CGDisplayBounds(display)
         }
     }
 }

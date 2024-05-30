@@ -169,22 +169,28 @@ final class EventManager {
             return event
         }
 
+        // only continue if the "hidden" section is currently visible
+        guard
+            let hiddenSection = appState.menuBarManager.section(withName: .hidden),
+            !hiddenSection.isHidden
+        else {
+            return event
+        }
+
+        // make sure the mouse is not in the menu bar
+        guard !isMouseInsideMenuBar() else {
+            return event
+        }
+
         Task {
             do {
-                // sleep for a little bit to give the window under
-                // the mouse a chance to focus
-                try await Task.sleep(for: .milliseconds(10))
-
-                // make sure the mouse is not in the menu bar
-                guard !self.isMouseInsideMenuBar() else {
-                    return
-                }
+                // sleep for a bit to give the window under the mouse a chance to focus
+                try await Task.sleep(for: .seconds(0.25))
 
                 // get the window that the user has clicked into
                 guard
-                    let hiddenSection = appState.menuBarManager.section(withName: .hidden),
                     let mouseLocation = self.getMouseLocation(flipped: true),
-                    let windowUnderMouse = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
+                    let windowUnderMouse = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
                         .filter({ $0.windowLayer < CGWindowLevelForKey(.cursorWindow) })
                         .first(where: { $0.frame.contains(mouseLocation) }),
                     let owningApplication = windowUnderMouse.owningApplication
@@ -194,8 +200,8 @@ final class EventManager {
 
                 // the dock is an exception to the following check
                 if owningApplication.bundleIdentifier != "com.apple.dock" {
-                    // only continue if the user has clicked into an
-                    // active window with a regular activation policy
+                    // only continue if the user has clicked into an active window with
+                    // a regular activation policy
                     guard
                         owningApplication.isActive,
                         owningApplication.activationPolicy == .regular

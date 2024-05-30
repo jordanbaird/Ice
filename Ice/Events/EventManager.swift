@@ -13,20 +13,74 @@ final class EventManager {
 
     // MARK: - Monitors
 
-    // MARK: Mouse Moved
+    // MARK: Show On Click
 
-    private(set) lazy var mouseMovedMonitor = UniversalEventMonitor(
+    private(set) lazy var showOnClickMonitor = UniversalEventMonitor(
+        mask: .leftMouseDown
+    ) { [weak self] event in
+        guard
+            let self,
+            let appState
+        else {
+            return event
+        }
+
+        // make sure the "ShowOnClick" feature is enabled
+        guard appState.settingsManager.generalSettingsManager.showOnClick else {
+            return event
+        }
+
+        // make sure the mouse is inside an empty menu bar space
+        guard isMouseInsideEmptyMenuBarSpace() else {
+            return event
+        }
+
+        Task {
+            // short delay helps the toggle action feel more natural
+            try await Task.sleep(for: .milliseconds(50))
+
+            if
+                NSEvent.modifierFlags == .option,
+                appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
+            {
+                if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
+                    alwaysHiddenSection.toggle()
+                }
+            } else {
+                if let hiddenSection = appState.menuBarManager.section(withName: .hidden) {
+                    hiddenSection.toggle()
+                }
+            }
+        }
+
+        return event
+    }
+
+    // MARK: Show On Hover
+
+    private(set) lazy var showOnHoverMonitor = UniversalEventMonitor(
         mask: .mouseMoved
     ) { [weak self] event in
         guard
             let self,
-            let appState,
-            appState.settingsManager.generalSettingsManager.showOnHover,
-            !appState.isShowOnHoverPrevented,
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden)
+            let appState
         else {
             return event
         }
+
+        // make sure the "ShowOnHover" feature is enabled and not prevented
+        guard
+            appState.settingsManager.generalSettingsManager.showOnHover,
+            !appState.isShowOnHoverPrevented
+        else {
+            return event
+        }
+
+        // only continue if we have a hidden section (we should)
+        guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
+            return event
+        }
+
         Task {
             do {
                 if hiddenSection.isHidden {
@@ -54,15 +108,44 @@ final class EventManager {
                 Logger.eventManager.error("ERROR: \(error)")
             }
         }
+
         return event
     }
 
-    // MARK: Left Mouse Up
+    // MARK: Show On Scroll
 
-    private(set) lazy var leftMouseUpMonitor = UniversalEventMonitor(
-        mask: .leftMouseUp
-    ) { [weak appState] event in
-        appState?.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(false)
+    private(set) lazy var showOnScrollMonitor = UniversalEventMonitor(
+        mask: .scrollWheel
+    ) { [weak self] event in
+        guard
+            let self,
+            let appState
+        else {
+            return event
+        }
+
+        // make sure the "ShowOnScroll" feature is enabled
+        guard appState.settingsManager.generalSettingsManager.showOnScroll else {
+            return event
+        }
+
+        // make sure the mouse is inside the menu bar
+        guard isMouseInsideMenuBar() else {
+            return event
+        }
+
+        // only continue if we have a hidden section (we should)
+        guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
+            return event
+        }
+
+        let averageDelta = (event.scrollingDeltaX + event.scrollingDeltaY) / 2
+        if averageDelta > 5 {
+            hiddenSection.show()
+        } else if averageDelta < -5 {
+            hiddenSection.hide()
+        }
+
         return event
     }
 
@@ -131,43 +214,6 @@ final class EventManager {
         return event
     }
 
-    // MARK: Show On Click
-
-    private(set) lazy var showOnClickMonitor = UniversalEventMonitor(
-        mask: .leftMouseDown
-    ) { [weak self] event in
-        guard
-            let self,
-            let appState,
-            let visibleSection = appState.menuBarManager.section(withName: .visible),
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-            let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden)
-        else {
-            return event
-        }
-        if isMouseInsideEmptyMenuBarSpace() {
-            appState.preventShowOnHover()
-            guard appState.settingsManager.generalSettingsManager.showOnClick else {
-                return event
-            }
-            if
-                NSEvent.modifierFlags == .option,
-                appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
-            {
-                Task {
-                    try await Task.sleep(for: .seconds(0.05))
-                    alwaysHiddenSection.toggle()
-                }
-            } else {
-                Task {
-                    try await Task.sleep(for: .seconds(0.05))
-                    hiddenSection.toggle()
-                }
-            }
-        }
-        return event
-    }
-
     // MARK: Prevent Show On Hover
 
     private(set) lazy var preventShowOnHoverMonitor = UniversalEventMonitor(
@@ -175,46 +221,70 @@ final class EventManager {
     ) { [weak self] event in
         guard
             let self,
-            let appState,
-            isMouseInsideMenuBarItem()
+            let appState
         else {
             return event
         }
-        switch event.type {
-        case .leftMouseDown:
-            if
-                let visibleSection = appState.menuBarManager.section(withName: .visible),
-                let itemFrame = visibleSection.controlItem.windowFrame,
-                let mouseLocation = getMouseLocation(flipped: false),
-                appState.menuBarManager.sections.contains(where: { !$0.isHidden }) || itemFrame.contains(mouseLocation)
-            {
-                appState.preventShowOnHover()
-            }
-        case .rightMouseDown:
-            if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) {
-                appState.preventShowOnHover()
-            }
-        default:
-            break
+
+        // make sure the "ShowOnHover" feature is enabled
+        guard appState.settingsManager.generalSettingsManager.showOnHover else {
+            return event
         }
+
+        // make sure the mouse is inside the menu bar
+        guard isMouseInsideMenuBar() else {
+            return event
+        }
+
+        if isMouseInsideMenuBarItem() {
+            switch event.type {
+            case .leftMouseDown:
+                if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) || isMouseInsideIceIcon {
+                    // we have a left click that is inside the menu bar while
+                    // at least one section is visible or the mouse is inside
+                    // the Ice icon
+                    appState.preventShowOnHover()
+                }
+            case .rightMouseDown:
+                if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) {
+                    // we have a right click that is inside the menu bar while
+                    // at least one section is visible
+                    appState.preventShowOnHover()
+                }
+            default:
+                break
+            }
+        } else if !isMouseInsideApplicationMenu() {
+            // we have a left or right click that is inside the menu bar, outside
+            // a menu bar item, and outside the application menu, so it _must_ be
+            // inside an empty menu bar space
+            appState.preventShowOnHover()
+        }
+
         return event
     }
 
-    // MARK: Right Click Menu
+    // MARK: Show Right Click Menu
 
-    private(set) lazy var rightClickMenuMonitor = UniversalEventMonitor(
+    private(set) lazy var showRightClickMenuMonitor = UniversalEventMonitor(
         mask: .rightMouseDown
     ) { [weak self] event in
         guard
             let self,
-            let appState,
-            isMouseInsideEmptyMenuBarSpace(),
-            let mouseLocation = getMouseLocation(flipped: false)
+            let appState
         else {
             return event
         }
-        appState.preventShowOnHover()
-        appState.menuBarManager.showRightClickMenu(at: mouseLocation)
+
+        // make sure the mouse is inside an empty menu bar space
+        guard isMouseInsideEmptyMenuBarSpace() else {
+            return event
+        }
+
+        if let mouseLocation = getMouseLocation(flipped: false) {
+            appState.menuBarManager.showRightClickMenu(at: mouseLocation)
+        }
+
         return event
     }
 
@@ -225,67 +295,59 @@ final class EventManager {
     ) { [weak self] event in
         guard
             let self,
-            let appState,
-            event.modifierFlags.contains(.command),
-            isMouseInsideMenuBar()
+            let appState
         else {
             return event
         }
-        if appState.settingsManager.advancedSettingsManager.showSectionDividers {
-            for section in appState.menuBarManager.sections where section.isHidden {
-                section.show()
-            }
-        } else {
-            for section in appState.menuBarManager.sections {
-                if section.isHidden {
-                    section.show()
-                }
-                if
-                    section.controlItem.isSectionDivider,
-                    !section.controlItem.isVisible
-                {
-                    section.controlItem.isVisible = true
-                }
-            }
+
+        // make sure the command key is down
+        guard event.modifierFlags.contains(.command) else {
+            return event
         }
+
+        // make sure the mouse is inside the menu bar
+        guard isMouseInsideMenuBar() else {
+            return event
+        }
+
+        // notify each overlay panel that a menu bar item is being dragged
         appState.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
+
+        // show all items, including section dividers
+        for section in appState.menuBarManager.sections {
+            section.show()
+            guard
+                section.controlItem.isSectionDivider,
+                !section.controlItem.isVisible
+            else {
+                continue
+            }
+            section.controlItem.isVisible = true
+        }
+
         return event
     }
 
-    // MARK: Scroll Wheel
+    // MARK: Left Mouse Up
 
-    private(set) lazy var scrollWheelMonitor = UniversalEventMonitor(
-        mask: .scrollWheel
-    ) { [weak self] event in
-        guard
-            let self,
-            let appState,
-            appState.settingsManager.generalSettingsManager.showOnScroll,
-            isMouseInsideMenuBar(),
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden)
-        else {
-            return event
-        }
-        let averageDelta = (event.scrollingDeltaX + event.scrollingDeltaY) / 2
-        if averageDelta > 5 {
-            hiddenSection.show()
-        } else if averageDelta < -5 {
-            hiddenSection.hide()
-        }
+    private(set) lazy var leftMouseUpMonitor = UniversalEventMonitor(
+        mask: .leftMouseUp
+    ) { [weak appState] event in
+        appState?.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(false)
         return event
     }
 
     // MARK: - All Monitors
 
     private lazy var allMonitors = [
-        mouseMovedMonitor,
-        leftMouseUpMonitor,
-        smartRehideMonitor,
         showOnClickMonitor,
+        showOnHoverMonitor,
+        showOnScrollMonitor,
+        smartRehideMonitor,
         preventShowOnHoverMonitor,
-        rightClickMenuMonitor,
+        showRightClickMenuMonitor,
         leftMouseDraggedMonitor,
-        scrollWheelMonitor,
+        leftMouseUpMonitor,
     ]
 
     // MARK: - Initializers
@@ -373,6 +435,18 @@ final class EventManager {
             return false
         }
         return mouseLocation.y < screen.visibleFrame.maxY || mouseLocation.y > screen.frame.maxY
+    }
+
+    var isMouseInsideIceIcon: Bool {
+        guard
+            let appState,
+            let visibleSection = appState.menuBarManager.section(withName: .visible),
+            let iceIconFrame = visibleSection.controlItem.windowFrame,
+            let mouseLocation = getMouseLocation(flipped: false)
+        else {
+            return false
+        }
+        return iceIconFrame.contains(mouseLocation)
     }
 }
 

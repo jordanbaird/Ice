@@ -178,9 +178,9 @@ extension ScreenCapture {
     /// menu bar for the given display.
     static func desktopWallpaperBelowMenuBar(for display: CGDirectDisplayID, timeout: Duration) async throws -> CGImage {
         let task = Task(timeout: timeout) {
-            let windows = try await WindowInfo.onScreenWindows()
-            let wallpaperWindow = try await WindowInfo.wallpaperWindow(from: windows, for: display)
-            let menuBarWindow = try await WindowInfo.menuBarWindow(from: windows, for: display)
+            let windows = try WindowInfo.getOnScreenWindows()
+            let wallpaperWindow = try WindowInfo.getWallpaperWindow(from: windows, for: display)
+            let menuBarWindow = try WindowInfo.getMenuBarWindow(from: windows, for: display)
             return try await captureImage(
                 onScreenWindow: wallpaperWindow,
                 captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),

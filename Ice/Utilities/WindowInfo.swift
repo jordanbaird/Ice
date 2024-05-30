@@ -49,7 +49,7 @@ struct WindowInfo {
     }
 }
 
-// MARK: - WindowList Operations
+// MARK: - WindowList Operations -
 
 extension WindowInfo {
 
@@ -64,7 +64,8 @@ extension WindowInfo {
     }
 }
 
-// MARK: Private
+// MARK: - Private
+
 extension WindowInfo {
     /// Options to use to retrieve on screen windows.
     private enum OnScreenWindowListOption {
@@ -119,37 +120,15 @@ extension WindowInfo {
         return list
     }
 
-    /// Synchronously returns the current window list using the given context.
+    /// Returns the current window list using the given context.
     private static func getWindowList(context: WindowListContext) throws -> [WindowInfo] {
         let list = try copyWindowListArray(context: context)
         return list.compactMap { WindowInfo(dictionary: $0) }
     }
-
-    /// Asynchronously returns the current window list using the given context.
-    private static func windowList(context: WindowListContext) async throws -> [WindowInfo] {
-        let task = Task {
-            let list = try copyWindowListArray(context: context)
-
-            try Task.checkCancellation()
-            await Task.yield()
-
-            var windows = [WindowInfo]()
-            for dictionary in list {
-                try Task.checkCancellation()
-                await Task.yield()
-                if let window = WindowInfo(dictionary: dictionary) {
-                    windows.append(window)
-                }
-            }
-
-            return windows
-        }
-
-        return try await task.value
-    }
 }
 
-// MARK: All Windows
+// MARK: - All Windows
+
 extension WindowInfo {
     /// Returns the current windows.
     ///
@@ -163,26 +142,11 @@ extension WindowInfo {
         let context = WindowListContext(windowListOption: option, referenceWindow: nil)
         return try getWindowList(context: context)
     }
-
-    /// Asynchronously returns the current windows.
-    ///
-    /// - Parameter excludeDesktopWindows: A Boolean value that indicates whether
-    ///   to exclude desktop owned windows, such as the wallpaper and desktop icons.
-    static func allWindows(excludeDesktopWindows: Bool = false) async throws -> [WindowInfo] {
-        var option = CGWindowListOption.optionAll
-        if excludeDesktopWindows {
-            option.insert(.excludeDesktopElements)
-        }
-        let context = WindowListContext(windowListOption: option, referenceWindow: nil)
-        return try await windowList(context: context)
-    }
 }
 
-// MARK: On Screen Windows
+// MARK: - On Screen Windows
+
 extension WindowInfo {
-
-    // MARK: Sync
-
     /// Returns the on screen windows.
     ///
     /// - Parameter excludeDesktopWindows: A Boolean value that indicates whether
@@ -236,70 +200,13 @@ extension WindowInfo {
         )
         return try getWindowList(context: context)
     }
-
-    // MARK: Async
-
-    /// Asynchronously returns the on screen windows.
-    ///
-    /// - Parameter excludeDesktopWindows: A Boolean value that indicates whether
-    ///   to exclude desktop owned windows, such as the wallpaper and desktop icons.
-    static func onScreenWindows(excludeDesktopWindows: Bool = false) async throws -> [WindowInfo] {
-        let context = WindowListContext(
-            onScreenOption: .onScreenOnly,
-            excludeDesktopWindows: excludeDesktopWindows
-        )
-        return try await windowList(context: context)
-    }
-
-    /// Asynchronously returns the on screen windows above the given window.
-    ///
-    /// - Parameters:
-    ///   - window: The window to use as a reference point when determining which
-    ///     windows to return.
-    ///   - includeWindow: A Boolean value that indicates whether to include the
-    ///     window in the result.
-    ///   - excludeDesktopWindows: A Boolean value that indicates whether to exclude
-    ///     desktop owned windows, such as the wallpaper and desktop icons.
-    static func onScreenWindows(
-        above window: WindowInfo,
-        includeWindow: Bool = false,
-        excludeDesktopWindows: Bool = false
-    ) async throws -> [WindowInfo] {
-        let context = WindowListContext(
-            onScreenOption: .above(window, includeWindow: includeWindow),
-            excludeDesktopWindows: excludeDesktopWindows
-        )
-        return try await windowList(context: context)
-    }
-
-    /// Asynchronously returns the on screen windows below the given window.
-    ///
-    /// - Parameters:
-    ///   - window: The window to use as a reference point when determining which
-    ///     windows to return.
-    ///   - includeWindow: A Boolean value that indicates whether to include the
-    ///     window in the result.
-    ///   - excludeDesktopWindows: A Boolean value that indicates whether to exclude
-    ///     desktop owned windows, such as the wallpaper and desktop icons.
-    static func onScreenWindows(
-        below window: WindowInfo,
-        includeWindow: Bool = false,
-        excludeDesktopWindows: Bool = false
-    ) async throws -> [WindowInfo] {
-        let context = WindowListContext(
-            onScreenOption: .below(window, includeWindow: includeWindow),
-            excludeDesktopWindows: excludeDesktopWindows
-        )
-        return try await windowList(context: context)
-    }
 }
 
-// MARK: Single Windows
+// MARK: - Single Windows
+
 extension WindowInfo {
 
-    // MARK: - Wallpaper Window
-
-    // MARK: Sync
+    // MARK: Wallpaper Window
 
     /// Returns the wallpaper window in the given windows for the given display.
     static func getWallpaperWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) throws -> WindowInfo {
@@ -314,29 +221,7 @@ extension WindowInfo {
         try getWallpaperWindow(from: getOnScreenWindows(), for: display)
     }
 
-    // MARK: Async
-
-    /// Asynchronously returns the wallpaper window in the given windows for the given display.
-    static func wallpaperWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) async throws -> WindowInfo {
-        let predicate = Predicates.wallpaperWindow(for: display)
-        for window in windows {
-            try Task.checkCancellation()
-            await Task.yield()
-            if predicate(window) {
-                return window
-            }
-        }
-        throw WindowListError.noMatchingWindow
-    }
-
-    /// Asynchronously returns the wallpaper window for the given display.
-    static func wallpaperWindow(for display: CGDirectDisplayID) async throws -> WindowInfo {
-        try await wallpaperWindow(from: onScreenWindows(), for: display)
-    }
-
-    // MARK: - Menu Bar Window
-
-    // MARK: Sync
+    // MARK: Menu Bar Window
 
     /// Returns the menu bar window for the given display.
     static func getMenuBarWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) throws -> WindowInfo {
@@ -349,25 +234,5 @@ extension WindowInfo {
     /// Returns the menu bar window for the given display.
     static func getMenuBarWindow(for display: CGDirectDisplayID) throws -> WindowInfo {
         try getMenuBarWindow(from: getOnScreenWindows(excludeDesktopWindows: true), for: display)
-    }
-
-    // MARK: Async
-
-    /// Asynchronously returns the menu bar window for the given display.
-    static func menuBarWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) async throws -> WindowInfo {
-        let predicate = Predicates.menuBarWindow(for: display)
-        for window in windows {
-            try Task.checkCancellation()
-            await Task.yield()
-            if predicate(window) {
-                return window
-            }
-        }
-        throw WindowListError.noMatchingWindow
-    }
-
-    /// Asynchronously returns the menu bar window for the given display.
-    static func menuBarWindow(for display: CGDirectDisplayID) async throws -> WindowInfo {
-        try await menuBarWindow(from: onScreenWindows(excludeDesktopWindows: true), for: display)
     }
 }

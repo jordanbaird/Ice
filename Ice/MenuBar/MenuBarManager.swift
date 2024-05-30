@@ -119,7 +119,7 @@ final class MenuBarManager: ObservableObject {
 
                             let displayID = screen.displayID
 
-                            guard try await !self.isFullscreen(for: displayID) else {
+                            guard try !self.isFullscreen(for: displayID) else {
                                 return
                             }
 
@@ -128,7 +128,7 @@ final class MenuBarManager: ObservableObject {
                                 return
                             }
 
-                            let items = try await self.itemManager.menuBarItems(for: displayID, onScreenOnly: true)
+                            let items = try self.itemManager.getMenuBarItems(for: displayID, onScreenOnly: true)
 
                             // get the leftmost item on the screen; the application menu should
                             // be hidden if the item's minX is close to the maxX of the menu
@@ -188,7 +188,7 @@ final class MenuBarManager: ObservableObject {
         for screen in NSScreen.screens {
             let displayID = screen.displayID
             do {
-                let menuBar = try await AccessibilityMenuBar(display: displayID)
+                let menuBar = try AccessibilityMenuBar(display: displayID)
                 let items = try menuBar.menuBarItems()
                 let frame: CGRect = try items.reduce(into: .zero) { frame, item in
                     frame = try frame.union(item.frame())
@@ -275,13 +275,6 @@ extension MenuBarManager {
     /// fullscreen on the given display.
     func isFullscreen(for display: CGDirectDisplayID) throws -> Bool {
         let windows = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
-        return windows.contains(where: Predicates.fullscreenBackdropWindow(for: display))
-    }
-
-    /// Asynchronously returns a Boolean value that indicates whether
-    /// a window is fullscreen on the given display.
-    func isFullscreen(for display: CGDirectDisplayID) async throws -> Bool {
-        let windows = try await WindowInfo.onScreenWindows(excludeDesktopWindows: false)
         return windows.contains(where: Predicates.fullscreenBackdropWindow(for: display))
     }
 }

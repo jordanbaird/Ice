@@ -252,11 +252,11 @@ class MenuBarOverlayPanel: NSPanel {
                 Logger.overlayPanel.notice("No menu bar manager. \(actionMessage)")
                 return nil
             }
-            guard try await !menuBarManager.isFullscreen(for: owningDisplay) else {
+            guard try !menuBarManager.isFullscreen(for: owningDisplay) else {
                 Logger.overlayPanel.notice("Found fullscreen window. \(actionMessage)")
                 return nil
             }
-            guard await AccessibilityMenuBar.hasValidMenuBar(for: owningDisplay) else {
+            guard AccessibilityMenuBar.hasValidMenuBar(for: owningDisplay) else {
                 Logger.overlayPanel.notice("No valid menu bar found. \(actionMessage)")
                 return nil
             }
@@ -269,7 +269,7 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Returns the frame that should be used to show the panel on its owning screen.
     private func getPanelFrame(for display: CGDirectDisplayID) async throws -> CGRect {
-        let menuBar = try await AccessibilityMenuBar(display: display)
+        let menuBar = try AccessibilityMenuBar(display: display)
         let menuBarFrame = try menuBar.frame()
         return CGRect(
             x: owningScreen.frame.minX,
@@ -284,11 +284,11 @@ class MenuBarOverlayPanel: NSPanel {
         do {
             if
                 let menuBarManager = appearanceManager?.menuBarManager,
-                try await menuBarManager.isFullscreen(for: display)
+                try menuBarManager.isFullscreen(for: display)
             {
                 applicationMenuFrames.removeAll()
             } else {
-                let menuBar = try await AccessibilityMenuBar(display: display)
+                let menuBar = try AccessibilityMenuBar(display: display)
                 let items = try menuBar.menuBarItems()
                 applicationMenuFrames = try items.map { item in
                     try item.frame()
@@ -355,7 +355,7 @@ class MenuBarOverlayPanel: NSPanel {
 
         guard
             let menuBarManager = appearanceManager.menuBarManager,
-            try await !menuBarManager.isFullscreen(for: display)
+            try !menuBarManager.isFullscreen(for: display)
         else {
             return
         }

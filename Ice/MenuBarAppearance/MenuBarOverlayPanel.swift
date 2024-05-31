@@ -40,12 +40,33 @@ class MenuBarOverlayPanel: NSPanel {
         }
     }
 
+    /// A context that manages panel update tasks.
+    private class UpdateContext {
+        private var tasks = [UpdateFlag: Task<Void, any Error>]()
+
+        /// Sets the task for the given update flag.
+        ///
+        /// Setting the task cancels the previous task for the flag, if there is one.
+        ///
+        /// - Parameters:
+        ///   - flag: The update flag to set the task for.
+        ///   - timeout: The timeout of the task.
+        ///   - operation: The operation for the task to perform.
+        func setTask(for flag: UpdateFlag, timeout: Duration, operation: @escaping @Sendable () async throws -> Void) {
+            tasks[flag]?.cancel()
+            tasks[flag] = Task.detached(timeout: timeout, operation: operation)
+        }
+    }
+
     private var cancellables = Set<AnyCancellable>()
 
     /// Callbacks to perform after the panel is updated.
     ///
     /// - Note: The callbacks are removed after each update.
     private var updateCallbacks = [() -> Void]()
+
+    /// The context that manages panel update tasks.
+    private let updateContext = UpdateContext()
 
     /// The appearance manager that manages the panel.
     private(set) weak var appearanceManager: MenuBarAppearanceManager?
@@ -112,10 +133,10 @@ class MenuBarOverlayPanel: NSPanel {
                 guard let self else {
                     return
                 }
-                Task {
-                    let startTime = Date.now
-                    while Date.now < startTime + 5 {
-                        self.updateFlags.insert(.desktopWallpaper)
+                updateContext.setTask(for: .desktopWallpaper, timeout: .seconds(5)) {
+                    while true {
+                        try Task.checkCancellation()
+                        await self.insertUpdateFlag(.desktopWallpaper)
                         try await Task.sleep(for: .seconds(1))
                     }
                 }
@@ -131,21 +152,18 @@ class MenuBarOverlayPanel: NSPanel {
             guard let self else {
                 return
             }
-            let initialFrames = applicationMenuFrames
             let displayID = owningScreen.displayID
-            Task.detached(timeout: .seconds(1)) {
-                try await Task.sleep(for: .milliseconds(10))
+            updateContext.setTask(for: .applicationMenuFrames, timeout: .seconds(10)) {
+                var hasUpdated = false
                 while true {
                     try Task.checkCancellation()
-                    try await Task.sleep(for: .milliseconds(1))
+                    try await Task.sleep(for: .milliseconds(hasUpdated ? 500 : 1))
                     if
                         let latestFrames = try? await self.getApplicationMenuFrames(for: displayID),
-                        latestFrames != initialFrames
+                        await latestFrames != self.applicationMenuFrames
                     {
-                        await MainActor.run {
-                            _ = self.updateFlags.insert(.applicationMenuFrames)
-                        }
-                        break
+                        await self.insertUpdateFlag(.applicationMenuFrames)
+                        hasUpdated = true
                     }
                 }
             }
@@ -212,6 +230,11 @@ class MenuBarOverlayPanel: NSPanel {
             .store(in: &c)
 
         cancellables = c
+    }
+
+    /// Inserts the given update flag into the panel's current list of update flags.
+    private func insertUpdateFlag(_ flag: UpdateFlag) {
+        updateFlags.insert(flag)
     }
 
     /// Performs validation for the given validation kind. Returns the panel's

@@ -17,8 +17,6 @@ final class MenuBarManager: ObservableObject {
 
     let appearanceManager: MenuBarAppearanceManager
 
-    let itemManager: MenuBarItemManager
-
     private let encoder = JSONEncoder()
 
     private let decoder = JSONDecoder()
@@ -32,7 +30,6 @@ final class MenuBarManager: ObservableObject {
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
         self.appearanceManager = MenuBarAppearanceManager(appState: appState)
-        self.itemManager = MenuBarItemManager(appState: appState)
         self.appState = appState
     }
 
@@ -124,7 +121,7 @@ final class MenuBarManager: ObservableObject {
                     // get the leftmost item on the screen; the application menu should
                     // be hidden if the item's minX is close to the maxX of the menu
                     guard
-                        let items = try? itemManager.getMenuBarItems(for: displayID, onScreenOnly: true),
+                        let items = try? MenuBarItem.getMenuBarItems(for: displayID, onScreenOnly: true),
                         let leftmostItem = items.min(by: { $0.frame.minX < $1.frame.minX })
                     else {
                         return
@@ -152,11 +149,6 @@ final class MenuBarManager: ObservableObject {
             .store(in: &c)
 
         // propagate changes from child observable objects
-        itemManager.objectWillChange
-            .sink { [weak self] in
-                self?.objectWillChange.send()
-            }
-            .store(in: &c)
         appearanceManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()

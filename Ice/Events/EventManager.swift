@@ -419,8 +419,7 @@ final class EventManager {
             isMouseInsideMenuBar(ofScreen: screen),
             let screen,
             let mouseLocation = getMouseLocation(flipped: true),
-            let itemManager = appState?.menuBarManager.itemManager,
-            let menuBarItems = try? itemManager.getMenuBarItems(for: screen.displayID, onScreenOnly: true)
+            let menuBarItems = try? MenuBarItem.getMenuBarItems(for: screen.displayID, onScreenOnly: true)
         else {
             return false
         }

@@ -71,6 +71,10 @@ class MenuBarOverlayPanel: NSPanel {
     /// The current desktop wallpaper, clipped to the bounds of the menu bar.
     @Published private(set) var desktopWallpaper: CGImage?
 
+    weak var menuBarManager: MenuBarManager? {
+        appearanceManager?.menuBarManager
+    }
+
     /// Creates an overlay panel with the given appearance manager and owning screen.
     init(appearanceManager: MenuBarAppearanceManager, owningScreen: NSScreen) {
         self.appearanceManager = appearanceManager
@@ -251,7 +255,7 @@ class MenuBarOverlayPanel: NSPanel {
         case .updates: "Preventing overlay panel from updating."
         }
         let owningDisplay = owningScreen.displayID
-        guard let menuBarManager = appearanceManager?.menuBarManager else {
+        guard let menuBarManager else {
             Logger.overlayPanel.notice("No menu bar manager. \(actionMessage)")
             return nil
         }
@@ -288,7 +292,7 @@ class MenuBarOverlayPanel: NSPanel {
     private func updateApplicationMenuFrames(for display: CGDirectDisplayID) throws {
         do {
             if
-                let menuBarManager = appearanceManager?.menuBarManager,
+                let menuBarManager,
                 menuBarManager.isFullscreen(for: display)
             {
                 applicationMenuFrames.removeAll()
@@ -355,7 +359,7 @@ class MenuBarOverlayPanel: NSPanel {
         }
 
         guard
-            let menuBarManager = appearanceManager.menuBarManager,
+            let menuBarManager,
             !menuBarManager.isFullscreen(for: display)
         else {
             return
@@ -382,14 +386,15 @@ class MenuBarOverlayPanel: NSPanel {
 private class MenuBarOverlayPanelContentView: NSView {
     private var cancellables = Set<AnyCancellable>()
 
+    @Published private var configuration: MenuBarAppearanceConfiguration = .defaultConfiguration
+
     /// The overlay panel that contains the content view.
     private var overlayPanel: MenuBarOverlayPanel? {
         window as? MenuBarOverlayPanel
     }
 
-    /// The appearance manager that manages the content view's panel.
-    private var appearanceManager: MenuBarAppearanceManager? {
-        overlayPanel?.appearanceManager
+    private weak var menuBarManager: MenuBarManager? {
+        overlayPanel?.menuBarManager
     }
 
     override func viewDidMoveToWindow() {
@@ -401,6 +406,10 @@ private class MenuBarOverlayPanelContentView: NSView {
         var c = Set<AnyCancellable>()
 
         if let overlayPanel {
+            overlayPanel.appearanceManager?.$configuration
+                .removeDuplicates()
+                .assign(to: &$configuration)
+
             // fade out whenever a menu bar item is being dragged
             overlayPanel.$isDraggingMenuBarItem
                 .removeDuplicates()
@@ -426,17 +435,14 @@ private class MenuBarOverlayPanelContentView: NSView {
                 .store(in: &c)
         }
 
-        if let appearanceManager {
-            // redraw whenever the manager's parameters change
-            appearanceManager.$configuration
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in
-                    self?.needsDisplay = true
-                }
-                .store(in: &c)
-        }
+        // redraw whenever the configuration changes
+        $configuration
+            .sink { [weak self] _ in
+                self?.needsDisplay = true
+            }
+            .store(in: &c)
 
-        if let menuBarManager = appearanceManager?.menuBarManager {
+        if let menuBarManager {
             for section in menuBarManager.sections {
                 // redraw whenever the window frame of a control item changes
                 //
@@ -542,7 +548,7 @@ private class MenuBarOverlayPanelContentView: NSView {
         }()
         let trailingPathBounds: CGRect = {
             guard
-                let itemManager = appearanceManager?.menuBarManager?.itemManager,
+                let itemManager = menuBarManager?.itemManager,
                 let items = try? itemManager.getMenuBarItems(for: display, onScreenOnly: true)
             else {
                 return .zero
@@ -592,7 +598,7 @@ private class MenuBarOverlayPanelContentView: NSView {
     }
 
     /// Draws the tint defined by the given configuration in the given rectangle.
-    private func drawTint(in rect: CGRect, configuration: MenuBarAppearanceConfiguration) {
+    private func drawTint(in rect: CGRect) {
         switch configuration.tintKind {
         case .none:
             break
@@ -611,8 +617,7 @@ private class MenuBarOverlayPanelContentView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard
             let overlayPanel,
-            let appearanceManager,
-            let menuBarManager = appearanceManager.menuBarManager,
+            let menuBarManager,
             let context = NSGraphicsContext.current
         else {
             return
@@ -620,11 +625,11 @@ private class MenuBarOverlayPanelContentView: NSView {
 
         let owningDisplay = overlayPanel.owningScreen.displayID
 
+        // FIXME: This check shouldn't be needed. The panel should be ordered out when fullscreen.
         guard !menuBarManager.isFullscreen(for: owningDisplay) else {
             return
         }
 
-        let configuration = appearanceManager.configuration
         let drawableBounds = getDrawableBounds()
 
         let shapePath = switch configuration.shapeKind {
@@ -663,7 +668,7 @@ private class MenuBarOverlayPanelContentView: NSView {
                 gradient?.draw(in: shadowBounds, angle: 90)
             }
 
-            drawTint(in: drawableBounds, configuration: configuration)
+            drawTint(in: drawableBounds)
 
             if configuration.hasBorder {
                 let borderBounds = CGRect(
@@ -714,7 +719,7 @@ private class MenuBarOverlayPanelContentView: NSView {
 
                 shapePath.setClip()
 
-                drawTint(in: drawableBounds, configuration: configuration)
+                drawTint(in: drawableBounds)
             }
 
             if

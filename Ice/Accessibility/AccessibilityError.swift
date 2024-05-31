@@ -6,21 +6,15 @@
 /// An error that provides more context about an accessibility failure.
 struct AccessibilityError: Error, CustomStringConvertible {
     /// A message associated with the error.
-    let message: String
+    var message: String
     /// An underlying error that was thrown by an accessibility framework, if any.
-    let underlyingError: (any Error)?
+    var underlyingError: (any Error)?
 
     var description: String {
-        var params = "message: \"\(message)\""
+        var description = message
         if let underlyingError {
-            params += ", underlyingError: \(underlyingError)"
+            description += " (\(underlyingError))"
         }
-        return "\(Self.self)(\(params))"
-    }
-
-    /// Creates an error with the given message and underlying error.
-    init(message: String, underlyingError: (any Error)? = nil) {
-        self.message = message
-        self.underlyingError = underlyingError
+        return description
     }
 }

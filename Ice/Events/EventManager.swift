@@ -403,11 +403,10 @@ final class EventManager {
 
     private func isMouseInsideApplicationMenu(ofScreen screen: NSScreen? = .main) -> Bool {
         guard
-            isMouseInsideMenuBar(ofScreen: screen),
             let screen,
             let mouseLocation = getMouseLocation(flipped: true),
             let menuBarManager = appState?.menuBarManager,
-            let menuFrame = menuBarManager.applicationMenuFrame(for: screen.displayID)
+            let menuFrame = menuBarManager.getStoredApplicationMenuFrame(for: screen.displayID)
         else {
             return false
         }
@@ -416,7 +415,6 @@ final class EventManager {
 
     private func isMouseInsideMenuBarItem(ofScreen screen: NSScreen? = .main) -> Bool {
         guard
-            isMouseInsideMenuBar(ofScreen: screen),
             let screen,
             let mouseLocation = getMouseLocation(flipped: true),
             let menuBarItems = try? MenuBarItem.getMenuBarItems(for: screen.displayID, onScreenOnly: true)

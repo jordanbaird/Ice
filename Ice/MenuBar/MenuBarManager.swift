@@ -82,11 +82,14 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        // update the application menu frames
+        // store the application menu frames
         Timer.publish(every: 1, on: .main, in: .default)
             .autoconnect()
             .sink { [weak self] _ in
-                self?.updateApplicationMenuFrames()
+                guard let self else {
+                    return
+                }
+                applicationMenuFrames = getApplicationMenuFramesForAllDisplays()
             }
             .store(in: &c)
 
@@ -167,24 +170,30 @@ final class MenuBarManager: ObservableObject {
         cancellables = c
     }
 
-    private func updateApplicationMenuFrames() {
+    /// Returns the frames of each item in the application menu for the given display.
+    func getApplicationMenuItemFrames(for display: CGDirectDisplayID) throws -> [CGRect] {
+        let menuBar = try AccessibilityMenuBar(display: display)
+        return try menuBar.menuBarItems().map { try $0.frame() }
+    }
+
+    /// Returns the frames of the application menus for all displays.
+    func getApplicationMenuFramesForAllDisplays() -> [CGDirectDisplayID: CGRect] {
         var frames = [CGDirectDisplayID: CGRect]()
         for screen in NSScreen.screens {
             let displayID = screen.displayID
             do {
-                let menuBar = try AccessibilityMenuBar(display: displayID)
-                let items = try menuBar.menuBarItems()
-                let frame = try items.reduce(CGRect.zero) { frame, item in
-                    try frame.union(item.frame())
-                }
-                frames[displayID] = frame
+                let itemFrames = try getApplicationMenuItemFrames(for: displayID)
+                frames[displayID] = itemFrames.reduce(.zero, CGRectUnion)
             } catch {
                 Logger.menuBarManager.error(
-                    "Couldn't update application menu frame for display \(displayID) error: \(error)"
+                    """
+                    Couldn't get application menu frame for display \(displayID), \
+                    error: \(error)
+                    """
                 )
             }
         }
-        applicationMenuFrames = frames
+        return frames
     }
 
     /// Shows the right-click menu.
@@ -253,8 +262,8 @@ final class MenuBarManager: ObservableObject {
         sections.first { $0.name == name }
     }
 
-    /// Returns the frame of the application menu for the given display.
-    func applicationMenuFrame(for display: CGDirectDisplayID) -> CGRect? {
+    /// Returns the stored frame of the application menu for the given display.
+    func getStoredApplicationMenuFrame(for display: CGDirectDisplayID) -> CGRect? {
         applicationMenuFrames[display]
     }
 

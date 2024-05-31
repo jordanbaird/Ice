@@ -127,7 +127,7 @@ struct MenuBarAppearanceEditor: View {
             LabeledContent("Border Color") {
                 CustomColorPicker(
                     selection: appearanceManager.bindings.configuration.borderColor,
-                    supportsOpacity: false,
+                    supportsOpacity: true,
                     mode: .crayon
                 )
             }

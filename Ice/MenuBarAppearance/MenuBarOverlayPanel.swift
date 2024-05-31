@@ -122,22 +122,34 @@ class MenuBarOverlayPanel: NSPanel {
             .store(in: &c)
 
         // update the application frames when the menu bar owning app changes
-        NSWorkspace.shared.publisher(for: \.menuBarOwningApplication)
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                updateFlags.insert(.applicationMenuFrames)
-                // HACK: due to an occasional delay between the menu bar owning app changing and
-                // the menu updating, we may not have access to the current menu; until we have
-                // a good workaround, our best option is to wait a bit and request another update
-                // (inefficient, but not terrible, since app switches are semi-rare)
-                Task {
-                    try await Task.sleep(for: .seconds(0.5))
-                    self.updateFlags.insert(.applicationMenuFrames)
+        Publishers.CombineLatest(
+            NSWorkspace.shared.publisher(for: \.menuBarOwningApplication),
+            NSWorkspace.shared.publisher(for: \.frontmostApplication)
+        )
+        .sink { [weak self] _ in
+            guard let self else {
+                return
+            }
+            let initialFrames = applicationMenuFrames
+            let displayID = owningScreen.displayID
+            Task.detached(timeout: .seconds(1)) {
+                try await Task.sleep(for: .milliseconds(10))
+                while true {
+                    try Task.checkCancellation()
+                    try await Task.sleep(for: .milliseconds(1))
+                    if
+                        let latestFrames = try? await self.getApplicationMenuFrames(for: displayID),
+                        latestFrames != initialFrames
+                    {
+                        await MainActor.run {
+                            _ = self.updateFlags.insert(.applicationMenuFrames)
+                        }
+                        break
+                    }
                 }
             }
-            .store(in: &c)
+        }
+        .store(in: &c)
 
         // perform updates as follows:
         //
@@ -169,7 +181,7 @@ class MenuBarOverlayPanel: NSPanel {
             .store(in: &c)
 
         $needsShow
-            .debounce(for: 0.1, scheduler: DispatchQueue.main)
+            .debounce(for: 0.05, scheduler: DispatchQueue.main)
             .sink { [weak self] needsShow in
                 guard let self, needsShow else {
                     return
@@ -189,7 +201,6 @@ class MenuBarOverlayPanel: NSPanel {
             .store(in: &c)
 
         $updateFlags
-            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] flags in
                 guard let self, !flags.isEmpty else {
                     return
@@ -267,6 +278,12 @@ class MenuBarOverlayPanel: NSPanel {
         )
     }
 
+    /// Returns the current application menu frames for the given display.
+    private func getApplicationMenuFrames(for display: CGDirectDisplayID) throws -> [CGRect] {
+        let menuBar = try AccessibilityMenuBar(display: display)
+        return try menuBar.menuBarItems().map { try $0.frame() }
+    }
+
     /// Stores the frames of the menu bar's application menus.
     private func updateApplicationMenuFrames(for display: CGDirectDisplayID) throws {
         do {
@@ -276,11 +293,7 @@ class MenuBarOverlayPanel: NSPanel {
             {
                 applicationMenuFrames.removeAll()
             } else {
-                let menuBar = try AccessibilityMenuBar(display: display)
-                let items = try menuBar.menuBarItems()
-                applicationMenuFrames = try items.map { item in
-                    try item.frame()
-                }
+                applicationMenuFrames = try getApplicationMenuFrames(for: display)
             }
             lastSuccessfulUpdateTimes[.applicationMenuFrames] = .now
         } catch {

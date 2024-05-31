@@ -47,9 +47,6 @@ class MenuBarOverlayPanel: NSPanel {
     /// - Note: The callbacks are removed after each update.
     private var updateCallbacks = [() -> Void]()
 
-    /// The keyed times of the last successful updates.
-    private var lastSuccessfulUpdateTimes = [UpdateFlag: Date]()
-
     /// The appearance manager that manages the panel.
     private(set) weak var appearanceManager: MenuBarAppearanceManager?
 
@@ -155,24 +152,6 @@ class MenuBarOverlayPanel: NSPanel {
         }
         .store(in: &c)
 
-        // perform updates as follows:
-        //
-        //  - application frames after 10 seconds without an update
-        //  - desktop wallpaper after 5 seconds without an update
-        //
-        // this ensures that cases we haven't covered are eventually handled, such
-        // as wallpaper changes, which can't be reliably observed in Sonoma
-        Timer.publish(every: 1, on: .main, in: .default)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                insertUpdateFlagIfNeeded(.applicationMenuFrames, interval: 10)
-                insertUpdateFlagIfNeeded(.desktopWallpaper, interval: 5)
-            }
-            .store(in: &c)
-
         // make sure the panel switches to the active space
         Timer.publish(every: 2.5, on: .main, in: .default)
             .autoconnect()
@@ -235,18 +214,6 @@ class MenuBarOverlayPanel: NSPanel {
         cancellables = c
     }
 
-    /// Inserts the given update flag if the given time interval has passed
-    /// since the last successful update.
-    private func insertUpdateFlagIfNeeded(_ flag: UpdateFlag, interval: TimeInterval) {
-        guard
-            let time = lastSuccessfulUpdateTimes[flag],
-            Date.now.timeIntervalSince(time) >= interval
-        else {
-            return
-        }
-        updateFlags.insert(flag)
-    }
-
     /// Performs validation for the given validation kind. Returns the panel's
     /// owning display if successful. Returns `nil` on failure.
     private func validate(for kind: ValidationKind) -> CGDirectDisplayID? {
@@ -299,7 +266,6 @@ class MenuBarOverlayPanel: NSPanel {
             } else {
                 applicationMenuFrames = try getApplicationMenuFrames(for: display)
             }
-            lastSuccessfulUpdateTimes[.applicationMenuFrames] = .now
         } catch {
             applicationMenuFrames.removeAll()
             throw error
@@ -310,8 +276,10 @@ class MenuBarOverlayPanel: NSPanel {
     /// of the given display.
     private func updateDesktopWallpaper(for display: CGDirectDisplayID) async throws {
         do {
-            desktopWallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBar(for: display, timeout: .seconds(1))
-            lastSuccessfulUpdateTimes[.desktopWallpaper] = .now
+            let wallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBar(for: display, timeout: .seconds(1))
+            if desktopWallpaper?.dataProvider?.data != wallpaper.dataProvider?.data {
+                desktopWallpaper = wallpaper
+            }
         } catch {
             desktopWallpaper = nil
             throw error

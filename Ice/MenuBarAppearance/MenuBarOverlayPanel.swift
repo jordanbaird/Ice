@@ -41,7 +41,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// A context that manages panel update tasks.
-    private class UpdateContext {
+    private class UpdateTaskContext {
         private var tasks = [UpdateFlag: Task<Void, any Error>]()
 
         /// Sets the task for the given update flag.
@@ -66,7 +66,7 @@ class MenuBarOverlayPanel: NSPanel {
     private var updateCallbacks = [() -> Void]()
 
     /// The context that manages panel update tasks.
-    private let updateContext = UpdateContext()
+    private let updateTaskContext = UpdateTaskContext()
 
     /// The appearance manager that manages the panel.
     private(set) weak var appearanceManager: MenuBarAppearanceManager?
@@ -133,7 +133,7 @@ class MenuBarOverlayPanel: NSPanel {
                 guard let self else {
                     return
                 }
-                updateContext.setTask(for: .desktopWallpaper, timeout: .seconds(5)) {
+                updateTaskContext.setTask(for: .desktopWallpaper, timeout: .seconds(5)) {
                     while true {
                         try Task.checkCancellation()
                         await self.insertUpdateFlag(.desktopWallpaper)
@@ -156,7 +156,7 @@ class MenuBarOverlayPanel: NSPanel {
                 return
             }
             let displayID = owningScreen.displayID
-            updateContext.setTask(for: .applicationMenuItemFrames, timeout: .seconds(10)) {
+            updateTaskContext.setTask(for: .applicationMenuItemFrames, timeout: .seconds(10)) {
                 var hasUpdated = false
                 while true {
                     try Task.checkCancellation()

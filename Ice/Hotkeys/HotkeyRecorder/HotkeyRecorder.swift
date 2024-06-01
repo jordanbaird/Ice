@@ -6,25 +6,12 @@
 import SwiftUI
 
 struct HotkeyRecorder<Label: View>: View {
-    @EnvironmentObject private var appState: AppState
     @StateObject private var model: HotkeyRecorderModel
-    @State private var frame: CGRect = .zero
 
     private let label: Label
 
-    private var symbolString: String {
-        if model.isRecording {
-            "escape"
-        } else if model.hotkey.isEnabled {
-            "xmark.circle.fill"
-        } else {
-            "record.circle"
-        }
-    }
-
     init(hotkey: Hotkey, @ViewBuilder label: () -> Label) {
-        let model = HotkeyRecorderModel(hotkey: hotkey)
-        self._model = StateObject(wrappedValue: model)
+        self._model = StateObject(wrappedValue: HotkeyRecorderModel(hotkey: hotkey))
         self.label = label()
     }
 
@@ -35,20 +22,16 @@ struct HotkeyRecorder<Label: View>: View {
                 trailingSegment
             }
             .frame(width: 130, height: 22)
-            .onFrameChange(update: $frame)
-            .alert(
-                model.presentedError?.localizedDescription ?? "",
-                isPresented: $model.isPresentingError
-            ) {
-                Button("OK") {
-                    model.isPresentingError = false
-                }
-            }
         } label: {
             label
         }
-        .task {
-            model.assignAppState(appState)
+        .alert(
+            "Hotkey is reserved by macOS",
+            isPresented: $model.isPresentingReservedByMacOSError
+        ) {
+            Button("OK") {
+                model.isPresentingReservedByMacOSError = false
+            }
         }
     }
 
@@ -86,7 +69,7 @@ struct HotkeyRecorder<Label: View>: View {
                 isHighlighted: false
             )
         )
-        .frame(width: frame.height)
+        .aspectRatio(1, contentMode: .fit)
     }
 
     @ViewBuilder
@@ -99,6 +82,8 @@ struct HotkeyRecorder<Label: View>: View {
                     Text(keyCombination.modifiers.symbolicValue)
                     Text(keyCombination.key.stringValue.capitalized)
                 }
+            } else {
+                Text("ERROR")
             }
         } else {
             Text("Record Hotkey")
@@ -107,6 +92,13 @@ struct HotkeyRecorder<Label: View>: View {
 
     @ViewBuilder
     private var trailingSegmentLabel: some View {
+        let symbolString = if model.isRecording {
+            "escape"
+        } else if model.hotkey.isEnabled {
+            "xmark.circle.fill"
+        } else {
+            "record.circle"
+        }
         Image(systemName: symbolString)
             .resizable()
             .aspectRatio(contentMode: .fill)

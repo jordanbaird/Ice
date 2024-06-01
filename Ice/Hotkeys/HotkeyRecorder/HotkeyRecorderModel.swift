@@ -3,62 +3,28 @@
 //  Ice
 //
 
-import Cocoa
 import Combine
-import OSLog
 import SwiftUI
 
+@MainActor
 class HotkeyRecorderModel: ObservableObject {
-    enum RecordingError: LocalizedError, Hashable {
-        case reservedBySystem
-
-        var errorDescription: String? {
-            switch self {
-            case .reservedBySystem:
-                "Hotkey is reserved by macOS"
-            }
-        }
-    }
+    @EnvironmentObject private var appState: AppState
 
     @Published private(set) var isRecording = false
 
-    @Published var presentedError: RecordingError? {
-        didSet {
-            if presentedError != nil {
-                isPresentingError = true
-            }
-        }
-    }
-
-    @Published var isPresentingError = false {
-        didSet {
-            if !isPresentingError {
-                presentedError = nil
-            }
-        }
-    }
+    @Published var isPresentingReservedByMacOSError = false
 
     let hotkey: Hotkey
 
-    private var monitor: LocalEventMonitor?
+    private lazy var monitor = LocalEventMonitor(mask: .keyDown) { [weak self] event in
+        guard let self else {
+            return event
+        }
+        handleKeyDown(event: event)
+        return nil
+    }
 
     private var cancellables = Set<AnyCancellable>()
-
-    private weak var appState: AppState? {
-        didSet {
-            guard appState?.isPreview == false else {
-                monitor = nil
-                return
-            }
-            monitor = LocalEventMonitor(mask: .keyDown) { [weak self] event in
-                guard let self else {
-                    return event
-                }
-                handleKeyDown(event: event)
-                return nil
-            }
-        }
-    }
 
     init(hotkey: Hotkey) {
         self.hotkey = hotkey
@@ -77,30 +43,20 @@ class HotkeyRecorderModel: ObservableObject {
         cancellables = c
     }
 
-    func assignAppState(_ appState: AppState) {
-        guard self.appState == nil else {
-            Logger.hotkeyRecorderModel.warning("Multiple attempts made to assign AppState")
-            return
-        }
-        self.appState = appState
-    }
-
-    /// Disables the hotkey and starts monitoring for events.
     func startRecording() {
         guard !isRecording else {
             return
         }
         hotkey.disable()
-        monitor?.start()
+        monitor.start()
         isRecording = true
     }
 
-    /// Enables the hotkey and stops monitoring for events.
     func stopRecording() {
         guard isRecording else {
             return
         }
-        monitor?.stop()
+        monitor.stop()
         hotkey.enable()
         isRecording = false
     }
@@ -120,17 +76,10 @@ class HotkeyRecorderModel: ObservableObject {
             return
         }
         guard !keyCombination.isReservedBySystem else {
-            presentedError = .reservedBySystem
+            isPresentingReservedByMacOSError = true
             return
         }
-        // if we made it this far, all checks passed; assign the
-        // new key combination and stop recording
         hotkey.keyCombination = keyCombination
         stopRecording()
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let hotkeyRecorderModel = Logger(category: "HotkeyRecorderModel")
 }

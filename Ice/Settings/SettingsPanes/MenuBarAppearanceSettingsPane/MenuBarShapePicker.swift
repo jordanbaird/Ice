@@ -6,12 +6,8 @@
 import SwiftUI
 
 struct MenuBarShapePicker: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
     @Environment(\.colorScheme) private var colorScheme
-
-    private var appearanceManager: MenuBarAppearanceManager {
-        appState.menuBarManager.appearanceManager
-    }
 
     var body: some View {
         shapeKindPicker

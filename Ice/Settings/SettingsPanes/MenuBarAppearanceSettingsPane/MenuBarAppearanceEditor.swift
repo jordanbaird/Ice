@@ -11,13 +11,9 @@ struct MenuBarAppearanceEditor: View {
         case popover(closePopover: () -> Void)
     }
 
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
 
     let location: Location
-
-    private var appearanceManager: MenuBarAppearanceManager {
-        appState.menuBarManager.appearanceManager
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

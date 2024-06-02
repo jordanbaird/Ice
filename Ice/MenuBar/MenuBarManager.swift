@@ -151,13 +151,6 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        // propagate changes from child observable objects
-        appearanceManager.objectWillChange
-            .sink { [weak self] in
-                self?.objectWillChange.send()
-            }
-            .store(in: &c)
-
         // propagate changes from all sections
         for section in sections {
             section.objectWillChange

@@ -3,7 +3,6 @@
 //  Ice
 //
 
-import AXSwift
 import Combine
 import OSLog
 import SwiftUI
@@ -261,12 +260,28 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Returns a Boolean value that indicates whether a window is
-    /// fullscreen on the given display.
+    /// fullscreen for the given display.
     func isFullscreen(for display: CGDirectDisplayID) -> Bool {
-        guard let windows = try? WindowInfo.getOnScreenWindows(excludeDesktopWindows: false) else {
+        guard let windows = try? WindowInfo.getOnScreenWindows(excludeDesktopWindows: true) else {
             return false
         }
-        return windows.contains(where: Predicates.fullscreenBackdropWindow(for: display))
+        let isFullscreenBackdropWindow = Predicates.fullscreenBackdropWindow(for: display)
+        if let frontmostApplication = NSWorkspace.shared.frontmostApplication {
+            let displayBounds = CGDisplayBounds(display)
+            for window in windows {
+                if isFullscreenBackdropWindow(window) {
+                    return true
+                }
+                if
+                    window.owningApplication == frontmostApplication,
+                    window.frame == displayBounds
+                {
+                    return true
+                }
+            }
+            return false
+        }
+        return windows.contains(where: isFullscreenBackdropWindow)
     }
 }
 

@@ -184,6 +184,17 @@ class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
+        // continually update the desktop wallpaper; ideally, we would set up
+        // an observer for a wallpaper change notification, but macOS doesn't
+        // post one anymore; updating every 5 seconds at least keeps the CPU
+        // usage around 1-2% on average
+        Timer.publish(every: 5, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.insertUpdateFlag(.desktopWallpaper)
+            }
+            .store(in: &c)
+
         $needsShow
             .debounce(for: 0.05, scheduler: DispatchQueue.main)
             .sink { [weak self] needsShow in
@@ -295,14 +306,9 @@ class MenuBarOverlayPanel: NSPanel {
     /// Stores the area of the desktop wallpaper that is under the menu bar
     /// of the given display.
     private func updateDesktopWallpaper(for display: CGDirectDisplayID) async throws {
-        do {
-            let wallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBar(for: display, timeout: .seconds(1))
-            if desktopWallpaper?.dataProvider?.data != wallpaper.dataProvider?.data {
-                desktopWallpaper = wallpaper
-            }
-        } catch {
-            desktopWallpaper = nil
-            throw error
+        let wallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBar(for: display, timeout: .seconds(1))
+        if desktopWallpaper?.dataProvider?.data != wallpaper.dataProvider?.data {
+            desktopWallpaper = wallpaper
         }
     }
 

@@ -7,8 +7,6 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 
 ![Banner](https://github.com/jordanbaird/Ice/assets/90936861/bbbfebc2-c239-4f49-b0dd-34d1f3477314)
 
-
-
 [![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
 ![Requirements](https://img.shields.io/badge/requirements-macOS%2014%2B-fa4e49?style=flat-square)
@@ -19,9 +17,11 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 > [!NOTE]
 > Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features. 
 
-https://github.com/cdcharlebois/Ice/assets/2905603/7b994a52-400e-4e27-9327-57343cb210ba
+## Usage
 
-Simply `cmd` + drag your menu bar items to rearrange them
+Simply `Command` + drag your menu bar items to rearrange them.
+
+https://github.com/jordanbaird/Ice/assets/90936861/946e2954-333e-4b7a-a5e7-2fa3d38c3a08
 
 ## Install
 

@@ -10,6 +10,8 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 [![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
 ![Requirements](https://img.shields.io/badge/requirements-macOS%2014%2B-fa4e49?style=flat-square)
+![Support](https://jordanbaird.gumroad.com/l/ice)
+![Website](https://icemenubar.app)
 [![License](https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square)](LICENSE)
 
 > [!NOTE]

@@ -54,6 +54,7 @@ struct SettingsView: View {
             }
             .collapsible(false)
         }
+        .removeSidebarToggle()
         .navigationSplitViewColumnWidth(210)
     }
 

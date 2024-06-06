@@ -51,6 +51,8 @@
 		1787C4362B17A9EB002F50DF /* Acknowledgements.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */; };
 		1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1787C43A2B187187002F50DF /* MenuBarTintKind.swift */; };
 		17928F1A2AC5DF9C0016C615 /* Defaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17928F192AC5DF9C0016C615 /* Defaults.swift */; };
+		179AC2FC2C1146EF0051E7B0 /* RemoveSidebarToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179AC2FB2C1146EF0051E7B0 /* RemoveSidebarToggle.swift */; };
+		179AC2FF2C11475F0051E7B0 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179AC2FE2C11475F0051E7B0 /* NSSplitViewItem+swizzledCanCollapse.swift */; };
 		179F13BA2B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179F13B92B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift */; };
 		17AB36322BA081D800F50C0F /* NSImage+resized.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AB36312BA081D800F50C0F /* NSImage+resized.swift */; };
 		17B331D02B9916E70084EBB0 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B331CF2B9916E70084EBB0 /* SettingsManager.swift */; };
@@ -144,6 +146,8 @@
 		1787C4352B17A9EB002F50DF /* Acknowledgements.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = Acknowledgements.pdf; sourceTree = "<group>"; };
 		1787C43A2B187187002F50DF /* MenuBarTintKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTintKind.swift; sourceTree = "<group>"; };
 		17928F192AC5DF9C0016C615 /* Defaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Defaults.swift; sourceTree = "<group>"; };
+		179AC2FB2C1146EF0051E7B0 /* RemoveSidebarToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoveSidebarToggle.swift; sourceTree = "<group>"; };
+		179AC2FE2C11475F0051E7B0 /* NSSplitViewItem+swizzledCanCollapse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSSplitViewItem+swizzledCanCollapse.swift"; sourceTree = "<group>"; };
 		179F13B92B90D34800EC6B52 /* MenuBarAppearanceConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceConfiguration.swift; sourceTree = "<group>"; };
 		17AB36312BA081D800F50C0F /* NSImage+resized.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSImage+resized.swift"; sourceTree = "<group>"; };
 		17B331CF2B9916E70084EBB0 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
@@ -334,6 +338,7 @@
 				71839C152A9B6A0D00250044 /* OnFrameChange.swift */,
 				17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */,
 				71C400312AAD76A8006FDB1C /* ReadWindow.swift */,
+				179AC2FB2C1146EF0051E7B0 /* RemoveSidebarToggle.swift */,
 			);
 			path = ViewModifiers;
 			sourceTree = "<group>";
@@ -344,6 +349,14 @@
 				17EC6B522AE0C09F0065F260 /* Pickers */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		179AC2FD2C1147500051E7B0 /* Swizzling */ = {
+			isa = PBXGroup;
+			children = (
+				179AC2FE2C11475F0051E7B0 /* NSSplitViewItem+swizzledCanCollapse.swift */,
+			);
+			path = Swizzling;
 			sourceTree = "<group>";
 		};
 		179F13BC2B91E7F700EC6B52 /* MenuBarAppearance */ = {
@@ -532,6 +545,7 @@
 				17CC22B42B8A55E7001A0582 /* WindowInfo.swift */,
 				170749CB2B120951009DDF73 /* EventMonitors */,
 				17FE5AD62BCA9BEC00E4F8D9 /* ScreenState */,
+				179AC2FD2C1147500051E7B0 /* Swizzling */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -741,6 +755,7 @@
 				172D827C2BC1F2C10048DD88 /* AccessibilityError.swift in Sources */,
 				177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */,
 				17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */,
+				179AC2FC2C1146EF0051E7B0 /* RemoveSidebarToggle.swift in Sources */,
 				17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */,
 				172D827E2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift in Sources */,
 				17D1AC8D2B97BB5900726180 /* MenuBarItem.swift in Sources */,
@@ -756,6 +771,7 @@
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
 				7150A7B32AA42B640045EA68 /* Modifiers.swift in Sources */,
+				179AC2FF2C11475F0051E7B0 /* NSSplitViewItem+swizzledCanCollapse.swift in Sources */,
 				71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */,
 				71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */,
 				174D4E282BA2089100D11129 /* Hotkey.swift in Sources */,

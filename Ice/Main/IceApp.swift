@@ -12,6 +12,7 @@ struct IceApp: App {
     @Environment(\.openWindow) private var openWindow
 
     init() {
+        NSSplitViewItem.swizzle()
         appDelegate.assignAppState(appState)
     }
 

@@ -12,12 +12,12 @@ struct SettingsWindow: Scene {
     var body: some Scene {
         Window("Ice", id: Constants.settingsWindowID) {
             SettingsView()
-                .frame(minWidth: 825, minHeight: 520)
+                .frame(minWidth: 825, minHeight: 500)
                 .onAppear(perform: onAppear)
                 .environmentObject(appState)
         }
         .commandsRemoved()
         .windowResizability(.contentSize)
-        .defaultSize(width: 850, height: 550)
+        .defaultSize(width: 850, height: 525)
     }
 }

@@ -7,11 +7,6 @@ import SwiftUI
 
 struct AboutSettingsPane: View {
     @Environment(\.openURL) private var openURL
-    @State private var frame: CGRect = .zero
-
-    private var isLarge: Bool {
-        frame.width >= 475
-    }
 
     private var acknowledgementsURL: URL {
         // swiftlint:disable:next force_unwrapping
@@ -38,23 +33,23 @@ struct AboutSettingsPane: View {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: isLarge ? 250 : 175)
+                    .frame(width: 300)
             }
 
             VStack(alignment: .leading) {
                 Text("Ice")
-                    .font(.system(size: isLarge ? 64 : 36))
+                    .font(.system(size: 64))
                     .foregroundStyle(.primary)
 
                 HStack(spacing: 4) {
                     Text("Version")
                     Text(Constants.appVersion)
                 }
-                .font(.system(size: isLarge ? 16 : 12))
+                .font(.system(size: 16))
                 .foregroundStyle(.secondary)
 
                 Text(Constants.copyright)
-                    .font(.system(size: isLarge ? 14 : 10))
+                    .font(.system(size: 14))
                     .foregroundStyle(.tertiary)
             }
             .fontWeight(.medium)
@@ -64,7 +59,6 @@ struct AboutSettingsPane: View {
             maxWidth: .infinity,
             maxHeight: .infinity
         )
-        .onFrameChange(update: $frame)
         .bottomBar {
             HStack {
                 Button("Quit Ice") {

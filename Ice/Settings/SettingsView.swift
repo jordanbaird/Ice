@@ -51,6 +51,18 @@ struct SettingsView: View {
                 ForEach(Self.items, id: \.self) { item in
                     sidebarItem(item: item)
                 }
+            } header: {
+                HStack {
+                    Image(.iceCubeStroke)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 28, height: 28)
+
+                    Text("Ice")
+                        .font(.system(size: 28, weight: .medium))
+                }
+                .foregroundStyle(.primary)
+                .padding(.bottom, 8)
             }
             .collapsible(false)
         }

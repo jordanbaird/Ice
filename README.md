@@ -21,7 +21,7 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 
 Simply `Command` + drag your menu bar items to rearrange them.
 
-https://github.com/jordanbaird/Ice/assets/90936861/946e2954-333e-4b7a-a5e7-2fa3d38c3a08
+![Rearranging](Resources/rearranging.gif)
 
 ## Install
 

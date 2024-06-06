@@ -17,26 +17,14 @@ struct MenuBarAppearanceEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            headerText
+            stackHeader
             mainForm
-            HStack {
-                if appearanceManager.configuration != .defaultConfiguration {
-                    Button("Reset") {
-                        appearanceManager.configuration = .defaultConfiguration
-                    }
-                }
-                if case .popover(let closePopover) = location {
-                    Spacer()
-                    Button("Done", action: closePopover)
-                }
-            }
-            .padding()
-            .controlSize(.large)
+            stackFooter
         }
     }
 
     @ViewBuilder
-    private var headerText: some View {
+    private var stackHeader: some View {
         if case .popover = location {
             Text("Menu Bar Appearance")
                 .font(.title2)
@@ -72,6 +60,23 @@ struct MenuBarAppearanceEditor: View {
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
+    }
+
+    @ViewBuilder
+    private var stackFooter: some View {
+        HStack {
+            if appearanceManager.configuration != .defaultConfiguration {
+                Button("Reset") {
+                    appearanceManager.configuration = .defaultConfiguration
+                }
+            }
+            if case .popover(let closePopover) = location {
+                Spacer()
+                Button("Done", action: closePopover)
+            }
+        }
+        .padding()
+        .controlSize(.large)
     }
 
     @ViewBuilder

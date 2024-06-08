@@ -95,3 +95,7 @@ There are a number of system APIs that Ice uses that are only available starting
 ## License
 
 Ice is available under the [MIT license](LICENSE).
+
+## Stargazers over time
+
+[![Star History Chart](https://api.star-history.com/svg?repos=jordanbaird/Ice&type=Date)](https://star-history.com/#jordanbaird/Ice&Date)

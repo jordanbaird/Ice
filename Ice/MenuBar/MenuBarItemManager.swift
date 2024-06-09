@@ -166,6 +166,15 @@ extension MenuBarItemManager {
         return CGPoint(x: currentFrame.midX, y: currentFrame.midY)
     }
 
+    /// Returns the target item for the given destination.
+    ///
+    /// - Parameter destination: The destination to get the target item from.
+    private func getTargetItem(for destination: MoveDestination) -> MenuBarItem {
+        switch destination {
+        case .leftOfItem(let targetItem), .rightOfItem(let targetItem): targetItem
+        }
+    }
+
     /// Returns a Boolean value that indicates whether the given item is in the
     /// correct position for the given destination.
     ///
@@ -383,24 +392,28 @@ extension MenuBarItemManager {
         let fallbackPoint = try getFallbackPoint(for: item)
         let startPoint = CGPoint(x: 20_000, y: 20_000)
         let endPoint = try getEndPoint(for: destination)
+        let targetItem = getTargetItem(for: destination)
 
         guard
             let mouseDownEvent = CGEvent.menuBarItemEvent(
                 with: .mouseDown,
                 location: startPoint,
                 item: item,
+                pid: item.ownerPID,
                 source: source
             ),
             let mouseUpEvent = CGEvent.menuBarItemEvent(
                 with: .mouseUp,
                 location: endPoint,
-                item: item,
+                item: targetItem,
+                pid: item.ownerPID,
                 source: source
             ),
             let fallbackEvent = CGEvent.menuBarItemEvent(
                 with: .mouseUp,
                 location: fallbackPoint,
                 item: item,
+                pid: item.ownerPID,
                 source: source
             )
         else {
@@ -534,14 +547,17 @@ private extension CGEvent {
     ///
     /// - Parameters:
     ///   - type: An instance of a type conforming to ``MenuBarItemEventType``.
-    ///   - location: The location of the event. The location does not necessarily have to
-    ///     be within the bounds of the item.
+    ///   - location: The location of the event. Does not need to be within the
+    ///     bounds of the item.
     ///   - item: The target item of the event.
+    ///   - pid: The target process identifier of the event. Does not need to be
+    ///     the item's `ownerPID`.
     ///   - source: The source of the event.
     class func menuBarItemEvent(
         with type: MenuBarItemEventType,
         location: CGPoint,
         item: MenuBarItem,
+        pid: pid_t,
         source: CGEventSource
     ) -> CGEvent? {
         guard let event = CGEvent(
@@ -556,7 +572,7 @@ private extension CGEvent {
         event.flags = type.cgEventFlags
         event.setSource(source)
 
-        let targetPID = Int64(item.ownerPID)
+        let targetPID = Int64(pid)
         let userData = MenuBarItemEventUserDataContext.next()
         let windowNumber = Int64(item.windowID)
 

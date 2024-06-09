@@ -54,7 +54,7 @@ extension Bridging {
     /// Returns the frame for the window with the specified identifier.
     ///
     /// - Parameter windowID: An identifier for a window.
-    /// - Returns: The frame -- specified in screen coordinates -- of the the window associated
+    /// - Returns: The frame -- specified in screen coordinates -- of the window associated
     ///   with `windowID`, or `nil` if the operation failed.
     public static func getWindowFrame(for windowID: CGWindowID) -> CGRect? {
         var rect = CGRect.zero

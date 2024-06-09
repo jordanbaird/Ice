@@ -1,7 +1,11 @@
+included:
+  - Ice
+
 disabled_rules:
   - cyclomatic_complexity
   - file_length
   - function_body_length
+  - function_parameter_count
   - identifier_name
   - large_tuple
   - line_length

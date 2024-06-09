@@ -41,10 +41,10 @@ extension Predicates where Input == WindowInfo {
     /// the given display.
     static func menuBarWindow(for display: CGDirectDisplayID) -> NonThrowingPredicate {
         predicate { window in
-            // menu bar window belongs to the WindowServer process (owningApplication should be nil)
-            window.owningApplication == nil &&
+            // menu bar window belongs to the WindowServer process
+            window.isWindowServerWindow &&
             window.isOnScreen &&
-            window.windowLayer == kCGMainMenuWindowLevel &&
+            window.layer == kCGMainMenuWindowLevel &&
             window.title == "Menubar" &&
             CGDisplayBounds(display).contains(window.frame)
         }

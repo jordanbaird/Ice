@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import Bridging
 import Combine
 import OSLog
 import SwiftUI
@@ -15,6 +16,9 @@ final class AppState: ObservableObject {
     /// Manager for events received by the app.
     private(set) lazy var eventManager = EventManager(appState: self)
 
+    /// Manager for menu bar items.
+    private(set) lazy var itemManager = MenuBarItemManager(appState: self)
+
     /// Manager for the state of the menu bar.
     private(set) lazy var menuBarManager = MenuBarManager(appState: self)
 
@@ -24,11 +28,11 @@ final class AppState: ObservableObject {
     /// Manager for the app's settings.
     private(set) lazy var settingsManager = SettingsManager(appState: self)
 
-    /// Manager for app updates.
-    let updatesManager = UpdatesManager()
-
     /// The app's hotkey registry.
     let hotkeyRegistry = HotkeyRegistry()
+
+    /// Manager for app updates.
+    let updatesManager = UpdatesManager()
 
     /// The app's delegate.
     private(set) weak var appDelegate: AppDelegate?
@@ -41,6 +45,15 @@ final class AppState: ObservableObject {
 
     /// A Boolean value that indicates whether the "ShowOnHover" feature is prevented.
     private(set) var isShowOnHoverPrevented = false
+
+    /// A Boolean value that indicates whether the application can set the
+    /// cursor in the background.
+    ///
+    /// The default value of this property is `false`.
+    var setsCursorInBackground: Bool {
+        get { Bridging.getConnectionProperty(forKey: "SetsCursorInBackground") as? Bool ?? false }
+        set { Bridging.setConnectionProperty(newValue, forKey: "SetsCursorInBackground") }
+    }
 
     /// A Boolean value that indicates whether the app is running as a SwiftUI preview.
     let isPreview: Bool = {
@@ -87,7 +100,7 @@ final class AppState: ObservableObject {
 
     func performSetup() {
         permissionsManager.stopAllChecks()
-        eventManager.performSetup()
+        eventManager.startAll()
         menuBarManager.performSetup()
         settingsManager.performSetup()
         permissionsWindow?.close()

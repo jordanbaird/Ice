@@ -18,6 +18,9 @@
 		171C6FC62C0571510097A5C8 /* Bundle+copyrightString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6FC52C0571510097A5C8 /* Bundle+copyrightString.swift */; };
 		171C6FC92C0659340097A5C8 /* Task+timeout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6FC82C0659340097A5C8 /* Task+timeout.swift */; };
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
+		172778462C1489DF00F6F687 /* Bridging in Frameworks */ = {isa = PBXBuildFile; productRef = 172778452C1489DF00F6F687 /* Bridging */; };
+		172778482C1490EA00F6F687 /* EventTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172778472C1490EA00F6F687 /* EventTap.swift */; };
+		1727786E2C15181300F6F687 /* MenuBarItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1727786D2C15181300F6F687 /* MenuBarItemManager.swift */; };
 		172D827A2BC1F29E0048DD88 /* AccessibilityMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */; };
 		172D827C2BC1F2C10048DD88 /* AccessibilityError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D827B2BC1F2C10048DD88 /* AccessibilityError.swift */; };
 		172D827E2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D827D2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift */; };
@@ -115,6 +118,8 @@
 		171C6FC82C0659340097A5C8 /* Task+timeout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Task+timeout.swift"; sourceTree = "<group>"; };
 		1725FC692AED973800A59081 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		1726A3F82B3378B8008B09DD /* Acknowledgements.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Acknowledgements.rtf; sourceTree = "<group>"; };
+		172778472C1490EA00F6F687 /* EventTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTap.swift; sourceTree = "<group>"; };
+		1727786D2C15181300F6F687 /* MenuBarItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemManager.swift; sourceTree = "<group>"; };
 		172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMenuBar.swift; sourceTree = "<group>"; };
 		172D827B2BC1F2C10048DD88 /* AccessibilityError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityError.swift; sourceTree = "<group>"; };
 		172D827D2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMenuBarItem.swift; sourceTree = "<group>"; };
@@ -208,6 +213,7 @@
 				170423D92B56DE78004A2549 /* Sparkle in Frameworks */,
 				175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */,
 				1787C4272B16890B002F50DF /* AXSwift in Frameworks */,
+				172778462C1489DF00F6F687 /* Bridging in Frameworks */,
 				17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -244,6 +250,7 @@
 		170749CB2B120951009DDF73 /* EventMonitors */ = {
 			isa = PBXGroup;
 			children = (
+				172778472C1490EA00F6F687 /* EventTap.swift */,
 				170749C72B12078F009DDF73 /* GlobalEventMonitor.swift */,
 				71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */,
 				170749C92B1207D9009DDF73 /* UniversalEventMonitor.swift */,
@@ -265,6 +272,13 @@
 				171C6FC82C0659340097A5C8 /* Task+timeout.swift */,
 			);
 			path = Task;
+			sourceTree = "<group>";
+		};
+		172778442C1489DF00F6F687 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		172D82782BC1F2950048DD88 /* Accessibility */ = {
@@ -495,6 +509,7 @@
 			children = (
 				7166832C2A767E6A006ABF84 /* Ice */,
 				7166832B2A767E6A006ABF84 /* Products */,
+				172778442C1489DF00F6F687 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -586,6 +601,7 @@
 			isa = PBXGroup;
 			children = (
 				17D1AC8C2B97BB5900726180 /* MenuBarItem.swift */,
+				1727786D2C15181300F6F687 /* MenuBarItemManager.swift */,
 				7166834F2A7681AF006ABF84 /* MenuBarManager.swift */,
 				7162406E2AA0A323003EC671 /* MenuBarSection.swift */,
 				17F71BB12B87E37800905CBA /* RehideStrategy.swift */,
@@ -633,6 +649,7 @@
 				1787C4262B16890B002F50DF /* AXSwift */,
 				170423D82B56DE78004A2549 /* Sparkle */,
 				17F71BB42B880B4500905CBA /* CompactSlider */,
+				172778452C1489DF00F6F687 /* Bridging */,
 			);
 			productName = Ice;
 			productReference = 7166832A2A767E6A006ABF84 /* Ice.app */;
@@ -729,6 +746,7 @@
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
 				1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */,
 				1725FC6A2AED973800A59081 /* AppState.swift in Sources */,
+				1727786E2C15181300F6F687 /* MenuBarItemManager.swift in Sources */,
 				170749CA2B1207D9009DDF73 /* UniversalEventMonitor.swift in Sources */,
 				171C6FC92C0659340097A5C8 /* Task+timeout.swift in Sources */,
 				17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */,
@@ -754,6 +772,7 @@
 				17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */,
 				172D827C2BC1F2C10048DD88 /* AccessibilityError.swift in Sources */,
 				177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */,
+				172778482C1490EA00F6F687 /* EventTap.swift in Sources */,
 				17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */,
 				179AC2FC2C1146EF0051E7B0 /* RemoveSidebarToggle.swift in Sources */,
 				17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */,
@@ -1056,6 +1075,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 170423D72B56DE78004A2549 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		172778452C1489DF00F6F687 /* Bridging */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Bridging;
 		};
 		175061902B1543DD003144CD /* LaunchAtLogin */ = {
 			isa = XCSwiftPackageProductDependency;

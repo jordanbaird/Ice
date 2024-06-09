@@ -120,12 +120,11 @@ final class MenuBarManager: ObservableObject {
                         return
                     }
 
+                    let items = MenuBarItem.getMenuBarItems(for: displayID, onScreenOnly: true)
+
                     // get the leftmost item on the screen; the application menu should
                     // be hidden if the item's minX is close to the maxX of the menu
-                    guard
-                        let items = try? MenuBarItem.getMenuBarItems(for: displayID, onScreenOnly: true),
-                        let leftmostItem = items.min(by: { $0.frame.minX < $1.frame.minX })
-                    else {
+                    guard let leftmostItem = items.min(by: { $0.frame.minX < $1.frame.minX }) else {
                         return
                     }
 

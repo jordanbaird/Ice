@@ -19,6 +19,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // assign the delegate to the shared app state
         appState.assignAppDelegate(self)
 
+        // allow the app to set the cursor in the background
+        appState.setsCursorInBackground = true
+
         // set up the shared screen state manager
         ScreenStateManager.setUpSharedManager()
     }

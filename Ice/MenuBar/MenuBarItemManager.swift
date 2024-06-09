@@ -17,36 +17,6 @@ class MenuBarItemManager {
     }
 }
 
-// MARK: - Helpers
-
-extension MenuBarItemManager {
-    /// Hides the mouse cursor and increments the hide cursor count.
-    private func hideCursor() {
-        let result = CGDisplayHideCursor(CGMainDisplayID())
-        if result != .success {
-            Logger.cursor.error("CGDisplayHideCursor failed with error \(result.rawValue)")
-        }
-    }
-
-    /// Decrements the hide cursor count and shows the mouse cursor if the count is `0`.
-    private func showCursor() {
-        let result = CGDisplayShowCursor(CGMainDisplayID())
-        if result != .success {
-            Logger.cursor.error("CGDisplayShowCursor failed with error \(result.rawValue)")
-        }
-    }
-
-    /// Moves the mouse cursor to the given point without generating events.
-    ///
-    /// - Parameter point: The point to move the cursor to in global display coordinates.
-    private func warpMouseCursorPosition(to point: CGPoint) {
-        let result = CGWarpMouseCursorPosition(point)
-        if result != .success {
-            Logger.cursor.error("CGWarpMouseCursorPosition failed with error \(result.rawValue)")
-        }
-    }
-}
-
 // MARK: - Move Items
 
 extension MenuBarItemManager {
@@ -484,11 +454,11 @@ extension MenuBarItemManager {
             appState.eventManager.startAll()
         }
 
-        hideCursor()
+        MouseCursor.hide()
 
         defer {
-            warpMouseCursorPosition(to: cursorLocation)
-            showCursor()
+            MouseCursor.warpPosition(to: cursorLocation)
+            MouseCursor.show()
         }
 
         try await moveItemWithoutRestoringMouseLocation(
@@ -603,6 +573,5 @@ private extension CGEvent {
 // MARK: - Logger
 
 private extension Logger {
-    static let cursor = Logger(category: "Cursor")
     static let move = Logger(category: "Move")
 }

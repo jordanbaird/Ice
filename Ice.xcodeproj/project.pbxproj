@@ -78,6 +78,7 @@
 		17ECD4EE2B290F8D00E33147 /* PermissionsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17ECD4ED2B290F8D00E33147 /* PermissionsWindow.swift */; };
 		17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F71BB12B87E37800905CBA /* RehideStrategy.swift */; };
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
+		17F998322C15C91400D75EC0 /* MouseCursor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F998312C15C91400D75EC0 /* MouseCursor.swift */; };
 		17FE5AD32BCA7A7500E4F8D9 /* ScreenStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE5AD22BCA7A7500E4F8D9 /* ScreenStateManager.swift */; };
 		17FE5AD52BCA9BE200E4F8D9 /* ScreenState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */; };
 		71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */; };
@@ -175,6 +176,7 @@
 		17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+clamped.swift"; sourceTree = "<group>"; };
 		17ECD4ED2B290F8D00E33147 /* PermissionsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsWindow.swift; sourceTree = "<group>"; };
 		17F71BB12B87E37800905CBA /* RehideStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RehideStrategy.swift; sourceTree = "<group>"; };
+		17F998312C15C91400D75EC0 /* MouseCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseCursor.swift; sourceTree = "<group>"; };
 		17FE5AD22BCA7A7500E4F8D9 /* ScreenStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenStateManager.swift; sourceTree = "<group>"; };
 		17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenState.swift; sourceTree = "<group>"; };
 		71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectAssociation.swift; sourceTree = "<group>"; };
@@ -554,6 +556,7 @@
 				7133ED5D2A853FCF000A7E1B /* Constants.swift */,
 				17928F192AC5DF9C0016C615 /* Defaults.swift */,
 				17C303772BA62CD20079755B /* MigrationManager.swift */,
+				17F998312C15C91400D75EC0 /* MouseCursor.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
 				17C298B72BD42C390074DEAC /* Predicates.swift */,
 				174AA5F42B730A0B00E3FE74 /* ScreenCapture.swift */,
@@ -748,6 +751,7 @@
 				1725FC6A2AED973800A59081 /* AppState.swift in Sources */,
 				1727786E2C15181300F6F687 /* MenuBarItemManager.swift in Sources */,
 				170749CA2B1207D9009DDF73 /* UniversalEventMonitor.swift in Sources */,
+				17F998322C15C91400D75EC0 /* MouseCursor.swift in Sources */,
 				171C6FC92C0659340097A5C8 /* Task+timeout.swift in Sources */,
 				17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */,
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,

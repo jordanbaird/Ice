@@ -102,6 +102,13 @@ struct MenuBarItem {
         }
     }
 
+    /// A Boolean value that indicates whether the item is currently
+    /// in the menu bar.
+    var isCurrentlyInMenuBar: Bool {
+        let list = Set(Bridging.getWindowList(option: .menuBarItems))
+        return list.contains(windowID)
+    }
+
     /// A string to use for logging purposes.
     var logString: String {
         if owningApplication == .current {
@@ -159,7 +166,7 @@ extension MenuBarItem {
     ///
     /// - Parameter onScreenOnly: A Boolean value that indicates whether only the
     ///   items that are on screen should be returned.
-    public static func getMenuBarItems(onScreenOnly: Bool) -> [MenuBarItem] {
+    static func getMenuBarItems(onScreenOnly: Bool) -> [MenuBarItem] {
         var option: Bridging.WindowListOption = [
             .menuBarItems,
             .activeSpace,

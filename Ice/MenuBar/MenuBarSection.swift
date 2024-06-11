@@ -229,7 +229,7 @@ extension MenuBarSection: BindingExposable { }
 // MARK: MenuBarSection.Name
 extension MenuBarSection {
     /// The name of a menu bar section.
-    enum Name {
+    enum Name: CaseIterable {
         case visible
         case hidden
         case alwaysHidden
@@ -247,6 +247,14 @@ extension MenuBarSection {
             case .visible: "Visible"
             case .hidden: "Hidden"
             case .alwaysHidden: "Always-Hidden"
+            }
+        }
+
+        var logString: String {
+            switch self {
+            case .visible: "visible"
+            case .hidden: "hidden"
+            case .alwaysHidden: "always-hidden"
             }
         }
     }

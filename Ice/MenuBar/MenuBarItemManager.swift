@@ -5,15 +5,84 @@
 
 import Bridging
 import Cocoa
+import Combine
 import OSLog
 
 /// A type that manages menu bar items.
 @MainActor
-class MenuBarItemManager {
+class MenuBarItemManager: ObservableObject {
+    @Published var cachedMenuBarItems = [MenuBarSection.Name: [MenuBarItem]]()
+
     private(set) weak var appState: AppState?
+
+    private var cancellables = Set<AnyCancellable>()
 
     init(appState: AppState) {
         self.appState = appState
+    }
+
+    func performSetup() {
+        configureCancellables()
+        cacheMenuBarItems()
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        Timer.publish(every: 3, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.cacheMenuBarItems()
+            }
+            .store(in: &c)
+
+        cancellables = c
+    }
+
+    private func cacheMenuBarItems() {
+        let items = MenuBarItem.getMenuBarItems(onScreenOnly: false)
+
+        guard
+            let hiddenControlItem = items.first(where: { $0.info == .hiddenControlItem }),
+            let alwaysHiddenControlItem = items.first(where: { $0.info == .alwaysHiddenControlItem })
+        else {
+            return
+        }
+
+        update(&cachedMenuBarItems) { cachedItems in
+            cachedItems.removeAll()
+            for item in items {
+                // audio video module cannot be hidden
+                guard item.info != .audioVideoModule else {
+                    continue
+                }
+
+                // only items currently in the menu bar should be included
+                guard item.isCurrentlyInMenuBar else {
+                    continue
+                }
+
+                if item.owningApplication == .current {
+                    // the Ice icon is the only item owned by Ice that should be included
+                    guard item.title == ControlItem.Identifier.iceIcon.rawValue else {
+                        continue
+                    }
+                }
+
+                if item.frame.minX >= hiddenControlItem.frame.maxX {
+                    cachedItems[.visible, default: []].append(item)
+                } else if
+                    item.frame.maxX <= hiddenControlItem.frame.minX,
+                    item.frame.minX >= alwaysHiddenControlItem.frame.maxX
+                {
+                    cachedItems[.hidden, default: []].append(item)
+                } else if item.frame.maxX <= alwaysHiddenControlItem.frame.minX {
+                    cachedItems[.alwaysHidden, default: []].append(item)
+                } else {
+                    Logger.itemManager.warning("Item \"\(item.logString)\" not added to any section")
+                }
+            }
+        }
     }
 }
 
@@ -377,14 +446,16 @@ extension MenuBarItemManager {
     ///   - source: An event source.
     private func moveItemWithoutRestoringMouseLocation(
         _ item: MenuBarItem,
-        to destination: MoveDestination,
-        source: CGEventSource
+        to destination: MoveDestination
     ) async throws {
         guard item.isMovable else {
             throw MoveError(code: .notMovable, item: item)
         }
         guard let application = item.owningApplication else {
             throw MoveError(code: .noOwningApplication, item: item)
+        }
+        guard let source = CGEventSource(stateID: .combinedSessionState) else {
+            throw MoveError(code: .couldNotComplete, item: item)
         }
 
         suppressLocalEvents(source: source)
@@ -455,9 +526,6 @@ extension MenuBarItemManager {
         guard let appState else {
             throw MoveError(code: .invalidAppState, item: item)
         }
-        guard let source = CGEventSource(stateID: .combinedSessionState) else {
-            throw MoveError(code: .couldNotComplete, item: item)
-        }
         guard let cursorLocation = CGEvent(source: nil)?.location else {
             throw MoveError(code: .invalidCursorLocation, item: item)
         }
@@ -474,11 +542,7 @@ extension MenuBarItemManager {
             MouseCursor.show()
         }
 
-        try await moveItemWithoutRestoringMouseLocation(
-            item,
-            to: destination,
-            source: source
-        )
+        try await moveItemWithoutRestoringMouseLocation(item, to: destination)
     }
 }
 
@@ -589,5 +653,7 @@ private extension CGEvent {
 // MARK: - Logger
 
 private extension Logger {
+    static let itemManager = Logger(category: "MenuBarItemManager")
     static let move = Logger(category: "Move")
+    static let arrange = Logger(category: "Arrange")
 }

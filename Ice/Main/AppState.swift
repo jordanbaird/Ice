@@ -103,6 +103,7 @@ final class AppState: ObservableObject {
         eventManager.startAll()
         menuBarManager.performSetup()
         settingsManager.performSetup()
+        itemManager.performSetup()
         permissionsWindow?.close()
     }
 

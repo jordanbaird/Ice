@@ -12,6 +12,9 @@ enum Constants {
 
     /// The user-readable copyright string in the app's bundle.
     static let copyright = Bundle.main.copyrightString!
+
+    /// The bundle identifier of the app.
+    static let bundleIdentifier = Bundle.main.bundleIdentifier!
     // swiftlint:enable force_unwrapping
 
     /// The identifier for the settings window.

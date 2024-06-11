@@ -12,6 +12,10 @@ struct SettingsView: View {
             icon: .systemSymbol("gearshape")
         ),
         SettingsNavigationItem(
+            name: .menuBarItems,
+            icon: .systemSymbol("menubar.rectangle")
+        ),
+        SettingsNavigationItem(
             name: .menuBarAppearance,
             icon: .systemSymbol("paintpalette")
         ),
@@ -75,6 +79,8 @@ struct SettingsView: View {
         switch selection.name {
         case .general:
             GeneralSettingsPane()
+        case .menuBarItems:
+            MenuBarItemsSettingsPane()
         case .menuBarAppearance:
             MenuBarAppearanceSettingsPane()
         case .hotkeys:

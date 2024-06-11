@@ -106,8 +106,8 @@ class LayoutBarPaddingView: NSView {
                 // dragging source is the only view in the layout bar, so we
                 // need to find a target item
                 let items = MenuBarItem.getMenuBarItems(onScreenOnly: false)
-                let targetItem = switch section.name {
-                case .visible: items.first { $0.info == .controlCenter }
+                let targetItem: MenuBarItem? = switch section.name {
+                case .visible: nil // visible section always has more than 1 item
                 case .hidden: items.first { $0.info == .hiddenControlItem }
                 case .alwaysHidden: items.first { $0.info == .alwaysHiddenControlItem }
                 }
@@ -133,12 +133,7 @@ class LayoutBarPaddingView: NSView {
     private func move(item: MenuBarItem, to destination: MenuBarItemManager.MoveDestination) {
         Task {
             do {
-                do {
-                    try await container.itemManager.move(item: item, to: destination)
-                } catch {
-                    Logger.layoutBar.error("Failed to move menu bar item with error: \(error) -- retrying")
-                    try await container.itemManager.move(item: item, to: destination)
-                }
+                try await container.itemManager.move(item: item, to: destination)
             } catch {
                 Logger.layoutBar.error("Error moving menu bar item: \(error)")
                 let alert = NSAlert(error: error)

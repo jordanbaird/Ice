@@ -542,7 +542,18 @@ extension MenuBarItemManager {
             MouseCursor.show()
         }
 
-        try await moveItemWithoutRestoringMouseLocation(item, to: destination)
+        // item movement can occasionally fail; retry up to 5 total attempts,
+        // throwing an error on the last attempt if it fails
+        for n in 1...5 {
+            do {
+                try await moveItemWithoutRestoringMouseLocation(item, to: destination)
+                Logger.move.info("Successfully moved \"\(item.logString)\"")
+                break
+            } catch where n < 5 {
+                Logger.move.error("Attempt \(n) to move \"\(item.logString)\" failed: \(error)")
+                continue
+            }
+        }
     }
 }
 

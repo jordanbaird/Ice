@@ -53,6 +53,8 @@ brew install jordanbaird-ice
 - [ ] Display hidden items in a separate bar (e.g. for MacBooks with the notch)
 - [ ] Custom spacing between items
 - [ ] Profiles for menu bar layout
+- [ ] Menu bar item groups
+- [ ] Show menu bar items when trigger conditions are met
 
 ### Menu bar appearance
 
@@ -86,11 +88,16 @@ There are a number of system APIs that Ice uses that are only available starting
 ## Gallery
 
 #### Choose your own icon to show in the menu bar
-![Custom Icon Example](https://github.com/jordanbaird/Ice/assets/90936861/ded03af0-f6cf-4bc1-a094-af0cf32ead96)
+![Custom Icon Example](https://github.com/jordanbaird/Ice/assets/90936861/f5a5e195-152a-4d47-bd3c-23557d1ab4ec)
 
 #### Customize the menu bar's appearance
-![Menu Bar Appearance Example 1](https://github.com/jordanbaird/Ice/assets/90936861/99a59cc7-914a-4f8a-af4b-11a5193534da)
-![Menu Bar Appearance Example 2](https://github.com/jordanbaird/Ice/assets/90936861/ba3bd8d9-0eeb-447b-8a62-1bc811319132)
+![Menu Bar Appearance Example 1](https://github.com/jordanbaird/Ice/assets/90936861/c9cc629d-e27d-4d77-a72a-da4e169f2b37)
+![Menu Bar Appearance Example 2](https://github.com/jordanbaird/Ice/assets/90936861/f7670573-513a-475d-ab69-7864bed5c5c1)
+
+### Coming Soon...
+
+#### Arrange menu bar items in Ice's settings
+![Arrange Menu Bar Items](https://github.com/jordanbaird/Ice/assets/90936861/97b71fa7-eb4d-47e4-8978-18cdab7df675)
 
 ## License
 

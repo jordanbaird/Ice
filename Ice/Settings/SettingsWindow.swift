@@ -18,6 +18,6 @@ struct SettingsWindow: Scene {
         }
         .commandsRemoved()
         .windowResizability(.contentSize)
-        .defaultSize(width: 850, height: 525)
+        .defaultSize(width: 875, height: 575)
     }
 }

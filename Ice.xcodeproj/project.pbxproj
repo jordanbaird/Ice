@@ -380,6 +380,7 @@
 		179267382AE98985006AFBAF /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				17F9983A2C1655D200D75EC0 /* LayoutBar */,
 				17EC6B522AE0C09F0065F260 /* Pickers */,
 			);
 			path = Views;
@@ -477,7 +478,8 @@
 				17F9984E2C16CF8600D75EC0 /* LayoutBarPaddingView.swift */,
 				17F998502C16D02E00D75EC0 /* LayoutBarScrollView.swift */,
 			);
-			path = LayoutBar;
+			name = LayoutBar;
+			path = ../../LayoutBar;
 			sourceTree = "<group>";
 		};
 		17F9983F2C16567E00D75EC0 /* CGImage */ = {
@@ -571,7 +573,6 @@
 				17147FBE2B99513200C4A435 /* Events */,
 				716683412A76811C006ABF84 /* Extensions */,
 				7150A7AB2AA4262F0045EA68 /* Hotkeys */,
-				17F9983A2C1655D200D75EC0 /* LayoutBar */,
 				17C261E72B5AEB7A0076F129 /* Main */,
 				7166834E2A768190006ABF84 /* MenuBar */,
 				179F13BC2B91E7F700EC6B52 /* MenuBarAppearance */,

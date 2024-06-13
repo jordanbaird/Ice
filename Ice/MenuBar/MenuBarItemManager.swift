@@ -13,9 +13,9 @@ import OSLog
 class MenuBarItemManager: ObservableObject {
     @Published var cachedMenuBarItems = [MenuBarSection.Name: [MenuBarItem]]()
 
-    private var rehideTempShownTimer: Timer?
+    private var tempItemsInfo = [(item: MenuBarItem, destination: MoveDestination)]()
 
-    private var tempShownInfo = [(item: MenuBarItem, destination: MoveDestination)]()
+    private var tempItemsTimer: Timer?
 
     private(set) weak var appState: AppState?
 
@@ -55,7 +55,7 @@ class MenuBarItemManager: ObservableObject {
     }
 
     private func cacheMenuBarItems() {
-        guard tempShownInfo.isEmpty else {
+        guard tempItemsInfo.isEmpty else {
             Logger.itemManager.info("Items are temporarily shown, so deferring cache")
             return
         }
@@ -117,6 +117,19 @@ class MenuBarItemManager: ObservableObject {
         return nil
     }
 
+    private func runTempItemsTimer(for interval: TimeInterval) {
+        tempItemsTimer?.invalidate()
+        tempItemsTimer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
+            Task {
+                await self.rehideTemporarilyShownItems()
+            }
+        }
+    }
+
     func temporarilyShowItem(_ item: MenuBarItem) {
         let items = MenuBarItem.getMenuBarItems(onScreenOnly: false)
 
@@ -129,7 +142,7 @@ class MenuBarItemManager: ObservableObject {
             return
         }
 
-        tempShownInfo.append((item, destination))
+        tempItemsInfo.append((item, destination))
 
         Task {
             do {
@@ -141,38 +154,39 @@ class MenuBarItemManager: ObservableObject {
             }
         }
 
-        rehideTempShownTimer?.invalidate()
-        rehideTempShownTimer = .scheduledTimer(withTimeInterval: 20, repeats: false) { [weak self] timer in
-            guard let self else {
-                timer.invalidate()
-                return
-            }
-            Task {
-                await self.rehideTemporarilyShownItems()
-            }
-        }
+        runTempItemsTimer(for: 20)
     }
 
     func rehideTemporarilyShownItems() async {
-        let menuCheckTask = Task.detached(timeout: .seconds(1)) {
-            while await self.isMenuOpen {
-                try Task.checkCancellation()
+        if
+            let windows = try? WindowInfo.getAllWindows(),
+            let menuWindow = windows.first(where: { $0.layer == 101 })
+        {
+            let menuCheckTask = Task.detached(timeout: .seconds(1)) {
+                while Set(Bridging.getWindowList(option: .onScreen)).contains(menuWindow.windowID) {
+                    try Task.checkCancellation()
+                    try await Task.sleep(for: .milliseconds(10))
+                }
+            }
+            do {
+                try await menuCheckTask.value
+            } catch is TaskTimeoutError {
+                Logger.itemManager.info("Menu check task timed out. Switching to timer")
+                runTempItemsTimer(for: 3)
+                return
+            } catch {
+                Logger.itemManager.error("ERROR: \(error)")
             }
         }
-        do {
-            try await menuCheckTask.value
-        } catch {
-            Logger.itemManager.error("ERROR: \(error)")
-        }
-        while let (item, destination) = tempShownInfo.popLast() {
+        while let (item, destination) = tempItemsInfo.popLast() {
             do {
                 try await move(item: item, to: destination)
             } catch {
                 Logger.itemManager.error("Failed to return \"\(item.logString)\": \(error)")
             }
         }
-        rehideTempShownTimer?.invalidate()
-        rehideTempShownTimer = nil
+        tempItemsTimer?.invalidate()
+        tempItemsTimer = nil
     }
 }
 

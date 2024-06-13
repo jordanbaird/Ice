@@ -43,14 +43,27 @@ final class MenuBarSection: ObservableObject {
 
     var isHidden: Bool {
         if useSecondaryBar {
+            if controlItem.state == .showItems {
+                return false
+            }
             switch name {
             case .visible, .hidden:
-                secondaryBarPanel?.currentSection != .hidden
+                return secondaryBarPanel?.currentSection != .hidden
             case .alwaysHidden:
-                secondaryBarPanel?.currentSection != .alwaysHidden
+                return secondaryBarPanel?.currentSection != .alwaysHidden
             }
-        } else {
-            controlItem.state == .hideItems
+        }
+        switch name {
+        case .visible, .hidden:
+            if secondaryBarPanel?.currentSection == .hidden {
+                return false
+            }
+            return controlItem.state == .hideItems
+        case .alwaysHidden:
+            if secondaryBarPanel?.currentSection == .alwaysHidden {
+                return false
+            }
+            return controlItem.state == .hideItems
         }
     }
 
@@ -98,6 +111,7 @@ final class MenuBarSection: ObservableObject {
     /// Shows the status items in the section.
     func show() {
         guard
+            let appState,
             let menuBarManager,
             isHidden
         else {
@@ -105,26 +119,41 @@ final class MenuBarSection: ObservableObject {
         }
         switch name {
         case .visible where useSecondaryBar, .hidden where useSecondaryBar:
-            if let screen = NSScreen.main {
-                secondaryBarPanel?.show(section: .hidden, on: screen)
+            Task {
+                await appState.itemManager.rehideTemporarilyShownItems()
+                if let screen = NSScreen.main {
+                    secondaryBarPanel?.show(section: .hidden, on: screen)
+                }
+                for section in menuBarManager.sections {
+                    section.controlItem.state = .hideItems
+                }
             }
         case .alwaysHidden where useSecondaryBar:
-            if let screen = NSScreen.main {
-                secondaryBarPanel?.show(section: .alwaysHidden, on: screen)
+            Task {
+                await appState.itemManager.rehideTemporarilyShownItems()
+                if let screen = NSScreen.main {
+                    secondaryBarPanel?.show(section: .alwaysHidden, on: screen)
+                }
+                for section in menuBarManager.sections {
+                    section.controlItem.state = .hideItems
+                }
             }
         case .visible:
+            secondaryBarPanel?.close()
             guard let hiddenSection = menuBarManager.section(withName: .hidden) else {
                 return
             }
             controlItem.state = .showItems
             hiddenSection.controlItem.state = .showItems
         case .hidden:
+            secondaryBarPanel?.close()
             guard let visibleSection = menuBarManager.section(withName: .visible) else {
                 return
             }
             controlItem.state = .showItems
             visibleSection.controlItem.state = .showItems
         case .alwaysHidden:
+            secondaryBarPanel?.close()
             guard
                 let hiddenSection = menuBarManager.section(withName: .hidden),
                 let visibleSection = menuBarManager.section(withName: .visible)
@@ -147,9 +176,12 @@ final class MenuBarSection: ObservableObject {
         else {
             return
         }
+        secondaryBarPanel?.close()
         switch name {
         case _ where useSecondaryBar:
-            secondaryBarPanel?.close()
+            for section in menuBarManager.sections {
+                section.controlItem.state = .hideItems
+            }
         case .visible:
             guard
                 let hiddenSection = menuBarManager.section(withName: .hidden),

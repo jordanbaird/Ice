@@ -399,25 +399,7 @@ final class ControlItem: ObservableObject {
     }
 
     @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
-        guard
-            let appState,
-            let section = Self.sectionStorage[menuItem]
-        else {
-            return
-        }
-        if appState.settingsManager.generalSettingsManager.useSecondaryBar {
-            let panel = appState.menuBarManager.secondaryBarPanel
-            if
-                panel.isVisible,
-                section.name == panel.currentSection
-            {
-                panel.close()
-            } else if let screen = statusItem.button?.window?.screen {
-                panel.show(section: section.name, on: screen)
-            }
-        } else {
-            section.toggle()
-        }
+        Self.sectionStorage[menuItem]?.toggle()
     }
 
     @objc private func checkForUpdates() {

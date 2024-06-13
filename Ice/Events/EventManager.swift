@@ -169,6 +169,11 @@ final class EventManager {
             return event
         }
 
+        // make sure clicking the secondary bar doesn't trigger rehide
+        guard event.window !== appState.menuBarManager.secondaryBarPanel else {
+            return event
+        }
+
         // only continue if the "hidden" section is currently visible
         guard
             let hiddenSection = appState.menuBarManager.section(withName: .hidden),
@@ -206,13 +211,6 @@ final class EventManager {
                         owningApplication.isActive,
                         owningApplication.activationPolicy == .regular
                     else {
-                        return
-                    }
-                }
-
-                if owningApplication == .current {
-                    // make sure clicking the secondary panel doesn't trigger rehide
-                    guard windowUnderMouse.windowID != appState.menuBarManager.secondaryBarPanel.windowNumber else {
                         return
                     }
                 }
@@ -310,6 +308,11 @@ final class EventManager {
             let self,
             let appState
         else {
+            return event
+        }
+
+        // don't continue if using the secondary bar
+        guard !appState.settingsManager.generalSettingsManager.useSecondaryBar else {
             return event
         }
 

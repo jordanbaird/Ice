@@ -12,6 +12,8 @@ import SwiftUI
 class SecondaryBarPanel: NSPanel {
     private weak var appState: AppState?
 
+    private var imageCache = SecondaryBarImageCache()
+
     private(set) var currentSection: MenuBarSection.Name?
 
     private var cancellables = Set<AnyCancellable>()
@@ -30,7 +32,7 @@ class SecondaryBarPanel: NSPanel {
         )
         self.appState = appState
         self.titlebarAppearsTransparent = true
-        self.isMovable = false
+        self.isMovableByWindowBackground = true
         self.animationBehavior = .none
         self.level = .mainMenu
         self.collectionBehavior = [.fullScreenNone, .ignoresCycle, .moveToActiveSpace]
@@ -45,26 +47,32 @@ class SecondaryBarPanel: NSPanel {
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.close()
+                guard let self else {
+                    return
+                }
+                close()
+                imageCache.clear()
             }
             .store(in: &c)
 
         publisher(for: \.frame)
-            .sink { [weak self] frame in
+            .map(\.size)
+            .removeDuplicates()
+            .sink { [weak self] _ in
                 guard
                     let self,
                     let screen
                 else {
                     return
                 }
-                updateOrigin(for: screen, frame: frame)
+                updateOrigin(for: screen)
             }
             .store(in: &c)
 
         cancellables = c
     }
 
-    private func updateOrigin(for screen: NSScreen, frame: CGRect) {
+    private func updateOrigin(for screen: NSScreen) {
         let origin = CGPoint(
             x: (screen.visibleFrame.maxX - frame.width) - 5,
             y: (screen.visibleFrame.maxY - frame.height) - 5
@@ -76,9 +84,14 @@ class SecondaryBarPanel: NSPanel {
         guard let appState else {
             return
         }
-        contentView = SecondaryBarHostingView(appState: appState, section: section) { [weak self] in
+        contentView = SecondaryBarHostingView(
+            appState: appState,
+            imageCache: imageCache,
+            section: section
+        ) { [weak self] in
             self?.close()
         }
+        updateOrigin(for: screen)
         makeKeyAndOrderFront(nil)
         currentSection = section
     }
@@ -90,6 +103,28 @@ class SecondaryBarPanel: NSPanel {
     }
 }
 
+// MARK: - SecondaryBarImageCache
+
+private class SecondaryBarImageCache: ObservableObject {
+    @Published private var images = [MenuBarItemInfo: CGImage]()
+
+    func image(for info: MenuBarItemInfo) -> CGImage? {
+        images[info]
+    }
+
+    func cache(image: CGImage, for info: MenuBarItemInfo) {
+        DispatchQueue.main.async {
+            self.images[info] = image
+        }
+    }
+
+    func clear() {
+        DispatchQueue.main.async {
+            self.images.removeAll()
+        }
+    }
+}
+
 // MARK: - SecondaryBarHostingView
 
 private class SecondaryBarHostingView: NSHostingView<AnyView> {
@@ -97,10 +132,17 @@ private class SecondaryBarHostingView: NSHostingView<AnyView> {
         NSEdgeInsets()
     }
 
-    init(appState: AppState, section: MenuBarSection.Name, closePanel: @escaping () -> Void) {
+    init(
+        appState: AppState,
+        imageCache: SecondaryBarImageCache,
+        section: MenuBarSection.Name,
+        closePanel: @escaping () -> Void
+    ) {
         super.init(
             rootView: SecondaryBarContentView(section: section, closePanel: closePanel)
-                .environmentObject(appState)
+                .environmentObject(appState.itemManager)
+                .environmentObject(appState.menuBarManager)
+                .environmentObject(imageCache)
                 .erased()
         )
     }
@@ -114,18 +156,23 @@ private class SecondaryBarHostingView: NSHostingView<AnyView> {
     required init(rootView: AnyView) {
         fatalError("init(rootView:) has not been implemented")
     }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        return true
+    }
 }
 
 // MARK: - SecondaryBarContentView
 
 private struct SecondaryBarContentView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var itemManager: MenuBarItemManager
+    @EnvironmentObject var menuBarManager: MenuBarManager
 
     let section: MenuBarSection.Name
     let closePanel: () -> Void
 
     private var items: [MenuBarItem] {
-        appState.itemManager.cachedMenuBarItems[section, default: []]
+        itemManager.cachedMenuBarItems[section, default: []]
     }
 
     var body: some View {
@@ -135,7 +182,7 @@ private struct SecondaryBarContentView: View {
             }
         }
         .padding(5)
-        .layoutBarStyle(menuBarManager: appState.menuBarManager, cornerRadius: 0)
+        .layoutBarStyle(menuBarManager: menuBarManager, cornerRadius: 0)
         .fixedSize()
     }
 }
@@ -143,21 +190,41 @@ private struct SecondaryBarContentView: View {
 // MARK: - SecondaryBarItemView
 
 private struct SecondaryBarItemView: View {
-    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var itemManager: MenuBarItemManager
+    @EnvironmentObject var imageCache: SecondaryBarImageCache
 
     let item: MenuBarItem
     let closePanel: () -> Void
 
-    private var size: CGSize {
-        CGSize(width: item.frame.width, height: item.frame.height)
+    private var image: CGImage? {
+        let info = item.info
+        if let image = imageCache.image(for: info) {
+            return image
+        }
+        if let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming) {
+            imageCache.cache(image: image, for: info)
+            return image
+        }
+        return nil
+    }
+
+    private var size: CGSize? {
+        let frame = Bridging.getWindowFrame(for: item.windowID)
+        return frame?.size
     }
 
     var body: some View {
-        if let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming) {
+        if let image, let size {
             Image(nsImage: NSImage(cgImage: image, size: size))
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(
+                    width: size.width,
+                    height: size.height
+                )
                 .onTapGesture {
                     closePanel()
-                    appState.itemManager.temporarilyShowItem(item)
+                    itemManager.temporarilyShowItem(item)
                 }
         }
     }

@@ -210,6 +210,13 @@ final class EventManager {
                     }
                 }
 
+                if owningApplication == .current {
+                    // make sure clicking the secondary panel doesn't trigger rehide
+                    guard windowUnderMouse.windowID != appState.menuBarManager.secondaryBarPanel.windowNumber else {
+                        return
+                    }
+                }
+
                 // if all the above checks have passed, hide
                 hiddenSection.hide()
             } catch {

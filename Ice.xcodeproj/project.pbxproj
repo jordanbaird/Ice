@@ -64,6 +64,11 @@
 		17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */; };
 		17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */; };
 		17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */; };
+		17BE3DD02C1A45B3008B98EF /* SecondaryBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17BE3DCF2C1A45B3008B98EF /* SecondaryBar.swift */; };
+		17BE3DDB2C1A63B6008B98EF /* LayoutBarStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17BE3DDA2C1A63B6008B98EF /* LayoutBarStyle.swift */; };
+		17BE3DDE2C1A6410008B98EF /* MenuBarTintShapeStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17BE3DDD2C1A6410008B98EF /* MenuBarTintShapeStyle.swift */; };
+		17BE3DE02C1A705E008B98EF /* SecondaryBarPanel+hasKeyAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17BE3DDF2C1A705E008B98EF /* SecondaryBarPanel+hasKeyAppearance.swift */; };
+		17BE3DE22C1ACAEA008B98EF /* Erased.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17BE3DE12C1ACAEA008B98EF /* Erased.swift */; };
 		17C298B82BD42C390074DEAC /* Predicates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C298B72BD42C390074DEAC /* Predicates.swift */; };
 		17C303782BA62CD20079755B /* MigrationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C303772BA62CD20079755B /* MigrationManager.swift */; };
 		17C3C5F72B75A36100B9648C /* NSScreen+displayID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C3C5F62B75A36100B9648C /* NSScreen+displayID.swift */; };
@@ -171,6 +176,11 @@
 		17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnKeyDown.swift; sourceTree = "<group>"; };
 		17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalEventMonitorModifier.swift; sourceTree = "<group>"; };
 		17B7F32A2B264C1800CDCF49 /* MenuBarAppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceManager.swift; sourceTree = "<group>"; };
+		17BE3DCF2C1A45B3008B98EF /* SecondaryBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecondaryBar.swift; sourceTree = "<group>"; };
+		17BE3DDA2C1A63B6008B98EF /* LayoutBarStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarStyle.swift; sourceTree = "<group>"; };
+		17BE3DDD2C1A6410008B98EF /* MenuBarTintShapeStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarTintShapeStyle.swift; sourceTree = "<group>"; };
+		17BE3DDF2C1A705E008B98EF /* SecondaryBarPanel+hasKeyAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SecondaryBarPanel+hasKeyAppearance.swift"; sourceTree = "<group>"; };
+		17BE3DE12C1ACAEA008B98EF /* Erased.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Erased.swift; sourceTree = "<group>"; };
 		17C261E22B5AC03C0076F129 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		17C298B72BD42C390074DEAC /* Predicates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Predicates.swift; sourceTree = "<group>"; };
 		17C303772BA62CD20079755B /* MigrationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationManager.swift; sourceTree = "<group>"; };
@@ -368,6 +378,8 @@
 			children = (
 				175812582B82ACA800D622DA /* Annotation.swift */,
 				71604D602AAE62DA002FE96F /* BottomBar.swift */,
+				17BE3DE12C1ACAEA008B98EF /* Erased.swift */,
+				17BE3DDA2C1A63B6008B98EF /* LayoutBarStyle.swift */,
 				17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */,
 				71839C152A9B6A0D00250044 /* OnFrameChange.swift */,
 				17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */,
@@ -390,6 +402,7 @@
 			isa = PBXGroup;
 			children = (
 				179AC2FE2C11475F0051E7B0 /* NSSplitViewItem+swizzledCanCollapse.swift */,
+				17BE3DDF2C1A705E008B98EF /* SecondaryBarPanel+hasKeyAppearance.swift */,
 			);
 			path = Swizzling;
 			sourceTree = "<group>";
@@ -424,6 +437,22 @@
 				17B331CF2B9916E70084EBB0 /* SettingsManager.swift */,
 			);
 			path = SettingsManagers;
+			sourceTree = "<group>";
+		};
+		17BE3DCE2C1A458E008B98EF /* SecondaryBar */ = {
+			isa = PBXGroup;
+			children = (
+				17BE3DCF2C1A45B3008B98EF /* SecondaryBar.swift */,
+			);
+			path = SecondaryBar;
+			sourceTree = "<group>";
+		};
+		17BE3DDC2C1A6401008B98EF /* ShapeStyles */ = {
+			isa = PBXGroup;
+			children = (
+				17BE3DDD2C1A6410008B98EF /* MenuBarTintShapeStyle.swift */,
+			);
+			path = ShapeStyles;
 			sourceTree = "<group>";
 		};
 		17C261E72B5AEB7A0076F129 /* Main */ = {
@@ -577,6 +606,7 @@
 				7166834E2A768190006ABF84 /* MenuBar */,
 				179F13BC2B91E7F700EC6B52 /* MenuBarAppearance */,
 				1787C42A2B16ADF2002F50DF /* Permissions */,
+				17BE3DCE2C1A458E008B98EF /* SecondaryBar */,
 				7133ED662A858230000A7E1B /* Settings */,
 				71D36C522A89443800D89CD5 /* UI */,
 				170423DB2B56E759004A2549 /* Updates */,
@@ -668,6 +698,7 @@
 		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				17BE3DDC2C1A6401008B98EF /* ShapeStyles */,
 				179267372AE98870006AFBAF /* ViewModifiers */,
 				179267382AE98985006AFBAF /* Views */,
 			);
@@ -788,6 +819,7 @@
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
 				172D827A2BC1F29E0048DD88 /* AccessibilityMenuBar.swift in Sources */,
 				177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */,
+				17BE3DE02C1A705E008B98EF /* SecondaryBarPanel+hasKeyAppearance.swift in Sources */,
 				173C24892B8E80830096F7A1 /* AboutSettingsPane.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
@@ -802,6 +834,7 @@
 				17F9984F2C16CF8600D75EC0 /* LayoutBarPaddingView.swift in Sources */,
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,
 				1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */,
+				17BE3DD02C1A45B3008B98EF /* SecondaryBar.swift in Sources */,
 				17C303782BA62CD20079755B /* MigrationManager.swift in Sources */,
 				17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */,
 				17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */,
@@ -840,6 +873,7 @@
 				17B331D32B991D290084EBB0 /* GeneralSettingsManager.swift in Sources */,
 				1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
+				17BE3DDB2C1A63B6008B98EF /* LayoutBarStyle.swift in Sources */,
 				711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
@@ -849,6 +883,7 @@
 				71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */,
 				71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */,
 				174D4E282BA2089100D11129 /* Hotkey.swift in Sources */,
+				17BE3DE22C1ACAEA008B98EF /* Erased.swift in Sources */,
 				7166834B2A76811C006ABF84 /* Logger+initWithCategory.swift in Sources */,
 				17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */,
 				17B331D52B991D8D0084EBB0 /* AdvancedSettingsManager.swift in Sources */,
@@ -859,6 +894,7 @@
 				17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */,
 				174AA5F52B730A0B00E3FE74 /* ScreenCapture.swift in Sources */,
 				17CC22BC2B8CDE6F001A0582 /* EventManager.swift in Sources */,
+				17BE3DDE2C1A6410008B98EF /* MenuBarTintShapeStyle.swift in Sources */,
 				1737E3E52BA3C4AA009F0EFA /* HotkeyAction.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */,
 				174AA5D62B71D97100E3FE74 /* MenuBarOverlayPanel.swift in Sources */,

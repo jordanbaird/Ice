@@ -230,12 +230,21 @@ extension Bridging {
 }
 
 extension Bridging {
-    /// Captures an image of the given window.
-    public static func captureWindow(_ windowID: CGWindowID) -> CGImage? {
+    /// Captures an image of a window.
+    ///
+    /// - Parameters:
+    ///   - windowID: The identifier of the window to capture.
+    ///   - screenBounds: The on-screen bounds to capture.
+    ///   - option: Options that specify the image to be captured.
+    public static func captureWindow(
+        _ windowID: CGWindowID,
+        screenBounds: CGRect? = nil,
+        option: CGWindowImageOption
+    ) -> CGImage? {
         var pointer = UnsafeRawPointer(bitPattern: Int(windowID))
         guard
             let windowArray = CFArrayCreate(kCFAllocatorDefault, &pointer, 1, nil),
-            let image = CGWindowListCreateImageFromArray(.null, windowArray, .boundsIgnoreFraming)
+            let image = CGWindowListCreateImageFromArray(screenBounds ?? .null, windowArray, option)
         else {
             return nil
         }

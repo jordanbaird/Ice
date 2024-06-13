@@ -13,6 +13,10 @@ import OSLog
 class MenuBarItemManager: ObservableObject {
     @Published var cachedMenuBarItems = [MenuBarSection.Name: [MenuBarItem]]()
 
+    private var rehideTempShownTimer: Timer?
+
+    private var tempShownInfo = [(item: MenuBarItem, destination: MoveDestination)]()
+
     private(set) weak var appState: AppState?
 
     private var cancellables = Set<AnyCancellable>()
@@ -23,7 +27,9 @@ class MenuBarItemManager: ObservableObject {
 
     func performSetup() {
         configureCancellables()
-        cacheMenuBarItems()
+        DispatchQueue.main.async {
+            self.cacheMenuBarItems()
+        }
     }
 
     private func configureCancellables() {
@@ -81,6 +87,60 @@ class MenuBarItemManager: ObservableObject {
                 } else {
                     Logger.itemManager.warning("Item \"\(item.logString)\" not added to any section")
                 }
+            }
+        }
+    }
+
+    private func getReturnDestination(for item: MenuBarItem, in items: [MenuBarItem]) -> MoveDestination? {
+        let info = item.info
+        if let index = items.firstIndex(where: { $0.info == info }) {
+            if items.indices.contains(index + 1) {
+                return .leftOfItem(items[index + 1])
+            } else if items.indices.contains(index - 1) {
+                return .rightOfItem(items[index - 1])
+            }
+        }
+        return nil
+    }
+
+    func temporarilyShowItem(_ item: MenuBarItem) {
+        let items = MenuBarItem.getMenuBarItems(onScreenOnly: false)
+
+        guard let destination = getReturnDestination(for: item, in: items) else {
+            Logger.itemManager.warning("No return destination for item \"\(item.logString)\"")
+            return
+        }
+        guard let hiddenControlItem = items.first(where: { $0.info == .hiddenControlItem }) else {
+            Logger.itemManager.warning("No hidden control item")
+            return
+        }
+
+        tempShownInfo.append((item, destination))
+
+        Task {
+            do {
+                try await move(item: item, to: .rightOfItem(hiddenControlItem))
+                try await leftClick(item: item)
+            } catch {
+                Logger.itemManager.error("ERROR: \(error)")
+            }
+        }
+
+        rehideTempShownTimer?.invalidate()
+        rehideTempShownTimer = .scheduledTimer(withTimeInterval: 20, repeats: false) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
+            Task { @MainActor in
+                while let (item, destination) = self.tempShownInfo.popLast() {
+                    do {
+                        try await self.move(item: item, to: destination)
+                    } catch {
+                        Logger.itemManager.error("Failed to return \"\(item.logString)\": \(error)")
+                    }
+                }
+                self.rehideTempShownTimer = nil
             }
         }
     }
@@ -554,6 +614,51 @@ extension MenuBarItemManager {
                 continue
             }
         }
+    }
+}
+
+extension MenuBarItemManager {
+    func leftClick(item: MenuBarItem) async throws {
+        guard let source = CGEventSource(stateID: .combinedSessionState) else {
+            throw MoveError(code: .couldNotComplete, item: item)
+        }
+        guard let cursorLocation = CGEvent(source: nil)?.location else {
+            throw MoveError(code: .invalidCursorLocation, item: item)
+        }
+        guard let currentFrame = getCurrentFrame(for: item) else {
+            throw MoveError(code: .invalidItem, item: item)
+        }
+
+        MouseCursor.hide()
+
+        defer {
+            MouseCursor.warpPosition(to: cursorLocation)
+            MouseCursor.show()
+        }
+
+        let clickPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
+
+        guard
+            let mouseDownEvent = CGEvent(
+                mouseEventSource: source,
+                mouseType: .leftMouseDown,
+                mouseCursorPosition: clickPoint,
+                mouseButton: .left
+            ),
+            let mouseUpEvent = CGEvent(
+                mouseEventSource: source,
+                mouseType: .leftMouseUp,
+                mouseCursorPosition: clickPoint,
+                mouseButton: .left
+            )
+        else {
+            throw MoveError(code: .eventCreationFailure, item: item)
+        }
+
+        postEvent(mouseDownEvent, to: .sessionEventTap)
+        try await Task.sleep(for: .milliseconds(15))
+        postEvent(mouseUpEvent, to: .sessionEventTap)
+        try await Task.sleep(for: .milliseconds(15))
     }
 }
 

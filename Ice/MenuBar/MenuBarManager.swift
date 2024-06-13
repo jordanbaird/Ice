@@ -10,13 +10,13 @@ import SwiftUI
 /// Manager for the state of the menu bar.
 @MainActor
 final class MenuBarManager: ObservableObject {
-    @Published private(set) var averageColor: CGColor?
-
     private(set) weak var appState: AppState?
 
     private(set) var sections = [MenuBarSection]()
 
     let appearanceManager: MenuBarAppearanceManager
+
+    let secondaryBarPanel: SecondaryBarPanel
 
     private let encoder = JSONEncoder()
 
@@ -31,6 +31,7 @@ final class MenuBarManager: ObservableObject {
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
         self.appearanceManager = MenuBarAppearanceManager(appState: appState)
+        self.secondaryBarPanel = SecondaryBarPanel(appState: appState)
         self.appState = appState
     }
 
@@ -95,7 +96,7 @@ final class MenuBarManager: ObservableObject {
             .store(in: &c)
 
         // hide application menus when a section is shown (if applicable)
-        Publishers.MergeMany(sections.map { $0.$isHidden })
+        Publishers.MergeMany(sections.map { $0.controlItem.$state })
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
@@ -151,19 +152,6 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        Timer.publish(every: 3, on: .main, in: .default)
-            .autoconnect()
-            .sink { [weak self] _ in
-                Task {
-                    do {
-                        try await self?.updateAverageColor()
-                    } catch {
-                        Logger.menuBarManager.error("Error updating menu bar average color: \(error)")
-                    }
-                }
-            }
-            .store(in: &c)
-
         // propagate changes from all sections
         for section in sections {
             section.objectWillChange
@@ -200,20 +188,6 @@ final class MenuBarManager: ObservableObject {
             }
         }
         return frames
-    }
-
-    private func updateAverageColor() async throws {
-        guard let screen = NSScreen.main else {
-            return
-        }
-        let wallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBar(for: screen.displayID, timeout: .seconds(1))
-        guard
-            let color = wallpaper.averageColor(resolution: .low),
-            averageColor != color
-        else {
-            return
-        }
-        averageColor = color
     }
 
     /// Shows the right-click menu.

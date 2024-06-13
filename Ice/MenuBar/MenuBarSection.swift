@@ -10,8 +10,6 @@ import OSLog
 /// A representation of a section in a menu bar.
 @MainActor
 final class MenuBarSection: ObservableObject {
-    @Published private(set) var isHidden: Bool
-
     let name: Name
 
     let controlItem: ControlItem
@@ -21,6 +19,14 @@ final class MenuBarSection: ObservableObject {
     private var rehideMonitor: UniversalEventMonitor?
 
     private var cancellables = Set<AnyCancellable>()
+
+    private var useSecondaryBar: Bool {
+        appState?.settingsManager.generalSettingsManager.useSecondaryBar ?? false
+    }
+
+    private var secondaryBarPanel: SecondaryBarPanel? {
+        appState?.menuBarManager.secondaryBarPanel
+    }
 
     private(set) weak var appState: AppState? {
         didSet {
@@ -35,10 +41,22 @@ final class MenuBarSection: ObservableObject {
         appState?.menuBarManager
     }
 
+    var isHidden: Bool {
+        if useSecondaryBar {
+            switch name {
+            case .visible, .hidden:
+                secondaryBarPanel?.currentSection != .hidden
+            case .alwaysHidden:
+                secondaryBarPanel?.currentSection != .alwaysHidden
+            }
+        } else {
+            controlItem.state == .hideItems
+        }
+    }
+
     init(name: Name, controlItem: ControlItem) {
         self.name = name
         self.controlItem = controlItem
-        self.isHidden = controlItem.state == .hideItems
         configureCancellables()
     }
 
@@ -57,12 +75,6 @@ final class MenuBarSection: ObservableObject {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
-
-        controlItem.$state
-            .sink { [weak self] state in
-                self?.isHidden = state == .hideItems
-            }
-            .store(in: &c)
 
         // propagate changes from the section's control item
         controlItem.objectWillChange
@@ -87,11 +99,19 @@ final class MenuBarSection: ObservableObject {
     func show() {
         guard
             let menuBarManager,
-            controlItem.state == .hideItems
+            isHidden
         else {
             return
         }
         switch name {
+        case .visible where useSecondaryBar, .hidden where useSecondaryBar:
+            if let screen = NSScreen.main {
+                secondaryBarPanel?.show(section: .hidden, on: screen)
+            }
+        case .alwaysHidden where useSecondaryBar:
+            if let screen = NSScreen.main {
+                secondaryBarPanel?.show(section: .alwaysHidden, on: screen)
+            }
         case .visible:
             guard let hiddenSection = menuBarManager.section(withName: .hidden) else {
                 return
@@ -123,11 +143,13 @@ final class MenuBarSection: ObservableObject {
         guard
             let appState,
             let menuBarManager,
-            controlItem.state == .showItems
+            !isHidden
         else {
             return
         }
         switch name {
+        case _ where useSecondaryBar:
+            secondaryBarPanel?.close()
         case .visible:
             guard
                 let hiddenSection = menuBarManager.section(withName: .hidden),
@@ -157,9 +179,10 @@ final class MenuBarSection: ObservableObject {
 
     /// Toggles the visibility of the status items in the section.
     func toggle() {
-        switch controlItem.state {
-        case .hideItems: show()
-        case .showItems: hide()
+        if isHidden {
+            show()
+        } else {
+            hide()
         }
     }
 

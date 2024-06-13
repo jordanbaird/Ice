@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import Bridging
 import ScreenCaptureKit
 
 /// A namespace for screen capture operations.
@@ -180,17 +181,18 @@ enum ScreenCapture {
 extension ScreenCapture {
     /// Returns an image containing the area of the desktop wallpaper that is below the
     /// menu bar for the given display.
-    static func desktopWallpaperBelowMenuBar(for display: CGDirectDisplayID, timeout: Duration) async throws -> CGImage {
-        let task = Task(timeout: timeout) {
-            let windows = try WindowInfo.getOnScreenWindows()
-            let wallpaperWindow = try WindowInfo.getWallpaperWindow(from: windows, for: display)
-            let menuBarWindow = try WindowInfo.getMenuBarWindow(from: windows, for: display)
-            return try await captureImage(
-                onScreenWindow: wallpaperWindow,
-                captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
-                options: .ignoreFraming
-            )
+    static func desktopWallpaperBelowMenuBar(for display: CGDirectDisplayID) -> CGImage? {
+        guard
+            let windows = try? WindowInfo.getOnScreenWindows(),
+            let wallpaperWindow = try? WindowInfo.getWallpaperWindow(from: windows, for: display),
+            let menuBarWindow = try? WindowInfo.getMenuBarWindow(from: windows, for: display)
+        else {
+            return nil
         }
-        return try await task.value
+        return Bridging.captureWindow(
+            wallpaperWindow.windowID,
+            screenBounds: menuBarWindow.frame,
+            option: .boundsIgnoreFraming
+        )
     }
 }

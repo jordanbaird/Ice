@@ -191,7 +191,7 @@ class LayoutBarContainer: NSView {
         for item in items {
             if let existingView = arrangedViews.first(where: { $0.item.info == item.info }) {
                 newViews.append(existingView)
-            } else if let image = Bridging.captureWindow(item.windowID) {
+            } else if let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming) {
                 let view = LayoutBarItemView(item: item, image: image, screen: screen)
                 newViews.append(view)
             }

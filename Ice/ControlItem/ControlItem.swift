@@ -95,7 +95,7 @@ final class ControlItem: ObservableObject {
         self.statusItem.autosaveName = autosaveName
         self.identifier = identifier
         self.isVisible = statusItem.isVisible
-        self.state = .showItems
+        self.state = .hideItems
 
         // cache needs to be restored after the status item is created, but before the
         // call to configureStatusItem()
@@ -399,7 +399,25 @@ final class ControlItem: ObservableObject {
     }
 
     @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
-        Self.sectionStorage[menuItem]?.toggle()
+        guard
+            let appState,
+            let section = Self.sectionStorage[menuItem]
+        else {
+            return
+        }
+        if appState.settingsManager.generalSettingsManager.useSecondaryBar {
+            let panel = appState.menuBarManager.secondaryBarPanel
+            if
+                panel.isVisible,
+                section.name == panel.currentSection
+            {
+                panel.close()
+            } else if let screen = statusItem.button?.window?.screen {
+                panel.show(section: section.name, on: screen)
+            }
+        } else {
+            section.toggle()
+        }
     }
 
     @objc private func checkForUpdates() {

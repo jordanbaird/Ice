@@ -305,9 +305,9 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Stores the area of the desktop wallpaper that is under the menu bar
     /// of the given display.
-    private func updateDesktopWallpaper(for display: CGDirectDisplayID) async throws {
-        let wallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBar(for: display, timeout: .seconds(1))
-        if desktopWallpaper?.dataProvider?.data != wallpaper.dataProvider?.data {
+    private func updateDesktopWallpaper(for display: CGDirectDisplayID) {
+        let wallpaper = ScreenCapture.desktopWallpaperBelowMenuBar(for: display)
+        if desktopWallpaper?.dataProvider?.data != wallpaper?.dataProvider?.data {
             desktopWallpaper = wallpaper
         }
     }
@@ -326,11 +326,7 @@ class MenuBarOverlayPanel: NSPanel {
             }
             if flags.contains(.desktopWallpaper) {
                 group.addTask {
-                    do {
-                        try await self.updateDesktopWallpaper(for: display)
-                    } catch {
-                        throw UpdateError.desktopWallpaper(error)
-                    }
+                    await self.updateDesktopWallpaper(for: display)
                 }
             }
             try await group.waitForAll()

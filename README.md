@@ -94,10 +94,13 @@ There are a number of system APIs that Ice uses that are only available starting
 ![Menu Bar Appearance Example 1](https://github.com/jordanbaird/Ice/assets/90936861/c9cc629d-e27d-4d77-a72a-da4e169f2b37)
 ![Menu Bar Appearance Example 2](https://github.com/jordanbaird/Ice/assets/90936861/f7670573-513a-475d-ab69-7864bed5c5c1)
 
-### Coming Soon...
+### Coming soon...
 
-#### Arrange menu bar items in Ice's settings
+#### Arrange items in settings
 ![Arrange Menu Bar Items](https://github.com/jordanbaird/Ice/assets/90936861/97b71fa7-eb4d-47e4-8978-18cdab7df675)
+
+#### Show hidden items below the menu bar
+![Secondary Bar](https://github.com/jordanbaird/Ice/assets/90936861/6f5da9a1-258e-4b56-a38c-8be543a6a5ae)
 
 ## License
 

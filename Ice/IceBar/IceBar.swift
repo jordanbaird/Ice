@@ -10,6 +10,8 @@ import SwiftUI
 // MARK: - IceBarPanel
 
 class IceBarPanel: NSPanel {
+    @Published private var pinnedLocation: CGPoint?
+
     private weak var appState: AppState?
 
     private var imageCache = IceBarImageCache()
@@ -17,6 +19,10 @@ class IceBarPanel: NSPanel {
     private(set) var currentSection: MenuBarSection.Name?
 
     private var cancellables = Set<AnyCancellable>()
+
+    var isPinned: Bool {
+        pinnedLocation != nil
+    }
 
     init(appState: AppState) {
         super.init(
@@ -69,26 +75,63 @@ class IceBarPanel: NSPanel {
             }
             .store(in: &c)
 
+        $pinnedLocation
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] pinnedLocation in
+                self?.isMovable = pinnedLocation == nil
+            }
+            .store(in: &c)
+
         cancellables = c
     }
 
     private func updateOrigin(for screen: NSScreen) {
-        guard
-            let appState,
-            let section = appState.menuBarManager.section(withName: .visible),
-            let windowFrame = section.controlItem.windowFrame
-        else {
-            return
+        if let pinnedLocation {
+            if pinnedLocation.x > screen.frame.midX {
+                setFrameOrigin(
+                    CGPoint(
+                        x: pinnedLocation.x - frame.width,
+                        y: pinnedLocation.y - frame.height
+                    )
+                )
+            } else {
+                setFrameOrigin(
+                    CGPoint(
+                        x: pinnedLocation.x,
+                        y: pinnedLocation.y - frame.height
+                    )
+                )
+            }
+        } else {
+            guard
+                let appState,
+                let section = appState.menuBarManager.section(withName: .visible),
+                let windowFrame = section.controlItem.windowFrame
+            else {
+                return
+            }
+            let margin: CGFloat = 5
+            let origin = CGPoint(
+                x: min(
+                    windowFrame.midX - (frame.width / 2),
+                    (screen.frame.maxX - frame.width) - margin
+                ),
+                y: (screen.visibleFrame.maxY - frame.height) - margin
+            )
+            setFrameOrigin(origin)
         }
-        let margin: CGFloat = 5
-        let origin = CGPoint(
-            x: min(
-                windowFrame.midX - (frame.width / 2),
-                (screen.frame.maxX - frame.width) - margin
-            ),
-            y: (screen.visibleFrame.maxY - frame.height) - margin
-        )
-        setFrameOrigin(origin)
+    }
+
+    @objc private func togglePinAtCurrentLocation() {
+        if isPinned {
+            pinnedLocation = nil
+        } else if let screen {
+            if frame.midX > screen.frame.midX {
+                pinnedLocation = CGPoint(x: frame.maxX, y: frame.maxY)
+            } else {
+                pinnedLocation = CGPoint(x: frame.minX, y: frame.maxY)
+            }
+        }
     }
 
     func show(section: MenuBarSection.Name, on screen: NSScreen) {
@@ -111,6 +154,22 @@ class IceBarPanel: NSPanel {
         super.close()
         contentView = nil
         currentSection = nil
+    }
+
+    override func rightMouseDown(with event: NSEvent) {
+        super.rightMouseDown(with: event)
+
+        let menu = NSMenu(title: "Ice Bar Options")
+
+        let pinItem = NSMenuItem(
+            title: "\(isPinned ? "Unpin" : "Pin") Ice Bar",
+            action: #selector(togglePinAtCurrentLocation),
+            keyEquivalent: ""
+        )
+        pinItem.target = self
+        menu.addItem(pinItem)
+
+        menu.popUp(positioning: nil, at: event.locationInWindow, in: contentView)
     }
 }
 

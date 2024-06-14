@@ -106,13 +106,13 @@ class IceBarPanel: NSPanel {
 // MARK: - IceBarImageCache
 
 private class IceBarImageCache: ObservableObject {
-    @Published private var images = [MenuBarItemInfo: CGImage]()
+    @Published private var images = [MenuBarItemInfo: NSImage]()
 
-    func image(for info: MenuBarItemInfo) -> CGImage? {
+    func image(for info: MenuBarItemInfo) -> NSImage? {
         images[info]
     }
 
-    func cache(image: CGImage, for info: MenuBarItemInfo) {
+    func cache(image: NSImage, for info: MenuBarItemInfo) {
         DispatchQueue.main.async {
             self.images[info] = image
         }
@@ -196,14 +196,15 @@ private struct IceBarItemView: View {
     let item: MenuBarItem
     let closePanel: () -> Void
 
-    private var image: CGImage? {
+    private var image: NSImage? {
         let info = item.info
         if let image = imageCache.image(for: info) {
             return image
         }
         if let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming) {
-            imageCache.cache(image: image, for: info)
-            return image
+            let nsImage = NSImage(cgImage: image, size: CGSize(width: image.width, height: image.height))
+            imageCache.cache(image: nsImage, for: info)
+            return nsImage
         }
         return nil
     }
@@ -215,7 +216,7 @@ private struct IceBarItemView: View {
 
     var body: some View {
         if let image, let size {
-            Image(nsImage: NSImage(cgImage: image, size: size))
+            Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(

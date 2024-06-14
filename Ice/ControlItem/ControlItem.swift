@@ -129,7 +129,6 @@ final class ControlItem: ObservableObject {
         }
         button.target = self
         button.action = #selector(performAction)
-        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
     private func configureCancellables() {
@@ -220,6 +219,23 @@ final class ControlItem: ObservableObject {
                 }
                 .store(in: &c)
 
+            appState.settingsManager.generalSettingsManager.$useSecondaryBar
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] useSecondaryBar in
+                    guard
+                        let self,
+                        let button = statusItem.button
+                    else {
+                        return
+                    }
+                    if useSecondaryBar {
+                        button.sendAction(on: [.leftMouseDown, .rightMouseUp])
+                    } else {
+                        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+                    }
+                }
+                .store(in: &c)
+
             appState.settingsManager.advancedSettingsManager.$showSectionDividers
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] shouldShow in
@@ -307,7 +323,7 @@ final class ControlItem: ObservableObject {
             return
         }
         switch event.type {
-        case .leftMouseUp:
+        case .leftMouseDown, .leftMouseUp:
             if
                 NSEvent.modifierFlags == .option,
                 appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection

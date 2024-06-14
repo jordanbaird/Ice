@@ -19,11 +19,7 @@ extension View {
     @ViewBuilder
     func layoutBarStyle(menuBarManager: MenuBarManager, cornerRadius: CGFloat) -> some View {
         background {
-            if
-                let screen = NSScreen.main,
-                let desktopWallpaper = ScreenCapture.desktopWallpaperBelowMenuBar(for: screen.displayID),
-                let averageColor = desktopWallpaper.averageColor(resolution: .low)
-            {
+            if let averageColor = menuBarManager.averageColor {
                 Color(cgColor: averageColor).overlay(.menuBarTint)
             } else {
                 Color.defaultLayoutBar

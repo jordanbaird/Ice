@@ -10,6 +10,8 @@ import SwiftUI
 /// Manager for the state of the menu bar.
 @MainActor
 final class MenuBarManager: ObservableObject {
+    @Published private(set) var averageColor: CGColor?
+
     private(set) weak var appState: AppState?
 
     private(set) var sections = [MenuBarSection]()
@@ -25,6 +27,8 @@ final class MenuBarManager: ObservableObject {
     private var applicationMenuFrames = [CGDirectDisplayID: CGRect]()
 
     private var isHidingApplicationMenus = false
+
+    private var canUpdateAverageColor = false
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -95,6 +99,38 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
+        if
+            let appState,
+            let settingsWindow = appState.settingsWindow
+        {
+            Publishers.CombineLatest(
+                settingsWindow.publisher(for: \.isVisible),
+                iceBarPanel.publisher(for: \.isVisible)
+            )
+            .sink { [weak self] settingsIsVisible, iceBarIsVisible in
+                guard let self else {
+                    return
+                }
+                if settingsIsVisible || iceBarIsVisible {
+                    canUpdateAverageColor = true
+                    updateAverageColor()
+                } else {
+                    canUpdateAverageColor = false
+                }
+            }
+            .store(in: &c)
+        }
+
+        Timer.publish(every: 5, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                updateAverageColor()
+            }
+            .store(in: &c)
+
         // hide application menus when a section is shown (if applicable)
         Publishers.MergeMany(sections.map { $0.controlItem.$state })
             .removeDuplicates()
@@ -162,6 +198,20 @@ final class MenuBarManager: ObservableObject {
         }
 
         cancellables = c
+    }
+
+    func updateAverageColor() {
+        guard canUpdateAverageColor else {
+            return
+        }
+        guard
+            let screen = NSScreen.main,
+            let desktopWallpaper = ScreenCapture.desktopWallpaperBelowMenuBar(for: screen.displayID),
+            let averageColor = desktopWallpaper.averageColor(resolution: .low)
+        else {
+            return
+        }
+        self.averageColor = averageColor
     }
 
     /// Returns the frames of each item in the application menu for the given display.

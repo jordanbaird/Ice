@@ -73,9 +73,20 @@ class IceBarPanel: NSPanel {
     }
 
     private func updateOrigin(for screen: NSScreen) {
+        guard
+            let appState,
+            let section = appState.menuBarManager.section(withName: .visible),
+            let windowFrame = section.controlItem.windowFrame
+        else {
+            return
+        }
+        let margin: CGFloat = 5
         let origin = CGPoint(
-            x: (screen.visibleFrame.maxX - frame.width) - 5,
-            y: (screen.visibleFrame.maxY - frame.height) - 5
+            x: min(
+                windowFrame.midX - (frame.width / 2),
+                (screen.frame.maxX - frame.width) - margin
+            ),
+            y: (screen.visibleFrame.maxY - frame.height) - margin
         )
         setFrameOrigin(origin)
     }

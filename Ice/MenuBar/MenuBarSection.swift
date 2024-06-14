@@ -20,12 +20,12 @@ final class MenuBarSection: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    private var useSecondaryBar: Bool {
-        appState?.settingsManager.generalSettingsManager.useSecondaryBar ?? false
+    private var useIceBar: Bool {
+        appState?.settingsManager.generalSettingsManager.useIceBar ?? false
     }
 
-    private var secondaryBarPanel: SecondaryBarPanel? {
-        appState?.menuBarManager.secondaryBarPanel
+    private var iceBarPanel: IceBarPanel? {
+        appState?.menuBarManager.iceBarPanel
     }
 
     private(set) weak var appState: AppState? {
@@ -42,25 +42,25 @@ final class MenuBarSection: ObservableObject {
     }
 
     var isHidden: Bool {
-        if useSecondaryBar {
+        if useIceBar {
             if controlItem.state == .showItems {
                 return false
             }
             switch name {
             case .visible, .hidden:
-                return secondaryBarPanel?.currentSection != .hidden
+                return iceBarPanel?.currentSection != .hidden
             case .alwaysHidden:
-                return secondaryBarPanel?.currentSection != .alwaysHidden
+                return iceBarPanel?.currentSection != .alwaysHidden
             }
         }
         switch name {
         case .visible, .hidden:
-            if secondaryBarPanel?.currentSection == .hidden {
+            if iceBarPanel?.currentSection == .hidden {
                 return false
             }
             return controlItem.state == .hideItems
         case .alwaysHidden:
-            if secondaryBarPanel?.currentSection == .alwaysHidden {
+            if iceBarPanel?.currentSection == .alwaysHidden {
                 return false
             }
             return controlItem.state == .hideItems
@@ -118,42 +118,42 @@ final class MenuBarSection: ObservableObject {
             return
         }
         switch name {
-        case .visible where useSecondaryBar, .hidden where useSecondaryBar:
+        case .visible where useIceBar, .hidden where useIceBar:
             Task {
                 await appState.itemManager.rehideTemporarilyShownItems()
                 if let screen = NSScreen.main {
-                    secondaryBarPanel?.show(section: .hidden, on: screen)
+                    iceBarPanel?.show(section: .hidden, on: screen)
                 }
                 for section in menuBarManager.sections {
                     section.controlItem.state = .hideItems
                 }
             }
-        case .alwaysHidden where useSecondaryBar:
+        case .alwaysHidden where useIceBar:
             Task {
                 await appState.itemManager.rehideTemporarilyShownItems()
                 if let screen = NSScreen.main {
-                    secondaryBarPanel?.show(section: .alwaysHidden, on: screen)
+                    iceBarPanel?.show(section: .alwaysHidden, on: screen)
                 }
                 for section in menuBarManager.sections {
                     section.controlItem.state = .hideItems
                 }
             }
         case .visible:
-            secondaryBarPanel?.close()
+            iceBarPanel?.close()
             guard let hiddenSection = menuBarManager.section(withName: .hidden) else {
                 return
             }
             controlItem.state = .showItems
             hiddenSection.controlItem.state = .showItems
         case .hidden:
-            secondaryBarPanel?.close()
+            iceBarPanel?.close()
             guard let visibleSection = menuBarManager.section(withName: .visible) else {
                 return
             }
             controlItem.state = .showItems
             visibleSection.controlItem.state = .showItems
         case .alwaysHidden:
-            secondaryBarPanel?.close()
+            iceBarPanel?.close()
             guard
                 let hiddenSection = menuBarManager.section(withName: .hidden),
                 let visibleSection = menuBarManager.section(withName: .visible)
@@ -176,9 +176,9 @@ final class MenuBarSection: ObservableObject {
         else {
             return
         }
-        secondaryBarPanel?.close()
+        iceBarPanel?.close()
         switch name {
-        case _ where useSecondaryBar:
+        case _ where useIceBar:
             for section in menuBarManager.sections {
                 section.controlItem.state = .hideItems
             }

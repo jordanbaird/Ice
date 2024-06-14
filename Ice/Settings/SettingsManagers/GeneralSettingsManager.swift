@@ -24,8 +24,8 @@ final class GeneralSettingsManager: ObservableObject {
     @Published var customIceIconIsTemplate = false
 
     /// A Boolean value that indicates whether to show hidden icons
-    /// in a secondary bar.
-    @Published var useSecondaryBar = false
+    /// in a separate bar below the menu bar.
+    @Published var useIceBar = false
 
     /// A Boolean value that indicates whether the hidden section
     /// should be shown when the mouse pointer clicks in an empty
@@ -73,7 +73,7 @@ final class GeneralSettingsManager: ObservableObject {
     private func loadInitialState() {
         Defaults.ifPresent(key: .showIceIcon, assign: &showIceIcon)
         Defaults.ifPresent(key: .customIceIconIsTemplate, assign: &customIceIconIsTemplate)
-        Defaults.ifPresent(key: .useSecondaryBar, assign: &useSecondaryBar)
+        Defaults.ifPresent(key: .useIceBar, assign: &useIceBar)
         Defaults.ifPresent(key: .showOnClick, assign: &showOnClick)
         Defaults.ifPresent(key: .showOnHover, assign: &showOnHover)
         Defaults.ifPresent(key: .showOnScroll, assign: &showOnScroll)
@@ -132,10 +132,10 @@ final class GeneralSettingsManager: ObservableObject {
             }
             .store(in: &c)
 
-        $useSecondaryBar
+        $useIceBar
             .receive(on: DispatchQueue.main)
-            .sink { useSecondaryBar in
-                Defaults.set(useSecondaryBar, forKey: .useSecondaryBar)
+            .sink { useIceBar in
+                Defaults.set(useIceBar, forKey: .useIceBar)
             }
             .store(in: &c)
 

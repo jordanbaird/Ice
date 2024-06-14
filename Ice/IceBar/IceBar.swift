@@ -1,5 +1,5 @@
 //
-//  SecondaryBar.swift
+//  IceBar.swift
 //  Ice
 //
 
@@ -7,12 +7,12 @@ import Bridging
 import Combine
 import SwiftUI
 
-// MARK: - SecondaryBarPanel
+// MARK: - IceBarPanel
 
-class SecondaryBarPanel: NSPanel {
+class IceBarPanel: NSPanel {
     private weak var appState: AppState?
 
-    private var imageCache = SecondaryBarImageCache()
+    private var imageCache = IceBarImageCache()
 
     private(set) var currentSection: MenuBarSection.Name?
 
@@ -84,7 +84,7 @@ class SecondaryBarPanel: NSPanel {
         guard let appState else {
             return
         }
-        contentView = SecondaryBarHostingView(
+        contentView = IceBarHostingView(
             appState: appState,
             imageCache: imageCache,
             section: section
@@ -103,9 +103,9 @@ class SecondaryBarPanel: NSPanel {
     }
 }
 
-// MARK: - SecondaryBarImageCache
+// MARK: - IceBarImageCache
 
-private class SecondaryBarImageCache: ObservableObject {
+private class IceBarImageCache: ObservableObject {
     @Published private var images = [MenuBarItemInfo: CGImage]()
 
     func image(for info: MenuBarItemInfo) -> CGImage? {
@@ -125,21 +125,21 @@ private class SecondaryBarImageCache: ObservableObject {
     }
 }
 
-// MARK: - SecondaryBarHostingView
+// MARK: - IceBarHostingView
 
-private class SecondaryBarHostingView: NSHostingView<AnyView> {
+private class IceBarHostingView: NSHostingView<AnyView> {
     override var safeAreaInsets: NSEdgeInsets {
         NSEdgeInsets()
     }
 
     init(
         appState: AppState,
-        imageCache: SecondaryBarImageCache,
+        imageCache: IceBarImageCache,
         section: MenuBarSection.Name,
         closePanel: @escaping () -> Void
     ) {
         super.init(
-            rootView: SecondaryBarContentView(section: section, closePanel: closePanel)
+            rootView: IceBarContentView(section: section, closePanel: closePanel)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.menuBarManager)
                 .environmentObject(imageCache)
@@ -162,9 +162,9 @@ private class SecondaryBarHostingView: NSHostingView<AnyView> {
     }
 }
 
-// MARK: - SecondaryBarContentView
+// MARK: - IceBarContentView
 
-private struct SecondaryBarContentView: View {
+private struct IceBarContentView: View {
     @EnvironmentObject var itemManager: MenuBarItemManager
     @EnvironmentObject var menuBarManager: MenuBarManager
 
@@ -178,7 +178,7 @@ private struct SecondaryBarContentView: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(items, id: \.windowID) { item in
-                SecondaryBarItemView(item: item, closePanel: closePanel)
+                IceBarItemView(item: item, closePanel: closePanel)
             }
         }
         .padding(5)
@@ -187,11 +187,11 @@ private struct SecondaryBarContentView: View {
     }
 }
 
-// MARK: - SecondaryBarItemView
+// MARK: - IceBarItemView
 
-private struct SecondaryBarItemView: View {
+private struct IceBarItemView: View {
     @EnvironmentObject var itemManager: MenuBarItemManager
-    @EnvironmentObject var imageCache: SecondaryBarImageCache
+    @EnvironmentObject var imageCache: IceBarImageCache
 
     let item: MenuBarItem
     let closePanel: () -> Void

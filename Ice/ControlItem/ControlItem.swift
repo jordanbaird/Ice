@@ -219,16 +219,16 @@ final class ControlItem: ObservableObject {
                 }
                 .store(in: &c)
 
-            appState.settingsManager.generalSettingsManager.$useSecondaryBar
+            appState.settingsManager.generalSettingsManager.$useIceBar
                 .receive(on: DispatchQueue.main)
-                .sink { [weak self] useSecondaryBar in
+                .sink { [weak self] useIceBar in
                     guard
                         let self,
                         let button = statusItem.button
                     else {
                         return
                     }
-                    if useSecondaryBar {
+                    if useIceBar {
                         button.sendAction(on: [.leftMouseDown, .rightMouseUp])
                     } else {
                         button.sendAction(on: [.leftMouseUp, .rightMouseUp])

@@ -169,8 +169,8 @@ final class EventManager {
             return event
         }
 
-        // make sure clicking the secondary bar doesn't trigger rehide
-        guard event.window !== appState.menuBarManager.secondaryBarPanel else {
+        // make sure clicking the Ice Bar doesn't trigger rehide
+        guard event.window !== appState.menuBarManager.iceBarPanel else {
             return event
         }
 
@@ -311,8 +311,8 @@ final class EventManager {
             return event
         }
 
-        // don't continue if using the secondary bar
-        guard !appState.settingsManager.generalSettingsManager.useSecondaryBar else {
+        // don't continue if using the Ice Bar
+        guard !appState.settingsManager.generalSettingsManager.useIceBar else {
             return event
         }
 

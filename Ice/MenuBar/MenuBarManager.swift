@@ -16,7 +16,7 @@ final class MenuBarManager: ObservableObject {
 
     let appearanceManager: MenuBarAppearanceManager
 
-    let secondaryBarPanel: SecondaryBarPanel
+    let iceBarPanel: IceBarPanel
 
     private let encoder = JSONEncoder()
 
@@ -31,7 +31,7 @@ final class MenuBarManager: ObservableObject {
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
         self.appearanceManager = MenuBarAppearanceManager(appState: appState)
-        self.secondaryBarPanel = SecondaryBarPanel(appState: appState)
+        self.iceBarPanel = IceBarPanel(appState: appState)
         self.appState = appState
     }
 

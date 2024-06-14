@@ -35,7 +35,7 @@ struct GeneralSettingsPane: View {
                 iceIconOptions
             }
             Section {
-                useSecondaryBar
+                iceBarOptions
             }
             Section {
                 showOnClick
@@ -140,9 +140,9 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private var useSecondaryBar: some View {
-        Toggle(isOn: manager.bindings.useSecondaryBar) {
-            Text("Use secondary bar")
+    private var iceBarOptions: some View {
+        Toggle(isOn: manager.bindings.useIceBar) {
+            Text("Use Ice Bar")
             Text("Hidden items will be shown in a separate bar below the menu bar")
         }
     }

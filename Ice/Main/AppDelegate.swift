@@ -97,9 +97,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Logger.appDelegate.warning("Failed to open settings window")
             return
         }
-        appState.activate(withPolicy: .regular)
-        settingsWindow.center()
-        settingsWindow.makeKeyAndOrderFront(self)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            appState.activate(withPolicy: .regular)
+            settingsWindow.center()
+            settingsWindow.makeKeyAndOrderFront(self)
+        }
     }
 }
 

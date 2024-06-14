@@ -147,7 +147,6 @@ class MenuBarItemManager: ObservableObject {
         Task {
             do {
                 try await move(item: item, to: .rightOfItem(hiddenControlItem))
-                try await Task.sleep(for: .milliseconds(100))
                 try await leftClick(item: item)
             } catch {
                 Logger.itemManager.error("ERROR: \(error)")
@@ -628,6 +627,9 @@ extension MenuBarItemManager {
         guard let cursorLocation = CGEvent(source: nil)?.location else {
             throw EventError(code: .invalidCursorLocation, item: item)
         }
+        guard let initialFrame = getCurrentFrame(for: item) else {
+            throw EventError(code: .invalidItem, item: item)
+        }
 
         appState.eventManager.stopAll()
         defer {
@@ -646,8 +648,15 @@ extension MenuBarItemManager {
         for n in 1...5 {
             do {
                 try await moveItemWithoutRestoringMouseLocation(item, to: destination)
-                Logger.move.info("Successfully moved \"\(item.logString)\"")
-                break
+                if
+                    let newFrame = getCurrentFrame(for: item),
+                    newFrame != initialFrame
+                {
+                    Logger.move.info("Successfully moved \"\(item.logString)\"")
+                    break
+                } else {
+                    throw EventError(code: .couldNotComplete, item: item)
+                }
             } catch where n < 5 {
                 Logger.move.error("Attempt \(n) to move \"\(item.logString)\" failed: \(error)")
                 continue

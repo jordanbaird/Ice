@@ -454,12 +454,9 @@ extension MenuBarItemManager {
             }
 
             eventTap.enable(timeout: .milliseconds(250)) {
-                eventTap.disable()
                 Logger.move.error("Event tap \"\(eventTap.label)\" timed out")
-                Task {
-                    defer { continuation.resume() }
-                    try await Task.sleep(for: .milliseconds(100))
-                }
+                eventTap.disable()
+                continuation.resume()
             }
 
             postEvent(event, to: initialLocation)
@@ -500,14 +497,14 @@ extension MenuBarItemManager {
     ///   - initialFrame: An initial frame to compare the item's frame against.
     ///   - timeout: The amount of time to wait before throwing a timeout error.
     private func waitForFrameChange(of item: MenuBarItem, initialFrame: CGRect, timeout: Duration) async throws {
-        let frameCheckTask = Task.detached {
+        struct FrameCheckCancellationError: Error { }
+
+        let frameCheckTask = Task.detached(timeout: timeout) {
             while true {
                 try Task.checkCancellation()
                 guard let currentFrame = await self.getCurrentFrame(for: item) else {
                     Logger.move.info("Cancelling frame check")
-                    // this will be slow, but subsequent events will have a better chance of succeeding
-                    try await Task.sleep(for: .milliseconds(100))
-                    return
+                    throw FrameCheckCancellationError()
                 }
                 if currentFrame != initialFrame {
                     Logger.move.info("Menu bar item frame has changed to \(NSStringFromRect(currentFrame))")
@@ -515,14 +512,13 @@ extension MenuBarItemManager {
                 }
             }
         }
-        let timeoutTask = Task.detached {
-            try await Task.sleep(for: timeout)
-            frameCheckTask.cancel()
-        }
+
         do {
             try await frameCheckTask.value
-            timeoutTask.cancel()
-        } catch is CancellationError {
+        } catch is FrameCheckCancellationError {
+            // this will be slow, but subsequent events will have a better chance of succeeding
+            try await Task.sleep(for: .milliseconds(100))
+        } catch is TaskTimeoutError {
             throw EventError(code: .timeout, item: item)
         }
     }

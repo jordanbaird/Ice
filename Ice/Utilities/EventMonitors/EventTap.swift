@@ -29,11 +29,11 @@ class EventTap {
         var logString: String {
             switch self {
             case .hidEventTap:
-                "HID EventTap"
+                "HID event tap"
             case .sessionEventTap:
-                "Session EventTap"
+                "session event tap"
             case .annotatedSessionEventTap:
-                "Annotated Session EventTap"
+                "annotated session event tap"
             case .application(let app):
                 "PID \(app.processIdentifier)"
             }

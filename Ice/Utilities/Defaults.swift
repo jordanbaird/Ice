@@ -159,6 +159,10 @@ extension Defaults {
 
         case menuBarAppearanceConfiguration = "MenuBarAppearanceConfiguration"
 
+        // MARK: Ice Bar Settings
+
+        case iceBarPinnedLocation = "IceBarPinnedLocation"
+
         // MARK: Migration
 
         case hasMigrated0_8_0 = "hasMigrated0_8_0"

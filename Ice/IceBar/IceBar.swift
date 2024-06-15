@@ -6,15 +6,20 @@
 import Bridging
 import Combine
 import SwiftUI
+import OSLog
 
 // MARK: - IceBarPanel
 
 class IceBarPanel: NSPanel {
-    @Published private var pinnedLocation: CGPoint?
+    @Published private var pinnedLocation: IceBarPinnedLocation?
 
     private weak var appState: AppState?
 
     private var imageCache = IceBarImageCache()
+
+    private let encoder = JSONEncoder()
+
+    private let decoder = JSONDecoder()
 
     private(set) var currentSection: MenuBarSection.Name?
 
@@ -41,8 +46,19 @@ class IceBarPanel: NSPanel {
         self.isMovableByWindowBackground = true
         self.animationBehavior = .none
         self.level = .mainMenu
-        self.collectionBehavior = [.fullScreenNone, .ignoresCycle, .moveToActiveSpace]
+        self.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle, .moveToActiveSpace]
+        performSetup()
         configureCancellables()
+    }
+
+    private func performSetup() {
+        Defaults.ifPresent(key: .iceBarPinnedLocation) { data in
+            do {
+                pinnedLocation = try decoder.decode(IceBarPinnedLocation.self, from: data)
+            } catch {
+                Logger.iceBar.error("Error decoding pinned location: \(error)")
+            }
+        }
     }
 
     private func configureCancellables() {
@@ -82,26 +98,32 @@ class IceBarPanel: NSPanel {
             }
             .store(in: &c)
 
+        $pinnedLocation
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] pinnedLocation in
+                guard let self else {
+                    return
+                }
+                guard let pinnedLocation else {
+                    Defaults.removeObject(forKey: .iceBarPinnedLocation)
+                    return
+                }
+                do {
+                    let data = try encoder.encode(pinnedLocation)
+                    Defaults.set(data, forKey: .iceBarPinnedLocation)
+                } catch {
+                    Logger.iceBar.error("Error encoding pinned location: \(error)")
+                }
+            }
+            .store(in: &c)
+
         cancellables = c
     }
 
     private func updateOrigin(for screen: NSScreen) {
         if let pinnedLocation {
-            if pinnedLocation.x > screen.frame.midX {
-                setFrameOrigin(
-                    CGPoint(
-                        x: pinnedLocation.x - frame.width,
-                        y: pinnedLocation.y - frame.height
-                    )
-                )
-            } else {
-                setFrameOrigin(
-                    CGPoint(
-                        x: pinnedLocation.x,
-                        y: pinnedLocation.y - frame.height
-                    )
-                )
-            }
+            let point = pinnedLocation.point(frame: frame, screen: screen)
+            setFrameOrigin(point)
         } else {
             guard
                 let appState,
@@ -126,11 +148,7 @@ class IceBarPanel: NSPanel {
         if isPinned {
             pinnedLocation = nil
         } else if let screen {
-            if frame.midX > screen.frame.midX {
-                pinnedLocation = CGPoint(x: frame.maxX, y: frame.maxY)
-            } else {
-                pinnedLocation = CGPoint(x: frame.minX, y: frame.maxY)
-            }
+            pinnedLocation = IceBarPinnedLocation(frame: frame, screen: screen)
         }
     }
 
@@ -301,4 +319,78 @@ private struct IceBarItemView: View {
                 }
         }
     }
+}
+
+// MARK: - IceBarPinnedLocation
+
+struct IceBarPinnedLocation: Codable {
+    enum HorizontalScreenRegion: Int, Codable {
+        case left = 0
+        case right = 1
+        case center = 3
+    }
+
+    enum VerticalScreenRegion: Int, Codable {
+        case bottom = 0
+        case top = 1
+        case center = 3
+    }
+
+    var horizontalPercent: CGFloat
+    var verticalPercent: CGFloat
+    var horizontalRegion: HorizontalScreenRegion
+    var verticalRegion: VerticalScreenRegion
+
+    init(frame: CGRect, screen: NSScreen) {
+        if ((screen.frame.midX - 5)...(screen.frame.midX + 5)).contains(frame.midX) {
+            self.horizontalPercent = frame.midX / screen.frame.width
+            self.horizontalRegion = .center
+        } else if frame.midX > screen.frame.midX {
+            self.horizontalPercent = frame.maxX / screen.frame.width
+            self.horizontalRegion = .right
+        } else {
+            self.horizontalPercent = frame.minX / screen.frame.width
+            self.horizontalRegion = .left
+        }
+        if ((screen.frame.midY - 5)...(screen.frame.midY + 5)).contains(frame.midY) {
+            self.verticalPercent = frame.midY / screen.frame.height
+            self.verticalRegion = .center
+        } else if frame.midY > screen.frame.midY {
+            self.verticalPercent = frame.maxY / screen.frame.height
+            self.verticalRegion = .top
+        } else {
+            self.verticalPercent = frame.minY / screen.frame.height
+            self.verticalRegion = .bottom
+        }
+    }
+
+    func point(frame: CGRect, screen: NSScreen) -> CGPoint {
+        var point = CGPoint.zero
+
+        switch horizontalRegion {
+        case .left:
+            point.x = screen.frame.width * horizontalPercent
+        case .right:
+            point.x = (screen.frame.width * horizontalPercent) - frame.width
+        case .center:
+            point.x = (screen.frame.width * horizontalPercent) - (frame.width / 2)
+        }
+
+        switch verticalRegion {
+        case .bottom:
+            point.y = screen.frame.height * verticalPercent
+        case .top:
+            point.y = (screen.frame.height * verticalPercent) - frame.height
+        case .center:
+            point.y = (screen.frame.height * verticalPercent) - (frame.height / 2)
+        }
+
+        return point
+    }
+}
+
+// MARK: - Logger
+
+private extension Logger {
+    static let iceBar = Logger(category: "IceBar")
 }

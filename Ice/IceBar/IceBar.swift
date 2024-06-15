@@ -141,7 +141,8 @@ class IceBarPanel: NSPanel {
         contentView = IceBarHostingView(
             appState: appState,
             imageCache: imageCache,
-            section: section
+            section: section,
+            screen: screen
         ) { [weak self] in
             self?.close()
         }
@@ -176,13 +177,13 @@ class IceBarPanel: NSPanel {
 // MARK: - IceBarImageCache
 
 private class IceBarImageCache: ObservableObject {
-    @Published private var images = [MenuBarItemInfo: NSImage]()
+    @Published private var images = [MenuBarItemInfo: CGImage]()
 
-    func image(for info: MenuBarItemInfo) -> NSImage? {
+    func image(for info: MenuBarItemInfo) -> CGImage? {
         images[info]
     }
 
-    func cache(image: NSImage, for info: MenuBarItemInfo) {
+    func cache(image: CGImage, for info: MenuBarItemInfo) {
         DispatchQueue.main.async {
             self.images[info] = image
         }
@@ -206,10 +207,11 @@ private class IceBarHostingView: NSHostingView<AnyView> {
         appState: AppState,
         imageCache: IceBarImageCache,
         section: MenuBarSection.Name,
+        screen: NSScreen,
         closePanel: @escaping () -> Void
     ) {
         super.init(
-            rootView: IceBarContentView(section: section, closePanel: closePanel)
+            rootView: IceBarContentView(section: section, screen: screen, closePanel: closePanel)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.menuBarManager)
                 .environmentObject(imageCache)
@@ -239,6 +241,7 @@ private struct IceBarContentView: View {
     @EnvironmentObject var menuBarManager: MenuBarManager
 
     let section: MenuBarSection.Name
+    let screen: NSScreen
     let closePanel: () -> Void
 
     private var items: [MenuBarItem] {
@@ -248,7 +251,7 @@ private struct IceBarContentView: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(items, id: \.windowID) { item in
-                IceBarItemView(item: item, closePanel: closePanel)
+                IceBarItemView(item: item, screen: screen, closePanel: closePanel)
             }
         }
         .padding(5)
@@ -264,35 +267,34 @@ private struct IceBarItemView: View {
     @EnvironmentObject var imageCache: IceBarImageCache
 
     let item: MenuBarItem
+    let screen: NSScreen
     let closePanel: () -> Void
 
     private var image: NSImage? {
         let info = item.info
-        if let image = imageCache.image(for: info) {
-            return image
+        let image: CGImage? = {
+            if let image = imageCache.image(for: info) {
+                return image
+            }
+            if let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming) {
+                imageCache.cache(image: image, for: info)
+                return image
+            }
+            return nil
+        }()
+        guard let image else {
+            return nil
         }
-        if let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming) {
-            let nsImage = NSImage(cgImage: image, size: CGSize(width: image.width, height: image.height))
-            imageCache.cache(image: nsImage, for: info)
-            return nsImage
-        }
-        return nil
-    }
-
-    private var size: CGSize? {
-        let frame = Bridging.getWindowFrame(for: item.windowID)
-        return frame?.size
+        let size = CGSize(
+            width: CGFloat(image.width) / screen.backingScaleFactor,
+            height: CGFloat(image.height) / screen.backingScaleFactor
+        )
+        return NSImage(cgImage: image, size: size)
     }
 
     var body: some View {
-        if let image, let size {
+        if let image {
             Image(nsImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(
-                    width: size.width,
-                    height: size.height
-                )
                 .onTapGesture {
                     closePanel()
                     itemManager.temporarilyShowItem(item)

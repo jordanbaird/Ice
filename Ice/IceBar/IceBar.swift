@@ -350,7 +350,7 @@ private struct IceBarItemView: View {
             Image(nsImage: image)
                 .onTapGesture {
                     closePanel()
-                    itemManager.temporarilyShowItem(item)
+                    itemManager.tempShowItem(item)
                 }
         }
     }

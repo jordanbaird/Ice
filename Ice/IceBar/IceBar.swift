@@ -15,7 +15,7 @@ class IceBarPanel: NSPanel {
 
     private weak var appState: AppState?
 
-    private var imageCache = IceBarImageCache()
+    private let imageCache: IceBarImageCache
 
     private let encoder = JSONEncoder()
 
@@ -30,6 +30,8 @@ class IceBarPanel: NSPanel {
     }
 
     init(appState: AppState) {
+        self.imageCache = IceBarImageCache(appState: appState)
+
         super.init(
             contentRect: .zero,
             styleMask: [
@@ -41,17 +43,20 @@ class IceBarPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
+
         self.appState = appState
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = true
         self.animationBehavior = .none
         self.level = .mainMenu
-        self.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle, .moveToActiveSpace]
-        performSetup()
-        configureCancellables()
+        self.collectionBehavior = [
+            .fullScreenAuxiliary,
+            .ignoresCycle,
+            .moveToActiveSpace,
+        ]
     }
 
-    private func performSetup() {
+    func performSetup() {
         Defaults.ifPresent(key: .iceBarPinnedLocation) { data in
             do {
                 pinnedLocation = try decoder.decode(IceBarPinnedLocation.self, from: data)
@@ -59,6 +64,7 @@ class IceBarPanel: NSPanel {
                 Logger.iceBar.error("Error decoding pinned location: \(error)")
             }
         }
+        configureCancellables()
     }
 
     private func configureCancellables() {
@@ -67,13 +73,8 @@ class IceBarPanel: NSPanel {
         // close the panel when the active space changes
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                close()
-                imageCache.clear()
+                self?.close()
             }
             .store(in: &c)
 
@@ -117,6 +118,23 @@ class IceBarPanel: NSPanel {
             }
             .store(in: &c)
 
+        if let appState {
+            appState.menuBarManager.$averageColor
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    guard
+                        let self,
+                        let currentSection
+                    else {
+                        return
+                    }
+                    Task {
+                        await self.imageCache.updateCache(for: currentSection)
+                    }
+                }
+                .store(in: &c)
+        }
+
         cancellables = c
     }
 
@@ -156,17 +174,20 @@ class IceBarPanel: NSPanel {
         guard let appState else {
             return
         }
-        contentView = IceBarHostingView(
-            appState: appState,
-            imageCache: imageCache,
-            section: section,
-            screen: screen
-        ) { [weak self] in
-            self?.close()
+        Task {
+            await imageCache.updateCache(for: section)
+            contentView = IceBarHostingView(
+                appState: appState,
+                imageCache: imageCache,
+                section: section,
+                screen: screen
+            ) { [weak self] in
+                self?.close()
+            }
+            updateOrigin(for: screen)
+            makeKeyAndOrderFront(nil)
+            currentSection = section
         }
-        updateOrigin(for: screen)
-        makeKeyAndOrderFront(nil)
-        currentSection = section
     }
 
     override func close() {
@@ -194,22 +215,47 @@ class IceBarPanel: NSPanel {
 
 // MARK: - IceBarImageCache
 
+@MainActor
 private class IceBarImageCache: ObservableObject {
     @Published private var images = [MenuBarItemInfo: CGImage]()
+
+    private weak var appState: AppState?
+
+    init(appState: AppState) {
+        self.appState = appState
+    }
 
     func image(for info: MenuBarItemInfo) -> CGImage? {
         images[info]
     }
 
-    func cache(image: CGImage, for info: MenuBarItemInfo) {
-        DispatchQueue.main.async {
-            self.images[info] = image
+    func cacheImage(for item: MenuBarItem) async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInteractive).async {
+                guard
+                    let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming),
+                    !image.isTransparent()
+                else {
+                    continuation.resume()
+                    return
+                }
+                Task.detached { @MainActor in
+                    self.images[item.info] = image
+                    continuation.resume()
+                }
+            }
         }
     }
 
-    func clear() {
-        DispatchQueue.main.async {
-            self.images.removeAll()
+    func updateCache(for section: MenuBarSection.Name) async {
+        guard
+            let appState,
+            let items = appState.itemManager.cachedMenuBarItems[section]
+        else {
+            return
+        }
+        for item in items {
+            await cacheImage(for: item)
         }
     }
 }
@@ -289,18 +335,7 @@ private struct IceBarItemView: View {
     let closePanel: () -> Void
 
     private var image: NSImage? {
-        let info = item.info
-        let image: CGImage? = {
-            if let image = imageCache.image(for: info) {
-                return image
-            }
-            if let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming) {
-                imageCache.cache(image: image, for: info)
-                return image
-            }
-            return nil
-        }()
-        guard let image else {
+        guard let image = imageCache.image(for: item.info) else {
             return nil
         }
         let size = CGSize(

@@ -44,6 +44,7 @@ final class MenuBarManager: ObservableObject {
         initializeSections()
         configureCancellables()
         appearanceManager.performSetup()
+        iceBarPanel.performSetup()
     }
 
     /// Performs the initial setup of the menu bar's section list.

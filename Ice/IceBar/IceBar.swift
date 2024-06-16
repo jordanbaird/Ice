@@ -170,24 +170,22 @@ class IceBarPanel: NSPanel {
         }
     }
 
-    func show(section: MenuBarSection.Name, on screen: NSScreen) {
+    func show(section: MenuBarSection.Name, on screen: NSScreen) async {
         guard let appState else {
             return
         }
-        Task {
-            await imageCache.updateCache(for: section)
-            contentView = IceBarHostingView(
-                appState: appState,
-                imageCache: imageCache,
-                section: section,
-                screen: screen
-            ) { [weak self] in
-                self?.close()
-            }
-            updateOrigin(for: screen)
-            makeKeyAndOrderFront(nil)
-            currentSection = section
+        await imageCache.updateCache(for: section)
+        contentView = IceBarHostingView(
+            appState: appState,
+            imageCache: imageCache,
+            section: section,
+            screen: screen
+        ) { [weak self] in
+            self?.close()
         }
+        updateOrigin(for: screen)
+        orderFrontRegardless()
+        currentSection = section
     }
 
     override func close() {

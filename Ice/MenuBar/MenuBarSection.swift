@@ -120,20 +120,20 @@ final class MenuBarSection: ObservableObject {
         switch name {
         case .visible where useIceBar, .hidden where useIceBar:
             Task {
-                await appState.itemManager.rehideTempShownItems()
                 if let screen = NSScreen.main {
-                    iceBarPanel?.show(section: .hidden, on: screen)
+                    await iceBarPanel?.show(section: .hidden, on: screen)
                 }
+                await appState.itemManager.rehideTempShownItems()
                 for section in menuBarManager.sections {
                     section.controlItem.state = .hideItems
                 }
             }
         case .alwaysHidden where useIceBar:
             Task {
-                await appState.itemManager.rehideTempShownItems()
                 if let screen = NSScreen.main {
-                    iceBarPanel?.show(section: .alwaysHidden, on: screen)
+                    await iceBarPanel?.show(section: .alwaysHidden, on: screen)
                 }
+                await appState.itemManager.rehideTempShownItems()
                 for section in menuBarManager.sections {
                     section.controlItem.state = .hideItems
                 }

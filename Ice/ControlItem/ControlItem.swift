@@ -34,11 +34,13 @@ final class ControlItem: ObservableObject {
 
     private let statusItem: NSStatusItem
 
+    private let constraint: NSLayoutConstraint?
+
     /// The control item's identifier.
     let identifier: Identifier
 
     /// A Boolean value that indicates whether the control item is visible.
-    @Published var isVisible: Bool
+    @Published var isVisible = true
 
     /// The hiding state of the control item.
     @Published var state: HidingState
@@ -70,14 +72,6 @@ final class ControlItem: ObservableObject {
     init(identifier: Identifier) {
         let autosaveName = identifier.rawValue
 
-        // if the isVisible property has been previously set, it will have been stored
-        // in UserDefaults; if a status item is created in an invisible state, its
-        // preferredPosition is deleted; to prevent this, cache the current visibility,
-        // if any, and delete it from UserDefaults; then, initialize the status item
-        // and set its visibility to the cached value
-        let cachedIsVisible = StatusItemDefaults[.isVisible, autosaveName]
-        StatusItemDefaults[.isVisible, autosaveName] = nil
-
         // if the status item doesn't have a preferred position, set it according to
         // the identifier
         if StatusItemDefaults[.preferredPosition, autosaveName] == nil {
@@ -94,13 +88,24 @@ final class ControlItem: ObservableObject {
         self.statusItem = NSStatusBar.system.statusItem(withLength: Lengths.standard)
         self.statusItem.autosaveName = autosaveName
         self.identifier = identifier
-        self.isVisible = statusItem.isVisible
         self.state = .hideItems
 
-        // cache needs to be restored after the status item is created, but before the
-        // call to configureStatusItem()
-        if let cachedIsVisible {
-            self.isVisible = cachedIsVisible
+        // FIXME: This is a strong candidate for a new macOS release to break, but we need this
+        // constraint to hide control items when the `ShowSectionDividers` setting is disabled.
+        // We used to use the status item's `isVisible` property, which was more robust, but would
+        // completely remove the control item. Now that we have profiles, we need to be able to
+        // accurately retrieve the items for each section, so we need the control items to always
+        // be present to act as delimiters. The new solution is to remove the constraint that
+        // prevents status items from having a length of zero, then resizing the content view.
+        if
+            let button = statusItem.button,
+            let constraints = button.window?.contentView?.constraintsAffectingLayout(for: .horizontal),
+            let constraint = constraints.first(where: Predicates.controlItemConstraint(button: button))
+        {
+            assert(constraints.filter(Predicates.controlItemConstraint(button: button)).count == 1)
+            self.constraint = constraint
+        } else {
+            self.constraint = nil
         }
 
         configureStatusItem()
@@ -140,33 +145,40 @@ final class ControlItem: ObservableObject {
             }
             .store(in: &c)
 
-        $isVisible
-            .removeDuplicates()
-            .sink { [weak self] isVisible in
-                guard let self else {
+        Publishers.CombineLatest($isVisible, $state)
+            .sink { [weak self] (isVisible, state) in
+                guard
+                    let self,
+                    let section
+                else {
                     return
                 }
-                var deferredBlock: (() -> Void)?
-                if !isVisible {
-                    // setting the status item to invisible has the unwanted side effect
-                    // of deleting the preferred position; cache and restore afterwards
-                    guard let autosaveName = statusItem.autosaveName else {
-                        return
+                if isVisible {
+                    statusItem.length = switch section.name {
+                    case .visible: Lengths.standard
+                    case .hidden, .alwaysHidden:
+                        switch state {
+                        case .hideItems: Lengths.expanded
+                        case .showItems: Lengths.standard
+                        }
                     }
-                    let cached = StatusItemDefaults[.preferredPosition, autosaveName]
-                    deferredBlock = {
-                        StatusItemDefaults[.preferredPosition, autosaveName] = cached
+                    constraint?.isActive = true
+                } else {
+                    statusItem.length = 0
+                    constraint?.isActive = false
+                    if let window = statusItem.button?.window {
+                        var size = window.frame.size
+                        size.width = 1
+                        window.setContentSize(size)
                     }
                 }
-                statusItem.isVisible = isVisible
-                deferredBlock?()
             }
             .store(in: &c)
 
-        statusItem.publisher(for: \.isVisible)
+        constraint?.publisher(for: \.isActive)
             .removeDuplicates()
-            .sink { [weak self] isVisible in
-                self?.isVisible = isVisible
+            .sink { [weak self] isActive in
+                self?.isVisible = isActive
             }
             .store(in: &c)
 
@@ -265,7 +277,7 @@ final class ControlItem: ObservableObject {
 
         switch section.name {
         case .visible:
-            statusItem.length = Lengths.standard
+            isVisible = true
             // enable cell, as it may have been previously disabled
             button.cell?.isEnabled = true
             let icon = appState.settingsManager.generalSettingsManager.iceIcon
@@ -288,8 +300,6 @@ final class ControlItem: ObservableObject {
         case .hidden, .alwaysHidden:
             switch state {
             case .hideItems:
-                // important that length gets set before isVisible
-                statusItem.length = Lengths.expanded
                 isVisible = true
                 // prevent the cell from highlighting while expanded
                 button.cell?.isEnabled = false
@@ -298,8 +308,6 @@ final class ControlItem: ObservableObject {
                 button.isHighlighted = false
                 button.image = nil
             case .showItems:
-                // important that length gets set before isVisible
-                statusItem.length = Lengths.standard
                 isVisible = appState.settingsManager.advancedSettingsManager.showSectionDividers
                 // enable cell, as it may have been previously disabled
                 button.cell?.isEnabled = true

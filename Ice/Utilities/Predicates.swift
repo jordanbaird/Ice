@@ -3,7 +3,7 @@
 //  Ice
 //
 
-import CoreGraphics
+import Cocoa
 
 /// A namespace for predicates.
 enum Predicates<Input> {
@@ -24,7 +24,8 @@ enum Predicates<Input> {
     }
 }
 
-// MARK: Window Predicates
+// MARK: - Window Predicates
+
 extension Predicates where Input == WindowInfo {
     /// Creates a predicate that returns whether a window is the wallpaper window
     /// for the given display.
@@ -58,6 +59,16 @@ extension Predicates where Input == WindowInfo {
             window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
             window.title == "Fullscreen Backdrop" &&
             window.frame == CGDisplayBounds(display)
+        }
+    }
+}
+
+// MARK: - Control Item Predicates
+
+extension Predicates where Input == NSLayoutConstraint {
+    static func controlItemConstraint(button: NSStatusBarButton) -> NonThrowingPredicate {
+        predicate { constraint in
+            constraint.secondItem === button.superview
         }
     }
 }

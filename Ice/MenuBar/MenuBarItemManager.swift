@@ -145,12 +145,14 @@ class MenuBarItemManager: ObservableObject {
         tempShownItemsInfo.append((item, destination))
 
         Task {
+            MouseCursor.hide()
             do {
-                try await move(item: item, to: .rightOfItem(hiddenControlItem))
+                try await slowMove(item: item, to: .rightOfItem(hiddenControlItem))
                 try await leftClick(item: item)
             } catch {
                 Logger.itemManager.error("ERROR: \(error)")
             }
+            MouseCursor.show()
         }
 
         runTempShownItemTimer(for: 20)
@@ -617,7 +619,7 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - item: A menu bar item to move.
     ///   - destination: A destination to move the menu bar item.
-    public func move(item: MenuBarItem, to destination: MoveDestination) async throws {
+    func move(item: MenuBarItem, to destination: MoveDestination) async throws {
         if try itemHasCorrectPosition(item: item, for: destination) {
             Logger.move.info("\"\(item.logString)\" is already in the correct position")
             return
@@ -667,6 +669,23 @@ extension MenuBarItemManager {
             }
         }
     }
+
+    func slowMove(item: MenuBarItem, to destination: MoveDestination) async throws {
+        try await move(item: item, to: destination)
+        let waitTask = Task.detached(timeout: .seconds(1)) {
+            while true {
+                try Task.checkCancellation()
+                if try await self.itemHasCorrectPosition(item: item, for: destination) {
+                    return
+                }
+            }
+        }
+        do {
+            try await waitTask.value
+        } catch is TaskTimeoutError {
+            throw EventError(code: .timeout, item: item)
+        }
+    }
 }
 
 extension MenuBarItemManager {
@@ -674,7 +693,7 @@ extension MenuBarItemManager {
         guard let application = item.owningApplication else {
             throw EventError(code: .noOwningApplication, item: item)
         }
-        guard let source = CGEventSource(stateID: .combinedSessionState) else {
+        guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .couldNotComplete, item: item)
         }
         guard let cursorLocation = CGEvent(source: nil)?.location else {
@@ -715,12 +734,13 @@ extension MenuBarItemManager {
         try await forwardEvent(
             mouseDownEvent,
             from: .application(application),
-            to: .sessionEventTap
+            to: .hidEventTap
         )
+        try await Task.sleep(for: .milliseconds(25))
         try await forwardEvent(
             mouseUpEvent,
             from: .application(application),
-            to: .sessionEventTap
+            to: .hidEventTap
         )
     }
 }

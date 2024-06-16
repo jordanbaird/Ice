@@ -377,7 +377,7 @@ struct IceBarPinnedLocation: Codable {
     var verticalRegion: VerticalScreenRegion
 
     init(frame: CGRect, screen: NSScreen) {
-        if ((screen.frame.midX - 5)...(screen.frame.midX + 5)).contains(frame.midX) {
+        if ((screen.frame.midX - 25)...(screen.frame.midX + 25)).contains(frame.midX) {
             self.horizontalPercent = frame.midX / screen.frame.width
             self.horizontalRegion = .center
         } else if frame.midX > screen.frame.midX {
@@ -387,7 +387,7 @@ struct IceBarPinnedLocation: Codable {
             self.horizontalPercent = frame.minX / screen.frame.width
             self.horizontalRegion = .left
         }
-        if ((screen.frame.midY - 5)...(screen.frame.midY + 5)).contains(frame.midY) {
+        if ((screen.frame.midY - 25)...(screen.frame.midY + 25)).contains(frame.midY) {
             self.verticalPercent = frame.midY / screen.frame.height
             self.verticalRegion = .center
         } else if frame.midY > screen.frame.midY {

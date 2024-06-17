@@ -752,7 +752,7 @@ extension MenuBarItemManager {
             from: .application(application),
             to: .hidEventTap
         )
-        try await Task.sleep(for: .milliseconds(25))
+        try await Task.sleep(for: .milliseconds(50))
         try await forwardEvent(
             mouseUpEvent,
             from: .application(application),

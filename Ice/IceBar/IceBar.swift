@@ -129,14 +129,11 @@ class IceBarPanel: NSPanel {
                 .removeDuplicates()
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
-                    guard
-                        let self,
-                        let currentSection
-                    else {
+                    guard let self else {
                         return
                     }
                     Task {
-                        await self.imageCache.updateCache(for: currentSection)
+                        await self.imageCache.updateCache()
                     }
                 }
                 .store(in: &c)
@@ -183,7 +180,7 @@ class IceBarPanel: NSPanel {
         }
         if needsUpdateImageCacheBeforeShowing {
             try? await Task.sleep(for: .milliseconds(10))
-            if await imageCache.updateCache(for: section) {
+            if await imageCache.updateCache() {
                 needsUpdateImageCacheBeforeShowing = false
             }
         }
@@ -269,6 +266,18 @@ private class IceBarImageCache: ObservableObject {
             let result = await cacheImage(for: item)
             results.append(result)
             try? await Task.sleep(for: .milliseconds(5))
+        }
+        for result in results where !result {
+            return false
+        }
+        return true
+    }
+
+    func updateCache() async -> Bool {
+        var results = [Bool]()
+        for section: MenuBarSection.Name in [.hidden, .alwaysHidden] {
+            let result = await updateCache(for: section)
+            results.append(result)
         }
         for result in results where !result {
             return false

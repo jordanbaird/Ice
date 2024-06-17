@@ -17,6 +17,8 @@ class IceBarPanel: NSPanel {
 
     private let imageCache: IceBarImageCache
 
+    private var needsUpdateImageCacheBeforeShowing = true
+
     private let encoder = JSONEncoder()
 
     private let decoder = JSONDecoder()
@@ -74,7 +76,11 @@ class IceBarPanel: NSPanel {
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .sink { [weak self] _ in
-                self?.close()
+                guard let self else {
+                    return
+                }
+                needsUpdateImageCacheBeforeShowing = true
+                close()
             }
             .store(in: &c)
 
@@ -120,6 +126,7 @@ class IceBarPanel: NSPanel {
 
         if let appState {
             appState.menuBarManager.$averageColor
+                .removeDuplicates()
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     guard
@@ -174,7 +181,12 @@ class IceBarPanel: NSPanel {
         guard let appState else {
             return
         }
-        await imageCache.updateCache(for: section)
+        if needsUpdateImageCacheBeforeShowing {
+            try? await Task.sleep(for: .milliseconds(10))
+            if await imageCache.updateCache(for: section) {
+                needsUpdateImageCacheBeforeShowing = false
+            }
+        }
         contentView = IceBarHostingView(
             appState: appState,
             imageCache: imageCache,
@@ -227,34 +239,41 @@ private class IceBarImageCache: ObservableObject {
         images[info]
     }
 
-    func cacheImage(for item: MenuBarItem) async {
+    func cacheImage(for item: MenuBarItem) async -> Bool {
         await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInteractive).async {
                 guard
                     let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming),
                     !image.isTransparent()
                 else {
-                    continuation.resume()
+                    continuation.resume(returning: false)
                     return
                 }
                 Task.detached { @MainActor in
                     self.images[item.info] = image
-                    continuation.resume()
+                    continuation.resume(returning: true)
                 }
             }
         }
     }
 
-    func updateCache(for section: MenuBarSection.Name) async {
+    func updateCache(for section: MenuBarSection.Name) async -> Bool {
         guard
             let appState,
             let items = appState.itemManager.cachedMenuBarItems[section]
         else {
-            return
+            return false
         }
+        var results = [Bool]()
         for item in items {
-            await cacheImage(for: item)
+            let result = await cacheImage(for: item)
+            results.append(result)
+            try? await Task.sleep(for: .milliseconds(5))
         }
+        for result in results where !result {
+            return false
+        }
+        return true
     }
 }
 

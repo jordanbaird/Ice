@@ -229,6 +229,10 @@ extension MenuBarItemManager {
             /// Indicates that the shared app state is invalid or could not be found.
             case invalidAppState
 
+            /// Indicates that an event source could not be created or is otherwise
+            /// invalid.
+            case invalidEventSource
+
             /// Indicates that the location of the mouse cursor is invalid or could
             /// not be found.
             case invalidCursorLocation
@@ -264,6 +268,8 @@ extension MenuBarItemManager {
                 "Failed to create event"
             case .invalidAppState:
                 "Invalid app state"
+            case .invalidEventSource:
+                "Invalid event source"
             case .invalidCursorLocation:
                 "Invalid cursor location"
             case .invalidItem:
@@ -528,17 +534,20 @@ extension MenuBarItemManager {
         }
     }
 
-    /// Suppresses local events for the given source.
-    private func suppressLocalEvents(source: CGEventSource) {
-        source.setLocalEventsFilterDuringSuppressionState(
-            [.permitLocalMouseEvents, .permitLocalKeyboardEvents, .permitSystemDefinedEvents],
-            state: .eventSuppressionStateRemoteMouseDrag
-        )
-        source.setLocalEventsFilterDuringSuppressionState(
-            [.permitLocalMouseEvents, .permitLocalKeyboardEvents, .permitSystemDefinedEvents],
-            state: .eventSuppressionStateSuppressionInterval
-        )
-        source.localEventsSuppressionInterval = 0
+    /// Permits all events for an event source during the given suppression states,
+    /// suppressing local events for the given interval.
+    private func permitAllEvents(
+        for stateID: CGEventSourceStateID,
+        during states: [CGEventSuppressionState],
+        suppressionInterval: TimeInterval
+    ) throws {
+        guard let source = CGEventSource(stateID: stateID) else {
+            throw EventError(code: .invalidEventSource)
+        }
+        for state in states {
+            source.setLocalEventsFilterDuringSuppressionState(.permitAllEvents, state: state)
+        }
+        source.localEventsSuppressionInterval = suppressionInterval
     }
 
     /// Moves a menu bar item to the given destination, without restoring
@@ -558,11 +567,18 @@ extension MenuBarItemManager {
         guard let application = item.owningApplication else {
             throw EventError(code: .noOwningApplication, item: item)
         }
-        guard let source = CGEventSource(stateID: .combinedSessionState) else {
-            throw EventError(code: .couldNotComplete, item: item)
+        guard let source = CGEventSource(stateID: .hidSystemState) else {
+            throw EventError(code: .invalidEventSource, item: item)
         }
 
-        suppressLocalEvents(source: source)
+        try permitAllEvents(
+            for: .combinedSessionState,
+            during: [
+                .eventSuppressionStateRemoteMouseDrag,
+                .eventSuppressionStateSuppressionInterval,
+            ],
+            suppressionInterval: 0
+        )
 
         let fallbackPoint = try getFallbackPoint(for: item)
         let startPoint = CGPoint(x: 20_000, y: 20_000)
@@ -694,7 +710,7 @@ extension MenuBarItemManager {
             throw EventError(code: .noOwningApplication, item: item)
         }
         guard let source = CGEventSource(stateID: .hidSystemState) else {
-            throw EventError(code: .couldNotComplete, item: item)
+            throw EventError(code: .invalidEventSource, item: item)
         }
         guard let cursorLocation = CGEvent(source: nil)?.location else {
             throw EventError(code: .invalidCursorLocation, item: item)
@@ -811,6 +827,17 @@ private extension CGEventField {
         .mouseEventWindowUnderMousePointer,
         .mouseEventWindowUnderMousePointerThatCanHandleThisEvent,
         .specialField,
+    ]
+}
+
+// MARK: - CGEventFilterMask Helpers
+
+private extension CGEventFilterMask {
+    /// Specifies that all events should be permitted during event suppression states.
+    static let permitAllEvents: CGEventFilterMask = [
+        .permitLocalMouseEvents,
+        .permitLocalKeyboardEvents,
+        .permitSystemDefinedEvents,
     ]
 }
 

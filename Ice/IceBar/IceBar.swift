@@ -346,6 +346,7 @@ private struct IceBarItemView: View {
     var body: some View {
         if let image {
             Image(nsImage: image)
+                .contentShape(Rectangle())
                 .onTapGesture {
                     closePanel()
                     itemManager.tempShowItem(item)

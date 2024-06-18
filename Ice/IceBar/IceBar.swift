@@ -382,7 +382,7 @@ private struct IceBarItemView: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     closePanel()
-                    itemManager.tempShowItem(item)
+                    itemManager.tempShowItem(item, clickWhenFinished: true)
                 }
         }
     }

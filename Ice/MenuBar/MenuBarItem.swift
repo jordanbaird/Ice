@@ -39,6 +39,12 @@ struct MenuBarItem {
         return !immovableItems.contains(info)
     }
 
+    /// A Boolean value that indicates whether the item can be hidden.
+    var canBeHidden: Bool {
+        let nonHideableItems = Set(MenuBarItemInfo.nonHideableItems)
+        return !nonHideableItems.contains(info)
+    }
+
     /// The process identifier of the application that owns the item.
     var ownerPID: pid_t {
         window.ownerPID
@@ -111,11 +117,7 @@ struct MenuBarItem {
 
     /// A string to use for logging purposes.
     var logString: String {
-        if owningApplication == .current {
-            title ?? "<null>"
-        } else {
-            displayName
-        }
+        String(describing: info)
     }
 
     /// Creates a menu bar item from the given window.
@@ -301,7 +303,7 @@ extension MenuBarItemInfo {
     static let immovableItems = [clock, siri, controlCenter]
 
     /// An array of items that can be moved, but cannot be hidden.
-    static let nonHideableItems = [audioVideoModule, musicRecognition]
+    static let nonHideableItems = [audioVideoModule, faceTime, musicRecognition]
 
     /// Information for an item that represents the Ice icon.
     static let iceIcon = MenuBarItemInfo(
@@ -344,6 +346,12 @@ extension MenuBarItemInfo {
     static let audioVideoModule = MenuBarItemInfo(
         namespace: .controlCenter,
         title: "AudioVideoModule"
+    )
+
+    /// Information for the "FaceTime" item.
+    static let faceTime = MenuBarItemInfo(
+        namespace: .controlCenter,
+        title: "FaceTime"
     )
 
     /// Information for the "MusicRecognition" (a.k.a. "Shazam") item.

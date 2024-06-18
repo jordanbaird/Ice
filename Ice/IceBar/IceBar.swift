@@ -49,6 +49,7 @@ class IceBarPanel: NSPanel {
         self.appState = appState
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = true
+        self.isFloatingPanel = true
         self.animationBehavior = .none
         self.level = .mainMenu
         self.collectionBehavior = [

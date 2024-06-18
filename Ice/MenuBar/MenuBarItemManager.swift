@@ -17,6 +17,11 @@ class MenuBarItemManager: ObservableObject {
 
     private var tempShownItemsTimer: Timer?
 
+    private let eventQueue = DispatchQueue(
+        label: "MenuBarItem-Event-Queue",
+        qos: .userInteractive
+    )
+
     private(set) weak var appState: AppState?
 
     private var cancellables = Set<AnyCancellable>()
@@ -442,15 +447,17 @@ extension MenuBarItemManager {
     ///   - event: The event to post.
     ///   - location: The event tap location to post the event to.
     private func postEvent(_ event: CGEvent, to location: EventTap.Location) {
-        switch location {
-        case .hidEventTap:
-            event.post(tap: .cghidEventTap)
-        case .sessionEventTap:
-            event.post(tap: .cgSessionEventTap)
-        case .annotatedSessionEventTap:
-            event.post(tap: .cgAnnotatedSessionEventTap)
-        case .application(let app):
-            event.postToPid(app.processIdentifier)
+        eventQueue.sync {
+            switch location {
+            case .hidEventTap:
+                event.post(tap: .cghidEventTap)
+            case .sessionEventTap:
+                event.post(tap: .cgSessionEventTap)
+            case .annotatedSessionEventTap:
+                event.post(tap: .cgAnnotatedSessionEventTap)
+            case .application(let app):
+                event.postToPid(app.processIdentifier)
+            }
         }
     }
 
@@ -468,7 +475,7 @@ extension MenuBarItemManager {
     ) async throws {
         return try await withCheckedThrowingContinuation { continuation in
             let eventTap = EventTap(
-                label: "Event Forwarding",
+                label: "MenuBarItem-Event-Forwarding",
                 options: .defaultTap,
                 location: initialLocation,
                 place: .headInsertEventTap,

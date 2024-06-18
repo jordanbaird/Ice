@@ -18,6 +18,4 @@ CG_EXTERN CGError CGSGetWindowCount(CGSConnectionID cid, CGSConnectionID targetC
 
 CG_EXTERN CGError CGSGetOnScreenWindowCount(CGSConnectionID cid, CGSConnectionID targetCID, int *outCount);
 
-CG_EXTERN CGError CGSGetScreenRectForWindow(CGSConnectionID cid, CGWindowID wid, CGRect *outRect);
-
 #endif /* CGS_WINDOW_INTERNAL_H */

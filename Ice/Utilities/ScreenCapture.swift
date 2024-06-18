@@ -181,7 +181,30 @@ enum ScreenCapture {
 extension ScreenCapture {
     /// Returns an image containing the area of the desktop wallpaper that is below the
     /// menu bar for the given display.
-    static func desktopWallpaperBelowMenuBar(for display: CGDirectDisplayID) -> CGImage? {
+    static func desktopWallpaperBelowMenuBarScreenCaptureKit(
+        display: CGDirectDisplayID,
+        timeout: Duration
+    ) async throws -> CGImage? {
+        let task = Task(timeout: timeout) { () throws -> CGImage? in
+            let windows = WindowInfo.getOnScreenWindows()
+            guard
+                let wallpaperWindow = WindowInfo.getWallpaperWindow(from: windows, for: display),
+                let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display)
+            else {
+                return nil
+            }
+            return try await captureImage(
+                onScreenWindow: wallpaperWindow,
+                captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
+                options: .ignoreFraming
+            )
+        }
+        return try await task.value
+    }
+
+    /// Returns an image containing the area of the desktop wallpaper that is below the
+    /// menu bar for the given display.
+    static func desktopWallpaperBelowMenuBarCoreGraphics(display: CGDirectDisplayID) -> CGImage? {
         let windows = WindowInfo.getOnScreenWindows()
         guard
             let wallpaperWindow = WindowInfo.getWallpaperWindow(from: windows, for: display),

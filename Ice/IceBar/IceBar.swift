@@ -133,8 +133,12 @@ class IceBarPanel: NSPanel {
                     guard let self else {
                         return
                     }
-                    Task {
-                        await self.imageCache.updateCache()
+                    if isVisible {
+                        Task {
+                            await self.imageCache.updateCache()
+                        }
+                    } else {
+                        needsUpdateImageCacheBeforeShowing = true
                     }
                 }
                 .store(in: &c)

@@ -207,8 +207,8 @@ final class MenuBarManager: ObservableObject {
         }
         guard
             let screen = NSScreen.main,
-            let desktopWallpaper = ScreenCapture.desktopWallpaperBelowMenuBar(for: screen.displayID),
-            let averageColor = desktopWallpaper.averageColor(resolution: .low)
+            let wallpaper = ScreenCapture.desktopWallpaperBelowMenuBarCoreGraphics(display: screen.displayID),
+            let averageColor = wallpaper.averageColor(resolution: .low)
         else {
             return
         }

@@ -22,10 +22,7 @@ class MenuBarItemManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     var isMenuOpen: Bool {
-        guard let windows = try? WindowInfo.getAllWindows() else {
-            return false
-        }
-        return windows.contains { window in
+        WindowInfo.getAllWindows().contains { window in
             window.layer == 101
         }
     }
@@ -60,7 +57,7 @@ class MenuBarItemManager: ObservableObject {
             return
         }
 
-        let items = MenuBarItem.getMenuBarItems(onScreenOnly: false)
+        let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
 
         guard
             let hiddenControlItem = items.first(where: { $0.info == .hiddenControlItem }),
@@ -131,7 +128,7 @@ class MenuBarItemManager: ObservableObject {
     }
 
     func tempShowItem(_ item: MenuBarItem) {
-        let items = MenuBarItem.getMenuBarItems(onScreenOnly: false)
+        let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
 
         guard let destination = getReturnDestination(for: item, in: items) else {
             Logger.itemManager.warning("No return destination for item \"\(item.logString)\"")
@@ -159,10 +156,7 @@ class MenuBarItemManager: ObservableObject {
     }
 
     func rehideTempShownItems() async {
-        if
-            let windows = try? WindowInfo.getAllWindows(),
-            let menuWindow = windows.first(where: { $0.layer == 101 })
-        {
+        if let menuWindow = WindowInfo.getAllWindows().first(where: { $0.layer == 101 }) {
             let menuCheckTask = Task.detached(timeout: .seconds(1)) {
                 while Set(Bridging.getWindowList(option: .onScreen)).contains(menuWindow.windowID) {
                     try Task.checkCancellation()

@@ -162,11 +162,60 @@ struct MenuBarItem {
 
 // MARK: MenuBarItem Getters
 extension MenuBarItem {
-    /// Returns an array of menu bar items.
+    /// Returns an array of menu bar items in the given menu bar window
+    /// on the given display from an array of windows.
+    static func createMenuBarItemsFromWindows(
+        _ windows: [WindowInfo],
+        menuBarWindow: WindowInfo,
+        display: CGDirectDisplayID
+    ) -> [MenuBarItem] {
+        // validate the menu bar window
+        guard Predicates.menuBarWindow(for: display)(menuBarWindow) else {
+            return []
+        }
+        return windows.lazy
+            .compactMap { window in
+                // validate the item window
+                guard
+                    window.isMenuBarItem,
+                    window.frame.minY == menuBarWindow.frame.minY,
+                    window.frame.maxY == menuBarWindow.frame.maxY
+                else {
+                    return nil
+                }
+                return MenuBarItem(uncheckedItemWindow: window)
+            }
+            .sortedByOrderInMenuBar()
+    }
+
+    /// Returns an array of menu bar items in the menu bar for the given display.
+    static func getMenuBarItemsCoreGraphics(for display: CGDirectDisplayID, onScreenOnly: Bool) -> [MenuBarItem] {
+        let windows = if onScreenOnly {
+            WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
+        } else {
+            WindowInfo.getAllWindows(excludeDesktopWindows: true)
+        }
+        guard let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display) else {
+            return []
+        }
+        return createMenuBarItemsFromWindows(windows, menuBarWindow: menuBarWindow, display: display)
+    }
+
+    /// Returns an array of menu bar items using CoreGraphics to retrieve the
+    /// windows.
     ///
-    /// - Parameter onScreenOnly: A Boolean value that indicates whether only the
-    ///   items that are on screen should be returned.
-    static func getMenuBarItems(onScreenOnly: Bool) -> [MenuBarItem] {
+    /// - Parameter onScreenOnly: A Boolean value that indicates whether only
+    ///   the items that are on screen should be returned.
+    static func getMenuBarItemsCoreGraphics(onScreenOnly: Bool) -> [MenuBarItem] {
+        getMenuBarItemsCoreGraphics(for: CGMainDisplayID(), onScreenOnly: onScreenOnly)
+    }
+
+    /// Returns an array of menu bar items using private APIs to retrieve the
+    /// windows.
+    ///
+    /// - Parameter onScreenOnly: A Boolean value that indicates whether only
+    ///   the items that are on screen should be returned.
+    static func getMenuBarItemsPrivateAPI(onScreenOnly: Bool) -> [MenuBarItem] {
         var option: Bridging.WindowListOption = [
             .menuBarItems,
             .activeSpace,
@@ -178,18 +227,7 @@ extension MenuBarItem {
             .compactMap { windowID in
                 MenuBarItem(windowID: windowID)
             }
-            .sorted { lhs, rhs in
-                lhs.frame.maxX < rhs.frame.maxX
-            }
-    }
-
-    /// Returns an array of menu bar items.
-    static func getMenuBarItems(for display: CGDirectDisplayID, onScreenOnly: Bool) -> [MenuBarItem] {
-        let items = getMenuBarItems(onScreenOnly: onScreenOnly)
-        let displayBounds = CGDisplayBounds(display)
-        return items.filter { item in
-            displayBounds.contains(item.frame)
-        }
+            .sortedByOrderInMenuBar()
     }
 }
 

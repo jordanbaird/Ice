@@ -83,6 +83,7 @@
 		17ECD4EE2B290F8D00E33147 /* PermissionsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17ECD4ED2B290F8D00E33147 /* PermissionsWindow.swift */; };
 		17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F71BB12B87E37800905CBA /* RehideStrategy.swift */; };
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
+		17F93D2C2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */; };
 		17F998322C15C91400D75EC0 /* MouseCursor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F998312C15C91400D75EC0 /* MouseCursor.swift */; };
 		17F9983C2C1655EF00D75EC0 /* LayoutBarContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F9983B2C1655EF00D75EC0 /* LayoutBarContainer.swift */; };
 		17F9983E2C16562300D75EC0 /* LayoutBarItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F9983D2C16562300D75EC0 /* LayoutBarItemView.swift */; };
@@ -195,6 +196,7 @@
 		17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+clamped.swift"; sourceTree = "<group>"; };
 		17ECD4ED2B290F8D00E33147 /* PermissionsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsWindow.swift; sourceTree = "<group>"; };
 		17F71BB12B87E37800905CBA /* RehideStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RehideStrategy.swift; sourceTree = "<group>"; };
+		17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sequence+sortedByOrderInMenuBar.swift"; sourceTree = "<group>"; };
 		17F998312C15C91400D75EC0 /* MouseCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseCursor.swift; sourceTree = "<group>"; };
 		17F9983B2C1655EF00D75EC0 /* LayoutBarContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarContainer.swift; sourceTree = "<group>"; };
 		17F9983D2C16562300D75EC0 /* LayoutBarItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBarItemView.swift; sourceTree = "<group>"; };
@@ -498,6 +500,14 @@
 			path = Comparable;
 			sourceTree = "<group>";
 		};
+		17F93D2A2C20FC340058C0AF /* Sequence */ = {
+			isa = PBXGroup;
+			children = (
+				17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */,
+			);
+			path = Sequence;
+			sourceTree = "<group>";
+		};
 		17F9983A2C1655D200D75EC0 /* LayoutBar */ = {
 			isa = PBXGroup;
 			children = (
@@ -653,6 +663,7 @@
 				17AB36302BA081C400F50C0F /* NSImage */,
 				17C3C5F52B75A35000B9648C /* NSScreen */,
 				716683462A76811C006ABF84 /* NSStatusItem */,
+				17F93D2A2C20FC340058C0AF /* Sequence */,
 				171C6FC72C0659250097A5C8 /* Task */,
 			);
 			path = Extensions;
@@ -824,6 +835,7 @@
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
 				1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */,
+				17F93D2C2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift in Sources */,
 				1725FC6A2AED973800A59081 /* AppState.swift in Sources */,
 				1727786E2C15181300F6F687 /* MenuBarItemManager.swift in Sources */,
 				170749CA2B1207D9009DDF73 /* UniversalEventMonitor.swift in Sources */,

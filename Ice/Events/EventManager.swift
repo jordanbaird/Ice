@@ -195,7 +195,7 @@ final class EventManager {
                 // get the window that the user has clicked into
                 guard
                     let mouseLocation = self.getMouseLocation(flipped: true),
-                    let windowUnderMouse = try WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
+                    let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
                         .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
                         .first(where: { $0.frame.contains(mouseLocation) }),
                     let owningApplication = windowUnderMouse.owningApplication
@@ -405,7 +405,7 @@ final class EventManager {
         if NSApp.presentationOptions.contains(.autoHideMenuBar) {
             if
                 let mouseLocation = getMouseLocation(flipped: true),
-                let menuBarWindow = try? WindowInfo.getMenuBarWindow(for: screen.displayID)
+                let menuBarWindow = WindowInfo.getMenuBarWindow(for: screen.displayID)
             {
                 return menuBarWindow.frame.contains(mouseLocation)
             }
@@ -436,7 +436,7 @@ final class EventManager {
         else {
             return false
         }
-        let menuBarItems = MenuBarItem.getMenuBarItems(for: screen.displayID, onScreenOnly: true)
+        let menuBarItems = MenuBarItem.getMenuBarItemsCoreGraphics(for: screen.displayID, onScreenOnly: true)
         return menuBarItems.contains { $0.frame.contains(mouseLocation) }
     }
 

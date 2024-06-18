@@ -160,7 +160,7 @@ final class MenuBarManager: ObservableObject {
                         return
                     }
 
-                    let items = MenuBarItem.getMenuBarItems(for: displayID, onScreenOnly: true)
+                    let items = MenuBarItem.getMenuBarItemsCoreGraphics(for: displayID, onScreenOnly: true)
 
                     // get the leftmost item on the screen; the application menu should
                     // be hidden if the item's minX is close to the maxX of the menu
@@ -315,9 +315,7 @@ final class MenuBarManager: ObservableObject {
     /// Returns a Boolean value that indicates whether a window is
     /// fullscreen for the given display.
     func isFullscreen(for display: CGDirectDisplayID) -> Bool {
-        guard let windows = try? WindowInfo.getOnScreenWindows(excludeDesktopWindows: true) else {
-            return false
-        }
+        let windows = WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
         let isFullscreenBackdropWindow = Predicates.fullscreenBackdropWindow(for: display)
         if let frontmostApplication = NSWorkspace.shared.frontmostApplication {
             let displayBounds = CGDisplayBounds(display)

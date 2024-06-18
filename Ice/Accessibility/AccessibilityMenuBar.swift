@@ -33,11 +33,8 @@ struct AccessibilityMenuBar {
     /// - Parameter display: The display to get the menu bar for.
     init(display: CGDirectDisplayID) throws {
         do {
-            let menuBarWindow: WindowInfo
-            do {
-                menuBarWindow = try WindowInfo.getMenuBarWindow(for: display)
-            } catch {
-                throw AccessibilityError(message: "No menu bar window for display \(display)", underlyingError: error)
+            guard let menuBarWindow = WindowInfo.getMenuBarWindow(for: display) else {
+                throw AccessibilityError(message: "No menu bar window for display \(display)")
             }
             let position = menuBarWindow.frame.origin
             guard let uiElement = try systemWideElement.elementAtPosition(Float(position.x), Float(position.y)) else {
@@ -54,9 +51,11 @@ struct AccessibilityMenuBar {
     /// Returns a Boolean value that indicates whether the given display
     /// has a valid menu bar.
     static func hasValidMenuBar(for display: CGDirectDisplayID) -> Bool {
+        guard let menuBarWindow = WindowInfo.getMenuBarWindow(for: display) else {
+            return false
+        }
+        let position = menuBarWindow.frame.origin
         do {
-            let menuBarWindow = try WindowInfo.getMenuBarWindow(for: display)
-            let position = menuBarWindow.frame.origin
             let uiElement = try systemWideElement.elementAtPosition(Float(position.x), Float(position.y))
             return try uiElement?.role() == .menuBar
         } catch {

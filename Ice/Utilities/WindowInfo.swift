@@ -122,19 +122,6 @@ struct WindowInfo {
 
 // MARK: - WindowList Operations
 
-extension WindowInfo {
-
-    // MARK: WindowListError
-
-    /// An error that can be thrown during window list operations.
-    enum WindowListError: Error {
-        /// Indicates that copying the window list failed.
-        case cannotCopyWindowList
-        /// Indicates that the desired window is not present in the list.
-        case noMatchingWindow
-    }
-}
-
 // MARK: Private
 extension WindowInfo {
     /// Options to use to retrieve on screen windows.
@@ -181,18 +168,18 @@ extension WindowInfo {
     }
 
     /// Retrieves a copy of the current window list as an array of dictionaries.
-    private static func copyWindowListArray(context: WindowListContext) throws -> [CFDictionary] {
+    private static func copyWindowListArray(context: WindowListContext) -> [CFDictionary] {
         let option = context.windowListOption
         let windowID = context.referenceWindow?.windowID ?? kCGNullWindowID
         guard let list = CGWindowListCopyWindowInfo(option, windowID) as? [CFDictionary] else {
-            throw WindowListError.cannotCopyWindowList
+            return []
         }
         return list
     }
 
     /// Returns the current window list using the given context.
-    private static func getWindowList(context: WindowListContext) throws -> [WindowInfo] {
-        let list = try copyWindowListArray(context: context)
+    private static func getWindowList(context: WindowListContext) -> [WindowInfo] {
+        let list = copyWindowListArray(context: context)
         return list.compactMap { WindowInfo(dictionary: $0) }
     }
 }
@@ -203,13 +190,13 @@ extension WindowInfo {
     ///
     /// - Parameter excludeDesktopWindows: A Boolean value that indicates whether
     ///   to exclude desktop owned windows, such as the wallpaper and desktop icons.
-    static func getAllWindows(excludeDesktopWindows: Bool = false) throws -> [WindowInfo] {
+    static func getAllWindows(excludeDesktopWindows: Bool = false) -> [WindowInfo] {
         var option = CGWindowListOption.optionAll
         if excludeDesktopWindows {
             option.insert(.excludeDesktopElements)
         }
         let context = WindowListContext(windowListOption: option, referenceWindow: nil)
-        return try getWindowList(context: context)
+        return getWindowList(context: context)
     }
 }
 
@@ -219,12 +206,12 @@ extension WindowInfo {
     ///
     /// - Parameter excludeDesktopWindows: A Boolean value that indicates whether
     ///   to exclude desktop owned windows, such as the wallpaper and desktop icons.
-    static func getOnScreenWindows(excludeDesktopWindows: Bool = false) throws -> [WindowInfo] {
+    static func getOnScreenWindows(excludeDesktopWindows: Bool = false) -> [WindowInfo] {
         let context = WindowListContext(
             onScreenOption: .onScreenOnly,
             excludeDesktopWindows: excludeDesktopWindows
         )
-        return try getWindowList(context: context)
+        return getWindowList(context: context)
     }
 
     /// Returns the on screen windows above the given window.
@@ -240,12 +227,12 @@ extension WindowInfo {
         above window: WindowInfo,
         includeWindow: Bool = false,
         excludeDesktopWindows: Bool = false
-    ) throws -> [WindowInfo] {
+    ) -> [WindowInfo] {
         let context = WindowListContext(
             onScreenOption: .above(window, includeWindow: includeWindow),
             excludeDesktopWindows: excludeDesktopWindows
         )
-        return try getWindowList(context: context)
+        return getWindowList(context: context)
     }
 
     /// Returns the on screen windows below the given window.
@@ -261,44 +248,38 @@ extension WindowInfo {
         below window: WindowInfo,
         includeWindow: Bool = false,
         excludeDesktopWindows: Bool = false
-    ) throws -> [WindowInfo] {
+    ) -> [WindowInfo] {
         let context = WindowListContext(
             onScreenOption: .below(window, includeWindow: includeWindow),
             excludeDesktopWindows: excludeDesktopWindows
         )
-        return try getWindowList(context: context)
+        return getWindowList(context: context)
     }
 }
 
 // MARK: Wallpaper Window
 extension WindowInfo {
     /// Returns the wallpaper window in the given windows for the given display.
-    static func getWallpaperWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) throws -> WindowInfo {
-        guard let window = windows.first(where: Predicates.wallpaperWindow(for: display)) else {
-            throw WindowListError.noMatchingWindow
-        }
-        return window
+    static func getWallpaperWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) -> WindowInfo? {
+        windows.first(where: Predicates.wallpaperWindow(for: display))
     }
 
     /// Returns the wallpaper window for the given display.
-    static func getWallpaperWindow(for display: CGDirectDisplayID) throws -> WindowInfo {
-        try getWallpaperWindow(from: getOnScreenWindows(), for: display)
+    static func getWallpaperWindow(for display: CGDirectDisplayID) -> WindowInfo? {
+        getWallpaperWindow(from: getOnScreenWindows(), for: display)
     }
 }
 
 // MARK: Menu Bar Window
 extension WindowInfo {
     /// Returns the menu bar window for the given display.
-    static func getMenuBarWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) throws -> WindowInfo {
-        guard let window = windows.first(where: Predicates.menuBarWindow(for: display)) else {
-            throw WindowListError.noMatchingWindow
-        }
-        return window
+    static func getMenuBarWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) -> WindowInfo? {
+        windows.first(where: Predicates.menuBarWindow(for: display))
     }
 
     /// Returns the menu bar window for the given display.
-    static func getMenuBarWindow(for display: CGDirectDisplayID) throws -> WindowInfo {
-        try getMenuBarWindow(from: getOnScreenWindows(excludeDesktopWindows: true), for: display)
+    static func getMenuBarWindow(for display: CGDirectDisplayID) -> WindowInfo? {
+        getMenuBarWindow(from: getOnScreenWindows(excludeDesktopWindows: true), for: display)
     }
 }
 

@@ -182,10 +182,10 @@ extension ScreenCapture {
     /// Returns an image containing the area of the desktop wallpaper that is below the
     /// menu bar for the given display.
     static func desktopWallpaperBelowMenuBar(for display: CGDirectDisplayID) -> CGImage? {
+        let windows = WindowInfo.getOnScreenWindows()
         guard
-            let windows = try? WindowInfo.getOnScreenWindows(),
-            let wallpaperWindow = try? WindowInfo.getWallpaperWindow(from: windows, for: display),
-            let menuBarWindow = try? WindowInfo.getMenuBarWindow(from: windows, for: display)
+            let wallpaperWindow = WindowInfo.getWallpaperWindow(from: windows, for: display),
+            let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display)
         else {
             return nil
         }

@@ -28,7 +28,7 @@ class MenuBarItemManager: ObservableObject {
     func performSetup() {
         configureCancellables()
         DispatchQueue.main.async {
-            self.cacheMenuBarItems()
+            self.cacheCurrentMenuBarItems()
         }
     }
 
@@ -38,7 +38,7 @@ class MenuBarItemManager: ObservableObject {
         Timer.publish(every: 3, on: .main, in: .default)
             .autoconnect()
             .sink { [weak self] _ in
-                self?.cacheMenuBarItems()
+                self?.cacheCurrentMenuBarItems()
             }
             .store(in: &c)
 
@@ -46,11 +46,13 @@ class MenuBarItemManager: ObservableObject {
     }
 
     /// Caches the current menu bar items.
-    private func cacheMenuBarItems() {
+    private func cacheCurrentMenuBarItems() {
         guard tempShownItemsInfo.isEmpty else {
             Logger.itemManager.info("Items are temporarily shown, so deferring cache")
             return
         }
+
+        Logger.itemManager.info("Caching current menu bar items")
 
         let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
 
@@ -113,12 +115,17 @@ class MenuBarItemManager: ObservableObject {
     /// Schedules a timer for the given interval, attempting to rehide the current
     /// temporarily shown items when the timer fires.
     private func runTempShownItemTimer(for interval: TimeInterval) {
+        Logger.itemManager.info("Running rehide timer for temporarily shown items with interval: \(interval)")
+
         tempShownItemsTimer?.invalidate()
         tempShownItemsTimer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
             guard let self else {
                 timer.invalidate()
                 return
             }
+
+            Logger.itemManager.info("Rehide timer fired")
+
             Task {
                 await self.rehideTempShownItems()
             }
@@ -138,6 +145,8 @@ class MenuBarItemManager: ObservableObject {
     ///   - clickWhenFinished: A Boolean value that indicates whether the item
     ///     should be clicked once its movement has finished.
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool) {
+        Logger.itemManager.info("Temporarily showing \"\(item.logString)\"")
+
         let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
 
         guard let destination = getReturnDestination(for: item, in: items) else {
@@ -179,6 +188,8 @@ class MenuBarItemManager: ObservableObject {
     /// to close before hiding the items.
     func rehideTempShownItems() async {
         if let menuWindow = WindowInfo.getAllWindows().first(where: { $0.layer == 101 }) {
+            Logger.itemManager.info("Waiting for menu to close")
+
             let menuCheckTask = Task.detached(timeout: .seconds(1)) {
                 while Set(Bridging.getWindowList(option: .onScreen)).contains(menuWindow.windowID) {
                     try Task.checkCancellation()
@@ -195,13 +206,17 @@ class MenuBarItemManager: ObservableObject {
                 Logger.itemManager.error("ERROR: \(error)")
             }
         }
+
+        Logger.itemManager.info("Rehiding temporarily shown items")
+
         while let (item, destination) = tempShownItemsInfo.popLast() {
             do {
                 try await move(item: item, to: destination)
             } catch {
-                Logger.itemManager.error("Failed to return \"\(item.logString)\": \(error)")
+                Logger.itemManager.error("Failed to rehide \"\(item.logString)\": \(error)")
             }
         }
+
         tempShownItemsTimer?.invalidate()
         tempShownItemsTimer = nil
     }

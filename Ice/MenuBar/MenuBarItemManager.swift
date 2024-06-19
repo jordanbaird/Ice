@@ -375,6 +375,10 @@ extension MenuBarItemManager {
                 Logger.move.info("Forwarding \(type.logString) from \(initialLocation.logString) to \(forwardedLocation.logString)")
                 postEvent(event, to: forwardedLocation)
 
+                // workaround to prevent a timeout when Magnet.app is running
+                // TODO: Try listening with an event tap instead of a static delay
+                Thread.sleep(forTimeInterval: 0.01)
+
                 proxy.disable()
                 continuation.resume()
 

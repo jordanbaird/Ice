@@ -372,7 +372,7 @@ extension MenuBarItemManager {
                     return rEvent
                 }
 
-                Logger.move.info("Forwarding event from \(initialLocation.logString) to \(forwardedLocation.logString)")
+                Logger.move.info("Forwarding \(type.logString) from \(initialLocation.logString) to \(forwardedLocation.logString)")
                 postEvent(event, to: forwardedLocation)
 
                 proxy.disable()
@@ -893,6 +893,36 @@ private extension CGEventFilterMask {
         .permitLocalKeyboardEvents,
         .permitSystemDefinedEvents,
     ]
+}
+
+// MARK: - CGEventType Helpers
+
+private extension CGEventType {
+    /// A string to use for logging purposes.
+    var logString: String {
+        switch self {
+        case .null: "null event"
+        case .leftMouseDown: "leftMouseDown event"
+        case .leftMouseUp: "leftMouseUp event"
+        case .rightMouseDown: "rightMouseDown event"
+        case .rightMouseUp: "rightMouseUp event"
+        case .mouseMoved: "mouseMoved event"
+        case .leftMouseDragged: "leftMouseDragged event"
+        case .rightMouseDragged: "rightMouseDragged event"
+        case .keyDown: "keyDown event"
+        case .keyUp: "keyUp event"
+        case .flagsChanged: "flagsChanged event"
+        case .scrollWheel: "scrollWheel event"
+        case .tabletPointer: "tabletPointer event"
+        case .tabletProximity: "tabletProximity event"
+        case .otherMouseDown: "otherMouseDown event"
+        case .otherMouseUp: "otherMouseUp event"
+        case .otherMouseDragged: "otherMouseDragged event"
+        case .tapDisabledByTimeout: "tapDisabledByTimeout event"
+        case .tapDisabledByUserInput: "tapDisabledByUserInput event"
+        @unknown default: "unknown event"
+        }
+    }
 }
 
 // MARK: - CGEvent Constructor

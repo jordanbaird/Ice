@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import Bridging
 import Cocoa
 
 // MARK: - LayoutBarItemView
@@ -92,6 +93,12 @@ class LayoutBarItemView: NSView {
         return alert
     }
 
+    func provideAlertForUnresponsiveItem() -> NSAlert {
+        let alert = provideAlertForDisabledItem()
+        alert.informativeText = "\(item.displayName) is unresponsive. Until it is restarted, it cannot be moved. Movement of other items may also be affected until this is resolved."
+        return alert
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         if !isDraggingPlaceholder {
             image.draw(
@@ -100,6 +107,23 @@ class LayoutBarItemView: NSView {
                 operation: .sourceOver,
                 fraction: isEnabled ? 1.0 : 0.67
             )
+            if !Bridging.isResponsive(item.ownerPID) {
+                let warningImage = NSImage.warning
+                let width: CGFloat = 15
+                let scale = width / warningImage.size.width
+                let size = CGSize(
+                    width: width,
+                    height: warningImage.size.height * scale
+                )
+                warningImage.draw(
+                    in: CGRect(
+                        x: bounds.maxX - size.width,
+                        y: bounds.minY,
+                        width: size.width,
+                        height: size.height
+                    )
+                )
+            }
         }
     }
 
@@ -108,6 +132,12 @@ class LayoutBarItemView: NSView {
 
         guard isEnabled else {
             let alert = provideAlertForDisabledItem()
+            alert.runModal()
+            return
+        }
+
+        guard Bridging.isResponsive(item.ownerPID) else {
+            let alert = provideAlertForUnresponsiveItem()
             alert.runModal()
             return
         }

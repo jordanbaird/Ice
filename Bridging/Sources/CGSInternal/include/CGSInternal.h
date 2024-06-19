@@ -9,6 +9,7 @@
 #include <CoreGraphics/CoreGraphics.h>
 
 #include "CGSConnection.h"
+#include "CGSEvent.h"
 #include "CGSSpace.h"
 #include "CGSWindow.h"
 

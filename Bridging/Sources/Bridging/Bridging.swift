@@ -4,7 +4,7 @@
 //
 
 package import CGSInternal
-import CoreGraphics
+import Cocoa
 
 /// A namespace for bridged functionality.
 public enum Bridging { }
@@ -47,6 +47,8 @@ extension Bridging {
         return value?.takeRetainedValue()
     }
 }
+
+// MARK: - CGSWindow
 
 // MARK: Private Window List Helpers
 extension Bridging {
@@ -181,6 +183,44 @@ extension Bridging {
     }
 }
 
+// MARK: Capture Window
+extension Bridging {
+    /// Returns a composite image of the specified windows.
+    ///
+    /// This function links to a deprecated CoreGraphics function. We link to it this way to
+    /// prevent a deprecation warning. If ScreenCaptureKit is ever able to capture offscreen
+    /// windows, this function can be removed.
+    ///
+    /// See the documentation for the deprecated function here:
+    ///
+    /// https://developer.apple.com/documentation/coregraphics/1455730-cgwindowlistcreateimagefromarray
+    @_silgen_name("CGWindowListCreateImageFromArray")
+    private static func CGWindowListCreateImageFromArray(
+        _ screenBounds: CGRect,
+        _ windowArray: CFArray,
+        _ imageOption: CGWindowImageOption
+    ) -> CGImage?
+
+    /// Captures an image of a window.
+    ///
+    /// - Parameters:
+    ///   - windowID: The identifier of the window to capture.
+    ///   - screenBounds: The bounds to capture. Pass `nil` to capture the minimum
+    ///     rectangle that encloses the window.
+    ///   - option: Options that specify the image to be captured.
+    public static func captureWindow(
+        _ windowID: CGWindowID,
+        screenBounds: CGRect? = nil,
+        option: CGWindowImageOption
+    ) -> CGImage? {
+        var pointer = UnsafeRawPointer(bitPattern: Int(windowID))
+        guard let windowArray = CFArrayCreate(kCFAllocatorDefault, &pointer, 1, nil) else {
+            return nil
+        }
+        return CGWindowListCreateImageFromArray(screenBounds ?? .null, windowArray, option)
+    }
+}
+
 // MARK: - CGSSpace
 
 extension Bridging {
@@ -210,41 +250,29 @@ extension Bridging {
     }
 }
 
+// MARK: - Process Responsivity
+
 extension Bridging {
-    /// Captures an image of a window.
+    /// Retrieves the process serial number for the given Unix process identifier.
+    @_silgen_name("GetProcessForPID")
+    private static func GetProcessForPID(
+        _ pid: pid_t,
+        _ psn: inout ProcessSerialNumber
+    ) -> OSStatus
+
+    /// Returns a Boolean value that indicates whether the given process is responsive.
     ///
-    /// - Parameters:
-    ///   - windowID: The identifier of the window to capture.
-    ///   - screenBounds: The on-screen bounds to capture.
-    ///   - option: Options that specify the image to be captured.
-    public static func captureWindow(
-        _ windowID: CGWindowID,
-        screenBounds: CGRect? = nil,
-        option: CGWindowImageOption
-    ) -> CGImage? {
-        var pointer = UnsafeRawPointer(bitPattern: Int(windowID))
-        guard
-            let windowArray = CFArrayCreate(kCFAllocatorDefault, &pointer, 1, nil),
-            let image = CGWindowListCreateImageFromArray(screenBounds ?? .null, windowArray, option)
-        else {
-            return nil
+    /// - Parameter pid: The Unix process identifier of the process to check.
+    public static func isResponsive(_ pid: pid_t) -> Bool {
+        var psn = ProcessSerialNumber()
+        let result = GetProcessForPID(pid, &psn)
+        guard result == noErr else {
+            logger.error("GetProcessForPID failed with error \(result)")
+            return false
         }
-        return image
+        if CGSEventIsAppUnresponsive(CGSMainConnectionID(), &psn) {
+            return false
+        }
+        return true
     }
 }
-
-/// Returns a composite image of the specified windows.
-///
-/// This function links to a deprecated CoreGraphics function. We link to it this way to
-/// silence the deprecation warning. Once ScreenCaptureKit can reliably capture offscreen
-/// windows, this function should be removed.
-///
-/// See the documentation for the deprecated function here:
-///
-/// https://developer.apple.com/documentation/coregraphics/1455730-cgwindowlistcreateimagefromarray
-@_silgen_name("CGWindowListCreateImageFromArray")
-private func CGWindowListCreateImageFromArray(
-    _ screenBounds: CGRect,
-    _ windowArray: CFArray,
-    _ imageOption: CGWindowImageOption
-) -> CGImage?

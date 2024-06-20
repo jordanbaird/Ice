@@ -11,8 +11,6 @@ import OSLog
 // MARK: - IceBarPanel
 
 class IceBarPanel: NSPanel {
-    @Published private var pinnedLocation: IceBarPinnedLocation?
-
     private weak var appState: AppState?
 
     private let imageCache: IceBarImageCache
@@ -26,10 +24,6 @@ class IceBarPanel: NSPanel {
     private(set) var currentSection: MenuBarSection.Name?
 
     private var cancellables = Set<AnyCancellable>()
-
-    var isPinned: Bool {
-        pinnedLocation != nil
-    }
 
     init(appState: AppState) {
         self.imageCache = IceBarImageCache(appState: appState)
@@ -60,30 +54,24 @@ class IceBarPanel: NSPanel {
     }
 
     func performSetup() {
-        Defaults.ifPresent(key: .iceBarPinnedLocation) { data in
-            do {
-                pinnedLocation = try decoder.decode(IceBarPinnedLocation.self, from: data)
-            } catch {
-                Logger.iceBar.error("Error decoding pinned location: \(error)")
-            }
-        }
         configureCancellables()
     }
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // close the panel when the active space changes
-        NSWorkspace.shared.notificationCenter
-            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                needsUpdateImageCacheBeforeShowing = true
-                close()
+        Publishers.CombineLatest(
+            NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
+            NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+        )
+        .sink { [weak self] _ in
+            guard let self else {
+                return
             }
-            .store(in: &c)
+            needsUpdateImageCacheBeforeShowing = true
+            close()
+        }
+        .store(in: &c)
 
         publisher(for: \.frame)
             .map(\.size)
@@ -96,32 +84,6 @@ class IceBarPanel: NSPanel {
                     return
                 }
                 updateOrigin(for: screen)
-            }
-            .store(in: &c)
-
-        $pinnedLocation
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] pinnedLocation in
-                self?.isMovable = pinnedLocation == nil
-            }
-            .store(in: &c)
-
-        $pinnedLocation
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] pinnedLocation in
-                guard let self else {
-                    return
-                }
-                guard let pinnedLocation else {
-                    Defaults.removeObject(forKey: .iceBarPinnedLocation)
-                    return
-                }
-                do {
-                    let data = try encoder.encode(pinnedLocation)
-                    Defaults.set(data, forKey: .iceBarPinnedLocation)
-                } catch {
-                    Logger.iceBar.error("Error encoding pinned location: \(error)")
-                }
             }
             .store(in: &c)
 
@@ -148,35 +110,22 @@ class IceBarPanel: NSPanel {
     }
 
     private func updateOrigin(for screen: NSScreen) {
-        if let pinnedLocation {
-            let point = pinnedLocation.point(frame: frame, screen: screen)
-            setFrameOrigin(point)
-        } else {
-            guard
-                let appState,
-                let section = appState.menuBarManager.section(withName: .visible),
-                let windowFrame = section.controlItem.windowFrame
-            else {
-                return
-            }
-            let margin: CGFloat = 5
-            let origin = CGPoint(
-                x: min(
-                    windowFrame.midX - (frame.width / 2),
-                    (screen.frame.maxX - frame.width) - margin
-                ),
-                y: (screen.visibleFrame.maxY - frame.height) - margin
-            )
-            setFrameOrigin(origin)
+        guard
+            let appState,
+            let section = appState.menuBarManager.section(withName: .visible),
+            let windowFrame = section.controlItem.windowFrame
+        else {
+            return
         }
-    }
-
-    @objc private func togglePinAtCurrentLocation() {
-        if isPinned {
-            pinnedLocation = nil
-        } else if let screen {
-            pinnedLocation = IceBarPinnedLocation(frame: frame, screen: screen)
-        }
+        let margin: CGFloat = 5
+        let origin = CGPoint(
+            x: min(
+                windowFrame.midX - (frame.width / 2),
+                (screen.frame.maxX - frame.width) - margin
+            ),
+            y: (screen.visibleFrame.maxY - frame.height) - margin
+        )
+        setFrameOrigin(origin)
     }
 
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {
@@ -206,22 +155,6 @@ class IceBarPanel: NSPanel {
         super.close()
         contentView = nil
         currentSection = nil
-    }
-
-    override func rightMouseDown(with event: NSEvent) {
-        super.rightMouseDown(with: event)
-
-        let menu = NSMenu(title: "Ice Bar Options")
-
-        let pinItem = NSMenuItem(
-            title: "\(isPinned ? "Unpin" : "Pin") Ice Bar",
-            action: #selector(togglePinAtCurrentLocation),
-            keyEquivalent: ""
-        )
-        pinItem.target = self
-        menu.addItem(pinItem)
-
-        menu.popUp(positioning: nil, at: event.locationInWindow, in: contentView)
     }
 }
 
@@ -259,35 +192,22 @@ private class IceBarImageCache: ObservableObject {
         }
     }
 
-    func updateCache(for section: MenuBarSection.Name) async -> Bool {
-        guard
-            let appState,
-            let items = appState.itemManager.cachedMenuBarItems[section]
-        else {
-            return false
-        }
-        var results = [Bool]()
-        for item in items {
-            let result = await cacheImage(for: item)
-            results.append(result)
-            try? await Task.sleep(for: .milliseconds(5))
-        }
-        for result in results where !result {
-            return false
-        }
-        return true
-    }
-
     func updateCache() async -> Bool {
-        var results = [Bool]()
-        for section: MenuBarSection.Name in [.hidden, .alwaysHidden] {
-            let result = await updateCache(for: section)
-            results.append(result)
-        }
-        for result in results where !result {
+        guard let appState else {
             return false
         }
-        return true
+        var results = Set<Bool>()
+        for section: MenuBarSection.Name in [.hidden, .alwaysHidden] {
+            guard let items = appState.itemManager.cachedMenuBarItems[section] else {
+                results.insert(false)
+                continue
+            }
+            for item in items {
+                let result = await cacheImage(for: item)
+                results.insert(result)
+            }
+        }
+        return !results.contains(false)
     }
 }
 
@@ -385,74 +305,6 @@ private struct IceBarItemView: View {
                     itemManager.tempShowItem(item, clickWhenFinished: true)
                 }
         }
-    }
-}
-
-// MARK: - IceBarPinnedLocation
-
-struct IceBarPinnedLocation: Codable {
-    enum HorizontalScreenRegion: Int, Codable {
-        case left = 0
-        case right = 1
-        case center = 3
-    }
-
-    enum VerticalScreenRegion: Int, Codable {
-        case bottom = 0
-        case top = 1
-        case center = 3
-    }
-
-    var horizontalPercent: CGFloat
-    var verticalPercent: CGFloat
-    var horizontalRegion: HorizontalScreenRegion
-    var verticalRegion: VerticalScreenRegion
-
-    init(frame: CGRect, screen: NSScreen) {
-        if ((screen.frame.midX - 25)...(screen.frame.midX + 25)).contains(frame.midX) {
-            self.horizontalPercent = frame.midX / screen.frame.width
-            self.horizontalRegion = .center
-        } else if frame.midX > screen.frame.midX {
-            self.horizontalPercent = frame.maxX / screen.frame.width
-            self.horizontalRegion = .right
-        } else {
-            self.horizontalPercent = frame.minX / screen.frame.width
-            self.horizontalRegion = .left
-        }
-        if ((screen.frame.midY - 25)...(screen.frame.midY + 25)).contains(frame.midY) {
-            self.verticalPercent = frame.midY / screen.frame.height
-            self.verticalRegion = .center
-        } else if frame.midY > screen.frame.midY {
-            self.verticalPercent = frame.maxY / screen.frame.height
-            self.verticalRegion = .top
-        } else {
-            self.verticalPercent = frame.minY / screen.frame.height
-            self.verticalRegion = .bottom
-        }
-    }
-
-    func point(frame: CGRect, screen: NSScreen) -> CGPoint {
-        var point = CGPoint.zero
-
-        switch horizontalRegion {
-        case .left:
-            point.x = screen.frame.width * horizontalPercent
-        case .right:
-            point.x = (screen.frame.width * horizontalPercent) - frame.width
-        case .center:
-            point.x = (screen.frame.width * horizontalPercent) - (frame.width / 2)
-        }
-
-        switch verticalRegion {
-        case .bottom:
-            point.y = screen.frame.height * verticalPercent
-        case .top:
-            point.y = (screen.frame.height * verticalPercent) - frame.height
-        case .center:
-            point.y = (screen.frame.height * verticalPercent) - (frame.height / 2)
-        }
-
-        return point
     }
 }
 

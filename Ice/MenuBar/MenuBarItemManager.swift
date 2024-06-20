@@ -381,6 +381,7 @@ extension MenuBarItemManager {
 
                 // small delay to prevent a timeout when running alongside certain
                 // event tapping apps, such as Magnet
+                // TODO: Try to find a better solution for this
                 Thread.sleep(forTimeInterval: 0.01)
 
                 continuation.resume()

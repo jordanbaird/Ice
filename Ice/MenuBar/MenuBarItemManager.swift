@@ -672,17 +672,10 @@ extension MenuBarItemManager {
             throw EventError(code: .eventCreationFailure, item: item)
         }
 
-        try await forwardEvent(
-            mouseDownEvent,
-            from: .application(application),
-            to: .hidEventTap
-        )
+        postEvent(mouseDownEvent, to: .sessionEventTap)
         try await Task.sleep(for: .milliseconds(50))
-        try await forwardEvent(
-            mouseUpEvent,
-            from: .application(application),
-            to: .hidEventTap
-        )
+        postEvent(mouseUpEvent, to: .sessionEventTap)
+        try await Task.sleep(for: .milliseconds(50))
     }
 }
 

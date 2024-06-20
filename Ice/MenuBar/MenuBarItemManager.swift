@@ -625,9 +625,6 @@ extension MenuBarItemManager {
 extension MenuBarItemManager {
     /// Clicks the given menu bar item with the left mouse button.
     func leftClick(item: MenuBarItem) async throws {
-        guard let application = item.owningApplication else {
-            throw EventError(code: .noOwningApplication, item: item)
-        }
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .invalidEventSource, item: item)
         }
@@ -644,6 +641,15 @@ extension MenuBarItemManager {
             MouseCursor.warpPosition(to: cursorLocation)
             MouseCursor.show()
         }
+
+        try permitAllEvents(
+            for: .combinedSessionState,
+            during: [
+                .eventSuppressionStateRemoteMouseDrag,
+                .eventSuppressionStateSuppressionInterval,
+            ],
+            suppressionInterval: 0
+        )
 
         let clickPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
 

@@ -17,10 +17,6 @@ class MenuBarItemManager: ObservableObject {
 
     private var tempShownItemsTimer: Timer?
 
-    private let eventQueue = DispatchQueue(
-        label: "MenuBarItem-Event-Queue",
-        qos: .userInteractive
-    )
 
     private(set) weak var appState: AppState?
 
@@ -321,17 +317,15 @@ extension MenuBarItemManager {
     ///   - event: The event to post.
     ///   - location: The event tap location to post the event to.
     private func postEvent(_ event: CGEvent, to location: EventTap.Location) {
-        eventQueue.sync {
-            switch location {
-            case .hidEventTap:
-                event.post(tap: .cghidEventTap)
-            case .sessionEventTap:
-                event.post(tap: .cgSessionEventTap)
-            case .annotatedSessionEventTap:
-                event.post(tap: .cgAnnotatedSessionEventTap)
-            case .application(let app):
-                event.postToPid(app.processIdentifier)
-            }
+        switch location {
+        case .hidEventTap:
+            event.post(tap: .cghidEventTap)
+        case .sessionEventTap:
+            event.post(tap: .cgSessionEventTap)
+        case .annotatedSessionEventTap:
+            event.post(tap: .cgAnnotatedSessionEventTap)
+        case .application(let app):
+            event.postToPid(app.processIdentifier)
         }
     }
 

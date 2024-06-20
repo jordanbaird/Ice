@@ -17,6 +17,7 @@ class MenuBarItemManager: ObservableObject {
 
     private var tempShownItemsTimer: Timer?
 
+    private var dateOfLastTempShownItemsRehide: Date?
 
     private(set) weak var appState: AppState?
 
@@ -55,6 +56,13 @@ extension MenuBarItemManager {
         guard tempShownItemsInfo.isEmpty else {
             Logger.itemManager.info("Items are temporarily shown, so deferring cache")
             return
+        }
+
+        if let dateOfLastTempShownItemsRehide {
+            guard Date.now.timeIntervalSince(dateOfLastTempShownItemsRehide) > 1 else {
+                Logger.itemManager.info("Items were recently rehidden, so deferring cache")
+                return
+            }
         }
 
         Logger.itemManager.info("Caching current menu bar items")
@@ -700,7 +708,7 @@ extension MenuBarItemManager {
     /// Schedules a timer for the given interval, attempting to rehide the current
     /// temporarily shown items when the timer fires.
     private func runTempShownItemTimer(for interval: TimeInterval) {
-        Logger.itemManager.info("Running rehide timer for temporarily shown items with interval: \(interval)")
+        Logger.itemManager.info("Running rehide timer for temp shown items with interval: \(interval, format: .hybrid)")
 
         tempShownItemsTimer?.invalidate()
         tempShownItemsTimer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
@@ -762,9 +770,8 @@ extension MenuBarItemManager {
                     Logger.itemManager.error("ERROR: \(error)")
                 }
             }
+            runTempShownItemTimer(for: 20)
         }
-
-        runTempShownItemTimer(for: 20)
     }
 
     /// Rehides all temporarily shown items.
@@ -772,8 +779,12 @@ extension MenuBarItemManager {
     /// If an item is currently showing its menu, this method waits for the menu
     /// to close before hiding the items.
     func rehideTempShownItems() async {
+        guard !tempShownItemsInfo.isEmpty else {
+            return
+        }
+
         if let menuWindow = WindowInfo.getAllWindows().first(where: { $0.layer == 101 }) {
-            Logger.itemManager.info("Waiting for menu to close")
+            Logger.itemManager.info("Waiting for menu to close before rehiding temp shown items")
 
             let menuCheckTask = Task.detached(timeout: .seconds(1)) {
                 while Set(Bridging.getWindowList(option: .onScreen)).contains(menuWindow.windowID) {
@@ -792,7 +803,7 @@ extension MenuBarItemManager {
             }
         }
 
-        Logger.itemManager.info("Rehiding temporarily shown items")
+        Logger.itemManager.info("Rehiding temp shown items")
 
         while let (item, destination) = tempShownItemsInfo.popLast() {
             do {
@@ -804,6 +815,8 @@ extension MenuBarItemManager {
 
         tempShownItemsTimer?.invalidate()
         tempShownItemsTimer = nil
+
+        dateOfLastTempShownItemsRehide = .now
     }
 
     /// Removes a temporarily shown item from the cache.

@@ -228,7 +228,7 @@ extension MenuBarItemManager {
     ///
     /// - Parameter item: The item to return the current frame for.
     private func getCurrentFrame(for item: MenuBarItem) -> CGRect? {
-        guard let frame = WindowInfo(windowID: item.windowID)?.frame else {
+        guard let frame = Bridging.getWindowFrame(for: item.window.windowID) else {
             Logger.move.error("Couldn't get current frame for \"\(item.logString)\"")
             return nil
         }

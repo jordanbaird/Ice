@@ -50,6 +50,23 @@ extension Bridging {
 
 // MARK: - CGSWindow
 
+extension Bridging {
+    /// Returns the frame for the window with the specified identifier.
+    ///
+    /// - Parameter windowID: An identifier for a window.
+    /// - Returns: The frame -- specified in screen coordinates -- of the window associated
+    ///   with `windowID`, or `nil` if the operation failed.
+    public static func getWindowFrame(for windowID: CGWindowID) -> CGRect? {
+        var rect = CGRect.zero
+        let result = CGSGetScreenRectForWindow(CGSMainConnectionID(), windowID, &rect)
+        guard result == .success else {
+            logger.error("CGSGetScreenRectForWindow failed with error \(result.rawValue)")
+            return nil
+        }
+        return rect
+    }
+}
+
 // MARK: Private Window List Helpers
 extension Bridging {
     private static func getWindowCount() -> Int {

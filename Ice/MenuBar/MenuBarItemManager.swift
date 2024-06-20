@@ -672,6 +672,8 @@ extension MenuBarItemManager {
             throw EventError(code: .eventCreationFailure, item: item)
         }
 
+        Logger.itemManager.info("Left clicking \"\(item.logString)\"")
+
         postEvent(mouseDownEvent, to: .sessionEventTap)
         try await Task.sleep(for: .milliseconds(50))
         postEvent(mouseUpEvent, to: .sessionEventTap)

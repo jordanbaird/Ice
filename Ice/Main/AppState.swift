@@ -11,6 +11,11 @@ import SwiftUI
 /// The model for app-wide state.
 @MainActor
 final class AppState: ObservableObject {
+    /// A Boolean value that indicates whether the menu bar is either always hidden
+    /// by the system, or automatically hidden and shown by the system based on the
+    /// location of the mouse.
+    @Published private(set) var isMenuBarHidingHandledBySystem = false
+
     private var cancellables = Set<AnyCancellable>()
 
     /// Manager for events received by the app.
@@ -68,11 +73,20 @@ final class AppState: ObservableObject {
 
     init() {
         MigrationManager(appState: self).migrateAll()
-        configureCancellables()
     }
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
+
+        NSApp.publisher(for: \.currentSystemPresentationOptions)
+            .sink { [weak self] options in
+                guard let self else {
+                    return
+                }
+                let handled = options.contains(.hideMenuBar) || options.contains(.autoHideMenuBar)
+                isMenuBarHidingHandledBySystem = handled
+            }
+            .store(in: &c)
 
         menuBarManager.objectWillChange
             .sink { [weak self] in
@@ -99,6 +113,7 @@ final class AppState: ObservableObject {
     }
 
     func performSetup() {
+        configureCancellables()
         permissionsManager.stopAllChecks()
         eventManager.startAll()
         menuBarManager.performSetup()

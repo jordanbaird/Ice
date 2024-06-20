@@ -68,8 +68,8 @@ class MenuBarOverlayPanel: NSPanel {
     /// The context that manages panel update tasks.
     private let updateTaskContext = UpdateTaskContext()
 
-    /// The appearance manager that manages the panel.
-    private(set) weak var appearanceManager: MenuBarAppearanceManager?
+    /// The shared app state.
+    private(set) weak var appState: AppState?
 
     /// The screen that owns the panel.
     let owningScreen: NSScreen
@@ -89,13 +89,9 @@ class MenuBarOverlayPanel: NSPanel {
     /// The current desktop wallpaper, clipped to the bounds of the menu bar.
     @Published private(set) var desktopWallpaper: CGImage?
 
-    weak var menuBarManager: MenuBarManager? {
-        appearanceManager?.menuBarManager
-    }
-
-    /// Creates an overlay panel with the given appearance manager and owning screen.
-    init(appearanceManager: MenuBarAppearanceManager, owningScreen: NSScreen) {
-        self.appearanceManager = appearanceManager
+    /// Creates an overlay panel with the given app state and owning screen.
+    init(appState: AppState, owningScreen: NSScreen) {
+        self.appState = appState
         self.owningScreen = owningScreen
         super.init(
             contentRect: .zero,
@@ -151,7 +147,7 @@ class MenuBarOverlayPanel: NSPanel {
         .sink { [weak self] _ in
             guard
                 let self,
-                let menuBarManager
+                let appState
             else {
                 return
             }
@@ -162,7 +158,7 @@ class MenuBarOverlayPanel: NSPanel {
                     try Task.checkCancellation()
                     try await Task.sleep(for: .milliseconds(hasUpdated ? 500 : 1))
                     if
-                        let latestFrames = try? await menuBarManager.getApplicationMenuItemFrames(for: displayID),
+                        let latestFrames = try? await appState.menuBarManager.getApplicationMenuItemFrames(for: displayID),
                         await latestFrames != self.applicationMenuItemFrames
                     {
                         await self.insertUpdateFlag(.applicationMenuItemFrames)
@@ -204,14 +200,7 @@ class MenuBarOverlayPanel: NSPanel {
                 defer {
                     self.needsShow = false
                 }
-                guard let owningDisplay = validate(for: .showing) else {
-                    return
-                }
-                do {
-                    try show(on: owningDisplay)
-                } catch {
-                    Logger.overlayPanel.error("Error showing menu bar overlay panel: \(error)")
-                }
+                show()
             }
             .store(in: &c)
 
@@ -243,6 +232,14 @@ class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
+        if let appState {
+            appState.$isMenuBarHidingHandledBySystem
+                .sink { [weak self] isHandled in
+                    self?.alphaValue = isHandled ? 0 : 1
+                }
+                .store(in: &c)
+        }
+
         cancellables = c
     }
 
@@ -259,12 +256,12 @@ class MenuBarOverlayPanel: NSPanel {
         case .updates: "Preventing overlay panel from updating."
         }
         let owningDisplay = owningScreen.displayID
-        guard let menuBarManager else {
-            Logger.overlayPanel.notice("No menu bar manager. \(actionMessage)")
+        guard let appState else {
+            Logger.overlayPanel.notice("No app state. \(actionMessage)")
             return nil
         }
-        guard !menuBarManager.isFullscreen(for: owningDisplay) else {
-            Logger.overlayPanel.notice("Found fullscreen window. \(actionMessage)")
+        guard !appState.menuBarManager.isActiveSpaceFullscreen else {
+            Logger.overlayPanel.notice("Active space is fullscreen. \(actionMessage)")
             return nil
         }
         guard AccessibilityMenuBar.hasValidMenuBar(for: owningDisplay) else {
@@ -274,29 +271,16 @@ class MenuBarOverlayPanel: NSPanel {
         return owningDisplay
     }
 
-    /// Returns the frame that should be used to show the panel on its owning screen.
-    private func getPanelFrame(for display: CGDirectDisplayID) throws -> CGRect {
-        let menuBar = try AccessibilityMenuBar(display: display)
-        let menuBarFrame = try menuBar.frame()
-        return CGRect(
-            x: owningScreen.frame.minX,
-            y: (owningScreen.frame.maxY - menuBarFrame.height) - 5,
-            width: owningScreen.frame.width,
-            height: menuBarFrame.height + 5
-        )
-    }
-
     /// Stores the frames of the menu bar's application menus.
     private func updateApplicationMenuItemFrames(for display: CGDirectDisplayID) throws {
         guard
-            let menuBarManager,
-            !menuBarManager.isFullscreen(for: display)
+            let appState,
+            !appState.isMenuBarHidingHandledBySystem
         else {
-            applicationMenuItemFrames.removeAll()
             return
         }
         do {
-            applicationMenuItemFrames = try menuBarManager.getApplicationMenuItemFrames(for: display)
+            applicationMenuItemFrames = try appState.menuBarManager.getApplicationMenuItemFrames(for: display)
         } catch {
             applicationMenuItemFrames.removeAll()
             throw error
@@ -341,35 +325,41 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Shows the panel.
-    private func show(on display: CGDirectDisplayID) throws {
+    private func show() {
         guard
-            let appearanceManager,
-            let appState = appearanceManager.appState,
+            let appState,
             !appState.isPreview
         else {
             return
         }
 
-        guard appearanceManager.overlayPanels.contains(self) else {
+        guard appState.menuBarManager.appearanceManager.overlayPanels.contains(self) else {
             Logger.overlayPanel.notice("Overlay panel \(self) not retained")
             return
         }
 
-        guard
-            let menuBarManager,
-            !menuBarManager.isFullscreen(for: display)
-        else {
-            return
-        }
-
-        let newFrame = try getPanelFrame(for: display)
+        let newFrame = CGRect(
+            x: owningScreen.frame.minX,
+            y: owningScreen.visibleFrame.maxY - 5,
+            width: owningScreen.frame.width,
+            height: (owningScreen.frame.height - owningScreen.visibleFrame.height) + 5
+        )
 
         alphaValue = 0
         setFrame(newFrame, display: false)
         orderFrontRegardless()
+
         updateFlags = [.applicationMenuItemFrames, .desktopWallpaper]
-        updateCallbacks.append { [weak self] in
-            self?.animator().alphaValue = 1
+        updateCallbacks.append { [weak self, weak appState] in
+            guard
+                let self,
+                let appState
+            else {
+                return
+            }
+            if !appState.isMenuBarHidingHandledBySystem {
+                animator().alphaValue = 1
+            }
         }
     }
 
@@ -390,10 +380,6 @@ private class MenuBarOverlayPanelContentView: NSView {
         window as? MenuBarOverlayPanel
     }
 
-    private weak var menuBarManager: MenuBarManager? {
-        overlayPanel?.menuBarManager
-    }
-
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         configureCancellables()
@@ -403,9 +389,40 @@ private class MenuBarOverlayPanelContentView: NSView {
         var c = Set<AnyCancellable>()
 
         if let overlayPanel {
-            overlayPanel.appearanceManager?.$configuration
-                .removeDuplicates()
-                .assign(to: &$configuration)
+            if let appState = overlayPanel.appState {
+                appState.menuBarManager.appearanceManager.$configuration
+                    .removeDuplicates()
+                    .assign(to: &$configuration)
+
+                for section in appState.menuBarManager.sections {
+                    // redraw whenever the window frame of a control item changes
+                    //
+                    // - NOTE: A previous attempt was made to redraw the view when the
+                    //   section's `isHidden` property was changed. This would be semantically
+                    //   ideal, but the property sometimes changes before the menu bar items
+                    //   are actually updated on-screen. Since the view's drawing process relies
+                    //   on getting an accurate position of each menu bar item, we need to use
+                    //   something that publishes its changes only after the items are updated.
+                    section.controlItem.$windowFrame
+                        .receive(on: DispatchQueue.main)
+                        .sink { [weak self] _ in
+                            self?.needsDisplay = true
+                        }
+                        .store(in: &c)
+
+                    // redraw whenever the visibility of a control item changes
+                    //
+                    // - NOTE: If the "ShowSectionDividers" setting is disabled, the window
+                    //   frame does not update when the section is hidden or shown, but the
+                    //   visibility does. We observe both to ensure the update occurs.
+                    section.controlItem.$isVisible
+                        .receive(on: DispatchQueue.main)
+                        .sink { [weak self] _ in
+                            self?.needsDisplay = true
+                        }
+                        .store(in: &c)
+                }
+            }
 
             // fade out whenever a menu bar item is being dragged
             overlayPanel.$isDraggingMenuBarItem
@@ -438,37 +455,6 @@ private class MenuBarOverlayPanelContentView: NSView {
                 self?.needsDisplay = true
             }
             .store(in: &c)
-
-        if let menuBarManager {
-            for section in menuBarManager.sections {
-                // redraw whenever the window frame of a control item changes
-                //
-                // - NOTE: A previous attempt was made to redraw the view when the
-                //   section's `isHidden` property was changed. This would be semantically
-                //   ideal, but the property sometimes changes before the menu bar items
-                //   are actually updated on-screen. Since the view's drawing process relies
-                //   on getting an accurate position of each menu bar item, we need to use
-                //   something that publishes its changes only after the items are updated.
-                section.controlItem.$windowFrame
-                    .receive(on: DispatchQueue.main)
-                    .sink { [weak self] _ in
-                        self?.needsDisplay = true
-                    }
-                    .store(in: &c)
-
-                // redraw whenever the visibility of a control item changes
-                //
-                // - NOTE: If the "ShowSectionDividers" setting is disabled, the window
-                //   frame does not update when the section is hidden or shown, but the
-                //   visibility does. We observe both to ensure the update occurs.
-                section.controlItem.$isVisible
-                    .receive(on: DispatchQueue.main)
-                    .sink { [weak self] _ in
-                        self?.needsDisplay = true
-                    }
-                    .store(in: &c)
-            }
-        }
 
         cancellables = c
     }
@@ -612,19 +598,12 @@ private class MenuBarOverlayPanelContentView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard
             let overlayPanel,
-            let menuBarManager,
             let context = NSGraphicsContext.current
         else {
             return
         }
 
         let owningDisplay = overlayPanel.owningScreen.displayID
-
-        // FIXME: This check shouldn't be needed. The panel should be ordered out when fullscreen.
-        guard !menuBarManager.isFullscreen(for: owningDisplay) else {
-            return
-        }
-
         let drawableBounds = getDrawableBounds()
 
         let shapePath = switch configuration.shapeKind {

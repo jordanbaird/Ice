@@ -32,20 +32,14 @@ enum ScreenCapture {
 
     /// An error that can occur during a capture operation.
     enum CaptureError: Error {
+        /// The provided display is invalid.
+        case invalidDisplay
+
+        /// The provided window is invalid.
+        case invalidWindow
+
         /// The app does not have screen capture permissions.
         case missingPermissions
-
-        /// The screen capture manager cannot find a matching window.
-        case noMatchingWindow
-
-        /// The screen capture manager cannot find a matching display.
-        case noMatchingDisplay
-
-        /// There is no valid display mode for a display.
-        case invalidDisplayMode
-
-        /// The provided window is not on screen.
-        case windowOffScreen
 
         /// The source rectangle of the capture is outside the bounds of the provided window.
         case sourceRectOutOfBounds
@@ -62,13 +56,13 @@ enum ScreenCapture {
     /// Captures the given window as an image.
     ///
     /// - Parameters:
-    ///   - window: The window to capture. The window must be on screen.
+    ///   - window: The window to capture.
     ///   - captureRect: The rectangle to capture, relative to the coordinate space of the
     ///     window. Pass `nil` to capture the entire window.
     ///   - resolution: The resolution of the capture.
     ///   - options: Additional parameters for the capture.
     static func captureImage(
-        onScreenWindow window: WindowInfo,
+        window: WindowInfo,
         captureRect: CGRect? = nil,
         resolution: SCCaptureResolutionType = .automatic,
         options: CaptureOptions = []
@@ -82,23 +76,27 @@ enum ScreenCapture {
         case let state: throw CaptureError.invalidScreenState(state)
         }
 
+        guard let currentWindow = WindowInfo(windowID: window.windowID) else {
+            throw CaptureError.invalidWindow
+        }
+
         let content = try await SCShareableContent.excludingDesktopWindows(
             false,
-            onScreenWindowsOnly: true
+            onScreenWindowsOnly: currentWindow.isOnScreen
         )
 
         try Task.checkCancellation()
 
-        guard let scWindow = content.windows.first(where: { $0.windowID == window.windowID }) else {
-            throw CaptureError.noMatchingWindow
+        guard let scWindow = content.windows.first(where: { $0.windowID == currentWindow.windowID }) else {
+            throw CaptureError.invalidWindow
         }
 
-        guard let scDisplay = content.displays.first(where: { $0.frame.contains(window.frame) }) else {
-            throw CaptureError.noMatchingDisplay
+        guard let scDisplay = content.displays.first(where: { $0.frame.contains(currentWindow.frame) }) else {
+            throw CaptureError.invalidDisplay
         }
 
         let sourceRect = try getSourceRect(captureRect: captureRect, window: scWindow)
-        let scaleFactor = try getScaleFactor(for: scDisplay)
+        let scaleFactor = try getScaleFactor(for: scDisplay, resolution: resolution)
         let colorSpace = CGDisplayCopyColorSpace(scDisplay.displayID)
 
         let contentFilter = SCContentFilter(desktopIndependentWindow: scWindow)
@@ -133,21 +131,21 @@ enum ScreenCapture {
     /// - Parameters:
     ///   - timeout: The amount of time to wait before cancelling the task and throwing a
     ///     timeout error.
-    ///   - window: The window to capture. The window must be on screen.
+    ///   - window: The window to capture.
     ///   - captureRect: The rectangle to capture, relative to the coordinate space of the
     ///     window. Pass `nil` to capture the entire window.
     ///   - resolution: The resolution of the capture.
     ///   - options: Additional parameters for the capture.
     static func captureImage(
         timeout: Duration,
-        onScreenWindow window: WindowInfo,
+        window: WindowInfo,
         captureRect: CGRect? = nil,
         resolution: SCCaptureResolutionType = .automatic,
         options: CaptureOptions = []
     ) async throws -> CGImage {
         let task = Task(timeout: timeout) {
             try await captureImage(
-                onScreenWindow: window,
+                window: window,
                 captureRect: captureRect,
                 resolution: resolution,
                 options: options
@@ -162,7 +160,7 @@ enum ScreenCapture {
         let sourceRect = if captureRect.isNull {
             windowBounds
         } else {
-            captureRect
+            CGRect(origin: .zero, size: captureRect.size)
         }
         guard windowBounds.contains(sourceRect) else {
             throw CaptureError.sourceRectOutOfBounds
@@ -170,9 +168,12 @@ enum ScreenCapture {
         return sourceRect
     }
 
-    private static func getScaleFactor(for display: SCDisplay) throws -> CGFloat {
+    private static func getScaleFactor(for display: SCDisplay, resolution: SCCaptureResolutionType) throws -> CGFloat {
+        if case .nominal = resolution {
+            return 1
+        }
         guard let mode = CGDisplayCopyDisplayMode(display.displayID) else {
-            throw CaptureError.invalidDisplayMode
+            throw CaptureError.invalidDisplay
         }
         return CGFloat(mode.pixelWidth) / CGFloat(mode.width)
     }
@@ -194,8 +195,8 @@ extension ScreenCapture {
                 return nil
             }
             return try await captureImage(
-                onScreenWindow: wallpaperWindow,
-                captureRect: CGRect(origin: .zero, size: menuBarWindow.frame.size),
+                window: wallpaperWindow,
+                captureRect: menuBarWindow.frame,
                 options: .ignoreFraming
             )
         }

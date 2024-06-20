@@ -3,7 +3,6 @@
 //  Bridging
 //
 
-package import CGSInternal
 import Cocoa
 
 /// A namespace for bridged functionality.
@@ -202,22 +201,6 @@ extension Bridging {
 
 // MARK: Capture Window
 extension Bridging {
-    /// Returns a composite image of the specified windows.
-    ///
-    /// This function links to a deprecated CoreGraphics function. We link to it this way to
-    /// prevent a deprecation warning. If ScreenCaptureKit is ever able to capture offscreen
-    /// windows, this function can be removed.
-    ///
-    /// See the documentation for the deprecated function here:
-    ///
-    /// https://developer.apple.com/documentation/coregraphics/1455730-cgwindowlistcreateimagefromarray
-    @_silgen_name("CGWindowListCreateImageFromArray")
-    private static func CGWindowListCreateImageFromArray(
-        _ screenBounds: CGRect,
-        _ windowArray: CFArray,
-        _ imageOption: CGWindowImageOption
-    ) -> CGImage?
-
     /// Captures an image of a window.
     ///
     /// - Parameters:
@@ -253,7 +236,7 @@ extension Bridging {
     public static func isWindowOnActiveSpace(_ windowID: CGWindowID) -> Bool {
         guard let spaces = CGSCopySpacesForWindows(
             CGSMainConnectionID(),
-            kCGSAllSpacesMask,
+            CGSSpaceMask.allSpaces,
             [windowID] as CFArray
         ) else {
             logger.error("CGSCopySpacesForWindows failed")
@@ -265,18 +248,20 @@ extension Bridging {
         }
         return Set(spaceIDs).contains(activeSpaceID)
     }
+
+    /// Returns a Boolean value that indicates whether the space with the given
+    /// identifier is a fullscreen space.
+    ///
+    /// - Parameter spaceID: An identifier for a space.
+    public static func isSpaceFullscreen(_ spaceID: Int) -> Bool {
+        let type = CGSSpaceGetType(CGSMainConnectionID(), spaceID)
+        return type == .fullscreen
+    }
 }
 
 // MARK: - Process Responsivity
 
 extension Bridging {
-    /// Retrieves the process serial number for the given Unix process identifier.
-    @_silgen_name("GetProcessForPID")
-    private static func GetProcessForPID(
-        _ pid: pid_t,
-        _ psn: inout ProcessSerialNumber
-    ) -> OSStatus
-
     /// Returns a Boolean value that indicates whether the given process is responsive.
     ///
     /// - Parameter pid: The Unix process identifier of the process to check.

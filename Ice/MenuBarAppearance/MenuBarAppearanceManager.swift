@@ -50,25 +50,13 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         NotificationCenter.default
             .publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else {
                     return
                 }
                 while let panel = overlayPanels.popFirst() {
                     panel.orderOut(self)
-                }
-                if Set(overlayPanels.map { $0.owningScreen }) != Set(NSScreen.screens) {
-                    configureOverlayPanels(with: configuration)
-                }
-            }
-            .store(in: &c)
-
-        NSWorkspace.shared.notificationCenter
-            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .debounce(for: 0.1, scheduler: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
                 }
                 if Set(overlayPanels.map { $0.owningScreen }) != Set(NSScreen.screens) {
                     configureOverlayPanels(with: configuration)
@@ -124,7 +112,10 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     /// Configures the manager's overlay panels, if required by the given configuration.
     private func configureOverlayPanels(with configuration: MenuBarAppearanceConfiguration) {
-        guard needsOverlayPanels(for: configuration) else {
+        guard
+            let appState,
+            needsOverlayPanels(for: configuration)
+        else {
             while let panel = overlayPanels.popFirst() {
                 panel.close()
             }
@@ -133,7 +124,7 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         var overlayPanels = Set<MenuBarOverlayPanel>()
         for screen in NSScreen.screens {
-            let panel = MenuBarOverlayPanel(appearanceManager: self, owningScreen: screen)
+            let panel = MenuBarOverlayPanel(appState: appState, owningScreen: screen)
             overlayPanels.insert(panel)
             panel.needsShow = true
         }

@@ -16,14 +16,9 @@ let package = Package(
     targets: [
         .target(
             name: "Bridging",
-            dependencies: ["CGSInternal"],
             swiftSettings: [
                 .enableExperimentalFeature("AccessLevelOnImport"),
             ]
-        ),
-        .target(
-            name: "CGSInternal",
-            publicHeadersPath: "include"
         ),
     ]
 )

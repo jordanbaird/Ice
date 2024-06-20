@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import Bridging
 import Combine
 import OSLog
 import SwiftUI
@@ -31,6 +32,11 @@ final class MenuBarManager: ObservableObject {
     private var canUpdateAverageColor = false
 
     private var cancellables = Set<AnyCancellable>()
+
+    /// Returns a Boolean value that indicates whether the active space is fullscreen.
+    var isActiveSpaceFullscreen: Bool {
+        Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
+    }
 
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
@@ -139,21 +145,18 @@ final class MenuBarManager: ObservableObject {
             .sink { [weak self] _ in
                 guard
                     let self,
+                    !isActiveSpaceFullscreen,
                     let appState,
                     appState.settingsManager.advancedSettingsManager.hideApplicationMenus
                 else {
                     return
                 }
-                if sections.contains(where: { !$0.isHidden }) {
+                if sections.contains(where: { $0.controlItem.state != .hideItems }) {
                     guard let screen = NSScreen.main else {
                         return
                     }
 
                     let displayID = screen.displayID
-
-                    guard !isFullscreen(for: displayID) else {
-                        return
-                    }
 
                     // get the application menu frame for the display
                     guard let applicationMenuFrame = applicationMenuFrames[displayID] else {
@@ -310,29 +313,6 @@ final class MenuBarManager: ObservableObject {
     /// Returns the stored frame of the application menu for the given display.
     func getStoredApplicationMenuFrame(for display: CGDirectDisplayID) -> CGRect? {
         applicationMenuFrames[display]
-    }
-
-    /// Returns a Boolean value that indicates whether a window is
-    /// fullscreen for the given display.
-    func isFullscreen(for display: CGDirectDisplayID) -> Bool {
-        let windows = WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
-        let isFullscreenBackdropWindow = Predicates.fullscreenBackdropWindow(for: display)
-        if let frontmostApplication = NSWorkspace.shared.frontmostApplication {
-            let displayBounds = CGDisplayBounds(display)
-            for window in windows {
-                if isFullscreenBackdropWindow(window) {
-                    return true
-                }
-                if
-                    window.owningApplication == frontmostApplication,
-                    window.frame == displayBounds
-                {
-                    return true
-                }
-            }
-            return false
-        }
-        return windows.contains(where: isFullscreenBackdropWindow)
     }
 }
 

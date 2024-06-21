@@ -113,17 +113,18 @@ class IceBarPanel: NSPanel {
         guard
             let appState,
             let section = appState.menuBarManager.section(withName: .visible),
-            let windowFrame = section.controlItem.windowFrame
+            let controlItemFrame = section.controlItem.windowID.flatMap(Bridging.getWindowFrame)
         else {
             return
         }
+        let menuBarHeight = NSApp.mainMenu?.menuBarHeight ?? 0
         let margin: CGFloat = 5
         let origin = CGPoint(
             x: min(
-                windowFrame.midX - (frame.width / 2),
+                controlItemFrame.midX - (frame.width / 2),
                 (screen.frame.maxX - frame.width) - margin
             ),
-            y: (screen.visibleFrame.maxY - frame.height) - margin
+            y: ((screen.frame.maxY - menuBarHeight) - frame.height) - margin
         )
         setFrameOrigin(origin)
     }

@@ -12,6 +12,8 @@ import OSLog
 final class MenuBarAppearanceManager: ObservableObject {
     @Published var configuration: MenuBarAppearanceConfiguration = .defaultConfiguration
 
+    @Published private(set) var canEditAppearance = true
+
     private var cancellables = Set<AnyCancellable>()
 
     private let encoder = JSONEncoder()
@@ -61,6 +63,21 @@ final class MenuBarAppearanceManager: ObservableObject {
                 if Set(overlayPanels.map { $0.owningScreen }) != Set(NSScreen.screens) {
                     configureOverlayPanels(with: configuration)
                 }
+            }
+            .store(in: &c)
+
+        Timer.publish(every: 1, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard
+                    let self,
+                    let screen = NSScreen.main
+                else {
+                    return
+                }
+                let frame = screen.frame
+                let visibleFrame = screen.visibleFrame
+                canEditAppearance = frame.height != visibleFrame.height
             }
             .store(in: &c)
 

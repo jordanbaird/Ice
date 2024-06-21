@@ -47,11 +47,12 @@ class MenuBarAppearanceEditorPanel: NSPanel {
         guard
             let appState,
             let contentView,
-            let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) })
+            let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }),
+            let menuBarHeight = NSApp.mainMenu?.menuBarHeight
         else {
             return
         }
-        setFrameOrigin(CGPoint(x: screen.frame.midX - frame.width / 2, y: screen.visibleFrame.maxY))
+        setFrameOrigin(CGPoint(x: screen.frame.midX - frame.width / 2, y: screen.frame.maxY - menuBarHeight))
         let popover = MenuBarAppearanceEditorPopover(appState: appState)
         popover.delegate = self
         popover.show(relativeTo: .zero, of: contentView, preferredEdge: .minY)

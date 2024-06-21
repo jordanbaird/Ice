@@ -210,8 +210,19 @@ final class MenuBarManager: ObservableObject {
         }
         guard
             let screen = NSScreen.main,
-            let wallpaper = ScreenCapture.desktopWallpaperBelowMenuBarCoreGraphics(display: screen.displayID),
-            let averageColor = wallpaper.averageColor(resolution: .low)
+            let wallpaperWindow = WindowInfo.getWallpaperWindow(for: screen.displayID),
+            let menuBarHeight = NSApp.mainMenu?.menuBarHeight,
+            let image = Bridging.captureWindow(
+                wallpaperWindow.windowID,
+                screenBounds: CGRect(
+                    x: 0,
+                    y: 0,
+                    width: screen.frame.width,
+                    height: menuBarHeight
+                ),
+                option: .boundsIgnoreFraming
+            ),
+            let averageColor = image.averageColor(resolution: .low)
         else {
             return
         }

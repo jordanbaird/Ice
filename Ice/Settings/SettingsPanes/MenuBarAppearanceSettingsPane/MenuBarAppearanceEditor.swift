@@ -18,7 +18,7 @@ struct MenuBarAppearanceEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             stackHeader
-            mainForm
+            stackBody
             stackFooter
         }
     }
@@ -31,6 +31,35 @@ struct MenuBarAppearanceEditor: View {
                 .padding(.top)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
+    }
+
+    @ViewBuilder
+    private var stackBody: some View {
+        if appearanceManager.canEditAppearance {
+            mainForm
+        } else {
+            cannotEdit
+        }
+    }
+
+    @ViewBuilder
+    private var stackFooter: some View {
+        HStack {
+            if
+                appearanceManager.canEditAppearance,
+                appearanceManager.configuration != .defaultConfiguration
+            {
+                Button("Reset") {
+                    appearanceManager.configuration = .defaultConfiguration
+                }
+            }
+            if case .popover(let closePopover) = location {
+                Spacer()
+                Button("Done", action: closePopover)
+            }
+        }
+        .padding()
+        .controlSize(.large)
     }
 
     @ViewBuilder
@@ -63,20 +92,10 @@ struct MenuBarAppearanceEditor: View {
     }
 
     @ViewBuilder
-    private var stackFooter: some View {
-        HStack {
-            if appearanceManager.configuration != .defaultConfiguration {
-                Button("Reset") {
-                    appearanceManager.configuration = .defaultConfiguration
-                }
-            }
-            if case .popover(let closePopover) = location {
-                Spacer()
-                Button("Done", action: closePopover)
-            }
-        }
-        .padding()
-        .controlSize(.large)
+    private var cannotEdit: some View {
+        Text("Ice cannot edit the appearance of automatically hidden menu bars.")
+            .font(.title3)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     @ViewBuilder

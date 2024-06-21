@@ -36,9 +36,7 @@ struct LayoutBar: View {
             section: section,
             spacing: spacing
         )
-        .layoutBarStyle(
-            menuBarManager: appState.menuBarManager,
-            cornerRadius: 9
-        )
+        .layoutBarStyle(appState: appState)
+        .clipShape(RoundedRectangle(cornerRadius: 9))
     }
 }

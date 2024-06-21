@@ -17,10 +17,6 @@ class IceBarPanel: NSPanel {
 
     private var needsUpdateImageCacheBeforeShowing = true
 
-    private let encoder = JSONEncoder()
-
-    private let decoder = JSONDecoder()
-
     private(set) var currentSection: MenuBarSection.Name?
 
     private var cancellables = Set<AnyCancellable>()
@@ -61,6 +57,8 @@ class IceBarPanel: NSPanel {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
+        // close the panel and mark it as needing its caches updated when
+        // the active space changes, or when the screen parameters change
         Publishers.Merge(
             NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
             NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
@@ -69,11 +67,12 @@ class IceBarPanel: NSPanel {
             guard let self else {
                 return
             }
-            needsUpdateImageCacheBeforeShowing = true
             close()
+            needsUpdateImageCacheBeforeShowing = true
         }
         .store(in: &c)
 
+        // update the panel's origin whenever its size changes
         publisher(for: \.frame)
             .map(\.size)
             .removeDuplicates()
@@ -89,22 +88,27 @@ class IceBarPanel: NSPanel {
             .store(in: &c)
 
         if let appState {
-            appState.menuBarManager.$averageColor
-                .removeDuplicates()
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in
-                    guard let self else {
-                        return
-                    }
-                    if isVisible {
-                        Task {
-                            await self.imageCache.updateCache()
-                        }
-                    } else {
-                        needsUpdateImageCacheBeforeShowing = true
-                    }
+            // update image cache when the average color of the menu bar changes,
+            // and when the cached menu bar items change (we map both publishers
+            // to Void so we can merge them into a single publisher)
+            Publishers.Merge(
+                appState.menuBarManager.$averageColor.removeDuplicates().map { _ in () },
+                appState.itemManager.$cachedMenuBarItems.removeDuplicates().map { _ in () }
+            )
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
                 }
-                .store(in: &c)
+                if isVisible {
+                    Task {
+                        await self.imageCache.updateCache()
+                    }
+                } else {
+                    needsUpdateImageCacheBeforeShowing = true
+                }
+            }
+            .store(in: &c)
         }
 
         cancellables = c
@@ -114,6 +118,8 @@ class IceBarPanel: NSPanel {
         guard
             let appState,
             let section = appState.menuBarManager.section(withName: .visible),
+            // using `getWindowFrame` from Bridging is more reliable than
+            // accessing the `windowFrame` property on the control item
             let controlItemFrame = section.controlItem.windowID.flatMap(Bridging.getWindowFrame)
         else {
             return
@@ -228,6 +234,7 @@ private class IceBarHostingView: NSHostingView<AnyView> {
     ) {
         super.init(
             rootView: IceBarContentView(section: section, screen: screen, closePanel: closePanel)
+                .environmentObject(appState)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.menuBarManager)
                 .environmentObject(imageCache)
@@ -253,6 +260,7 @@ private class IceBarHostingView: NSHostingView<AnyView> {
 // MARK: - IceBarContentView
 
 private struct IceBarContentView: View {
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var itemManager: MenuBarItemManager
     @EnvironmentObject var menuBarManager: MenuBarManager
 
@@ -271,7 +279,7 @@ private struct IceBarContentView: View {
             }
         }
         .padding(5)
-        .layoutBarStyle(menuBarManager: menuBarManager, cornerRadius: 0)
+        .layoutBarStyle(appState: appState)
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay {
             RoundedRectangle(cornerRadius: 9)

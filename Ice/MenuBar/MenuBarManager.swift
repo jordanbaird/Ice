@@ -208,25 +208,35 @@ final class MenuBarManager: ObservableObject {
         guard canUpdateAverageColor else {
             return
         }
+
         guard
             let screen = NSScreen.main,
-            let wallpaperWindow = WindowInfo.getWallpaperWindow(for: screen.displayID),
-            let menuBarHeight = NSApp.mainMenu?.menuBarHeight,
-            let image = Bridging.captureWindow(
-                wallpaperWindow.windowID,
-                screenBounds: CGRect(
-                    x: 0,
-                    y: 0,
-                    width: screen.frame.width,
-                    height: menuBarHeight
-                ),
-                option: .boundsIgnoreFraming
-            ),
+            let menuBarHeight = NSApp.mainMenu?.menuBarHeight
+        else {
+            return
+        }
+
+        let displayID = screen.displayID
+        let bounds = CGDisplayBounds(displayID)
+
+        let menuBarBounds = CGRect(
+            x: bounds.minX,
+            y: bounds.minY,
+            width: bounds.width,
+            height: menuBarHeight
+        )
+
+        guard
+            let window = WindowInfo.getWallpaperWindow(for: displayID),
+            let image = Bridging.captureWindow(window.windowID, screenBounds: menuBarBounds, option: []),
             let averageColor = image.averageColor(resolution: .low)
         else {
             return
         }
-        self.averageColor = averageColor
+
+        if self.averageColor != averageColor {
+            self.averageColor = averageColor
+        }
     }
 
     /// Returns the frames of each item in the application menu for the given display.

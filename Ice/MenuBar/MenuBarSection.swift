@@ -120,7 +120,7 @@ final class MenuBarSection: ObservableObject {
         switch name {
         case .visible where useIceBar, .hidden where useIceBar:
             Task {
-                if let screen = NSScreen.main {
+                if let screen = NSScreen.screenWithMouse {
                     await iceBarPanel?.show(section: .hidden, on: screen)
                 }
                 await appState.itemManager.rehideTempShownItems()
@@ -130,7 +130,7 @@ final class MenuBarSection: ObservableObject {
             }
         case .alwaysHidden where useIceBar:
             Task {
-                if let screen = NSScreen.main {
+                if let screen = NSScreen.screenWithMouse {
                     await iceBarPanel?.show(section: .alwaysHidden, on: screen)
                 }
                 await appState.itemManager.rehideTempShownItems()

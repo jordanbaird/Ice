@@ -32,9 +32,8 @@ class IceBarPanel: NSPanel {
             contentRect: .zero,
             styleMask: [
                 .nonactivatingPanel,
-                .titled,
                 .fullSizeContentView,
-                .hudWindow,
+                .borderless,
             ],
             backing: .buffered,
             defer: false
@@ -45,6 +44,8 @@ class IceBarPanel: NSPanel {
         self.isMovableByWindowBackground = true
         self.isFloatingPanel = true
         self.animationBehavior = .none
+        self.backgroundColor = .clear
+        self.hasShadow = true
         self.level = .mainMenu
         self.collectionBehavior = [
             .fullScreenAuxiliary,
@@ -60,7 +61,7 @@ class IceBarPanel: NSPanel {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        Publishers.CombineLatest(
+        Publishers.Merge(
             NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
             NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
         )
@@ -121,10 +122,10 @@ class IceBarPanel: NSPanel {
         let margin: CGFloat = 5
         let origin = CGPoint(
             x: min(
-                controlItemFrame.midX - (frame.width / 2),
-                (screen.frame.maxX - frame.width) - margin
+                controlItemFrame.midX - frame.width / 2,
+                screen.frame.maxX - frame.width - margin
             ),
-            y: ((screen.frame.maxY - menuBarHeight) - frame.height) - margin
+            y: (screen.frame.maxY - menuBarHeight - 1) - frame.height - margin
         )
         setFrameOrigin(origin)
     }
@@ -134,7 +135,6 @@ class IceBarPanel: NSPanel {
             return
         }
         if needsUpdateImageCacheBeforeShowing {
-            try? await Task.sleep(for: .milliseconds(10))
             if await imageCache.updateCache() {
                 needsUpdateImageCacheBeforeShowing = false
             }
@@ -272,6 +272,13 @@ private struct IceBarContentView: View {
         }
         .padding(5)
         .layoutBarStyle(menuBarManager: menuBarManager, cornerRadius: 0)
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .overlay {
+            RoundedRectangle(cornerRadius: 9)
+                .inset(by: 0.5)
+                .stroke(lineWidth: 0.5)
+                .foregroundStyle(.tertiary)
+        }
         .fixedSize()
     }
 }

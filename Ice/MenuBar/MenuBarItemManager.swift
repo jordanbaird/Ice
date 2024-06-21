@@ -77,7 +77,9 @@ extension MenuBarItemManager {
         }
 
         update(&cachedMenuBarItems) { cachedItems in
-            cachedItems.removeAll()
+            for section in MenuBarSection.Name.allCases {
+                cachedItems[section] = []
+            }
             for item in items {
                 // only items that can be hidden should be included
                 guard item.canBeHidden else {

@@ -11,10 +11,8 @@ import SwiftUI
 /// The model for app-wide state.
 @MainActor
 final class AppState: ObservableObject {
-    /// A Boolean value that indicates whether the menu bar is either always hidden
-    /// by the system, or automatically hidden and shown by the system based on the
-    /// location of the mouse.
-    @Published private(set) var isMenuBarHidingHandledBySystem = false
+    /// A Boolean value that indicates whether the active space is fullscreen.
+    @Published private(set) var isActiveSpaceFullscreen = false
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -78,13 +76,14 @@ final class AppState: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        NSApp.publisher(for: \.currentSystemPresentationOptions)
-            .sink { [weak self] options in
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .sink { [weak self] _ in
                 guard let self else {
                     return
                 }
-                let handled = options.contains(.hideMenuBar) || options.contains(.autoHideMenuBar)
-                isMenuBarHidingHandledBySystem = handled
+                let spaceID = Bridging.activeSpaceID
+                isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(spaceID)
             }
             .store(in: &c)
 

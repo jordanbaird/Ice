@@ -28,6 +28,17 @@ final class MenuBarSection: ObservableObject {
         appState?.menuBarManager.iceBarPanel
     }
 
+    private var screenForIceBar: NSScreen? {
+        guard let appState else {
+            return nil
+        }
+        if appState.isActiveSpaceFullscreen {
+            return NSScreen.screenWithMouse ?? NSScreen.main
+        } else {
+            return NSScreen.main
+        }
+    }
+
     private(set) weak var appState: AppState? {
         didSet {
             guard let appState else {
@@ -120,8 +131,8 @@ final class MenuBarSection: ObservableObject {
         switch name {
         case .visible where useIceBar, .hidden where useIceBar:
             Task {
-                if let screen = NSScreen.screenWithMouse {
-                    await iceBarPanel?.show(section: .hidden, on: screen)
+                if let screenForIceBar {
+                    await iceBarPanel?.show(section: .hidden, on: screenForIceBar)
                 }
                 await appState.itemManager.rehideTempShownItems()
                 for section in menuBarManager.sections {
@@ -130,8 +141,8 @@ final class MenuBarSection: ObservableObject {
             }
         case .alwaysHidden where useIceBar:
             Task {
-                if let screen = NSScreen.screenWithMouse {
-                    await iceBarPanel?.show(section: .alwaysHidden, on: screen)
+                if let screenForIceBar {
+                    await iceBarPanel?.show(section: .alwaysHidden, on: screenForIceBar)
                 }
                 await appState.itemManager.rehideTempShownItems()
                 for section in menuBarManager.sections {

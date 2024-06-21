@@ -233,7 +233,7 @@ class MenuBarOverlayPanel: NSPanel {
             .store(in: &c)
 
         if let appState {
-            appState.$isMenuBarHidingHandledBySystem
+            appState.menuBarManager.$isMenuBarHiddenBySystem
                 .sink { [weak self] isHandled in
                     self?.alphaValue = isHandled ? 0 : 1
                 }
@@ -260,7 +260,7 @@ class MenuBarOverlayPanel: NSPanel {
             Logger.overlayPanel.notice("No app state. \(actionMessage)")
             return nil
         }
-        guard !appState.menuBarManager.isActiveSpaceFullscreen else {
+        guard !appState.isActiveSpaceFullscreen else {
             Logger.overlayPanel.notice("Active space is fullscreen. \(actionMessage)")
             return nil
         }
@@ -274,13 +274,13 @@ class MenuBarOverlayPanel: NSPanel {
     /// Stores the frames of the menu bar's application menus.
     private func updateApplicationMenuItemFrames(for display: CGDirectDisplayID) throws {
         guard
-            let appState,
-            !appState.isMenuBarHidingHandledBySystem
+            let menuBarManager = appState?.menuBarManager,
+            !menuBarManager.isMenuBarHiddenBySystem
         else {
             return
         }
         do {
-            applicationMenuItemFrames = try appState.menuBarManager.getApplicationMenuItemFrames(for: display)
+            applicationMenuItemFrames = try menuBarManager.getApplicationMenuItemFrames(for: display)
         } catch {
             applicationMenuItemFrames.removeAll()
             throw error
@@ -357,7 +357,7 @@ class MenuBarOverlayPanel: NSPanel {
             else {
                 return
             }
-            if !appState.isMenuBarHidingHandledBySystem {
+            if !appState.menuBarManager.isMenuBarHiddenBySystem {
                 animator().alphaValue = 1
             }
         }

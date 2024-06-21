@@ -11,28 +11,117 @@ import OSLog
 final class EventManager {
     private weak var appState: AppState?
 
-    // MARK: - Monitors
-
-    // MARK: Show On Click
+    // MARK: Monitors
 
     private(set) lazy var showOnClickMonitor = UniversalEventMonitor(
         mask: .leftMouseDown
     ) { [weak self] event in
-        guard
-            let self,
-            let appState
-        else {
-            return event
+        self?.handleShowOnClick()
+        return event
+    }
+
+    private(set) lazy var showOnHoverMonitor = UniversalEventMonitor(
+        mask: .mouseMoved
+    ) { [weak self] event in
+        self?.handleShowOnHover()
+        return event
+    }
+
+    private(set) lazy var showOnScrollMonitor = UniversalEventMonitor(
+        mask: .scrollWheel
+    ) { [weak self] event in
+        self?.handleShowOnScroll(with: event)
+        return event
+    }
+
+    private(set) lazy var smartRehideMonitor = UniversalEventMonitor(
+        mask: .leftMouseDown
+    ) { [weak self] event in
+        self?.handleSmartRehide(with: event)
+        return event
+    }
+
+    private(set) lazy var preventShowOnHoverMonitor = UniversalEventMonitor(
+        mask: [.leftMouseDown, .rightMouseDown]
+    ) { [weak self] event in
+        self?.handlePreventShowOnHover(with: event)
+        return event
+    }
+
+    private(set) lazy var showRightClickMenuMonitor = UniversalEventMonitor(
+        mask: .rightMouseDown
+    ) { [weak self] event in
+        self?.handleShowRightClickMenu()
+        return event
+    }
+
+    private(set) lazy var leftMouseDraggedMonitor = UniversalEventMonitor(
+        mask: .leftMouseDragged
+    ) { [weak self] event in
+        self?.handleLeftMouseDragged(with: event)
+        return event
+    }
+
+    private(set) lazy var leftMouseUpMonitor = UniversalEventMonitor(
+        mask: .leftMouseUp
+    ) { [weak self] event in
+        self?.handleLeftMouseUp()
+        return event
+    }
+
+    // MARK: All Monitors
+
+    private lazy var allMonitors = [
+        showOnClickMonitor,
+        showOnHoverMonitor,
+        showOnScrollMonitor,
+        smartRehideMonitor,
+        preventShowOnHoverMonitor,
+        showRightClickMenuMonitor,
+        leftMouseDraggedMonitor,
+        leftMouseUpMonitor,
+    ]
+
+    // MARK: Initializers
+
+    init(appState: AppState) {
+        self.appState = appState
+    }
+
+    // MARK: Start/Stop
+
+    func startAll() {
+        for monitor in allMonitors {
+            monitor.start()
+        }
+    }
+
+    func stopAll() {
+        for monitor in allMonitors {
+            monitor.stop()
+        }
+    }
+}
+
+// MARK: - Handlers
+
+extension EventManager {
+
+    // MARK: Handle Show On Click
+
+    private func handleShowOnClick() {
+        guard let appState else {
+            return
         }
 
         // make sure the "ShowOnClick" feature is enabled
         guard appState.settingsManager.generalSettingsManager.showOnClick else {
-            return event
+            return
         }
 
         // make sure the mouse is inside an empty menu bar space
-        guard isMouseInsideEmptyMenuBarSpace() else {
-            return event
+        guard isMouseInsideEmptyMenuBarSpace else {
+            return
         }
 
         Task {
@@ -52,20 +141,13 @@ final class EventManager {
                 }
             }
         }
-
-        return event
     }
 
-    // MARK: Show On Hover
+    // MARK: Handle Show On Hover
 
-    private(set) lazy var showOnHoverMonitor = UniversalEventMonitor(
-        mask: .mouseMoved
-    ) { [weak self] event in
-        guard
-            let self,
-            let appState
-        else {
-            return event
+    private func handleShowOnHover() {
+        guard let appState else {
+            return
         }
 
         // make sure the "ShowOnHover" feature is enabled and not prevented
@@ -73,33 +155,39 @@ final class EventManager {
             appState.settingsManager.generalSettingsManager.showOnHover,
             !appState.isShowOnHoverPrevented
         else {
-            return event
+            return
         }
 
         // only continue if we have a hidden section (we should)
         guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
-            return event
+            return
         }
 
         Task {
             do {
                 if hiddenSection.isHidden {
-                    guard self.isMouseInsideEmptyMenuBarSpace() else {
+                    guard self.isMouseInsideEmptyMenuBarSpace else {
                         return
                     }
                     try await Task.sleep(for: .seconds(0.2))
                     // make sure the mouse is still inside
-                    guard self.isMouseInsideEmptyMenuBarSpace() else {
+                    guard self.isMouseInsideEmptyMenuBarSpace else {
                         return
                     }
                     hiddenSection.show()
                 } else {
-                    guard self.isMouseOutsideMenuBar() else {
+                    guard
+                        !self.isMouseInsideMenuBar,
+                        !self.isMouseInsideIceBar
+                    else {
                         return
                     }
                     try await Task.sleep(for: .seconds(0.2))
                     // make sure the mouse is still outside
-                    guard self.isMouseOutsideMenuBar() else {
+                    guard
+                        !self.isMouseInsideMenuBar,
+                        !self.isMouseInsideIceBar
+                    else {
                         return
                     }
                     hiddenSection.hide()
@@ -108,57 +196,44 @@ final class EventManager {
                 Logger.eventManager.error("ERROR: \(error)")
             }
         }
-
-        return event
     }
 
-    // MARK: Show On Scroll
+    // MARK: Handle Show On Scroll
 
-    private(set) lazy var showOnScrollMonitor = UniversalEventMonitor(
-        mask: .scrollWheel
-    ) { [weak self] event in
-        guard
-            let self,
-            let appState
-        else {
-            return event
+    private func handleShowOnScroll(with event: NSEvent) {
+        guard let appState else {
+            return
         }
 
         // make sure the "ShowOnScroll" feature is enabled
         guard appState.settingsManager.generalSettingsManager.showOnScroll else {
-            return event
+            return
         }
 
         // make sure the mouse is inside the menu bar
-        guard isMouseInsideMenuBar() else {
-            return event
+        guard isMouseInsideMenuBar else {
+            return
         }
 
         // only continue if we have a hidden section (we should)
         guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
-            return event
+            return
         }
 
         let averageDelta = (event.scrollingDeltaX + event.scrollingDeltaY) / 2
+
         if averageDelta > 5 {
             hiddenSection.show()
         } else if averageDelta < -5 {
             hiddenSection.hide()
         }
-
-        return event
     }
 
-    // MARK: Smart Rehide
+    // MARK: Handle Smart Rehide
 
-    private(set) lazy var smartRehideMonitor = UniversalEventMonitor(
-        mask: .leftMouseDown
-    ) { [weak self] event in
-        guard
-            let self,
-            let appState
-        else {
-            return event
+    private func handleSmartRehide(with event: NSEvent) {
+        guard let appState else {
+            return
         }
 
         // make sure auto-rehide is enabled and set to smart
@@ -166,12 +241,12 @@ final class EventManager {
             appState.settingsManager.generalSettingsManager.autoRehide,
             case .smart = appState.settingsManager.generalSettingsManager.rehideStrategy
         else {
-            return event
+            return
         }
 
         // make sure clicking the Ice Bar doesn't trigger rehide
         guard event.window !== appState.menuBarManager.iceBarPanel else {
-            return event
+            return
         }
 
         // only continue if the "hidden" section is currently visible
@@ -179,12 +254,12 @@ final class EventManager {
             let hiddenSection = appState.menuBarManager.section(withName: .hidden),
             !hiddenSection.isHidden
         else {
-            return event
+            return
         }
 
         // make sure the mouse is not in the menu bar
-        guard !isMouseInsideMenuBar() else {
-            return event
+        guard !isMouseInsideMenuBar else {
+            return
         }
 
         Task {
@@ -221,33 +296,26 @@ final class EventManager {
                 Logger.eventManager.error("ERROR: \(error)")
             }
         }
-
-        return event
     }
 
-    // MARK: Prevent Show On Hover
+    // MARK: Handle Prevent Show On Hover
 
-    private(set) lazy var preventShowOnHoverMonitor = UniversalEventMonitor(
-        mask: [.leftMouseDown, .rightMouseDown]
-    ) { [weak self] event in
-        guard
-            let self,
-            let appState
-        else {
-            return event
+    private func handlePreventShowOnHover(with event: NSEvent) {
+        guard let appState else {
+            return
         }
 
         // make sure the "ShowOnHover" feature is enabled
         guard appState.settingsManager.generalSettingsManager.showOnHover else {
-            return event
+            return
         }
 
         // make sure the mouse is inside the menu bar
-        guard isMouseInsideMenuBar() else {
-            return event
+        guard isMouseInsideMenuBar else {
+            return
         }
 
-        if isMouseInsideMenuBarItem() {
+        if isMouseInsideMenuBarItem {
             switch event.type {
             case .leftMouseDown:
                 if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) || isMouseInsideIceIcon {
@@ -265,65 +333,51 @@ final class EventManager {
             default:
                 break
             }
-        } else if !isMouseInsideApplicationMenu() {
+        } else if !isMouseInsideApplicationMenu {
             // we have a left or right click that is inside the menu bar, outside
             // a menu bar item, and outside the application menu, so it _must_ be
             // inside an empty menu bar space
             appState.preventShowOnHover()
         }
-
-        return event
     }
 
-    // MARK: Show Right Click Menu
+    // MARK: Handle Show Right Click Menu
 
-    private(set) lazy var showRightClickMenuMonitor = UniversalEventMonitor(
-        mask: .rightMouseDown
-    ) { [weak self] event in
-        guard
-            let self,
-            let appState
-        else {
-            return event
+    private func handleShowRightClickMenu() {
+        guard let appState else {
+            return
         }
 
         // make sure the mouse is inside an empty menu bar space
-        guard isMouseInsideEmptyMenuBarSpace() else {
-            return event
+        guard isMouseInsideEmptyMenuBarSpace else {
+            return
         }
 
         if let mouseLocation = getMouseLocation(flipped: false) {
             appState.menuBarManager.showRightClickMenu(at: mouseLocation)
         }
-
-        return event
     }
 
-    // MARK: Left Mouse Dragged
+    // MARK: Handle Left Mouse Dragged
 
-    private(set) lazy var leftMouseDraggedMonitor = UniversalEventMonitor(
-        mask: .leftMouseDragged
-    ) { [weak self] event in
-        guard
-            let self,
-            let appState
-        else {
-            return event
+    private func handleLeftMouseDragged(with event: NSEvent) {
+        guard let appState else {
+            return
         }
 
         // don't continue if using the Ice Bar
         guard !appState.settingsManager.generalSettingsManager.useIceBar else {
-            return event
+            return
         }
 
         // make sure the command key is down
         guard event.modifierFlags.contains(.command) else {
-            return event
+            return
         }
 
         // make sure the mouse is inside the menu bar
-        guard isMouseInsideMenuBar() else {
-            return event
+        guard isMouseInsideMenuBar else {
+            return
         }
 
         // notify each overlay panel that a menu bar item is being dragged
@@ -340,54 +394,29 @@ final class EventManager {
             }
             section.controlItem.isVisible = true
         }
-
-        return event
     }
 
-    // MARK: Left Mouse Up
+    // MARK: Handle Left Mouse Up
 
-    private(set) lazy var leftMouseUpMonitor = UniversalEventMonitor(
-        mask: .leftMouseUp
-    ) { [weak appState] event in
-        appState?.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(false)
-        return event
-    }
-
-    // MARK: - All Monitors
-
-    private lazy var allMonitors = [
-        showOnClickMonitor,
-        showOnHoverMonitor,
-        showOnScrollMonitor,
-        smartRehideMonitor,
-        preventShowOnHoverMonitor,
-        showRightClickMenuMonitor,
-        leftMouseDraggedMonitor,
-        leftMouseUpMonitor,
-    ]
-
-    // MARK: - Initializers
-
-    init(appState: AppState) {
-        self.appState = appState
-    }
-
-    // MARK: - Start/Stop
-
-    func startAll() {
-        for monitor in allMonitors {
-            monitor.start()
+    private func handleLeftMouseUp() {
+        guard let appearanceManager = appState?.menuBarManager.appearanceManager else {
+            return
         }
+        appearanceManager.setIsDraggingMenuBarItem(false)
     }
+}
 
-    func stopAll() {
-        for monitor in allMonitors {
-            monitor.stop()
-        }
-    }
+// MARK: - Helpers
 
-    // MARK: - Helpers
-
+extension EventManager {
+    /// Returns the location of the mouse pointer.
+    ///
+    /// If `flipped` is `true`, the coordinate system of the returned location
+    /// is relative to the top left corner of the screen, and is compatible with
+    /// the coordinate system used by the `CoreGraphics` framework. Otherwise,
+    /// the coordinate system of the returned location is relative to the bottom
+    /// left corner of the screen, and is compatible with coordinate system used
+    /// by the `AppKit` framework.
     private func getMouseLocation(flipped: Bool) -> CGPoint? {
         CGEvent(source: nil).map { event in
             if flipped {
@@ -398,28 +427,33 @@ final class EventManager {
         }
     }
 
-    private func isMouseInsideMenuBar(ofScreen screen: NSScreen? = .main) -> Bool {
-        guard let screen else {
+    /// A Boolean value that indicates whether the mouse pointer is within
+    /// the bounds of the menu bar.
+    private var isMouseInsideMenuBar: Bool {
+        guard
+            let screen = NSScreen.main,
+            let appState
+        else {
             return false
         }
-        if NSApp.presentationOptions.contains(.autoHideMenuBar) {
+        if appState.menuBarManager.isMenuBarHiddenBySystem || appState.isActiveSpaceFullscreen {
             if
                 let mouseLocation = getMouseLocation(flipped: true),
                 let menuBarWindow = WindowInfo.getMenuBarWindow(for: screen.displayID)
             {
                 return menuBarWindow.frame.contains(mouseLocation)
             }
-        } else {
-            if let mouseLocation = getMouseLocation(flipped: false) {
-                return mouseLocation.y > screen.visibleFrame.maxY && mouseLocation.y <= screen.frame.maxY
-            }
+        } else if let mouseLocation = getMouseLocation(flipped: false) {
+            return mouseLocation.y > screen.visibleFrame.maxY && mouseLocation.y <= screen.frame.maxY
         }
         return false
     }
 
-    private func isMouseInsideApplicationMenu(ofScreen screen: NSScreen? = .main) -> Bool {
+    /// A Boolean value that indicates whether the mouse pointer is within
+    /// the bounds of the current application menu.
+    private var isMouseInsideApplicationMenu: Bool {
         guard
-            let screen,
+            let screen = NSScreen.main,
             let mouseLocation = getMouseLocation(flipped: true),
             let menuBarManager = appState?.menuBarManager,
             let menuFrame = menuBarManager.getStoredApplicationMenuFrame(for: screen.displayID)
@@ -429,9 +463,11 @@ final class EventManager {
         return menuFrame.contains(mouseLocation)
     }
 
-    private func isMouseInsideMenuBarItem(ofScreen screen: NSScreen? = .main) -> Bool {
+    /// A Boolean value that indicates whether the mouse pointer is within
+    /// the bounds of a menu bar item.
+    private var isMouseInsideMenuBarItem: Bool {
         guard
-            let screen,
+            let screen = NSScreen.main,
             let mouseLocation = getMouseLocation(flipped: true)
         else {
             return false
@@ -440,22 +476,29 @@ final class EventManager {
         return menuBarItems.contains { $0.frame.contains(mouseLocation) }
     }
 
-    private func isMouseInsideEmptyMenuBarSpace(ofScreen screen: NSScreen? = .main) -> Bool {
-        isMouseInsideMenuBar(ofScreen: screen) &&
-        !isMouseInsideApplicationMenu(ofScreen: screen) &&
-        !isMouseInsideMenuBarItem(ofScreen: screen)
+    /// A Boolean value that indicates whether the mouse pointer is within
+    /// the bounds of an empty space in the menu bar.
+    private var isMouseInsideEmptyMenuBarSpace: Bool {
+        isMouseInsideMenuBar &&
+        !isMouseInsideApplicationMenu &&
+        !isMouseInsideMenuBarItem
     }
 
-    private func isMouseOutsideMenuBar(ofScreen screen: NSScreen? = .main) -> Bool {
+    /// A Boolean value that indicates whether the mouse pointer is within
+    /// the bounds of the Ice Bar panel.
+    private var isMouseInsideIceBar: Bool {
         guard
-            let screen,
+            let appState,
             let mouseLocation = getMouseLocation(flipped: false)
         else {
             return false
         }
-        return mouseLocation.y < screen.visibleFrame.maxY || mouseLocation.y > screen.frame.maxY
+        let panel = appState.menuBarManager.iceBarPanel
+        return panel.frame.contains(mouseLocation)
     }
 
+    /// A Boolean value that indicates whether the mouse pointer is within
+    /// the bounds of the Ice icon.
     var isMouseInsideIceIcon: Bool {
         guard
             let appState,

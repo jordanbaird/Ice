@@ -16,7 +16,7 @@ extension View {
     @ViewBuilder
     func layoutBarStyle(appState: AppState) -> some View {
         background {
-            if appState.menuBarManager.isActiveSpaceFullscreen {
+            if appState.isActiveSpaceFullscreen {
                 Color.black
             } else if let averageColor = appState.menuBarManager.averageColor {
                 Color(cgColor: averageColor).overlay(.menuBarTint)
@@ -25,7 +25,7 @@ extension View {
             }
         }
         .overlay {
-            if !appState.menuBarManager.isActiveSpaceFullscreen {
+            if !appState.isActiveSpaceFullscreen {
                 switch appState.menuBarManager.appearanceManager.configuration.tintKind {
                 case .none:
                     EmptyView()

@@ -11,7 +11,13 @@ import SwiftUI
 /// Manager for the state of the menu bar.
 @MainActor
 final class MenuBarManager: ObservableObject {
+    /// The average color of portion of the desktop background below the menu bar.
     @Published private(set) var averageColor: CGColor?
+
+    /// A Boolean value that indicates whether the menu bar is either always hidden
+    /// by the system, or automatically hidden and shown by the system based on the
+    /// location of the mouse.
+    @Published private(set) var isMenuBarHiddenBySystem = false
 
     private(set) weak var appState: AppState?
 
@@ -32,11 +38,6 @@ final class MenuBarManager: ObservableObject {
     private var canUpdateAverageColor = false
 
     private var cancellables = Set<AnyCancellable>()
-
-    /// Returns a Boolean value that indicates whether the active space is fullscreen.
-    var isActiveSpaceFullscreen: Bool {
-        Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
-    }
 
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
@@ -77,6 +78,16 @@ final class MenuBarManager: ObservableObject {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
+
+        NSApp.publisher(for: \.currentSystemPresentationOptions)
+            .sink { [weak self] options in
+                guard let self else {
+                    return
+                }
+                let hidden = options.contains(.hideMenuBar) || options.contains(.autoHideMenuBar)
+                isMenuBarHiddenBySystem = hidden
+            }
+            .store(in: &c)
 
         // handle focusedApp rehide strategy
         NSWorkspace.shared.publisher(for: \.frontmostApplication)
@@ -145,8 +156,9 @@ final class MenuBarManager: ObservableObject {
             .sink { [weak self] _ in
                 guard
                     let self,
-                    !isActiveSpaceFullscreen,
                     let appState,
+                    !isMenuBarHiddenBySystem,
+                    !appState.isActiveSpaceFullscreen,
                     appState.settingsManager.advancedSettingsManager.hideApplicationMenus
                 else {
                     return

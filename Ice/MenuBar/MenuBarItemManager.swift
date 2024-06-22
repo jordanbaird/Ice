@@ -514,21 +514,21 @@ extension MenuBarItemManager {
 
         guard
             let mouseDownEvent = CGEvent.menuBarItemEvent(
-                with: .move(.mouseDown),
+                with: .leftMouseDown,
                 location: startPoint,
                 item: item,
                 pid: item.ownerPID,
                 source: source
             ),
             let mouseUpEvent = CGEvent.menuBarItemEvent(
-                with: .move(.mouseUp),
+                with: .leftMouseUp,
                 location: endPoint,
                 item: targetItem,
                 pid: item.ownerPID,
                 source: source
             ),
             let fallbackEvent = CGEvent.menuBarItemEvent(
-                with: .move(.mouseUp),
+                with: .leftMouseUp,
                 location: fallbackPoint,
                 item: item,
                 pid: item.ownerPID,
@@ -831,39 +831,28 @@ extension MenuBarItemManager {
 // MARK: - CGEvent Helpers
 
 private extension CGEvent {
-    enum MenuBarItemEventButtonState {
-        case mouseDown
-        case mouseUp
-    }
-
     /// Event types that are used for moving menu bar items.
     enum MenuBarItemEventType {
-        case move(MenuBarItemEventButtonState)
-        case click(MenuBarItemEventButtonState)
-
-        var buttonState: MenuBarItemEventButtonState {
-            switch self {
-            case .move(let state), .click(let state): state
-            }
-        }
+        case leftMouseDown
+        case leftMouseUp
 
         var cgEventType: CGEventType {
-            switch buttonState {
-            case .mouseDown: .leftMouseDown
-            case .mouseUp: .leftMouseUp
+            switch self {
+            case .leftMouseDown: .leftMouseDown
+            case .leftMouseUp: .leftMouseUp
             }
         }
 
         var cgEventFlags: CGEventFlags {
             switch self {
-            case .move(.mouseDown): .maskCommand
-            case .move(.mouseUp), .click: []
+            case .leftMouseDown: .maskCommand
+            case .leftMouseUp: []
             }
         }
 
         var mouseButton: CGMouseButton {
-            switch buttonState {
-            case .mouseDown, .mouseUp: .left
+            switch self {
+            case .leftMouseDown, .leftMouseUp: .left
             }
         }
     }
@@ -871,7 +860,7 @@ private extension CGEvent {
     /// A context that manages the user data for menu bar item events.
     private enum MenuBarItemEventUserDataContext {
         /// The internal state of the context.
-        private static var state: Int64 = 1000000
+        private static var state: Int64 = 1_000_000
 
         /// Returns the current user data and increments the internal state.
         static func next() -> Int64 {
@@ -884,8 +873,8 @@ private extension CGEvent {
 // MARK: - CGEventField Helpers
 
 private extension CGEventField {
-    /// An undocumented field that enables moving off-screen menu bar items.
-    static let specialField = CGEventField(rawValue: 0x33)! // swiftlint:disable:this force_unwrapping
+    /// Key to access a field that contains the window number of the event.
+    static let windowNumber = CGEventField(rawValue: 0x33)! // swiftlint:disable:this force_unwrapping
 
     /// An array of integer event fields that can be used to compare two menu bar item events.
     static let menuBarItemEventFields: [CGEventField] = [
@@ -893,7 +882,7 @@ private extension CGEventField {
         .eventSourceUserData,
         .mouseEventWindowUnderMousePointer,
         .mouseEventWindowUnderMousePointerThatCanHandleThisEvent,
-        .specialField,
+        .windowNumber,
     ]
 }
 
@@ -978,7 +967,7 @@ private extension CGEvent {
         event.setIntegerValueField(.eventSourceUserData, value: userData)
         event.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: windowNumber)
         event.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: windowNumber)
-        event.setIntegerValueField(.specialField, value: windowNumber)
+        event.setIntegerValueField(.windowNumber, value: windowNumber)
 
         return event
     }

@@ -82,6 +82,7 @@
 		17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */; };
 		17ECD4EE2B290F8D00E33147 /* PermissionsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17ECD4ED2B290F8D00E33147 /* PermissionsWindow.swift */; };
 		17EE69592C25A5BB00F778A7 /* NSScreen+screenWithMouse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69582C25A5BA00F778A7 /* NSScreen+screenWithMouse.swift */; };
+		17EE695E2C26618F00F778A7 /* AnyInsettableShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE695D2C26618F00F778A7 /* AnyInsettableShape.swift */; };
 		17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F71BB12B87E37800905CBA /* RehideStrategy.swift */; };
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
 		17F93D2C2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */; };
@@ -197,6 +198,7 @@
 		17EC6B572AE0C34A0065F260 /* Comparable+clamped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Comparable+clamped.swift"; sourceTree = "<group>"; };
 		17ECD4ED2B290F8D00E33147 /* PermissionsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsWindow.swift; sourceTree = "<group>"; };
 		17EE69582C25A5BA00F778A7 /* NSScreen+screenWithMouse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+screenWithMouse.swift"; sourceTree = "<group>"; };
+		17EE695D2C26618F00F778A7 /* AnyInsettableShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyInsettableShape.swift; sourceTree = "<group>"; };
 		17F71BB12B87E37800905CBA /* RehideStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RehideStrategy.swift; sourceTree = "<group>"; };
 		17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sequence+sortedByOrderInMenuBar.swift"; sourceTree = "<group>"; };
 		17F998312C15C91400D75EC0 /* MouseCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseCursor.swift; sourceTree = "<group>"; };
@@ -503,6 +505,14 @@
 			path = Comparable;
 			sourceTree = "<group>";
 		};
+		17EE695C2C26617100F778A7 /* Shapes */ = {
+			isa = PBXGroup;
+			children = (
+				17EE695D2C26618F00F778A7 /* AnyInsettableShape.swift */,
+			);
+			path = Shapes;
+			sourceTree = "<group>";
+		};
 		17F93D2A2C20FC340058C0AF /* Sequence */ = {
 			isa = PBXGroup;
 			children = (
@@ -712,6 +722,7 @@
 		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				17EE695C2C26617100F778A7 /* Shapes */,
 				17BE3DDC2C1A6401008B98EF /* ShapeStyles */,
 				179267372AE98870006AFBAF /* ViewModifiers */,
 				179267382AE98985006AFBAF /* Views */,
@@ -892,6 +903,7 @@
 				17BE3DDB2C1A63B6008B98EF /* LayoutBarStyle.swift in Sources */,
 				711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
+				17EE695E2C26618F00F778A7 /* AnyInsettableShape.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,
 				7150A7B32AA42B640045EA68 /* Modifiers.swift in Sources */,

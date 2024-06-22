@@ -41,7 +41,7 @@ class IceBarPanel: NSPanel {
         self.isFloatingPanel = true
         self.animationBehavior = .none
         self.backgroundColor = .clear
-        self.hasShadow = true
+        self.hasShadow = false
         self.level = .mainMenu
         self.collectionBehavior = [
             .fullScreenAuxiliary,
@@ -125,13 +125,12 @@ class IceBarPanel: NSPanel {
             return
         }
         let menuBarHeight = NSApp.mainMenu?.menuBarHeight ?? 0
-        let margin: CGFloat = 5
         let origin = CGPoint(
             x: min(
                 controlItemFrame.midX - frame.width / 2,
-                screen.frame.maxX - frame.width - margin
+                screen.frame.maxX - frame.width
             ),
-            y: (screen.frame.maxY - menuBarHeight - 1) - frame.height - margin
+            y: (screen.frame.maxY - menuBarHeight - 1) - frame.height
         )
         setFrameOrigin(origin)
     }
@@ -179,6 +178,18 @@ private class IceBarImageCache: ObservableObject {
 
     func image(for info: MenuBarItemInfo) -> CGImage? {
         images[info]
+    }
+
+    func isEmpty(section: MenuBarSection.Name) -> Bool {
+        guard let appState else {
+            return false
+        }
+        let keys = Set(images.keys)
+        let items = appState.itemManager.cachedMenuBarItems[section, default: []]
+        for item in items where keys.contains(item.info) {
+            return false
+        }
+        return true
     }
 
     func cacheImage(for item: MenuBarItem) async -> Bool {
@@ -263,6 +274,7 @@ private struct IceBarContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var itemManager: MenuBarItemManager
     @EnvironmentObject var menuBarManager: MenuBarManager
+    @EnvironmentObject var imageCache: IceBarImageCache
 
     let section: MenuBarSection.Name
     let screen: NSScreen
@@ -272,22 +284,65 @@ private struct IceBarContentView: View {
         itemManager.cachedMenuBarItems[section, default: []]
     }
 
+    private var configuration: MenuBarAppearanceConfiguration {
+        menuBarManager.appearanceManager.configuration
+    }
+
+    private var horizontalPadding: CGFloat {
+        configuration.hasRoundedShape ? 7 : 5
+    }
+
+    private var verticalPadding: CGFloat {
+        configuration.hasRoundedShape ? 2 : 3
+    }
+
+    private var clipShape: AnyInsettableShape {
+        if configuration.hasRoundedShape {
+            AnyInsettableShape(Capsule())
+        } else {
+            AnyInsettableShape(RoundedRectangle(cornerRadius: 7, style: .circular))
+        }
+    }
+
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(items, id: \.windowID) { item in
-                IceBarItemView(item: item, screen: screen, closePanel: closePanel)
+        ZStack {
+            if configuration.hasShadow {
+                styledBody
+                    .shadow(color: .black.opacity(0.5), radius: 2.5)
+            } else {
+                styledBody
+            }
+            if configuration.hasBorder {
+                clipShape
+                    .inset(by: configuration.borderWidth / 2)
+                    .stroke(lineWidth: configuration.borderWidth)
+                    .foregroundStyle(Color(cgColor: configuration.borderColor))
             }
         }
         .padding(5)
-        .layoutBarStyle(appState: appState)
-        .clipShape(RoundedRectangle(cornerRadius: 9))
-        .overlay {
-            RoundedRectangle(cornerRadius: 9)
-                .inset(by: 0.5)
-                .stroke(lineWidth: 0.5)
-                .foregroundStyle(.tertiary)
-        }
         .fixedSize()
+    }
+
+    @ViewBuilder
+    private var styledBody: some View {
+        unstyledBody
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .layoutBarStyle(appState: appState)
+            .clipShape(clipShape)
+    }
+
+    @ViewBuilder
+    private var unstyledBody: some View {
+        if imageCache.isEmpty(section: section) {
+            Text("Unable to capture menu bar item images. Try switching spaces.")
+        } else {
+            HStack(spacing: 0) {
+                ForEach(items, id: \.windowID) { item in
+                    IceBarItemView(item: item, screen: screen, closePanel: closePanel)
+                }
+            }
+        }
     }
 }
 

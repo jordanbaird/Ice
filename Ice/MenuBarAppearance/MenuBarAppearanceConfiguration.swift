@@ -19,6 +19,14 @@ struct MenuBarAppearanceConfiguration: Hashable {
     var tintColor: CGColor
     var tintGradient: CustomGradient
 
+    var hasRoundedShape: Bool {
+        switch shapeKind {
+        case .none: false
+        case .full: fullShapeInfo.hasRoundedShape
+        case .split: splitShapeInfo.hasRoundedShape
+        }
+    }
+
     /// Creates a configuration by migrating from the deprecated
     /// appearance-related keys stored in `UserDefaults`, storing
     /// the new configuration and deleting the deprecated keys.

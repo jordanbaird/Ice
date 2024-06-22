@@ -34,6 +34,12 @@ struct MenuBarFullShapeInfo: Codable, Hashable {
 }
 
 extension MenuBarFullShapeInfo {
+    var hasRoundedShape: Bool {
+        leadingEndCap == .round || trailingEndCap == .round
+    }
+}
+
+extension MenuBarFullShapeInfo {
     static let `default` = MenuBarFullShapeInfo(leadingEndCap: .round, trailingEndCap: .round)
 }
 
@@ -44,6 +50,12 @@ struct MenuBarSplitShapeInfo: Codable, Hashable {
     var leading: MenuBarFullShapeInfo
     /// The trailing information of the shape.
     var trailing: MenuBarFullShapeInfo
+}
+
+extension MenuBarSplitShapeInfo {
+    var hasRoundedShape: Bool {
+        leading.hasRoundedShape || trailing.hasRoundedShape
+    }
 }
 
 extension MenuBarSplitShapeInfo {

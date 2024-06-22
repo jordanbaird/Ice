@@ -665,19 +665,17 @@ extension MenuBarItemManager {
         let clickPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
 
         guard
-            let mouseDownEvent = CGEvent.menuBarItemEvent(
-                with: .click(.mouseDown),
-                location: clickPoint,
-                item: item,
-                pid: item.ownerPID,
-                source: source
+            let mouseDownEvent = CGEvent(
+                mouseEventSource: source,
+                mouseType: .leftMouseDown,
+                mouseCursorPosition: clickPoint,
+                mouseButton: .left
             ),
-            let mouseUpEvent = CGEvent.menuBarItemEvent(
-                with: .click(.mouseUp),
-                location: clickPoint,
-                item: item,
-                pid: item.ownerPID,
-                source: source
+            let mouseUpEvent = CGEvent(
+                mouseEventSource: source,
+                mouseType: .leftMouseUp,
+                mouseCursorPosition: clickPoint,
+                mouseButton: .left
             )
         else {
             throw EventError(code: .eventCreationFailure, item: item)

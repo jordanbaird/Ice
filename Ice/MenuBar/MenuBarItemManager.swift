@@ -59,13 +59,11 @@ extension MenuBarItemManager {
         }
 
         if let dateOfLastTempShownItemsRehide {
-            guard Date.now.timeIntervalSince(dateOfLastTempShownItemsRehide) > 1 else {
+            guard Date.now.timeIntervalSince(dateOfLastTempShownItemsRehide) > 3 else {
                 Logger.itemManager.info("Items were recently rehidden, so deferring cache")
                 return
             }
         }
-
-        Logger.itemManager.info("Caching current menu bar items")
 
         let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
 
@@ -81,18 +79,17 @@ extension MenuBarItemManager {
                 cachedItems[section] = []
             }
             for item in items {
-                // only items that can be hidden should be included
-                guard item.canBeHidden else {
-                    continue
-                }
-
-                // only items currently in the menu bar should be included
-                guard item.isCurrentlyInMenuBar else {
+                // filter out items that can't be hidden and items not currently
+                // in the menu bar
+                guard
+                    item.canBeHidden,
+                    item.isCurrentlyInMenuBar
+                else {
                     continue
                 }
 
                 if item.owningApplication == .current {
-                    // the Ice icon is the only item owned by Ice that should be included
+                    // Ice icon is the only item owned by Ice that should be included
                     guard item.title == ControlItem.Identifier.iceIcon.rawValue else {
                         continue
                     }
@@ -115,28 +112,9 @@ extension MenuBarItemManager {
     }
 }
 
-// MARK: - Move Items
+// MARK: - Menu Bar Item Events -
 
 extension MenuBarItemManager {
-    /// A destination that a menu bar item can be moved to.
-    enum MoveDestination {
-        /// The menu bar item will be moved to the left of the given menu bar item.
-        case leftOfItem(MenuBarItem)
-
-        /// The menu bar item will be moved to the right of the given menu bar item.
-        case rightOfItem(MenuBarItem)
-
-        /// A string to use for logging purposes.
-        var logString: String {
-            switch self {
-            case .leftOfItem(let item):
-                "left of \"\(item.logString)\""
-            case .rightOfItem(let item):
-                "right of \"\(item.logString)\""
-            }
-        }
-    }
-
     /// An error that can occur during menu bar item event processing.
     struct EventError: Error, CustomStringConvertible, LocalizedError {
         /// Error codes within the domain of menu bar item event errors.
@@ -160,9 +138,6 @@ extension MenuBarItemManager {
 
             /// Indicates an invalid menu bar item.
             case invalidItem
-
-            /// Indicates that the process is missing the required permissions.
-            case missingPermissions
 
             /// Indicates that a menu bar item has no owning application.
             case noOwningApplication
@@ -195,8 +170,6 @@ extension MenuBarItemManager {
                 "Invalid cursor location"
             case .invalidItem:
                 "Menu bar item is invalid"
-            case .missingPermissions:
-                "Missing permissions"
             case .noOwningApplication:
                 "Menu bar item has no owning application"
             case .notMovable:
@@ -227,6 +200,29 @@ extension MenuBarItemManager {
 
         init(code: ErrorCode, item: MenuBarItem?) {
             self.init(code: code, info: item?.info)
+        }
+    }
+}
+
+// MARK: - Move Items
+
+extension MenuBarItemManager {
+    /// A destination that a menu bar item can be moved to.
+    enum MoveDestination {
+        /// The menu bar item will be moved to the left of the given menu bar item.
+        case leftOfItem(MenuBarItem)
+
+        /// The menu bar item will be moved to the right of the given menu bar item.
+        case rightOfItem(MenuBarItem)
+
+        /// A string to use for logging purposes.
+        var logString: String {
+            switch self {
+            case .leftOfItem(let item):
+                "left of \"\(item.logString)\""
+            case .rightOfItem(let item):
+                "right of \"\(item.logString)\""
+            }
         }
     }
 

@@ -172,7 +172,7 @@ class IceBarPanel: NSPanel {
 
 @MainActor
 private class IceBarImageCache: ObservableObject {
-    @Published private var images = [MenuBarItemInfo: CGImage]()
+    @Published private(set) var images = [MenuBarItemInfo: CGImage]()
 
     private weak var appState: AppState?
 
@@ -180,16 +180,9 @@ private class IceBarImageCache: ObservableObject {
         self.appState = appState
     }
 
-    func image(for info: MenuBarItemInfo) -> CGImage? {
-        images[info]
-    }
-
     func isEmpty(section: MenuBarSection.Name) -> Bool {
-        guard let appState else {
-            return false
-        }
         let keys = Set(images.keys)
-        let items = appState.itemManager.cachedMenuBarItems[section, default: []]
+        let items = appState?.itemManager.cachedMenuBarItems[section] ?? []
         for item in items where keys.contains(item.info) {
             return false
         }
@@ -197,47 +190,63 @@ private class IceBarImageCache: ObservableObject {
     }
 
     func updateCache(for section: MenuBarSection.Name, screen: NSScreen) async -> Bool {
-        guard let appState else {
+        actor TempCache {
+            private(set) var images = [MenuBarItemInfo: CGImage]()
+
+            func cache(image: CGImage, with info: MenuBarItemInfo) {
+                images[info] = image
+            }
+        }
+
+        guard
+            let appState,
+            let items = appState.itemManager.cachedMenuBarItems[section]
+        else {
             return false
         }
-        return await withCheckedContinuation { continuation in
-            guard let items = appState.itemManager.cachedMenuBarItems[section] else {
-                continuation.resume(returning: false)
-                return
+
+        let tempCache = TempCache()
+        let backingScaleFactor = screen.backingScaleFactor
+
+        let cacheTask = Task.detached {
+            let windowIDs = items.map { $0.windowID }
+
+            guard
+                let compositeImage = Bridging.captureWindows(windowIDs, option: .boundsIgnoreFraming),
+                !compositeImage.isTransparent(maxAlpha: 0.9)
+            else {
+                return false
             }
-            let backingScaleFactor = screen.backingScaleFactor
-            DispatchQueue.global(qos: .userInteractive).async {
-                guard
-                    let compositeImage = Bridging.captureWindows(
-                        items.map { $0.windowID },
-                        option: .boundsIgnoreFraming
-                    ),
-                    !compositeImage.isTransparent(maxAlpha: 0.9)
-                else {
-                    continuation.resume(returning: false)
-                    return
+
+            var failed = false
+            var start: CGFloat = 0
+            let height = CGFloat(compositeImage.height)
+
+            for item in items {
+                let width = item.frame.width * backingScaleFactor
+                let frame = CGRect(x: start, y: 0, width: width, height: height)
+
+                defer {
+                    start += width
                 }
-                Task.detached { @MainActor in
-                    var failed = false
-                    var start: CGFloat = 0
-                    for item in items {
-                        let width = item.frame.width * backingScaleFactor
-                        let height = item.frame.height * backingScaleFactor
-                        defer { start += width }
-                        let itemFrame = CGRect(x: start, y: 0, width: width, height: height)
-                        if
-                            let itemImage = compositeImage.cropping(to: itemFrame),
-                            !itemImage.isTransparent()
-                        {
-                            self.images[item.info] = itemImage
-                        } else {
-                            failed = true
-                        }
-                    }
-                    continuation.resume(returning: !failed)
+
+                if
+                    let itemImage = compositeImage.cropping(to: frame),
+                    !itemImage.isTransparent()
+                {
+                    await tempCache.cache(image: itemImage, with: item.info)
+                } else {
+                    failed = true
                 }
             }
+
+            return !failed
         }
+
+        let result = await cacheTask.value
+        images = await tempCache.images
+
+        return result
     }
 }
 
@@ -376,7 +385,7 @@ private struct IceBarItemView: View {
     let closePanel: () -> Void
 
     private var image: NSImage? {
-        guard let image = imageCache.image(for: item.info) else {
+        guard let image = imageCache.images[item.info] else {
             return nil
         }
         let size = CGSize(

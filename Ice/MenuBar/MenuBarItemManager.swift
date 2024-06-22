@@ -758,14 +758,13 @@ extension MenuBarItemManager {
 
         Task {
             if clickWhenFinished {
-                MouseCursor.hide()
                 do {
                     try await slowMove(item: item, to: .rightOfItem(hiddenControlItem))
+                    try await Task.sleep(for: .milliseconds(100))
                     try await leftClick(item: item)
                 } catch {
                     Logger.itemManager.error("ERROR: \(error)")
                 }
-                MouseCursor.show()
             } else {
                 do {
                     try await move(item: item, to: .rightOfItem(hiddenControlItem))

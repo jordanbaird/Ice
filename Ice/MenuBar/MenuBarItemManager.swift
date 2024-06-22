@@ -387,7 +387,7 @@ extension MenuBarItemManager {
                 return rEvent
             }
 
-            eventTap.enable(timeout: .milliseconds(250)) {
+            eventTap.enable(timeout: .milliseconds(50)) {
                 Logger.move.error("Event tap \"\(eventTap.label)\" timed out")
                 eventTap.disable()
                 continuation.resume()
@@ -414,14 +414,16 @@ extension MenuBarItemManager {
         waitingForFrameChangeOf item: MenuBarItem
     ) async throws {
         guard let currentFrame = getCurrentFrame(for: item) else {
-            // this will be slow, but subsequent events will have a better chance of succeeding
-            try await Task.sleep(for: .milliseconds(50))
             try await forwardEvent(event, from: initialLocation, to: forwardedLocation)
+
+            Logger.move.warning("No item frame, so using fixed delay instead of frame check")
+
+            // this will be slow, but subsequent events will have a better chance of succeeding
             try await Task.sleep(for: .milliseconds(50))
             return
         }
         try await forwardEvent(event, from: initialLocation, to: forwardedLocation)
-        try await waitForFrameChange(of: item, initialFrame: currentFrame, timeout: .milliseconds(250))
+        try await waitForFrameChange(of: item, initialFrame: currentFrame, timeout: .milliseconds(50))
     }
 
     /// Waits for a menu bar item's frame to change from an initial frame.
@@ -437,7 +439,6 @@ extension MenuBarItemManager {
             while true {
                 try Task.checkCancellation()
                 guard let currentFrame = await self.getCurrentFrame(for: item) else {
-                    Logger.move.info("Cancelling frame check")
                     throw FrameCheckCancellationError()
                 }
                 if currentFrame != initialFrame {
@@ -450,8 +451,9 @@ extension MenuBarItemManager {
         do {
             try await frameCheckTask.value
         } catch is FrameCheckCancellationError {
+            Logger.move.warning("Frame check was cancelled, so using fixed delay")
             // this will be slow, but subsequent events will have a better chance of succeeding
-            try await Task.sleep(for: .milliseconds(100))
+            try await Task.sleep(for: .milliseconds(50))
         } catch is TaskTimeoutError {
             throw EventError(code: .timeout, item: item)
         }
@@ -471,6 +473,36 @@ extension MenuBarItemManager {
             source.setLocalEventsFilterDuringSuppressionState(.permitAllEvents, state: state)
         }
         source.localEventsSuppressionInterval = suppressionInterval
+    }
+
+    /// Tries to wake up the given item if it is not responding to events.
+    private func wakeUpItem(_ item: MenuBarItem) async throws {
+        Logger.move.info("Attempting to wake up \"\(item.logString)\"")
+
+        guard let application = item.owningApplication else {
+            throw EventError(code: .noOwningApplication, item: item)
+        }
+        guard let source = CGEventSource(stateID: .hidSystemState) else {
+            throw EventError(code: .invalidEventSource, item: item)
+        }
+        guard let currentFrame = getCurrentFrame(for: item) else {
+            throw EventError(code: .invalidItem, item: item)
+        }
+        guard let mouseUpEvent = CGEvent.menuBarItemEvent(
+            with: .leftMouseUp,
+            location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
+            item: item,
+            pid: item.ownerPID,
+            source: source
+        ) else {
+            throw EventError(code: .eventCreationFailure, item: item)
+        }
+
+        try await forwardEvent(
+            mouseUpEvent,
+            from: .application(application),
+            to: .sessionEventTap
+        )
     }
 
     /// Moves a menu bar item to the given destination, without restoring
@@ -548,7 +580,9 @@ extension MenuBarItemManager {
                 waitingForFrameChangeOf: item
             )
         } catch {
-            postEvent(fallbackEvent, to: .sessionEventTap)
+            let location = EventTap.Location.sessionEventTap
+            Logger.move.info("Posting fallback event to \(location.logString)")
+            postEvent(fallbackEvent, to: location)
             throw error
         }
     }
@@ -604,6 +638,8 @@ extension MenuBarItemManager {
                 }
             } catch where n < 5 {
                 Logger.move.error("Attempt \(n) to move \"\(item.logString)\" failed: \(error)")
+                try await wakeUpItem(item)
+                Logger.move.info("Retrying move")
                 continue
             }
         }

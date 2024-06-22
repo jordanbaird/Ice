@@ -715,10 +715,15 @@ extension MenuBarItemManager {
 
         Logger.itemManager.info("Left clicking \"\(item.logString)\"")
 
-        postEvent(mouseDownEvent, to: .sessionEventTap)
-        try await Task.sleep(for: .milliseconds(50))
-        postEvent(mouseUpEvent, to: .sessionEventTap)
-        try await Task.sleep(for: .milliseconds(50))
+        do {
+            postEvent(mouseDownEvent, to: .sessionEventTap)
+            try await Task.sleep(for: .milliseconds(50))
+            postEvent(mouseUpEvent, to: .sessionEventTap)
+            try await Task.sleep(for: .milliseconds(50))
+        } catch {
+            postEvent(mouseUpEvent, to: .sessionEventTap)
+            throw error
+        }
     }
 }
 
@@ -989,7 +994,6 @@ private extension CGEvent {
         }
 
         event.flags = type.cgEventFlags
-        event.setSource(source)
 
         let targetPID = Int64(pid)
         let userData = MenuBarItemEventUserDataContext.next()

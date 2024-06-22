@@ -494,7 +494,10 @@ extension EventManager {
             return false
         }
         let panel = appState.menuBarManager.iceBarPanel
-        return panel.frame.contains(mouseLocation)
+        // pad the frame to be more forgiving if the user accidentally
+        // moves their mouse outside of the Ice Bar
+        let paddedFrame = panel.frame.insetBy(dx: -10, dy: -10)
+        return paddedFrame.contains(mouseLocation)
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within

@@ -214,7 +214,28 @@ extension Bridging {
         option: CGWindowImageOption
     ) -> CGImage? {
         var pointer = UnsafeRawPointer(bitPattern: Int(windowID))
-        guard let windowArray = CFArrayCreate(kCFAllocatorDefault, &pointer, 1, nil) else {
+        guard let windowArray = CFArrayCreate(nil, &pointer, 1, nil) else {
+            return nil
+        }
+        return CGWindowListCreateImageFromArray(screenBounds ?? .null, windowArray, option)
+    }
+
+    /// Captures a composite image of an array of windows.
+    ///
+    /// - Parameters:
+    ///   - windowIDs: The identifiers of the windows to capture.
+    ///   - screenBounds: The bounds to capture. Pass `nil` to capture the minimum
+    ///     rectangle that encloses the windows.
+    ///   - option: Options that specify the image to be captured.
+    public static func captureWindows(
+        _ windowIDs: [CGWindowID],
+        screenBounds: CGRect? = nil,
+        option: CGWindowImageOption
+    ) -> CGImage? {
+        var pointers = windowIDs.map { windowID in
+            UnsafeRawPointer(bitPattern: Int(windowID))
+        }
+        guard let windowArray = CFArrayCreate(nil, &pointers, windowIDs.count, nil) else {
             return nil
         }
         return CGWindowListCreateImageFromArray(screenBounds ?? .null, windowArray, option)

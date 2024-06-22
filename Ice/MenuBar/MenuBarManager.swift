@@ -223,25 +223,19 @@ final class MenuBarManager: ObservableObject {
 
         guard
             let screen = NSScreen.main,
-            let menuBarHeight = NSApp.mainMenu?.menuBarHeight
+            let window = WindowInfo.getMenuBarWindow(for: screen.displayID)
         else {
             return
         }
 
-        let displayID = screen.displayID
-        let bounds = CGDisplayBounds(displayID)
-
-        let menuBarBounds = CGRect(
-            x: bounds.minX,
-            y: bounds.minY,
-            width: bounds.width,
-            height: menuBarHeight
-        )
+        var bounds = window.frame
+        bounds.size.height = 1
+        bounds.origin.x = bounds.midX
+        bounds.size.width /= 2
 
         guard
-            let window = WindowInfo.getWallpaperWindow(for: displayID),
-            let image = Bridging.captureWindow(window.windowID, screenBounds: menuBarBounds, option: []),
-            let averageColor = image.averageColor(resolution: .low)
+            let image = Bridging.captureWindow(window.windowID, screenBounds: bounds, option: []),
+            let averageColor = image.averageColor(resolution: .low, options: .ignoreAlpha)
         else {
             return
         }

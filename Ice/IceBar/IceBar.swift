@@ -100,9 +100,13 @@ class IceBarPanel: NSPanel {
                 guard let self else {
                     return
                 }
-                if isVisible {
+                if
+                    isVisible,
+                    let currentSection,
+                    let screen
+                {
                     Task {
-                        await self.imageCache.updateCache()
+                        await self.imageCache.updateCache(for: currentSection, screen: screen)
                     }
                 } else {
                     needsUpdateImageCacheBeforeShowing = true
@@ -140,7 +144,7 @@ class IceBarPanel: NSPanel {
             return
         }
         if needsUpdateImageCacheBeforeShowing {
-            if await imageCache.updateCache() {
+            if await imageCache.updateCache(for: section, screen: screen) {
                 needsUpdateImageCacheBeforeShowing = false
             }
         }
@@ -192,40 +196,48 @@ private class IceBarImageCache: ObservableObject {
         return true
     }
 
-    func cacheImage(for item: MenuBarItem) async -> Bool {
-        await withCheckedContinuation { continuation in
+    func updateCache(for section: MenuBarSection.Name, screen: NSScreen) async -> Bool {
+        guard let appState else {
+            return false
+        }
+        return await withCheckedContinuation { continuation in
+            guard let items = appState.itemManager.cachedMenuBarItems[section] else {
+                continuation.resume(returning: false)
+                return
+            }
+            let backingScaleFactor = screen.backingScaleFactor
             DispatchQueue.global(qos: .userInteractive).async {
                 guard
-                    let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming),
-                    !image.isTransparent()
+                    let compositeImage = Bridging.captureWindows(
+                        items.map { $0.windowID },
+                        option: .boundsIgnoreFraming
+                    ),
+                    !compositeImage.isTransparent(maxAlpha: 0.9)
                 else {
                     continuation.resume(returning: false)
                     return
                 }
                 Task.detached { @MainActor in
-                    self.images[item.info] = image
-                    continuation.resume(returning: true)
+                    var failed = false
+                    var start: CGFloat = 0
+                    for item in items {
+                        let width = item.frame.width * backingScaleFactor
+                        let height = item.frame.height * backingScaleFactor
+                        defer { start += width }
+                        let itemFrame = CGRect(x: start, y: 0, width: width, height: height)
+                        if
+                            let itemImage = compositeImage.cropping(to: itemFrame),
+                            !itemImage.isTransparent()
+                        {
+                            self.images[item.info] = itemImage
+                        } else {
+                            failed = true
+                        }
+                    }
+                    continuation.resume(returning: !failed)
                 }
             }
         }
-    }
-
-    func updateCache() async -> Bool {
-        guard let appState else {
-            return false
-        }
-        var results = Set<Bool>()
-        for section: MenuBarSection.Name in [.hidden, .alwaysHidden] {
-            guard let items = appState.itemManager.cachedMenuBarItems[section] else {
-                results.insert(false)
-                continue
-            }
-            for item in items {
-                let result = await cacheImage(for: item)
-                results.insert(result)
-            }
-        }
-        return !results.contains(false)
     }
 }
 
@@ -335,7 +347,8 @@ private struct IceBarContentView: View {
     @ViewBuilder
     private var unstyledBody: some View {
         if imageCache.isEmpty(section: section) {
-            Text("Unable to capture menu bar item images. Try switching spaces.")
+            unableToCapture
+                .foregroundStyle(menuBarManager.averageColor?.brightness ?? 0 > 0.67 ? .black : .white)
         } else {
             HStack(spacing: 0) {
                 ForEach(items, id: \.windowID) { item in
@@ -343,6 +356,12 @@ private struct IceBarContentView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var unableToCapture: some View {
+        Text("Unable to capture menu bar item images. Try switching spaces.")
+            .padding(3)
     }
 }
 
@@ -371,6 +390,7 @@ private struct IceBarItemView: View {
         if let image {
             Image(nsImage: image)
                 .contentShape(Rectangle())
+                .help(item.displayName)
                 .onTapGesture {
                     closePanel()
                     itemManager.tempShowItem(item, clickWhenFinished: true)

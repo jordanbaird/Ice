@@ -10,7 +10,7 @@ import SwiftUI
 struct MenuBarTintShapeStyle: ShapeStyle {
     func resolve(in environment: EnvironmentValues) -> some ShapeStyle {
         Material.bar
-            .opacity(0.5)
+            .opacity(0.2)
             .blendMode(.softLight)
     }
 }

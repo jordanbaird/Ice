@@ -364,11 +364,6 @@ extension EventManager {
             return
         }
 
-        // don't continue if using the Ice Bar
-        guard !appState.settingsManager.generalSettingsManager.useIceBar else {
-            return
-        }
-
         // make sure the command key is down
         guard event.modifierFlags.contains(.command) else {
             return
@@ -381,6 +376,11 @@ extension EventManager {
 
         // notify each overlay panel that a menu bar item is being dragged
         appState.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
+
+        // stop here if using the Ice Bar
+        guard !appState.settingsManager.generalSettingsManager.useIceBar else {
+            return
+        }
 
         // show all items, including section dividers
         for section in appState.menuBarManager.sections {

@@ -211,7 +211,7 @@ extension Bridging {
     public static func captureWindow(
         _ windowID: CGWindowID,
         screenBounds: CGRect? = nil,
-        option: CGWindowImageOption
+        option: CGWindowImageOption = []
     ) -> CGImage? {
         var pointer = UnsafeRawPointer(bitPattern: Int(windowID))
         guard let windowArray = CFArrayCreate(nil, &pointer, 1, nil) else {
@@ -230,7 +230,7 @@ extension Bridging {
     public static func captureWindows(
         _ windowIDs: [CGWindowID],
         screenBounds: CGRect? = nil,
-        option: CGWindowImageOption
+        option: CGWindowImageOption = []
     ) -> CGImage? {
         var pointers = windowIDs.map { windowID in
             UnsafeRawPointer(bitPattern: Int(windowID))

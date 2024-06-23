@@ -31,7 +31,6 @@
 		173C24892B8E80830096F7A1 /* AboutSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173C24882B8E80830096F7A1 /* AboutSettingsPane.swift */; };
 		173C248C2B8E821C0096F7A1 /* UpdatesSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 173C248B2B8E821C0096F7A1 /* UpdatesSettingsPane.swift */; };
 		174AA5D62B71D97100E3FE74 /* MenuBarOverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174AA5D52B71D97100E3FE74 /* MenuBarOverlayPanel.swift */; };
-		174AA5F52B730A0B00E3FE74 /* ScreenCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174AA5F42B730A0B00E3FE74 /* ScreenCapture.swift */; };
 		174D4E242BA1D28700D11129 /* HotkeyRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174D4E232BA1D28700D11129 /* HotkeyRecorder.swift */; };
 		174D4E262BA1D35D00D11129 /* HotkeyRecorderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174D4E252BA1D35D00D11129 /* HotkeyRecorderModel.swift */; };
 		174D4E282BA2089100D11129 /* Hotkey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 174D4E272BA2089100D11129 /* Hotkey.swift */; };
@@ -151,7 +150,6 @@
 		173C24882B8E80830096F7A1 /* AboutSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsPane.swift; sourceTree = "<group>"; };
 		173C248B2B8E821C0096F7A1 /* UpdatesSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesSettingsPane.swift; sourceTree = "<group>"; };
 		174AA5D52B71D97100E3FE74 /* MenuBarOverlayPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarOverlayPanel.swift; sourceTree = "<group>"; };
-		174AA5F42B730A0B00E3FE74 /* ScreenCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCapture.swift; sourceTree = "<group>"; };
 		174D4E232BA1D28700D11129 /* HotkeyRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorder.swift; sourceTree = "<group>"; };
 		174D4E252BA1D35D00D11129 /* HotkeyRecorderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRecorderModel.swift; sourceTree = "<group>"; };
 		174D4E272BA2089100D11129 /* Hotkey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Hotkey.swift; sourceTree = "<group>"; };
@@ -677,7 +675,6 @@
 				17F998312C15C91400D75EC0 /* MouseCursor.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
 				17C298B72BD42C390074DEAC /* Predicates.swift */,
-				174AA5F42B730A0B00E3FE74 /* ScreenCapture.swift */,
 				17CC22B42B8A55E7001A0582 /* WindowInfo.swift */,
 				170749CB2B120951009DDF73 /* EventMonitors */,
 				17FE5AD62BCA9BEC00E4F8D9 /* ScreenState */,
@@ -946,7 +943,6 @@
 				17D1AC8F2B97E71D00726180 /* AdvancedSettingsPane.swift in Sources */,
 				17F998532C16EFCD00D75EC0 /* CGImage+averageColor.swift in Sources */,
 				17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */,
-				174AA5F52B730A0B00E3FE74 /* ScreenCapture.swift in Sources */,
 				17CC22BC2B8CDE6F001A0582 /* EventManager.swift in Sources */,
 				17BE3DDE2C1A6410008B98EF /* MenuBarTintShapeStyle.swift in Sources */,
 				1737E3E52BA3C4AA009F0EFA /* HotkeyAction.swift in Sources */,

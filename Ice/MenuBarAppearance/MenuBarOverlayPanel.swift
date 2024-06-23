@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import Bridging
 import Cocoa
 import Combine
 import OSLog
@@ -290,10 +291,17 @@ class MenuBarOverlayPanel: NSPanel {
     /// Stores the area of the desktop wallpaper that is under the menu bar
     /// of the given display.
     private func updateDesktopWallpaper(for display: CGDirectDisplayID) async throws {
-        let wallpaper = try await ScreenCapture.desktopWallpaperBelowMenuBarScreenCaptureKit(
-            display: display,
-            timeout: .seconds(1)
-        )
+        let captureTask = Task.detached { () -> CGImage? in
+            let windows = WindowInfo.getOnScreenWindows()
+            guard
+                let wallpaperWindow = WindowInfo.getWallpaperWindow(from: windows, for: display),
+                let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display)
+            else {
+                return nil
+            }
+            return Bridging.captureWindow(wallpaperWindow.windowID, screenBounds: menuBarWindow.frame)
+        }
+        let wallpaper = await captureTask.value
         if desktopWallpaper?.dataProvider?.data != wallpaper?.dataProvider?.data {
             desktopWallpaper = wallpaper
         }

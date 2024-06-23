@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import ScreenCaptureKit
 import OSLog
 
 /// A Cocoa view that manages the menu bar layout interface.

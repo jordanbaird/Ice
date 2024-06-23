@@ -84,6 +84,8 @@
 		17EE69592C25A5BB00F778A7 /* NSScreen+screenWithMouse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69582C25A5BA00F778A7 /* NSScreen+screenWithMouse.swift */; };
 		17EE695E2C26618F00F778A7 /* AnyInsettableShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE695D2C26618F00F778A7 /* AnyInsettableShape.swift */; };
 		17EE69612C26A80300F778A7 /* CGColor+brightness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69602C26A80300F778A7 /* CGColor+brightness.swift */; };
+		17EE69652C27777C00F778A7 /* MenuBarItemImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69642C27777C00F778A7 /* MenuBarItemImageCache.swift */; };
+		17EE69682C277B4E00F778A7 /* Publisher+mapToVoid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69672C277B4E00F778A7 /* Publisher+mapToVoid.swift */; };
 		17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F71BB12B87E37800905CBA /* RehideStrategy.swift */; };
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
 		17F93D2C2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */; };
@@ -201,6 +203,8 @@
 		17EE69582C25A5BA00F778A7 /* NSScreen+screenWithMouse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+screenWithMouse.swift"; sourceTree = "<group>"; };
 		17EE695D2C26618F00F778A7 /* AnyInsettableShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnyInsettableShape.swift; sourceTree = "<group>"; };
 		17EE69602C26A80300F778A7 /* CGColor+brightness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGColor+brightness.swift"; sourceTree = "<group>"; };
+		17EE69642C27777C00F778A7 /* MenuBarItemImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemImageCache.swift; sourceTree = "<group>"; };
+		17EE69672C277B4E00F778A7 /* Publisher+mapToVoid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publisher+mapToVoid.swift"; sourceTree = "<group>"; };
 		17F71BB12B87E37800905CBA /* RehideStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RehideStrategy.swift; sourceTree = "<group>"; };
 		17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sequence+sortedByOrderInMenuBar.swift"; sourceTree = "<group>"; };
 		17F998312C15C91400D75EC0 /* MouseCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseCursor.swift; sourceTree = "<group>"; };
@@ -523,6 +527,14 @@
 			path = CGColor;
 			sourceTree = "<group>";
 		};
+		17EE69662C277B4300F778A7 /* Publisher */ = {
+			isa = PBXGroup;
+			children = (
+				17EE69672C277B4E00F778A7 /* Publisher+mapToVoid.swift */,
+			);
+			path = Publisher;
+			sourceTree = "<group>";
+		};
 		17F93D2A2C20FC340058C0AF /* Sequence */ = {
 			isa = PBXGroup;
 			children = (
@@ -687,6 +699,7 @@
 				17AB36302BA081C400F50C0F /* NSImage */,
 				17C3C5F52B75A35000B9648C /* NSScreen */,
 				716683462A76811C006ABF84 /* NSStatusItem */,
+				17EE69662C277B4300F778A7 /* Publisher */,
 				17F93D2A2C20FC340058C0AF /* Sequence */,
 				171C6FC72C0659250097A5C8 /* Task */,
 			);
@@ -713,6 +726,7 @@
 			isa = PBXGroup;
 			children = (
 				17D1AC8C2B97BB5900726180 /* MenuBarItem.swift */,
+				17EE69642C27777C00F778A7 /* MenuBarItemImageCache.swift */,
 				1727786D2C15181300F6F687 /* MenuBarItemManager.swift */,
 				7166834F2A7681AF006ABF84 /* MenuBarManager.swift */,
 				7162406E2AA0A323003EC671 /* MenuBarSection.swift */,
@@ -937,6 +951,8 @@
 				17BE3DDE2C1A6410008B98EF /* MenuBarTintShapeStyle.swift in Sources */,
 				1737E3E52BA3C4AA009F0EFA /* HotkeyAction.swift in Sources */,
 				7133ED712A85AE6A000A7E1B /* SettingsNavigationItem.swift in Sources */,
+				17EE69682C277B4E00F778A7 /* Publisher+mapToVoid.swift in Sources */,
+				17EE69652C27777C00F778A7 /* MenuBarItemImageCache.swift in Sources */,
 				174AA5D62B71D97100E3FE74 /* MenuBarOverlayPanel.swift in Sources */,
 				71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */,
 				171C6F982C0353CE0097A5C8 /* MenuBarAppearanceEditor.swift in Sources */,

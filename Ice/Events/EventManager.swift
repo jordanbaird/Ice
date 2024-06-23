@@ -13,73 +13,61 @@ final class EventManager {
 
     // MARK: Monitors
 
-    private(set) lazy var showOnClickMonitor = UniversalEventMonitor(
-        mask: .leftMouseDown
-    ) { [weak self] event in
-        self?.handleShowOnClick()
-        return event
-    }
-
-    private(set) lazy var showOnHoverMonitor = UniversalEventMonitor(
-        mask: .mouseMoved
-    ) { [weak self] event in
-        self?.handleShowOnHover()
-        return event
-    }
-
-    private(set) lazy var showOnScrollMonitor = UniversalEventMonitor(
-        mask: .scrollWheel
-    ) { [weak self] event in
-        self?.handleShowOnScroll(with: event)
-        return event
-    }
-
-    private(set) lazy var smartRehideMonitor = UniversalEventMonitor(
-        mask: .leftMouseDown
-    ) { [weak self] event in
-        self?.handleSmartRehide(with: event)
-        return event
-    }
-
-    private(set) lazy var preventShowOnHoverMonitor = UniversalEventMonitor(
+    private(set) lazy var mouseDownMonitor = UniversalEventMonitor(
         mask: [.leftMouseDown, .rightMouseDown]
     ) { [weak self] event in
-        self?.handlePreventShowOnHover(with: event)
+        guard let self else {
+            return event
+        }
+        switch event.type {
+        case .leftMouseDown:
+            handleShowOnClick()
+            handleRehide(with: event)
+        case .rightMouseDown:
+            handleShowRightClickMenu()
+        default:
+            break
+        }
+        handlePreventShowOnHover(with: event)
         return event
     }
 
-    private(set) lazy var showRightClickMenuMonitor = UniversalEventMonitor(
-        mask: .rightMouseDown
-    ) { [weak self] event in
-        self?.handleShowRightClickMenu()
-        return event
-    }
-
-    private(set) lazy var leftMouseDraggedMonitor = UniversalEventMonitor(
-        mask: .leftMouseDragged
-    ) { [weak self] event in
-        self?.handleLeftMouseDragged(with: event)
-        return event
-    }
-
-    private(set) lazy var leftMouseUpMonitor = UniversalEventMonitor(
+    private(set) lazy var mouseUpMonitor = UniversalEventMonitor(
         mask: .leftMouseUp
     ) { [weak self] event in
         self?.handleLeftMouseUp()
         return event
     }
 
+    private(set) lazy var mouseDraggedMonitor = UniversalEventMonitor(
+        mask: .leftMouseDragged
+    ) { [weak self] event in
+        self?.handleLeftMouseDragged(with: event)
+        return event
+    }
+
+    private(set) lazy var mouseMovedMonitor = UniversalEventMonitor(
+        mask: .mouseMoved
+    ) { [weak self] event in
+        self?.handleShowOnHover()
+        return event
+    }
+
+    private(set) lazy var scrollWheelMonitor = UniversalEventMonitor(
+        mask: .scrollWheel
+    ) { [weak self] event in
+        self?.handleShowOnScroll(with: event)
+        return event
+    }
+
     // MARK: All Monitors
 
     private lazy var allMonitors = [
-        showOnClickMonitor,
-        showOnHoverMonitor,
-        showOnScrollMonitor,
-        smartRehideMonitor,
-        preventShowOnHoverMonitor,
-        showRightClickMenuMonitor,
-        leftMouseDraggedMonitor,
-        leftMouseUpMonitor,
+        mouseDownMonitor,
+        mouseUpMonitor,
+        mouseDraggedMonitor,
+        mouseMovedMonitor,
+        scrollWheelMonitor,
     ]
 
     // MARK: Initializers
@@ -229,71 +217,82 @@ extension EventManager {
         }
     }
 
-    // MARK: Handle Smart Rehide
+    // MARK: Handle Rehide
 
-    private func handleSmartRehide(with event: NSEvent) {
+    private func handleRehide(with event: NSEvent) {
         guard let appState else {
             return
         }
 
-        // make sure auto-rehide is enabled and set to smart
-        guard
+        if let visibleSection = appState.menuBarManager.section(withName: .visible) {
+            guard event.window !== visibleSection.controlItem.window else {
+                return
+            }
+        }
+
+        if appState.settingsManager.generalSettingsManager.useIceBar {
+            // make sure clicking the Ice Bar doesn't trigger rehide
+            guard event.window !== appState.menuBarManager.iceBarPanel else {
+                return
+            }
+            if appState.menuBarManager.iceBarPanel.isVisible {
+                appState.menuBarManager.iceBarPanel.close()
+            }
+        } else if
             appState.settingsManager.generalSettingsManager.autoRehide,
             case .smart = appState.settingsManager.generalSettingsManager.rehideStrategy
-        else {
-            return
-        }
+        {
+            // make sure clicking the Ice Bar doesn't trigger rehide
+            guard event.window !== appState.menuBarManager.iceBarPanel else {
+                return
+            }
 
-        // make sure clicking the Ice Bar doesn't trigger rehide
-        guard event.window !== appState.menuBarManager.iceBarPanel else {
-            return
-        }
+            // only continue if the "hidden" section is currently visible
+            guard
+                let hiddenSection = appState.menuBarManager.section(withName: .hidden),
+                !hiddenSection.isHidden
+            else {
+                return
+            }
 
-        // only continue if the "hidden" section is currently visible
-        guard
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-            !hiddenSection.isHidden
-        else {
-            return
-        }
+            // make sure the mouse is not in the menu bar
+            guard !isMouseInsideMenuBar else {
+                return
+            }
 
-        // make sure the mouse is not in the menu bar
-        guard !isMouseInsideMenuBar else {
-            return
-        }
+            Task {
+                do {
+                    // sleep for a bit to give the window under the mouse a chance to focus
+                    try await Task.sleep(for: .seconds(0.25))
 
-        Task {
-            do {
-                // sleep for a bit to give the window under the mouse a chance to focus
-                try await Task.sleep(for: .seconds(0.25))
-
-                // get the window that the user has clicked into
-                guard
-                    let mouseLocation = self.getMouseLocation(flipped: true),
-                    let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
-                        .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
-                        .first(where: { $0.frame.contains(mouseLocation) }),
-                    let owningApplication = windowUnderMouse.owningApplication
-                else {
-                    return
-                }
-
-                // the dock is an exception to the following check
-                if owningApplication.bundleIdentifier != "com.apple.dock" {
-                    // only continue if the user has clicked into an active window with
-                    // a regular activation policy
+                    // get the window that the user has clicked into
                     guard
-                        owningApplication.isActive,
-                        owningApplication.activationPolicy == .regular
+                        let mouseLocation = self.getMouseLocation(flipped: true),
+                        let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
+                            .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
+                            .first(where: { $0.frame.contains(mouseLocation) }),
+                        let owningApplication = windowUnderMouse.owningApplication
                     else {
                         return
                     }
-                }
 
-                // if all the above checks have passed, hide
-                hiddenSection.hide()
-            } catch {
-                Logger.eventManager.error("ERROR: \(error)")
+                    // the dock is an exception to the following check
+                    if owningApplication.bundleIdentifier != "com.apple.dock" {
+                        // only continue if the user has clicked into an active window with
+                        // a regular activation policy
+                        guard
+                            owningApplication.isActive,
+                            owningApplication.activationPolicy == .regular
+                        else {
+                            return
+                        }
+                    }
+
+                    // if all the above checks have passed, hide
+                    hiddenSection.hide()
+                } catch {
+                    Logger.eventManager.error("ERROR: \(error)")
+                }
             }
         }
     }

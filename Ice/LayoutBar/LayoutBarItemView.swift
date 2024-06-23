@@ -5,16 +5,18 @@
 
 import Bridging
 import Cocoa
+import Combine
 
 // MARK: - LayoutBarItemView
 
 /// A view that displays an image in a menu bar layout view.
 class LayoutBarItemView: NSView {
+    private weak var appState: AppState?
+
+    private var cancellables = Set<AnyCancellable>()
+
     /// The item that the view represents.
     let item: MenuBarItem
-
-    /// The image displayed inside the view.
-    let image: NSImage
 
     /// Temporary information that the item view retains when it is moved outside
     /// of a layout view.
@@ -29,6 +31,25 @@ class LayoutBarItemView: NSView {
 
     /// A Boolean value that indicates whether the item view is currently inside a container.
     var hasContainer = false
+
+    /// The image displayed inside the view.
+    private var image: NSImage? {
+        didSet {
+            if
+                let image,
+                let screen = appState?.imageCache.screen
+            {
+                let size = CGSize(
+                    width: image.size.width / screen.backingScaleFactor,
+                    height: image.size.height / screen.backingScaleFactor
+                )
+                setFrameSize(size)
+            } else {
+                setFrameSize(.zero)
+            }
+            needsDisplay = true
+        }
+    }
 
     /// A Boolean value that indicates whether the item view is a dragging placeholder.
     ///
@@ -47,42 +68,43 @@ class LayoutBarItemView: NSView {
     }
 
     /// Creates a view that displays the given menu bar item.
-    init(item: MenuBarItem, image: CGImage, screen: NSScreen) {
+    init(appState: AppState, item: MenuBarItem) {
         self.item = item
-
-        let trimmedImage: NSImage = {
-            // only trim horizontal edges to maintain proper vertical centering
-            // due to the status item shadow offsetting the trim
-            let trimmed = image.trimmingTransparentPixels(around: [.minXEdge, .maxXEdge]) ?? image
-            let size = CGSize(
-                width: CGFloat(trimmed.width) / screen.backingScaleFactor,
-                height: CGFloat(trimmed.height) / screen.backingScaleFactor
-            )
-            return NSImage(cgImage: trimmed, size: size)
-        }()
-
-        self.image = NSImage(size: item.frame.size, flipped: false) { rect in
-            let centeredRect = CGRect(
-                x: rect.midX - (trimmedImage.size.width / 2),
-                y: rect.midY - (trimmedImage.size.height / 2),
-                width: trimmedImage.size.width,
-                height: trimmedImage.size.height
-            )
-            trimmedImage.draw(in: centeredRect)
-            return true
-        }
+        self.appState = appState
 
         // set the frame to the full item frame size; the image will be centered when displayed
-        super.init(frame: NSRect(origin: .zero, size: item.frame.size))
+        super.init(frame: CGRect(origin: .zero, size: item.frame.size))
         unregisterDraggedTypes()
 
         self.toolTip = item.displayName
         self.isEnabled = item.isMovable
+
+        configureCancellables()
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        if let appState {
+            appState.imageCache.$images
+                .sink { [weak self] images in
+                    guard
+                        let self,
+                        let cgImage = images[item.info]
+                    else {
+                        return
+                    }
+                    image = NSImage(cgImage: cgImage, size: CGSize(width: cgImage.width, height: cgImage.height))
+                }
+                .store(in: &c)
+        }
+
+        cancellables = c
     }
 
     /// Provides an alert to display when the item view is disabled.
@@ -101,7 +123,8 @@ class LayoutBarItemView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         if !isDraggingPlaceholder {
-            image.draw(
+            let image = image ?? NSImage(systemSymbolName: "questionmark", accessibilityDescription: nil)
+            image?.draw(
                 in: bounds,
                 from: .zero,
                 operation: .sourceOver,

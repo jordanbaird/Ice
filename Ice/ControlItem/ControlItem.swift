@@ -53,9 +53,14 @@ final class ControlItem: ObservableObject {
         appState?.menuBarManager.sections.first { $0.controlItem === self }
     }
 
+    /// The control item's window.
+    var window: NSWindow? {
+        statusItem.button?.window
+    }
+
     /// The identifier of the control item's window.
     var windowID: CGWindowID? {
-        guard let window = statusItem.button?.window else {
+        guard let window else {
             return nil
         }
         return CGWindowID(window.windowNumber)
@@ -166,7 +171,7 @@ final class ControlItem: ObservableObject {
                 } else {
                     statusItem.length = 0
                     constraint?.isActive = false
-                    if let window = statusItem.button?.window {
+                    if let window {
                         var size = window.frame.size
                         size.width = 1
                         window.setContentSize(size)
@@ -182,7 +187,7 @@ final class ControlItem: ObservableObject {
             }
             .store(in: &c)
 
-        if let window = statusItem.button?.window {
+        if let window {
             window.publisher(for: \.frame)
                 .sink { [weak self, weak window] frame in
                     guard

@@ -6,24 +6,17 @@
 import Bridging
 import Combine
 import SwiftUI
-import OSLog
 
 // MARK: - IceBarPanel
 
 class IceBarPanel: NSPanel {
     private weak var appState: AppState?
 
-    private let imageCache: IceBarImageCache
-
-    private var needsUpdateImageCacheBeforeShowing = true
-
     private(set) var currentSection: MenuBarSection.Name?
 
     private var cancellables = Set<AnyCancellable>()
 
     init(appState: AppState) {
-        self.imageCache = IceBarImageCache(appState: appState)
-
         super.init(
             contentRect: .zero,
             styleMask: [
@@ -57,18 +50,14 @@ class IceBarPanel: NSPanel {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // close the panel and mark it as needing its caches updated when
-        // the active space changes, or when the screen parameters change
+        // close the panel when the active space changes, or when the
+        // screen parameters change
         Publishers.Merge(
             NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
             NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
         )
         .sink { [weak self] _ in
-            guard let self else {
-                return
-            }
-            close()
-            needsUpdateImageCacheBeforeShowing = true
+            self?.close()
         }
         .store(in: &c)
 
@@ -86,34 +75,6 @@ class IceBarPanel: NSPanel {
                 updateOrigin(for: screen)
             }
             .store(in: &c)
-
-        if let appState {
-            // update image cache when the average color of the menu bar changes,
-            // and when the cached menu bar items change (we map both publishers
-            // to Void so we can merge them into a single publisher)
-            Publishers.Merge(
-                appState.menuBarManager.$averageColor.removeDuplicates().map { _ in () },
-                appState.itemManager.$cachedMenuBarItems.removeDuplicates().map { _ in () }
-            )
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                if
-                    isVisible,
-                    let currentSection,
-                    let screen
-                {
-                    Task {
-                        await self.imageCache.updateCache(for: currentSection, screen: screen)
-                    }
-                } else {
-                    needsUpdateImageCacheBeforeShowing = true
-                }
-            }
-            .store(in: &c)
-        }
 
         cancellables = c
     }
@@ -143,110 +104,28 @@ class IceBarPanel: NSPanel {
         guard let appState else {
             return
         }
-        if needsUpdateImageCacheBeforeShowing {
-            if await imageCache.updateCache(for: section, screen: screen) {
-                needsUpdateImageCacheBeforeShowing = false
-            }
-        }
+
+        // important that we set the current section before updating the cache
+        currentSection = section
+        await appState.imageCache.updateCache()
+
         contentView = IceBarHostingView(
             appState: appState,
-            imageCache: imageCache,
+            imageCache: appState.imageCache,
             section: section,
             screen: screen
         ) { [weak self] in
             self?.close()
         }
+
         updateOrigin(for: screen)
         orderFrontRegardless()
-        currentSection = section
     }
 
     override func close() {
         super.close()
         contentView = nil
         currentSection = nil
-    }
-}
-
-// MARK: - IceBarImageCache
-
-@MainActor
-private class IceBarImageCache: ObservableObject {
-    @Published private(set) var images = [MenuBarItemInfo: CGImage]()
-
-    private weak var appState: AppState?
-
-    init(appState: AppState) {
-        self.appState = appState
-    }
-
-    func isEmpty(section: MenuBarSection.Name) -> Bool {
-        let keys = Set(images.keys)
-        let items = appState?.itemManager.cachedMenuBarItems[section] ?? []
-        for item in items where keys.contains(item.info) {
-            return false
-        }
-        return true
-    }
-
-    func updateCache(for section: MenuBarSection.Name, screen: NSScreen) async -> Bool {
-        actor TempCache {
-            private(set) var images = [MenuBarItemInfo: CGImage]()
-
-            func cache(image: CGImage, with info: MenuBarItemInfo) {
-                images[info] = image
-            }
-        }
-
-        guard
-            let appState,
-            let items = appState.itemManager.cachedMenuBarItems[section]
-        else {
-            return false
-        }
-
-        let tempCache = TempCache()
-        let backingScaleFactor = screen.backingScaleFactor
-
-        let cacheTask = Task.detached {
-            let windowIDs = items.map { $0.windowID }
-
-            guard
-                let compositeImage = Bridging.captureWindows(windowIDs, option: .boundsIgnoreFraming),
-                !compositeImage.isTransparent(maxAlpha: 0.9)
-            else {
-                return false
-            }
-
-            var failed = false
-            var start: CGFloat = 0
-            let height = CGFloat(compositeImage.height)
-
-            for item in items {
-                let width = item.frame.width * backingScaleFactor
-                let frame = CGRect(x: start, y: 0, width: width, height: height)
-
-                defer {
-                    start += width
-                }
-
-                if
-                    let itemImage = compositeImage.cropping(to: frame),
-                    !itemImage.isTransparent()
-                {
-                    await tempCache.cache(image: itemImage, with: item.info)
-                } else {
-                    failed = true
-                }
-            }
-
-            return !failed
-        }
-
-        let result = await cacheTask.value
-        images = await tempCache.images
-
-        return result
     }
 }
 
@@ -259,7 +138,7 @@ private class IceBarHostingView: NSHostingView<AnyView> {
 
     init(
         appState: AppState,
-        imageCache: IceBarImageCache,
+        imageCache: MenuBarItemImageCache,
         section: MenuBarSection.Name,
         screen: NSScreen,
         closePanel: @escaping () -> Void
@@ -295,7 +174,7 @@ private struct IceBarContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var itemManager: MenuBarItemManager
     @EnvironmentObject var menuBarManager: MenuBarManager
-    @EnvironmentObject var imageCache: IceBarImageCache
+    @EnvironmentObject var imageCache: MenuBarItemImageCache
 
     let section: MenuBarSection.Name
     let screen: NSScreen
@@ -355,9 +234,10 @@ private struct IceBarContentView: View {
 
     @ViewBuilder
     private var unstyledBody: some View {
-        if imageCache.isEmpty(section: section) {
-            unableToCapture
+        if imageCache.isEmpty(for: section) {
+            Text("Unable to display menu bar items. Try switching spaces.")
                 .foregroundStyle(menuBarManager.averageColor?.brightness ?? 0 > 0.67 ? .black : .white)
+                .padding(3)
         } else {
             HStack(spacing: 0) {
                 ForEach(items, id: \.windowID) { item in
@@ -366,19 +246,13 @@ private struct IceBarContentView: View {
             }
         }
     }
-
-    @ViewBuilder
-    private var unableToCapture: some View {
-        Text("Unable to capture menu bar item images. Try switching spaces.")
-            .padding(3)
-    }
 }
 
 // MARK: - IceBarItemView
 
 private struct IceBarItemView: View {
     @EnvironmentObject var itemManager: MenuBarItemManager
-    @EnvironmentObject var imageCache: IceBarImageCache
+    @EnvironmentObject var imageCache: MenuBarItemImageCache
 
     let item: MenuBarItem
     let screen: NSScreen
@@ -406,10 +280,4 @@ private struct IceBarItemView: View {
                 }
         }
     }
-}
-
-// MARK: - Logger
-
-private extension Logger {
-    static let iceBar = Logger(category: "IceBar")
 }

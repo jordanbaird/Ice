@@ -33,15 +33,14 @@ class LayoutBarPaddingView: NSView {
         set { container.arrangedViews = newValue }
     }
 
-    /// Creates a layout bar view with the given menu bar item manager,
-    /// section, and spacing.
+    /// Creates a layout bar view with the given app state, section, and spacing.
     ///
     /// - Parameters:
-    ///   - itemManager: The shared menu bar item manager instance.
+    ///   - appState: The shared app state instance.
     ///   - section: The section whose items are represented.
     ///   - spacing: The amount of space between each arranged view.
-    init(itemManager: MenuBarItemManager, section: MenuBarSection, spacing: CGFloat) {
-        self.container = LayoutBarContainer(itemManager: itemManager, section: section, spacing: spacing)
+    init(appState: AppState, section: MenuBarSection, spacing: CGFloat) {
+        self.container = LayoutBarContainer(appState: appState, section: section, spacing: spacing)
 
         super.init(frame: .zero)
         addSubview(self.container)
@@ -131,10 +130,13 @@ class LayoutBarPaddingView: NSView {
     }
 
     private func move(item: MenuBarItem, to destination: MenuBarItemManager.MoveDestination) {
+        guard let appState = container.appState else {
+            return
+        }
         Task {
             do {
-                try await container.itemManager.move(item: item, to: destination)
-                container.itemManager.removeTempShownItemFromCache(with: item.info)
+                try await appState.itemManager.move(item: item, to: destination)
+                appState.itemManager.removeTempShownItemFromCache(with: item.info)
             } catch {
                 Logger.layoutBar.error("Error moving menu bar item: \(error)")
                 let alert = NSAlert(error: error)

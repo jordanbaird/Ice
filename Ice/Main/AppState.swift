@@ -31,6 +31,9 @@ final class AppState: ObservableObject {
     /// Manager for the app's settings.
     private(set) lazy var settingsManager = SettingsManager(appState: self)
 
+    /// Global cache for menu bar item images.
+    private(set) lazy var imageCache = MenuBarItemImageCache(appState: self)
+
     /// The app's hotkey registry.
     let hotkeyRegistry = HotkeyRegistry()
 
@@ -118,6 +121,7 @@ final class AppState: ObservableObject {
         menuBarManager.performSetup()
         settingsManager.performSetup()
         itemManager.performSetup()
+        imageCache.performSetup()
         permissionsWindow?.close()
     }
 

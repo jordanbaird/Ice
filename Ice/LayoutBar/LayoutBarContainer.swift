@@ -32,8 +32,8 @@ class LayoutBarContainer: NSView {
         return constraint
     }()
 
-    /// The shared menu bar item manager instance.
-    let itemManager: MenuBarItemManager
+    /// The shared app state instance.
+    private(set) weak var appState: AppState?
 
     /// The section whose items are represented.
     let section: MenuBarSection
@@ -68,15 +68,14 @@ class LayoutBarContainer: NSView {
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// Creates a container view with the given menu bar item manager,
-    /// section, and spacing.
+    /// Creates a container view with the given app state, section, and spacing.
     ///
     /// - Parameters:
-    ///   - itemManager: The shared menu bar item manager instance.
+    ///   - appState: The shared app state instance.
     ///   - section: The section whose items are represented.
     ///   - spacing: The amount of space between each arranged view.
-    init(itemManager: MenuBarItemManager, section: MenuBarSection, spacing: CGFloat) {
-        self.itemManager = itemManager
+    init(appState: AppState, section: MenuBarSection, spacing: CGFloat) {
+        self.appState = appState
         self.section = section
         self.spacing = spacing
         super.init(frame: .zero)
@@ -93,15 +92,27 @@ class LayoutBarContainer: NSView {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        itemManager.$cachedMenuBarItems
-            .removeDuplicates()
-            .sink { [weak self] cachedItems in
-                guard let self else {
-                    return
+        if let appState {
+            appState.itemManager.$cachedMenuBarItems
+                .removeDuplicates()
+                .sink { [weak self] cachedItems in
+                    guard let self else {
+                        return
+                    }
+                    setArrangedViews(items: cachedItems[section.name])
                 }
-                setArrangedViews(items: cachedItems[section.name])
-            }
-            .store(in: &c)
+                .store(in: &c)
+
+            appState.imageCache.$images
+                .removeDuplicates()
+                .sink { [weak self] _ in
+                    guard let self else {
+                        return
+                    }
+                    layoutArrangedViews()
+                }
+                .store(in: &c)
+        }
 
         cancellables = c
     }
@@ -178,8 +189,8 @@ class LayoutBarContainer: NSView {
     ///   property is `false`, this function returns early.
     func setArrangedViews(items: [MenuBarItem]?) {
         guard
-            canSetArrangedViews,
-            let screen = NSScreen.main
+            let appState,
+            canSetArrangedViews
         else {
             return
         }
@@ -191,8 +202,8 @@ class LayoutBarContainer: NSView {
         for item in items {
             if let existingView = arrangedViews.first(where: { $0.item.info == item.info }) {
                 newViews.append(existingView)
-            } else if let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming) {
-                let view = LayoutBarItemView(item: item, image: image, screen: screen)
+            } else {
+                let view = LayoutBarItemView(appState: appState, item: item)
                 newViews.append(view)
             }
         }

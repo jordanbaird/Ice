@@ -24,15 +24,14 @@ class LayoutBarScrollView: NSScrollView {
         set { paddingView.arrangedViews = newValue }
     }
 
-    /// Creates a layout bar scroll view with the given menu bar manager, section
-    /// and spacing.
+    /// Creates a layout bar scroll view with the given app state, section, and spacing.
     ///
     /// - Parameters:
-    ///   - itemManager: The shared menu bar item manager instance.
+    ///   - appState: The shared app state instance.
     ///   - section: The section whose items are represented.
     ///   - spacing: The amount of space between each arranged view.
-    init(itemManager: MenuBarItemManager, section: MenuBarSection, spacing: CGFloat) {
-        self.paddingView = LayoutBarPaddingView(itemManager: itemManager, section: section, spacing: spacing)
+    init(appState: AppState, section: MenuBarSection, spacing: CGFloat) {
+        self.paddingView = LayoutBarPaddingView(appState: appState, section: section, spacing: spacing)
 
         super.init(frame: .zero)
 

@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import Bridging
 import Cocoa
 import OSLog
 
@@ -22,7 +23,7 @@ final class EventManager {
         switch event.type {
         case .leftMouseDown:
             handleShowOnClick()
-            handleRehide(with: event)
+            handleSmartRehide(with: event)
         case .rightMouseDown:
             handleShowRightClickMenu()
         default:
@@ -98,17 +99,11 @@ extension EventManager {
     // MARK: Handle Show On Click
 
     private func handleShowOnClick() {
-        guard let appState else {
-            return
-        }
-
-        // make sure the "ShowOnClick" feature is enabled
-        guard appState.settingsManager.generalSettingsManager.showOnClick else {
-            return
-        }
-
-        // make sure the mouse is inside an empty menu bar space
-        guard isMouseInsideEmptyMenuBarSpace else {
+        guard
+            let appState,
+            appState.settingsManager.generalSettingsManager.showOnClick,
+            isMouseInsideEmptyMenuBarSpace
+        else {
             return
         }
 
@@ -128,6 +123,176 @@ extension EventManager {
                     hiddenSection.toggle()
                 }
             }
+        }
+    }
+
+    // MARK: Handle Smart Rehide
+
+    private func handleSmartRehide(with event: NSEvent) {
+        guard
+            let appState,
+            appState.settingsManager.generalSettingsManager.autoRehide,
+            case .smart = appState.settingsManager.generalSettingsManager.rehideStrategy
+        else {
+            return
+        }
+
+        if let visibleSection = appState.menuBarManager.section(withName: .visible) {
+            guard event.window !== visibleSection.controlItem.window else {
+                return
+            }
+        }
+
+        // make sure clicking the Ice Bar doesn't trigger rehide
+        guard event.window !== appState.menuBarManager.iceBarPanel else {
+            return
+        }
+
+        // only continue if the "hidden" section is currently visible
+        guard
+            let hiddenSection = appState.menuBarManager.section(withName: .hidden),
+            !hiddenSection.isHidden
+        else {
+            return
+        }
+
+        // make sure the mouse is not in the menu bar
+        guard !isMouseInsideMenuBar else {
+            return
+        }
+
+        Task {
+            do {
+                let initialSpaceID = Bridging.activeSpaceID
+
+                // sleep for a bit to give the window under the mouse a chance to focus
+                try await Task.sleep(for: .seconds(0.25))
+
+                // if clicking caused a space change, don't bother with the window check
+                if Bridging.activeSpaceID != initialSpaceID {
+                    hiddenSection.hide()
+                    return
+                }
+
+                // get the window that the user has clicked into
+                guard
+                    let mouseLocation = self.getMouseLocation(flipped: true),
+                    let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
+                        .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
+                        .first(where: { $0.frame.contains(mouseLocation) }),
+                    let owningApplication = windowUnderMouse.owningApplication
+                else {
+                    return
+                }
+
+                // the dock is an exception to the following check
+                if owningApplication.bundleIdentifier != "com.apple.dock" {
+                    // only continue if the user has clicked into an active window with
+                    // a regular activation policy
+                    guard
+                        owningApplication.isActive,
+                        owningApplication.activationPolicy == .regular
+                    else {
+                        return
+                    }
+                }
+
+                // if all the above checks have passed, hide
+                hiddenSection.hide()
+            } catch {
+                Logger.eventManager.error("ERROR: \(error)")
+            }
+        }
+    }
+
+    // MARK: Handle Show Right Click Menu
+
+    private func handleShowRightClickMenu() {
+        guard
+            let appState,
+            isMouseInsideEmptyMenuBarSpace,
+            let mouseLocation = getMouseLocation(flipped: false)
+        else {
+            return
+        }
+        appState.menuBarManager.showRightClickMenu(at: mouseLocation)
+    }
+
+    // MARK: Handle Prevent Show On Hover
+
+    private func handlePreventShowOnHover(with event: NSEvent) {
+        guard
+            let appState,
+            appState.settingsManager.generalSettingsManager.showOnHover,
+            !appState.settingsManager.generalSettingsManager.useIceBar,
+            isMouseInsideMenuBar
+        else {
+            return
+        }
+
+        if isMouseInsideMenuBarItem {
+            switch event.type {
+            case .leftMouseDown:
+                if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) || isMouseInsideIceIcon {
+                    // we have a left click that is inside the menu bar while at least one
+                    // section is visible or the mouse is inside the Ice icon
+                    appState.preventShowOnHover()
+                }
+            case .rightMouseDown:
+                if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) {
+                    // we have a right click that is inside the menu bar while at least one
+                    // section is visible
+                    appState.preventShowOnHover()
+                }
+            default:
+                break
+            }
+        } else if !isMouseInsideApplicationMenu {
+            // we have a left or right click that is inside the menu bar, outside
+            // a menu bar item, and outside the application menu, so it _must_ be
+            // inside an empty menu bar space
+            appState.preventShowOnHover()
+        }
+    }
+
+    // MARK: Handle Left Mouse Up
+
+    private func handleLeftMouseUp() {
+        guard let appearanceManager = appState?.menuBarManager.appearanceManager else {
+            return
+        }
+        appearanceManager.setIsDraggingMenuBarItem(false)
+    }
+
+    // MARK: Handle Left Mouse Dragged
+
+    private func handleLeftMouseDragged(with event: NSEvent) {
+        guard
+            let appState,
+            event.modifierFlags.contains(.command),
+            isMouseInsideMenuBar
+        else {
+            return
+        }
+
+        // notify each overlay panel that a menu bar item is being dragged
+        appState.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
+
+        // stop here if using the Ice Bar
+        guard !appState.settingsManager.generalSettingsManager.useIceBar else {
+            return
+        }
+
+        // show all items, including section dividers
+        for section in appState.menuBarManager.sections {
+            section.show()
+            guard
+                section.controlItem.isSectionDivider,
+                !section.controlItem.isVisible
+            else {
+                continue
+            }
+            section.controlItem.isVisible = true
         }
     }
 
@@ -215,193 +380,6 @@ extension EventManager {
         } else if averageDelta < -5 {
             hiddenSection.hide()
         }
-    }
-
-    // MARK: Handle Rehide
-
-    private func handleRehide(with event: NSEvent) {
-        guard let appState else {
-            return
-        }
-
-        if let visibleSection = appState.menuBarManager.section(withName: .visible) {
-            guard event.window !== visibleSection.controlItem.window else {
-                return
-            }
-        }
-
-        if appState.settingsManager.generalSettingsManager.useIceBar {
-            // make sure clicking the Ice Bar doesn't trigger rehide
-            guard event.window !== appState.menuBarManager.iceBarPanel else {
-                return
-            }
-            if appState.menuBarManager.iceBarPanel.isVisible {
-                appState.menuBarManager.iceBarPanel.close()
-            }
-        } else if
-            appState.settingsManager.generalSettingsManager.autoRehide,
-            case .smart = appState.settingsManager.generalSettingsManager.rehideStrategy
-        {
-            // make sure clicking the Ice Bar doesn't trigger rehide
-            guard event.window !== appState.menuBarManager.iceBarPanel else {
-                return
-            }
-
-            // only continue if the "hidden" section is currently visible
-            guard
-                let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-                !hiddenSection.isHidden
-            else {
-                return
-            }
-
-            // make sure the mouse is not in the menu bar
-            guard !isMouseInsideMenuBar else {
-                return
-            }
-
-            Task {
-                do {
-                    // sleep for a bit to give the window under the mouse a chance to focus
-                    try await Task.sleep(for: .seconds(0.25))
-
-                    // get the window that the user has clicked into
-                    guard
-                        let mouseLocation = self.getMouseLocation(flipped: true),
-                        let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
-                            .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
-                            .first(where: { $0.frame.contains(mouseLocation) }),
-                        let owningApplication = windowUnderMouse.owningApplication
-                    else {
-                        return
-                    }
-
-                    // the dock is an exception to the following check
-                    if owningApplication.bundleIdentifier != "com.apple.dock" {
-                        // only continue if the user has clicked into an active window with
-                        // a regular activation policy
-                        guard
-                            owningApplication.isActive,
-                            owningApplication.activationPolicy == .regular
-                        else {
-                            return
-                        }
-                    }
-
-                    // if all the above checks have passed, hide
-                    hiddenSection.hide()
-                } catch {
-                    Logger.eventManager.error("ERROR: \(error)")
-                }
-            }
-        }
-    }
-
-    // MARK: Handle Prevent Show On Hover
-
-    private func handlePreventShowOnHover(with event: NSEvent) {
-        guard let appState else {
-            return
-        }
-
-        // make sure the "ShowOnHover" feature is enabled
-        guard appState.settingsManager.generalSettingsManager.showOnHover else {
-            return
-        }
-
-        // make sure the mouse is inside the menu bar
-        guard isMouseInsideMenuBar else {
-            return
-        }
-
-        if isMouseInsideMenuBarItem {
-            switch event.type {
-            case .leftMouseDown:
-                if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) || isMouseInsideIceIcon {
-                    // we have a left click that is inside the menu bar while
-                    // at least one section is visible or the mouse is inside
-                    // the Ice icon
-                    appState.preventShowOnHover()
-                }
-            case .rightMouseDown:
-                if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) {
-                    // we have a right click that is inside the menu bar while
-                    // at least one section is visible
-                    appState.preventShowOnHover()
-                }
-            default:
-                break
-            }
-        } else if !isMouseInsideApplicationMenu {
-            // we have a left or right click that is inside the menu bar, outside
-            // a menu bar item, and outside the application menu, so it _must_ be
-            // inside an empty menu bar space
-            appState.preventShowOnHover()
-        }
-    }
-
-    // MARK: Handle Show Right Click Menu
-
-    private func handleShowRightClickMenu() {
-        guard let appState else {
-            return
-        }
-
-        // make sure the mouse is inside an empty menu bar space
-        guard isMouseInsideEmptyMenuBarSpace else {
-            return
-        }
-
-        if let mouseLocation = getMouseLocation(flipped: false) {
-            appState.menuBarManager.showRightClickMenu(at: mouseLocation)
-        }
-    }
-
-    // MARK: Handle Left Mouse Dragged
-
-    private func handleLeftMouseDragged(with event: NSEvent) {
-        guard let appState else {
-            return
-        }
-
-        // make sure the command key is down
-        guard event.modifierFlags.contains(.command) else {
-            return
-        }
-
-        // make sure the mouse is inside the menu bar
-        guard isMouseInsideMenuBar else {
-            return
-        }
-
-        // notify each overlay panel that a menu bar item is being dragged
-        appState.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
-
-        // stop here if using the Ice Bar
-        guard !appState.settingsManager.generalSettingsManager.useIceBar else {
-            return
-        }
-
-        // show all items, including section dividers
-        for section in appState.menuBarManager.sections {
-            section.show()
-            guard
-                section.controlItem.isSectionDivider,
-                !section.controlItem.isVisible
-            else {
-                continue
-            }
-            section.controlItem.isVisible = true
-        }
-    }
-
-    // MARK: Handle Left Mouse Up
-
-    private func handleLeftMouseUp() {
-        guard let appearanceManager = appState?.menuBarManager.appearanceManager else {
-            return
-        }
-        appearanceManager.setIsDraggingMenuBarItem(false)
     }
 }
 

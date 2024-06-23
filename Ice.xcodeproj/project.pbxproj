@@ -399,15 +399,6 @@
 			path = ViewModifiers;
 			sourceTree = "<group>";
 		};
-		179267382AE98985006AFBAF /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				17F9983A2C1655D200D75EC0 /* LayoutBar */,
-				17EC6B522AE0C09F0065F260 /* Pickers */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
 		179AC2FD2C1147500051E7B0 /* Swizzling */ = {
 			isa = PBXGroup;
 			children = (
@@ -550,8 +541,7 @@
 				17F9984E2C16CF8600D75EC0 /* LayoutBarPaddingView.swift */,
 				17F998502C16D02E00D75EC0 /* LayoutBarScrollView.swift */,
 			);
-			name = LayoutBar;
-			path = ../../LayoutBar;
+			path = LayoutBar;
 			sourceTree = "<group>";
 		};
 		17F9983F2C16567E00D75EC0 /* CGImage */ = {
@@ -646,6 +636,7 @@
 				716683412A76811C006ABF84 /* Extensions */,
 				7150A7AB2AA4262F0045EA68 /* Hotkeys */,
 				17BE3DCE2C1A458E008B98EF /* IceBar */,
+				17F9983A2C1655D200D75EC0 /* LayoutBar */,
 				17C261E72B5AEB7A0076F129 /* Main */,
 				7166834E2A768190006ABF84 /* MenuBar */,
 				179F13BC2B91E7F700EC6B52 /* MenuBarAppearance */,
@@ -744,10 +735,10 @@
 		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				17EC6B522AE0C09F0065F260 /* Pickers */,
 				17EE695C2C26617100F778A7 /* Shapes */,
 				17BE3DDC2C1A6401008B98EF /* ShapeStyles */,
 				179267372AE98870006AFBAF /* ViewModifiers */,
-				179267382AE98985006AFBAF /* Views */,
 			);
 			path = UI;
 			sourceTree = "<group>";

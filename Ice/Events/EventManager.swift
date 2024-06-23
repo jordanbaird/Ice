@@ -408,7 +408,7 @@ extension EventManager {
     /// the bounds of the menu bar.
     private var isMouseInsideMenuBar: Bool {
         guard
-            let screen = NSScreen.main,
+            let screen = NSScreen.screenWithMouse,
             let appState
         else {
             return false
@@ -430,7 +430,7 @@ extension EventManager {
     /// the bounds of the current application menu.
     private var isMouseInsideApplicationMenu: Bool {
         guard
-            let screen = NSScreen.main,
+            let screen = NSScreen.screenWithMouse,
             let mouseLocation = getMouseLocation(flipped: true),
             let menuBarManager = appState?.menuBarManager,
             let menuFrame = menuBarManager.getStoredApplicationMenuFrame(for: screen.displayID)
@@ -444,7 +444,7 @@ extension EventManager {
     /// the bounds of a menu bar item.
     private var isMouseInsideMenuBarItem: Bool {
         guard
-            let screen = NSScreen.main,
+            let screen = NSScreen.screenWithMouse,
             let mouseLocation = getMouseLocation(flipped: true)
         else {
             return false

@@ -123,7 +123,6 @@ class LayoutBarItemView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         if !isDraggingPlaceholder {
-            let image = image ?? NSImage(systemSymbolName: "questionmark", accessibilityDescription: nil)
             image?.draw(
                 in: bounds,
                 from: .zero,

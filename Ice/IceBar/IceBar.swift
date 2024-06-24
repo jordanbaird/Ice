@@ -272,9 +272,9 @@ private struct IceBarContentView: View {
 
     @ViewBuilder
     private var unstyledBody: some View {
-        if imageCache.isEmpty(for: section) {
+        if imageCache.cacheFailed(for: section) {
             Text("Unable to display menu bar items. Try switching spaces.")
-                .foregroundStyle(menuBarManager.averageColor?.brightness ?? 0 > 0.67 ? .black : .white)
+                .foregroundStyle(menuBarManager.averageColorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
                 .padding(3)
         } else {
             HStack(spacing: 0) {

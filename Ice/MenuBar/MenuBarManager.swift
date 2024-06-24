@@ -11,8 +11,20 @@ import SwiftUI
 /// Manager for the state of the menu bar.
 @MainActor
 final class MenuBarManager: ObservableObject {
-    /// The average color of portion of the desktop background below the menu bar.
-    @Published private(set) var averageColor: CGColor?
+    /// The source of the menu bar's average color.
+    enum AverageColorSource: Hashable {
+        case menuBarWindow
+        case desktopWallpaper
+    }
+
+    /// Information for the menu bar's average color.
+    struct AverageColorInfo: Hashable {
+        var color: CGColor
+        var source: AverageColorSource
+    }
+
+    /// Information for the menu bar's average color.
+    @Published private(set) var averageColorInfo: AverageColorInfo?
 
     /// A Boolean value that indicates whether the menu bar is either always hidden
     /// by the system, or automatically hidden and shown by the system based on the
@@ -217,31 +229,45 @@ final class MenuBarManager: ObservableObject {
     }
 
     func updateAverageColor() {
-        guard canUpdateAverageColor else {
-            return
-        }
-
         guard
-            let screen = NSScreen.main,
-            let window = WindowInfo.getMenuBarWindow(for: screen.displayID)
+            canUpdateAverageColor,
+            let screen = NSScreen.main
         else {
             return
         }
 
-        var bounds = window.frame
-        bounds.size.height = 1
-        bounds.origin.x = bounds.midX
-        bounds.size.width /= 2
+        let image: CGImage?
+        let source: AverageColorSource
+
+        if let window = WindowInfo.getMenuBarWindow(for: screen.displayID) {
+            var bounds = window.frame
+            bounds.size.height = 1
+            bounds.origin.x = bounds.midX
+            bounds.size.width /= 2
+
+            image = Bridging.captureWindow(window.windowID, screenBounds: bounds)
+            source = .menuBarWindow
+        } else if let window = WindowInfo.getWallpaperWindow(for: screen.displayID) {
+            var bounds = window.frame
+            bounds.size.height = 10
+            bounds.origin.x = bounds.midX
+            bounds.size.width /= 2
+
+            image = Bridging.captureWindow(window.windowID, screenBounds: bounds)
+            source = .desktopWallpaper
+        } else {
+            return
+        }
 
         guard
-            let image = Bridging.captureWindow(window.windowID, screenBounds: bounds, option: []),
+            let image,
             let averageColor = image.averageColor(resolution: .low, options: .ignoreAlpha)
         else {
             return
         }
 
-        if self.averageColor != averageColor {
-            self.averageColor = averageColor
+        if averageColorInfo?.color != averageColor {
+            averageColorInfo = AverageColorInfo(color: averageColor, source: source)
         }
     }
 

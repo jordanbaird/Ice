@@ -25,14 +25,30 @@ struct LayoutBar: View {
     let section: MenuBarSection
     let spacing: CGFloat
 
+    private var menuBarManager: MenuBarManager {
+        appState.menuBarManager
+    }
+
     init(section: MenuBarSection, spacing: CGFloat = 0) {
         self.section = section
         self.spacing = spacing
     }
 
     var body: some View {
-        Representable(appState: appState, section: section, spacing: spacing)
+        conditionalBody
+            .frame(height: 50)
+            .frame(maxWidth: .infinity)
             .layoutBarStyle(appState: appState)
             .clipShape(RoundedRectangle(cornerRadius: 9, style: .circular))
+    }
+
+    @ViewBuilder
+    private var conditionalBody: some View {
+        if appState.imageCache.cacheFailed(for: section.name) {
+            Text("Unable to display menu bar items. Try switching spaces.")
+                .foregroundStyle(menuBarManager.averageColorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
+        } else {
+            Representable(appState: appState, section: section, spacing: spacing)
+        }
     }
 }

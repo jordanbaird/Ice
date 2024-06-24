@@ -12,7 +12,7 @@ import SwiftUI
 @MainActor
 final class AppState: ObservableObject {
     /// A Boolean value that indicates whether the active space is fullscreen.
-    @Published private(set) var isActiveSpaceFullscreen = false
+    @Published private(set) var isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -85,8 +85,7 @@ final class AppState: ObservableObject {
                 guard let self else {
                     return
                 }
-                let spaceID = Bridging.activeSpaceID
-                isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(spaceID)
+                isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
             }
             .store(in: &c)
 

@@ -201,6 +201,29 @@ extension Bridging {
 
 // MARK: Capture Window
 extension Bridging {
+    private static func createImageFromWindowListArray(
+        windowIDs: [CGWindowID],
+        screenBounds: CGRect,
+        option: CGWindowImageOption
+    ) -> CGImage? {
+        let pointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: windowIDs.count)
+        for (index, windowID) in windowIDs.enumerated() {
+            pointer[index] = UnsafeRawPointer(bitPattern: UInt(windowID))
+        }
+        guard let windowArray = CFArrayCreate(kCFAllocatorDefault, pointer, windowIDs.count, nil) else {
+            return nil
+        }
+        return CGWindowListCreateImageFromArray(screenBounds, windowArray, option)
+    }
+
+    private static func createImageFromWindow(
+        windowID: CGWindowID,
+        screenBounds: CGRect,
+        option: CGWindowImageOption
+    ) -> CGImage? {
+        CGWindowListCreateImage(screenBounds, .optionIncludingWindow, windowID, option)
+    }
+
     /// Captures an image of a window.
     ///
     /// - Parameters:
@@ -213,11 +236,21 @@ extension Bridging {
         screenBounds: CGRect? = nil,
         option: CGWindowImageOption = []
     ) -> CGImage? {
-        var pointer = UnsafeRawPointer(bitPattern: Int(windowID))
-        guard let windowArray = CFArrayCreate(nil, &pointer, 1, nil) else {
-            return nil
+        let onScreenWindows = Set(getOnScreenWindowList())
+        let bounds = screenBounds ?? .null
+        if onScreenWindows.contains(windowID) {
+            return createImageFromWindow(
+                windowID: windowID,
+                screenBounds: bounds,
+                option: option
+            )
+        } else {
+            return createImageFromWindowListArray(
+                windowIDs: [windowID],
+                screenBounds: bounds,
+                option: option
+            )
         }
-        return CGWindowListCreateImageFromArray(screenBounds ?? .null, windowArray, option)
     }
 
     /// Captures a composite image of an array of windows.
@@ -232,13 +265,11 @@ extension Bridging {
         screenBounds: CGRect? = nil,
         option: CGWindowImageOption = []
     ) -> CGImage? {
-        var pointers = windowIDs.map { windowID in
-            UnsafeRawPointer(bitPattern: Int(windowID))
-        }
-        guard let windowArray = CFArrayCreate(nil, &pointers, windowIDs.count, nil) else {
-            return nil
-        }
-        return CGWindowListCreateImageFromArray(screenBounds ?? .null, windowArray, option)
+        createImageFromWindowListArray(
+            windowIDs: windowIDs,
+            screenBounds: screenBounds ?? .null,
+            option: option
+        )
     }
 }
 

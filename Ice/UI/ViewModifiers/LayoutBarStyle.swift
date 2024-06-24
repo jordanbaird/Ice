@@ -18,8 +18,23 @@ extension View {
         background {
             if appState.isActiveSpaceFullscreen {
                 Color.black
-            } else if let averageColor = appState.menuBarManager.averageColor {
-                Color(cgColor: averageColor).overlay(.menuBarTint)
+            } else if let info = appState.menuBarManager.averageColorInfo {
+                switch info.source {
+                case .menuBarWindow:
+                    Color(cgColor: info.color)
+                        .overlay(
+                            Material.bar
+                                .opacity(0.2)
+                                .blendMode(.softLight)
+                        )
+                case .desktopWallpaper:
+                    Color(cgColor: info.color)
+                        .overlay(
+                            Material.bar
+                                .opacity(0.5)
+                                .blendMode(.softLight)
+                        )
+                }
             } else {
                 Color.defaultLayoutBar
             }

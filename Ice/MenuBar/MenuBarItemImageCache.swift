@@ -42,7 +42,7 @@ class MenuBarItemImageCache: ObservableObject {
 
                 // update when the average menu bar color or cached items change
                 Publishers.Merge(
-                    appState.menuBarManager.$averageColor.removeDuplicates().mapToVoid(),
+                    appState.menuBarManager.$averageColorInfo.removeDuplicates().mapToVoid(),
                     appState.itemManager.$cachedMenuBarItems.removeDuplicates().mapToVoid()
                 )
             )
@@ -73,9 +73,12 @@ class MenuBarItemImageCache: ObservableObject {
         cancellables = c
     }
 
-    func isEmpty(for section: MenuBarSection.Name) -> Bool {
+    func cacheFailed(for section: MenuBarSection.Name) -> Bool {
         let keys = Set(images.keys)
         let items = appState?.itemManager.cachedMenuBarItems[section] ?? []
+        guard !items.isEmpty else {
+            return false
+        }
         for item in items where keys.contains(item.info) {
             return false
         }
@@ -104,14 +107,11 @@ class MenuBarItemImageCache: ObservableObject {
         let cacheTask = Task.detached {
             let windowIDs = items.map { $0.windowID }
 
-            guard
+            if
                 let compositeImage = Bridging.captureWindows(windowIDs, option: .boundsIgnoreFraming),
+                CGFloat(compositeImage.width) == items.reduce(into: 0, { $0 += $1.frame.width }) * backingScaleFactor,
                 !compositeImage.isTransparent(maxAlpha: 0.9)
-            else {
-                return
-            }
-
-            if CGFloat(compositeImage.width) == items.reduce(into: 0, { $0 += $1.frame.width }) * backingScaleFactor {
+            {
                 var start: CGFloat = 0
 
                 for item in items {
@@ -168,7 +168,7 @@ class MenuBarItemImageCache: ObservableObject {
         for section in sectionsNeedingDisplay {
             let sectionImages = await createImages(for: section, screen: screen)
             guard !sectionImages.isEmpty else {
-                Logger.imageCache.warning("Update cache failed for section \(section.logString)")
+                Logger.imageCache.warning("Update cache failed for \(section.logString) section")
                 continue
             }
             images.merge(sectionImages) { (_, new) in new }

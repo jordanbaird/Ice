@@ -22,6 +22,14 @@ func CGWindowListCreateImageFromArray(
     _ imageOption: CGWindowImageOption
 ) -> CGImage?
 
+@_silgen_name("CGWindowListCreateImage")
+func CGWindowListCreateImage(
+    _ screenBounds: CGRect,
+    _ listOption: CGWindowListOption,
+    _ windowID: CGWindowID,
+    _ imageOption: CGWindowImageOption
+) -> CGImage?
+
 /// Returns a PSN for a given PID.
 @_silgen_name("GetProcessForPID")
 func GetProcessForPID(

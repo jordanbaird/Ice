@@ -47,9 +47,6 @@ class LayoutBarScrollView: NSScrollView {
 
         self.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            // constrain the height to a constant
-            heightAnchor.constraint(equalToConstant: 50),
-
             // constrain the padding view's height to the content view's height
             paddingView.heightAnchor.constraint(equalTo: contentView.heightAnchor),
 

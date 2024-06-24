@@ -24,7 +24,7 @@ extension Bridging {
             value as CFTypeRef
         )
         if result != .success {
-            logger.error("CGSSetConnectionProperty failed with error \(result.rawValue)")
+            logger.error("CGSSetConnectionProperty failed with error \(getDescription(for: result))")
         }
     }
 
@@ -41,7 +41,7 @@ extension Bridging {
             &value
         )
         if result != .success {
-            logger.error("CGSCopyConnectionProperty failed with error \(result.rawValue)")
+            logger.error("CGSCopyConnectionProperty failed with error \(getDescription(for: result))")
         }
         return value?.takeRetainedValue()
     }
@@ -59,7 +59,7 @@ extension Bridging {
         var rect = CGRect.zero
         let result = CGSGetScreenRectForWindow(CGSMainConnectionID(), windowID, &rect)
         guard result == .success else {
-            logger.error("CGSGetScreenRectForWindow failed with error \(result.rawValue)")
+            logger.error("CGSGetScreenRectForWindow failed with error \(getDescription(for: result))")
             return nil
         }
         return rect
@@ -72,7 +72,7 @@ extension Bridging {
         var count: Int32 = 0
         let result = CGSGetWindowCount(CGSMainConnectionID(), 0, &count)
         if result != .success {
-            logger.error("CGSGetWindowCount failed with error \(result.rawValue)")
+            logger.error("CGSGetWindowCount failed with error \(getDescription(for: result))")
         }
         return Int(count)
     }
@@ -81,7 +81,7 @@ extension Bridging {
         var count: Int32 = 0
         let result = CGSGetOnScreenWindowCount(CGSMainConnectionID(), 0, &count)
         if result != .success {
-            logger.error("CGSGetOnScreenWindowCount failed with error \(result.rawValue)")
+            logger.error("CGSGetOnScreenWindowCount failed with error \(getDescription(for: result))")
         }
         return Int(count)
     }
@@ -98,7 +98,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            logger.error("CGSGetWindowList failed with error \(result.rawValue)")
+            logger.error("CGSGetWindowList failed with error \(getDescription(for: result))")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -116,7 +116,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            logger.error("CGSGetOnScreenWindowList failed with error \(result.rawValue)")
+            logger.error("CGSGetOnScreenWindowList failed with error \(getDescription(for: result))")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -134,7 +134,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            logger.error("CGSGetProcessMenuBarWindowList failed with error \(result.rawValue)")
+            logger.error("CGSGetProcessMenuBarWindowList failed with error \(getDescription(for: result))")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -328,5 +328,27 @@ extension Bridging {
             return false
         }
         return true
+    }
+}
+
+// MARK: - CGError Description
+
+extension Bridging {
+    /// Returns a description for the given `CGError`.
+    public static func getDescription(for error: CGError) -> String {
+        switch error {
+        case .success: "\(error.rawValue): success"
+        case .failure: "\(error.rawValue): failure"
+        case .illegalArgument: "\(error.rawValue): illegalArgument"
+        case .invalidConnection: "\(error.rawValue): invalidConnection"
+        case .invalidContext: "\(error.rawValue): invalidContext"
+        case .cannotComplete: "\(error.rawValue): cannotComplete"
+        case .notImplemented: "\(error.rawValue): notImplemented"
+        case .rangeCheck: "\(error.rawValue): rangeCheck"
+        case .typeCheck: "\(error.rawValue): typeCheck"
+        case .invalidOperation: "\(error.rawValue): invalidOperation"
+        case .noneAvailable: "\(error.rawValue): noneAvailable"
+        @unknown default: "\(error.rawValue): unknown"
+        }
     }
 }

@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import Bridging
 import CoreGraphics
 import OSLog
 
@@ -12,7 +13,7 @@ enum MouseCursor {
     static func hide() {
         let result = CGDisplayHideCursor(CGMainDisplayID())
         if result != .success {
-            Logger.mouseCursor.error("CGDisplayHideCursor failed with error \(getDescription(for: result))")
+            Logger.mouseCursor.error("CGDisplayHideCursor failed with error \(Bridging.getDescription(for: result))")
         }
     }
 
@@ -20,7 +21,7 @@ enum MouseCursor {
     static func show() {
         let result = CGDisplayShowCursor(CGMainDisplayID())
         if result != .success {
-            Logger.mouseCursor.error("CGDisplayShowCursor failed with error \(getDescription(for: result))")
+            Logger.mouseCursor.error("CGDisplayShowCursor failed with error \(Bridging.getDescription(for: result))")
         }
     }
 
@@ -30,7 +31,7 @@ enum MouseCursor {
     static func warp(to point: CGPoint) {
         let result = CGWarpMouseCursorPosition(point)
         if result != .success {
-            Logger.mouseCursor.error("CGWarpMouseCursorPosition failed with error \(getDescription(for: result))")
+            Logger.mouseCursor.error("CGWarpMouseCursorPosition failed with error \(Bridging.getDescription(for: result))")
         }
     }
 
@@ -49,24 +50,6 @@ enum MouseCursor {
             } else {
                 event.unflippedLocation
             }
-        }
-    }
-
-    /// Returns a description for the given `CGError`.
-    private static func getDescription(for error: CGError) -> String {
-        switch error {
-        case .success: "\(error.rawValue): success"
-        case .failure: "\(error.rawValue): failure"
-        case .illegalArgument: "\(error.rawValue): illegalArgument"
-        case .invalidConnection: "\(error.rawValue): invalidConnection"
-        case .invalidContext: "\(error.rawValue): invalidContext"
-        case .cannotComplete: "\(error.rawValue): cannotComplete"
-        case .notImplemented: "\(error.rawValue): notImplemented"
-        case .rangeCheck: "\(error.rawValue): rangeCheck"
-        case .typeCheck: "\(error.rawValue): typeCheck"
-        case .invalidOperation: "\(error.rawValue): invalidOperation"
-        case .noneAvailable: "\(error.rawValue): noneAvailable"
-        @unknown default: "\(error.rawValue): unknown"
         }
     }
 }

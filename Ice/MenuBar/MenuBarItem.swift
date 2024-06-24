@@ -194,6 +194,30 @@ extension MenuBarItem {
     ///
     /// - Parameter onScreenOnly: A Boolean value that indicates whether only
     ///   the items that are on screen should be returned.
+    static func getMenuBarItemsPrivateAPI(for display: CGDirectDisplayID, onScreenOnly: Bool) -> [MenuBarItem] {
+        var option: Bridging.WindowListOption = [.menuBarItems]
+        if onScreenOnly {
+            option.insert(.onScreen)
+        }
+        let displayBounds = CGDisplayBounds(display)
+        return Bridging.getWindowList(option: option).lazy
+            .compactMap { windowID in
+                guard
+                    let windowFrame = Bridging.getWindowFrame(for: windowID),
+                    displayBounds.intersects(windowFrame)
+                else {
+                    return nil
+                }
+                return MenuBarItem(windowID: windowID)
+            }
+            .sortedByOrderInMenuBar()
+    }
+
+    /// Returns an array of menu bar items using private APIs to retrieve the
+    /// windows.
+    ///
+    /// - Parameter onScreenOnly: A Boolean value that indicates whether only
+    ///   the items that are on screen should be returned.
     static func getMenuBarItemsPrivateAPI(onScreenOnly: Bool) -> [MenuBarItem] {
         var option: Bridging.WindowListOption = [
             .menuBarItems,

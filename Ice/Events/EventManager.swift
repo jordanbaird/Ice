@@ -436,7 +436,7 @@ extension EventManager {
         else {
             return false
         }
-        let menuBarItems = MenuBarItem.getMenuBarItemsCoreGraphics(for: screen.displayID, onScreenOnly: true)
+        let menuBarItems = MenuBarItem.getMenuBarItemsPrivateAPI(for: screen.displayID, onScreenOnly: true)
         return menuBarItems.contains { $0.frame.contains(mouseLocation) }
     }
 

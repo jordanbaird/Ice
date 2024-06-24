@@ -111,25 +111,37 @@ class MenuBarItemImageCache: ObservableObject {
                 return
             }
 
-            var start: CGFloat = 0
+            if CGFloat(compositeImage.width) == items.reduce(into: 0, { $0 += $1.frame.width }) * backingScaleFactor {
+                var start: CGFloat = 0
 
-            for item in items {
-                let width = item.frame.width * backingScaleFactor
-                let height = item.frame.height * backingScaleFactor
-                let frame = CGRect(x: start, y: 0, width: width, height: height)
+                for item in items {
+                    let width = item.frame.width * backingScaleFactor
+                    let height = item.frame.height * backingScaleFactor
+                    let frame = CGRect(x: start, y: 0, width: width, height: height)
 
-                defer {
-                    start += width
+                    defer {
+                        start += width
+                    }
+
+                    guard
+                        let itemImage = compositeImage.cropping(to: frame),
+                        !itemImage.isTransparent()
+                    else {
+                        continue
+                    }
+
+                    await tempCache.cache(image: itemImage, with: item.info)
                 }
-
-                guard
-                    let itemImage = compositeImage.cropping(to: frame),
-                    !itemImage.isTransparent()
-                else {
-                    continue
+            } else {
+                for item in items {
+                    guard
+                        let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming),
+                        !image.isTransparent()
+                    else {
+                        continue
+                    }
+                    await tempCache.cache(image: image, with: item.info)
                 }
-
-                await tempCache.cache(image: itemImage, with: item.info)
             }
         }
 

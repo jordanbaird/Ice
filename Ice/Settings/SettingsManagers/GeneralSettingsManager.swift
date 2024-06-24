@@ -23,9 +23,12 @@ final class GeneralSettingsManager: ObservableObject {
     /// should be rendered as template images.
     @Published var customIceIconIsTemplate = false
 
-    /// A Boolean value that indicates whether to show hidden icons
+    /// A Boolean value that indicates whether to show hidden items
     /// in a separate bar below the menu bar.
     @Published var useIceBar = false
+
+    /// The location where the Ice Bar appears.
+    @Published var iceBarLocation: IceBarLocation = .dynamic
 
     /// A Boolean value that indicates whether the hidden section
     /// should be shown when the mouse pointer clicks in an empty
@@ -79,6 +82,12 @@ final class GeneralSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .showOnScroll, assign: &showOnScroll)
         Defaults.ifPresent(key: .autoRehide, assign: &autoRehide)
         Defaults.ifPresent(key: .rehideInterval, assign: &rehideInterval)
+
+        Defaults.ifPresent(key: .iceBarLocation) { rawValue in
+            if let location = IceBarLocation(rawValue: rawValue) {
+                iceBarLocation = location
+            }
+        }
         Defaults.ifPresent(key: .rehideStrategy) { rawValue in
             if let strategy = RehideStrategy(rawValue: rawValue) {
                 rehideStrategy = strategy
@@ -136,6 +145,13 @@ final class GeneralSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { useIceBar in
                 Defaults.set(useIceBar, forKey: .useIceBar)
+            }
+            .store(in: &c)
+
+        $iceBarLocation
+            .receive(on: DispatchQueue.main)
+            .sink { location in
+                Defaults.set(location.rawValue, forKey: .iceBarLocation)
             }
             .store(in: &c)
 

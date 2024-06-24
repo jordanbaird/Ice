@@ -27,10 +27,28 @@ enum MouseCursor {
     /// Moves the mouse cursor to the given point without generating events.
     ///
     /// - Parameter point: The point to move the cursor to in global display coordinates.
-    static func warpPosition(to point: CGPoint) {
+    static func warp(to point: CGPoint) {
         let result = CGWarpMouseCursorPosition(point)
         if result != .success {
             Logger.mouseCursor.error("CGWarpMouseCursorPosition failed with error \(getDescription(for: result))")
+        }
+    }
+
+    /// Returns the location of the mouse pointer.
+    ///
+    /// If `flipped` is `true`, the coordinate system of the returned location
+    /// is relative to the top left corner of the screen, and is compatible with
+    /// the coordinate system used by the `CoreGraphics` framework. Otherwise,
+    /// the coordinate system of the returned location is relative to the bottom
+    /// left corner of the screen, and is compatible with coordinate system used
+    /// by the `AppKit` framework.
+    static func location(flipped: Bool) -> CGPoint? {
+        CGEvent(source: nil).map { event in
+            if flipped {
+                event.location
+            } else {
+                event.unflippedLocation
+            }
         }
     }
 

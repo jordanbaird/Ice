@@ -141,9 +141,40 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var iceBarOptions: some View {
+        useIceBar
+        if manager.useIceBar {
+            iceBarLocationPicker
+        }
+    }
+
+    @ViewBuilder
+    private var useIceBar: some View {
         Toggle(isOn: manager.bindings.useIceBar) {
             Text("Use Ice Bar")
             Text("Hidden items will be shown in a separate bar below the menu bar")
+        }
+    }
+
+    @ViewBuilder
+    private var iceBarLocationPicker: some View {
+        Picker(selection: manager.bindings.iceBarLocation) {
+            ForEach(IceBarLocation.allCases) { location in
+                Text(location.localized).tag(location)
+            }
+        } label: {
+            Text("Ice Bar location")
+            switch manager.iceBarLocation {
+            case .dynamic:
+                Text("The Ice Bar appears in different locations based on context")
+            case .mousePointer:
+                Text("The Ice Bar appears centered below the mouse pointer")
+            case .iceIcon:
+                Text("The Ice Bar appears centered below the Ice icon")
+            case .leftOfScreen:
+                Text("The Ice Bar appears on the left side of the screen")
+            case .rightOfScreen:
+                Text("The Ice Bar appears on the right side of the screen")
+            }
         }
     }
 

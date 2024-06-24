@@ -176,7 +176,7 @@ extension EventManager {
 
                 // get the window that the user has clicked into
                 guard
-                    let mouseLocation = self.getMouseLocation(flipped: true),
+                    let mouseLocation = MouseCursor.location(flipped: true),
                     let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
                         .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
                         .first(where: { $0.frame.contains(mouseLocation) }),
@@ -211,7 +211,7 @@ extension EventManager {
         guard
             let appState,
             isMouseInsideEmptyMenuBarSpace,
-            let mouseLocation = getMouseLocation(flipped: false)
+            let mouseLocation = MouseCursor.location(flipped: false)
         else {
             return
         }
@@ -386,41 +386,28 @@ extension EventManager {
 // MARK: - Helpers
 
 extension EventManager {
-    /// Returns the location of the mouse pointer.
-    ///
-    /// If `flipped` is `true`, the coordinate system of the returned location
-    /// is relative to the top left corner of the screen, and is compatible with
-    /// the coordinate system used by the `CoreGraphics` framework. Otherwise,
-    /// the coordinate system of the returned location is relative to the bottom
-    /// left corner of the screen, and is compatible with coordinate system used
-    /// by the `AppKit` framework.
-    private func getMouseLocation(flipped: Bool) -> CGPoint? {
-        CGEvent(source: nil).map { event in
-            if flipped {
-                event.location
-            } else {
-                event.unflippedLocation
-            }
-        }
+    /// Returns the best screen to use for event manager calculations.
+    var bestScreen: NSScreen? {
+        NSScreen.screenWithMouse ?? NSScreen.main
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of the menu bar.
-    private var isMouseInsideMenuBar: Bool {
+    var isMouseInsideMenuBar: Bool {
         guard
-            let screen = NSScreen.screenWithMouse,
+            let screen = bestScreen,
             let appState
         else {
             return false
         }
         if appState.menuBarManager.isMenuBarHiddenBySystem || appState.isActiveSpaceFullscreen {
             if
-                let mouseLocation = getMouseLocation(flipped: true),
+                let mouseLocation = MouseCursor.location(flipped: true),
                 let menuBarWindow = WindowInfo.getMenuBarWindow(for: screen.displayID)
             {
                 return menuBarWindow.frame.contains(mouseLocation)
             }
-        } else if let mouseLocation = getMouseLocation(flipped: false) {
+        } else if let mouseLocation = MouseCursor.location(flipped: false) {
             return mouseLocation.y > screen.visibleFrame.maxY && mouseLocation.y <= screen.frame.maxY
         }
         return false
@@ -428,10 +415,10 @@ extension EventManager {
 
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of the current application menu.
-    private var isMouseInsideApplicationMenu: Bool {
+    var isMouseInsideApplicationMenu: Bool {
         guard
-            let screen = NSScreen.screenWithMouse,
-            let mouseLocation = getMouseLocation(flipped: true),
+            let screen = bestScreen,
+            let mouseLocation = MouseCursor.location(flipped: true),
             let menuBarManager = appState?.menuBarManager,
             let menuFrame = menuBarManager.getStoredApplicationMenuFrame(for: screen.displayID)
         else {
@@ -442,10 +429,10 @@ extension EventManager {
 
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of a menu bar item.
-    private var isMouseInsideMenuBarItem: Bool {
+    var isMouseInsideMenuBarItem: Bool {
         guard
-            let screen = NSScreen.screenWithMouse,
-            let mouseLocation = getMouseLocation(flipped: true)
+            let screen = bestScreen,
+            let mouseLocation = MouseCursor.location(flipped: true)
         else {
             return false
         }
@@ -455,7 +442,7 @@ extension EventManager {
 
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of an empty space in the menu bar.
-    private var isMouseInsideEmptyMenuBarSpace: Bool {
+    var isMouseInsideEmptyMenuBarSpace: Bool {
         isMouseInsideMenuBar &&
         !isMouseInsideApplicationMenu &&
         !isMouseInsideMenuBarItem
@@ -463,10 +450,10 @@ extension EventManager {
 
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of the Ice Bar panel.
-    private var isMouseInsideIceBar: Bool {
+    var isMouseInsideIceBar: Bool {
         guard
             let appState,
-            let mouseLocation = getMouseLocation(flipped: false)
+            let mouseLocation = MouseCursor.location(flipped: false)
         else {
             return false
         }
@@ -484,7 +471,7 @@ extension EventManager {
             let appState,
             let visibleSection = appState.menuBarManager.section(withName: .visible),
             let iceIconFrame = visibleSection.controlItem.windowFrame,
-            let mouseLocation = getMouseLocation(flipped: false)
+            let mouseLocation = MouseCursor.location(flipped: false)
         else {
             return false
         }

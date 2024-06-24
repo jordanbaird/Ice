@@ -603,7 +603,7 @@ extension MenuBarItemManager {
         guard let appState else {
             throw EventError(code: .invalidAppState, item: item)
         }
-        guard let cursorLocation = CGEvent(source: nil)?.location else {
+        guard let cursorLocation = MouseCursor.location(flipped: true) else {
             throw EventError(code: .invalidCursorLocation, item: item)
         }
         guard let initialFrame = getCurrentFrame(for: item) else {
@@ -618,7 +618,7 @@ extension MenuBarItemManager {
         MouseCursor.hide()
 
         defer {
-            MouseCursor.warpPosition(to: cursorLocation)
+            MouseCursor.warp(to: cursorLocation)
             MouseCursor.show()
         }
 
@@ -671,7 +671,7 @@ extension MenuBarItemManager {
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .invalidEventSource, item: item)
         }
-        guard let cursorLocation = CGEvent(source: nil)?.location else {
+        guard let cursorLocation = MouseCursor.location(flipped: true) else {
             throw EventError(code: .invalidCursorLocation, item: item)
         }
         guard let currentFrame = getCurrentFrame(for: item) else {
@@ -681,7 +681,7 @@ extension MenuBarItemManager {
         MouseCursor.hide()
 
         defer {
-            MouseCursor.warpPosition(to: cursorLocation)
+            MouseCursor.warp(to: cursorLocation)
             MouseCursor.show()
         }
 

@@ -80,24 +80,62 @@ class IceBarPanel: NSPanel {
     }
 
     private func updateOrigin(for screen: NSScreen) {
-        guard
-            let appState,
-            let section = appState.menuBarManager.section(withName: .visible),
-            // using `getWindowFrame` from Bridging is more reliable than
-            // accessing the `windowFrame` property on the control item
-            let controlItemFrame = section.controlItem.windowID.flatMap(Bridging.getWindowFrame)
-        else {
+        guard let appState else {
             return
         }
+
         let menuBarHeight = NSApp.mainMenu?.menuBarHeight ?? 0
-        let origin = CGPoint(
-            x: min(
-                controlItemFrame.midX - frame.width / 2,
-                screen.frame.maxX - frame.width
-            ),
-            y: (screen.frame.maxY - menuBarHeight - 1) - frame.height
-        )
-        setFrameOrigin(origin)
+        let originY = ((screen.frame.maxY - 1) - menuBarHeight) - frame.height
+
+        func getOrigin(for iceBarLocation: IceBarLocation) -> CGPoint? {
+            switch iceBarLocation {
+            case .dynamic:
+                if appState.eventManager.isMouseInsideEmptyMenuBarSpace {
+                    return getOrigin(for: .mousePointer)
+                }
+                return getOrigin(for: .iceIcon)
+            case .mousePointer:
+                guard let location = MouseCursor.location(flipped: false) else {
+                    return nil
+                }
+                return CGPoint(
+                    x: (location.x - frame.width / 2)
+                        .clamped(to: screen.frame.minX...screen.frame.maxX - frame.width),
+                    y: originY
+                )
+            case .iceIcon:
+                guard
+                    let section = appState.menuBarManager.section(withName: .visible),
+                    let windowID = section.controlItem.windowID,
+                    // `Bridging.getWindowFrame(_:)` is more reliable than `ControlItem.windowFrame`
+                    // in this circumstance
+                    let itemFrame = Bridging.getWindowFrame(for: windowID)
+                else {
+                    return nil
+                }
+                return CGPoint(
+                    x: (itemFrame.midX - frame.width / 2)
+                        .clamped(to: screen.frame.minX...screen.frame.maxX - frame.width),
+                    y: originY
+                )
+            case .leftOfScreen:
+                return CGPoint(
+                    x: screen.frame.minX,
+                    y: originY
+                )
+            case .rightOfScreen:
+                return CGPoint(
+                    x: screen.frame.maxX - frame.width,
+                    y: originY
+                )
+            }
+        }
+
+        let iceBarLocation = appState.settingsManager.generalSettingsManager.iceBarLocation
+
+        if let origin = getOrigin(for: iceBarLocation) {
+            setFrameOrigin(origin)
+        }
     }
 
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {

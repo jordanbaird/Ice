@@ -85,6 +85,7 @@
 		17EE69612C26A80300F778A7 /* CGColor+brightness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69602C26A80300F778A7 /* CGColor+brightness.swift */; };
 		17EE69652C27777C00F778A7 /* MenuBarItemImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69642C27777C00F778A7 /* MenuBarItemImageCache.swift */; };
 		17EE69682C277B4E00F778A7 /* Publisher+mapToVoid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69672C277B4E00F778A7 /* Publisher+mapToVoid.swift */; };
+		17EE696A2C282ACC00F778A7 /* IceBarLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69692C282ACC00F778A7 /* IceBarLocation.swift */; };
 		17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F71BB12B87E37800905CBA /* RehideStrategy.swift */; };
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
 		17F93D2C2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */; };
@@ -203,6 +204,7 @@
 		17EE69602C26A80300F778A7 /* CGColor+brightness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGColor+brightness.swift"; sourceTree = "<group>"; };
 		17EE69642C27777C00F778A7 /* MenuBarItemImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemImageCache.swift; sourceTree = "<group>"; };
 		17EE69672C277B4E00F778A7 /* Publisher+mapToVoid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publisher+mapToVoid.swift"; sourceTree = "<group>"; };
+		17EE69692C282ACC00F778A7 /* IceBarLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceBarLocation.swift; sourceTree = "<group>"; };
 		17F71BB12B87E37800905CBA /* RehideStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RehideStrategy.swift; sourceTree = "<group>"; };
 		17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sequence+sortedByOrderInMenuBar.swift"; sourceTree = "<group>"; };
 		17F998312C15C91400D75EC0 /* MouseCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseCursor.swift; sourceTree = "<group>"; };
@@ -444,6 +446,7 @@
 			isa = PBXGroup;
 			children = (
 				17BE3DCF2C1A45B3008B98EF /* IceBar.swift */,
+				17EE69692C282ACC00F778A7 /* IceBarLocation.swift */,
 			);
 			path = IceBar;
 			sourceTree = "<group>";
@@ -860,6 +863,7 @@
 				17BE3DE02C1A705E008B98EF /* IceBarPanel+hasKeyAppearance.swift in Sources */,
 				173C24892B8E80830096F7A1 /* AboutSettingsPane.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
+				17EE696A2C282ACC00F778A7 /* IceBarLocation.swift in Sources */,
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
 				1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */,
 				17F93D2C2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift in Sources */,

@@ -50,17 +50,6 @@ extension Predicates where Input == WindowInfo {
             CGDisplayBounds(display).contains(window.frame)
         }
     }
-
-    /// Creates a predicate that returns whether a window is the fullscreen backdrop
-    /// window for the given display.
-    static func fullscreenBackdropWindow(for display: CGDirectDisplayID) -> NonThrowingPredicate {
-        predicate { window in
-            // fullscreen backdrop window belongs to the Dock process
-            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            window.title == "Fullscreen Backdrop" &&
-            window.frame == CGDisplayBounds(display)
-        }
-    }
 }
 
 // MARK: - Control Item Predicates

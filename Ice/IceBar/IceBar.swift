@@ -35,7 +35,7 @@ class IceBarPanel: NSPanel {
         self.animationBehavior = .none
         self.backgroundColor = .clear
         self.hasShadow = false
-        self.level = .mainMenu
+        self.level = .mainMenu + 1
         self.collectionBehavior = [
             .fullScreenAuxiliary,
             .ignoresCycle,

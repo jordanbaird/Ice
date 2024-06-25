@@ -151,7 +151,7 @@ struct GeneralSettingsPane: View {
     private var useIceBar: some View {
         Toggle(isOn: manager.bindings.useIceBar) {
             Text("Use Ice Bar")
-            Text("Hidden items will be shown in a separate bar below the menu bar")
+            Text("Hidden items are shown in a separate bar below the menu bar")
         }
     }
 
@@ -165,7 +165,7 @@ struct GeneralSettingsPane: View {
             Text("Ice Bar location")
             switch manager.iceBarLocation {
             case .dynamic:
-                Text("The Ice Bar appears in different locations based on context")
+                Text("The Ice Bar appears in various locations based on context")
             case .mousePointer:
                 Text("The Ice Bar appears centered below the mouse pointer")
             case .iceIcon:

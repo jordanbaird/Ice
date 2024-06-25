@@ -168,14 +168,26 @@ final class MenuBarManager: ObservableObject {
             .sink { [weak self] _ in
                 guard
                     let self,
-                    let appState,
-                    !isMenuBarHiddenBySystem,
-                    !appState.isActiveSpaceFullscreen,
-                    appState.settingsManager.advancedSettingsManager.hideApplicationMenus
+                    let appState
                 else {
                     return
                 }
-                if sections.contains(where: { $0.controlItem.state != .hideItems }) {
+
+                // don't continue if:
+                //   * the "HideApplicationMenus" setting isn't enabled
+                //   * the menu bar is hidden by the system
+                //   * the active space is fullscreen
+                //   * the settings window is visible
+                guard
+                    appState.settingsManager.advancedSettingsManager.hideApplicationMenus,
+                    !isMenuBarHiddenBySystem,
+                    !appState.isActiveSpaceFullscreen,
+                    appState.settingsWindow?.isVisible == false
+                else {
+                    return
+                }
+
+                if sections.contains(where: { $0.controlItem.state == .showItems }) {
                     guard let screen = NSScreen.main else {
                         return
                     }
@@ -183,10 +195,11 @@ final class MenuBarManager: ObservableObject {
                     let displayID = screen.displayID
 
                     // get the application menu frame for the display
-                    guard let applicationMenuFrame = applicationMenuFrames[displayID] else {
+                    guard let applicationMenuItemFrames = try? getApplicationMenuItemFrames(for: displayID) else {
                         return
                     }
 
+                    let applicationMenuFrame = applicationMenuItemFrames.reduce(.zero, CGRectUnion)
                     let items = MenuBarItem.getMenuBarItemsCoreGraphics(for: displayID, onScreenOnly: true)
 
                     // get the leftmost item on the screen; the application menu should
@@ -204,14 +217,8 @@ final class MenuBarManager: ObservableObject {
                     if offsetMinX <= applicationMenuFrame.maxX {
                         hideApplicationMenus()
                     }
-                } else if
-                    isHidingApplicationMenus,
-                    appState.settingsWindow?.isVisible == false
-                {
-                    Task {
-                        try await Task.sleep(for: .milliseconds(25))
-                        self.showApplicationMenus()
-                    }
+                } else if isHidingApplicationMenus {
+                    showApplicationMenus()
                 }
             }
             .store(in: &c)
@@ -326,6 +333,7 @@ final class MenuBarManager: ObservableObject {
             Logger.menuBarManager.error("Error hiding application menus: Missing app state")
             return
         }
+        Logger.menuBarManager.info("Hiding application menus")
         appState.activate(withPolicy: .regular)
         isHidingApplicationMenus = true
     }
@@ -335,6 +343,7 @@ final class MenuBarManager: ObservableObject {
             Logger.menuBarManager.error("Error showing application menus: Missing app state")
             return
         }
+        Logger.menuBarManager.info("Showing application menus")
         appState.deactivate(withPolicy: .accessory)
         isHidingApplicationMenus = false
     }

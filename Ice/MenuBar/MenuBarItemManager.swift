@@ -19,6 +19,8 @@ class MenuBarItemManager: ObservableObject {
 
     private var dateOfLastTempShownItemsRehide: Date?
 
+    private(set) var isMovingItem = false
+
     private(set) weak var appState: AppState?
 
     private var cancellables = Set<AnyCancellable>()
@@ -39,6 +41,10 @@ class MenuBarItemManager: ObservableObject {
             .merge(with: Just(.now))
             .sink { [weak self] _ in
                 guard let self else {
+                    return
+                }
+                guard !isMovingItem else {
+                    Logger.itemManager.info("Item manager is moving item, so deferring item cache")
                     return
                 }
                 Task {
@@ -589,6 +595,11 @@ extension MenuBarItemManager {
     ///   - item: A menu bar item to move.
     ///   - destination: A destination to move the menu bar item.
     func move(item: MenuBarItem, to destination: MoveDestination) async throws {
+        isMovingItem = true
+        defer {
+            isMovingItem = false
+        }
+
         if try itemHasCorrectPosition(item: item, for: destination) {
             Logger.move.info("\"\(item.logString)\" is already in the correct position")
             return

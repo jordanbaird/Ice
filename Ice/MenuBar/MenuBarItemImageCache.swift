@@ -150,10 +150,14 @@ class MenuBarItemImageCache: ObservableObject {
     }
 
     func updateCache() async {
-        guard
-            let appState,
-            let screen = NSScreen.main
-        else {
+        guard let appState else {
+            return
+        }
+        guard !appState.itemManager.isMovingItem else {
+            Logger.imageCache.info("Item manager is moving item, so deferring image cache")
+            return
+        }
+        guard let screen = NSScreen.main else {
             return
         }
         var sectionsNeedingDisplay = [MenuBarSection.Name]()

@@ -146,9 +146,6 @@ extension MenuBarItemManager {
             /// Indicates an invalid menu bar item.
             case invalidItem
 
-            /// Indicates that a menu bar item has no owning application.
-            case noOwningApplication
-
             /// Indicates that a menu bar item cannot be moved.
             case notMovable
 
@@ -177,8 +174,6 @@ extension MenuBarItemManager {
                 "Invalid cursor location"
             case .invalidItem:
                 "Menu bar item is invalid"
-            case .noOwningApplication:
-                "Menu bar item has no owning application"
             case .notMovable:
                 "Menu bar item is not movable"
             case .timeout:
@@ -337,8 +332,8 @@ extension MenuBarItemManager {
             event.post(tap: .cgSessionEventTap)
         case .annotatedSessionEventTap:
             event.post(tap: .cgAnnotatedSessionEventTap)
-        case .application(let app):
-            event.postToPid(app.processIdentifier)
+        case .pid(let pid):
+            event.postToPid(pid)
         }
     }
 
@@ -486,9 +481,6 @@ extension MenuBarItemManager {
     private func wakeUpItem(_ item: MenuBarItem) async throws {
         Logger.move.info("Attempting to wake up \"\(item.logString)\"")
 
-        guard let application = item.owningApplication else {
-            throw EventError(code: .noOwningApplication, item: item)
-        }
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .invalidEventSource, item: item)
         }
@@ -507,7 +499,7 @@ extension MenuBarItemManager {
 
         try await forwardEvent(
             mouseUpEvent,
-            from: .application(application),
+            from: .pid(item.ownerPID),
             to: .sessionEventTap
         )
     }
@@ -525,9 +517,6 @@ extension MenuBarItemManager {
     ) async throws {
         guard item.isMovable else {
             throw EventError(code: .notMovable, item: item)
-        }
-        guard let application = item.owningApplication else {
-            throw EventError(code: .noOwningApplication, item: item)
         }
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .invalidEventSource, item: item)
@@ -576,13 +565,13 @@ extension MenuBarItemManager {
         do {
             try await forwardEvent(
                 mouseDownEvent,
-                from: .application(application),
+                from: .pid(item.ownerPID),
                 to: .sessionEventTap,
                 waitingForFrameChangeOf: item
             )
             try await forwardEvent(
                 mouseUpEvent,
-                from: .application(application),
+                from: .pid(item.ownerPID),
                 to: .sessionEventTap,
                 waitingForFrameChangeOf: item
             )

@@ -23,8 +23,8 @@ class EventTap {
         case annotatedSessionEventTap
 
         /// The location where annotated events are delivered to a specific
-        /// application.
-        case application(NSRunningApplication)
+        /// process.
+        case pid(pid_t)
 
         var logString: String {
             switch self {
@@ -34,8 +34,8 @@ class EventTap {
                 "session event tap"
             case .annotatedSessionEventTap:
                 "annotated session event tap"
-            case .application(let app):
-                "PID \(app.processIdentifier)"
+            case .pid(let pid):
+                "PID \(pid)"
             }
         }
     }
@@ -165,9 +165,9 @@ class EventTap {
         callback: CGEventTapCallBack,
         userInfo: UnsafeMutableRawPointer?
     ) -> CFMachPort? {
-        if case .application(let app) = location {
+        if case .pid(let pid) = location {
             return CGEvent.tapCreateForPid(
-                pid: app.processIdentifier,
+                pid: pid,
                 place: place,
                 options: options,
                 eventsOfInterest: eventsOfInterest,
@@ -180,7 +180,7 @@ class EventTap {
         case .hidEventTap: .cghidEventTap
         case .sessionEventTap: .cgSessionEventTap
         case .annotatedSessionEventTap: .cgAnnotatedSessionEventTap
-        case .application: nil
+        case .pid: nil
         }
 
         guard let tap else {

@@ -29,9 +29,6 @@ class MenuBarItemManager: ObservableObject {
 
     func performSetup() {
         configureCancellables()
-        DispatchQueue.main.async {
-            self.cacheCurrentMenuBarItems()
-        }
     }
 
     private func configureCancellables() {
@@ -39,8 +36,20 @@ class MenuBarItemManager: ObservableObject {
 
         Timer.publish(every: 3, on: .main, in: .default)
             .autoconnect()
+            .merge(with: Just(.now))
             .sink { [weak self] _ in
-                self?.cacheCurrentMenuBarItems()
+                guard let self else {
+                    return
+                }
+                Task {
+                    let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
+                    do {
+                        try await self.arrangeItems(items)
+                    } catch {
+                        Logger.itemManager.error("Error arranging items: \(error)")
+                    }
+                    self.cacheItems(items)
+                }
             }
             .store(in: &c)
 
@@ -52,7 +61,7 @@ class MenuBarItemManager: ObservableObject {
 
 extension MenuBarItemManager {
     /// Caches the current menu bar items.
-    private func cacheCurrentMenuBarItems() {
+    private func cacheItems(_ items: [MenuBarItem]) {
         guard tempShownItemsInfo.isEmpty else {
             Logger.itemManager.info("Items are temporarily shown, so deferring cache")
             return
@@ -64,8 +73,6 @@ extension MenuBarItemManager {
                 return
             }
         }
-
-        let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
 
         guard
             let hiddenControlItem = items.first(where: { $0.info == .hiddenControlItem }),
@@ -862,6 +869,24 @@ extension MenuBarItemManager {
     /// its previous location.
     func removeTempShownItemFromCache(with info: MenuBarItemInfo) {
         tempShownItemsInfo.removeAll(where: { $0.item.info == info })
+    }
+}
+
+// MARK: - Arrange Items
+
+extension MenuBarItemManager {
+    func arrangeItems(_ items: [MenuBarItem]) async throws {
+        guard
+            let hiddenControlItem = items.first(where: { $0.info == .hiddenControlItem }),
+            let alwaysHiddenControlItem = items.first(where: { $0.info == .alwaysHiddenControlItem })
+        else {
+            return
+        }
+
+        // make sure the always-hidden control item is to the left of the hidden control item
+        if hiddenControlItem.frame.maxX <= alwaysHiddenControlItem.frame.minX {
+            try await slowMove(item: alwaysHiddenControlItem, to: .leftOfItem(hiddenControlItem))
+        }
     }
 }
 

@@ -239,7 +239,7 @@ extension MenuBarItemManager {
     /// - Parameter item: The item to return the current frame for.
     private func getCurrentFrame(for item: MenuBarItem) -> CGRect? {
         guard let frame = Bridging.getWindowFrame(for: item.window.windowID) else {
-            Logger.move.error("Couldn't get current frame for \"\(item.logString)\"")
+            Logger.itemManager.error("Couldn't get current frame for \"\(item.logString)\"")
             return nil
         }
         return frame
@@ -343,6 +343,61 @@ extension MenuBarItemManager {
         }
     }
 
+    /// Posts an event to the given event tap location and waits until it is
+    /// received before returning.
+    ///
+    /// - Parameters:
+    ///   - event: The event to post.
+    ///   - location: The event tap location to post the event to.
+    private func postEventAndWaitToReceive(_ event: CGEvent, to location: EventTap.Location) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            let eventTap = EventTap(
+                options: .defaultTap,
+                location: location,
+                place: .headInsertEventTap,
+                types: [event.type]
+            ) { [weak self] proxy, type, rEvent in
+                guard let self else {
+                    proxy.disable()
+                    continuation.resume(throwing: EventError(code: .couldNotComplete))
+                    return rEvent
+                }
+
+                // reenable the tap if disabled by the system
+                if type == .tapDisabledByUserInput || type == .tapDisabledByTimeout {
+                    proxy.enable()
+                    return nil
+                }
+
+                // verify that the received event was the sent event
+                guard eventsMatch([rEvent, event], by: CGEventField.menuBarItemEventFields) else {
+                    return rEvent
+                }
+
+                Logger.itemManager.info("Received \(type.logString) at \(location.logString)")
+
+                proxy.disable()
+
+                // small delay to prevent a timeout when running alongside certain
+                // event tapping apps, such as Magnet
+                // TODO: Try to find a better solution for this
+                Thread.sleep(forTimeInterval: 0.01)
+
+                continuation.resume()
+
+                return rEvent
+            }
+
+            eventTap.enable(timeout: .milliseconds(50)) {
+                Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out")
+                eventTap.disable()
+                continuation.resume()
+            }
+
+            postEvent(event, to: location)
+        }
+    }
+
     /// Posts the given event to an initial location, then forwards the event to a
     /// second location when an event tap at the initial location receives the event.
     ///
@@ -357,7 +412,6 @@ extension MenuBarItemManager {
     ) async throws {
         return try await withCheckedThrowingContinuation { continuation in
             let eventTap = EventTap(
-                label: "MenuBarItem-Event-Forwarding",
                 options: .defaultTap,
                 location: initialLocation,
                 place: .headInsertEventTap,
@@ -380,7 +434,8 @@ extension MenuBarItemManager {
                     return rEvent
                 }
 
-                Logger.move.info("Forwarding \(type.logString) from \(initialLocation.logString) to \(forwardedLocation.logString)")
+                Logger.itemManager.info("Forwarding \(type.logString) from \(initialLocation.logString) to \(forwardedLocation.logString)")
+
                 postEvent(event, to: forwardedLocation)
 
                 proxy.disable()
@@ -396,7 +451,7 @@ extension MenuBarItemManager {
             }
 
             eventTap.enable(timeout: .milliseconds(50)) {
-                Logger.move.error("Event tap \"\(eventTap.label)\" timed out")
+                Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out")
                 eventTap.disable()
                 continuation.resume()
             }
@@ -424,7 +479,7 @@ extension MenuBarItemManager {
         guard let currentFrame = getCurrentFrame(for: item) else {
             try await forwardEvent(event, from: initialLocation, to: forwardedLocation)
 
-            Logger.move.warning("No item frame, so using fixed delay instead of frame check")
+            Logger.itemManager.warning("No item frame, so using fixed delay instead of frame check")
 
             // this will be slow, but subsequent events will have a better chance of succeeding
             try await Task.sleep(for: .milliseconds(50))
@@ -450,7 +505,7 @@ extension MenuBarItemManager {
                     throw FrameCheckCancellationError()
                 }
                 if currentFrame != initialFrame {
-                    Logger.move.info("Menu bar item frame has changed to \(NSStringFromRect(currentFrame))")
+                    Logger.itemManager.info("Menu bar item frame has changed to \(NSStringFromRect(currentFrame))")
                     return
                 }
             }
@@ -459,7 +514,7 @@ extension MenuBarItemManager {
         do {
             try await frameCheckTask.value
         } catch is FrameCheckCancellationError {
-            Logger.move.warning("Frame check was cancelled, so using fixed delay")
+            Logger.itemManager.warning("Frame check was cancelled, so using fixed delay")
             // this will be slow, but subsequent events will have a better chance of succeeding
             try await Task.sleep(for: .milliseconds(50))
         } catch is TaskTimeoutError {
@@ -485,7 +540,7 @@ extension MenuBarItemManager {
 
     /// Tries to wake up the given item if it is not responding to events.
     private func wakeUpItem(_ item: MenuBarItem) async throws {
-        Logger.move.info("Attempting to wake up \"\(item.logString)\"")
+        Logger.itemManager.info("Attempting to wake up \"\(item.logString)\"")
 
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .invalidEventSource, item: item)
@@ -494,7 +549,7 @@ extension MenuBarItemManager {
             throw EventError(code: .invalidItem, item: item)
         }
         guard let mouseUpEvent = CGEvent.menuBarItemEvent(
-            with: .leftMouseUp,
+            with: .move(.leftMouseUp),
             location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
             item: item,
             pid: item.ownerPID,
@@ -544,21 +599,21 @@ extension MenuBarItemManager {
 
         guard
             let mouseDownEvent = CGEvent.menuBarItemEvent(
-                with: .leftMouseDown,
+                with: .move(.leftMouseDown),
                 location: startPoint,
                 item: item,
                 pid: item.ownerPID,
                 source: source
             ),
             let mouseUpEvent = CGEvent.menuBarItemEvent(
-                with: .leftMouseUp,
+                with: .move(.leftMouseUp),
                 location: endPoint,
                 item: targetItem,
                 pid: item.ownerPID,
                 source: source
             ),
             let fallbackEvent = CGEvent.menuBarItemEvent(
-                with: .leftMouseUp,
+                with: .move(.leftMouseUp),
                 location: fallbackPoint,
                 item: item,
                 pid: item.ownerPID,
@@ -583,7 +638,7 @@ extension MenuBarItemManager {
             )
         } catch {
             let location = EventTap.Location.sessionEventTap
-            Logger.move.info("Posting fallback event to \(location.logString)")
+            Logger.itemManager.info("Posting fallback event to \(location.logString)")
             postEvent(fallbackEvent, to: location)
             throw error
         }
@@ -601,11 +656,11 @@ extension MenuBarItemManager {
         }
 
         if try itemHasCorrectPosition(item: item, for: destination) {
-            Logger.move.info("\"\(item.logString)\" is already in the correct position")
+            Logger.itemManager.info("\"\(item.logString)\" is already in the correct position")
             return
         }
 
-        Logger.move.info("Moving \"\(item.logString)\" to \(destination.logString)")
+        Logger.itemManager.info("Moving \"\(item.logString)\" to \(destination.logString)")
 
         guard let appState else {
             throw EventError(code: .invalidAppState, item: item)
@@ -638,15 +693,15 @@ extension MenuBarItemManager {
                     let newFrame = getCurrentFrame(for: item),
                     newFrame != initialFrame
                 {
-                    Logger.move.info("Successfully moved \"\(item.logString)\"")
+                    Logger.itemManager.info("Successfully moved \"\(item.logString)\"")
                     break
                 } else {
                     throw EventError(code: .couldNotComplete, item: item)
                 }
             } catch where n < 5 {
-                Logger.move.error("Attempt \(n) to move \"\(item.logString)\" failed: \(error)")
+                Logger.itemManager.error("Attempt \(n) to move \"\(item.logString)\" failed: \(error)")
                 try await wakeUpItem(item)
-                Logger.move.info("Retrying move")
+                Logger.itemManager.info("Retrying move")
                 continue
             }
         }
@@ -704,17 +759,19 @@ extension MenuBarItemManager {
         let clickPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
 
         guard
-            let mouseDownEvent = CGEvent(
-                mouseEventSource: source,
-                mouseType: .leftMouseDown,
-                mouseCursorPosition: clickPoint,
-                mouseButton: .left
+            let mouseDownEvent = CGEvent.menuBarItemEvent(
+                with: .click(.leftMouseDown),
+                location: clickPoint,
+                item: item,
+                pid: item.ownerPID,
+                source: source
             ),
-            let mouseUpEvent = CGEvent(
-                mouseEventSource: source,
-                mouseType: .leftMouseUp,
-                mouseCursorPosition: clickPoint,
-                mouseButton: .left
+            let mouseUpEvent = CGEvent.menuBarItemEvent(
+                with: .click(.leftMouseUp),
+                location: clickPoint,
+                item: item,
+                pid: item.ownerPID,
+                source: source
             )
         else {
             throw EventError(code: .eventCreationFailure, item: item)
@@ -723,12 +780,10 @@ extension MenuBarItemManager {
         Logger.itemManager.info("Left clicking \"\(item.logString)\"")
 
         do {
-            postEvent(mouseDownEvent, to: .sessionEventTap)
-            try await Task.sleep(for: .milliseconds(50))
-            postEvent(mouseUpEvent, to: .sessionEventTap)
-            try await Task.sleep(for: .milliseconds(50))
+            try await postEventAndWaitToReceive(mouseDownEvent, to: .sessionEventTap)
+            try await postEventAndWaitToReceive(mouseUpEvent, to: .sessionEventTap)
         } catch {
-            postEvent(mouseUpEvent, to: .sessionEventTap)
+            try? await postEventAndWaitToReceive(mouseUpEvent, to: .sessionEventTap)
             throw error
         }
     }
@@ -802,7 +857,6 @@ extension MenuBarItemManager {
             if clickWhenFinished {
                 do {
                     try await slowMove(item: item, to: .rightOfItem(hiddenControlItem))
-                    try await Task.sleep(for: .milliseconds(100))
                     try await leftClick(item: item)
                 } catch {
                     Logger.itemManager.error("ERROR: \(error)")
@@ -893,28 +947,44 @@ extension MenuBarItemManager {
 // MARK: - CGEvent Helpers
 
 private extension CGEvent {
-    /// Event types that are used for moving menu bar items.
-    enum MenuBarItemEventType {
+    enum MenuBarItemEventButtonState {
         case leftMouseDown
         case leftMouseUp
+        case rightMouseDown
+        case rightMouseUp
+    }
+
+    /// Event types that are used for moving menu bar items.
+    enum MenuBarItemEventType {
+        case move(MenuBarItemEventButtonState)
+        case click(MenuBarItemEventButtonState)
+
+        var buttonState: MenuBarItemEventButtonState {
+            switch self {
+            case .move(let state), .click(let state): state
+            }
+        }
 
         var cgEventType: CGEventType {
-            switch self {
+            switch buttonState {
             case .leftMouseDown: .leftMouseDown
             case .leftMouseUp: .leftMouseUp
+            case .rightMouseDown: .rightMouseDown
+            case .rightMouseUp: .rightMouseUp
             }
         }
 
         var cgEventFlags: CGEventFlags {
             switch self {
-            case .leftMouseDown: .maskCommand
-            case .leftMouseUp: []
+            case .move(.leftMouseDown): .maskCommand
+            case .move, .click: []
             }
         }
 
         var mouseButton: CGMouseButton {
-            switch self {
+            switch buttonState {
             case .leftMouseDown, .leftMouseUp: .left
+            case .rightMouseDown, .rightMouseUp: .right
             }
         }
     }
@@ -940,7 +1010,6 @@ private extension CGEventField {
 
     /// An array of integer event fields that can be used to compare two menu bar item events.
     static let menuBarItemEventFields: [CGEventField] = [
-        .eventTargetUnixProcessID,
         .eventSourceUserData,
         .mouseEventWindowUnderMousePointer,
         .mouseEventWindowUnderMousePointerThatCanHandleThisEvent,
@@ -1030,6 +1099,10 @@ private extension CGEvent {
         event.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: windowNumber)
         event.setIntegerValueField(.windowNumber, value: windowNumber)
 
+        if case .click = type {
+            event.setIntegerValueField(.mouseEventClickState, value: 1)
+        }
+
         return event
     }
 }
@@ -1038,5 +1111,4 @@ private extension CGEvent {
 
 private extension Logger {
     static let itemManager = Logger(category: "MenuBarItemManager")
-    static let move = Logger(category: "Move")
 }

@@ -105,21 +105,21 @@ class EventTap {
     /// Creates a new event tap.
     ///
     /// - Parameters:
-    ///   - label: The label associated with the tap. Pass `nil` to use a unique identifier.
+    ///   - label: The label associated with the tap.
     ///   - kind: The kind of tap to create.
     ///   - location: The location to listen for events.
     ///   - placement: The placement of the tap relative to other active taps.
     ///   - types: The event types to listen for.
     ///   - callback: A callback function to perform when the tap receives events.
     init(
-        label: String? = nil,
+        label: String = #function,
         options: CGEventTapOptions,
         location: Location,
         place: CGEventTapPlacement,
         types: [CGEventType],
         callback: @escaping (_ proxy: Proxy, _ type: CGEventType, _ event: CGEvent) -> CGEvent?
     ) {
-        self.label = label ?? UUID().uuidString
+        self.label = label
         self.callback = { tap, pointer, type, event in
             callback(Proxy(tap: tap, pointer: pointer), type, event).map(Unmanaged.passUnretained)
         }

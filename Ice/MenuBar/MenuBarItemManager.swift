@@ -19,11 +19,34 @@ class MenuBarItemManager: ObservableObject {
 
     private var dateOfLastTempShownItemsRehide: Date?
 
-    private(set) var isMovingItem = false
+    private var isMouseButtonDown = false
+
+    private var mouseMovedCount = 0
+
+    private var movingItemCount = 0
+
+    private let mouseTrackingMask: NSEvent.EventTypeMask = [
+        .mouseMoved,
+        .leftMouseDown,
+        .rightMouseDown,
+        .otherMouseDown,
+        .leftMouseUp,
+        .rightMouseUp,
+        .otherMouseUp,
+    ]
 
     private(set) weak var appState: AppState?
 
     private var cancellables = Set<AnyCancellable>()
+
+    var isMovingItem: Bool {
+        movingItemCount > 0
+    }
+
+    var canArrange: Bool {
+        !isMouseButtonDown &&
+        mouseMovedCount <= 0
+    }
 
     init(appState: AppState) {
         self.appState = appState
@@ -49,15 +72,42 @@ class MenuBarItemManager: ObservableObject {
                 }
                 Task {
                     let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
-                    do {
-                        try await self.arrangeItems(items)
-                    } catch {
-                        Logger.itemManager.error("Error arranging items: \(error)")
+                    if self.canArrange {
+                        do {
+                            try await self.arrangeItems(items)
+                        } catch {
+                            Logger.itemManager.error("Error arranging items: \(error)")
+                        }
                     }
                     self.cacheItems(items)
                 }
             }
             .store(in: &c)
+
+        Publishers.Merge(
+            UniversalEventMonitor.publisher(for: mouseTrackingMask),
+            RunLoopLocalEventMonitor.publisher(for: mouseTrackingMask, mode: .eventTracking)
+        )
+        .removeDuplicates()
+        .sink { [weak self] event in
+            guard let self else {
+                return
+            }
+            switch event.type {
+            case .mouseMoved:
+                mouseMovedCount += 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    self.mouseMovedCount = max(self.mouseMovedCount - 1, 0)
+                }
+            case .leftMouseDown, .rightMouseDown, .otherMouseDown:
+                isMouseButtonDown = true
+            case .leftMouseUp, .rightMouseUp, .otherMouseUp:
+                isMouseButtonDown = false
+            default:
+                break
+            }
+        }
+        .store(in: &c)
 
         cancellables = c
     }
@@ -650,9 +700,9 @@ extension MenuBarItemManager {
     ///   - item: A menu bar item to move.
     ///   - destination: A destination to move the menu bar item.
     func move(item: MenuBarItem, to destination: MoveDestination) async throws {
-        isMovingItem = true
+        movingItemCount += 1
         defer {
-            isMovingItem = false
+            movingItemCount -= 1
         }
 
         if try itemHasCorrectPosition(item: item, for: destination) {
@@ -708,6 +758,10 @@ extension MenuBarItemManager {
     }
 
     func slowMove(item: MenuBarItem, to destination: MoveDestination) async throws {
+        movingItemCount += 1
+        defer {
+            movingItemCount -= 1
+        }
         try await move(item: item, to: destination)
         let waitTask = Task.detached(timeout: .seconds(1)) {
             while true {

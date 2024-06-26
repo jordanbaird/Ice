@@ -4,8 +4,9 @@
 //
 
 import Cocoa
+import Combine
 
-/// A type that monitors for events, regardless of scope.
+/// A type that monitors for local and global events.
 class UniversalEventMonitor {
     private let local: LocalEventMonitor
     private let global: GlobalEventMonitor
@@ -35,5 +36,51 @@ class UniversalEventMonitor {
     func stop() {
         local.stop()
         global.stop()
+    }
+}
+
+extension UniversalEventMonitor {
+    /// A publisher that emits local and global events for an event type mask.
+    struct UniversalEventPublisher: Publisher {
+        typealias Output = NSEvent
+        typealias Failure = Never
+
+        let mask: NSEvent.EventTypeMask
+
+        func receive<S: Subscriber<Output, Failure>>(subscriber: S) {
+            let subscription = UniversalEventSubscription(mask: mask, subscriber: subscriber)
+            subscriber.receive(subscription: subscription)
+        }
+    }
+
+    /// Returns a publisher that emits local and global events for the given
+    /// event type mask.
+    ///
+    /// - Parameter mask: An event type mask specifying which events to publish.
+    static func publisher(for mask: NSEvent.EventTypeMask) -> UniversalEventPublisher {
+        UniversalEventPublisher(mask: mask)
+    }
+}
+
+extension UniversalEventMonitor.UniversalEventPublisher {
+    private class UniversalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
+        var subscriber: S?
+        let monitor: UniversalEventMonitor
+
+        init(mask: NSEvent.EventTypeMask, subscriber: S) {
+            self.subscriber = subscriber
+            self.monitor = UniversalEventMonitor(mask: mask) { event in
+                _ = subscriber.receive(event)
+                return event
+            }
+            monitor.start()
+        }
+
+        func request(_ demand: Subscribers.Demand) { }
+
+        func cancel() {
+            monitor.stop()
+            subscriber = nil
+        }
     }
 }

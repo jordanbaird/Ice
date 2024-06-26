@@ -170,9 +170,13 @@ class MenuBarItemImageCache: ObservableObject {
             sectionsNeedingDisplay.append(section)
         }
         for section in sectionsNeedingDisplay {
+            guard !appState.itemManager.cachedMenuBarItems[section, default: []].isEmpty else {
+                Logger.imageCache.info("\(section.logString) is empty, so skipping image cache")
+                continue
+            }
             let sectionImages = await createImages(for: section, screen: screen)
             guard !sectionImages.isEmpty else {
-                Logger.imageCache.warning("Update cache failed for \(section.logString) section")
+                Logger.imageCache.warning("Update cache failed for \(section.logString)")
                 continue
             }
             images.merge(sectionImages) { (_, new) in new }

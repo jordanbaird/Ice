@@ -320,9 +320,9 @@ extension MenuBarSection {
 
         var logString: String {
             switch self {
-            case .visible: "visible"
-            case .hidden: "hidden"
-            case .alwaysHidden: "always-hidden"
+            case .visible: "visible section"
+            case .hidden: "hidden section"
+            case .alwaysHidden: "always-hidden section"
             }
         }
     }

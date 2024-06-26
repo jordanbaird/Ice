@@ -4,6 +4,7 @@
 //
 
 import Cocoa
+import Combine
 
 /// A type that monitors for events outside the scope of the current process.
 class GlobalEventMonitor {
@@ -44,5 +45,49 @@ class GlobalEventMonitor {
         }
         NSEvent.removeMonitor(monitor)
         self.monitor = nil
+    }
+}
+
+extension GlobalEventMonitor {
+    /// A publisher that emits global events for an event type mask.
+    struct GlobalEventPublisher: Publisher {
+        typealias Output = NSEvent
+        typealias Failure = Never
+
+        let mask: NSEvent.EventTypeMask
+
+        func receive<S: Subscriber<Output, Failure>>(subscriber: S) {
+            let subscription = GlobalEventSubscription(mask: mask, subscriber: subscriber)
+            subscriber.receive(subscription: subscription)
+        }
+    }
+
+    /// Returns a publisher that emits global events for the given event type mask.
+    ///
+    /// - Parameter mask: An event type mask specifying which events to publish.
+    static func publisher(for mask: NSEvent.EventTypeMask) -> GlobalEventPublisher {
+        GlobalEventPublisher(mask: mask)
+    }
+}
+
+extension GlobalEventMonitor.GlobalEventPublisher {
+    private class GlobalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
+        var subscriber: S?
+        let monitor: GlobalEventMonitor
+
+        init(mask: NSEvent.EventTypeMask, subscriber: S) {
+            self.subscriber = subscriber
+            self.monitor = GlobalEventMonitor(mask: mask) { event in
+                _ = subscriber.receive(event)
+            }
+            monitor.start()
+        }
+
+        func request(_ demand: Subscribers.Demand) { }
+
+        func cancel() {
+            monitor.stop()
+            subscriber = nil
+        }
     }
 }

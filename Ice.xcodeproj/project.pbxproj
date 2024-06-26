@@ -38,6 +38,7 @@
 		175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 175061902B1543DD003144CD /* LaunchAtLogin */; };
 		17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17540BD72B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift */; };
 		17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */; };
+		17543EB12C2C7A100052711E /* RunLoopLocalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17543EB02C2C7A100052711E /* RunLoopLocalEventMonitor.swift */; };
 		175812542B80FBFA00D622DA /* MenuBarAppearanceEditorPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175812532B80FBFA00D622DA /* MenuBarAppearanceEditorPanel.swift */; };
 		175812592B82ACA900D622DA /* Annotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175812582B82ACA800D622DA /* Annotation.swift */; };
 		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
@@ -156,6 +157,7 @@
 		174D4E292BA230FB00D11129 /* HotkeySettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeySettingsManager.swift; sourceTree = "<group>"; };
 		17540BD72B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+drawShadow.swift"; sourceTree = "<group>"; };
 		17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+intersects.swift"; sourceTree = "<group>"; };
+		17543EB02C2C7A100052711E /* RunLoopLocalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunLoopLocalEventMonitor.swift; sourceTree = "<group>"; };
 		175812532B80FBFA00D622DA /* MenuBarAppearanceEditorPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceEditorPanel.swift; sourceTree = "<group>"; };
 		175812582B82ACA800D622DA /* Annotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Annotation.swift; sourceTree = "<group>"; };
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
@@ -293,6 +295,7 @@
 				172778472C1490EA00F6F687 /* EventTap.swift */,
 				170749C72B12078F009DDF73 /* GlobalEventMonitor.swift */,
 				71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */,
+				17543EB02C2C7A100052711E /* RunLoopLocalEventMonitor.swift */,
 				170749C92B1207D9009DDF73 /* UniversalEventMonitor.swift */,
 			);
 			path = EventMonitors;
@@ -866,6 +869,7 @@
 				17F9984F2C16CF8600D75EC0 /* LayoutBarPaddingView.swift in Sources */,
 				17B380F32ADCBC8A0002C9C3 /* OnKeyDown.swift in Sources */,
 				1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */,
+				17543EB12C2C7A100052711E /* RunLoopLocalEventMonitor.swift in Sources */,
 				17BE3DD02C1A45B3008B98EF /* IceBar.swift in Sources */,
 				17C303782BA62CD20079755B /* MigrationManager.swift in Sources */,
 				17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */,

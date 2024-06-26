@@ -134,7 +134,7 @@ class LayoutBarPaddingView: NSView {
         }
         Task {
             do {
-                try await appState.itemManager.move(item: item, to: destination)
+                try await appState.itemManager.slowMove(item: item, to: destination)
                 appState.itemManager.removeTempShownItemFromCache(with: item.info)
             } catch {
                 Logger.layoutBar.error("Error moving menu bar item: \(error)")

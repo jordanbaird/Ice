@@ -992,7 +992,7 @@ private extension CGEvent {
     /// A context that manages the user data for menu bar item events.
     private enum MenuBarItemEventUserDataContext {
         /// The internal state of the context.
-        private static var state: Int64 = 1_000_000
+        private static var state: Int64 = 0x1CE
 
         /// Returns the current user data and increments the internal state.
         static func next() -> Int64 {

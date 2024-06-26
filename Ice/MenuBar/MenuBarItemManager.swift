@@ -142,12 +142,8 @@ extension MenuBarItemManager {
                 cachedItems[section] = []
             }
             for item in items {
-                // filter out items that can't be hidden and items not currently
-                // in the menu bar
-                guard
-                    item.canBeHidden,
-                    item.isCurrentlyInMenuBar
-                else {
+                // filter out items that can't be hidden
+                guard item.canBeHidden else {
                     continue
                 }
 

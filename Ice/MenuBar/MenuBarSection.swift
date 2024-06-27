@@ -302,14 +302,6 @@ extension MenuBarSection {
         case hidden
         case alwaysHidden
 
-        var deprecatedRawValue: String {
-            switch self {
-            case .visible: "Visible"
-            case .hidden: "Hidden"
-            case .alwaysHidden: "Always Hidden"
-            }
-        }
-
         var menuString: String {
             switch self {
             case .visible: "Visible"

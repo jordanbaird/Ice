@@ -10,8 +10,8 @@ import OSLog
 /// A status item that controls the visibility of a section in the menu bar.
 @MainActor
 final class ControlItem: ObservableObject {
-    enum Identifier: String, Hashable {
-        case iceIcon = "IceIcon"
+    enum Identifier: String, Hashable, CaseIterable {
+        case iceIcon = "SItem"
         case hidden = "HItem"
         case alwaysHidden = "AHItem"
     }
@@ -503,6 +503,9 @@ enum StatusItemDefaults {
         from oldAutosaveName: String,
         to newAutosaveName: String
     ) {
+        guard newAutosaveName != oldAutosaveName else {
+            return
+        }
         Self[key, newAutosaveName] = Self[key, oldAutosaveName]
         Self[key, oldAutosaveName] = nil
     }

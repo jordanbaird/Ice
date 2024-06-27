@@ -8,39 +8,28 @@ import OSLog
 
 @MainActor
 struct MigrationManager {
-    enum MigrationError: Error, CustomStringConvertible {
-        case invalidMenuBarSectionsJSONObject(Any)
-        case hotkeyMigrationError(any Error)
-        case controlItemMigrationError(any Error)
-        case combinedError([any Error])
-
-        var description: String {
-            switch self {
-            case .invalidMenuBarSectionsJSONObject(let object):
-                "Invalid menu bar sections JSON object: \(object)"
-            case .hotkeyMigrationError(let error):
-                "Error migrating hotkeys: \(error)"
-            case .controlItemMigrationError(let error):
-                "Error migrating control items: \(error)"
-            case .combinedError(let errors):
-                "The following errors occurred: \(errors)"
-            }
-        }
-    }
-
     let appState: AppState
+}
 
-    // MARK: Migrate All
+// MARK: - Migrate All
 
+extension MigrationManager {
     /// Performs all migrations.
     func migrateAll() {
         do {
-            try performAll(blocks: [migrate0_8_0])
+            try performAll(blocks: [
+                migrate0_8_0,
+                migrate0_10_0,
+            ])
         } catch {
             Logger.migration.error("Migration failed with error: \(error)")
         }
     }
+}
 
+// MARK: - Migrate 0.8.0
+
+extension MigrationManager {
     /// Performs all migrations for the `0.8.0` release, catching any thrown
     /// errors and rethrowing them as a combined error.
     private func migrate0_8_0() throws {
@@ -118,7 +107,7 @@ struct MigrationManager {
 
         var newSectionsArray = [[String: Any]]()
 
-        for name: MenuBarSection.Name in [.visible, .hidden, .alwaysHidden] {
+        for name in MenuBarSection.Name.allCases {
             guard
                 var sectionDict = sectionsArray.first(where: { $0["name"] as? String == name.deprecatedRawValue }),
                 var controlItemDict = sectionDict["controlItem"] as? [String: Any],
@@ -130,11 +119,11 @@ struct MigrationManager {
 
             let identifier = switch name {
             case .visible:
-                ControlItem.Identifier.iceIcon.rawValue
+                ControlItem.Identifier.iceIcon.deprecatedRawValue
             case .hidden:
-                ControlItem.Identifier.hidden.rawValue
+                ControlItem.Identifier.hidden.deprecatedRawValue
             case .alwaysHidden:
-                ControlItem.Identifier.alwaysHidden.rawValue
+                ControlItem.Identifier.alwaysHidden.deprecatedRawValue
             }
 
             // add the "identifier" key to the dictionary
@@ -163,9 +152,38 @@ struct MigrationManager {
     private func migrateSections0_8_0() {
         Defaults.set(nil, forKey: .sections)
     }
+}
 
-    // MARK: Helpers
+// MARK: - Migrate 0.10.0
 
+extension MigrationManager {
+    /// Performs all migrations for the `0.10.0` release, catching any thrown
+    /// errors and rethrowing them as a combined error.
+    private func migrate0_10_0() throws {
+        guard !Defaults.bool(forKey: .hasMigrated0_10_0) else {
+            return
+        }
+        try performAll(blocks: [
+            migrateControlItems0_10_0,
+        ])
+        Defaults.set(true, forKey: .hasMigrated0_10_0)
+        Logger.migration.info("Successfully migrated to 0.10.0 settings")
+    }
+
+    private func migrateControlItems0_10_0() throws {
+        for identifier in ControlItem.Identifier.allCases {
+            StatusItemDefaults.migrate(
+                key: .preferredPosition,
+                from: identifier.deprecatedRawValue,
+                to: identifier.rawValue
+            )
+        }
+    }
+}
+
+// MARK: - Helpers
+
+extension MigrationManager {
     /// Performs every block in the given array, catching any thrown
     /// errors and rethrowing them as a combined error.
     private func performAll(blocks: [() throws -> Void]) throws {
@@ -197,7 +215,56 @@ struct MigrationManager {
     }
 }
 
+// MARK: - MigrationError
+
+extension MigrationManager {
+    enum MigrationError: Error, CustomStringConvertible {
+        case invalidMenuBarSectionsJSONObject(Any)
+        case hotkeyMigrationError(any Error)
+        case controlItemMigrationError(any Error)
+        case combinedError([any Error])
+
+        var description: String {
+            switch self {
+            case .invalidMenuBarSectionsJSONObject(let object):
+                "Invalid menu bar sections JSON object: \(object)"
+            case .hotkeyMigrationError(let error):
+                "Error migrating hotkeys: \(error)"
+            case .controlItemMigrationError(let error):
+                "Error migrating control items: \(error)"
+            case .combinedError(let errors):
+                "The following errors occurred: \(errors)"
+            }
+        }
+    }
+}
+
+// MARK: - ControlItem.Identifier Extension
+
+private extension ControlItem.Identifier {
+    var deprecatedRawValue: String {
+        switch self {
+        case .iceIcon: "IceIcon"
+        case .hidden: "HItem"
+        case .alwaysHidden: "AHItem"
+        }
+    }
+}
+
+// MARK: - MenuBarSection.Name Extension
+
+private extension MenuBarSection.Name {
+    var deprecatedRawValue: String {
+        switch self {
+        case .visible: "Visible"
+        case .hidden: "Hidden"
+        case .alwaysHidden: "Always Hidden"
+        }
+    }
+}
+
 // MARK: - Logger
+
 private extension Logger {
     static let migration = Logger(category: "Migration")
 }

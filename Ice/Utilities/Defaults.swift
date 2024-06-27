@@ -167,6 +167,7 @@ extension Defaults {
         // MARK: Migration
 
         case hasMigrated0_8_0 = "hasMigrated0_8_0"
+        case hasMigrated0_10_0 = "hasMigrated0_10_0"
 
         // MARK: Deprecated
 

@@ -48,11 +48,11 @@ extension CGImage {
         // decreasing accuracy, but increasing performance
         let size = switch resolution {
         case .low:
-            CGSize(width: 10, height: 10)
+            CGSize(width: min(width, 10), height: min(height, 10))
         case .medium:
-            CGSize(width: 50, height: 50)
+            CGSize(width: min(width, 50), height: min(height, 50))
         case .high:
-            CGSize(width: 100, height: 100)
+            CGSize(width: min(width, 100), height: min(height, 100))
         }
 
         guard

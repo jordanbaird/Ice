@@ -74,11 +74,11 @@ class MenuBarItemImageCache: ObservableObject {
     }
 
     func cacheFailed(for section: MenuBarSection.Name) -> Bool {
-        let keys = Set(images.keys)
         let items = appState?.itemManager.cachedMenuBarItems[section] ?? []
         guard !items.isEmpty else {
             return false
         }
+        let keys = Set(images.keys)
         for item in items where keys.contains(item.info) {
             return false
         }
@@ -105,12 +105,18 @@ class MenuBarItemImageCache: ObservableObject {
         let backingScaleFactor = screen.backingScaleFactor
 
         let cacheTask = Task.detached {
-            let windowIDs = items.map { $0.windowID }
+            var windowIDs = [CGWindowID]()
+            var frame = CGRect.null
 
+            for item in items {
+                windowIDs.append(item.windowID)
+                frame = frame.union(item.frame)
+            }
+
+            let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
             if
-                let compositeImage = Bridging.captureWindows(windowIDs, option: .boundsIgnoreFraming),
-                CGFloat(compositeImage.width) == items.reduce(into: 0, { $0 += $1.frame.width }) * backingScaleFactor,
-                !compositeImage.isTransparent(maxAlpha: 0.9)
+                let compositeImage = Bridging.captureWindows(windowIDs, option: option),
+                CGFloat(compositeImage.width) == frame.width * backingScaleFactor
             {
                 var start: CGFloat = 0
 
@@ -123,10 +129,7 @@ class MenuBarItemImageCache: ObservableObject {
                         start += width
                     }
 
-                    guard
-                        let itemImage = compositeImage.cropping(to: frame),
-                        !itemImage.isTransparent()
-                    else {
+                    guard let itemImage = compositeImage.cropping(to: frame) else {
                         continue
                     }
 
@@ -134,13 +137,10 @@ class MenuBarItemImageCache: ObservableObject {
                 }
             } else {
                 for item in items {
-                    guard
-                        let image = Bridging.captureWindow(item.windowID, option: .boundsIgnoreFraming),
-                        !image.isTransparent()
-                    else {
+                    guard let itemImage = Bridging.captureWindow(item.windowID, option: option) else {
                         continue
                     }
-                    await tempCache.cache(image: image, with: item.info)
+                    await tempCache.cache(image: itemImage, with: item.info)
                 }
             }
         }
@@ -171,7 +171,6 @@ class MenuBarItemImageCache: ObservableObject {
         }
         for section in sectionsNeedingDisplay {
             guard !appState.itemManager.cachedMenuBarItems[section, default: []].isEmpty else {
-                Logger.imageCache.info("\(section.logString) is empty, so skipping image cache")
                 continue
             }
             let sectionImages = await createImages(for: section, screen: screen)

@@ -150,8 +150,7 @@ class IceBarPanel: NSPanel {
         contentView = IceBarHostingView(
             appState: appState,
             imageCache: appState.imageCache,
-            section: section,
-            screen: screen
+            section: section
         ) { [weak self] in
             self?.close()
         }
@@ -178,11 +177,10 @@ private class IceBarHostingView: NSHostingView<AnyView> {
         appState: AppState,
         imageCache: MenuBarItemImageCache,
         section: MenuBarSection.Name,
-        screen: NSScreen,
         closePanel: @escaping () -> Void
     ) {
         super.init(
-            rootView: IceBarContentView(section: section, screen: screen, closePanel: closePanel)
+            rootView: IceBarContentView(section: section, closePanel: closePanel)
                 .environmentObject(appState)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.menuBarManager)
@@ -215,7 +213,6 @@ private struct IceBarContentView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
 
     let section: MenuBarSection.Name
-    let screen: NSScreen
     let closePanel: () -> Void
 
     private var items: [MenuBarItem] {
@@ -273,13 +270,13 @@ private struct IceBarContentView: View {
     @ViewBuilder
     private var unstyledBody: some View {
         if imageCache.cacheFailed(for: section) {
-            Text("Unable to display menu bar items. Try switching spaces.")
+            Text("Unable to display menu bar items")
                 .foregroundStyle(menuBarManager.averageColorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
                 .padding(3)
         } else {
             HStack(spacing: 0) {
                 ForEach(items, id: \.windowID) { item in
-                    IceBarItemView(item: item, screen: screen, closePanel: closePanel)
+                    IceBarItemView(item: item, closePanel: closePanel)
                 }
             }
         }
@@ -293,11 +290,13 @@ private struct IceBarItemView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
 
     let item: MenuBarItem
-    let screen: NSScreen
     let closePanel: () -> Void
 
     private var image: NSImage? {
-        guard let image = imageCache.images[item.info] else {
+        guard
+            let image = imageCache.images[item.info],
+            let screen = imageCache.screen
+        else {
             return nil
         }
         let size = CGSize(

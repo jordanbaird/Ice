@@ -18,7 +18,6 @@
 		171C6FC62C0571510097A5C8 /* Bundle+copyrightString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6FC52C0571510097A5C8 /* Bundle+copyrightString.swift */; };
 		171C6FC92C0659340097A5C8 /* Task+timeout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6FC82C0659340097A5C8 /* Task+timeout.swift */; };
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
-		172778462C1489DF00F6F687 /* Bridging in Frameworks */ = {isa = PBXBuildFile; productRef = 172778452C1489DF00F6F687 /* Bridging */; };
 		172778482C1490EA00F6F687 /* EventTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172778472C1490EA00F6F687 /* EventTap.swift */; };
 		1727786E2C15181300F6F687 /* MenuBarItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1727786D2C15181300F6F687 /* MenuBarItemManager.swift */; };
 		172D827A2BC1F29E0048DD88 /* AccessibilityMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */; };
@@ -74,6 +73,9 @@
 		17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */; };
 		17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22B42B8A55E7001A0582 /* WindowInfo.swift */; };
 		17CC22BC2B8CDE6F001A0582 /* EventManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CC22BB2B8CDE6F001A0582 /* EventManager.swift */; };
+		17CDCACD2C2E6F6A000B1CFF /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CDCACC2C2E6F6A000B1CFF /* Deprecated.swift */; };
+		17CDCACF2C2E6F77000B1CFF /* Private.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CDCACE2C2E6F77000B1CFF /* Private.swift */; };
+		17CDCAD12C2E6FB0000B1CFF /* Bridging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CDCAD02C2E6FB0000B1CFF /* Bridging.swift */; };
 		17D1AC8D2B97BB5900726180 /* MenuBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D1AC8C2B97BB5900726180 /* MenuBarItem.swift */; };
 		17D1AC8F2B97E71D00726180 /* AdvancedSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D1AC8E2B97E71D00726180 /* AdvancedSettingsPane.swift */; };
 		17DFF4AC2AD5FB3300B5177A /* MenuBarAppearanceSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AB2AD5FB3300B5177A /* MenuBarAppearanceSettingsPane.swift */; };
@@ -193,6 +195,9 @@
 		17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeysSettingsPane.swift; sourceTree = "<group>"; };
 		17CC22B42B8A55E7001A0582 /* WindowInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowInfo.swift; sourceTree = "<group>"; };
 		17CC22BB2B8CDE6F001A0582 /* EventManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventManager.swift; sourceTree = "<group>"; };
+		17CDCACC2C2E6F6A000B1CFF /* Deprecated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deprecated.swift; sourceTree = "<group>"; };
+		17CDCACE2C2E6F77000B1CFF /* Private.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Private.swift; sourceTree = "<group>"; };
+		17CDCAD02C2E6FB0000B1CFF /* Bridging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridging.swift; sourceTree = "<group>"; };
 		17D1AC8C2B97BB5900726180 /* MenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItem.swift; sourceTree = "<group>"; };
 		17D1AC8E2B97E71D00726180 /* AdvancedSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettingsPane.swift; sourceTree = "<group>"; };
 		17DFF4AB2AD5FB3300B5177A /* MenuBarAppearanceSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceSettingsPane.swift; sourceTree = "<group>"; };
@@ -255,7 +260,6 @@
 				170423D92B56DE78004A2549 /* Sparkle in Frameworks */,
 				175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */,
 				1787C4272B16890B002F50DF /* AXSwift in Frameworks */,
-				172778462C1489DF00F6F687 /* Bridging in Frameworks */,
 				17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -471,6 +475,24 @@
 			path = NSScreen;
 			sourceTree = "<group>";
 		};
+		17CDCACA2C2E6F3D000B1CFF /* Bridging */ = {
+			isa = PBXGroup;
+			children = (
+				17CDCACB2C2E6F55000B1CFF /* Shims */,
+				17CDCAD02C2E6FB0000B1CFF /* Bridging.swift */,
+			);
+			path = Bridging;
+			sourceTree = "<group>";
+		};
+		17CDCACB2C2E6F55000B1CFF /* Shims */ = {
+			isa = PBXGroup;
+			children = (
+				17CDCACC2C2E6F6A000B1CFF /* Deprecated.swift */,
+				17CDCACE2C2E6F77000B1CFF /* Private.swift */,
+			);
+			path = Shims;
+			sourceTree = "<group>";
+		};
 		17EC6B522AE0C09F0065F260 /* Pickers */ = {
 			isa = PBXGroup;
 			children = (
@@ -627,6 +649,7 @@
 			isa = PBXGroup;
 			children = (
 				172D82782BC1F2950048DD88 /* Accessibility */,
+				17CDCACA2C2E6F3D000B1CFF /* Bridging */,
 				177386F62B0A656100448BBF /* ControlItem */,
 				17147FBE2B99513200C4A435 /* Events */,
 				716683412A76811C006ABF84 /* Extensions */,
@@ -760,7 +783,6 @@
 				1787C4262B16890B002F50DF /* AXSwift */,
 				170423D82B56DE78004A2549 /* Sparkle */,
 				17F71BB42B880B4500905CBA /* CompactSlider */,
-				172778452C1489DF00F6F687 /* Bridging */,
 			);
 			productName = Ice;
 			productReference = 7166832A2A767E6A006ABF84 /* Ice.app */;
@@ -852,6 +874,7 @@
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
 				172D827A2BC1F29E0048DD88 /* AccessibilityMenuBar.swift in Sources */,
 				177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */,
+				17CDCACF2C2E6F77000B1CFF /* Private.swift in Sources */,
 				17BE3DE02C1A705E008B98EF /* IceBarPanel+hasKeyAppearance.swift in Sources */,
 				173C24892B8E80830096F7A1 /* AboutSettingsPane.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
@@ -872,6 +895,7 @@
 				17543EB12C2C7A100052711E /* RunLoopLocalEventMonitor.swift in Sources */,
 				17BE3DD02C1A45B3008B98EF /* IceBar.swift in Sources */,
 				17C303782BA62CD20079755B /* MigrationManager.swift in Sources */,
+				17CDCACD2C2E6F6A000B1CFF /* Deprecated.swift in Sources */,
 				17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */,
 				17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */,
 				17F998462C16C78000D75EC0 /* Injection.swift in Sources */,
@@ -891,6 +915,7 @@
 				17F9983C2C1655EF00D75EC0 /* LayoutBarContainer.swift in Sources */,
 				716683502A7681AF006ABF84 /* MenuBarManager.swift in Sources */,
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
+				17CDCAD12C2E6FB0000B1CFF /* Bridging.swift in Sources */,
 				17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */,
 				172D827C2BC1F2C10048DD88 /* AccessibilityError.swift in Sources */,
 				177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */,
@@ -1209,10 +1234,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 170423D72B56DE78004A2549 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
-		};
-		172778452C1489DF00F6F687 /* Bridging */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Bridging;
 		};
 		175061902B1543DD003144CD /* LaunchAtLogin */ = {
 			isa = XCSwiftPackageProductDependency;

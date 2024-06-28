@@ -1,9 +1,10 @@
 //
 //  Bridging.swift
-//  Bridging
+//  Ice
 //
 
 import Cocoa
+import OSLog
 
 /// A namespace for bridged functionality.
 public enum Bridging { }
@@ -24,7 +25,7 @@ extension Bridging {
             value as CFTypeRef
         )
         if result != .success {
-            logger.error("CGSSetConnectionProperty failed with error \(getDescription(for: result))")
+            Logger.bridging.error("CGSSetConnectionProperty failed with error \(getDescription(for: result))")
         }
     }
 
@@ -41,7 +42,7 @@ extension Bridging {
             &value
         )
         if result != .success {
-            logger.error("CGSCopyConnectionProperty failed with error \(getDescription(for: result))")
+            Logger.bridging.error("CGSCopyConnectionProperty failed with error \(getDescription(for: result))")
         }
         return value?.takeRetainedValue()
     }
@@ -59,7 +60,7 @@ extension Bridging {
         var rect = CGRect.zero
         let result = CGSGetScreenRectForWindow(CGSMainConnectionID(), windowID, &rect)
         guard result == .success else {
-            logger.error("CGSGetScreenRectForWindow failed with error \(getDescription(for: result))")
+            Logger.bridging.error("CGSGetScreenRectForWindow failed with error \(getDescription(for: result))")
             return nil
         }
         return rect
@@ -72,7 +73,7 @@ extension Bridging {
         var count: Int32 = 0
         let result = CGSGetWindowCount(CGSMainConnectionID(), 0, &count)
         if result != .success {
-            logger.error("CGSGetWindowCount failed with error \(getDescription(for: result))")
+            Logger.bridging.error("CGSGetWindowCount failed with error \(getDescription(for: result))")
         }
         return Int(count)
     }
@@ -81,7 +82,7 @@ extension Bridging {
         var count: Int32 = 0
         let result = CGSGetOnScreenWindowCount(CGSMainConnectionID(), 0, &count)
         if result != .success {
-            logger.error("CGSGetOnScreenWindowCount failed with error \(getDescription(for: result))")
+            Logger.bridging.error("CGSGetOnScreenWindowCount failed with error \(getDescription(for: result))")
         }
         return Int(count)
     }
@@ -98,7 +99,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            logger.error("CGSGetWindowList failed with error \(getDescription(for: result))")
+            Logger.bridging.error("CGSGetWindowList failed with error \(getDescription(for: result))")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -116,7 +117,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            logger.error("CGSGetOnScreenWindowList failed with error \(getDescription(for: result))")
+            Logger.bridging.error("CGSGetOnScreenWindowList failed with error \(getDescription(for: result))")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -134,7 +135,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            logger.error("CGSGetProcessMenuBarWindowList failed with error \(getDescription(for: result))")
+            Logger.bridging.error("CGSGetProcessMenuBarWindowList failed with error \(getDescription(for: result))")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -291,11 +292,11 @@ extension Bridging {
             CGSSpaceMask.allSpaces,
             [windowID] as CFArray
         ) else {
-            logger.error("CGSCopySpacesForWindows failed")
+            Logger.bridging.error("CGSCopySpacesForWindows failed")
             return false
         }
         guard let spaceIDs = spaces.takeRetainedValue() as? [CGSSpaceID] else {
-            logger.error("CGSCopySpacesForWindows returned array of unexpected type")
+            Logger.bridging.error("CGSCopySpacesForWindows returned array of unexpected type")
             return false
         }
         return Set(spaceIDs).contains(activeSpaceID)
@@ -321,7 +322,7 @@ extension Bridging {
         var psn = ProcessSerialNumber()
         let result = GetProcessForPID(pid, &psn)
         guard result == noErr else {
-            logger.error("GetProcessForPID failed with error \(result)")
+            Logger.bridging.error("GetProcessForPID failed with error \(result)")
             return false
         }
         if CGSEventIsAppUnresponsive(CGSMainConnectionID(), &psn) {
@@ -351,4 +352,8 @@ extension Bridging {
         @unknown default: "\(error.rawValue): unknown"
         }
     }
+}
+
+private extension Logger {
+    static let bridging = Logger(category: "Bridging")
 }

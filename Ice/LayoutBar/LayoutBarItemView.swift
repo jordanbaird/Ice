@@ -3,7 +3,6 @@
 //  Ice
 //
 
-import Bridging
 import Cocoa
 import Combine
 

@@ -10,7 +10,13 @@ import OSLog
 /// A type that manages menu bar items.
 @MainActor
 class MenuBarItemManager: ObservableObject {
-    @Published var cachedMenuBarItems = [MenuBarSection.Name: [MenuBarItem]]()
+    struct MenuBarItemCache: Hashable {
+        var hiddenControlItem: MenuBarItem?
+        var alwaysHiddenControlItem: MenuBarItem?
+        var items = [MenuBarSection.Name: [MenuBarItem]]()
+    }
+
+    @Published var menuBarItemCache = MenuBarItemCache()
 
     private var tempShownItemsInfo = [(item: MenuBarItem, destination: MoveDestination)]()
 
@@ -136,10 +142,14 @@ extension MenuBarItemManager {
             return
         }
 
-        update(&cachedMenuBarItems) { cachedItems in
+        update(&menuBarItemCache) { cache in
+            cache.hiddenControlItem = hiddenControlItem
+            cache.alwaysHiddenControlItem = alwaysHiddenControlItem
+
             for section in MenuBarSection.Name.allCases {
-                cachedItems[section] = []
+                cache.items[section] = []
             }
+
             for item in items {
                 // filter out items that can't be hidden
                 guard item.canBeHidden else {
@@ -154,14 +164,14 @@ extension MenuBarItemManager {
                 }
 
                 if item.frame.minX >= hiddenControlItem.frame.maxX {
-                    cachedItems[.visible, default: []].append(item)
+                    cache.items[.visible, default: []].append(item)
                 } else if
                     item.frame.maxX <= hiddenControlItem.frame.minX,
                     item.frame.minX >= alwaysHiddenControlItem.frame.maxX
                 {
-                    cachedItems[.hidden, default: []].append(item)
+                    cache.items[.hidden, default: []].append(item)
                 } else if item.frame.maxX <= alwaysHiddenControlItem.frame.minX {
-                    cachedItems[.alwaysHidden, default: []].append(item)
+                    cache.items[.alwaysHidden, default: []].append(item)
                 } else {
                     Logger.itemManager.warning("Item \"\(item.logString)\" not added to any section")
                 }

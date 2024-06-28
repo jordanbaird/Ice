@@ -42,7 +42,7 @@ class MenuBarItemImageCache: ObservableObject {
                 // update when the average menu bar color or cached items change
                 Publishers.Merge(
                     appState.menuBarManager.$averageColorInfo.removeDuplicates().mapToVoid(),
-                    appState.itemManager.$cachedMenuBarItems.removeDuplicates().mapToVoid()
+                    appState.itemManager.$menuBarItemCache.removeDuplicates().mapToVoid()
                 )
             )
             .receive(on: DispatchQueue.main)
@@ -73,7 +73,7 @@ class MenuBarItemImageCache: ObservableObject {
     }
 
     func cacheFailed(for section: MenuBarSection.Name) -> Bool {
-        let items = appState?.itemManager.cachedMenuBarItems[section] ?? []
+        let items = appState?.itemManager.menuBarItemCache.items[section] ?? []
         guard !items.isEmpty else {
             return false
         }
@@ -95,7 +95,7 @@ class MenuBarItemImageCache: ObservableObject {
 
         guard
             let appState,
-            let items = appState.itemManager.cachedMenuBarItems[section]
+            let items = appState.itemManager.menuBarItemCache.items[section]
         else {
             return [:]
         }
@@ -174,7 +174,7 @@ class MenuBarItemImageCache: ObservableObject {
             sectionsNeedingDisplay.append(section)
         }
         for section in sectionsNeedingDisplay {
-            guard !appState.itemManager.cachedMenuBarItems[section, default: []].isEmpty else {
+            guard !appState.itemManager.menuBarItemCache.items[section, default: []].isEmpty else {
                 continue
             }
             let sectionImages = await createImages(for: section, screen: screen)

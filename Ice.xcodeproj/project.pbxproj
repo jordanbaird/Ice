@@ -76,6 +76,7 @@
 		17CDCACD2C2E6F6A000B1CFF /* Deprecated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CDCACC2C2E6F6A000B1CFF /* Deprecated.swift */; };
 		17CDCACF2C2E6F77000B1CFF /* Private.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CDCACE2C2E6F77000B1CFF /* Private.swift */; };
 		17CDCAD12C2E6FB0000B1CFF /* Bridging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CDCAD02C2E6FB0000B1CFF /* Bridging.swift */; };
+		17CDCAD42C2E8A04000B1CFF /* CGError+logString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17CDCAD32C2E8A04000B1CFF /* CGError+logString.swift */; };
 		17D1AC8D2B97BB5900726180 /* MenuBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D1AC8C2B97BB5900726180 /* MenuBarItem.swift */; };
 		17D1AC8F2B97E71D00726180 /* AdvancedSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D1AC8E2B97E71D00726180 /* AdvancedSettingsPane.swift */; };
 		17DFF4AC2AD5FB3300B5177A /* MenuBarAppearanceSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFF4AB2AD5FB3300B5177A /* MenuBarAppearanceSettingsPane.swift */; };
@@ -198,6 +199,7 @@
 		17CDCACC2C2E6F6A000B1CFF /* Deprecated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deprecated.swift; sourceTree = "<group>"; };
 		17CDCACE2C2E6F77000B1CFF /* Private.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Private.swift; sourceTree = "<group>"; };
 		17CDCAD02C2E6FB0000B1CFF /* Bridging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridging.swift; sourceTree = "<group>"; };
+		17CDCAD32C2E8A04000B1CFF /* CGError+logString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGError+logString.swift"; sourceTree = "<group>"; };
 		17D1AC8C2B97BB5900726180 /* MenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItem.swift; sourceTree = "<group>"; };
 		17D1AC8E2B97E71D00726180 /* AdvancedSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedSettingsPane.swift; sourceTree = "<group>"; };
 		17DFF4AB2AD5FB3300B5177A /* MenuBarAppearanceSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceSettingsPane.swift; sourceTree = "<group>"; };
@@ -493,6 +495,14 @@
 			path = Shims;
 			sourceTree = "<group>";
 		};
+		17CDCAD22C2E89FD000B1CFF /* CGError */ = {
+			isa = PBXGroup;
+			children = (
+				17CDCAD32C2E8A04000B1CFF /* CGError+logString.swift */,
+			);
+			path = CGError;
+			sourceTree = "<group>";
+		};
 		17EC6B522AE0C09F0065F260 /* Pickers */ = {
 			isa = PBXGroup;
 			children = (
@@ -696,6 +706,7 @@
 		716683412A76811C006ABF84 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
+				17CDCAD22C2E89FD000B1CFF /* CGError */,
 				71D2B02A2AAFD88E0002B6C8 /* Bundle */,
 				17EE695F2C26A7F600F778A7 /* CGColor */,
 				17F9983F2C16567E00D75EC0 /* CGImage */,
@@ -975,6 +986,7 @@
 				1787C4302B16AE78002F50DF /* PermissionsManager.swift in Sources */,
 				170CF88E2B0EDD780073F982 /* AnyLocalizedError.swift in Sources */,
 				175812542B80FBFA00D622DA /* MenuBarAppearanceEditorPanel.swift in Sources */,
+				17CDCAD42C2E8A04000B1CFF /* CGError+logString.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
 				172D82802BC1F3270048DD88 /* AccessibilityApplication.swift in Sources */,
 				17C3C5F72B75A36100B9648C /* NSScreen+displayID.swift in Sources */,
@@ -1114,7 +1126,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 50;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = K2ATHQPJDP;
@@ -1130,7 +1142,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = "0.10.0-beta.5b";
+				MARKETING_VERSION = "0.10.0-beta.5g";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jordanbaird.Ice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1147,7 +1159,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 45;
+				CURRENT_PROJECT_VERSION = 50;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = K2ATHQPJDP;
@@ -1163,7 +1175,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = "0.10.0-beta.5b";
+				MARKETING_VERSION = "0.10.0-beta.5g";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jordanbaird.Ice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

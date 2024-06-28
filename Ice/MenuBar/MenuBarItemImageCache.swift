@@ -102,12 +102,17 @@ class MenuBarItemImageCache: ObservableObject {
 
         let tempCache = TempCache()
         let backingScaleFactor = screen.backingScaleFactor
+        let displayBounds = CGDisplayBounds(screen.displayID)
 
         let cacheTask = Task.detached {
             var windowIDs = [CGWindowID]()
             var frame = CGRect.null
 
-            for item in items {
+            let filteredItems = items.lazy.filter { item in
+                item.frame.minY == displayBounds.minY
+            }
+
+            for item in filteredItems {
                 windowIDs.append(item.windowID)
                 frame = frame.union(item.frame)
             }
@@ -119,7 +124,7 @@ class MenuBarItemImageCache: ObservableObject {
             {
                 var start: CGFloat = 0
 
-                for item in items {
+                for item in filteredItems {
                     let width = item.frame.width * backingScaleFactor
                     let height = item.frame.height * backingScaleFactor
                     let frame = CGRect(x: start, y: 0, width: width, height: height)
@@ -135,7 +140,7 @@ class MenuBarItemImageCache: ObservableObject {
                     await tempCache.cache(image: itemImage, with: item.info)
                 }
             } else {
-                for item in items {
+                for item in filteredItems {
                     guard let itemImage = Bridging.captureWindow(item.windowID, option: option) else {
                         continue
                     }

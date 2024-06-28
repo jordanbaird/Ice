@@ -777,8 +777,12 @@ extension MenuBarItemManager {
 // MARK: - Click Items
 
 extension MenuBarItemManager {
-    /// Clicks the given menu bar item with the left mouse button.
-    func leftClick(item: MenuBarItem) async throws {
+    /// Clicks the given menu bar item with the given button states.
+    private func click(
+        item: MenuBarItem,
+        mouseDownButtonState: CGEvent.MenuBarItemEventButtonState,
+        mouseUpButtonState: CGEvent.MenuBarItemEventButtonState
+    ) async throws {
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .invalidEventSource, item: item)
         }
@@ -789,11 +793,32 @@ extension MenuBarItemManager {
             throw EventError(code: .invalidItem, item: item)
         }
 
-        MouseCursor.hide()
+        let clickPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
 
-        defer {
-            MouseCursor.warp(to: cursorLocation)
-            MouseCursor.show()
+        guard
+            let mouseDownEvent = CGEvent.menuBarItemEvent(
+                with: .click(mouseDownButtonState),
+                location: clickPoint,
+                item: item,
+                pid: item.ownerPID,
+                source: source
+            ),
+            let mouseUpEvent = CGEvent.menuBarItemEvent(
+                with: .click(mouseUpButtonState),
+                location: clickPoint,
+                item: item,
+                pid: item.ownerPID,
+                source: source
+            ),
+            let fallbackEvent = CGEvent.menuBarItemEvent(
+                with: .click(mouseUpButtonState),
+                location: clickPoint,
+                item: item,
+                pid: item.ownerPID,
+                source: source
+            )
+        else {
+            throw EventError(code: .eventCreationFailure, item: item)
         }
 
         try permitAllEvents(
@@ -805,36 +830,41 @@ extension MenuBarItemManager {
             suppressionInterval: 0
         )
 
-        let clickPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
+        MouseCursor.hide()
 
-        guard
-            let mouseDownEvent = CGEvent.menuBarItemEvent(
-                with: .click(.leftMouseDown),
-                location: clickPoint,
-                item: item,
-                pid: item.ownerPID,
-                source: source
-            ),
-            let mouseUpEvent = CGEvent.menuBarItemEvent(
-                with: .click(.leftMouseUp),
-                location: clickPoint,
-                item: item,
-                pid: item.ownerPID,
-                source: source
-            )
-        else {
-            throw EventError(code: .eventCreationFailure, item: item)
+        defer {
+            MouseCursor.warp(to: cursorLocation)
+            MouseCursor.show()
         }
-
-        Logger.itemManager.info("Left clicking \"\(item.logString)\"")
 
         do {
             try await postEventAndWaitToReceive(mouseDownEvent, to: .sessionEventTap)
             try await postEventAndWaitToReceive(mouseUpEvent, to: .sessionEventTap)
         } catch {
-            try? await postEventAndWaitToReceive(mouseUpEvent, to: .sessionEventTap)
+            // call with `try?`, as we don't want to circumvent the existing error
+            try? await postEventAndWaitToReceive(fallbackEvent, to: .sessionEventTap)
             throw error
         }
+    }
+
+    /// Clicks the given menu bar item with the left mouse button.
+    func leftClick(item: MenuBarItem) async throws {
+        Logger.itemManager.info("Left clicking \"\(item.logString)\"")
+        try await click(
+            item: item,
+            mouseDownButtonState: .leftMouseDown,
+            mouseUpButtonState: .leftMouseUp
+        )
+    }
+
+    /// Clicks the given menu bar item with the right mouse button.
+    func rightClick(item: MenuBarItem) async throws {
+        Logger.itemManager.info("Right clicking \"\(item.logString)\"")
+        try await click(
+            item: item,
+            mouseDownButtonState: .rightMouseDown,
+            mouseUpButtonState: .rightMouseUp
+        )
     }
 }
 

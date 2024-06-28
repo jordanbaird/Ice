@@ -309,11 +309,89 @@ private struct IceBarItemView: View {
         if let image {
             Image(nsImage: image)
                 .contentShape(Rectangle())
-                .help(item.displayName)
-                .onTapGesture {
-                    closePanel()
-                    itemManager.tempShowItem(item, clickWhenFinished: true)
+                .overlay {
+                    IceBarItemClickView(item: item, closePanel: closePanel)
                 }
         }
     }
+}
+
+private struct IceBarItemClickView: NSViewRepresentable {
+    private class Represented: NSView {
+        private(set) weak var itemManager: MenuBarItemManager?
+        let item: MenuBarItem
+        let closePanel: () -> Void
+
+        private var lastLeftMouseDownDate = Date.now
+        private var lastRightMouseDownDate = Date.now
+
+        private var locationOfLastLeftMouseDown = CGPoint.zero
+        private var locationOfLastRightMouseDown = CGPoint.zero
+
+        init(itemManager: MenuBarItemManager, item: MenuBarItem, closePanel: @escaping () -> Void) {
+            self.item = item
+            self.closePanel = closePanel
+            super.init(frame: .zero)
+            self.itemManager = itemManager
+            self.toolTip = item.displayName
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        private func absoluteDistance(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
+            hypot(p1.x - p2.x, p1.y - p2.y).magnitude
+        }
+
+        override func mouseDown(with event: NSEvent) {
+            super.mouseDown(with: event)
+            lastLeftMouseDownDate = .now
+            locationOfLastLeftMouseDown = NSEvent.mouseLocation
+        }
+
+        override func rightMouseDown(with event: NSEvent) {
+            super.rightMouseDown(with: event)
+            lastRightMouseDownDate = .now
+            locationOfLastRightMouseDown = NSEvent.mouseLocation
+        }
+
+        override func mouseUp(with event: NSEvent) {
+            super.mouseUp(with: event)
+            guard
+                let itemManager,
+                Date.now.timeIntervalSince(lastLeftMouseDownDate) < 0.5,
+                absoluteDistance(locationOfLastLeftMouseDown, NSEvent.mouseLocation) < 5
+            else {
+                return
+            }
+            closePanel()
+            itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .left)
+        }
+
+        override func rightMouseUp(with event: NSEvent) {
+            super.rightMouseUp(with: event)
+            guard
+                let itemManager,
+                Date.now.timeIntervalSince(lastRightMouseDownDate) < 0.5,
+                absoluteDistance(locationOfLastRightMouseDown, NSEvent.mouseLocation) < 5
+            else {
+                return
+            }
+            closePanel()
+            itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .right)
+        }
+    }
+
+    @EnvironmentObject var itemManager: MenuBarItemManager
+
+    let item: MenuBarItem
+    let closePanel: () -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        Represented(itemManager: itemManager, item: item, closePanel: closePanel)
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) { }
 }

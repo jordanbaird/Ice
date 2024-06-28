@@ -866,6 +866,16 @@ extension MenuBarItemManager {
             mouseUpButtonState: .rightMouseUp
         )
     }
+
+    /// Clicks the given menu bar item with the center mouse button.
+    func centerClick(item: MenuBarItem) async throws {
+        Logger.itemManager.info("Center clicking \"\(item.logString)\"")
+        try await click(
+            item: item,
+            mouseDownButtonState: .otherMouseDown,
+            mouseUpButtonState: .otherMouseUp
+        )
+    }
 }
 
 // MARK: - Temporarily Show Items
@@ -916,7 +926,8 @@ extension MenuBarItemManager {
     ///   - item: An item to show.
     ///   - clickWhenFinished: A Boolean value that indicates whether the item
     ///     should be clicked once its movement has finished.
-    func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool) {
+    ///   - mouseButton: The mouse button of the click.
+    func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
         Logger.itemManager.info("Temporarily showing \"\(item.logString)\"")
 
         let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
@@ -936,7 +947,16 @@ extension MenuBarItemManager {
             if clickWhenFinished {
                 do {
                     try await slowMove(item: item, to: .rightOfItem(hiddenControlItem))
-                    try await leftClick(item: item)
+                    switch mouseButton {
+                    case .left:
+                        try await leftClick(item: item)
+                    case .right:
+                        try await rightClick(item: item)
+                    case .center:
+                        try await centerClick(item: item)
+                    @unknown default:
+                        assertionFailure("Unknown mouse button \(mouseButton)")
+                    }
                 } catch {
                     Logger.itemManager.error("ERROR: \(error)")
                 }
@@ -1031,6 +1051,8 @@ private extension CGEvent {
         case leftMouseUp
         case rightMouseDown
         case rightMouseUp
+        case otherMouseDown
+        case otherMouseUp
     }
 
     /// Event types that are used for moving menu bar items.
@@ -1050,6 +1072,8 @@ private extension CGEvent {
             case .leftMouseUp: .leftMouseUp
             case .rightMouseDown: .rightMouseDown
             case .rightMouseUp: .rightMouseUp
+            case .otherMouseDown: .otherMouseDown
+            case .otherMouseUp: .otherMouseUp
             }
         }
 
@@ -1064,6 +1088,7 @@ private extension CGEvent {
             switch buttonState {
             case .leftMouseDown, .leftMouseUp: .left
             case .rightMouseDown, .rightMouseUp: .right
+            case .otherMouseDown, .otherMouseUp: .center
             }
         }
     }

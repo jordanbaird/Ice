@@ -628,18 +628,9 @@ extension MenuBarItemManager {
             throw EventError(code: .invalidEventSource, item: item)
         }
 
-        try permitAllEvents(
-            for: .combinedSessionState,
-            during: [
-                .eventSuppressionStateRemoteMouseDrag,
-                .eventSuppressionStateSuppressionInterval,
-            ],
-            suppressionInterval: 0
-        )
-
-        let fallbackPoint = try getFallbackPoint(for: item)
         let startPoint = CGPoint(x: 20_000, y: 20_000)
         let endPoint = try getEndPoint(for: destination)
+        let fallbackPoint = try getFallbackPoint(for: item)
         let targetItem = getTargetItem(for: destination)
 
         guard
@@ -667,6 +658,15 @@ extension MenuBarItemManager {
         else {
             throw EventError(code: .eventCreationFailure, item: item)
         }
+
+        try permitAllEvents(
+            for: .combinedSessionState,
+            during: [
+                .eventSuppressionStateRemoteMouseDrag,
+                .eventSuppressionStateSuppressionInterval,
+            ],
+            suppressionInterval: 0
+        )
 
         do {
             try await forwardEvent(

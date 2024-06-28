@@ -103,6 +103,7 @@ class MenuBarItemImageCache: ObservableObject {
         let tempCache = TempCache()
         let backingScaleFactor = screen.backingScaleFactor
         let displayBounds = CGDisplayBounds(screen.displayID)
+        let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
 
         let cacheTask = Task.detached {
             var windowIDs = [CGWindowID]()
@@ -117,7 +118,6 @@ class MenuBarItemImageCache: ObservableObject {
                 frame = frame.union(item.frame)
             }
 
-            let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
             if
                 let compositeImage = Bridging.captureWindows(windowIDs, option: option),
                 CGFloat(compositeImage.width) == frame.width * backingScaleFactor

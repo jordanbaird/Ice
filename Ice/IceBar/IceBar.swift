@@ -210,6 +210,7 @@ private struct IceBarContentView: View {
     @EnvironmentObject var itemManager: MenuBarItemManager
     @EnvironmentObject var menuBarManager: MenuBarManager
     @EnvironmentObject var imageCache: MenuBarItemImageCache
+    @State private var frame = CGRect.zero
 
     let section: MenuBarSection.Name
     let closePanel: () -> Void
@@ -234,7 +235,7 @@ private struct IceBarContentView: View {
         if configuration.hasRoundedShape {
             AnyInsettableShape(Capsule())
         } else {
-            AnyInsettableShape(RoundedRectangle(cornerRadius: 7, style: .circular))
+            AnyInsettableShape(RoundedRectangle(cornerRadius: frame.height / 7, style: .circular))
         }
     }
 
@@ -255,6 +256,7 @@ private struct IceBarContentView: View {
         }
         .padding(5)
         .fixedSize()
+        .onFrameChange(update: $frame)
     }
 
     @ViewBuilder

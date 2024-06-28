@@ -480,8 +480,8 @@
 		17CDCACA2C2E6F3D000B1CFF /* Bridging */ = {
 			isa = PBXGroup;
 			children = (
-				17CDCACB2C2E6F55000B1CFF /* Shims */,
 				17CDCAD02C2E6FB0000B1CFF /* Bridging.swift */,
+				17CDCACB2C2E6F55000B1CFF /* Shims */,
 			);
 			path = Bridging;
 			sourceTree = "<group>";

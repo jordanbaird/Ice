@@ -83,7 +83,7 @@ class IceBarPanel: NSPanel {
             return
         }
 
-        let menuBarHeight = NSApp.mainMenu?.menuBarHeight ?? 0
+        let menuBarHeight = screen.getMenuBarHeight() ?? 0
         let originY = ((screen.frame.maxY - 1) - menuBarHeight) - frame.height
 
         func getOrigin(for iceBarLocation: IceBarLocation) -> CGPoint? {

@@ -345,15 +345,15 @@ class MenuBarOverlayPanel: NSPanel {
             return
         }
 
-        guard let menuBarWindow = WindowInfo.getMenuBarWindow(for: owningScreen.displayID) else {
+        guard let menuBarHeight = owningScreen.getMenuBarHeight() else {
             return
         }
 
         let newFrame = CGRect(
             x: owningScreen.frame.minX,
-            y: (owningScreen.frame.maxY - menuBarWindow.frame.height) - 5,
+            y: (owningScreen.frame.maxY - menuBarHeight) - 5,
             width: owningScreen.frame.width,
-            height: menuBarWindow.frame.height + 5
+            height: menuBarHeight + 5
         )
 
         alphaValue = 0

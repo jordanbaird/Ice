@@ -107,7 +107,6 @@ final class EventManager {
                 let displayID = bestScreen.displayID
                 do {
                     currentApplicationMenuFrame = try menuBarManager.getApplicationMenuFrame(for: displayID)
-                    print(currentApplicationMenuFrame!)
                 } catch {
                     Logger.eventManager.error(
                         """

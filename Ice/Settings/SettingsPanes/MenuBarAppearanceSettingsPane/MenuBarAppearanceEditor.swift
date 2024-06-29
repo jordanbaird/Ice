@@ -76,6 +76,7 @@ struct MenuBarAppearanceEditor: View {
             }
             Section("Menu Bar Shape") {
                 shapePicker
+                isInset
             }
             if case .settings = location {
                 Section {
@@ -171,5 +172,12 @@ struct MenuBarAppearanceEditor: View {
     @ViewBuilder
     private var shapePicker: some View {
         MenuBarShapePicker()
+    }
+
+    @ViewBuilder
+    private var isInset: some View {
+        if appearanceManager.configuration.shapeKind != .none {
+            Toggle("Use inset shape on screens with notch", isOn: appearanceManager.bindings.configuration.isInset)
+        }
     }
 }

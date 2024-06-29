@@ -528,16 +528,27 @@ private class MenuBarOverlayPanelContentView: NSView {
     }
 
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
-    private func pathForSplitShape(in rect: CGRect, info: MenuBarSplitShapeInfo, display: CGDirectDisplayID) -> NSBezierPath {
+    private func pathForSplitShape(in rect: CGRect, info: MenuBarSplitShapeInfo, isInset: Bool, screen: NSScreen) -> NSBezierPath {
+        let shouldInset = isInset && screen.safeAreaInsets.top != 0
+        let rect = if shouldInset {
+            rect.insetBy(dx: 5, dy: 5)
+        } else {
+            rect
+        }
         let leadingPathBounds: CGRect = {
             guard var maxX = overlayPanel?.applicationMenuFrame?.width else {
                 return .zero
             }
-            maxX += 20 // padding so the shape is even on both sides
+            // padding so the shape is even on both sides
+            if shouldInset {
+                maxX += 12
+            } else {
+                maxX += 20
+            }
             return CGRect(x: rect.minX, y: rect.minY, width: maxX, height: rect.height)
         }()
         let trailingPathBounds: CGRect = {
-            let items = MenuBarItem.getMenuBarItemsPrivateAPI(for: display, onScreenOnly: true)
+            let items = MenuBarItem.getMenuBarItemsPrivateAPI(for: screen.displayID, onScreenOnly: true)
             guard !items.isEmpty else {
                 return .zero
             }
@@ -545,7 +556,11 @@ private class MenuBarOverlayPanelContentView: NSView {
                 width += item.frame.width
             }
             var position = rect.maxX - totalWidth
-            position -= 7 // padding so the shape is even on both sides
+            if shouldInset {
+                position += 1
+            } else {
+                position -= 7 // padding so the shape is even on both sides
+            }
             return CGRect(x: position, y: rect.minY, width: rect.maxX - position, height: rect.height)
         }()
 
@@ -610,7 +625,6 @@ private class MenuBarOverlayPanelContentView: NSView {
             return
         }
 
-        let owningDisplay = overlayPanel.owningScreen.displayID
         let drawableBounds = getDrawableBounds()
 
         let shapePath = switch configuration.shapeKind {
@@ -625,7 +639,8 @@ private class MenuBarOverlayPanelContentView: NSView {
             pathForSplitShape(
                 in: drawableBounds,
                 info: configuration.splitShapeInfo,
-                display: owningDisplay
+                isInset: configuration.isInset,
+                screen: overlayPanel.owningScreen
             )
         }
 
@@ -724,7 +739,8 @@ private class MenuBarOverlayPanelContentView: NSView {
                     pathForSplitShape(
                         in: drawableBounds,
                         info: configuration.splitShapeInfo,
-                        display: owningDisplay
+                        isInset: configuration.isInset,
+                        screen: overlayPanel.owningScreen
                     )
                 }
 

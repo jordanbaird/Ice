@@ -115,7 +115,7 @@ final class AppState: ObservableObject {
     func performSetup() {
         configureCancellables()
         permissionsManager.stopAllChecks()
-        eventManager.startAll()
+        eventManager.performSetup()
         menuBarManager.performSetup()
         settingsManager.performSetup()
         itemManager.performSetup()

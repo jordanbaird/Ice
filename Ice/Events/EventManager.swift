@@ -4,12 +4,19 @@
 //
 
 import Cocoa
+import Combine
 import OSLog
 
 /// Manager for the various event monitors maintained by the app.
 @MainActor
 final class EventManager {
     private weak var appState: AppState?
+
+    private var currentApplicationMenuFrame: CGRect?
+
+    private var currentBestScreen: NSScreen?
+
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: Monitors
 
@@ -74,6 +81,45 @@ final class EventManager {
 
     init(appState: AppState) {
         self.appState = appState
+    }
+
+    func performSetup() {
+        startAll()
+        configureCancellables()
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        // store the application menu frames
+        Timer.publish(every: 1, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard
+                    let self,
+                    let menuBarManager = appState?.menuBarManager,
+                    let bestScreen = getBestScreen(),
+                    currentBestScreen != bestScreen
+                else {
+                    return
+                }
+                currentBestScreen = bestScreen
+                let displayID = bestScreen.displayID
+                do {
+                    currentApplicationMenuFrame = try menuBarManager.getApplicationMenuFrame(for: displayID)
+                    print(currentApplicationMenuFrame!)
+                } catch {
+                    Logger.eventManager.error(
+                        """
+                        Couldn't get application menu frame for display \(displayID), \
+                        error: \(error)
+                        """
+                    )
+                }
+            }
+            .store(in: &c)
+
+        cancellables = c
     }
 
     // MARK: Start/Stop
@@ -385,16 +431,11 @@ extension EventManager {
 // MARK: - Helpers
 
 extension EventManager {
-    /// Returns the best screen to use for event manager calculations.
-    var bestScreen: NSScreen? {
-        NSScreen.screenWithMouse ?? NSScreen.main
-    }
-
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of the menu bar.
     var isMouseInsideMenuBar: Bool {
         guard
-            let screen = bestScreen,
+            let currentBestScreen,
             let appState
         else {
             return false
@@ -402,12 +443,12 @@ extension EventManager {
         if appState.menuBarManager.isMenuBarHiddenBySystem || appState.isActiveSpaceFullscreen {
             if
                 let mouseLocation = MouseCursor.location(flipped: true),
-                let menuBarWindow = WindowInfo.getMenuBarWindow(for: screen.displayID)
+                let menuBarWindow = WindowInfo.getMenuBarWindow(for: currentBestScreen.displayID)
             {
                 return menuBarWindow.frame.contains(mouseLocation)
             }
         } else if let mouseLocation = MouseCursor.location(flipped: false) {
-            return mouseLocation.y > screen.visibleFrame.maxY && mouseLocation.y <= screen.frame.maxY
+            return mouseLocation.y > currentBestScreen.visibleFrame.maxY && mouseLocation.y <= currentBestScreen.frame.maxY
         }
         return false
     }
@@ -416,26 +457,24 @@ extension EventManager {
     /// the bounds of the current application menu.
     var isMouseInsideApplicationMenu: Bool {
         guard
-            let screen = bestScreen,
             let mouseLocation = MouseCursor.location(flipped: true),
-            let menuBarManager = appState?.menuBarManager,
-            let menuFrame = menuBarManager.getStoredApplicationMenuFrame(for: screen.displayID)
+            let currentApplicationMenuFrame
         else {
             return false
         }
-        return menuFrame.contains(mouseLocation)
+        return currentApplicationMenuFrame.contains(mouseLocation)
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of a menu bar item.
     var isMouseInsideMenuBarItem: Bool {
         guard
-            let screen = bestScreen,
+            let currentBestScreen,
             let mouseLocation = MouseCursor.location(flipped: true)
         else {
             return false
         }
-        let menuBarItems = MenuBarItem.getMenuBarItemsPrivateAPI(for: screen.displayID, onScreenOnly: true)
+        let menuBarItems = MenuBarItem.getMenuBarItemsPrivateAPI(for: currentBestScreen.displayID, onScreenOnly: true)
         return menuBarItems.contains { $0.frame.contains(mouseLocation) }
     }
 
@@ -475,6 +514,11 @@ extension EventManager {
             return false
         }
         return iceIconFrame.contains(mouseLocation)
+    }
+
+    /// Returns the best screen to use for event manager calculations.
+    func getBestScreen() -> NSScreen? {
+        NSScreen.screenWithMouse ?? NSScreen.main
     }
 }
 

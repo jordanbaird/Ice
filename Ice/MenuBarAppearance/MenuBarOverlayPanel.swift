@@ -13,7 +13,7 @@ import OSLog
 class MenuBarOverlayPanel: NSPanel {
     /// Flags representing the updatable components of a panel.
     enum UpdateFlag: String, CustomStringConvertible {
-        case applicationMenuItemFrames
+        case applicationMenuFrame
         case desktopWallpaper
 
         var description: String { rawValue }
@@ -27,13 +27,13 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// An error that can occur during an update.
     private enum UpdateError: Error, CustomStringConvertible {
-        case applicationMenuItemFrames(any Error)
+        case applicationMenuFrame(any Error)
         case desktopWallpaper(any Error)
 
         var description: String {
             switch self {
-            case .applicationMenuItemFrames(let error):
-                "Update of application menu item frames failed: \(error)"
+            case .applicationMenuFrame(let error):
+                "Update of application menu frame failed: \(error)"
             case .desktopWallpaper(let error):
                 "Update of desktop wallpaper failed: \(error)"
             }
@@ -83,8 +83,8 @@ class MenuBarOverlayPanel: NSPanel {
     /// A Boolean value that indicates whether the user is dragging a menu bar item.
     @Published var isDraggingMenuBarItem = false
 
-    /// The frames of the application menu's items.
-    @Published private(set) var applicationMenuItemFrames = [CGRect]()
+    /// The frame of the application menu.
+    @Published private(set) var applicationMenuFrame: CGRect?
 
     /// The current desktop wallpaper, clipped to the bounds of the menu bar.
     @Published private(set) var desktopWallpaper: CGImage?
@@ -152,16 +152,16 @@ class MenuBarOverlayPanel: NSPanel {
                 return
             }
             let displayID = owningScreen.displayID
-            updateTaskContext.setTask(for: .applicationMenuItemFrames, timeout: .seconds(10)) {
+            updateTaskContext.setTask(for: .applicationMenuFrame, timeout: .seconds(10)) {
                 var hasUpdated = false
                 while true {
                     try Task.checkCancellation()
                     try await Task.sleep(for: .milliseconds(hasUpdated ? 500 : 1))
                     if
-                        let latestFrames = try? await appState.menuBarManager.getApplicationMenuItemFrames(for: displayID),
-                        await latestFrames != self.applicationMenuItemFrames
+                        let latestFrame = try? await appState.menuBarManager.getApplicationMenuFrame(for: displayID),
+                        await latestFrame != self.applicationMenuFrame
                     {
-                        await self.insertUpdateFlag(.applicationMenuItemFrames)
+                        await self.insertUpdateFlag(.applicationMenuFrame)
                         hasUpdated = true
                     }
                 }
@@ -271,8 +271,8 @@ class MenuBarOverlayPanel: NSPanel {
         return owningDisplay
     }
 
-    /// Stores the frames of the menu bar's application menus.
-    private func updateApplicationMenuItemFrames(for display: CGDirectDisplayID) throws {
+    /// Stores the frame of the menu bar's application menu.
+    private func updateApplicationMenuFrame(for display: CGDirectDisplayID) throws {
         guard
             let menuBarManager = appState?.menuBarManager,
             !menuBarManager.isMenuBarHiddenBySystem
@@ -280,9 +280,9 @@ class MenuBarOverlayPanel: NSPanel {
             return
         }
         do {
-            applicationMenuItemFrames = try menuBarManager.getApplicationMenuItemFrames(for: display)
+            applicationMenuFrame = try menuBarManager.getApplicationMenuFrame(for: display)
         } catch {
-            applicationMenuItemFrames.removeAll()
+            applicationMenuFrame = nil
             throw error
         }
     }
@@ -309,12 +309,12 @@ class MenuBarOverlayPanel: NSPanel {
     /// Updates the panel to prepare for display.
     private func performUpdates(for flags: Set<UpdateFlag>, display: CGDirectDisplayID) async throws {
         try await withThrowingTaskGroup(of: Void.self) { group in
-            if flags.contains(.applicationMenuItemFrames) {
+            if flags.contains(.applicationMenuFrame) {
                 group.addTask {
                     do {
-                        try await self.updateApplicationMenuItemFrames(for: display)
+                        try await self.updateApplicationMenuFrame(for: display)
                     } catch {
-                        throw UpdateError.applicationMenuItemFrames(error)
+                        throw UpdateError.applicationMenuFrame(error)
                     }
                 }
             }
@@ -360,7 +360,7 @@ class MenuBarOverlayPanel: NSPanel {
         setFrame(newFrame, display: false)
         orderFrontRegardless()
 
-        updateFlags = [.applicationMenuItemFrames, .desktopWallpaper]
+        updateFlags = [.applicationMenuFrame, .desktopWallpaper]
         updateCallbacks.append { [weak self, weak appState] in
             guard
                 let self,
@@ -446,8 +446,8 @@ private class MenuBarOverlayPanelContentView: NSView {
                     }
                 }
                 .store(in: &c)
-            // redraw whenever the application menu item frames change
-            overlayPanel.$applicationMenuItemFrames
+            // redraw whenever the application menu frame changes
+            overlayPanel.$applicationMenuFrame
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
                 }
@@ -530,11 +530,7 @@ private class MenuBarOverlayPanelContentView: NSView {
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
     private func pathForSplitShape(in rect: CGRect, info: MenuBarSplitShapeInfo, display: CGDirectDisplayID) -> NSBezierPath {
         let leadingPathBounds: CGRect = {
-            let applicationMenuItemFrames = overlayPanel?.applicationMenuItemFrames ?? []
-            var maxX = applicationMenuItemFrames.reduce(into: 0) { maxX, frame in
-                maxX += frame.width
-            }
-            guard maxX != 0 else {
+            guard var maxX = overlayPanel?.applicationMenuFrame?.width else {
                 return .zero
             }
             maxX += 20 // padding so the shape is even on both sides

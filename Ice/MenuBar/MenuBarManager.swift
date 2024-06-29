@@ -42,8 +42,6 @@ final class MenuBarManager: ObservableObject {
 
     private let decoder = JSONDecoder()
 
-    private var applicationMenuFrames = [CGDirectDisplayID: CGRect]()
-
     private var isHidingApplicationMenus = false
 
     private var canUpdateAverageColor = false
@@ -117,17 +115,6 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        // store the application menu frames
-        Timer.publish(every: 1, on: .main, in: .default)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                applicationMenuFrames = getApplicationMenuFramesForAllDisplays()
-            }
-            .store(in: &c)
-
         if
             let appState,
             let settingsWindow = appState.settingsWindow
@@ -194,11 +181,10 @@ final class MenuBarManager: ObservableObject {
                     let displayID = screen.displayID
 
                     // get the application menu frame for the display
-                    guard let applicationMenuItemFrames = try? getApplicationMenuItemFrames(for: displayID) else {
+                    guard let applicationMenuFrame = try? getApplicationMenuFrame(for: displayID) else {
                         return
                     }
 
-                    let applicationMenuFrame = applicationMenuItemFrames.reduce(.zero, CGRectUnion)
                     let items = MenuBarItem.getMenuBarItemsCoreGraphics(for: displayID, onScreenOnly: true)
 
                     // get the leftmost item on the screen; the application menu should
@@ -277,30 +263,15 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
-    /// Returns the frames of each item in the application menu for the given display.
-    func getApplicationMenuItemFrames(for display: CGDirectDisplayID) throws -> [CGRect] {
+    /// Returns the frame of the application menu for the given display.
+    func getApplicationMenuFrame(for display: CGDirectDisplayID) throws -> CGRect {
         let menuBar = try AccessibilityMenuBar(display: display)
-        return try menuBar.menuBarItems().map { try $0.frame() }
-    }
-
-    /// Returns the frames of the application menus for all displays.
-    func getApplicationMenuFramesForAllDisplays() -> [CGDirectDisplayID: CGRect] {
-        var frames = [CGDirectDisplayID: CGRect]()
-        for screen in NSScreen.screens {
-            let displayID = screen.displayID
-            do {
-                let itemFrames = try getApplicationMenuItemFrames(for: displayID)
-                frames[displayID] = itemFrames.reduce(.zero, CGRectUnion)
-            } catch {
-                Logger.menuBarManager.error(
-                    """
-                    Couldn't get application menu frame for display \(displayID), \
-                    error: \(error)
-                    """
-                )
-            }
+        var menuBarFrame = try menuBar.frame()
+        menuBarFrame.origin = CGDisplayBounds(display).origin
+        menuBarFrame.size.width = try menuBar.menuBarItems().reduce(into: 0) { width, item in
+            try width += item.frame().width
         }
-        return frames
+        return menuBarFrame
     }
 
     /// Shows the right-click menu.
@@ -369,11 +340,6 @@ final class MenuBarManager: ObservableObject {
     /// Returns the menu bar section with the given name.
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
-    }
-
-    /// Returns the stored frame of the application menu for the given display.
-    func getStoredApplicationMenuFrame(for display: CGDirectDisplayID) -> CGRect? {
-        applicationMenuFrames[display]
     }
 }
 

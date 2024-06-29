@@ -222,13 +222,16 @@ extension MenuBarItem {
         if onScreenOnly {
             option.insert(.onScreen)
         }
+        var titlePredicate: (MenuBarItem) -> Bool = { _ in true }
         if activeSpaceOnly {
             option.insert(.activeSpace)
+            titlePredicate = { $0.title != "" }
         }
         return Bridging.getWindowList(option: option).lazy
             .compactMap { windowID in
                 MenuBarItem(windowID: windowID)
             }
+            .filter(titlePredicate)
             .sortedByOrderInMenuBar()
     }
 }

@@ -216,7 +216,7 @@ private struct IceBarContentView: View {
     let closePanel: () -> Void
 
     private var items: [MenuBarItem] {
-        itemManager.menuBarItemCache.items[section, default: []]
+        itemManager.menuBarItemCache.managedItems(for: section)
     }
 
     private var configuration: MenuBarAppearanceConfiguration {

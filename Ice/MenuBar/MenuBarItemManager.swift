@@ -13,7 +13,37 @@ class MenuBarItemManager: ObservableObject {
     struct MenuBarItemCache: Hashable {
         var hiddenControlItem: MenuBarItem?
         var alwaysHiddenControlItem: MenuBarItem?
-        var items = [MenuBarSection.Name: [MenuBarItem]]()
+        private var items = [MenuBarSection.Name: [MenuBarItem]]()
+
+        mutating func clearItems(for section: MenuBarSection.Name) {
+            items[section, default: []].removeAll()
+        }
+
+        mutating func appendItem(_ item: MenuBarItem, to section: MenuBarSection.Name) {
+            items[section, default: []].append(item)
+        }
+
+        func allItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
+            items[section, default: []]
+        }
+
+        func managedItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
+            allItems(for: section).filter { item in
+                // filter out items that can't be hidden
+                guard item.canBeHidden else {
+                    return false
+                }
+
+                if item.owningApplication == .current {
+                    // Ice icon is the only item owned by Ice that should be included
+                    guard item.title == ControlItem.Identifier.iceIcon.rawValue else {
+                        return false
+                    }
+                }
+
+                return true
+            }
+        }
     }
 
     @Published var menuBarItemCache = MenuBarItemCache()
@@ -135,43 +165,36 @@ extension MenuBarItemManager {
             }
         }
 
+        var items = items
+
         guard
-            let hiddenControlItem = items.first(where: { $0.info == .hiddenControlItem }),
-            let alwaysHiddenControlItem = items.first(where: { $0.info == .alwaysHiddenControlItem })
+            let hiddenControlItemIndex = items.firstIndex(where: { $0.info == .hiddenControlItem }),
+            let alwaysHiddenControlItemIndex = items.firstIndex(where: { $0.info == .alwaysHiddenControlItem })
         else {
             return
         }
+
+        let hiddenControlItem = items.remove(at: hiddenControlItemIndex)
+        let alwaysHiddenControlItem = items.remove(at: alwaysHiddenControlItemIndex)
 
         update(&menuBarItemCache) { cache in
             cache.hiddenControlItem = hiddenControlItem
             cache.alwaysHiddenControlItem = alwaysHiddenControlItem
 
             for section in MenuBarSection.Name.allCases {
-                cache.items[section] = []
+                cache.clearItems(for: section)
             }
 
             for item in items {
-                // filter out items that can't be hidden
-                guard item.canBeHidden else {
-                    continue
-                }
-
-                if item.owningApplication == .current {
-                    // Ice icon is the only item owned by Ice that should be included
-                    guard item.title == ControlItem.Identifier.iceIcon.rawValue else {
-                        continue
-                    }
-                }
-
                 if item.frame.minX >= hiddenControlItem.frame.maxX {
-                    cache.items[.visible, default: []].append(item)
+                    cache.appendItem(item, to: .visible)
                 } else if
                     item.frame.maxX <= hiddenControlItem.frame.minX,
                     item.frame.minX >= alwaysHiddenControlItem.frame.maxX
                 {
-                    cache.items[.hidden, default: []].append(item)
+                    cache.appendItem(item, to: .hidden)
                 } else if item.frame.maxX <= alwaysHiddenControlItem.frame.minX {
-                    cache.items[.alwaysHidden, default: []].append(item)
+                    cache.appendItem(item, to: .alwaysHidden)
                 } else {
                     Logger.itemManager.warning("Item \"\(item.logString)\" not added to any section")
                 }

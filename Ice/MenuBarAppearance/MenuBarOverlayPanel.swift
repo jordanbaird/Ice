@@ -541,9 +541,9 @@ private class MenuBarOverlayPanelContentView: NSView {
             }
             // padding so the shape is even on both sides
             if shouldInset {
-                maxX += 12
+                maxX -= 3
             } else {
-                maxX += 20
+                maxX += 5
             }
             return CGRect(x: rect.minX, y: rect.minY, width: maxX, height: rect.height)
         }()

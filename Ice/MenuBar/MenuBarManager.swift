@@ -271,6 +271,7 @@ final class MenuBarManager: ObservableObject {
         menuBarFrame.size.width = try menuBar.menuBarItems().reduce(into: 0) { width, item in
             try width += item.frame().width
         }
+        menuBarFrame.size.width += 15 // extra width to accomodate menu bar item padding
         return menuBarFrame
     }
 

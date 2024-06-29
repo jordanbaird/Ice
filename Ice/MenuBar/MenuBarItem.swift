@@ -136,10 +136,7 @@ struct MenuBarItem {
     ///
     /// - Parameter itemWindow: A window that contains information about the item.
     private init?(itemWindow: WindowInfo) {
-        guard
-            itemWindow.isMenuBarItem,
-            itemWindow.isOnActiveSpace
-        else {
+        guard itemWindow.isMenuBarItem else {
             return nil
         }
         self.init(uncheckedItemWindow: itemWindow)
@@ -212,18 +209,21 @@ extension MenuBarItem {
             .sortedByOrderInMenuBar()
     }
 
-    /// Returns an array of menu bar items using private APIs to retrieve the
-    /// windows.
+    /// Returns an array of menu bar items using private APIs to retrieve
+    /// the windows.
     ///
-    /// - Parameter onScreenOnly: A Boolean value that indicates whether only
-    ///   the items that are on screen should be returned.
-    static func getMenuBarItemsPrivateAPI(onScreenOnly: Bool) -> [MenuBarItem] {
-        var option: Bridging.WindowListOption = [
-            .menuBarItems,
-            .activeSpace,
-        ]
+    /// - Parameters:
+    ///   - onScreenOnly: A Boolean value that indicates whether only the
+    ///     items that are on screen should be returned.
+    ///   - activeSpaceOnly: A Boolean value that indicates whether only the
+    ///     items that are on the active space should be returned.
+    static func getMenuBarItemsPrivateAPI(onScreenOnly: Bool, activeSpaceOnly: Bool) -> [MenuBarItem] {
+        var option: Bridging.WindowListOption = [.menuBarItems]
         if onScreenOnly {
             option.insert(.onScreen)
+        }
+        if activeSpaceOnly {
+            option.insert(.activeSpace)
         }
         return Bridging.getWindowList(option: option).lazy
             .compactMap { windowID in

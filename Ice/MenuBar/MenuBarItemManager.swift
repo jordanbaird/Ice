@@ -76,7 +76,7 @@ class MenuBarItemManager: ObservableObject {
                     return
                 }
                 Task {
-                    let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
+                    let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
                     if self.canArrange {
                         do {
                             try await self.arrangeItems(items)
@@ -940,7 +940,7 @@ extension MenuBarItemManager {
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
         Logger.itemManager.info("Temporarily showing \"\(item.logString)\"")
 
-        let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
+        let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
 
         guard let destination = getReturnDestination(for: item, in: items) else {
             Logger.itemManager.warning("No return destination for item \"\(item.logString)\"")

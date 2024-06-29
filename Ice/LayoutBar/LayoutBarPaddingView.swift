@@ -103,7 +103,7 @@ class LayoutBarPaddingView: NSView {
             if arrangedViews.count == 1 {
                 // dragging source is the only view in the layout bar, so we
                 // need to find a target item
-                let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false)
+                let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
                 let targetItem: MenuBarItem? = switch section.name {
                 case .visible: nil // visible section always has more than 1 item
                 case .hidden: items.first { $0.info == .hiddenControlItem }

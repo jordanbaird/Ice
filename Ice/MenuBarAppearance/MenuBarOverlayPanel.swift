@@ -345,15 +345,15 @@ class MenuBarOverlayPanel: NSPanel {
             return
         }
 
-        guard let menuBarHeight = NSApp.mainMenu?.menuBarHeight else {
+        guard let menuBarWindow = WindowInfo.getMenuBarWindow(for: owningScreen.displayID) else {
             return
         }
 
         let newFrame = CGRect(
             x: owningScreen.frame.minX,
-            y: (owningScreen.frame.maxY - menuBarHeight) - 5,
+            y: (owningScreen.frame.maxY - menuBarWindow.frame.height) - 5,
             width: owningScreen.frame.width,
-            height: menuBarHeight + 5
+            height: menuBarWindow.frame.height + 5
         )
 
         alphaValue = 0
@@ -541,7 +541,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             return CGRect(x: rect.minX, y: rect.minY, width: maxX, height: rect.height)
         }()
         let trailingPathBounds: CGRect = {
-            let items = MenuBarItem.getMenuBarItemsCoreGraphics(for: display, onScreenOnly: true)
+            let items = MenuBarItem.getMenuBarItemsPrivateAPI(for: display, onScreenOnly: true)
             guard !items.isEmpty else {
                 return .zero
             }

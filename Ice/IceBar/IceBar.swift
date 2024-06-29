@@ -228,7 +228,13 @@ private struct IceBarContentView: View {
     }
 
     private var verticalPadding: CGFloat {
-        configuration.hasRoundedShape ? 2 : 3
+        if let screen = imageCache.screen {
+            guard screen.safeAreaInsets.top == 0 else {
+                // has notch; it's tall enough already
+                return 0
+            }
+        }
+        return 2
     }
 
     private var clipShape: AnyInsettableShape {
@@ -308,6 +314,16 @@ private struct IceBarItemView: View {
     }
 
     var body: some View {
+        if let menuBarHeight = imageCache.menuBarHeight {
+            clickableImage
+                .frame(height: menuBarHeight)
+        } else {
+            clickableImage
+        }
+    }
+
+    @ViewBuilder
+    private var clickableImage: some View {
         if let image {
             Image(nsImage: image)
                 .contentShape(Rectangle())

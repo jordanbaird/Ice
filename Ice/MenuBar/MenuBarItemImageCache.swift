@@ -15,6 +15,9 @@ class MenuBarItemImageCache: ObservableObject {
     /// The screen of the cached item images.
     private(set) var screen: NSScreen?
 
+    /// The height of the menu bar of the cached item images.
+    private(set) var menuBarHeight: CGFloat?
+
     private weak var appState: AppState?
 
     private var cancellables = Set<AnyCancellable>()
@@ -104,6 +107,7 @@ class MenuBarItemImageCache: ObservableObject {
         let backingScaleFactor = screen.backingScaleFactor
         let displayBounds = CGDisplayBounds(screen.displayID)
         let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
+        let defaultItemThickness = NSStatusBar.system.thickness * backingScaleFactor
 
         let cacheTask = Task.detached {
             var windowIDs = [CGWindowID]()
@@ -127,7 +131,12 @@ class MenuBarItemImageCache: ObservableObject {
                 for item in filteredItems {
                     let width = item.frame.width * backingScaleFactor
                     let height = item.frame.height * backingScaleFactor
-                    let frame = CGRect(x: start, y: 0, width: width, height: height)
+                    let frame = CGRect(
+                        x: start,
+                        y: (height / 2) - (defaultItemThickness / 2),
+                        width: width,
+                        height: defaultItemThickness
+                    )
 
                     defer {
                         start += width
@@ -141,10 +150,23 @@ class MenuBarItemImageCache: ObservableObject {
                 }
             } else {
                 for item in filteredItems {
-                    guard let itemImage = Bridging.captureWindow(item.windowID, option: option) else {
+                    let width = item.frame.width * backingScaleFactor
+                    let height = item.frame.height * backingScaleFactor
+                    let frame = CGRect(
+                        x: 0,
+                        y: (height / 2) - (defaultItemThickness / 2),
+                        width: width,
+                        height: defaultItemThickness
+                    )
+
+                    guard
+                        let itemImage = Bridging.captureWindow(item.windowID, option: option),
+                        let croppedImage = itemImage.cropping(to: frame)
+                    else {
                         continue
                     }
-                    await tempCache.cache(image: itemImage, with: item.info)
+
+                    await tempCache.cache(image: croppedImage, with: item.info)
                 }
             }
         }
@@ -185,6 +207,7 @@ class MenuBarItemImageCache: ObservableObject {
             images.merge(sectionImages) { (_, new) in new }
         }
         self.screen = screen
+        self.menuBarHeight = screen.getMenuBarHeight()
     }
 }
 

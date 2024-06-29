@@ -541,7 +541,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             }
             // padding so the shape is even on both sides
             if shouldInset {
-                maxX -= 3
+                maxX -= 5
             } else {
                 maxX += 5
             }
@@ -557,7 +557,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             }
             var position = rect.maxX - totalWidth
             if shouldInset {
-                position += 1
+                position += 2
             } else {
                 position -= 7 // padding so the shape is even on both sides
             }

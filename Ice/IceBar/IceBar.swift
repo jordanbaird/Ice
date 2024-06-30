@@ -13,6 +13,8 @@ class IceBarPanel: NSPanel {
 
     private(set) var currentSection: MenuBarSection.Name?
 
+    private lazy var colorManager = IceBarColorManager(iceBarPanel: self)
+
     private var cancellables = Set<AnyCancellable>()
 
     init(appState: AppState) {
@@ -149,6 +151,7 @@ class IceBarPanel: NSPanel {
         contentView = IceBarHostingView(
             appState: appState,
             imageCache: appState.imageCache,
+            colorManager: colorManager,
             section: section
         ) { [weak self] in
             self?.close()
@@ -175,6 +178,7 @@ private class IceBarHostingView: NSHostingView<AnyView> {
     init(
         appState: AppState,
         imageCache: MenuBarItemImageCache,
+        colorManager: IceBarColorManager,
         section: MenuBarSection.Name,
         closePanel: @escaping () -> Void
     ) {
@@ -183,6 +187,7 @@ private class IceBarHostingView: NSHostingView<AnyView> {
                 .environmentObject(appState)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.menuBarManager)
+                .environmentObject(colorManager)
                 .environmentObject(imageCache)
                 .erased()
         )
@@ -209,6 +214,7 @@ private struct IceBarContentView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var itemManager: MenuBarItemManager
     @EnvironmentObject var menuBarManager: MenuBarManager
+    @EnvironmentObject var colorManager: IceBarColorManager
     @EnvironmentObject var imageCache: MenuBarItemImageCache
     @State private var frame = CGRect.zero
 
@@ -270,7 +276,7 @@ private struct IceBarContentView: View {
         unstyledBody
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
-            .layoutBarStyle(appState: appState)
+            .layoutBarStyle(appState: appState, averageColorInfo: colorManager.colorInfo)
             .clipShape(clipShape)
     }
 
@@ -278,7 +284,7 @@ private struct IceBarContentView: View {
     private var unstyledBody: some View {
         if imageCache.cacheFailed(for: section) {
             Text("Unable to display menu bar items")
-                .foregroundStyle(menuBarManager.averageColorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
+                .foregroundStyle(colorManager.colorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
                 .padding(3)
         } else {
             HStack(spacing: 0) {

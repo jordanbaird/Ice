@@ -10,20 +10,8 @@ import SwiftUI
 /// Manager for the state of the menu bar.
 @MainActor
 final class MenuBarManager: ObservableObject {
-    /// The source of the menu bar's average color.
-    enum AverageColorSource: Hashable {
-        case menuBarWindow
-        case desktopWallpaper
-    }
-
     /// Information for the menu bar's average color.
-    struct AverageColorInfo: Hashable {
-        var color: CGColor
-        var source: AverageColorSource
-    }
-
-    /// Information for the menu bar's average color.
-    @Published private(set) var averageColorInfo: AverageColorInfo?
+    @Published private(set) var averageColorInfo: MenuBarAverageColorInfo?
 
     /// A Boolean value that indicates whether the menu bar is either always hidden
     /// by the system, or automatically hidden and shown by the system based on the
@@ -229,7 +217,7 @@ final class MenuBarManager: ObservableObject {
         }
 
         let image: CGImage?
-        let source: AverageColorSource
+        let source: MenuBarAverageColorInfo.Source
 
         if let window = WindowInfo.getMenuBarWindow(for: screen.displayID) {
             var bounds = window.frame
@@ -259,7 +247,7 @@ final class MenuBarManager: ObservableObject {
         }
 
         if averageColorInfo?.color != averageColor {
-            averageColorInfo = AverageColorInfo(color: averageColor, source: source)
+            averageColorInfo = MenuBarAverageColorInfo(color: averageColor, source: source)
         }
     }
 

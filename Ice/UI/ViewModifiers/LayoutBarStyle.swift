@@ -14,21 +14,21 @@ extension View {
     /// - Parameter appState: The shared app state.
     @MainActor
     @ViewBuilder
-    func layoutBarStyle(appState: AppState) -> some View {
+    func layoutBarStyle(appState: AppState, averageColorInfo: MenuBarAverageColorInfo?) -> some View {
         background {
             if appState.isActiveSpaceFullscreen {
                 Color.black
-            } else if let info = appState.menuBarManager.averageColorInfo {
-                switch info.source {
+            } else if let averageColorInfo {
+                switch averageColorInfo.source {
                 case .menuBarWindow:
-                    Color(cgColor: info.color)
+                    Color(cgColor: averageColorInfo.color)
                         .overlay(
                             Material.bar
                                 .opacity(0.2)
                                 .blendMode(.softLight)
                         )
                 case .desktopWallpaper:
-                    Color(cgColor: info.color)
+                    Color(cgColor: averageColorInfo.color)
                         .overlay(
                             Material.bar
                                 .opacity(0.5)

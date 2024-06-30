@@ -38,7 +38,7 @@ struct LayoutBar: View {
         conditionalBody
             .frame(height: 50)
             .frame(maxWidth: .infinity)
-            .layoutBarStyle(appState: appState)
+            .layoutBarStyle(appState: appState, averageColorInfo: menuBarManager.averageColorInfo)
             .clipShape(RoundedRectangle(cornerRadius: 9, style: .circular))
     }
 

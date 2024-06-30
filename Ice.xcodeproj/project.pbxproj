@@ -106,6 +106,8 @@
 		17FE5AD52BCA9BE200E4F8D9 /* ScreenState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */; };
 		71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */; };
 		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
+		71287C602C3189AC0028706E /* IceBarColorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C5F2C3189AC0028706E /* IceBarColorManager.swift */; };
+		71287C622C31D75F0028706E /* MenuBarAverageColorInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C612C31D75F0028706E /* MenuBarAverageColorInfo.swift */; };
 		7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED5D2A853FCF000A7E1B /* Constants.swift */; };
 		7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */; };
 		7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED692A85870E000A7E1B /* SettingsView.swift */; };
@@ -229,6 +231,8 @@
 		17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenState.swift; sourceTree = "<group>"; };
 		71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectAssociation.swift; sourceTree = "<group>"; };
 		711535F12AB9F6C1003193AD /* BindingExposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingExposable.swift; sourceTree = "<group>"; };
+		71287C5F2C3189AC0028706E /* IceBarColorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceBarColorManager.swift; sourceTree = "<group>"; };
+		71287C612C31D75F0028706E /* MenuBarAverageColorInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAverageColorInfo.swift; sourceTree = "<group>"; };
 		7133ED5D2A853FCF000A7E1B /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+windowWithIdentifier.swift"; sourceTree = "<group>"; };
 		7133ED692A85870E000A7E1B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -455,6 +459,7 @@
 			isa = PBXGroup;
 			children = (
 				17BE3DCF2C1A45B3008B98EF /* IceBar.swift */,
+				71287C5F2C3189AC0028706E /* IceBarColorManager.swift */,
 				17EE69692C282ACC00F778A7 /* IceBarLocation.swift */,
 			);
 			path = IceBar;
@@ -746,6 +751,7 @@
 		7166834E2A768190006ABF84 /* MenuBar */ = {
 			isa = PBXGroup;
 			children = (
+				71287C612C31D75F0028706E /* MenuBarAverageColorInfo.swift */,
 				17D1AC8C2B97BB5900726180 /* MenuBarItem.swift */,
 				17EE69642C27777C00F778A7 /* MenuBarItemImageCache.swift */,
 				1727786D2C15181300F6F687 /* MenuBarItemManager.swift */,
@@ -922,6 +928,7 @@
 				17ECD4EE2B290F8D00E33147 /* PermissionsWindow.swift in Sources */,
 				17FE5AD32BCA7A7500E4F8D9 /* ScreenStateManager.swift in Sources */,
 				174D4E242BA1D28700D11129 /* HotkeyRecorder.swift in Sources */,
+				71287C622C31D75F0028706E /* MenuBarAverageColorInfo.swift in Sources */,
 				71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */,
 				174D4E262BA1D35D00D11129 /* HotkeyRecorderModel.swift in Sources */,
 				1787C42C2B16AE0B002F50DF /* Permission.swift in Sources */,
@@ -970,6 +977,7 @@
 				1773546C2B1BBBA1001CF731 /* MenuBarShapePicker.swift in Sources */,
 				17D1AC8F2B97E71D00726180 /* AdvancedSettingsPane.swift in Sources */,
 				17F998532C16EFCD00D75EC0 /* CGImage+averageColor.swift in Sources */,
+				71287C602C3189AC0028706E /* IceBarColorManager.swift in Sources */,
 				17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */,
 				17CC22BC2B8CDE6F001A0582 /* EventManager.swift in Sources */,
 				1737E3E52BA3C4AA009F0EFA /* HotkeyAction.swift in Sources */,

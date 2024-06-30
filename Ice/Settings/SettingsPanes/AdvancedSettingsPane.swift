@@ -21,6 +21,9 @@ struct AdvancedSettingsPane: View {
             Section {
                 hideApplicationMenus
                 showSectionDividers
+            }
+            Section("Always-Hidden Section") {
+                enableAlwaysHiddenSection
                 canToggleAlwaysHiddenSection
             }
         }
@@ -60,13 +63,20 @@ struct AdvancedSettingsPane: View {
     }
 
     @ViewBuilder
+    private var enableAlwaysHiddenSection: some View {
+        Toggle("Enable the always-hidden section", isOn: manager.bindings.enableAlwaysHiddenSection)
+    }
+
+    @ViewBuilder
     private var canToggleAlwaysHiddenSection: some View {
-        Toggle(isOn: manager.bindings.canToggleAlwaysHiddenSection) {
-            Text("Can toggle the always-hidden section")
-            if appState.settingsManager.generalSettingsManager.showOnClick {
-                Text("\(Modifiers.option.combinedValue) + click one of Ice's menu bar items, or inside an empty area of the menu bar to toggle the section")
-            } else {
-                Text("\(Modifiers.option.combinedValue) + click one of Ice's menu bar items to toggle the section")
+        if manager.enableAlwaysHiddenSection {
+            Toggle(isOn: manager.bindings.canToggleAlwaysHiddenSection) {
+                Text("Can toggle the always-hidden section")
+                if appState.settingsManager.generalSettingsManager.showOnClick {
+                    Text("\(Modifiers.option.combinedValue) + click one of Ice's menu bar items, or inside an empty area of the menu bar to toggle the section")
+                } else {
+                    Text("\(Modifiers.option.combinedValue) + click one of Ice's menu bar items to toggle the section")
+                }
             }
         }
     }

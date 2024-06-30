@@ -153,6 +153,7 @@ extension Defaults {
 
         case hideApplicationMenus = "HideApplicationMenus"
         case showSectionDividers = "ShowSectionDividers"
+        case enableAlwaysHiddenSection = "EnableAlwaysHiddenSection"
         case canToggleAlwaysHiddenSection = "CanToggleAlwaysHiddenSection"
 
         // MARK: Menu Bar Appearance Settings

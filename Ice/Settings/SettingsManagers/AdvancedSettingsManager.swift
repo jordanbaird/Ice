@@ -19,6 +19,11 @@ final class AdvancedSettingsManager: ObservableObject {
     /// items should be shown.
     @Published var showSectionDividers = false
 
+    // TODO: To avoid breaking existing user configurations, wait until this setting has shipped in an official release, then change its default value to false
+    /// A Boolean value that indicates whether the always-hidden section
+    /// is enabled.
+    @Published var enableAlwaysHiddenSection = true
+
     /// A Boolean value that indicates whether the always-hidden section
     /// can be toggled by holding down the Option key.
     @Published var canToggleAlwaysHiddenSection = true
@@ -39,6 +44,7 @@ final class AdvancedSettingsManager: ObservableObject {
     private func loadInitialState() {
         Defaults.ifPresent(key: .hideApplicationMenus, assign: &hideApplicationMenus)
         Defaults.ifPresent(key: .showSectionDividers, assign: &showSectionDividers)
+        Defaults.ifPresent(key: .enableAlwaysHiddenSection, assign: &enableAlwaysHiddenSection)
         Defaults.ifPresent(key: .canToggleAlwaysHiddenSection, assign: &canToggleAlwaysHiddenSection)
     }
 
@@ -56,6 +62,13 @@ final class AdvancedSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { shouldShow in
                 Defaults.set(shouldShow, forKey: .showSectionDividers)
+            }
+            .store(in: &c)
+
+        $enableAlwaysHiddenSection
+            .receive(on: DispatchQueue.main)
+            .sink { enable in
+                Defaults.set(enable, forKey: .enableAlwaysHiddenSection)
             }
             .store(in: &c)
 

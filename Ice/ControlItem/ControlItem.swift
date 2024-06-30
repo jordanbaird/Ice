@@ -74,6 +74,12 @@ final class ControlItem: ObservableObject {
         return section.name != .visible
     }
 
+    /// A Boolean value that indicates whether the control item is currently displayed
+    /// in the menu bar.
+    var isAddedToMenuBar: Bool {
+        statusItem.isVisible
+    }
+
     init(identifier: Identifier) {
         let autosaveName = identifier.rawValue
 
@@ -212,7 +218,11 @@ final class ControlItem: ObservableObject {
                     else {
                         return
                     }
-                    isVisible = showIceIcon
+                    if showIceIcon {
+                        addToMenuBar()
+                    } else {
+                        removeFromMenuBar()
+                    }
                 }
                 .store(in: &c)
 
@@ -264,6 +274,23 @@ final class ControlItem: ObservableObject {
                         return
                     }
                     isVisible = shouldShow
+                }
+                .store(in: &c)
+
+            appState.settingsManager.advancedSettingsManager.$enableAlwaysHiddenSection
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] enable in
+                    guard
+                        let self,
+                        identifier == .alwaysHidden
+                    else {
+                        return
+                    }
+                    if enable {
+                        addToMenuBar()
+                    } else {
+                        removeFromMenuBar()
+                    }
                 }
                 .store(in: &c)
         }
@@ -452,6 +479,31 @@ final class ControlItem: ObservableObject {
         self.appState = appState
         configureCancellables()
         updateStatusItem(with: state)
+    }
+
+    /// Adds the control item to the menu bar.
+    func addToMenuBar() {
+        guard !isAddedToMenuBar else {
+            return
+        }
+        statusItem.isVisible = true
+    }
+
+    /// Removes the control item from the menu bar.
+    func removeFromMenuBar() {
+        guard isAddedToMenuBar else {
+            return
+        }
+        guard let autosaveName = statusItem.autosaveName else {
+            return
+        }
+        // setting the visibility of the status item has the unwanted side
+        // effect of deleting the preferredPosition; cache and restore afterward
+        let cached = StatusItemDefaults[.preferredPosition, autosaveName]
+        defer {
+            StatusItemDefaults[.preferredPosition, autosaveName] = cached
+        }
+        statusItem.isVisible = false
     }
 }
 

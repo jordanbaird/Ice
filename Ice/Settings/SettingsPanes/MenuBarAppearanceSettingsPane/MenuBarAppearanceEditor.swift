@@ -35,7 +35,7 @@ struct MenuBarAppearanceEditor: View {
 
     @ViewBuilder
     private var stackBody: some View {
-        if appearanceManager.canEditAppearance {
+        if appearanceManager.canChangeAppearance {
             mainForm
         } else {
             cannotEdit
@@ -46,7 +46,7 @@ struct MenuBarAppearanceEditor: View {
     private var stackFooter: some View {
         HStack {
             if
-                appearanceManager.canEditAppearance,
+                appearanceManager.canChangeAppearance,
                 appearanceManager.configuration != .defaultConfiguration
             {
                 Button("Reset") {

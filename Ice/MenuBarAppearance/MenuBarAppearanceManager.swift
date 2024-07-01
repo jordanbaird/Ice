@@ -12,7 +12,7 @@ import OSLog
 final class MenuBarAppearanceManager: ObservableObject {
     @Published var configuration: MenuBarAppearanceConfiguration = .defaultConfiguration
 
-    @Published private(set) var canEditAppearance = true
+    @Published private(set) var canChangeAppearance = true
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -77,7 +77,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 else {
                     return
                 }
-                canEditAppearance = !isMenuBarHidden
+                canChangeAppearance = !isMenuBarHidden
             }
             .store(in: &c)
 

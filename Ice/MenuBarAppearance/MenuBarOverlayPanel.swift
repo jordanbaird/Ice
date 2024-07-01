@@ -169,17 +169,6 @@ class MenuBarOverlayPanel: NSPanel {
         }
         .store(in: &c)
 
-        // make sure the panel switches to the active space
-        Timer.publish(every: 2.5, on: .main, in: .default)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard let self, !isOnActiveSpace else {
-                    return
-                }
-                needsShow = true
-            }
-            .store(in: &c)
-
         // continually update the desktop wallpaper; ideally, we would set up
         // an observer for a wallpaper change notification, but macOS doesn't
         // post one anymore; updating every 5 seconds at least keeps the CPU
@@ -234,8 +223,8 @@ class MenuBarOverlayPanel: NSPanel {
 
         if let appState {
             appState.menuBarManager.$isMenuBarHiddenBySystem
-                .sink { [weak self] isHandled in
-                    self?.alphaValue = isHandled ? 0 : 1
+                .sink { [weak self] isHidden in
+                    self?.alphaValue = isHidden ? 0 : 1
                 }
                 .store(in: &c)
         }
@@ -255,15 +244,19 @@ class MenuBarOverlayPanel: NSPanel {
         case .showing: "Preventing overlay panel from showing."
         case .updates: "Preventing overlay panel from updating."
         }
-        let owningDisplay = owningScreen.displayID
         guard let appState else {
             Logger.overlayPanel.notice("No app state. \(actionMessage)")
+            return nil
+        }
+        guard appState.menuBarManager.appearanceManager.canChangeAppearance else {
+            Logger.overlayPanel.notice("Appearance manager cannot change appearance. \(actionMessage)")
             return nil
         }
         guard !appState.isActiveSpaceFullscreen else {
             Logger.overlayPanel.notice("Active space is fullscreen. \(actionMessage)")
             return nil
         }
+        let owningDisplay = owningScreen.displayID
         guard AccessibilityMenuBar.hasValidMenuBar(for: owningDisplay) else {
             Logger.overlayPanel.notice("No valid menu bar found. \(actionMessage)")
             return nil

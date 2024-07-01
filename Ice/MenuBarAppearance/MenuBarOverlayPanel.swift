@@ -519,8 +519,23 @@ private class MenuBarOverlayPanelContentView: NSView {
     }
 
     /// Returns a path for the ``MenuBarShapeKind/full`` shape kind.
-    private func pathForFullShape(in rect: CGRect, info: MenuBarFullShapeInfo) -> NSBezierPath {
-        shapePath(
+    private func pathForFullShape(in rect: CGRect, info: MenuBarFullShapeInfo, isInset: Bool, screen: NSScreen) -> NSBezierPath {
+        guard let appearanceManager = overlayPanel?.appState?.menuBarManager.appearanceManager else {
+            return NSBezierPath()
+        }
+        var rect = rect
+        let shouldInset = isInset && screen.hasNotch
+        if shouldInset {
+            rect = rect.insetBy(dx: 0, dy: appearanceManager.menuBarInsetAmount)
+            if info.leadingEndCap == .round {
+                rect.origin.x += appearanceManager.menuBarInsetAmount
+                rect.size.width -= appearanceManager.menuBarInsetAmount
+            }
+            if info.trailingEndCap == .round {
+                rect.size.width -= appearanceManager.menuBarInsetAmount
+            }
+        }
+        return shapePath(
             in: rect,
             leadingEndCap: info.leadingEndCap,
             trailingEndCap: info.trailingEndCap
@@ -532,14 +547,17 @@ private class MenuBarOverlayPanelContentView: NSView {
         guard let appearanceManager = overlayPanel?.appState?.menuBarManager.appearanceManager else {
             return NSBezierPath()
         }
+        var rect = rect
         let shouldInset = isInset && screen.hasNotch
-        let rect = if shouldInset {
-            rect.insetBy(
-                dx: appearanceManager.menuBarInsetAmount,
-                dy: appearanceManager.menuBarInsetAmount
-            )
-        } else {
-            rect
+        if shouldInset {
+            rect = rect.insetBy(dx: 0, dy: appearanceManager.menuBarInsetAmount)
+            if info.leading.leadingEndCap == .round {
+                rect.origin.x += appearanceManager.menuBarInsetAmount
+                rect.size.width -= appearanceManager.menuBarInsetAmount
+            }
+            if info.trailing.trailingEndCap == .round {
+                rect.size.width -= appearanceManager.menuBarInsetAmount
+            }
         }
         let leadingPathBounds: CGRect = {
             guard var maxX = overlayPanel?.applicationMenuFrame?.width else {
@@ -548,6 +566,9 @@ private class MenuBarOverlayPanelContentView: NSView {
             // padding so the shape is even on both sides
             if shouldInset {
                 maxX -= 5
+                if info.leading.leadingEndCap == .square {
+                    maxX += appearanceManager.menuBarInsetAmount
+                }
             } else {
                 maxX += 5
             }
@@ -564,6 +585,9 @@ private class MenuBarOverlayPanelContentView: NSView {
             var position = rect.maxX - totalWidth
             if shouldInset {
                 position += 2
+                if info.trailing.trailingEndCap == .square {
+                    position -= appearanceManager.menuBarInsetAmount
+                }
             } else {
                 position -= 7 // padding so the shape is even on both sides
             }
@@ -639,7 +663,9 @@ private class MenuBarOverlayPanelContentView: NSView {
         case .full:
             pathForFullShape(
                 in: drawableBounds,
-                info: configuration.fullShapeInfo
+                info: configuration.fullShapeInfo,
+                isInset: configuration.isInset,
+                screen: overlayPanel.owningScreen
             )
         case .split:
             pathForSplitShape(
@@ -739,7 +765,9 @@ private class MenuBarOverlayPanelContentView: NSView {
                 case .full:
                     pathForFullShape(
                         in: drawableBounds,
-                        info: configuration.fullShapeInfo
+                        info: configuration.fullShapeInfo,
+                        isInset: configuration.isInset,
+                        screen: overlayPanel.owningScreen
                     )
                 case .split:
                     pathForSplitShape(

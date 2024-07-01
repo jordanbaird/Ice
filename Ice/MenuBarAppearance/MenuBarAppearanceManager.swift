@@ -71,13 +71,7 @@ final class MenuBarAppearanceManager: ObservableObject {
         Timer.publish(every: 1, on: .main, in: .default)
             .autoconnect()
             .sink { [weak self] _ in
-                guard
-                    let self,
-                    let screen = NSScreen.main
-                else {
-                    return
-                }
-                canEditAppearance = Defaults.globalDomain["_HIHideMenuBar"] as? Bool == false
+                self?.canEditAppearance = Defaults.globalDomain["_HIHideMenuBar"] as? Bool == false
             }
             .store(in: &c)
 

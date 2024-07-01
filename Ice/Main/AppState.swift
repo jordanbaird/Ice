@@ -34,7 +34,7 @@ final class AppState: ObservableObject {
     private(set) lazy var imageCache = MenuBarItemImageCache(appState: self)
 
     /// The app's hotkey registry.
-    let hotkeyRegistry = HotkeyRegistry()
+    nonisolated let hotkeyRegistry = HotkeyRegistry()
 
     /// Manager for app updates.
     let updatesManager = UpdatesManager()

@@ -6,6 +6,12 @@
 import Foundation
 
 enum Defaults {
+    /// Returns a dictionary containing the keys and values for
+    /// the defaults meant to be seen by all applications.
+    static var globalDomain: [String: Any] {
+        UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain) ?? [:]
+    }
+
     /// Returns the object for the specified key.
     ///
     /// - Parameter key: The key in the UserDefaults database

@@ -77,9 +77,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 else {
                     return
                 }
-                let frame = screen.frame
-                let visibleFrame = screen.visibleFrame
-                canEditAppearance = frame.height != visibleFrame.height
+                canEditAppearance = Defaults.globalDomain["_HIHideMenuBar"] as? Bool == false
             }
             .store(in: &c)
 

@@ -235,12 +235,23 @@ private struct IceBarContentView: View {
 
     private var verticalPadding: CGFloat {
         if let screen = imageCache.screen {
-            guard screen.safeAreaInsets.top == 0 else {
-                // has notch; it's tall enough already
+            guard !screen.hasNotch else {
                 return 0
             }
         }
         return 2
+    }
+
+    private var isInset: Bool {
+        menuBarManager.appearanceManager.configuration.isInset
+    }
+
+    private var insetAmount: CGFloat {
+        menuBarManager.appearanceManager.menuBarInsetAmount
+    }
+
+    private var screenHasNotch: Bool {
+        imageCache.screen?.hasNotch == true
     }
 
     private var clipShape: AnyInsettableShape {
@@ -254,10 +265,10 @@ private struct IceBarContentView: View {
     var body: some View {
         ZStack {
             if configuration.hasShadow {
-                styledBody
+                styledContent
                     .shadow(color: .black.opacity(0.5), radius: 2.5)
             } else {
-                styledBody
+                styledContent
             }
             if configuration.hasBorder {
                 clipShape
@@ -272,8 +283,8 @@ private struct IceBarContentView: View {
     }
 
     @ViewBuilder
-    private var styledBody: some View {
-        unstyledBody
+    private var styledContent: some View {
+        sizedContent
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
             .layoutBarStyle(appState: appState, averageColorInfo: colorManager.colorInfo)
@@ -281,18 +292,43 @@ private struct IceBarContentView: View {
     }
 
     @ViewBuilder
-    private var unstyledBody: some View {
-        if imageCache.cacheFailed(for: section) {
-            Text("Unable to display menu bar items")
-                .foregroundStyle(colorManager.colorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
-                .padding(3)
+    private var sizedContent: some View {
+        if let menuBarHeight = imageCache.menuBarHeight {
+            if isInset && screenHasNotch {
+                content
+                    .frame(height: menuBarHeight - insetAmount * 2)
+            } else {
+                content
+                    .frame(height: menuBarHeight)
+            }
         } else {
-            HStack(spacing: 0) {
-                ForEach(items, id: \.windowID) { item in
-                    IceBarItemView(item: item, closePanel: closePanel)
-                }
+            content
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if imageCache.cacheFailed(for: section) {
+            errorView
+        } else {
+            itemsStack
+        }
+    }
+
+    @ViewBuilder
+    private var itemsStack: some View {
+        HStack(spacing: 0) {
+            ForEach(items, id: \.windowID) { item in
+                IceBarItemView(item: item, closePanel: closePanel)
             }
         }
+    }
+
+    @ViewBuilder
+    private var errorView: some View {
+        Text("Unable to display menu bar items")
+            .foregroundStyle(colorManager.colorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
+            .padding(.horizontal, horizontalPadding)
     }
 }
 
@@ -300,6 +336,7 @@ private struct IceBarContentView: View {
 
 private struct IceBarItemView: View {
     @EnvironmentObject var itemManager: MenuBarItemManager
+    @EnvironmentObject var menuBarManager: MenuBarManager
     @EnvironmentObject var imageCache: MenuBarItemImageCache
 
     let item: MenuBarItem
@@ -320,16 +357,6 @@ private struct IceBarItemView: View {
     }
 
     var body: some View {
-        if let menuBarHeight = imageCache.menuBarHeight {
-            clickableImage
-                .frame(height: menuBarHeight)
-        } else {
-            clickableImage
-        }
-    }
-
-    @ViewBuilder
-    private var clickableImage: some View {
         if let image {
             Image(nsImage: image)
                 .contentShape(Rectangle())

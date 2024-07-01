@@ -108,6 +108,7 @@
 		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
 		71287C602C3189AC0028706E /* IceBarColorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C5F2C3189AC0028706E /* IceBarColorManager.swift */; };
 		71287C622C31D75F0028706E /* MenuBarAverageColorInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C612C31D75F0028706E /* MenuBarAverageColorInfo.swift */; };
+		71287C642C3233B30028706E /* NSScreen+hasNotch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C632C3233B30028706E /* NSScreen+hasNotch.swift */; };
 		7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED5D2A853FCF000A7E1B /* Constants.swift */; };
 		7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */; };
 		7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7133ED692A85870E000A7E1B /* SettingsView.swift */; };
@@ -233,6 +234,7 @@
 		711535F12AB9F6C1003193AD /* BindingExposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingExposable.swift; sourceTree = "<group>"; };
 		71287C5F2C3189AC0028706E /* IceBarColorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceBarColorManager.swift; sourceTree = "<group>"; };
 		71287C612C31D75F0028706E /* MenuBarAverageColorInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAverageColorInfo.swift; sourceTree = "<group>"; };
+		71287C632C3233B30028706E /* NSScreen+hasNotch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+hasNotch.swift"; sourceTree = "<group>"; };
 		7133ED5D2A853FCF000A7E1B /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		7133ED642A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSApplication+windowWithIdentifier.swift"; sourceTree = "<group>"; };
 		7133ED692A85870E000A7E1B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -480,6 +482,7 @@
 			children = (
 				17C3C5F62B75A36100B9648C /* NSScreen+displayID.swift */,
 				71829E092C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift */,
+				71287C632C3233B30028706E /* NSScreen+hasNotch.swift */,
 				17EE69582C25A5BA00F778A7 /* NSScreen+screenWithMouse.swift */,
 			);
 			path = NSScreen;
@@ -901,6 +904,7 @@
 				17EE696A2C282ACC00F778A7 /* IceBarLocation.swift in Sources */,
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
 				1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */,
+				71287C642C3233B30028706E /* NSScreen+hasNotch.swift in Sources */,
 				17F93D2C2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift in Sources */,
 				1725FC6A2AED973800A59081 /* AppState.swift in Sources */,
 				1727786E2C15181300F6F687 /* MenuBarItemManager.swift in Sources */,

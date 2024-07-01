@@ -529,9 +529,15 @@ private class MenuBarOverlayPanelContentView: NSView {
 
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
     private func pathForSplitShape(in rect: CGRect, info: MenuBarSplitShapeInfo, isInset: Bool, screen: NSScreen) -> NSBezierPath {
-        let shouldInset = isInset && screen.safeAreaInsets.top != 0
+        guard let appearanceManager = overlayPanel?.appState?.menuBarManager.appearanceManager else {
+            return NSBezierPath()
+        }
+        let shouldInset = isInset && screen.hasNotch
         let rect = if shouldInset {
-            rect.insetBy(dx: 5, dy: 5)
+            rect.insetBy(
+                dx: appearanceManager.menuBarInsetAmount,
+                dy: appearanceManager.menuBarInsetAmount
+            )
         } else {
             rect
         }

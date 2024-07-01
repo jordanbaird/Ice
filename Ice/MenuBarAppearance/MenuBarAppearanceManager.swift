@@ -26,6 +26,8 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private(set) var overlayPanels = Set<MenuBarOverlayPanel>()
 
+    let menuBarInsetAmount: CGFloat = 5
+
     weak var menuBarManager: MenuBarManager? {
         appState?.menuBarManager
     }

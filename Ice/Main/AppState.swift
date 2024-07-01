@@ -78,15 +78,19 @@ final class AppState: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        NSWorkspace.shared.notificationCenter
-            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
+        Publishers.Merge(
+            NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification).mapToVoid(),
+            // frontmost application change can indicate a space change from one display to
+            // another, which gets ignored by `NSWorkspace.activeSpaceDidChangeNotification`
+            NSWorkspace.shared.publisher(for: \.frontmostApplication).mapToVoid()
+        )
+        .sink { [weak self] _ in
+            guard let self else {
+                return
             }
-            .store(in: &c)
+            isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
+        }
+        .store(in: &c)
 
         menuBarManager.objectWillChange
             .sink { [weak self] in
@@ -115,8 +119,8 @@ final class AppState: ObservableObject {
     func performSetup() {
         configureCancellables()
         permissionsManager.stopAllChecks()
-        eventManager.performSetup()
         menuBarManager.performSetup()
+        eventManager.performSetup()
         settingsManager.performSetup()
         itemManager.performSetup()
         imageCache.performSetup()

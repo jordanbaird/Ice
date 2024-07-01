@@ -5,10 +5,12 @@ labels: bug
 body:
   - type: checkboxes
     attributes:
-      label: Check existing issues
+      label: Check existing and frequent issues
       description: Check existing issues to prevent duplicates. Only submit a new issue if you feel it has not been covered by an existing issue, or if a regression has occurred.
       options:
         - label: I have checked existing issues and believe that my issue is not a duplicate
+          required: true
+        - label: I have read the [Frequent Issues](Documentation/FREQUENT_ISSUES.md) document, and my issue is not included there
           required: true
   - type: textarea
     attributes:

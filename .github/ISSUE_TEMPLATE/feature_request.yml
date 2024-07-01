@@ -3,6 +3,13 @@ description: Request a feature or suggest an idea
 title: "[Feature Request]: <feature title>"
 labels: enhancement
 body:
+  - type: checkboxes
+    attributes:
+      label: Check existing feature requests
+      description: Check existing issues to prevent duplicates. Only submit a new issue if you feel it has not been covered by an existing issue.
+      options:
+        - label: I have checked existing issues and believe that my feature request is not a duplicate
+          required: true
   - type: textarea
     attributes:
       label: Description

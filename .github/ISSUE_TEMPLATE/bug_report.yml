@@ -10,7 +10,7 @@ body:
       options:
         - label: I have checked existing issues and believe that my issue is not a duplicate
           required: true
-        - label: I have read the [Frequent Issues](Documentation/FREQUENT_ISSUES.md) document, and my issue is not included there
+        - label: I have read the [Frequent Issues](https://github.com/jordanbaird/Ice/blob/main/Documentation/FREQUENT_ISSUES.md) document, and my issue is not included there
           required: true
   - type: textarea
     attributes:

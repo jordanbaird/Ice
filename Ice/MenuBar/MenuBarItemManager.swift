@@ -153,6 +153,90 @@ class MenuBarItemManager: ObservableObject {
 extension MenuBarItemManager {
     /// Caches the current menu bar items.
     private func cacheItems(_ items: [MenuBarItem]) {
+        func clearCache() {
+            update(&menuBarItemCache) { cache in
+                cache.hiddenControlItem = nil
+                cache.alwaysHiddenControlItem = nil
+
+                for section in MenuBarSection.Name.allCases {
+                    cache.clearItems(for: section)
+                }
+            }
+        }
+
+        func cacheForEnabledAlwaysHiddenSection() {
+            var items = items
+
+            guard
+                let hiddenControlItemIndex = items.firstIndex(where: { $0.info == .hiddenControlItem }),
+                let alwaysHiddenControlItemIndex = items.firstIndex(where: { $0.info == .alwaysHiddenControlItem })
+            else {
+                clearCache()
+                return
+            }
+
+            let hiddenControlItem = items.remove(at: hiddenControlItemIndex)
+            let alwaysHiddenControlItem = items.remove(at: alwaysHiddenControlItemIndex)
+
+            update(&menuBarItemCache) { cache in
+                cache.hiddenControlItem = hiddenControlItem
+                cache.alwaysHiddenControlItem = alwaysHiddenControlItem
+
+                for section in MenuBarSection.Name.allCases {
+                    cache.clearItems(for: section)
+                }
+
+                for item in items {
+                    if item.frame.minX >= hiddenControlItem.frame.maxX {
+                        cache.appendItem(item, to: .visible)
+                    } else if
+                        item.frame.maxX <= hiddenControlItem.frame.minX,
+                        item.frame.minX >= alwaysHiddenControlItem.frame.maxX
+                    {
+                        cache.appendItem(item, to: .hidden)
+                    } else if item.frame.maxX <= alwaysHiddenControlItem.frame.minX {
+                        cache.appendItem(item, to: .alwaysHidden)
+                    } else {
+                        Logger.itemManager.warning("Item \"\(item.logString)\" not added to any section")
+                    }
+                }
+            }
+        }
+
+        func cacheForDisabledAlwaysHiddenSection() {
+            var items = items
+
+            guard let hiddenControlItemIndex = items.firstIndex(where: { $0.info == .hiddenControlItem }) else {
+                clearCache()
+                return
+            }
+
+            let hiddenControlItem = items.remove(at: hiddenControlItemIndex)
+
+            update(&menuBarItemCache) { cache in
+                cache.hiddenControlItem = hiddenControlItem
+                cache.alwaysHiddenControlItem = nil
+
+                for section in MenuBarSection.Name.allCases {
+                    cache.clearItems(for: section)
+                }
+
+                for item in items {
+                    if item.frame.minX >= hiddenControlItem.frame.maxX {
+                        cache.appendItem(item, to: .visible)
+                    } else if item.frame.maxX <= hiddenControlItem.frame.minX {
+                        cache.appendItem(item, to: .hidden)
+                    } else {
+                        Logger.itemManager.warning("Item \"\(item.logString)\" not added to any section")
+                    }
+                }
+            }
+        }
+
+        guard let appState else {
+            return
+        }
+
         guard tempShownItemsInfo.isEmpty else {
             Logger.itemManager.info("Items are temporarily shown, so deferring cache")
             return
@@ -165,40 +249,10 @@ extension MenuBarItemManager {
             }
         }
 
-        var items = items
-
-        guard
-            let hiddenControlItemIndex = items.firstIndex(where: { $0.info == .hiddenControlItem }),
-            let alwaysHiddenControlItemIndex = items.firstIndex(where: { $0.info == .alwaysHiddenControlItem })
-        else {
-            return
-        }
-
-        let hiddenControlItem = items.remove(at: hiddenControlItemIndex)
-        let alwaysHiddenControlItem = items.remove(at: alwaysHiddenControlItemIndex)
-
-        update(&menuBarItemCache) { cache in
-            cache.hiddenControlItem = hiddenControlItem
-            cache.alwaysHiddenControlItem = alwaysHiddenControlItem
-
-            for section in MenuBarSection.Name.allCases {
-                cache.clearItems(for: section)
-            }
-
-            for item in items {
-                if item.frame.minX >= hiddenControlItem.frame.maxX {
-                    cache.appendItem(item, to: .visible)
-                } else if
-                    item.frame.maxX <= hiddenControlItem.frame.minX,
-                    item.frame.minX >= alwaysHiddenControlItem.frame.maxX
-                {
-                    cache.appendItem(item, to: .hidden)
-                } else if item.frame.maxX <= alwaysHiddenControlItem.frame.minX {
-                    cache.appendItem(item, to: .alwaysHidden)
-                } else {
-                    Logger.itemManager.warning("Item \"\(item.logString)\" not added to any section")
-                }
-            }
+        if appState.settingsManager.advancedSettingsManager.enableAlwaysHiddenSection {
+            cacheForEnabledAlwaysHiddenSection()
+        } else {
+            cacheForDisabledAlwaysHiddenSection()
         }
     }
 }

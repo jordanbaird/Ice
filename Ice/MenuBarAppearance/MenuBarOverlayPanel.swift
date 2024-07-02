@@ -553,7 +553,10 @@ private class MenuBarOverlayPanelContentView: NSView {
             }
         }
         let leadingPathBounds: CGRect = {
-            guard var maxX = overlayPanel?.applicationMenuFrame?.width else {
+            guard
+                var maxX = overlayPanel?.applicationMenuFrame?.width,
+                maxX > 0
+            else {
                 return .zero
             }
             // padding so the shape is even on both sides

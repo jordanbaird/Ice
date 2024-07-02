@@ -48,11 +48,11 @@ brew install jordanbaird-ice
 - [x] Show hidden items by scrolling or swiping in the menu bar
 - [x] Automatically rehide
 - [x] Hide application menus when they overlap with shown menu bar items
-- [ ] Drag and drop interface to arrange individual items
-- [ ] Search menu bar items
-- [ ] Display hidden items in a separate bar (e.g. for MacBooks with the notch)
+- [x] Drag and drop interface to arrange individual items
+- [x] Display hidden items in a separate bar (e.g. for MacBooks with the notch)
 - [ ] Custom spacing between items
 - [ ] Profiles for menu bar layout
+- [ ] Search menu bar items
 - [ ] Menu bar item groups
 - [ ] Show menu bar items when trigger conditions are met
 
@@ -62,6 +62,8 @@ brew install jordanbaird-ice
 - [x] Menu bar shadow
 - [x] Menu bar border
 - [x] Custom menu bar shapes (rounded and/or split)
+- [ ] Remove background behind menu bar
+- [ ] Rounded screen corners
 
 ### Hotkeys
 
@@ -94,17 +96,15 @@ There are a number of system APIs that Ice uses that are only available starting
 ![Menu Bar Appearance Example 1](https://github.com/jordanbaird/Ice/assets/90936861/c9cc629d-e27d-4d77-a72a-da4e169f2b37)
 ![Menu Bar Appearance Example 2](https://github.com/jordanbaird/Ice/assets/90936861/f7670573-513a-475d-ab69-7864bed5c5c1)
 
-### Coming soon...
-
 #### Arrange items in settings
 ![Arrange Menu Bar Items](https://github.com/jordanbaird/Ice/assets/90936861/97b71fa7-eb4d-47e4-8978-18cdab7df675)
 
 #### Show hidden items below the menu bar
-![Secondary Bar](https://github.com/jordanbaird/Ice/assets/90936861/6f5da9a1-258e-4b56-a38c-8be543a6a5ae)
+![Ice Bar](https://github.com/jordanbaird/Ice/assets/90936861/6f5da9a1-258e-4b56-a38c-8be543a6a5ae)
 
 ## License
 
-Ice is available under the [MIT license](LICENSE).
+Ice is available under the [GPL-3.0 license](LICENSE).
 
 ## Stargazers over time
 

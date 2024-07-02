@@ -6,6 +6,7 @@
 import Cocoa
 import Combine
 
+@MainActor
 class IceBarColorManager: ObservableObject {
     private enum WindowImage {
         case menuBar(CGImage)

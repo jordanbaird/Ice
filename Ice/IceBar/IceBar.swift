@@ -20,11 +20,7 @@ class IceBarPanel: NSPanel {
     init(appState: AppState) {
         super.init(
             contentRect: .zero,
-            styleMask: [
-                .nonactivatingPanel,
-                .fullSizeContentView,
-                .borderless,
-            ],
+            styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
             backing: .buffered,
             defer: false
         )
@@ -37,11 +33,7 @@ class IceBarPanel: NSPanel {
         self.backgroundColor = .clear
         self.hasShadow = false
         self.level = .mainMenu + 1
-        self.collectionBehavior = [
-            .fullScreenAuxiliary,
-            .ignoresCycle,
-            .moveToActiveSpace,
-        ]
+        self.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle, .moveToActiveSpace]
     }
 
     func performSetup() {
@@ -150,7 +142,6 @@ class IceBarPanel: NSPanel {
 
         contentView = IceBarHostingView(
             appState: appState,
-            imageCache: appState.imageCache,
             colorManager: colorManager,
             section: section
         ) { [weak self] in
@@ -177,7 +168,6 @@ private class IceBarHostingView: NSHostingView<AnyView> {
 
     init(
         appState: AppState,
-        imageCache: MenuBarItemImageCache,
         colorManager: IceBarColorManager,
         section: MenuBarSection.Name,
         closePanel: @escaping () -> Void
@@ -185,10 +175,10 @@ private class IceBarHostingView: NSHostingView<AnyView> {
         super.init(
             rootView: IceBarContentView(section: section, closePanel: closePanel)
                 .environmentObject(appState)
+                .environmentObject(appState.imageCache)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.menuBarManager)
                 .environmentObject(colorManager)
-                .environmentObject(imageCache)
                 .erased()
         )
     }
@@ -212,10 +202,10 @@ private class IceBarHostingView: NSHostingView<AnyView> {
 
 private struct IceBarContentView: View {
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject var itemManager: MenuBarItemManager
-    @EnvironmentObject var menuBarManager: MenuBarManager
     @EnvironmentObject var colorManager: IceBarColorManager
+    @EnvironmentObject var itemManager: MenuBarItemManager
     @EnvironmentObject var imageCache: MenuBarItemImageCache
+    @EnvironmentObject var menuBarManager: MenuBarManager
     @State private var frame = CGRect.zero
 
     let section: MenuBarSection.Name
@@ -242,16 +232,14 @@ private struct IceBarContentView: View {
         return 2
     }
 
-    private var isInset: Bool {
-        menuBarManager.appearanceManager.configuration.isInset
-    }
-
-    private var insetAmount: CGFloat {
-        menuBarManager.appearanceManager.menuBarInsetAmount
-    }
-
-    private var screenHasNotch: Bool {
-        imageCache.screen?.hasNotch == true
+    var contentHeight: CGFloat? {
+        guard let menuBarHeight = imageCache.menuBarHeight else {
+            return nil
+        }
+        if configuration.isInset && imageCache.screen?.hasNotch == true {
+            return menuBarHeight - menuBarManager.appearanceManager.menuBarInsetAmount * 2
+        }
+        return menuBarHeight
     }
 
     private var clipShape: AnyInsettableShape {
@@ -264,12 +252,15 @@ private struct IceBarContentView: View {
 
     var body: some View {
         ZStack {
-            if configuration.hasShadow {
-                styledContent
-                    .shadow(color: .black.opacity(0.5), radius: 2.5)
-            } else {
-                styledContent
-            }
+            content
+                .frame(height: contentHeight)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.vertical, verticalPadding)
+                .layoutBarStyle(appState: appState, averageColorInfo: colorManager.colorInfo)
+                .foregroundStyle(colorManager.colorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
+                .clipShape(clipShape)
+                .shadow(color: .black.opacity(configuration.hasShadow ? 0.5 : 0), radius: 2.5)
+
             if configuration.hasBorder {
                 clipShape
                     .inset(by: configuration.borderWidth / 2)
@@ -283,60 +274,22 @@ private struct IceBarContentView: View {
     }
 
     @ViewBuilder
-    private var styledContent: some View {
-        sizedContent
-            .padding(.horizontal, horizontalPadding)
-            .padding(.vertical, verticalPadding)
-            .layoutBarStyle(appState: appState, averageColorInfo: colorManager.colorInfo)
-            .clipShape(clipShape)
-    }
-
-    @ViewBuilder
-    private var sizedContent: some View {
-        if let menuBarHeight = imageCache.menuBarHeight {
-            if isInset && screenHasNotch {
-                content
-                    .frame(height: menuBarHeight - insetAmount * 2)
-            } else {
-                content
-                    .frame(height: menuBarHeight)
-            }
-        } else {
-            content
-        }
-    }
-
-    @ViewBuilder
     private var content: some View {
         if imageCache.cacheFailed(for: section) {
-            errorView
+            Text("Unable to display menu bar items")
         } else {
-            itemsStack
-        }
-    }
-
-    @ViewBuilder
-    private var itemsStack: some View {
-        HStack(spacing: 0) {
-            ForEach(items, id: \.windowID) { item in
-                IceBarItemView(item: item, closePanel: closePanel)
+            HStack(spacing: 0) {
+                ForEach(items, id: \.windowID) { item in
+                    IceBarItemView(item: item, closePanel: closePanel)
+                }
             }
         }
-    }
-
-    @ViewBuilder
-    private var errorView: some View {
-        Text("Unable to display menu bar items")
-            .foregroundStyle(colorManager.colorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
-            .padding(.horizontal, horizontalPadding)
     }
 }
 
 // MARK: - IceBarItemView
 
 private struct IceBarItemView: View {
-    @EnvironmentObject var itemManager: MenuBarItemManager
-    @EnvironmentObject var menuBarManager: MenuBarManager
     @EnvironmentObject var imageCache: MenuBarItemImageCache
 
     let item: MenuBarItem

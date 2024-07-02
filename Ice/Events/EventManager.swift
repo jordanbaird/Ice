@@ -183,11 +183,8 @@ extension EventManager {
             return
         }
 
-        // only continue if the "hidden" section is currently visible
-        guard
-            let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-            !hiddenSection.isHidden
-        else {
+        // only continue if a section is currently visible
+        guard let shownSection = appState.menuBarManager.shownSection else {
             return
         }
 
@@ -205,7 +202,7 @@ extension EventManager {
 
                 // if clicking caused a space change, don't bother with the window check
                 if Bridging.activeSpaceID != initialSpaceID {
-                    hiddenSection.hide()
+                    shownSection.hide()
                     return
                 }
 
@@ -233,7 +230,7 @@ extension EventManager {
                 }
 
                 // if all the above checks have passed, hide
-                hiddenSection.hide()
+                shownSection.hide()
             } catch {
                 Logger.eventManager.error("ERROR: \(error)")
             }

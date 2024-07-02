@@ -36,6 +36,19 @@ final class MenuBarManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
+    /// The currently shown section.
+    var shownSection: MenuBarSection? {
+        // filter out the visible section;
+        // if multiple sections are shown, return the last one
+        sections.lazy
+            .filter { section in
+                section.name != .visible
+            }
+            .last { section in
+                !section.isHidden
+            }
+    }
+
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
         self.appearanceManager = MenuBarAppearanceManager(appState: appState)

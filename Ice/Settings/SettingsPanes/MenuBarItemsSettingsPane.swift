@@ -49,7 +49,6 @@ struct MenuBarItemsSettingsPane: View {
                 annotation: "Drag menu bar items to this section if you want them to always be hidden."
             )
         }
-        .padding()
     }
 
     @ViewBuilder

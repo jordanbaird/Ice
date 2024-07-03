@@ -12,7 +12,7 @@ struct MenuBarItemsSettingsPane: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 headerText
-                layoutViews
+                layoutBars
                 Spacer()
             }
             .padding()
@@ -30,47 +30,41 @@ struct MenuBarItemsSettingsPane: View {
     }
 
     @ViewBuilder
-    private var layoutViews: some View {
-        Form {
-            if
-                let visibleSection = appState.menuBarManager.section(withName: .visible),
-                visibleSection.isEnabled
-            {
-                Section(visibleSection.name.menuString) {
-                    LayoutBar(section: visibleSection)
-                        .annotation {
-                            Text("Drag menu bar items to this section if you want them to always be visible.")
-                        }
-                }
-            }
+    private var layoutBars: some View {
+        VStack(spacing: 25) {
+            layoutBar(
+                for: .visible,
+                annotation: "Drag menu bar items to this section if you want them to always be visible."
+            )
+            layoutBar(
+                for: .hidden,
+                annotation: "Drag menu bar items to this section if you want them to be hidden."
+            )
+            layoutBar(
+                for: .alwaysHidden,
+                annotation: "Drag menu bar items to this section if you want them to always be hidden."
+            )
+        }
+    }
 
-            if
-                let hiddenSection = appState.menuBarManager.section(withName: .hidden),
-                hiddenSection.isEnabled
-            {
-                Spacer()
-                    .frame(maxHeight: 25)
-
-                Section(hiddenSection.name.menuString) {
-                    LayoutBar(section: hiddenSection)
-                        .annotation {
-                            Text("Drag menu bar items to this section if you want to hide them.")
-                        }
-                }
-            }
-
-            if
-                let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden),
-                alwaysHiddenSection.isEnabled
-            {
-                Spacer()
-                    .frame(maxHeight: 25)
-
-                Section(alwaysHiddenSection.name.menuString) {
-                    LayoutBar(section: alwaysHiddenSection)
-                        .annotation {
-                            Text("Drag menu bar items to this section if you want them to always be hidden.")
-                        }
+    @ViewBuilder
+    private func layoutBar(
+        for section: MenuBarSection.Name,
+        annotation: LocalizedStringKey
+    ) -> some View {
+        if
+            let section = appState.menuBarManager.section(withName: section),
+            section.isEnabled
+        {
+            VStack(alignment: .leading) {
+                Section {
+                    LayoutBar(section: section)
+                } header: {
+                    Text(section.name.menuString)
+                } footer: {
+                    Text(annotation)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
             }
         }

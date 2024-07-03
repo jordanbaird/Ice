@@ -156,12 +156,32 @@ final class AppState: ObservableObject {
 
     /// Activates the app and sets its activation policy to the given value.
     func activate(withPolicy policy: NSApplication.ActivationPolicy) {
-        if let frontApp = NSWorkspace.shared.frontmostApplication {
-            NSRunningApplication.current.activate(from: frontApp)
-        } else {
-            NSApp.activate()
+        // store whether the app has previously activated inside an internal
+        // context to keep it isolated
+        enum Context {
+            static let hasActivated = ObjectAssociation<Bool>()
         }
-        NSApp.setActivationPolicy(policy)
+
+        func activate() {
+            if let frontApp = NSWorkspace.shared.frontmostApplication {
+                NSRunningApplication.current.activate(from: frontApp)
+            } else {
+                NSApp.activate()
+            }
+            NSApp.setActivationPolicy(policy)
+        }
+
+        if Context.hasActivated[self] == true {
+            activate()
+        } else {
+            Context.hasActivated[self] = true
+            Logger.appState.info("First time activating app, so going through Dock")
+            // hack to make sure the app properly activates for the first time
+            NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.activate()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                activate()
+            }
+        }
     }
 
     /// Deactivates the app and sets its activation policy to the given value.

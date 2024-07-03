@@ -78,11 +78,20 @@ final class AppState: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        Publishers.Merge(
-            NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification).mapToVoid(),
+        Publishers.Merge3(
+            NSWorkspace.shared.notificationCenter
+                .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+                .mapToVoid(),
             // frontmost application change can indicate a space change from one display to
             // another, which gets ignored by `NSWorkspace.activeSpaceDidChangeNotification`
-            NSWorkspace.shared.publisher(for: \.frontmostApplication).mapToVoid()
+            NSWorkspace.shared
+                .publisher(for: \.frontmostApplication)
+                .mapToVoid(),
+            // clicking into a fullscreen space from another space is also ignored
+            UniversalEventMonitor
+                .publisher(for: .leftMouseDown)
+                .delay(for: 0.1, scheduler: DispatchQueue.main)
+                .mapToVoid()
         )
         .sink { [weak self] _ in
             guard let self else {

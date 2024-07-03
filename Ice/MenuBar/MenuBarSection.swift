@@ -29,7 +29,14 @@ final class MenuBarSection: ObservableObject {
     }
 
     private var screenForIceBar: NSScreen? {
-        NSScreen.main
+        guard let appState else {
+            return nil
+        }
+        if appState.isActiveSpaceFullscreen {
+            return NSScreen.screenWithMouse ?? NSScreen.main
+        } else {
+            return NSScreen.main
+        }
     }
 
     private(set) weak var appState: AppState? {

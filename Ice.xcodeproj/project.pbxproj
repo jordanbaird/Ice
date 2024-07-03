@@ -125,6 +125,7 @@
 		7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */; };
 		716683502A7681AF006ABF84 /* MenuBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166834F2A7681AF006ABF84 /* MenuBarManager.swift */; };
 		716683522A76820A006ABF84 /* ControlItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716683512A76820A006ABF84 /* ControlItem.swift */; };
+		718152C32C34E595005564AA /* NSScreen+screenWithMouse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 718152C22C34E595005564AA /* NSScreen+screenWithMouse.swift */; };
 		71829E0A2C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71829E092C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift */; };
 		71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C152A9B6A0D00250044 /* OnFrameChange.swift */; };
 		71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C400312AAD76A8006FDB1C /* ReadWindow.swift */; };
@@ -252,6 +253,7 @@
 		716683472A76811C006ABF84 /* NSStatusItem+showMenu.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSStatusItem+showMenu.swift"; sourceTree = "<group>"; };
 		7166834F2A7681AF006ABF84 /* MenuBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarManager.swift; sourceTree = "<group>"; };
 		716683512A76820A006ABF84 /* ControlItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlItem.swift; sourceTree = "<group>"; };
+		718152C22C34E595005564AA /* NSScreen+screenWithMouse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+screenWithMouse.swift"; sourceTree = "<group>"; };
 		71829E092C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+getMenuBarHeight.swift"; sourceTree = "<group>"; };
 		71839C152A9B6A0D00250044 /* OnFrameChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnFrameChange.swift; sourceTree = "<group>"; };
 		71C400312AAD76A8006FDB1C /* ReadWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadWindow.swift; sourceTree = "<group>"; };
@@ -481,6 +483,7 @@
 				17C3C5F62B75A36100B9648C /* NSScreen+displayID.swift */,
 				71829E092C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift */,
 				71287C632C3233B30028706E /* NSScreen+hasNotch.swift */,
+				718152C22C34E595005564AA /* NSScreen+screenWithMouse.swift */,
 			);
 			path = NSScreen;
 			sourceTree = "<group>";
@@ -976,6 +979,7 @@
 				170CF8902B101D980073F982 /* ColorStop.swift in Sources */,
 				1773546C2B1BBBA1001CF731 /* MenuBarShapePicker.swift in Sources */,
 				17D1AC8F2B97E71D00726180 /* AdvancedSettingsPane.swift in Sources */,
+				718152C32C34E595005564AA /* NSScreen+screenWithMouse.swift in Sources */,
 				17F998532C16EFCD00D75EC0 /* CGImage+averageColor.swift in Sources */,
 				71287C602C3189AC0028706E /* IceBarColorManager.swift in Sources */,
 				17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */,

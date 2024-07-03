@@ -418,11 +418,23 @@ extension EventManager {
 // MARK: - Helpers
 
 extension EventManager {
+    /// Returns the best screen to use for event manager calculations.
+    var bestScreen: NSScreen? {
+        guard let appState else {
+            return nil
+        }
+        if appState.isActiveSpaceFullscreen {
+            return NSScreen.screenWithMouse ?? NSScreen.main
+        } else {
+            return NSScreen.main
+        }
+    }
+
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of the menu bar.
     var isMouseInsideMenuBar: Bool {
         guard
-            let screen = NSScreen.main,
+            let screen = bestScreen,
             let appState
         else {
             return false
@@ -445,7 +457,7 @@ extension EventManager {
     var isMouseInsideApplicationMenu: Bool {
         guard
             let mouseLocation = MouseCursor.location(flipped: true),
-            let screen = NSScreen.main,
+            let screen = bestScreen,
             let appState,
             let applicationMenuFrame = try? appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
         else {
@@ -458,7 +470,7 @@ extension EventManager {
     /// the bounds of a menu bar item.
     var isMouseInsideMenuBarItem: Bool {
         guard
-            let screen = NSScreen.main,
+            let screen = bestScreen,
             let mouseLocation = MouseCursor.location(flipped: true)
         else {
             return false

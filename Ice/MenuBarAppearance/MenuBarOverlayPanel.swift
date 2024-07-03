@@ -248,8 +248,8 @@ class MenuBarOverlayPanel: NSPanel {
             Logger.overlayPanel.notice("No app state. \(actionMessage)")
             return nil
         }
-        guard appState.menuBarManager.appearanceManager.canChangeAppearance else {
-            Logger.overlayPanel.notice("Appearance manager cannot change appearance. \(actionMessage)")
+        guard !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults else {
+            Logger.overlayPanel.notice("Menu bar is hidden by system according to UserDefaults. \(actionMessage)")
             return nil
         }
         guard !appState.isActiveSpaceFullscreen else {

@@ -9,15 +9,19 @@ struct MenuBarItemsSettingsPane: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                headerText
-                layoutBars
-                Spacer()
+        if appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults {
+            cannotArrange
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    headerText
+                    layoutBars
+                    Spacer()
+                }
+                .padding()
             }
-            .padding()
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .scrollBounceBehavior(.basedOnSize)
     }
 
     @ViewBuilder
@@ -45,6 +49,14 @@ struct MenuBarItemsSettingsPane: View {
                 annotation: "Drag menu bar items to this section if you want them to always be hidden."
             )
         }
+        .padding()
+    }
+
+    @ViewBuilder
+    private var cannotArrange: some View {
+        Text("Ice cannot arrange the items of automatically hidden menu bars.")
+            .font(.title3)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     @ViewBuilder

@@ -54,6 +54,31 @@ class IceBarPanel: NSPanel {
         }
         .store(in: &c)
 
+        if
+            let appState,
+            let section = appState.menuBarManager.section(withName: .hidden),
+            let window = section.controlItem.window
+        {
+            window.publisher(for: \.frame)
+                .debounce(for: 0.1, scheduler: DispatchQueue.main)
+                .sink { [weak self, weak window] _ in
+                    guard
+                        let self,
+                        // only continue if the menu bar is automatically hidden, as Ice
+                        // can't currently display its menu bar items
+                        appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
+                        let info = window.flatMap({ WindowInfo(windowID: CGWindowID($0.windowNumber)) }),
+                        // window being offscreen means the menu bar is currently hidden;
+                        // close the bar, as things will start to look weird if we don't
+                        !info.isOnScreen
+                    else {
+                        return
+                    }
+                    close()
+                }
+                .store(in: &c)
+        }
+
         // update the panel's origin whenever its size changes
         publisher(for: \.frame)
             .map(\.size)
@@ -275,8 +300,12 @@ private struct IceBarContentView: View {
 
     @ViewBuilder
     private var content: some View {
-        if imageCache.cacheFailed(for: section) {
+        if menuBarManager.isMenuBarHiddenBySystemUserDefaults {
+            Text("Ice cannot display the items of automatically hidden menu bars.")
+                .padding(.horizontal, 5)
+        } else if imageCache.cacheFailed(for: section) {
             Text("Unable to display menu bar items")
+                .padding(.horizontal, 5)
         } else {
             HStack(spacing: 0) {
                 ForEach(items, id: \.windowID) { item in

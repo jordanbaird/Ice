@@ -11,9 +11,20 @@ struct MenuBarAppearanceEditor: View {
         case popover(closePopover: () -> Void)
     }
 
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
 
     let location: Location
+
+    private var footerPadding: CGFloat? {
+        if !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults {
+            return nil
+        }
+        if case .popover = location {
+            return nil
+        }
+        return 0
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -35,10 +46,10 @@ struct MenuBarAppearanceEditor: View {
 
     @ViewBuilder
     private var stackBody: some View {
-        if appearanceManager.canChangeAppearance {
-            mainForm
-        } else {
+        if appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults {
             cannotEdit
+        } else {
+            mainForm
         }
     }
 
@@ -46,7 +57,7 @@ struct MenuBarAppearanceEditor: View {
     private var stackFooter: some View {
         HStack {
             if
-                appearanceManager.canChangeAppearance,
+                !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
                 appearanceManager.configuration != .defaultConfiguration
             {
                 Button("Reset") {
@@ -58,7 +69,7 @@ struct MenuBarAppearanceEditor: View {
                 Button("Done", action: closePopover)
             }
         }
-        .padding()
+        .padding(.all, footerPadding)
         .controlSize(.large)
     }
 

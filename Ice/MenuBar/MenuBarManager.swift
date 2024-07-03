@@ -18,6 +18,10 @@ final class MenuBarManager: ObservableObject {
     /// location of the mouse.
     @Published private(set) var isMenuBarHiddenBySystem = false
 
+    /// A Boolean value that indicates whether the menu bar is hidden by the system
+    /// according to a value stored in UserDefaults.
+    @Published private(set) var isMenuBarHiddenBySystemUserDefaults = false
+
     private(set) weak var appState: AppState?
 
     private(set) var sections = [MenuBarSection]()
@@ -96,6 +100,19 @@ final class MenuBarManager: ObservableObject {
                 }
                 let hidden = options.contains(.hideMenuBar) || options.contains(.autoHideMenuBar)
                 isMenuBarHiddenBySystem = hidden
+            }
+            .store(in: &c)
+
+        Timer.publish(every: 1, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard
+                    let self,
+                    let isMenuBarHidden = Defaults.globalDomain["_HIHideMenuBar"] as? Bool
+                else {
+                    return
+                }
+                isMenuBarHiddenBySystemUserDefaults = isMenuBarHidden
             }
             .store(in: &c)
 

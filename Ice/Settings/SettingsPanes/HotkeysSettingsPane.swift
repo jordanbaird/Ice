@@ -15,8 +15,8 @@ struct HotkeysSettingsPane: View {
     var body: some View {
         Form {
             Section("Menu Bar Sections") {
-                hotkeyRecorder(forAction: .toggleHiddenSection)
-                hotkeyRecorder(forAction: .toggleAlwaysHiddenSection)
+                hotkeyRecorder(forSection: .hidden)
+                hotkeyRecorder(forSection: .alwaysHidden)
             }
             Section("Other") {
                 hotkeyRecorder(forAction: .toggleApplicationMenus)
@@ -43,6 +43,17 @@ struct HotkeysSettingsPane: View {
                 case .showSectionDividers:
                     Text("Show section dividers")
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func hotkeyRecorder(forSection name: MenuBarSection.Name) -> some View {
+        if appState.menuBarManager.section(withName: name)?.isEnabled == true {
+            if case .hidden = name {
+                hotkeyRecorder(forAction: .toggleHiddenSection)
+            } else if case .alwaysHidden = name {
+                hotkeyRecorder(forAction: .toggleAlwaysHiddenSection)
             }
         }
     }

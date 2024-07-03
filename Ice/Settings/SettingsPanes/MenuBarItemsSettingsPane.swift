@@ -32,7 +32,10 @@ struct MenuBarItemsSettingsPane: View {
     @ViewBuilder
     private var layoutViews: some View {
         Form {
-            if let visibleSection = appState.menuBarManager.section(withName: .visible) {
+            if
+                let visibleSection = appState.menuBarManager.section(withName: .visible),
+                visibleSection.isEnabled
+            {
                 Section(visibleSection.name.menuString) {
                     LayoutBar(section: visibleSection)
                         .annotation {
@@ -41,7 +44,10 @@ struct MenuBarItemsSettingsPane: View {
                 }
             }
 
-            if let hiddenSection = appState.menuBarManager.section(withName: .hidden) {
+            if
+                let hiddenSection = appState.menuBarManager.section(withName: .hidden),
+                hiddenSection.isEnabled
+            {
                 Spacer()
                     .frame(maxHeight: 25)
 
@@ -53,7 +59,10 @@ struct MenuBarItemsSettingsPane: View {
                 }
             }
 
-            if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
+            if
+                let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden),
+                alwaysHiddenSection.isEnabled
+            {
                 Spacer()
                     .frame(maxHeight: 25)
 

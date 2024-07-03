@@ -71,6 +71,10 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
+    var isEnabled: Bool {
+        controlItem.isAddedToMenuBar
+    }
+
     init(name: Name, controlItem: ControlItem) {
         self.name = name
         self.controlItem = controlItem
@@ -119,6 +123,10 @@ final class MenuBarSection: ObservableObject {
             let menuBarManager,
             isHidden
         else {
+            return
+        }
+        guard controlItem.isAddedToMenuBar else {
+            // section is disabled
             return
         }
         switch name {

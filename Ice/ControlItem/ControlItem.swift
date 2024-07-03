@@ -193,6 +193,37 @@ final class ControlItem: ObservableObject {
             }
             .store(in: &c)
 
+        statusItem.publisher(for: \.isVisible)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isVisible in
+                guard
+                    let self,
+                    let appState,
+                    let section
+                else {
+                    return
+                }
+
+                let manager = appState.settingsManager.hotkeySettingsManager
+
+                let hotkey: Hotkey? = switch section.name {
+                case .visible: nil
+                case .hidden: manager.hotkey(withAction: .toggleHiddenSection)
+                case .alwaysHidden: manager.hotkey(withAction: .toggleAlwaysHiddenSection)
+                }
+
+                guard let hotkey else {
+                    return
+                }
+
+                if isVisible {
+                    hotkey.enable()
+                } else {
+                    hotkey.disable()
+                }
+            }
+            .store(in: &c)
+
         if let window {
             window.publisher(for: \.frame)
                 .sink { [weak self, weak window] frame in
@@ -387,7 +418,11 @@ final class ControlItem: ObservableObject {
         // add menu items to toggle the hidden and always-hidden sections
         let sectionNames: [MenuBarSection.Name] = [.hidden, .alwaysHidden]
         for name in sectionNames {
-            guard let section = appState.menuBarManager.section(withName: name) else {
+            guard
+                let section = appState.menuBarManager.section(withName: name),
+                section.controlItem.isAddedToMenuBar
+            else {
+                // section doesn't exist, or is disabled
                 continue
             }
             let item = NSMenuItem(

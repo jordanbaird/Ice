@@ -171,7 +171,7 @@ class MenuBarOverlayPanel: NSPanel {
                 while true {
                     try Task.checkCancellation()
                     guard
-                        let latestFrame = try? appState.menuBarManager.getApplicationMenuFrame(for: displayID),
+                        let latestFrame = appState.menuBarManager.getApplicationMenuFrame(for: displayID),
                         latestFrame != self.applicationMenuFrame
                     else {
                         try await Task.sleep(for: .milliseconds(1))
@@ -278,7 +278,7 @@ class MenuBarOverlayPanel: NSPanel {
             return nil
         }
         let owningDisplay = owningScreen.displayID
-        guard AccessibilityMenuBar.hasValidMenuBar(for: owningDisplay) else {
+        guard appState.menuBarManager.hasValidMenuBar(for: owningDisplay) else {
             Logger.overlayPanel.notice("No valid menu bar found. \(actionMessage)")
             return nil
         }
@@ -293,12 +293,7 @@ class MenuBarOverlayPanel: NSPanel {
         else {
             return
         }
-        do {
-            applicationMenuFrame = try menuBarManager.getApplicationMenuFrame(for: display)
-        } catch {
-            applicationMenuFrame = nil
-            throw error
-        }
+        applicationMenuFrame = menuBarManager.getApplicationMenuFrame(for: display)
     }
 
     /// Stores the area of the desktop wallpaper that is under the menu bar

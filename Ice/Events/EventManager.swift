@@ -459,7 +459,7 @@ extension EventManager {
             let mouseLocation = MouseCursor.location(flipped: true),
             let screen = bestScreen,
             let appState,
-            let applicationMenuFrame = try? appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
+            let applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
         else {
             return false
         }

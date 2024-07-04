@@ -20,10 +20,6 @@
 		1725FC6A2AED973800A59081 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1725FC692AED973800A59081 /* AppState.swift */; };
 		172778482C1490EA00F6F687 /* EventTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172778472C1490EA00F6F687 /* EventTap.swift */; };
 		1727786E2C15181300F6F687 /* MenuBarItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1727786D2C15181300F6F687 /* MenuBarItemManager.swift */; };
-		172D827A2BC1F29E0048DD88 /* AccessibilityMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */; };
-		172D827C2BC1F2C10048DD88 /* AccessibilityError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D827B2BC1F2C10048DD88 /* AccessibilityError.swift */; };
-		172D827E2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D827D2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift */; };
-		172D82802BC1F3270048DD88 /* AccessibilityApplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 172D827F2BC1F3270048DD88 /* AccessibilityApplication.swift */; };
 		1736F77C2ADBBF340073428E /* CustomGradientPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */; };
 		1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1736F77F2ADBC02B0073428E /* CustomGradient.swift */; };
 		1737E3E52BA3C4AA009F0EFA /* HotkeyAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1737E3E42BA3C4AA009F0EFA /* HotkeyAction.swift */; };
@@ -148,10 +144,6 @@
 		1726A3F82B3378B8008B09DD /* Acknowledgements.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Acknowledgements.rtf; sourceTree = "<group>"; };
 		172778472C1490EA00F6F687 /* EventTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTap.swift; sourceTree = "<group>"; };
 		1727786D2C15181300F6F687 /* MenuBarItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemManager.swift; sourceTree = "<group>"; };
-		172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMenuBar.swift; sourceTree = "<group>"; };
-		172D827B2BC1F2C10048DD88 /* AccessibilityError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityError.swift; sourceTree = "<group>"; };
-		172D827D2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityMenuBarItem.swift; sourceTree = "<group>"; };
-		172D827F2BC1F3270048DD88 /* AccessibilityApplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityApplication.swift; sourceTree = "<group>"; };
 		1736F77B2ADBBF340073428E /* CustomGradientPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradientPicker.swift; sourceTree = "<group>"; };
 		1736F77F2ADBC02B0073428E /* CustomGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomGradient.swift; sourceTree = "<group>"; };
 		1737E3E42BA3C4AA009F0EFA /* HotkeyAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyAction.swift; sourceTree = "<group>"; };
@@ -336,17 +328,6 @@
 			children = (
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		172D82782BC1F2950048DD88 /* Accessibility */ = {
-			isa = PBXGroup;
-			children = (
-				172D827B2BC1F2C10048DD88 /* AccessibilityError.swift */,
-				172D82792BC1F29E0048DD88 /* AccessibilityMenuBar.swift */,
-				172D827F2BC1F3270048DD88 /* AccessibilityApplication.swift */,
-				172D827D2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift */,
-			);
-			path = Accessibility;
 			sourceTree = "<group>";
 		};
 		1736F7762ADBBEF10073428E /* CustomGradientPicker */ = {
@@ -669,7 +650,6 @@
 		7166832C2A767E6A006ABF84 /* Ice */ = {
 			isa = PBXGroup;
 			children = (
-				172D82782BC1F2950048DD88 /* Accessibility */,
 				17CDCACA2C2E6F3D000B1CFF /* Bridging */,
 				177386F62B0A656100448BBF /* ControlItem */,
 				17147FBE2B99513200C4A435 /* Events */,
@@ -895,7 +875,6 @@
 				71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */,
 				7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */,
 				7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */,
-				172D827A2BC1F29E0048DD88 /* AccessibilityMenuBar.swift in Sources */,
 				177386F52B0A654D00448BBF /* ControlItemImageSet.swift in Sources */,
 				17CDCACF2C2E6F77000B1CFF /* Private.swift in Sources */,
 				17BE3DE02C1A705E008B98EF /* IceBarPanel+hasKeyAppearance.swift in Sources */,
@@ -942,7 +921,6 @@
 				176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */,
 				17CDCAD12C2E6FB0000B1CFF /* Bridging.swift in Sources */,
 				17540BD82B20C0DA00A0F965 /* NSBezierPath+drawShadow.swift in Sources */,
-				172D827C2BC1F2C10048DD88 /* AccessibilityError.swift in Sources */,
 				177354842B1F9AF9001CF731 /* NSBezierPath+union.swift in Sources */,
 				172778482C1490EA00F6F687 /* EventTap.swift in Sources */,
 				17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */,
@@ -950,7 +928,6 @@
 				179AC2FC2C1146EF0051E7B0 /* RemoveSidebarToggle.swift in Sources */,
 				17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */,
 				17F9984D2C16CD8E00D75EC0 /* MenuBarItemsSettingsPane.swift in Sources */,
-				172D827E2BC1F2E70048DD88 /* AccessibilityMenuBarItem.swift in Sources */,
 				17D1AC8D2B97BB5900726180 /* MenuBarItem.swift in Sources */,
 				173C248C2B8E821C0096F7A1 /* UpdatesSettingsPane.swift in Sources */,
 				171C6F9C2C0356BC0097A5C8 /* GeneralSettingsPane.swift in Sources */,
@@ -1004,7 +981,6 @@
 				175812542B80FBFA00D622DA /* MenuBarAppearanceEditorPanel.swift in Sources */,
 				17CDCAD42C2E8A04000B1CFF /* CGError+logString.swift in Sources */,
 				7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */,
-				172D82802BC1F3270048DD88 /* AccessibilityApplication.swift in Sources */,
 				17C3C5F72B75A36100B9648C /* NSScreen+displayID.swift in Sources */,
 				7133ED5E2A853FCF000A7E1B /* Constants.swift in Sources */,
 				17F9984B2C16CBC100D75EC0 /* LayoutBar.swift in Sources */,

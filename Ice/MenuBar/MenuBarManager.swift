@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import AXSwift
 import Combine
 import OSLog
 import SwiftUI
@@ -199,7 +200,7 @@ final class MenuBarManager: ObservableObject {
                     let displayID = screen.displayID
 
                     // get the application menu frame for the display
-                    guard let applicationMenuFrame = try? getApplicationMenuFrame(for: displayID) else {
+                    guard let applicationMenuFrame = getApplicationMenuFrame(for: displayID) else {
                         return
                     }
 
@@ -281,20 +282,49 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
+    /// Returns a Boolean value that indicates whether the given display
+    /// has a valid menu bar.
+    func hasValidMenuBar(for display: CGDirectDisplayID) -> Bool {
+        guard let menuBarWindow = WindowInfo.getMenuBarWindow(for: display) else {
+            return false
+        }
+        let position = menuBarWindow.frame.origin
+        do {
+            let uiElement = try systemWideElement.elementAtPosition(Float(position.x), Float(position.y))
+            return try uiElement?.role() == .menuBar
+        } catch {
+            return false
+        }
+    }
+
     /// Returns the frame of the application menu for the given display.
-    func getApplicationMenuFrame(for display: CGDirectDisplayID) throws -> CGRect {
-        let menuBar = try AccessibilityMenuBar(display: display)
-        var menuBarFrame = try menuBar.frame()
-        menuBarFrame.origin = CGDisplayBounds(display).origin
-        menuBarFrame.size.width = try menuBar.menuBarItems().reduce(into: 0) { width, item in
-            if item.isEnabled {
-                try width += item.frame().width
+    func getApplicationMenuFrame(for display: CGDirectDisplayID) -> CGRect? {
+        let displayBounds = CGDisplayBounds(display)
+        guard
+            let menuBar = try? systemWideElement.elementAtPosition(
+                Float(displayBounds.origin.x),
+                Float(displayBounds.origin.y)
+            ),
+            (try? menuBar.role()) == .menuBar,
+            var menuBarFrame: CGRect = try? menuBar.attribute(.frame),
+            let items: [UIElement] = try? menuBar.arrayAttribute(.children)
+        else {
+            return nil
+        }
+        menuBarFrame.origin = displayBounds.origin
+        menuBarFrame.size.width = items.lazy
+            .filter { item in
+                (try? item.attribute(.enabled)) == true
             }
-        }
+            .reduce(into: 0) { width, item in
+                if let frame: CGRect = try? item.attribute(.frame) {
+                    width += frame.width
+                }
+            }
         if menuBarFrame.width == .zero {
-            return menuBarFrame
+            return nil
         }
-        menuBarFrame.size.width += 15 // extra width to accomodate menu bar item padding
+        menuBarFrame.size.width += 15 // extra width to accomodate menu padding
         return menuBarFrame
     }
 

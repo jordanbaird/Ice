@@ -104,18 +104,24 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        Timer.publish(every: 1, on: .main, in: .default)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard
-                    let self,
-                    let isMenuBarHidden = Defaults.globalDomain["_HIHideMenuBar"] as? Bool
-                else {
-                    return
+        if
+            let hiddenSection = section(withName: .alwaysHidden),
+            let window = hiddenSection.controlItem.window
+        {
+            window.publisher(for: \.frame)
+                .map { $0.origin.y }
+                .removeDuplicates()
+                .sink { [weak self] _ in
+                    guard
+                        let self,
+                        let isMenuBarHidden = Defaults.globalDomain["_HIHideMenuBar"] as? Bool
+                    else {
+                        return
+                    }
+                    isMenuBarHiddenBySystemUserDefaults = isMenuBarHidden
                 }
-                isMenuBarHiddenBySystemUserDefaults = isMenuBarHidden
-            }
-            .store(in: &c)
+                .store(in: &c)
+        }
 
         // handle focusedApp rehide strategy
         NSWorkspace.shared.publisher(for: \.frontmostApplication)

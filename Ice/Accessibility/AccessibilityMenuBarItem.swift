@@ -12,6 +12,11 @@ struct AccessibilityMenuBarItem {
     /// The underyling UI element.
     let uiElement: UIElement
 
+    /// A Boolean value that indicates whether the menu bar item is enabled.
+    var isEnabled: Bool {
+        (try? uiElement.attribute(.enabled)) == true
+    }
+
     /// Creates an accessibility menu bar item from the given UI element.
     ///
     /// - Parameter uiElement: A UI element that represents a menu bar item.

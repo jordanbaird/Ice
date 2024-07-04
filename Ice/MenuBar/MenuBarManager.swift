@@ -287,7 +287,9 @@ final class MenuBarManager: ObservableObject {
         var menuBarFrame = try menuBar.frame()
         menuBarFrame.origin = CGDisplayBounds(display).origin
         menuBarFrame.size.width = try menuBar.menuBarItems().reduce(into: 0) { width, item in
-            try width += item.frame().width
+            if item.isEnabled {
+                try width += item.frame().width
+            }
         }
         if menuBarFrame.width == .zero {
             return menuBarFrame

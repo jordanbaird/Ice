@@ -41,6 +41,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// A context that manages panel update tasks.
+    @MainActor
     private class UpdateTaskContext {
         private var tasks = [UpdateFlag: Task<Void, any Error>]()
 
@@ -52,9 +53,11 @@ class MenuBarOverlayPanel: NSPanel {
         ///   - flag: The update flag to set the task for.
         ///   - timeout: The timeout of the task.
         ///   - operation: The operation for the task to perform.
-        func setTask(for flag: UpdateFlag, timeout: Duration, operation: @escaping @Sendable () async throws -> Void) {
+        func setTask(for flag: UpdateFlag, timeout: Duration, operation: @escaping () async throws -> Void) {
             tasks[flag]?.cancel()
-            tasks[flag] = Task.detached(timeout: timeout, operation: operation)
+            tasks[flag] = Task(timeout: timeout) {
+                try await operation()
+            }
         }
     }
 
@@ -132,37 +135,39 @@ class MenuBarOverlayPanel: NSPanel {
                 updateTaskContext.setTask(for: .desktopWallpaper, timeout: .seconds(5)) {
                     while true {
                         try Task.checkCancellation()
-                        await self.insertUpdateFlag(.desktopWallpaper)
+                        self.insertUpdateFlag(.desktopWallpaper)
                         try await Task.sleep(for: .seconds(1))
                     }
                 }
             }
             .store(in: &c)
 
-        // update the application frames when the menu bar owning app changes
-        Publishers.CombineLatest(
+        // update application menu frame when the menu bar owning
+        // or frontmost app changes
+        Publishers.Merge(
             NSWorkspace.shared.publisher(for: \.menuBarOwningApplication),
             NSWorkspace.shared.publisher(for: \.frontmostApplication)
         )
+        .removeDuplicates()
         .sink { [weak self] _ in
             guard
                 let self,
-                let appState
+                let appState,
+                owningScreen == .main
             else {
                 return
             }
             let displayID = owningScreen.displayID
             updateTaskContext.setTask(for: .applicationMenuFrame, timeout: .seconds(10)) {
-                var hasUpdated = false
                 while true {
                     try Task.checkCancellation()
-                    try await Task.sleep(for: .milliseconds(hasUpdated ? 500 : 1))
                     if
-                        let latestFrame = try? await appState.menuBarManager.getApplicationMenuFrame(for: displayID),
-                        await latestFrame != self.applicationMenuFrame
+                        let latestFrame = try? appState.menuBarManager.getApplicationMenuFrame(for: displayID),
+                        latestFrame != self.applicationMenuFrame
                     {
-                        await self.insertUpdateFlag(.applicationMenuFrame)
-                        hasUpdated = true
+                        // bypass update flags here for greater efficiency
+                        self.applicationMenuFrame = latestFrame
+                        break
                     }
                 }
             }

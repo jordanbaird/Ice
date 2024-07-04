@@ -8,16 +8,11 @@ import Combine
 
 @MainActor
 class IceBarColorManager: ObservableObject {
-    private enum WindowImage {
-        case menuBar(CGImage)
-        case wallpaper(CGImage)
-    }
-
     @Published private(set) var colorInfo: MenuBarAverageColorInfo?
 
     private weak var iceBarPanel: IceBarPanel?
 
-    private var windowImage: WindowImage?
+    private var windowImage: CGImage?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -87,18 +82,18 @@ class IceBarColorManager: ObservableObject {
             let window = WindowInfo.getMenuBarWindow(for: displayID),
             let image = Bridging.captureWindow(window.windowID, option: .nominalResolution)
         {
-            windowImage = .menuBar(image)
-        } else if
-            let window = WindowInfo.getWallpaperWindow(for: displayID),
-            let image = Bridging.captureWindow(window.windowID, option: .nominalResolution)
-        {
-            windowImage = .wallpaper(image)
+            windowImage = image
         } else {
             windowImage = nil
         }
     }
 
     func updateColorInfo(with frame: CGRect, screen: NSScreen) {
+        guard let windowImage else {
+            colorInfo = nil
+            return
+        }
+
         let percentage = (frame.midX - screen.frame.origin.x) / screen.frame.width
         let bounds = CGRect(
             x: frame.origin.x + (frame.width * percentage),
@@ -106,23 +101,15 @@ class IceBarColorManager: ObservableObject {
             width: 0,
             height: 1
         ).insetBy(dx: -50, dy: 0)
-        switch windowImage {
-        case .menuBar(let image):
-            if
-                let croppedImage = image.cropping(to: bounds),
-                let averageColor = croppedImage.averageColor(resolution: .low)
-            {
-                colorInfo = MenuBarAverageColorInfo(color: averageColor, source: .menuBarWindow)
-            }
-        case .wallpaper(let image):
-            if
-                let croppedImage = image.cropping(to: bounds),
-                let averageColor = croppedImage.averageColor(resolution: .low)
-            {
-                colorInfo = MenuBarAverageColorInfo(color: averageColor, source: .desktopWallpaper)
-            }
-        case nil:
+
+        guard
+            let croppedImage = windowImage.cropping(to: bounds),
+            let averageColor = croppedImage.averageColor(resolution: .low)
+        else {
             colorInfo = nil
+            return
         }
+
+        colorInfo = MenuBarAverageColorInfo(color: averageColor, source: .menuBarWindow)
     }
 }

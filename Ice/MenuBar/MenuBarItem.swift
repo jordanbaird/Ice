@@ -101,8 +101,7 @@ struct MenuBarItem {
             }
         case .systemUIServer:
             switch title {
-            case "TimeMachine.TMMenuExtraHost"/*Sonoma*/,
-                 "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/: "Time Machine"
+            case "TimeMachine.TMMenuExtraHost"/*Sonoma*/, "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/: "Time Machine"
             default: title
             }
         default:

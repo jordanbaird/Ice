@@ -87,19 +87,22 @@ struct MenuBarItem {
         return switch MenuBarItemInfo.Namespace(owningApplication.bundleIdentifier) {
         case .controlCenter:
             switch title {
-            case "BentoBox": bestName // Control Center item
-            case "NowPlaying": "Now Playing"
-            case "StageManager": "Stage Manager"
-            case "ScreenMirroring": "Screen Mirroring"
             case "AccessibilityShortcuts": "Accessibility Shortcuts"
-            case "MusicRecognition": "Music Recognition"
-            case "UserSwitcher": "User Switcher"
+            case "BentoBox": "Control Center"
+            case "FocusModes": "Focus"
             case "KeyboardBrightness": "Keyboard Brightness"
+            case "MusicRecognition": "Music Recognition"
+            case "NowPlaying": "Now Playing"
+            case "ScreenMirroring": "Screen Mirroring"
+            case "StageManager": "Stage Manager"
+            case "UserSwitcher": "Fast User Switching"
+            case "WiFi": "Wi-Fi"
             default: title
             }
         case .systemUIServer:
             switch title {
-            case "TimeMachine.TMMenuExtraHost": "Time Machine"
+            case "TimeMachine.TMMenuExtraHost"/*Sonoma*/,
+                 "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/: "Time Machine"
             default: title
             }
         default:

@@ -88,7 +88,7 @@ struct MenuBarItem {
         case .controlCenter:
             switch title {
             case "AccessibilityShortcuts": "Accessibility Shortcuts"
-            case "BentoBox": "Control Center"
+            case "BentoBox": bestName // Control Center
             case "FocusModes": "Focus"
             case "KeyboardBrightness": "Keyboard Brightness"
             case "MusicRecognition": "Music Recognition"

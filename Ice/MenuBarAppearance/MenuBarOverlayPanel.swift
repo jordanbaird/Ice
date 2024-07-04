@@ -41,7 +41,6 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// A context that manages panel update tasks.
-    @MainActor
     private class UpdateTaskContext {
         private var tasks = [UpdateFlag: Task<Void, any Error>]()
 
@@ -54,10 +53,17 @@ class MenuBarOverlayPanel: NSPanel {
         ///   - timeout: The timeout of the task.
         ///   - operation: The operation for the task to perform.
         func setTask(for flag: UpdateFlag, timeout: Duration, operation: @escaping () async throws -> Void) {
-            tasks[flag]?.cancel()
-            tasks[flag] = Task(timeout: timeout) {
+            cancelTask(for: flag)
+            tasks[flag] = Task.detached(timeout: timeout) {
                 try await operation()
             }
+        }
+
+        /// Cancels the task for the given update flag.
+        ///
+        /// - Parameter flag: The update flag to cancel the task for.
+        func cancelTask(for flag: UpdateFlag) {
+            tasks[flag]?.cancel()
         }
     }
 
@@ -145,15 +151,18 @@ class MenuBarOverlayPanel: NSPanel {
         // update application menu frame when the menu bar owning
         // or frontmost app changes
         Publishers.Merge(
-            NSWorkspace.shared.publisher(for: \.menuBarOwningApplication),
-            NSWorkspace.shared.publisher(for: \.frontmostApplication)
+            NSWorkspace.shared.publisher(for: \.menuBarOwningApplication, options: .old)
+                .combineLatest(NSWorkspace.shared.publisher(for: \.menuBarOwningApplication, options: .new))
+                .compactMap { $0 == $1 ? nil : $0 },
+            NSWorkspace.shared.publisher(for: \.frontmostApplication, options: .old)
+                .combineLatest(NSWorkspace.shared.publisher(for: \.frontmostApplication, options: .new))
+                .compactMap { $0 == $1 ? nil : $0 }
         )
         .removeDuplicates()
         .sink { [weak self] _ in
             guard
                 let self,
-                let appState,
-                owningScreen == .main
+                let appState
             else {
                 return
             }
@@ -161,14 +170,21 @@ class MenuBarOverlayPanel: NSPanel {
             updateTaskContext.setTask(for: .applicationMenuFrame, timeout: .seconds(10)) {
                 while true {
                     try Task.checkCancellation()
-                    if
+                    guard
                         let latestFrame = try? appState.menuBarManager.getApplicationMenuFrame(for: displayID),
                         latestFrame != self.applicationMenuFrame
-                    {
-                        // bypass update flags here for greater efficiency
-                        self.applicationMenuFrame = latestFrame
-                        break
+                    else {
+                        try await Task.sleep(for: .milliseconds(1))
+                        continue
                     }
+                    self.insertUpdateFlag(.applicationMenuFrame)
+                    return
+                }
+            }
+            Task {
+                try? await Task.sleep(for: .milliseconds(100))
+                if self.owningScreen != NSScreen.main {
+                    self.updateTaskContext.cancelTask(for: .applicationMenuFrame)
                 }
             }
         }

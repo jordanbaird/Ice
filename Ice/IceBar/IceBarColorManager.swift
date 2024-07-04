@@ -101,7 +101,6 @@ class IceBarColorManager: ObservableObject {
             width: 0,
             height: 1
         ).insetBy(dx: -10, dy: 0)
-        print(bounds.minX, bounds.maxX)
 
         guard
             let croppedImage = windowImage.cropping(to: bounds),

@@ -94,18 +94,18 @@ class IceBarColorManager: ObservableObject {
             return
         }
 
-        let percentage = ((frame.midX - screen.frame.origin.x) / screen.frame.width).clamped(to: 0...1)
-        let bounds = CGRect(
-            x: frame.origin.x + (frame.width * percentage),
-            y: 0,
-            width: 0,
-            height: 1
-        ).insetBy(dx: -10, dy: 0)
+        let imageBounds = CGRect(x: 0, y: 0, width: windowImage.width, height: windowImage.height)
+        let insetScreenFrame = screen.frame.insetBy(dx: frame.width / 2, dy: 0)
+        let percentage = ((frame.midX - insetScreenFrame.minX) / insetScreenFrame.width).clamped(to: 0...1)
+        let cropRect = CGRect(x: imageBounds.width * percentage, y: 0, width: 0, height: 1)
+            .insetBy(dx: -50, dy: 0)
+            .intersection(imageBounds)
 
         guard
-            let croppedImage = windowImage.cropping(to: bounds),
+            let croppedImage = windowImage.cropping(to: cropRect),
             let averageColor = croppedImage.averageColor(resolution: .low)
         else {
+            colorInfo = nil
             return
         }
 

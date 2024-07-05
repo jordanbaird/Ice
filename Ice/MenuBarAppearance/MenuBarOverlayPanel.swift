@@ -132,7 +132,7 @@ class MenuBarOverlayPanel: NSPanel {
 
         // update when light/dark mode changes
         DistributedNotificationCenter.default()
-            .publisher(for: Notification.Name("AppleInterfaceThemeChangedNotification"))
+            .publisher(for: DistributedNotificationCenter.interfaceThemeChangedNotification)
             .debounce(for: 0.1, scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard let self else {

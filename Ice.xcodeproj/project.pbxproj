@@ -112,6 +112,7 @@
 		7150A7AF2AA426C60045EA68 /* HotkeyRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */; };
 		7150A7B12AA427F80045EA68 /* KeyCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B02AA427F80045EA68 /* KeyCode.swift */; };
 		7150A7B32AA42B640045EA68 /* Modifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150A7B22AA42B640045EA68 /* Modifiers.swift */; };
+		71553E372C378BF50083F5BE /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71553E362C378BF50083F5BE /* Notifications.swift */; };
 		71604D612AAE62DA002FE96F /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71604D602AAE62DA002FE96F /* BottomBar.swift */; };
 		7162406F2AA0A323003EC671 /* MenuBarSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7162406E2AA0A323003EC671 /* MenuBarSection.swift */; };
 		7166832E2A767E6A006ABF84 /* IceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7166832D2A767E6A006ABF84 /* IceApp.swift */; };
@@ -234,6 +235,7 @@
 		7150A7AE2AA426C60045EA68 /* HotkeyRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyRegistry.swift; sourceTree = "<group>"; };
 		7150A7B02AA427F80045EA68 /* KeyCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyCode.swift; sourceTree = "<group>"; };
 		7150A7B22AA42B640045EA68 /* Modifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Modifiers.swift; sourceTree = "<group>"; };
+		71553E362C378BF50083F5BE /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		71604D602AAE62DA002FE96F /* BottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBar.swift; sourceTree = "<group>"; };
 		7162406E2AA0A323003EC671 /* MenuBarSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSection.swift; sourceTree = "<group>"; };
 		7166832A2A767E6A006ABF84 /* Ice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ice.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -684,6 +686,7 @@
 				17F998452C16C78000D75EC0 /* Injection.swift */,
 				17C303772BA62CD20079755B /* MigrationManager.swift */,
 				17F998312C15C91400D75EC0 /* MouseCursor.swift */,
+				71553E362C378BF50083F5BE /* Notifications.swift */,
 				71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */,
 				17C298B72BD42C390074DEAC /* Predicates.swift */,
 				17CC22B42B8A55E7001A0582 /* WindowInfo.swift */,
@@ -929,6 +932,7 @@
 				17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */,
 				17F9984D2C16CD8E00D75EC0 /* MenuBarItemsSettingsPane.swift in Sources */,
 				17D1AC8D2B97BB5900726180 /* MenuBarItem.swift in Sources */,
+				71553E372C378BF50083F5BE /* Notifications.swift in Sources */,
 				173C248C2B8E821C0096F7A1 /* UpdatesSettingsPane.swift in Sources */,
 				171C6F9C2C0356BC0097A5C8 /* GeneralSettingsPane.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* KeyCode.swift in Sources */,

@@ -56,7 +56,7 @@ class IceBarColorManager: ObservableObject {
             Publishers.Merge4(
                 NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification).mapToVoid(),
                 NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification).mapToVoid(),
-                DistributedNotificationCenter.default().publisher(for: Notification.Name("AppleInterfaceThemeChangedNotification")).mapToVoid(),
+                DistributedNotificationCenter.default().publisher(for: DistributedNotificationCenter.interfaceThemeChangedNotification).mapToVoid(),
                 Timer.publish(every: 5, on: .main, in: .default).autoconnect().mapToVoid()
             )
             .sink { [weak self] in

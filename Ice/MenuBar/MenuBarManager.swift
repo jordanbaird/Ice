@@ -248,7 +248,7 @@ final class MenuBarManager: ObservableObject {
     func updateAverageColor() {
         guard
             canUpdateAverageColor,
-            let screen = NSScreen.main
+            let screen = appState?.settingsWindow?.screen
         else {
             return
         }
@@ -256,7 +256,10 @@ final class MenuBarManager: ObservableObject {
         let image: CGImage?
         let source: MenuBarAverageColorInfo.Source
 
-        if let window = WindowInfo.getMenuBarWindow(for: screen.displayID) {
+        let windows = WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
+        let displayID = screen.displayID
+
+        if let window = WindowInfo.getMenuBarWindow(from: windows, for: displayID) {
             var bounds = window.frame
             bounds.size.height = 1
             bounds.origin.x = bounds.midX
@@ -264,7 +267,7 @@ final class MenuBarManager: ObservableObject {
 
             image = Bridging.captureWindow(window.windowID, screenBounds: bounds)
             source = .menuBarWindow
-        } else if let window = WindowInfo.getWallpaperWindow(for: screen.displayID) {
+        } else if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
             var bounds = window.frame
             bounds.size.height = 10
             bounds.origin.x = bounds.midX
@@ -278,13 +281,15 @@ final class MenuBarManager: ObservableObject {
 
         guard
             let image,
-            let averageColor = image.averageColor(resolution: .low, options: .ignoreAlpha)
+            let color = image.averageColor(resolution: .low, options: .ignoreAlpha)
         else {
             return
         }
 
-        if averageColorInfo?.color != averageColor {
-            averageColorInfo = MenuBarAverageColorInfo(color: averageColor, source: source)
+        let info = MenuBarAverageColorInfo(color: color, source: source)
+
+        if averageColorInfo != info {
+            averageColorInfo = info
         }
     }
 

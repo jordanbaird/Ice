@@ -34,7 +34,10 @@ class MenuBarItemImageCache: ObservableObject {
         var c = Set<AnyCancellable>()
 
         if let appState {
-            Publishers.Merge(
+            Publishers.Merge3(
+                // update every 3 seconds at minimum
+                Timer.publish(every: 3, on: .main, in: .default).autoconnect().mapToVoid(),
+
                 // update when the active space or screen parameters change
                 Publishers.Merge(
                     NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
@@ -48,7 +51,7 @@ class MenuBarItemImageCache: ObservableObject {
                     appState.itemManager.$menuBarItemCache.removeDuplicates().mapToVoid()
                 )
             )
-            .receive(on: DispatchQueue.main)
+            .throttle(for: 0.5, scheduler: DispatchQueue.main, latest: false)
             .sink { [weak self] in
                 guard let self else {
                     return

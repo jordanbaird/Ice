@@ -48,6 +48,8 @@ class MenuBarItemManager: ObservableObject {
 
     @Published var menuBarItemCache = MenuBarItemCache()
 
+    private var cachedItemWindowIDs = [CGWindowID]()
+
     private var tempShownItemsInfo = [(item: MenuBarItem, destination: MoveDestination)]()
 
     private var tempShownItemsTimer: Timer?
@@ -94,7 +96,7 @@ class MenuBarItemManager: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        Timer.publish(every: 3, on: .main, in: .default)
+        Timer.publish(every: 5, on: .main, in: .default)
             .autoconnect()
             .merge(with: Just(.now))
             .sink { [weak self] _ in
@@ -102,9 +104,15 @@ class MenuBarItemManager: ObservableObject {
                     return
                 }
                 guard !isMovingItem else {
-                    Logger.itemManager.info("Item manager is moving item, so deferring item cache")
+                    Logger.itemManager.info("Item manager is moving an item, so deferring arrange and cache")
                     return
                 }
+                let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
+                guard cachedItemWindowIDs != itemWindowIDs else {
+                    Logger.itemManager.info("Menu bar item windows have not changed, so deferring arrange and cache")
+                    return
+                }
+                cachedItemWindowIDs = itemWindowIDs
                 Task {
                     let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
                     if self.canArrange {
@@ -248,6 +256,8 @@ extension MenuBarItemManager {
                 return
             }
         }
+
+        Logger.itemManager.info("Caching menu bar items")
 
         if appState.settingsManager.advancedSettingsManager.enableAlwaysHiddenSection {
             cacheForEnabledAlwaysHiddenSection()
@@ -1125,6 +1135,7 @@ extension MenuBarItemManager {
 
         // make sure the always-hidden control item is to the left of the hidden control item
         if hiddenControlItem.frame.maxX <= alwaysHiddenControlItem.frame.minX {
+            Logger.itemManager.info("Arranging menu bar items")
             try await slowMove(item: alwaysHiddenControlItem, to: .leftOfItem(hiddenControlItem))
         }
     }

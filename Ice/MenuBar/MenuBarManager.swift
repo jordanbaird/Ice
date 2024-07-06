@@ -265,7 +265,7 @@ final class MenuBarManager: ObservableObject {
             bounds.origin.x = bounds.midX
             bounds.size.width /= 2
 
-            image = Bridging.captureWindow(window.windowID, screenBounds: bounds)
+            image = Bridging.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
             source = .menuBarWindow
         } else if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
             var bounds = window.frame
@@ -273,7 +273,7 @@ final class MenuBarManager: ObservableObject {
             bounds.origin.x = bounds.midX
             bounds.size.width /= 2
 
-            image = Bridging.captureWindow(window.windowID, screenBounds: bounds)
+            image = Bridging.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
             source = .desktopWallpaper
         } else {
             return
@@ -295,8 +295,8 @@ final class MenuBarManager: ObservableObject {
 
     /// Returns a Boolean value that indicates whether the given display
     /// has a valid menu bar.
-    func hasValidMenuBar(for display: CGDirectDisplayID) -> Bool {
-        guard let menuBarWindow = WindowInfo.getMenuBarWindow(for: display) else {
+    func hasValidMenuBar(in windows: [WindowInfo], for display: CGDirectDisplayID) -> Bool {
+        guard let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display) else {
             return false
         }
         let position = menuBarWindow.frame.origin

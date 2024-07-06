@@ -25,21 +25,6 @@ class MenuBarOverlayPanel: NSPanel {
         case updates
     }
 
-    /// An error that can occur during an update.
-    private enum UpdateError: Error, CustomStringConvertible {
-        case applicationMenuFrame(any Error)
-        case desktopWallpaper(any Error)
-
-        var description: String {
-            switch self {
-            case .applicationMenuFrame(let error):
-                "Update of application menu frame failed: \(error)"
-            case .desktopWallpaper(let error):
-                "Update of desktop wallpaper failed: \(error)"
-            }
-        }
-    }
-
     /// A context that manages panel update tasks.
     private class UpdateTaskContext {
         private var tasks = [UpdateFlag: Task<Void, any Error>]()
@@ -63,7 +48,7 @@ class MenuBarOverlayPanel: NSPanel {
         ///
         /// - Parameter flag: The update flag to cancel the task for.
         func cancelTask(for flag: UpdateFlag) {
-            tasks[flag]?.cancel()
+            tasks.removeValue(forKey: flag)?.cancel()
         }
     }
 
@@ -87,7 +72,7 @@ class MenuBarOverlayPanel: NSPanel {
     @Published var needsShow = false
 
     /// Flags representing the components of the panel currently in need of an update.
-    @Published var updateFlags = Set<UpdateFlag>()
+    @Published private(set) var updateFlags = Set<UpdateFlag>()
 
     /// A Boolean value that indicates whether the user is dragging a menu bar item.
     @Published var isDraggingMenuBarItem = false
@@ -220,25 +205,21 @@ class MenuBarOverlayPanel: NSPanel {
                     return
                 }
                 defer {
-                    updateFlags.removeAll()
-                }
-                Task {
-                    defer {
-                        let updateCallbacks = self.updateCallbacks
-                        self.updateCallbacks.removeAll()
-                        for callback in updateCallbacks {
-                            callback()
-                        }
+                    Task {
+                        // must be run async, or this will not remove the flags
+                        self.updateFlags.removeAll()
                     }
-                    guard let owningDisplay = self.validate(for: .updates) else {
-                        return
-                    }
-                    do {
-                        try await self.performUpdates(for: flags, display: owningDisplay)
-                    } catch {
-                        Logger.overlayPanel.error("ERROR: \(error)")
+                    let updateCallbacks = self.updateCallbacks
+                    self.updateCallbacks.removeAll()
+                    for callback in updateCallbacks {
+                        callback()
                     }
                 }
+                let windows = WindowInfo.getOnScreenWindows()
+                guard let owningDisplay = self.validate(for: .updates, with: windows) else {
+                    return
+                }
+                performUpdates(for: flags, windows: windows, display: owningDisplay)
             }
             .store(in: &c)
 
@@ -260,7 +241,7 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Performs validation for the given validation kind. Returns the panel's
     /// owning display if successful. Returns `nil` on failure.
-    private func validate(for kind: ValidationKind) -> CGDirectDisplayID? {
+    private func validate(for kind: ValidationKind, with windows: [WindowInfo]) -> CGDirectDisplayID? {
         lazy var actionMessage = switch kind {
         case .showing: "Preventing overlay panel from showing."
         case .updates: "Preventing overlay panel from updating."
@@ -278,7 +259,7 @@ class MenuBarOverlayPanel: NSPanel {
             return nil
         }
         let owningDisplay = owningScreen.displayID
-        guard appState.menuBarManager.hasValidMenuBar(for: owningDisplay) else {
+        guard appState.menuBarManager.hasValidMenuBar(in: windows, for: owningDisplay) else {
             Logger.overlayPanel.notice("No valid menu bar found. \(actionMessage)")
             return nil
         }
@@ -286,7 +267,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// Stores the frame of the menu bar's application menu.
-    private func updateApplicationMenuFrame(for display: CGDirectDisplayID) throws {
+    private func updateApplicationMenuFrame(for display: CGDirectDisplayID) {
         guard
             let menuBarManager = appState?.menuBarManager,
             !menuBarManager.isMenuBarHiddenBySystem
@@ -298,45 +279,26 @@ class MenuBarOverlayPanel: NSPanel {
 
     /// Stores the area of the desktop wallpaper that is under the menu bar
     /// of the given display.
-    private func updateDesktopWallpaper(for display: CGDirectDisplayID) async throws {
-        let captureTask = Task.detached { () -> CGImage? in
-            let windows = WindowInfo.getOnScreenWindows()
-            guard
-                let wallpaperWindow = WindowInfo.getWallpaperWindow(from: windows, for: display),
-                let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display)
-            else {
-                return nil
-            }
-            return Bridging.captureWindow(wallpaperWindow.windowID, screenBounds: menuBarWindow.frame)
+    private func updateDesktopWallpaper(for display: CGDirectDisplayID, with windows: [WindowInfo]) {
+        guard
+            let wallpaperWindow = WindowInfo.getWallpaperWindow(from: windows, for: display),
+            let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display)
+        else {
+            return
         }
-        let wallpaper = await captureTask.value
+        let wallpaper = Bridging.captureWindow(wallpaperWindow.windowID, screenBounds: menuBarWindow.frame)
         if desktopWallpaper?.dataProvider?.data != wallpaper?.dataProvider?.data {
             desktopWallpaper = wallpaper
         }
     }
 
     /// Updates the panel to prepare for display.
-    private func performUpdates(for flags: Set<UpdateFlag>, display: CGDirectDisplayID) async throws {
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            if flags.contains(.applicationMenuFrame) {
-                group.addTask {
-                    do {
-                        try await self.updateApplicationMenuFrame(for: display)
-                    } catch {
-                        throw UpdateError.applicationMenuFrame(error)
-                    }
-                }
-            }
-            if flags.contains(.desktopWallpaper) {
-                group.addTask {
-                    do {
-                        try await self.updateDesktopWallpaper(for: display)
-                    } catch {
-                        throw UpdateError.desktopWallpaper(error)
-                    }
-                }
-            }
-            try await group.waitForAll()
+    private func performUpdates(for flags: Set<UpdateFlag>, windows: [WindowInfo], display: CGDirectDisplayID) {
+        if flags.contains(.applicationMenuFrame) {
+            updateApplicationMenuFrame(for: display)
+        }
+        if flags.contains(.desktopWallpaper) {
+            updateDesktopWallpaper(for: display, with: windows)
         }
     }
 

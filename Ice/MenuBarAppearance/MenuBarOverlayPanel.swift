@@ -54,11 +54,6 @@ class MenuBarOverlayPanel: NSPanel {
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// Callbacks to perform after the panel is updated.
-    ///
-    /// - Note: The callbacks are removed after each update.
-    private var updateCallbacks = [() -> Void]()
-
     /// The context that manages panel update tasks.
     private let updateTaskContext = UpdateTaskContext()
 
@@ -71,11 +66,11 @@ class MenuBarOverlayPanel: NSPanel {
     /// A Boolean value that indicates whether the panel needs to be shown.
     @Published var needsShow = false
 
-    /// Flags representing the components of the panel currently in need of an update.
-    @Published private(set) var updateFlags = Set<UpdateFlag>()
-
     /// A Boolean value that indicates whether the user is dragging a menu bar item.
     @Published var isDraggingMenuBarItem = false
+
+    /// Flags representing the components of the panel currently in need of an update.
+    @Published private(set) var updateFlags = Set<UpdateFlag>()
 
     /// The frame of the application menu.
     @Published private(set) var applicationMenuFrame: CGRect?
@@ -204,16 +199,9 @@ class MenuBarOverlayPanel: NSPanel {
                 guard let self, !flags.isEmpty else {
                     return
                 }
-                defer {
-                    Task {
-                        // must be run async, or this will not remove the flags
-                        self.updateFlags.removeAll()
-                    }
-                    let updateCallbacks = self.updateCallbacks
-                    self.updateCallbacks.removeAll()
-                    for callback in updateCallbacks {
-                        callback()
-                    }
+                Task {
+                    // must be run async, or this will not remove the flags
+                    self.updateFlags.removeAll()
                 }
                 let windows = WindowInfo.getOnScreenWindows()
                 guard let owningDisplay = self.validate(for: .updates, with: windows) else {
@@ -332,16 +320,9 @@ class MenuBarOverlayPanel: NSPanel {
         orderFrontRegardless()
 
         updateFlags = [.applicationMenuFrame, .desktopWallpaper]
-        updateCallbacks.append { [weak self, weak appState] in
-            guard
-                let self,
-                let appState
-            else {
-                return
-            }
-            if !appState.menuBarManager.isMenuBarHiddenBySystem {
-                animator().alphaValue = 1
-            }
+
+        if !appState.menuBarManager.isMenuBarHiddenBySystem {
+            animator().alphaValue = 1
         }
     }
 

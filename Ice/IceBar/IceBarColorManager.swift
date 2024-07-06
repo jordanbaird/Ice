@@ -29,7 +29,8 @@ class IceBarColorManager: ObservableObject {
                 .sink { [weak self] screen in
                     guard
                         let self,
-                        let screen
+                        let screen,
+                        screen == .main
                     else {
                         return
                     }
@@ -45,7 +46,8 @@ class IceBarColorManager: ObservableObject {
                 guard
                     let self,
                     let screen = iceBarPanel.screen,
-                    isVisible
+                    isVisible,
+                    screen == .main
                 else {
                     return
                 }
@@ -59,15 +61,18 @@ class IceBarColorManager: ObservableObject {
                 DistributedNotificationCenter.default().publisher(for: DistributedNotificationCenter.interfaceThemeChangedNotification).mapToVoid(),
                 Timer.publish(every: 5, on: .main, in: .default).autoconnect().mapToVoid()
             )
-            .sink { [weak self] in
-                guard let self else {
+            .sink { [weak self, weak iceBarPanel] in
+                guard
+                    let self,
+                    let iceBarPanel,
+                    let screen = iceBarPanel.screen,
+                    screen == .main
+                else {
                     return
                 }
-                if let screen = iceBarPanel.screen {
-                    updateWindowImage(for: screen)
-                    if iceBarPanel.isVisible {
-                        updateColorInfo(with: iceBarPanel.frame, screen: screen)
-                    }
+                updateWindowImage(for: screen)
+                if iceBarPanel.isVisible {
+                    updateColorInfo(with: iceBarPanel.frame, screen: screen)
                 }
             }
             .store(in: &c)

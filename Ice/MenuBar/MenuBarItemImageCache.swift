@@ -48,7 +48,7 @@ class MenuBarItemImageCache: ObservableObject {
                 // update when the average menu bar color or cached items change
                 Publishers.Merge(
                     appState.menuBarManager.$averageColorInfo.removeDuplicates().mapToVoid(),
-                    appState.itemManager.$menuBarItemCache.removeDuplicates().mapToVoid()
+                    appState.itemManager.$itemCache.removeDuplicates().mapToVoid()
                 )
             )
             .throttle(for: 0.5, scheduler: DispatchQueue.main, latest: false)
@@ -79,7 +79,7 @@ class MenuBarItemImageCache: ObservableObject {
     }
 
     func cacheFailed(for section: MenuBarSection.Name) -> Bool {
-        let items = appState?.itemManager.menuBarItemCache.allItems(for: section) ?? []
+        let items = appState?.itemManager.itemCache.allItems(for: section) ?? []
         guard !items.isEmpty else {
             return false
         }
@@ -103,7 +103,7 @@ class MenuBarItemImageCache: ObservableObject {
             return [:]
         }
 
-        let items = appState.itemManager.menuBarItemCache.allItems(for: section)
+        let items = appState.itemManager.itemCache.allItems(for: section)
 
         let tempCache = TempCache()
         let backingScaleFactor = screen.backingScaleFactor
@@ -198,7 +198,7 @@ class MenuBarItemImageCache: ObservableObject {
             sectionsNeedingDisplay.append(section)
         }
         for section in sectionsNeedingDisplay {
-            guard !appState.itemManager.menuBarItemCache.allItems(for: section).isEmpty else {
+            guard !appState.itemManager.itemCache.allItems(for: section).isEmpty else {
                 continue
             }
             let sectionImages = await createImages(for: section, screen: screen)

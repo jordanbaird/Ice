@@ -10,17 +10,23 @@ import OSLog
 /// A type that manages menu bar items.
 @MainActor
 class MenuBarItemManager: ObservableObject {
-    struct MenuBarItemCache: Hashable {
+    struct ItemCache: Hashable {
         var hiddenControlItem: MenuBarItem?
         var alwaysHiddenControlItem: MenuBarItem?
         private var items = [MenuBarSection.Name: [MenuBarItem]]()
+
+        mutating func appendItem(_ item: MenuBarItem, to section: MenuBarSection.Name) {
+            items[section, default: []].append(item)
+        }
 
         mutating func clearItems(for section: MenuBarSection.Name) {
             items[section, default: []].removeAll()
         }
 
-        mutating func appendItem(_ item: MenuBarItem, to section: MenuBarSection.Name) {
-            items[section, default: []].append(item)
+        mutating func clear() {
+            hiddenControlItem = nil
+            alwaysHiddenControlItem = nil
+            items.removeAll()
         }
 
         func allItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
@@ -46,7 +52,7 @@ class MenuBarItemManager: ObservableObject {
         }
     }
 
-    @Published var menuBarItemCache = MenuBarItemCache()
+    @Published private(set) var itemCache = ItemCache()
 
     private var cachedItemWindowIDs = [CGWindowID]()
 
@@ -80,11 +86,6 @@ class MenuBarItemManager: ObservableObject {
         movingItemCount > 0
     }
 
-    var canArrange: Bool {
-        !isMouseButtonDown &&
-        mouseMovedCount <= 0
-    }
-
     init(appState: AppState) {
         self.appState = appState
     }
@@ -114,15 +115,7 @@ class MenuBarItemManager: ObservableObject {
                 }
                 cachedItemWindowIDs = itemWindowIDs
                 Task {
-                    let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
-                    if self.canArrange {
-                        do {
-                            try await self.arrangeItems(items)
-                        } catch {
-                            Logger.itemManager.error("Error arranging items: \(error)")
-                        }
-                    }
-                    self.cacheItems(items)
+                    await self.cacheItems()
                 }
             }
             .store(in: &c)
@@ -159,42 +152,32 @@ class MenuBarItemManager: ObservableObject {
 // MARK: - Cache Items
 
 extension MenuBarItemManager {
-    /// Caches the current menu bar items.
-    private func cacheItems(_ items: [MenuBarItem]) {
-        func clearCache() {
-            update(&menuBarItemCache) { cache in
-                cache.hiddenControlItem = nil
-                cache.alwaysHiddenControlItem = nil
+    /// Caches the given menu bar items, without checking whether the control items
+    /// are in the correct order.
+    private func uncheckedCacheItems(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem?, otherItems: [MenuBarItem]) {
+        func notAdded(_ item: MenuBarItem) {
+            Logger.itemCache.warning("Item \"\(item.logString)\" not added to any section")
+        }
 
-                for section in MenuBarSection.Name.allCases {
-                    cache.clearItems(for: section)
-                }
+        guard tempShownItemsInfo.isEmpty else {
+            Logger.itemCache.info("Items temporarily shown, so deferring cache")
+            return
+        }
+
+        if let dateOfLastTempShownItemsRehide {
+            guard Date.now.timeIntervalSince(dateOfLastTempShownItemsRehide) > 3 else {
+                Logger.itemCache.info("Items recently rehidden, so deferring cache")
+                return
             }
         }
 
-        func cacheForEnabledAlwaysHiddenSection() {
-            var items = items
+        Logger.itemCache.info("Caching menu bar items")
 
-            guard
-                let hiddenControlItemIndex = items.firstIndex(where: { $0.info == .hiddenControlItem }),
-                let alwaysHiddenControlItemIndex = items.firstIndex(where: { $0.info == .alwaysHiddenControlItem })
-            else {
-                clearCache()
-                return
-            }
+        update(&itemCache) { cache in
+            cache.clear()
 
-            let hiddenControlItem = items.remove(at: hiddenControlItemIndex)
-            let alwaysHiddenControlItem = items.remove(at: alwaysHiddenControlItemIndex)
-
-            update(&menuBarItemCache) { cache in
-                cache.hiddenControlItem = hiddenControlItem
-                cache.alwaysHiddenControlItem = alwaysHiddenControlItem
-
-                for section in MenuBarSection.Name.allCases {
-                    cache.clearItems(for: section)
-                }
-
-                for item in items {
+            if let alwaysHiddenControlItem {
+                for item in otherItems {
                     if item.frame.minX >= hiddenControlItem.frame.maxX {
                         cache.appendItem(item, to: .visible)
                     } else if
@@ -205,64 +188,57 @@ extension MenuBarItemManager {
                     } else if item.frame.maxX <= alwaysHiddenControlItem.frame.minX {
                         cache.appendItem(item, to: .alwaysHidden)
                     } else {
-                        Logger.itemManager.warning("Item \"\(item.logString)\" not added to any section")
+                        notAdded(item)
                     }
                 }
-            }
-        }
-
-        func cacheForDisabledAlwaysHiddenSection() {
-            var items = items
-
-            guard let hiddenControlItemIndex = items.firstIndex(where: { $0.info == .hiddenControlItem }) else {
-                clearCache()
-                return
-            }
-
-            let hiddenControlItem = items.remove(at: hiddenControlItemIndex)
-
-            update(&menuBarItemCache) { cache in
-                cache.hiddenControlItem = hiddenControlItem
-                cache.alwaysHiddenControlItem = nil
-
-                for section in MenuBarSection.Name.allCases {
-                    cache.clearItems(for: section)
-                }
-
-                for item in items {
+            } else {
+                for item in otherItems {
                     if item.frame.minX >= hiddenControlItem.frame.maxX {
                         cache.appendItem(item, to: .visible)
                     } else if item.frame.maxX <= hiddenControlItem.frame.minX {
                         cache.appendItem(item, to: .hidden)
                     } else {
-                        Logger.itemManager.warning("Item \"\(item.logString)\" not added to any section")
+                        notAdded(item)
                     }
                 }
             }
         }
+    }
 
-        guard let appState else {
+    private func cacheItems() async {
+        var items = MenuBarItem.getMenuBarItemsPrivateAPI(
+            onScreenOnly: false,
+            activeSpaceOnly: true
+        )
+
+        let hiddenControlItem = items
+            .firstIndex { $0.info == .hiddenControlItem }
+            .map { items.remove(at: $0) }
+        let alwaysHiddenControlItem = items
+            .firstIndex { $0.info == .alwaysHiddenControlItem }
+            .map { items.remove(at: $0) }
+
+        guard let hiddenControlItem else {
+            itemCache.clear()
+            Logger.itemCache.error("Missing control item for hidden section")
             return
         }
 
-        guard tempShownItemsInfo.isEmpty else {
-            Logger.itemManager.info("Items are temporarily shown, so deferring cache")
-            return
-        }
-
-        if let dateOfLastTempShownItemsRehide {
-            guard Date.now.timeIntervalSince(dateOfLastTempShownItemsRehide) > 3 else {
-                Logger.itemManager.info("Items were recently rehidden, so deferring cache")
-                return
+        do {
+            if let alwaysHiddenControlItem {
+                try await enforceControlItemOrder(
+                    hiddenControlItem: hiddenControlItem,
+                    alwaysHiddenControlItem: alwaysHiddenControlItem
+                )
             }
-        }
-
-        Logger.itemManager.info("Caching menu bar items")
-
-        if appState.settingsManager.advancedSettingsManager.enableAlwaysHiddenSection {
-            cacheForEnabledAlwaysHiddenSection()
-        } else {
-            cacheForDisabledAlwaysHiddenSection()
+            uncheckedCacheItems(
+                hiddenControlItem: hiddenControlItem,
+                alwaysHiddenControlItem: alwaysHiddenControlItem,
+                otherItems: items
+            )
+        } catch {
+            Logger.itemCache.error("Error enforcing control item order: \(error)")
+            itemCache.clear()
         }
     }
 }
@@ -1125,15 +1101,21 @@ extension MenuBarItemManager {
 // MARK: - Arrange Items
 
 extension MenuBarItemManager {
-    func arrangeItems(_ items: [MenuBarItem]) async throws {
-        guard
-            let hiddenControlItem = items.first(where: { $0.info == .hiddenControlItem }),
-            let alwaysHiddenControlItem = items.first(where: { $0.info == .alwaysHiddenControlItem })
-        else {
+    /// Enforces the order of the given control items, ensuring that the always-hidden control item stays
+    /// to the left of the hidden control item.
+    ///
+    /// - Parameters:
+    ///   - hiddenControlItem: A menu bar item that represents the control item for the hidden section.
+    ///   - alwaysHiddenControlItem: A menu bar item that represents the control item for the always-hidden section.
+    func enforceControlItemOrder(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem) async throws {
+        guard !isMouseButtonDown else {
+            Logger.itemManager.info("Mouse button is down, so will not enforce control item order")
             return
         }
-
-        // make sure the always-hidden control item is to the left of the hidden control item
+        guard mouseMovedCount <= 0 else {
+            Logger.itemManager.info("Mouse has recently moved, so will not enforce control item order")
+            return
+        }
         if hiddenControlItem.frame.maxX <= alwaysHiddenControlItem.frame.minX {
             Logger.itemManager.info("Arranging menu bar items")
             try await slowMove(item: alwaysHiddenControlItem, to: .leftOfItem(hiddenControlItem))
@@ -1313,4 +1295,5 @@ private extension CGEvent {
 
 private extension Logger {
     static let itemManager = Logger(category: "MenuBarItemManager")
+    static let itemCache = Logger(category: "MenuBarItemManager.ItemCache")
 }

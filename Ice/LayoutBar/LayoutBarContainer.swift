@@ -92,7 +92,7 @@ class LayoutBarContainer: NSView {
         var c = Set<AnyCancellable>()
 
         if let appState {
-            appState.itemManager.$menuBarItemCache
+            appState.itemManager.$itemCache
                 .removeDuplicates()
                 .sink { [weak self] cache in
                     guard let self else {

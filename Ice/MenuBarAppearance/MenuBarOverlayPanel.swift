@@ -169,6 +169,21 @@ class MenuBarOverlayPanel: NSPanel {
         }
         .store(in: &c)
 
+        // special cases for when the user drags an app onto or clicks into another space
+        Publishers.Merge(
+            publisher(for: \.isOnActiveSpace)
+                .receive(on: DispatchQueue.main)
+                .mapToVoid(),
+            UniversalEventMonitor.publisher(for: .leftMouseUp)
+                .filter { [weak self] _ in self?.isOnActiveSpace ?? false }
+                .mapToVoid()
+        )
+        .debounce(for: 0.05, scheduler: DispatchQueue.main)
+        .sink { [weak self] in
+            self?.insertUpdateFlag(.applicationMenuFrame)
+        }
+        .store(in: &c)
+
         // continually update the desktop wallpaper; ideally, we would set up an observer
         // for a wallpaper change notification, but macOS doesn't post one anymore
         Timer.publish(every: 5, on: .main, in: .default)

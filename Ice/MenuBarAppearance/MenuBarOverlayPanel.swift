@@ -128,8 +128,7 @@ class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
-        // update application menu frame when the menu bar owning
-        // or frontmost app changes
+        // update application menu frame when the menu bar owning or frontmost app changes
         Publishers.Merge(
             NSWorkspace.shared.publisher(for: \.menuBarOwningApplication, options: .old)
                 .combineLatest(NSWorkspace.shared.publisher(for: \.menuBarOwningApplication, options: .new))
@@ -170,10 +169,8 @@ class MenuBarOverlayPanel: NSPanel {
         }
         .store(in: &c)
 
-        // continually update the desktop wallpaper; ideally, we would set up
-        // an observer for a wallpaper change notification, but macOS doesn't
-        // post one anymore; updating every 5 seconds at least keeps the CPU
-        // usage around 1-2% on average
+        // continually update the desktop wallpaper; ideally, we would set up an observer
+        // for a wallpaper change notification, but macOS doesn't post one anymore
         Timer.publish(every: 5, on: .main, in: .default)
             .autoconnect()
             .sink { [weak self] _ in

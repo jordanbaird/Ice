@@ -39,6 +39,9 @@ final class AppState: ObservableObject {
     /// Manager for app updates.
     let updatesManager = UpdatesManager()
 
+    /// Model for app-wide navigation.
+    let navigationState = AppNavigationState()
+
     /// The app's delegate.
     private(set) weak var appDelegate: AppDelegate?
 
@@ -100,6 +103,15 @@ final class AppState: ObservableObject {
             isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
         }
         .store(in: &c)
+
+        if let settingsWindow {
+            settingsWindow.publisher(for: \.isVisible)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] isVisible in
+                    self?.navigationState.appNavigationIdentifier = if isVisible { .settings } else { .idle }
+                }
+                .store(in: &c)
+        }
 
         menuBarManager.objectWillChange
             .sink { [weak self] in

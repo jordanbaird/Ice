@@ -6,38 +6,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    private static let items: [SettingsNavigationItem] = [
-        SettingsNavigationItem(
-            name: .general,
-            icon: .systemSymbol("gearshape")
-        ),
-        SettingsNavigationItem(
-            name: .menuBarItems,
-            icon: .systemSymbol("menubar.rectangle")
-        ),
-        SettingsNavigationItem(
-            name: .menuBarAppearance,
-            icon: .systemSymbol("paintpalette")
-        ),
-        SettingsNavigationItem(
-            name: .hotkeys,
-            icon: .systemSymbol("keyboard")
-        ),
-        SettingsNavigationItem(
-            name: .advanced,
-            icon: .systemSymbol("gearshape.2")
-        ),
-        SettingsNavigationItem(
-            name: .updates,
-            icon: .systemSymbol("arrow.triangle.2.circlepath.circle")
-        ),
-        SettingsNavigationItem(
-            name: .about,
-            icon: .assetCatalog(.iceCubeStroke)
-        ),
-    ]
-
-    @State private var selection = Self.items[0]
+    @EnvironmentObject var navigationState: AppNavigationState
 
     var body: some View {
         NavigationSplitView {
@@ -45,15 +14,15 @@ struct SettingsView: View {
         } detail: {
             detailView
         }
-        .navigationTitle(selection.name.localized)
+        .navigationTitle(navigationState.settingsNavigationIdentifier.localized)
     }
 
     @ViewBuilder
     private var sidebar: some View {
-        List(selection: $selection) {
+        List(selection: $navigationState.settingsNavigationIdentifier) {
             Section {
-                ForEach(Self.items, id: \.self) { item in
-                    sidebarItem(item: item)
+                ForEach(SettingsNavigationIdentifier.allCases, id: \.self) { identifier in
+                    sidebarItem(for: identifier)
                 }
             } header: {
                 HStack {
@@ -76,7 +45,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var detailView: some View {
-        switch selection.name {
+        switch navigationState.settingsNavigationIdentifier {
         case .general:
             GeneralSettingsPane()
         case .menuBarItems:
@@ -95,20 +64,27 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private func sidebarItem(item: SettingsNavigationItem) -> some View {
+    private func sidebarItem(for identifier: SettingsNavigationIdentifier) -> some View {
         Label {
-            Text(item.name.localized)
+            Text(identifier.localized)
                 .font(.title3)
                 .padding(.leading, 2)
         } icon: {
-            item.icon.view
+            icon(for: identifier).view
                 .foregroundStyle(.primary)
         }
         .frame(height: 30)
     }
-}
 
-#Preview {
-    SettingsView()
-        .environmentObject(AppState())
+    private func icon(for identifier: SettingsNavigationIdentifier) -> IconResource {
+        switch identifier {
+        case .general: .systemSymbol("gearshape")
+        case .menuBarItems: .systemSymbol("menubar.rectangle")
+        case .menuBarAppearance: .systemSymbol("paintpalette")
+        case .hotkeys: .systemSymbol("keyboard")
+        case .advanced: .systemSymbol("gearshape.2")
+        case .updates: .systemSymbol("arrow.triangle.2.circlepath.circle")
+        case .about: .assetCatalog(.iceCubeStroke)
+        }
+    }
 }

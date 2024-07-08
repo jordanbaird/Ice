@@ -108,7 +108,10 @@ final class AppState: ObservableObject {
             settingsWindow.publisher(for: \.isVisible)
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] isVisible in
-                    self?.navigationState.appNavigationIdentifier = if isVisible { .settings } else { .idle }
+                    guard let self else {
+                        return
+                    }
+                    navigationState.isSettingsPresented = isVisible
                 }
                 .store(in: &c)
         }

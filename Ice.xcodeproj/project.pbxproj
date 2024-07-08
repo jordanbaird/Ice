@@ -131,7 +131,6 @@
 		71F428112C3B5CE90025706C /* NavigationIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71F428102C3B5CE90025706C /* NavigationIdentifier.swift */; };
 		71F428132C3B5E030025706C /* IconResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71F428122C3B5E030025706C /* IconResource.swift */; };
 		71F428152C3B5F3D0025706C /* AppNavigationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71F428142C3B5F3D0025706C /* AppNavigationState.swift */; };
-		71F428172C3B60070025706C /* AppNavigationIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71F428162C3B60070025706C /* AppNavigationIdentifier.swift */; };
 		71FEA2542A8D701B0048341A /* LocalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */; };
 /* End PBXBuildFile section */
 
@@ -260,7 +259,6 @@
 		71F428102C3B5CE90025706C /* NavigationIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationIdentifier.swift; sourceTree = "<group>"; };
 		71F428122C3B5E030025706C /* IconResource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconResource.swift; sourceTree = "<group>"; };
 		71F428142C3B5F3D0025706C /* AppNavigationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigationState.swift; sourceTree = "<group>"; };
-		71F428162C3B60070025706C /* AppNavigationIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigationIdentifier.swift; sourceTree = "<group>"; };
 		71FEA2532A8D701B0048341A /* LocalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalEventMonitor.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -788,7 +786,6 @@
 		71F428182C3B605B0025706C /* NavigationIdentifiers */ = {
 			isa = PBXGroup;
 			children = (
-				71F428162C3B60070025706C /* AppNavigationIdentifier.swift */,
 				71F428102C3B5CE90025706C /* NavigationIdentifier.swift */,
 				71F4280E2C3B5C870025706C /* SettingsNavigationIdentifier.swift */,
 			);
@@ -967,7 +964,6 @@
 				173C248C2B8E821C0096F7A1 /* UpdatesSettingsPane.swift in Sources */,
 				171C6F9C2C0356BC0097A5C8 /* GeneralSettingsPane.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* KeyCode.swift in Sources */,
-				71F428172C3B60070025706C /* AppNavigationIdentifier.swift in Sources */,
 				71829E0A2C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift in Sources */,
 				17B331D02B9916E70084EBB0 /* SettingsManager.swift in Sources */,
 				17B331D32B991D290084EBB0 /* GeneralSettingsManager.swift in Sources */,

@@ -8,6 +8,7 @@ import Combine
 /// The model for app-wide navigation.
 @MainActor
 final class AppNavigationState: ObservableObject {
-    @Published var appNavigationIdentifier: AppNavigationIdentifier = .idle
+    @Published var isSettingsPresented = false
+    @Published var isIceBarPresented = false
     @Published var settingsNavigationIdentifier: SettingsNavigationIdentifier = .general
 }

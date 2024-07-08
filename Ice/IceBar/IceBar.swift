@@ -161,8 +161,11 @@ class IceBarPanel: NSPanel {
             return
         }
 
-        // important that we set the current section before updating the cache
+        // important that we set the navigation state and current section
+        // before updating the cache
+        appState.navigationState.isIceBarPresented = true
         currentSection = section
+
         await appState.imageCache.updateCache()
 
         contentView = IceBarHostingView(
@@ -181,6 +184,7 @@ class IceBarPanel: NSPanel {
         super.close()
         contentView = nil
         currentSection = nil
+        appState?.navigationState.isIceBarPresented = false
     }
 }
 

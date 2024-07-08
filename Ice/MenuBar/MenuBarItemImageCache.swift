@@ -63,18 +63,6 @@ class MenuBarItemImageCache: ObservableObject {
             .store(in: &c)
         }
 
-        Timer.publish(every: 3, on: .main, in: .default)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                Task {
-                    await self.updateCache()
-                }
-            }
-            .store(in: &c)
-
         cancellables = c
     }
 
@@ -181,6 +169,17 @@ class MenuBarItemImageCache: ObservableObject {
         guard let appState else {
             return
         }
+        if !appState.navigationState.isIceBarPresented {
+            Logger.imageCache.info("Ice Bar not visible")
+            guard appState.navigationState.isSettingsPresented else {
+                Logger.imageCache.info("Settings not visible, so deferring image cache")
+                return
+            }
+            guard case .menuBarItems = appState.navigationState.settingsNavigationIdentifier else {
+                Logger.imageCache.info("Settings visible but not viewing menu bar items, so deferring image cache")
+                return
+            }
+        }
         guard !appState.itemManager.isMovingItem else {
             Logger.imageCache.info("Item manager is moving item, so deferring image cache")
             return
@@ -189,12 +188,12 @@ class MenuBarItemImageCache: ObservableObject {
             return
         }
         var sectionsNeedingDisplay = [MenuBarSection.Name]()
-        if
-            let settingsWindow = appState.settingsWindow,
-            settingsWindow.isVisible
-        {
+        if appState.navigationState.isSettingsPresented {
             sectionsNeedingDisplay = MenuBarSection.Name.allCases
-        } else if let section = appState.menuBarManager.iceBarPanel.currentSection {
+        } else if
+            appState.navigationState.isIceBarPresented,
+            let section = appState.menuBarManager.iceBarPanel.currentSection
+        {
             sectionsNeedingDisplay.append(section)
         }
         for section in sectionsNeedingDisplay {
@@ -203,7 +202,7 @@ class MenuBarItemImageCache: ObservableObject {
             }
             let sectionImages = await createImages(for: section, screen: screen)
             guard !sectionImages.isEmpty else {
-                Logger.imageCache.warning("Update cache failed for \(section.logString)")
+                Logger.imageCache.warning("Update image cache failed for \(section.logString)")
                 continue
             }
             images.merge(sectionImages) { (_, new) in new }

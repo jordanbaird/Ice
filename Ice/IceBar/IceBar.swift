@@ -28,6 +28,7 @@ class IceBarPanel: NSPanel {
         self.appState = appState
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = true
+        self.allowsToolTipsWhenApplicationIsInactive = true
         self.isFloatingPanel = true
         self.animationBehavior = .none
         self.backgroundColor = .clear
@@ -105,7 +106,7 @@ class IceBarPanel: NSPanel {
         let menuBarHeight = screen.getMenuBarHeight() ?? 0
         let originY = ((screen.frame.maxY - 1) - menuBarHeight) - frame.height
 
-        func getOrigin(for iceBarLocation: IceBarLocation) -> CGPoint? {
+        func getOrigin(for iceBarLocation: IceBarLocation) -> CGPoint {
             switch iceBarLocation {
             case .dynamic:
                 if appState.eventManager.isMouseInsideEmptyMenuBarSpace {
@@ -114,46 +115,40 @@ class IceBarPanel: NSPanel {
                 return getOrigin(for: .iceIcon)
             case .mousePointer:
                 guard let location = MouseCursor.location(flipped: false) else {
-                    return nil
+                    return getOrigin(for: .iceIcon)
                 }
-                return CGPoint(
-                    x: (location.x - frame.width / 2)
-                        .clamped(to: screen.frame.minX...screen.frame.maxX - frame.width),
-                    y: originY
-                )
+
+                let lowerBound = screen.frame.minX
+                let upperBound = screen.frame.maxX - frame.width
+
+                guard lowerBound <= upperBound else {
+                    return getOrigin(for: .rightOfScreen)
+                }
+
+                return CGPoint(x: (location.x - frame.width / 2).clamped(to: lowerBound...upperBound), y: originY)
             case .iceIcon:
+                let lowerBound = screen.frame.minX
+                let upperBound = screen.frame.maxX - frame.width
+
                 guard
+                    lowerBound <= upperBound,
                     let section = appState.menuBarManager.section(withName: .visible),
                     let windowID = section.controlItem.windowID,
                     // `Bridging.getWindowFrame(_:)` is more reliable than `ControlItem.windowFrame`
-                    // in this circumstance
                     let itemFrame = Bridging.getWindowFrame(for: windowID)
                 else {
-                    return nil
+                    return getOrigin(for: .rightOfScreen)
                 }
-                return CGPoint(
-                    x: (itemFrame.midX - frame.width / 2)
-                        .clamped(to: screen.frame.minX...screen.frame.maxX - frame.width),
-                    y: originY
-                )
+
+                return CGPoint(x: (itemFrame.midX - frame.width / 2).clamped(to: lowerBound...upperBound), y: originY)
             case .leftOfScreen:
-                return CGPoint(
-                    x: screen.frame.minX,
-                    y: originY
-                )
+                return CGPoint(x: screen.frame.minX, y: originY)
             case .rightOfScreen:
-                return CGPoint(
-                    x: screen.frame.maxX - frame.width,
-                    y: originY
-                )
+                return CGPoint(x: screen.frame.maxX - frame.width, y: originY)
             }
         }
 
-        let iceBarLocation = appState.settingsManager.generalSettingsManager.iceBarLocation
-
-        if let origin = getOrigin(for: iceBarLocation) {
-            setFrameOrigin(origin)
-        }
+        setFrameOrigin(getOrigin(for: appState.settingsManager.generalSettingsManager.iceBarLocation))
     }
 
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {
@@ -236,6 +231,7 @@ private struct IceBarContentView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
     @EnvironmentObject var menuBarManager: MenuBarManager
     @State private var frame = CGRect.zero
+    @State private var scrollIndicatorsFlashTrigger = 0
 
     let section: MenuBarSection.Name
     let closePanel: () -> Void
@@ -298,6 +294,7 @@ private struct IceBarContentView: View {
             }
         }
         .padding(5)
+        .frame(maxWidth: imageCache.screen?.frame.width)
         .fixedSize()
         .onFrameChange(update: $frame)
     }
@@ -311,10 +308,18 @@ private struct IceBarContentView: View {
             Text("Unable to display menu bar items")
                 .padding(.horizontal, 5)
         } else {
-            HStack(spacing: 0) {
-                ForEach(items, id: \.windowID) { item in
-                    IceBarItemView(item: item, closePanel: closePanel)
+            ScrollView(.horizontal) {
+                HStack(spacing: 0) {
+                    ForEach(items, id: \.windowID) { item in
+                        IceBarItemView(item: item, closePanel: closePanel)
+                    }
                 }
+            }
+            .environment(\.isScrollEnabled, frame.width == imageCache.screen?.frame.width)
+            .defaultScrollAnchor(.trailing)
+            .scrollIndicatorsFlash(trigger: scrollIndicatorsFlashTrigger)
+            .task {
+                scrollIndicatorsFlashTrigger += 1
             }
         }
     }

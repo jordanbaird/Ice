@@ -3,7 +3,7 @@
 //  Ice
 //
 
-import Foundation
+import Cocoa
 import OSLog
 
 @MainActor
@@ -22,8 +22,27 @@ extension MigrationManager {
                 migrate0_10_0,
             ])
         } catch {
-            Logger.migration.error("Migration failed with error: \(error)")
+            logError(error)
         }
+
+        let results = [
+            migrate0_10_1(),
+        ]
+
+        for result in results {
+            switch result {
+            case .success:
+                break
+            case .successButShowAlert(let alert):
+                alert.runModal()
+            case .failureLoggingError(let error):
+                logError(error)
+            }
+        }
+    }
+
+    private func logError(_ error: any Error) {
+        Logger.migration.error("Migration failed with error: \(error)")
     }
 }
 
@@ -181,6 +200,54 @@ extension MigrationManager {
     }
 }
 
+// MARK: - Migrate 0.10.1
+
+extension MigrationManager {
+    /// Performs all migrations for the `0.10.1` release.
+    private func migrate0_10_1() -> MigrationResult {
+        guard !Defaults.bool(forKey: .hasMigrated0_10_1) else {
+            return .success
+        }
+        let result = migrateControlItems0_10_1()
+        switch result {
+        case .success, .successButShowAlert:
+            Defaults.set(true, forKey: .hasMigrated0_10_1)
+            Logger.migration.info("Successfully migrated to 0.10.1 settings")
+        case .failureLoggingError:
+            break
+        }
+        return result
+    }
+
+    private func migrateControlItems0_10_1() -> MigrationResult {
+        var needsResetPreferredPositions = false
+
+        for identifier in ControlItem.Identifier.allCases {
+            if
+                StatusItemDefaults[.isVisible, identifier.rawValue] == false,
+                StatusItemDefaults[.preferredPosition, identifier.rawValue] == nil
+            {
+                needsResetPreferredPositions = true
+            }
+            StatusItemDefaults[.isVisible, identifier.rawValue] = nil
+        }
+
+        if needsResetPreferredPositions {
+            for identifier in ControlItem.Identifier.allCases {
+                StatusItemDefaults[.preferredPosition, identifier.rawValue] = nil
+            }
+
+            let alert = NSAlert()
+            alert.messageText = "Due to a bug in the 0.10.0 release, the data for Ice's menu bar items was corrupted and their positions had to be reset."
+            alert.informativeText = "Our sincerest apologies for the inconvenience."
+
+            return .successButShowAlert(alert)
+        }
+
+        return .success
+    }
+}
+
 // MARK: - Helpers
 
 extension MigrationManager {
@@ -212,6 +279,16 @@ extension MigrationManager {
             throw MigrationError.invalidMenuBarSectionsJSONObject(object)
         }
         return array
+    }
+}
+
+// MARK: - MigrationResult
+
+extension MigrationManager {
+    enum MigrationResult {
+        case success
+        case successButShowAlert(NSAlert)
+        case failureLoggingError(MigrationError)
     }
 }
 

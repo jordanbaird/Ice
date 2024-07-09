@@ -5,12 +5,12 @@ labels: bug
 body:
   - type: checkboxes
     attributes:
-      label: Check existing and frequent issues
-      description: Check existing issues to prevent duplicates. Only submit a new issue if you feel it has not been covered by an existing issue, or if a regression has occurred.
+      label: CHECK EXISTING AND FREQUENT ISSUES
+      description: Check existing open and closed issues to prevent duplicates. Use the search field at the top of the issue tracker. Only submit a new issue if it has not been covered by an existing issue, or if a regression has occurred.
       options:
-        - label: I have checked existing issues and believe that my issue is not a duplicate
+        - label: I have searched existing issues, and this bug has not already been reported
           required: true
-        - label: I have read the [Frequent Issues](https://github.com/jordanbaird/Ice/blob/main/Documentation/FREQUENT_ISSUES.md) document, and my issue is not included there
+        - label: I have read the [Frequent Issues](../../Documentation/FREQUENT_ISSUES.md), and this bug is not included
           required: true
   - type: textarea
     attributes:

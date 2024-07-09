@@ -165,6 +165,30 @@ class MenuBarItemImageCache: ObservableObject {
         return await tempCache.images
     }
 
+    func updateCacheWithoutChecks(sections: [MenuBarSection.Name]) async {
+        guard
+            let appState,
+            let screen = NSScreen.main
+        else {
+            return
+        }
+        var images = images
+        for section in sections {
+            guard !appState.itemManager.itemCache.allItems(for: section).isEmpty else {
+                continue
+            }
+            let sectionImages = await createImages(for: section, screen: screen)
+            guard !sectionImages.isEmpty else {
+                Logger.imageCache.warning("Update image cache failed for \(section.logString)")
+                continue
+            }
+            images.merge(sectionImages) { (_, new) in new }
+        }
+        self.images = images
+        self.screen = screen
+        self.menuBarHeight = screen.getMenuBarHeight()
+    }
+
     func updateCache() async {
         guard let appState else {
             return
@@ -184,9 +208,6 @@ class MenuBarItemImageCache: ObservableObject {
             Logger.imageCache.info("Item manager is moving item, so deferring image cache")
             return
         }
-        guard let screen = NSScreen.main else {
-            return
-        }
         var sectionsNeedingDisplay = [MenuBarSection.Name]()
         if appState.navigationState.isSettingsPresented {
             sectionsNeedingDisplay = MenuBarSection.Name.allCases
@@ -196,19 +217,7 @@ class MenuBarItemImageCache: ObservableObject {
         {
             sectionsNeedingDisplay.append(section)
         }
-        for section in sectionsNeedingDisplay {
-            guard !appState.itemManager.itemCache.allItems(for: section).isEmpty else {
-                continue
-            }
-            let sectionImages = await createImages(for: section, screen: screen)
-            guard !sectionImages.isEmpty else {
-                Logger.imageCache.warning("Update image cache failed for \(section.logString)")
-                continue
-            }
-            images.merge(sectionImages) { (_, new) in new }
-        }
-        self.screen = screen
-        self.menuBarHeight = screen.getMenuBarHeight()
+        await updateCacheWithoutChecks(sections: sectionsNeedingDisplay)
     }
 }
 

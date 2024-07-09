@@ -70,6 +70,7 @@ struct MenuBarItemsSettingsPane: View {
             VStack(alignment: .leading) {
                 Section {
                     LayoutBar(section: section)
+                        .environmentObject(appState.imageCache)
                 } header: {
                     Text(section.name.menuString)
                 } footer: {

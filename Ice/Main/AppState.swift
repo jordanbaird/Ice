@@ -116,6 +116,18 @@ final class AppState: ObservableObject {
                 .store(in: &c)
         }
 
+        navigationState.$isSettingsPresented
+            .receive(on: DispatchQueue.main)
+            .sink { isPresented in
+                guard isPresented else {
+                    return
+                }
+                Task {
+                    await self.imageCache.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
+                }
+            }
+            .store(in: &c)
+
         menuBarManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()

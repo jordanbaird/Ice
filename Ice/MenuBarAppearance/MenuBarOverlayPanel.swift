@@ -530,7 +530,6 @@ private class MenuBarOverlayPanelContentView: NSView {
             else {
                 return .zero
             }
-            // padding so the shape is even on both sides
             if shouldInset {
                 maxX -= 5
                 if info.leading.leadingEndCap == .square {
@@ -551,12 +550,12 @@ private class MenuBarOverlayPanelContentView: NSView {
             }
             var position = rect.maxX - totalWidth
             if shouldInset {
-                position += 2
+                position += 4
                 if info.trailing.trailingEndCap == .square {
                     position -= appearanceManager.menuBarInsetAmount
                 }
             } else {
-                position -= 7 // padding so the shape is even on both sides
+                position -= 7
             }
             return CGRect(x: position, y: rect.minY, width: rect.maxX - position, height: rect.height)
         }()

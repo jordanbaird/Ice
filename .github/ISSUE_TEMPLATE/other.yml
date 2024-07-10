@@ -1,7 +1,6 @@
-name: Feature Request
-description: Request a feature or suggest an idea
-title: "[Feature Request]: <feature title>"
-labels: enhancement
+name: Other
+description: Discuss something related to this project
+labels: other
 body:
   - type: checkboxes
     attributes:
@@ -12,12 +11,7 @@ body:
           required: true
   - type: textarea
     attributes:
-      label: Description
-      placeholder: A clear and concise description of the feature...
+      label: Discussion
+      description: Something you would like to discuss. Note that there are separate templates for feature requests and bug reports.
     validations:
       required: true
-  - type: textarea
-    attributes:
-      label: Screenshots
-      description: Relevant screenshots or screen recordings.
-      placeholder: (optional)

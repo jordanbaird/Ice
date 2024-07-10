@@ -79,7 +79,11 @@ final class MenuBarSection: ObservableObject {
     }
 
     var isEnabled: Bool {
-        controlItem.isAddedToMenuBar
+        if case .visible = name {
+            // visible section should always be enabled
+            return true
+        }
+        return controlItem.isAddedToMenuBar
     }
 
     init(name: Name, controlItem: ControlItem) {

@@ -1038,7 +1038,7 @@ extension MenuBarItemManager {
             return
         }
 
-        if let menuWindow = WindowInfo.getAllWindows().first(where: { $0.layer == 101 }) {
+        if let menuWindow = WindowInfo.getAllWindows().first(where: { $0.layer == CGWindowLevelForKey(.popUpMenuWindow) }) {
             Logger.itemManager.debug("Waiting for menu to close before rehiding temp shown items")
 
             let menuCheckTask = Task.detached(timeout: .seconds(1)) {

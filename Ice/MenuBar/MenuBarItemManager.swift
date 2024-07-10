@@ -54,19 +54,17 @@ class MenuBarItemManager: ObservableObject {
 
     @Published private(set) var itemCache = ItemCache()
 
+    private(set) var lastItemMoveStartDate: Date?
+
     private var cachedItemWindowIDs = [CGWindowID]()
 
     private var tempShownItemsInfo = [(item: MenuBarItem, destination: MoveDestination)]()
 
     private var tempShownItemsTimer: Timer?
 
-    private var dateOfLastTempShownItemsRehide: Date?
-
     private var isMouseButtonDown = false
 
     private var mouseMovedCount = 0
-
-    private var movingItemCount = 0
 
     private let mouseTrackingMask: NSEvent.EventTypeMask = [
         .mouseMoved,
@@ -81,10 +79,6 @@ class MenuBarItemManager: ObservableObject {
     private(set) weak var appState: AppState?
 
     private var cancellables = Set<AnyCancellable>()
-
-    var isMovingItem: Bool {
-        movingItemCount > 0
-    }
 
     init(appState: AppState) {
         self.appState = appState
@@ -104,18 +98,8 @@ class MenuBarItemManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                guard !isMovingItem else {
-                    Logger.itemManager.info("Item manager is moving an item, so deferring arrange and cache")
-                    return
-                }
-                let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
-                guard cachedItemWindowIDs != itemWindowIDs else {
-                    Logger.itemManager.info("Menu bar item windows have not changed, so deferring arrange and cache")
-                    return
-                }
-                cachedItemWindowIDs = itemWindowIDs
                 Task {
-                    await self.cacheItems()
+                    await self.cacheItemsIfNeeded()
                 }
             }
             .store(in: &c)
@@ -159,18 +143,6 @@ extension MenuBarItemManager {
             Logger.itemCache.warning("Item \"\(item.logString)\" not added to any section")
         }
 
-        guard tempShownItemsInfo.isEmpty else {
-            Logger.itemCache.info("Items temporarily shown, so deferring cache")
-            return
-        }
-
-        if let dateOfLastTempShownItemsRehide {
-            guard Date.now.timeIntervalSince(dateOfLastTempShownItemsRehide) > 3 else {
-                Logger.itemCache.info("Items recently rehidden, so deferring cache")
-                return
-            }
-        }
-
         Logger.itemCache.info("Caching menu bar items")
 
         update(&itemCache) { cache in
@@ -205,7 +177,27 @@ extension MenuBarItemManager {
         }
     }
 
-    private func cacheItems() async {
+    private func cacheItemsIfNeeded() async {
+        guard tempShownItemsInfo.isEmpty else {
+            Logger.itemCache.info("Items temporarily shown, so deferring item cache")
+            return
+        }
+
+        if let lastItemMoveStartDate {
+            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 3 else {
+                Logger.itemManager.info("Recently moved an item, so deferring item cache")
+                return
+            }
+        }
+
+        let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
+        if cachedItemWindowIDs == itemWindowIDs {
+            Logger.itemManager.info("Menu bar item windows have not changed, so deferring item cache")
+            return
+        } else {
+            cachedItemWindowIDs = itemWindowIDs
+        }
+
         var items = MenuBarItem.getMenuBarItemsPrivateAPI(
             onScreenOnly: false,
             activeSpaceOnly: true
@@ -741,6 +733,8 @@ extension MenuBarItemManager {
             suppressionInterval: 0
         )
 
+        lastItemMoveStartDate = .now
+
         do {
             try await forwardEvent(
                 mouseDownEvent,
@@ -768,11 +762,6 @@ extension MenuBarItemManager {
     ///   - item: A menu bar item to move.
     ///   - destination: A destination to move the menu bar item.
     func move(item: MenuBarItem, to destination: MoveDestination) async throws {
-        movingItemCount += 1
-        defer {
-            movingItemCount -= 1
-        }
-
         if try itemHasCorrectPosition(item: item, for: destination) {
             Logger.itemManager.info("\"\(item.logString)\" is already in the correct position")
             return
@@ -826,10 +815,6 @@ extension MenuBarItemManager {
     }
 
     func slowMove(item: MenuBarItem, to destination: MoveDestination) async throws {
-        movingItemCount += 1
-        defer {
-            movingItemCount -= 1
-        }
         try await move(item: item, to: destination)
         let waitTask = Task.detached(timeout: .seconds(1)) {
             while true {
@@ -1085,8 +1070,6 @@ extension MenuBarItemManager {
 
         tempShownItemsTimer?.invalidate()
         tempShownItemsTimer = nil
-
-        dateOfLastTempShownItemsRehide = .now
     }
 
     /// Removes a temporarily shown item from the cache.

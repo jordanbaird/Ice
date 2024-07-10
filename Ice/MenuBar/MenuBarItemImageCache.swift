@@ -100,63 +100,75 @@ class MenuBarItemImageCache: ObservableObject {
         let defaultItemThickness = NSStatusBar.system.thickness * backingScaleFactor
 
         let cacheTask = Task.detached {
+            var itemInfos = [CGWindowID: MenuBarItemInfo]()
+            var itemFrames = [CGWindowID: CGRect]()
             var windowIDs = [CGWindowID]()
             var frame = CGRect.null
 
-            let filteredItems = items.lazy.filter { item in
-                item.frame.minY == displayBounds.minY
-            }
-
-            for item in filteredItems {
-                windowIDs.append(item.windowID)
-                frame = frame.union(item.frame)
+            for item in items {
+                let windowID = item.windowID
+                guard
+                    // use the most up-to-date window frame
+                    let itemFrame = Bridging.getWindowFrame(for: windowID),
+                    itemFrame.minY == displayBounds.minY
+                else {
+                    continue
+                }
+                itemInfos[windowID] = item.info
+                itemFrames[windowID] = itemFrame
+                windowIDs.append(windowID)
+                frame = frame.union(itemFrame)
             }
 
             if
                 let compositeImage = Bridging.captureWindows(windowIDs, option: option),
                 CGFloat(compositeImage.width) == frame.width * backingScaleFactor
             {
-                var start: CGFloat = 0
-
-                for item in filteredItems {
-                    let width = item.frame.width * backingScaleFactor
-                    let height = item.frame.height * backingScaleFactor
-                    let frame = CGRect(
-                        x: start,
-                        y: (height / 2) - (defaultItemThickness / 2),
-                        width: width,
-                        height: defaultItemThickness
-                    )
-
-                    defer {
-                        start += width
+                for windowID in windowIDs {
+                    guard
+                        let itemInfo = itemInfos[windowID],
+                        let itemFrame = itemFrames[windowID]
+                    else {
+                        continue
                     }
+
+                    let frame = CGRect(
+                        x: (itemFrame.origin.x - frame.origin.x) * backingScaleFactor,
+                        y: (itemFrame.origin.y - frame.origin.y) * backingScaleFactor,
+                        width: itemFrame.width * backingScaleFactor,
+                        height: itemFrame.height * backingScaleFactor
+                    )
 
                     guard let itemImage = compositeImage.cropping(to: frame) else {
                         continue
                     }
 
-                    await tempCache.cache(image: itemImage, with: item.info)
+                    await tempCache.cache(image: itemImage, with: itemInfo)
                 }
             } else {
-                for item in filteredItems {
-                    let width = item.frame.width * backingScaleFactor
-                    let height = item.frame.height * backingScaleFactor
+                for windowID in windowIDs {
+                    guard
+                        let itemInfo = itemInfos[windowID],
+                        let itemFrame = itemFrames[windowID]
+                    else {
+                        continue
+                    }
+
                     let frame = CGRect(
                         x: 0,
-                        y: (height / 2) - (defaultItemThickness / 2),
-                        width: width,
+                        y: ((itemFrame.height * backingScaleFactor) / 2) - (defaultItemThickness / 2),
+                        width: itemFrame.width * backingScaleFactor,
                         height: defaultItemThickness
                     )
 
                     guard
-                        let itemImage = Bridging.captureWindow(item.windowID, option: option),
+                        let itemImage = Bridging.captureWindow(windowID, option: option),
                         let croppedImage = itemImage.cropping(to: frame)
                     else {
                         continue
                     }
 
-                    await tempCache.cache(image: croppedImage, with: item.info)
+                    await tempCache.cache(image: croppedImage, with: itemInfo)
                 }
             }
         }
@@ -204,9 +216,11 @@ class MenuBarItemImageCache: ObservableObject {
                 return
             }
         }
-        guard !appState.itemManager.isMovingItem else {
-            Logger.imageCache.info("Item manager is moving item, so deferring image cache")
-            return
+        if let lastItemMoveStartDate = appState.itemManager.lastItemMoveStartDate {
+            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 3 else {
+                Logger.imageCache.info("Recently moved an item, so deferring image cache")
+                return
+            }
         }
         var sectionsNeedingDisplay = [MenuBarSection.Name]()
         if appState.navigationState.isSettingsPresented {

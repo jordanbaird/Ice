@@ -205,23 +205,25 @@ class MenuBarItemImageCache: ObservableObject {
         guard let appState else {
             return
         }
+
         if !appState.navigationState.isIceBarPresented {
-            Logger.imageCache.info("Ice Bar not visible")
             guard appState.navigationState.isSettingsPresented else {
-                Logger.imageCache.info("Settings not visible, so deferring image cache")
+                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings not visible")
                 return
             }
             guard case .menuBarItems = appState.navigationState.settingsNavigationIdentifier else {
-                Logger.imageCache.info("Settings visible but not viewing menu bar items, so deferring image cache")
+                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Items pane")
                 return
             }
         }
+
         if let lastItemMoveStartDate = appState.itemManager.lastItemMoveStartDate {
             guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 3 else {
-                Logger.imageCache.info("Recently moved an item, so deferring image cache")
+                Logger.imageCache.debug("Skipping image cache as an item was recently moved")
                 return
             }
         }
+
         var sectionsNeedingDisplay = [MenuBarSection.Name]()
         if appState.navigationState.isSettingsPresented {
             sectionsNeedingDisplay = MenuBarSection.Name.allCases
@@ -231,6 +233,7 @@ class MenuBarItemImageCache: ObservableObject {
         {
             sectionsNeedingDisplay.append(section)
         }
+
         await updateCacheWithoutChecks(sections: sectionsNeedingDisplay)
     }
 }

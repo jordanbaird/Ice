@@ -12,7 +12,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         guard let appState else {
-            Logger.appDelegate.warning("\(#function) missing app state")
+            Logger.appDelegate.warning("Missing app state in applicationWillFinishLaunching")
             return
         }
 
@@ -28,7 +28,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let appState else {
-            Logger.appDelegate.warning("\(#function) missing app state")
+            Logger.appDelegate.warning("Missing app state in applicationDidFinishLaunching")
             return
         }
 

@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import OSLog
 
 /// A container for the items in the menu bar layout interface.
 class LayoutBarContainer: NSView {
@@ -303,9 +302,4 @@ class LayoutBarContainer: NSView {
             return distance1 < distance2
         }
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let layoutBar = Logger(category: "LayoutBar")
 }

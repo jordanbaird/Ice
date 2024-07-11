@@ -207,6 +207,10 @@ class MenuBarItemImageCache: ObservableObject {
         }
 
         if !appState.navigationState.isIceBarPresented {
+            guard appState.navigationState.isAppFrontmost else {
+                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, app not frontmost")
+                return
+            }
             guard appState.navigationState.isSettingsPresented else {
                 Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings not visible")
                 return

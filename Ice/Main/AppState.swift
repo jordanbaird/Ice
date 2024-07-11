@@ -104,6 +104,16 @@ final class AppState: ObservableObject {
         }
         .store(in: &c)
 
+        NSWorkspace.shared.publisher(for: \.frontmostApplication)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] frontmostApplication in
+                guard let self else {
+                    return
+                }
+                navigationState.isAppFrontmost = frontmostApplication == .current
+            }
+            .store(in: &c)
+
         if let settingsWindow {
             settingsWindow.publisher(for: \.isVisible)
                 .receive(on: DispatchQueue.main)
@@ -116,17 +126,20 @@ final class AppState: ObservableObject {
                 .store(in: &c)
         }
 
-        navigationState.$isSettingsPresented
-            .receive(on: DispatchQueue.main)
-            .sink { isPresented in
-                guard isPresented else {
-                    return
-                }
-                Task {
-                    await self.imageCache.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
-                }
+        Publishers.Merge(
+            navigationState.$isAppFrontmost,
+            navigationState.$isSettingsPresented
+        )
+        .debounce(for: 0.1, scheduler: DispatchQueue.main)
+        .sink { shouldUpdate in
+            guard shouldUpdate else {
+                return
             }
-            .store(in: &c)
+            Task {
+                await self.imageCache.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
+            }
+        }
+        .store(in: &c)
 
         menuBarManager.objectWillChange
             .sink { [weak self] in

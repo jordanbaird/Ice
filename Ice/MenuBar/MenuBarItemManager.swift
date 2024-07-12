@@ -52,15 +52,85 @@ class MenuBarItemManager: ObservableObject {
         }
     }
 
+    private class TempShownItemContext {
+        let item: MenuBarItem
+        let returnDestination: MoveDestination
+        let shownInterfaceWindow: WindowInfo?
+
+        private weak var itemManager: MenuBarItemManager?
+
+        private var timer: Timer?
+
+        var isShowingInterface: Bool {
+            guard let currentWindow = shownInterfaceWindow.flatMap({ WindowInfo(windowID: $0.windowID) }) else {
+                return false
+            }
+            if
+                currentWindow.layer != CGWindowLevelForKey(.popUpMenuWindow),
+                let owningApplication = currentWindow.owningApplication
+            {
+                return owningApplication.isActive && currentWindow.isOnScreen
+            } else {
+                return currentWindow.isOnScreen
+            }
+        }
+
+        init(item: MenuBarItem, returnDestination: MoveDestination, shownInterfaceWindow: WindowInfo?, itemManager: MenuBarItemManager) {
+            self.item = item
+            self.returnDestination = returnDestination
+            self.shownInterfaceWindow = shownInterfaceWindow
+            self.itemManager = itemManager
+        }
+
+        func scheduleTimer(for interval: TimeInterval) {
+            Logger.itemManager.debug("Running rehide timer for temp shown item \"\(self.item.logString)\" with interval: \(interval, format: .hybrid)")
+
+            invalidateTimer()
+            timer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
+
+                Logger.itemManager.debug("Rehide timer fired")
+
+                guard !isShowingInterface else {
+                    Logger.itemManager.debug("Item is showing its interface, so rescheduling timer")
+                    scheduleTimer(for: 3)
+                    return
+                }
+
+                Task {
+                    do {
+                        try await self.rehideItem()
+                        if let itemManager = self.itemManager {
+                            await itemManager.removeTempShownItemFromCache(with: self.item.info)
+                        }
+                    } catch {
+                        Logger.itemManager.error("Failed to rehide \"\(self.item.logString)\": \(error)")
+                        self.scheduleTimer(for: 3)
+                    }
+                }
+            }
+        }
+
+        func invalidateTimer() {
+            timer?.invalidate()
+            timer = nil
+        }
+
+        func rehideItem() async throws {
+            try await itemManager?.slowMove(item: item, to: returnDestination)
+        }
+    }
+
     @Published private(set) var itemCache = ItemCache()
 
     private(set) var lastItemMoveStartDate: Date?
 
     private var cachedItemWindowIDs = [CGWindowID]()
 
-    private var tempShownItemsInfo = [(item: MenuBarItem, destination: MoveDestination)]()
-
-    private var tempShownItemsTimer: Timer?
+    private var tempShownItemContexts = [MenuBarItemInfo: TempShownItemContext]()
 
     private var isMouseButtonDown = false
 
@@ -178,7 +248,7 @@ extension MenuBarItemManager {
     }
 
     private func cacheItemsIfNeeded() async {
-        guard tempShownItemsInfo.isEmpty else {
+        guard tempShownItemContexts.isEmpty else {
             Logger.itemManager.debug("Skipping item cache as items are temporarily shown")
             return
         }
@@ -952,26 +1022,6 @@ extension MenuBarItemManager {
         return nil
     }
 
-    /// Schedules a timer for the given interval, attempting to rehide the current
-    /// temporarily shown items when the timer fires.
-    private func runTempShownItemTimer(for interval: TimeInterval) {
-        Logger.itemManager.debug("Running rehide timer for temp shown items with interval: \(interval, format: .hybrid)")
-
-        tempShownItemsTimer?.invalidate()
-        tempShownItemsTimer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
-            guard let self else {
-                timer.invalidate()
-                return
-            }
-
-            Logger.itemManager.debug("Rehide timer fired")
-
-            Task {
-                await self.rehideTempShownItems()
-            }
-        }
-    }
-
     /// Temporarily shows the given item.
     ///
     /// This method moves the given item to the right of the control item for
@@ -986,6 +1036,14 @@ extension MenuBarItemManager {
     ///     should be clicked once its movement has finished.
     ///   - mouseButton: The mouse button of the click.
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
+        let rehideInterval: TimeInterval = 20
+
+        if let context = tempShownItemContexts[item.info] {
+            Logger.itemManager.info("Item \"\(item.logString)\" is already temporarily shown, so extending timer")
+            context.scheduleTimer(for: rehideInterval)
+            return
+        }
+
         Logger.itemManager.info("Temporarily showing \"\(item.logString)\"")
 
         let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
@@ -999,7 +1057,7 @@ extension MenuBarItemManager {
             return
         }
 
-        tempShownItemsInfo.append((item, destination))
+        let initialWindows = WindowInfo.getOnScreenWindows()
 
         Task {
             if clickWhenFinished {
@@ -1025,51 +1083,56 @@ extension MenuBarItemManager {
                     Logger.itemManager.error("ERROR: \(error)")
                 }
             }
-            runTempShownItemTimer(for: 20)
+
+            try? await Task.sleep(for: .milliseconds(100))
+
+            let currentWindows = WindowInfo.getOnScreenWindows()
+
+            let shownInterfaceWindow = currentWindows.first { currentWindow in
+                currentWindow.ownerPID == item.ownerPID &&
+                !initialWindows.contains { initialWindow in
+                    currentWindow.windowID == initialWindow.windowID
+                }
+            }
+
+            let context = TempShownItemContext(
+                item: item,
+                returnDestination: destination,
+                shownInterfaceWindow: shownInterfaceWindow,
+                itemManager: self
+            )
+
+            tempShownItemContexts[item.info] = context
+            context.scheduleTimer(for: rehideInterval)
+        }
+    }
+
+    /// Rehides all temporarily shown items.
+    func rehideTempShownItems() async {
+        for (_, context) in tempShownItemContexts {
+            do {
+                try await context.rehideItem()
+                removeTempShownItemFromCache(with: context.item.info)
+            } catch {
+                Logger.itemManager.error("Error rehiding item \"\(context.item.logString)\": \(error)")
+                continue
+            }
         }
     }
 
     /// Rehides all temporarily shown items.
     ///
-    /// If an item is currently showing its menu, this method waits for the menu
-    /// to close before hiding the items.
-    func rehideTempShownItems() async {
-        guard !tempShownItemsInfo.isEmpty else {
-            return
-        }
-
-        if let menuWindow = WindowInfo.getAllWindows().first(where: { $0.layer == CGWindowLevelForKey(.popUpMenuWindow) }) {
-            Logger.itemManager.debug("Waiting for menu to close before rehiding temp shown items")
-
-            let menuCheckTask = Task.detached(timeout: .seconds(1)) {
-                while Set(Bridging.getWindowList(option: .onScreen)).contains(menuWindow.windowID) {
-                    try Task.checkCancellation()
-                    try await Task.sleep(for: .milliseconds(10))
-                }
-            }
-            do {
-                try await menuCheckTask.value
-            } catch is TaskTimeoutError {
-                Logger.itemManager.debug("Menu check task timed out. Switching to timer")
-                runTempShownItemTimer(for: 3)
-                return
-            } catch {
-                Logger.itemManager.error("ERROR: \(error)")
+    /// If an item is currently showing its interface, this method waits for the
+    /// shown interface to close with the given timeout before hiding the items.
+    func rehideTempShownItems(interfaceCheckTimeout timeout: Duration) async {
+        let interfaceCheckTask = Task.detached(timeout: timeout) {
+            while await self.tempShownItemContexts.values.contains(where: { $0.isShowingInterface }) {
+                try Task.checkCancellation()
+                try await Task.sleep(for: .milliseconds(10))
             }
         }
-
-        Logger.itemManager.info("Rehiding temp shown items")
-
-        while let (item, destination) = tempShownItemsInfo.popLast() {
-            do {
-                try await move(item: item, to: destination)
-            } catch {
-                Logger.itemManager.error("Failed to rehide \"\(item.logString)\": \(error)")
-            }
-        }
-
-        tempShownItemsTimer?.invalidate()
-        tempShownItemsTimer = nil
+        try? await interfaceCheckTask.value
+        await rehideTempShownItems()
     }
 
     /// Removes a temporarily shown item from the cache.
@@ -1077,7 +1140,10 @@ extension MenuBarItemManager {
     /// This has the effect of ensuring that the item will not be returned to
     /// its previous location.
     func removeTempShownItemFromCache(with info: MenuBarItemInfo) {
-        tempShownItemsInfo.removeAll(where: { $0.item.info == info })
+        guard let context = tempShownItemContexts.removeValue(forKey: info) else {
+            return
+        }
+        context.invalidateTimer()
     }
 }
 

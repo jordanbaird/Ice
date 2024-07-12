@@ -147,7 +147,7 @@ final class MenuBarSection: ObservableObject {
                     await iceBarPanel?.show(section: .hidden, on: screenForIceBar)
                 }
                 try? await Task.sleep(for: .seconds(0.5))
-                await appState.itemManager.rehideTempShownItems()
+                await appState.itemManager.rehideTempShownItems(interfaceCheckTimeout: .seconds(0.5))
                 for section in menuBarManager.sections {
                     section.controlItem.state = .hideItems
                 }
@@ -158,7 +158,7 @@ final class MenuBarSection: ObservableObject {
                     await iceBarPanel?.show(section: .alwaysHidden, on: screenForIceBar)
                 }
                 try? await Task.sleep(for: .seconds(0.5))
-                await appState.itemManager.rehideTempShownItems()
+                await appState.itemManager.rehideTempShownItems(interfaceCheckTimeout: .seconds(0.5))
                 for section in menuBarManager.sections {
                     section.controlItem.state = .hideItems
                 }

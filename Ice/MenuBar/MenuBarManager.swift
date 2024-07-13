@@ -130,7 +130,8 @@ final class MenuBarManager: ObservableObject {
                     let self,
                     let appState,
                     case .focusedApp = appState.settingsManager.generalSettingsManager.rehideStrategy,
-                    let hiddenSection = section(withName: .hidden)
+                    let hiddenSection = section(withName: .hidden),
+                    !appState.eventManager.isMouseInsideMenuBar
                 {
                     Task {
                         try await Task.sleep(for: .seconds(0.1))

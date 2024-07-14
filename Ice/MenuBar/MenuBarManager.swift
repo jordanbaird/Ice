@@ -310,34 +310,97 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Returns the frame of the application menu for the given display.
-    func getApplicationMenuFrame(for display: CGDirectDisplayID) -> CGRect? {
-        let displayBounds = CGDisplayBounds(display)
+    func getApplicationMenuFrame(for displayID: CGDirectDisplayID) -> CGRect? {
         guard
-            let menuBar = try? systemWideElement.elementAtPosition(
-                Float(displayBounds.origin.x),
-                Float(displayBounds.origin.y)
-            ),
-            (try? menuBar.role()) == .menuBar,
-            var menuBarFrame: CGRect = try? menuBar.attribute(.frame),
-            let items: [UIElement] = try? menuBar.arrayAttribute(.children)
+            let mainScreen = NSScreen.main,
+            let screen = NSScreen.screens.first(where: { $0.displayID == displayID })
         else {
             return nil
         }
-        menuBarFrame.origin = displayBounds.origin
-        menuBarFrame.size.width = items.lazy
-            .filter { item in
-                (try? item.attribute(.enabled)) == true
-            }
-            .reduce(into: 0) { width, item in
-                if let frame: CGRect = try? item.attribute(.frame) {
-                    width += frame.width
-                }
-            }
-        if menuBarFrame.width == .zero {
+
+        let displayBounds = CGDisplayBounds(displayID)
+
+        guard
+            let menuBar = try? systemWideElement.elementAtPosition(Float(displayBounds.origin.x), Float(displayBounds.origin.y)),
+            let role = try? menuBar.role(),
+            role == .menuBar,
+            let items: [UIElement] = try? menuBar.arrayAttribute(.children)?.filter({ (try? $0.attribute(.enabled)) == true })
+        else {
             return nil
         }
-        menuBarFrame.size.width += 15 // extra width to accomodate menu padding
-        return menuBarFrame
+
+        let itemFrames: [CGRect] = items.compactMap { try? $0.attribute(.frame) }
+
+        var applicationMenuFrame: CGRect
+
+        if screen == mainScreen {
+            applicationMenuFrame = itemFrames.reduce(.null, CGRectUnion)
+        } else if screen.hasNotch {
+            if
+                let leftArea = screen.auxiliaryTopLeftArea,
+                let rightArea = screen.auxiliaryTopRightArea
+            {
+                let offsetItemFrames: [CGRect] = {
+                    let mainDisplayBounds = CGDisplayBounds(mainScreen.displayID)
+                    let offsetX = -mainDisplayBounds.origin.x
+                    let offsetY = -mainDisplayBounds.origin.y
+                    return itemFrames.map { frame in
+                        frame.offsetBy(dx: offsetX, dy: offsetY)
+                    }
+                }()
+                if
+                    let lastItemFrameToLeftOfNotch = offsetItemFrames.last(where: { $0.maxX <= leftArea.maxX }),
+                    let firstItemFrameToRightOfNotch = offsetItemFrames.first(where: { $0.minX >= rightArea.minX })
+                {
+                    let widthOfNotch = rightArea.minX - leftArea.maxX
+                    let leftOffset = leftArea.maxX - lastItemFrameToLeftOfNotch.maxX
+                    let rightOffset = firstItemFrameToRightOfNotch.minX - rightArea.minX
+                    let totalOffset = widthOfNotch + leftOffset + rightOffset
+                    applicationMenuFrame = offsetItemFrames.reduce(.null, CGRectUnion)
+                    applicationMenuFrame.size.width.addProduct(totalOffset, 1.5)
+                    applicationMenuFrame.size.width += 1
+                } else {
+                    return nil
+                }
+            } else {
+                return nil
+            }
+        } else if let menuBarFrame: CGRect = try? menuBar.attribute(.frame) {
+            applicationMenuFrame = menuBarFrame
+            applicationMenuFrame.origin = displayBounds.origin
+            applicationMenuFrame.size.width = items.reduce(into: 0) { width, item in
+                guard let frame: CGRect = try? item.attribute(.frame) else {
+                    return
+                }
+                width += frame.width
+            }
+            if NSScreen.screens.contains(where: { $0.hasNotch }) {
+                var totalOffset: CGFloat = 0
+                var lastFrame: CGRect?
+                for itemFrame in itemFrames {
+                    defer {
+                        lastFrame = itemFrame
+                    }
+                    guard let lastFrame else {
+                        continue
+                    }
+                    totalOffset += itemFrame.minX - lastFrame.maxX
+                }
+                applicationMenuFrame.size.width.addProduct(-totalOffset, 0.5)
+                applicationMenuFrame.size.width.round()
+            }
+        } else {
+            return nil
+        }
+
+        if applicationMenuFrame.width <= 0 {
+            return nil
+        }
+
+        // add extra width to accomodate menu padding
+        applicationMenuFrame.size.width += 15
+
+        return applicationMenuFrame
     }
 
     /// Shows the right-click menu.

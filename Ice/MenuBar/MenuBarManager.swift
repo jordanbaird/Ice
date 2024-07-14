@@ -329,11 +329,10 @@ final class MenuBarManager: ObservableObject {
             return nil
         }
 
-        // workaround to prevent the clipping of menu items on secondary screens when the
-        // main screen has a notch, and the application menu extends past it...
-        //
-        // this isn't ideal, and arguably introduces a visual bug, but its a "better" bug
-        // than what it aims to fix
+        // the Accessibility API returns the menu bar for the active screen, regardless of
+        // the display origin used; this workaround prevents an incorrect frame from being
+        // returned for inactive displays in multi-display setups where one display has a
+        // notch
         if
             let mainScreen = NSScreen.main,
             let thisScreen = NSScreen.screens.first(where: { $0.displayID == displayID }),

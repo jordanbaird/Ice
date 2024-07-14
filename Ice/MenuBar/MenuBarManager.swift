@@ -310,34 +310,45 @@ final class MenuBarManager: ObservableObject {
     }
 
     /// Returns the frame of the application menu for the given display.
-    func getApplicationMenuFrame(for display: CGDirectDisplayID) -> CGRect? {
-        let displayBounds = CGDisplayBounds(display)
+    func getApplicationMenuFrame(for displayID: CGDirectDisplayID) -> CGRect? {
+        let displayBounds = CGDisplayBounds(displayID)
+
         guard
-            let menuBar = try? systemWideElement.elementAtPosition(
-                Float(displayBounds.origin.x),
-                Float(displayBounds.origin.y)
-            ),
-            (try? menuBar.role()) == .menuBar,
-            var menuBarFrame: CGRect = try? menuBar.attribute(.frame),
-            let items: [UIElement] = try? menuBar.arrayAttribute(.children)
+            let menuBar = try? systemWideElement.elementAtPosition(Float(displayBounds.origin.x), Float(displayBounds.origin.y)),
+            let role = try? menuBar.role(),
+            role == .menuBar,
+            let items: [UIElement] = try? menuBar.arrayAttribute(.children)?.filter({ (try? $0.attribute(.enabled)) == true })
         else {
             return nil
         }
-        menuBarFrame.origin = displayBounds.origin
-        menuBarFrame.size.width = items.lazy
-            .filter { item in
-                (try? item.attribute(.enabled)) == true
-            }
-            .reduce(into: 0) { width, item in
-                if let frame: CGRect = try? item.attribute(.frame) {
-                    width += frame.width
-                }
-            }
-        if menuBarFrame.width == .zero {
+
+        let itemFrames = items.lazy.compactMap { try? $0.attribute(.frame) as CGRect? }
+        var applicationMenuFrame = itemFrames.reduce(.null, CGRectUnion)
+
+        if applicationMenuFrame.width <= 0 {
             return nil
         }
-        menuBarFrame.size.width += 15 // extra width to accomodate menu padding
-        return menuBarFrame
+
+        // workaround to prevent the clipping of menu items on secondary screens when the
+        // main screen has a notch, and the application menu extends past it...
+        //
+        // this isn't ideal, and arguably introduces a visual bug, but its a "better" bug
+        // than what it aims to fix
+        if
+            let mainScreen = NSScreen.main,
+            let thisScreen = NSScreen.screens.first(where: { $0.displayID == displayID }),
+            thisScreen != mainScreen,
+            let notchedScreen = NSScreen.screens.first(where: { $0.hasNotch }),
+            let leftArea = notchedScreen.auxiliaryTopLeftArea,
+            applicationMenuFrame.width >= leftArea.maxX
+        {
+            return nil
+        }
+
+        // add extra width to accomodate menu padding
+        applicationMenuFrame.size.width += 15
+
+        return applicationMenuFrame
     }
 
     /// Shows the right-click menu.

@@ -560,9 +560,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             return CGRect(x: position, y: rect.minY, width: rect.maxX - position, height: rect.height)
         }()
 
-        if leadingPathBounds == .zero || trailingPathBounds == .zero {
-            return NSBezierPath(rect: rect)
-        } else if leadingPathBounds.intersects(trailingPathBounds) {
+        if leadingPathBounds == .zero || trailingPathBounds == .zero || leadingPathBounds.intersects(trailingPathBounds) {
             return shapePath(
                 in: rect,
                 leadingEndCap: info.leading.leadingEndCap,

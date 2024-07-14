@@ -336,29 +336,34 @@ final class MenuBarManager: ObservableObject {
         if screen == mainScreen {
             applicationMenuFrame = itemFrames.reduce(.null, CGRectUnion)
         } else if screen.hasNotch {
-            let offsetItemFrames: [CGRect] = {
-                let mainDisplayBounds = CGDisplayBounds(mainScreen.displayID)
-                let offsetX = -mainDisplayBounds.origin.x
-                let offsetY = -mainDisplayBounds.origin.y
-                return itemFrames.map { frame in
-                    frame.offsetBy(dx: offsetX, dy: offsetY)
-                }
-            }()
-
-            applicationMenuFrame = offsetItemFrames.reduce(.null, CGRectUnion)
-
             if
                 let leftArea = screen.auxiliaryTopLeftArea,
-                let rightArea = screen.auxiliaryTopRightArea,
-                let lastItemFrameToLeftOfNotch = offsetItemFrames.last(where: { $0.maxX <= leftArea.maxX }),
-                let firstItemFrameToRightOfNotch = offsetItemFrames.first(where: { $0.minX >= rightArea.minX })
+                let rightArea = screen.auxiliaryTopRightArea
             {
-                let widthOfNotch = rightArea.minX - leftArea.maxX
-                let leftOffset = leftArea.maxX - lastItemFrameToLeftOfNotch.maxX
-                let rightOffset = firstItemFrameToRightOfNotch.minX - rightArea.minX
-                let totalOffset = widthOfNotch + leftOffset + rightOffset
-                applicationMenuFrame.size.width.addProduct(totalOffset, 1.5)
-                applicationMenuFrame.size.width += 1
+                let offsetItemFrames: [CGRect] = {
+                    let mainDisplayBounds = CGDisplayBounds(mainScreen.displayID)
+                    let offsetX = -mainDisplayBounds.origin.x
+                    let offsetY = -mainDisplayBounds.origin.y
+                    return itemFrames.map { frame in
+                        frame.offsetBy(dx: offsetX, dy: offsetY)
+                    }
+                }()
+                if
+                    let lastItemFrameToLeftOfNotch = offsetItemFrames.last(where: { $0.maxX <= leftArea.maxX }),
+                    let firstItemFrameToRightOfNotch = offsetItemFrames.first(where: { $0.minX >= rightArea.minX })
+                {
+                    let widthOfNotch = rightArea.minX - leftArea.maxX
+                    let leftOffset = leftArea.maxX - lastItemFrameToLeftOfNotch.maxX
+                    let rightOffset = firstItemFrameToRightOfNotch.minX - rightArea.minX
+                    let totalOffset = widthOfNotch + leftOffset + rightOffset
+                    applicationMenuFrame = offsetItemFrames.reduce(.null, CGRectUnion)
+                    applicationMenuFrame.size.width.addProduct(totalOffset, 1.5)
+                    applicationMenuFrame.size.width += 1
+                } else {
+                    return nil
+                }
+            } else {
+                return nil
             }
         } else if let menuBarFrame: CGRect = try? menuBar.attribute(.frame) {
             applicationMenuFrame = menuBarFrame

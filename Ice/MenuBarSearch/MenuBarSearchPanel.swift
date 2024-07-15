@@ -8,6 +8,8 @@ import SwiftUI
 class MenuBarSearchPanel: NSPanel {
     private weak var appState: AppState?
 
+    override var canBecomeKey: Bool { true }
+
     init(appState: AppState) {
         super.init(
             contentRect: .zero,
@@ -36,7 +38,7 @@ class MenuBarSearchPanel: NSPanel {
         })
 
         center()
-        orderFrontRegardless()
+        makeKeyAndOrderFront(nil)
     }
 
     func toggle() async {
@@ -89,6 +91,7 @@ private struct MenuBarSearchContentView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
     @State private var searchText = ""
     @State private var selection: MenuBarItem?
+    @FocusState private var searchFieldIsFocused: Bool
 
     let closePanel: () -> Void
 
@@ -102,6 +105,7 @@ private struct MenuBarSearchContentView: View {
             .multilineTextAlignment(.leading)
             .font(.system(size: 18))
             .padding(10)
+            .focused($searchFieldIsFocused)
 
             Divider()
 
@@ -111,27 +115,34 @@ private struct MenuBarSearchContentView: View {
         .frame(minWidth: 400)
         .frame(height: 300)
         .fixedSize()
+        .onAppear {
+            selection = itemManager.itemCache.managedItems(for: .visible).last
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                searchFieldIsFocused = true
+            }
+        }
     }
 
     @ViewBuilder
     private var scrollView: some View {
         ScrollView {
-            VStack {
+            VStack(spacing: 0) {
                 ForEach(MenuBarSection.Name.allCases, id: \.self) { section in
                     Text(section.menuString)
-                        .bold()
+                        .fontWeight(.semibold)
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal)
-                        .padding(.vertical, 5)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 10)
 
                     VStack(spacing: 0) {
                         ForEach(itemManager.itemCache.managedItems(for: section).reversed(), id: \.info) { item in
-                            MenuBarSearchItemView(item: item, closePanel: closePanel).tag(item)
+                            MenuBarSearchItemView(selection: $selection, item: item, closePanel: closePanel).tag(item)
                         }
                     }
                 }
+                .padding(.horizontal)
             }
+            .padding(.vertical, 5)
         }
         .scrollContentBackground(.hidden)
     }
@@ -139,6 +150,7 @@ private struct MenuBarSearchContentView: View {
 
 private struct MenuBarSearchItemView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
+    @Binding var selection: MenuBarItem?
 
     let item: MenuBarItem
     let closePanel: () -> Void
@@ -158,15 +170,21 @@ private struct MenuBarSearchItemView: View {
     }
 
     var body: some View {
-        HStack {
-            Text(item.displayName)
-            Spacer()
-            if let image {
-                Image(nsImage: image)
-                    .contentShape(Rectangle())
+        ZStack {
+            if selection?.info == item.info {
+                RoundedRectangle(cornerRadius: 7, style: .circular)
+                    .foregroundStyle(.selection)
+                    .padding(.horizontal, -7)
             }
+            HStack {
+                Text(item.displayName)
+                Spacer()
+                if let image {
+                    Image(nsImage: image)
+                        .contentShape(Rectangle())
+                }
+            }
+            .padding(.vertical, 5)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 3)
     }
 }

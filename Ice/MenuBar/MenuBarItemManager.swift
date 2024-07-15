@@ -52,14 +52,10 @@ class MenuBarItemManager: ObservableObject {
         }
     }
 
-    private class TempShownItemContext {
+    private struct TempShownItemContext {
         let item: MenuBarItem
         let returnDestination: MoveDestination
         let shownInterfaceWindow: WindowInfo?
-
-        private weak var itemManager: MenuBarItemManager?
-
-        private var timer: Timer?
 
         var isShowingInterface: Bool {
             guard let currentWindow = shownInterfaceWindow.flatMap({ WindowInfo(windowID: $0.windowID) }) else {
@@ -74,54 +70,6 @@ class MenuBarItemManager: ObservableObject {
                 return currentWindow.isOnScreen
             }
         }
-
-        init(item: MenuBarItem, returnDestination: MoveDestination, shownInterfaceWindow: WindowInfo?, itemManager: MenuBarItemManager) {
-            self.item = item
-            self.returnDestination = returnDestination
-            self.shownInterfaceWindow = shownInterfaceWindow
-            self.itemManager = itemManager
-        }
-
-        func scheduleTimer(for interval: TimeInterval) {
-            Logger.itemManager.debug("Running rehide timer for temp shown item \"\(self.item.logString)\" with interval: \(interval, format: .hybrid)")
-
-            invalidateTimer()
-            timer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
-                guard let self else {
-                    timer.invalidate()
-                    return
-                }
-
-                Logger.itemManager.debug("Rehide timer fired")
-
-                guard !isShowingInterface else {
-                    Logger.itemManager.debug("Item is showing its interface, so rescheduling timer")
-                    scheduleTimer(for: 3)
-                    return
-                }
-
-                Task {
-                    do {
-                        try await self.rehideItem()
-                        if let itemManager = self.itemManager {
-                            await itemManager.removeTempShownItemFromCache(with: self.item.info)
-                        }
-                    } catch {
-                        Logger.itemManager.error("Failed to rehide \"\(self.item.logString)\": \(error)")
-                        self.scheduleTimer(for: 3)
-                    }
-                }
-            }
-        }
-
-        func invalidateTimer() {
-            timer?.invalidate()
-            timer = nil
-        }
-
-        func rehideItem() async throws {
-            try await itemManager?.slowMove(item: item, to: returnDestination)
-        }
     }
 
     @Published private(set) var itemCache = ItemCache()
@@ -130,7 +78,9 @@ class MenuBarItemManager: ObservableObject {
 
     private var cachedItemWindowIDs = [CGWindowID]()
 
-    private var tempShownItemContexts = [MenuBarItemInfo: TempShownItemContext]()
+    private var tempShownItemContexts = [TempShownItemContext]()
+
+    private var tempShownItemsTimer: Timer?
 
     private var isMouseButtonDown = false
 
@@ -1022,6 +972,26 @@ extension MenuBarItemManager {
         return nil
     }
 
+    /// Schedules a timer for the given interval, attempting to rehide the current
+    /// temporarily shown items when the timer fires.
+    private func runTempShownItemTimer(for interval: TimeInterval) {
+        Logger.itemManager.debug("Running rehide timer for temp shown items with interval: \(interval, format: .hybrid)")
+
+        tempShownItemsTimer?.invalidate()
+        tempShownItemsTimer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
+
+            Logger.itemManager.debug("Rehide timer fired")
+
+            Task {
+                await self.rehideTempShownItems()
+            }
+        }
+    }
+
     /// Temporarily shows the given item.
     ///
     /// This method moves the given item to the right of the control item for
@@ -1038,9 +1008,9 @@ extension MenuBarItemManager {
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
         let rehideInterval: TimeInterval = 20
 
-        if let context = tempShownItemContexts[item.info] {
+        if tempShownItemContexts.contains(where: { $0.item.info == item.info }) {
             Logger.itemManager.info("Item \"\(item.logString)\" is already temporarily shown, so extending timer")
-            context.scheduleTimer(for: rehideInterval)
+            runTempShownItemTimer(for: rehideInterval)
             return
         }
 
@@ -1098,41 +1068,59 @@ extension MenuBarItemManager {
             let context = TempShownItemContext(
                 item: item,
                 returnDestination: destination,
-                shownInterfaceWindow: shownInterfaceWindow,
-                itemManager: self
+                shownInterfaceWindow: shownInterfaceWindow
             )
 
-            tempShownItemContexts[item.info] = context
-            context.scheduleTimer(for: rehideInterval)
-        }
-    }
-
-    /// Rehides all temporarily shown items.
-    func rehideTempShownItems() async {
-        for (_, context) in tempShownItemContexts {
-            do {
-                try await context.rehideItem()
-                removeTempShownItemFromCache(with: context.item.info)
-            } catch {
-                Logger.itemManager.error("Error rehiding item \"\(context.item.logString)\": \(error)")
-                continue
-            }
+            tempShownItemContexts.append(context)
+            runTempShownItemTimer(for: rehideInterval)
         }
     }
 
     /// Rehides all temporarily shown items.
     ///
-    /// If an item is currently showing its interface, this method waits for the
-    /// shown interface to close with the given timeout before hiding the items.
-    func rehideTempShownItems(interfaceCheckTimeout timeout: Duration) async {
-        let interfaceCheckTask = Task.detached(timeout: timeout) {
-            while await self.tempShownItemContexts.values.contains(where: { $0.isShowingInterface }) {
+    /// If an item is currently showing its menu, this method waits for the menu
+    /// to close before hiding the items.
+    func rehideTempShownItems() async {
+        guard !tempShownItemContexts.isEmpty else {
+            return
+        }
+
+        let interfaceCheckTask = Task.detached(timeout: .seconds(1)) {
+            while await self.tempShownItemContexts.contains(where: { $0.isShowingInterface }) {
                 try Task.checkCancellation()
                 try await Task.sleep(for: .milliseconds(10))
             }
         }
-        try? await interfaceCheckTask.value
-        await rehideTempShownItems()
+        do {
+            try await interfaceCheckTask.value
+        } catch is TaskTimeoutError {
+            Logger.itemManager.debug("Menu check task timed out. Switching to timer")
+            runTempShownItemTimer(for: 3)
+            return
+        } catch {
+            Logger.itemManager.error("ERROR: \(error)")
+        }
+
+        Logger.itemManager.info("Rehiding temp shown items")
+
+        var failedContexts = [TempShownItemContext]()
+
+        while let context = tempShownItemContexts.popLast() {
+            do {
+                try await move(item: context.item, to: context.returnDestination)
+            } catch {
+                Logger.itemManager.error("Failed to rehide \"\(context.item.logString)\": \(error)")
+                failedContexts.append(context)
+            }
+        }
+
+        if !failedContexts.isEmpty {
+            tempShownItemContexts = failedContexts
+            runTempShownItemTimer(for: 3)
+        }
+
+        tempShownItemsTimer?.invalidate()
+        tempShownItemsTimer = nil
     }
 
     /// Removes a temporarily shown item from the cache.
@@ -1140,10 +1128,7 @@ extension MenuBarItemManager {
     /// This has the effect of ensuring that the item will not be returned to
     /// its previous location.
     func removeTempShownItemFromCache(with info: MenuBarItemInfo) {
-        guard let context = tempShownItemContexts.removeValue(forKey: info) else {
-            return
-        }
-        context.invalidateTimer()
+        tempShownItemContexts.removeAll(where: { $0.item.info == info })
     }
 }
 

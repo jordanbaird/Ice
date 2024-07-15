@@ -475,6 +475,14 @@ extension MenuBarItemManager {
         }
     }
 
+    /// Delays the event tap callback from returning.
+    private func delayEventTapCallback() {
+        // small delay to prevent a timeout when running alongside certain
+        // event tapping apps, i.e. Magnet
+        // TODO: Try to find a better solution for this
+        Thread.sleep(forTimeInterval: 0.015)
+    }
+
     /// Posts an event to the given event tap location and waits until it is
     /// received before returning.
     ///
@@ -509,12 +517,7 @@ extension MenuBarItemManager {
                 Logger.itemManager.debug("Received \(type.logString) at \(location.logString)")
 
                 proxy.disable()
-
-                // small delay to prevent a timeout when running alongside certain
-                // event tapping apps, such as Magnet
-                // TODO: Try to find a better solution for this
-                Thread.sleep(forTimeInterval: 0.01)
-
+                delayEventTapCallback()
                 continuation.resume()
 
                 return rEvent
@@ -571,12 +574,7 @@ extension MenuBarItemManager {
                 postEvent(event, to: forwardedLocation)
 
                 proxy.disable()
-
-                // small delay to prevent a timeout when running alongside certain
-                // event tapping apps, such as Magnet
-                // TODO: Try to find a better solution for this
-                Thread.sleep(forTimeInterval: 0.01)
-
+                delayEventTapCallback()
                 continuation.resume()
 
                 return rEvent

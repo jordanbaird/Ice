@@ -1112,13 +1112,13 @@ extension MenuBarItemManager {
             }
         }
 
-        if !failedContexts.isEmpty {
+        if failedContexts.isEmpty {
+            tempShownItemsTimer?.invalidate()
+            tempShownItemsTimer = nil
+        } else {
             tempShownItemContexts = failedContexts
             runTempShownItemTimer(for: 3)
         }
-
-        tempShownItemsTimer?.invalidate()
-        tempShownItemsTimer = nil
     }
 
     /// Removes a temporarily shown item from the cache.

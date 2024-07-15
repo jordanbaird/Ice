@@ -18,6 +18,9 @@ struct HotkeysSettingsPane: View {
                 hotkeyRecorder(forSection: .hidden)
                 hotkeyRecorder(forSection: .alwaysHidden)
             }
+            Section("Menu Bar Items") {
+                hotkeyRecorder(forAction: .searchMenuBarItems)
+            }
             Section("Other") {
                 hotkeyRecorder(forAction: .toggleApplicationMenus)
                 hotkeyRecorder(forAction: .showSectionDividers)
@@ -42,6 +45,8 @@ struct HotkeysSettingsPane: View {
                     Text("Toggle application menus")
                 case .showSectionDividers:
                     Text("Show section dividers")
+                case .searchMenuBarItems:
+                    Text("Search menu bar items")
                 }
             }
         }

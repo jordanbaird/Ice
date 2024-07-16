@@ -3,9 +3,12 @@
 //  Ice
 //
 
+import Combine
 import SwiftUI
 
 class MenuBarSearchPanel: NSPanel {
+    private var cancellables = Set<AnyCancellable>()
+
     private weak var appState: AppState?
 
     override var canBecomeKey: Bool { true }
@@ -19,8 +22,22 @@ class MenuBarSearchPanel: NSPanel {
         )
         self.appState = appState
         self.titlebarAppearsTransparent = true
+        self.isMovableByWindowBackground = false
         self.animationBehavior = .none
         self.level = .floating
+        configureCancellables()
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        NSApp.publisher(for: \.effectiveAppearance)
+            .sink { [weak self] effectiveAppearance in
+                self?.appearance = effectiveAppearance
+            }
+            .store(in: &c)
+
+        cancellables = c
     }
 
     func show(on screen: NSScreen) async {
@@ -33,11 +50,16 @@ class MenuBarSearchPanel: NSPanel {
 
         await appState.imageCache.updateCache()
 
-        self.contentView = MenuBarSearchHostingView(appState: appState, closePanel: { [weak self] in
+        contentView = MenuBarSearchHostingView(appState: appState, closePanel: { [weak self] in
             self?.close()
         })
 
-        center()
+        let topLeft = CGPoint(
+            x: screen.frame.midX - frame.width / 2,
+            y: screen.frame.midY + (frame.height / 2) + (screen.frame.height / 8)
+        )
+
+        cascadeTopLeft(from: topLeft)
         makeKeyAndOrderFront(nil)
     }
 
@@ -70,6 +92,7 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
                 .environmentObject(appState)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.imageCache)
+                .environmentObject(appState.menuBarManager)
                 .erased()
         )
     }
@@ -86,9 +109,7 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
 }
 
 private struct MenuBarSearchContentView: View {
-    @EnvironmentObject var appState: AppState
     @EnvironmentObject var itemManager: MenuBarItemManager
-    @EnvironmentObject var imageCache: MenuBarItemImageCache
     @State private var searchText = ""
     @State private var selection: MenuBarItem?
     @FocusState private var searchFieldIsFocused: Bool
@@ -104,7 +125,7 @@ private struct MenuBarSearchContentView: View {
             .textFieldStyle(.plain)
             .multilineTextAlignment(.leading)
             .font(.system(size: 18))
-            .padding(10)
+            .padding(15)
             .focused($searchFieldIsFocused)
 
             Divider()
@@ -112,14 +133,12 @@ private struct MenuBarSearchContentView: View {
             scrollView
         }
         .background(.background.opacity(0.75))
-        .frame(minWidth: 400)
-        .frame(height: 300)
+        .frame(minWidth: 550)
+        .frame(height: 365)
         .fixedSize()
         .onAppear {
             selection = itemManager.itemCache.managedItems(for: .visible).last
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                searchFieldIsFocused = true
-            }
+            searchFieldIsFocused = true
         }
     }
 
@@ -140,17 +159,25 @@ private struct MenuBarSearchContentView: View {
                         }
                     }
                 }
-                .padding(.horizontal)
             }
-            .padding(.vertical, 5)
+            .padding([.bottom, .horizontal], 10)
         }
         .scrollContentBackground(.hidden)
     }
 }
 
+private let controlCenterIcon: NSImage? = {
+    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first else {
+        return nil
+    }
+    return app.icon
+}()
+
 private struct MenuBarSearchItemView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
+    @EnvironmentObject var menuBarManager: MenuBarManager
     @Binding var selection: MenuBarItem?
+    @State private var isHovering = false
 
     let item: MenuBarItem
     let closePanel: () -> Void
@@ -169,22 +196,77 @@ private struct MenuBarSearchItemView: View {
         return NSImage(cgImage: image, size: size)
     }
 
+    private var appIcon: NSImage? {
+        if item.info.namespace == .systemUIServer {
+            controlCenterIcon
+        } else {
+            item.owningApplication?.icon
+        }
+    }
+
+    private var imageBackgroundColor: Color {
+        if let colorInfo = menuBarManager.averageColorInfo {
+            Color(cgColor: colorInfo.color)
+        } else {
+            Color.gray
+        }
+    }
+
+    private var itemBackgroundStyle: AnyShapeStyle {
+        if selection?.info == item.info {
+            AnyShapeStyle(.selection)
+        } else if isHovering {
+            AnyShapeStyle(.selection.opacity(0.5))
+        } else {
+            AnyShapeStyle(.clear)
+        }
+    }
+
     var body: some View {
         ZStack {
-            if selection?.info == item.info {
-                RoundedRectangle(cornerRadius: 7, style: .circular)
-                    .foregroundStyle(.selection)
-                    .padding(.horizontal, -7)
+            itemBackground
+            itemContent
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            isHovering = hovering
+        }
+        .onTapGesture {
+            selection = item
+        }
+    }
+
+    @ViewBuilder
+    private var itemBackground: some View {
+        RoundedRectangle(cornerRadius: 7, style: .circular)
+            .fill(itemBackgroundStyle)
+    }
+
+    @ViewBuilder
+    private var itemContent: some View {
+        HStack {
+            if let appIcon {
+                Image(nsImage: appIcon)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 24, height: 24)
             }
-            HStack {
-                Text(item.displayName)
-                Spacer()
-                if let image {
-                    Image(nsImage: image)
-                        .contentShape(Rectangle())
-                }
+            Text(item.displayName)
+            Spacer()
+            imageViewWithBackground
+        }
+        .padding(5)
+    }
+
+    @ViewBuilder
+    private var imageViewWithBackground: some View {
+        if let image {
+            ZStack {
+                RoundedRectangle(cornerRadius: 5, style: .circular)
+                    .fill(imageBackgroundColor)
+                    .frame(width: item.frame.width)
+                Image(nsImage: image)
             }
-            .padding(.vertical, 5)
         }
     }
 }

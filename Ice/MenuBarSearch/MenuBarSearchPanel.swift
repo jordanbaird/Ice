@@ -131,9 +131,15 @@ private struct MenuBarSearchContentView: View {
     }
 }
 
+private struct MenuBarSearchSelectionValue: Hashable {
+    var sectionIndex: Int
+    var itemIndex: Int
+}
+
 private struct MenuBarSearchEquatableContentView: View, Equatable {
     @State private var searchText = ""
-    @State private var selection: MenuBarItem?
+    @State private var selection = MenuBarSearchSelectionValue(sectionIndex: 0, itemIndex: 0)
+    @State private var scrollAnchor = UnitPoint.bottom
     @FocusState private var searchFieldIsFocused: Bool
 
     let itemCache: MenuBarItemManager.ItemCache
@@ -160,7 +166,6 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
         .frame(height: 365)
         .fixedSize()
         .onAppear {
-            selection = itemCache.managedItems(for: .visible).last
             searchFieldIsFocused = true
         }
     }
@@ -169,7 +174,7 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
     private var scrollView: some View {
         ScrollView {
             VStack(spacing: 0) {
-                ForEach(MenuBarSection.Name.allCases, id: \.self) { section in
+                ForEach(Array(MenuBarSection.Name.allCases.enumerated()), id: \.element) { sectionIndex, section in
                     Text(section.menuString)
                         .fontWeight(.semibold)
                         .foregroundStyle(.secondary)
@@ -177,8 +182,14 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
                         .padding(.vertical, 10)
 
                     VStack(spacing: 0) {
-                        ForEach(itemCache.managedItems(for: section).reversed(), id: \.info) { item in
-                            MenuBarSearchItemView(selection: $selection, item: item, closePanel: closePanel).tag(item)
+                        ForEach(Array(itemCache.managedItems(for: section).reversed().enumerated()), id: \.element.info) { itemIndex, item in
+                            MenuBarSearchItemView(
+                                selection: $selection,
+                                item: item,
+                                selectionValue: MenuBarSearchSelectionValue(sectionIndex: sectionIndex, itemIndex: itemIndex),
+                                closePanel: closePanel
+                            )
+                            .id(MenuBarSearchSelectionValue(sectionIndex: sectionIndex, itemIndex: itemIndex))
                         }
                     }
                 }
@@ -186,10 +197,38 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
             .padding([.bottom, .horizontal], 10)
         }
         .scrollContentBackground(.hidden)
+        .scrollPosition(id: Binding($selection), anchor: scrollAnchor)
+        .onKeyDown(key: .downArrow) {
+            scrollAnchor = .bottom
+            let section = MenuBarSection.Name.allCases[selection.sectionIndex]
+            let items = itemCache.managedItems(for: section)
+            if selection.itemIndex >= items.endIndex - 1 {
+                if selection.sectionIndex < MenuBarSection.Name.allCases.endIndex - 1 {
+                    selection.sectionIndex += 1
+                    selection.itemIndex = 0
+                }
+            } else if selection.itemIndex < items.endIndex {
+                selection.itemIndex += 1
+            }
+        }
+        .onKeyDown(key: .upArrow) {
+            scrollAnchor = .top
+            let section = MenuBarSection.Name.allCases[selection.sectionIndex]
+            let items = itemCache.managedItems(for: section)
+            if selection.itemIndex <= items.startIndex {
+                if selection.sectionIndex > MenuBarSection.Name.allCases.startIndex {
+                    let previousItems = itemCache.managedItems(for: MenuBarSection.Name.allCases[selection.sectionIndex - 1])
+                    selection.sectionIndex -= 1
+                    selection.itemIndex = previousItems.endIndex - 1
+                }
+            } else if selection.itemIndex >= items.startIndex + 1 {
+                selection.itemIndex -= 1
+            }
+        }
     }
 
     static func == (lhs: MenuBarSearchEquatableContentView, rhs: MenuBarSearchEquatableContentView) -> Bool {
-        lhs.itemCache.managedItems == rhs.itemCache.managedItems
+        lhs.itemCache == rhs.itemCache
     }
 }
 
@@ -203,10 +242,11 @@ private let controlCenterIcon: NSImage? = {
 private struct MenuBarSearchItemView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
     @EnvironmentObject var menuBarManager: MenuBarManager
-    @Binding var selection: MenuBarItem?
+    @Binding var selection: MenuBarSearchSelectionValue
     @State private var isHovering = false
 
     let item: MenuBarItem
+    let selectionValue: MenuBarSearchSelectionValue
     let closePanel: () -> Void
 
     private var image: NSImage? {
@@ -249,7 +289,7 @@ private struct MenuBarSearchItemView: View {
             isHovering = hovering
         }
         .onTapGesture {
-            selection = item
+            selection = selectionValue
         }
     }
 
@@ -257,7 +297,7 @@ private struct MenuBarSearchItemView: View {
     private var itemBackground: some View {
         VisualEffectView(material: .selection, blendingMode: .withinWindow)
             .clipShape(RoundedRectangle(cornerRadius: 7, style: .circular))
-            .opacity(selection?.info == item.info ? 0.5 : isHovering ? 0.25 : 0)
+            .opacity(selection == selectionValue ? 0.5 : isHovering ? 0.25 : 0)
     }
 
     @ViewBuilder

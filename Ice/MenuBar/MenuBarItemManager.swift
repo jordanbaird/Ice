@@ -15,18 +15,6 @@ class MenuBarItemManager: ObservableObject {
         var alwaysHiddenControlItem: MenuBarItem?
         private var items = [MenuBarSection.Name: [MenuBarItem]]()
 
-        var allItems: [MenuBarItem] {
-            MenuBarSection.Name.allCases.reduce(into: []) { result, section in
-                result.append(contentsOf: allItems(for: section))
-            }
-        }
-
-        var managedItems: [MenuBarItem] {
-            MenuBarSection.Name.allCases.reduce(into: []) { result, section in
-                result.append(contentsOf: managedItems(for: section))
-            }
-        }
-
         mutating func appendItem(_ item: MenuBarItem, to section: MenuBarSection.Name) {
             items[section, default: []].append(item)
         }

@@ -7,9 +7,11 @@ import Combine
 import SwiftUI
 
 class MenuBarSearchPanel: NSPanel {
-    private var cancellables = Set<AnyCancellable>()
-
     private weak var appState: AppState?
+
+    private var mouseDownMonitor: GlobalEventMonitor?
+
+    private var cancellables = Set<AnyCancellable>()
 
     override var canBecomeKey: Bool { true }
 
@@ -54,6 +56,11 @@ class MenuBarSearchPanel: NSPanel {
             self?.close()
         })
 
+        mouseDownMonitor = GlobalEventMonitor(mask: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            self?.close()
+        }
+        mouseDownMonitor?.start()
+
         let topLeft = CGPoint(
             x: screen.frame.midX - frame.width / 2,
             y: screen.frame.midY + (frame.height / 2) + (screen.frame.height / 8)
@@ -74,6 +81,8 @@ class MenuBarSearchPanel: NSPanel {
     override func close() {
         super.close()
         contentView = nil
+        mouseDownMonitor?.stop()
+        mouseDownMonitor = nil
         appState?.navigationState.isSearchPresented = false
     }
 }

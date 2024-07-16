@@ -102,6 +102,7 @@
 		71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */; };
 		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
 		7127A9E92C45662B00D99DEF /* MenuBarSearchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */; };
+		7127A9F02C4687EE00D99DEF /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */; };
 		71287C602C3189AC0028706E /* IceBarColorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C5F2C3189AC0028706E /* IceBarColorManager.swift */; };
 		71287C622C31D75F0028706E /* MenuBarAverageColorInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C612C31D75F0028706E /* MenuBarAverageColorInfo.swift */; };
 		71287C642C3233B30028706E /* NSScreen+hasNotch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C632C3233B30028706E /* NSScreen+hasNotch.swift */; };
@@ -229,6 +230,7 @@
 		71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectAssociation.swift; sourceTree = "<group>"; };
 		711535F12AB9F6C1003193AD /* BindingExposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingExposable.swift; sourceTree = "<group>"; };
 		7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSearchPanel.swift; sourceTree = "<group>"; };
+		7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		71287C5F2C3189AC0028706E /* IceBarColorManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceBarColorManager.swift; sourceTree = "<group>"; };
 		71287C612C31D75F0028706E /* MenuBarAverageColorInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAverageColorInfo.swift; sourceTree = "<group>"; };
 		71287C632C3233B30028706E /* NSScreen+hasNotch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+hasNotch.swift"; sourceTree = "<group>"; };
@@ -778,6 +780,7 @@
 		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */,
 				17EC6B522AE0C09F0065F260 /* Pickers */,
 				17EE695C2C26617100F778A7 /* Shapes */,
 				179267372AE98870006AFBAF /* ViewModifiers */,
@@ -1002,6 +1005,7 @@
 				17D1AC8F2B97E71D00726180 /* AdvancedSettingsPane.swift in Sources */,
 				718152C32C34E595005564AA /* NSScreen+screenWithMouse.swift in Sources */,
 				17F998532C16EFCD00D75EC0 /* CGImage+averageColor.swift in Sources */,
+				7127A9F02C4687EE00D99DEF /* VisualEffectView.swift in Sources */,
 				71287C602C3189AC0028706E /* IceBarColorManager.swift in Sources */,
 				71F428112C3B5CE90025706C /* NavigationIdentifier.swift in Sources */,
 				17DFF4C02AD8DBC500B5177A /* CodableColor.swift in Sources */,

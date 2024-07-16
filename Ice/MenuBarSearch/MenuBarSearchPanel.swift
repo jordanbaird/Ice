@@ -119,10 +119,24 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
 
 private struct MenuBarSearchContentView: View {
     @EnvironmentObject var itemManager: MenuBarItemManager
+
+    let closePanel: () -> Void
+
+    var body: some View {
+        MenuBarSearchEquatableContentView(
+            itemCache: itemManager.itemCache,
+            closePanel: closePanel
+        )
+        .equatable()
+    }
+}
+
+private struct MenuBarSearchEquatableContentView: View, Equatable {
     @State private var searchText = ""
     @State private var selection: MenuBarItem?
     @FocusState private var searchFieldIsFocused: Bool
 
+    let itemCache: MenuBarItemManager.ItemCache
     let closePanel: () -> Void
 
     var body: some View {
@@ -146,7 +160,7 @@ private struct MenuBarSearchContentView: View {
         .frame(height: 365)
         .fixedSize()
         .onAppear {
-            selection = itemManager.itemCache.managedItems(for: .visible).last
+            selection = itemCache.managedItems(for: .visible).last
             searchFieldIsFocused = true
         }
     }
@@ -163,7 +177,7 @@ private struct MenuBarSearchContentView: View {
                         .padding(.vertical, 10)
 
                     VStack(spacing: 0) {
-                        ForEach(itemManager.itemCache.managedItems(for: section).reversed(), id: \.info) { item in
+                        ForEach(itemCache.managedItems(for: section).reversed(), id: \.info) { item in
                             MenuBarSearchItemView(selection: $selection, item: item, closePanel: closePanel).tag(item)
                         }
                     }
@@ -172,6 +186,10 @@ private struct MenuBarSearchContentView: View {
             .padding([.bottom, .horizontal], 10)
         }
         .scrollContentBackground(.hidden)
+    }
+
+    static func == (lhs: MenuBarSearchEquatableContentView, rhs: MenuBarSearchEquatableContentView) -> Bool {
+        lhs.itemCache.managedItems == rhs.itemCache.managedItems
     }
 }
 
@@ -193,7 +211,7 @@ private struct MenuBarSearchItemView: View {
 
     private var image: NSImage? {
         guard
-            let image = imageCache.images[item.info]?.trimmingTransparentPixels(),
+            let image = imageCache.images[item.info],
             let screen = imageCache.screen
         else {
             return nil
@@ -221,16 +239,6 @@ private struct MenuBarSearchItemView: View {
         }
     }
 
-    private var itemBackgroundStyle: AnyShapeStyle {
-        if selection?.info == item.info {
-            AnyShapeStyle(.selection)
-        } else if isHovering {
-            AnyShapeStyle(.selection.opacity(0.5))
-        } else {
-            AnyShapeStyle(.clear)
-        }
-    }
-
     var body: some View {
         ZStack {
             itemBackground
@@ -247,8 +255,9 @@ private struct MenuBarSearchItemView: View {
 
     @ViewBuilder
     private var itemBackground: some View {
-        RoundedRectangle(cornerRadius: 7, style: .circular)
-            .fill(itemBackgroundStyle)
+        VisualEffectView(material: .selection, blendingMode: .withinWindow)
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .circular))
+            .opacity(selection?.info == item.info ? 0.5 : isHovering ? 0.25 : 0)
     }
 
     @ViewBuilder

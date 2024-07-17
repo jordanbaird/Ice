@@ -139,6 +139,7 @@ private struct MenuBarSearchSelectionValue: Hashable {
 private struct MenuBarSearchEquatableContentView: View, Equatable {
     @State private var searchText = ""
     @State private var selection = MenuBarSearchSelectionValue(sectionIndex: 0, itemIndex: 0)
+    @State private var itemFrames = [MenuBarSearchSelectionValue: CGRect]()
     @FocusState private var searchFieldIsFocused: Bool
 
     let itemCache: MenuBarItemManager.ItemCache
@@ -171,16 +172,24 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
 
     @ViewBuilder
     private var scrollView: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ForEach(Array(MenuBarSection.Name.allCases.enumerated()), id: \.element) { index, section in
-                    listSection(sectionIndex: index, section: section)
+        ScrollViewReader { scrollView in
+            GeometryReader { geometry in
+                ScrollView {
+                    scrollContent(scrollView: scrollView, geometry: geometry)
                 }
+                .scrollContentBackground(.hidden)
             }
-            .padding([.bottom, .horizontal], 10)
         }
-        .scrollContentBackground(.hidden)
-        .scrollPosition(id: Binding($selection), anchor: .bottom)
+    }
+
+    @ViewBuilder
+    private func scrollContent(scrollView: ScrollViewProxy, geometry: GeometryProxy) -> some View {
+        VStack(spacing: 0) {
+            ForEach(Array(MenuBarSection.Name.allCases.enumerated()), id: \.element) { index, section in
+                listSection(sectionIndex: index, section: section)
+            }
+        }
+        .padding([.bottom, .horizontal], 10)
         .onKeyDown(key: .downArrow) {
             let section = MenuBarSection.Name.allCases[selection.sectionIndex]
             let items = itemCache.managedItems(for: section)
@@ -191,6 +200,9 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
                 }
             } else if selection.itemIndex < items.endIndex {
                 selection.itemIndex += 1
+            }
+            if needsScrollToSelection(geometry: geometry) {
+                scrollView.scrollTo(selection, anchor: .bottom)
             }
         }
         .onKeyDown(key: .upArrow) {
@@ -205,6 +217,9 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
             } else if selection.itemIndex >= items.startIndex + 1 {
                 selection.itemIndex -= 1
             }
+            if needsScrollToSelection(geometry: geometry) {
+                scrollView.scrollTo(selection, anchor: .top)
+            }
         }
     }
 
@@ -214,6 +229,7 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
             ForEach(enumeratedItems(for: section), id: \.element.info) { itemIndex, item in
                 MenuBarSearchItemView(
                     selection: $selection,
+                    itemFrames: $itemFrames,
                     item: item,
                     selectionValue: selectionValue(sectionIndex, itemIndex),
                     closePanel: closePanel
@@ -237,6 +253,14 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
         MenuBarSearchSelectionValue(sectionIndex: sectionIndex, itemIndex: itemIndex)
     }
 
+    private func needsScrollToSelection(geometry: GeometryProxy) -> Bool {
+        guard let selectionFrame = itemFrames[selection] else {
+            return false
+        }
+        let geometryFrame = geometry.frame(in: .global)
+        return !geometryFrame.contains(selectionFrame)
+    }
+
     static func == (lhs: MenuBarSearchEquatableContentView, rhs: MenuBarSearchEquatableContentView) -> Bool {
         lhs.itemCache == rhs.itemCache
     }
@@ -253,6 +277,7 @@ private struct MenuBarSearchItemView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
     @EnvironmentObject var menuBarManager: MenuBarManager
     @Binding var selection: MenuBarSearchSelectionValue
+    @Binding var itemFrames: [MenuBarSearchSelectionValue: CGRect]
     @State private var isHovering = false
 
     let item: MenuBarItem
@@ -300,6 +325,9 @@ private struct MenuBarSearchItemView: View {
         }
         .onTapGesture {
             selection = selectionValue
+        }
+        .onFrameChange(in: .global) { frame in
+            itemFrames[selectionValue] = frame
         }
     }
 

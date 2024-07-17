@@ -140,6 +140,7 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
     @State private var searchText = ""
     @State private var selection = MenuBarSearchSelectionValue(sectionIndex: 0, itemIndex: 0)
     @State private var itemFrames = [MenuBarSearchSelectionValue: CGRect]()
+    @State private var scrollContentOffset: CGFloat = 0
     @FocusState private var searchFieldIsFocused: Bool
 
     let itemCache: MenuBarItemManager.ItemCache
@@ -187,6 +188,7 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
         VStack(spacing: 0) {
             ForEach(Array(MenuBarSection.Name.allCases.enumerated()), id: \.element) { index, section in
                 listSection(sectionIndex: index, section: section)
+                    .offset(y: scrollContentOffset)
             }
         }
         .padding([.bottom, .horizontal], 10)
@@ -203,6 +205,7 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
             }
             if needsScrollToSelection(geometry: geometry) {
                 scrollView.scrollTo(selection, anchor: .bottom)
+                scrollContentOffset = -10
             }
         }
         .onKeyDown(key: .upArrow) {
@@ -219,7 +222,12 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
             }
             if needsScrollToSelection(geometry: geometry) {
                 scrollView.scrollTo(selection, anchor: .top)
+                scrollContentOffset = 10
             }
+        }
+        .localEventMonitor(mask: .scrollWheel) { event in
+            scrollContentOffset = 0
+            return event
         }
     }
 

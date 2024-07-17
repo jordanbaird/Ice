@@ -139,7 +139,6 @@ private struct MenuBarSearchSelectionValue: Hashable {
 private struct MenuBarSearchEquatableContentView: View, Equatable {
     @State private var searchText = ""
     @State private var selection = MenuBarSearchSelectionValue(sectionIndex: 0, itemIndex: 0)
-    @State private var scrollAnchor = UnitPoint.bottom
     @FocusState private var searchFieldIsFocused: Bool
 
     let itemCache: MenuBarItemManager.ItemCache
@@ -174,32 +173,15 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
     private var scrollView: some View {
         ScrollView {
             VStack(spacing: 0) {
-                ForEach(Array(MenuBarSection.Name.allCases.enumerated()), id: \.element) { sectionIndex, section in
-                    Text(section.menuString)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 10)
-
-                    VStack(spacing: 0) {
-                        ForEach(Array(itemCache.managedItems(for: section).reversed().enumerated()), id: \.element.info) { itemIndex, item in
-                            MenuBarSearchItemView(
-                                selection: $selection,
-                                item: item,
-                                selectionValue: MenuBarSearchSelectionValue(sectionIndex: sectionIndex, itemIndex: itemIndex),
-                                closePanel: closePanel
-                            )
-                            .id(MenuBarSearchSelectionValue(sectionIndex: sectionIndex, itemIndex: itemIndex))
-                        }
-                    }
+                ForEach(Array(MenuBarSection.Name.allCases.enumerated()), id: \.element) { index, section in
+                    listSection(sectionIndex: index, section: section)
                 }
             }
             .padding([.bottom, .horizontal], 10)
         }
         .scrollContentBackground(.hidden)
-        .scrollPosition(id: Binding($selection), anchor: scrollAnchor)
+        .scrollPosition(id: Binding($selection), anchor: .bottom)
         .onKeyDown(key: .downArrow) {
-            scrollAnchor = .bottom
             let section = MenuBarSection.Name.allCases[selection.sectionIndex]
             let items = itemCache.managedItems(for: section)
             if selection.itemIndex >= items.endIndex - 1 {
@@ -212,7 +194,6 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
             }
         }
         .onKeyDown(key: .upArrow) {
-            scrollAnchor = .top
             let section = MenuBarSection.Name.allCases[selection.sectionIndex]
             let items = itemCache.managedItems(for: section)
             if selection.itemIndex <= items.startIndex {
@@ -225,6 +206,35 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
                 selection.itemIndex -= 1
             }
         }
+    }
+
+    @ViewBuilder
+    private func listSection(sectionIndex: Int, section: MenuBarSection.Name) -> some View {
+        Section {
+            ForEach(enumeratedItems(for: section), id: \.element.info) { itemIndex, item in
+                MenuBarSearchItemView(
+                    selection: $selection,
+                    item: item,
+                    selectionValue: selectionValue(sectionIndex, itemIndex),
+                    closePanel: closePanel
+                )
+                .id(selectionValue(sectionIndex, itemIndex))
+            }
+        } header: {
+            Text(section.menuString)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
+        }
+    }
+
+    private func enumeratedItems(for section: MenuBarSection.Name) -> [(offset: Int, element: MenuBarItem)] {
+        Array(itemCache.managedItems(for: section).reversed().enumerated())
+    }
+
+    private func selectionValue(_ sectionIndex: Int, _ itemIndex: Int) -> MenuBarSearchSelectionValue {
+        MenuBarSearchSelectionValue(sectionIndex: sectionIndex, itemIndex: itemIndex)
     }
 
     static func == (lhs: MenuBarSearchEquatableContentView, rhs: MenuBarSearchEquatableContentView) -> Bool {

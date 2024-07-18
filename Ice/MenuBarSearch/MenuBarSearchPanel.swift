@@ -139,51 +139,25 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
 }
 
 private struct MenuBarSearchContentView: View {
-    enum ItemID: Hashable {
+    private enum ItemID: Hashable {
         case header(MenuBarSection.Name)
         case item(MenuBarItemInfo)
     }
 
-    struct MenuBarSearchItem {
+    private struct MenuBarSearchItem {
         let listItem: SectionedListItem<ItemID>
         let displayName: String
     }
 
     @EnvironmentObject var itemManager: MenuBarItemManager
     @State private var searchText = ""
+    @State private var searchItems = [MenuBarSearchItem]()
     @State private var selection: ItemID?
     @FocusState private var searchFieldIsFocused: Bool
 
     let closePanel: () -> Void
 
     private let fuse = Fuse(threshold: 0.5, tokenize: false)
-
-    private var searchItems: [MenuBarSearchItem] {
-        MenuBarSection.Name.allCases.reduce(into: []) { items, section in
-            let headerItem = SectionedListHeaderItem(id: ItemID.header(section)) {
-                Text(section.menuString)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 10)
-            }
-            items.append(MenuBarSearchItem(listItem: headerItem, displayName: section.menuString))
-
-            for item in itemManager.itemCache.managedItems(for: section).reversed() {
-                let listItem = SectionedListItem(
-                    isSelectable: true,
-                    id: ItemID.item(item.info),
-                    action: {
-                        performAction(for: item)
-                    },
-                    content: {
-                        MenuBarSearchItemView(item: item)
-                    }
-                )
-                items.append(MenuBarSearchItem(listItem: listItem, displayName: item.displayName))
-            }
-        }
-    }
 
     private var matchingItems: [SectionedListItem<ItemID>] {
         if searchText.isEmpty {
@@ -253,10 +227,40 @@ private struct MenuBarSearchContentView: View {
         .onChange(of: searchText) {
             selectFirstMatchingItem()
         }
+        .onChange(of: itemManager.itemCache, initial: true) {
+            updateSearchItems()
+        }
     }
 
     private func selectFirstMatchingItem() {
         selection = matchingItems.first { $0.isSelectable }?.id
+    }
+
+    private func updateSearchItems() {
+        searchItems = MenuBarSection.Name.allCases.reduce(into: []) { items, section in
+            let headerItem = SectionedListHeaderItem(id: ItemID.header(section)) {
+                Text(section.menuString)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 10)
+            }
+            items.append(MenuBarSearchItem(listItem: headerItem, displayName: section.menuString))
+
+            for item in itemManager.itemCache.managedItems(for: section).reversed() {
+                let listItem = SectionedListItem(
+                    isSelectable: true,
+                    id: ItemID.item(item.info),
+                    action: {
+                        performAction(for: item)
+                    },
+                    content: {
+                        MenuBarSearchItemView(item: item)
+                    }
+                )
+                items.append(MenuBarSearchItem(listItem: listItem, displayName: item.displayName))
+            }
+        }
     }
 
     private func menuBarItem(for selection: ItemID) -> MenuBarItem? {

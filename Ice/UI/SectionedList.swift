@@ -132,11 +132,11 @@ struct SectionedList<ItemID: Hashable>: View {
             return nil
         }
         let geometryFrame = geometry.frame(in: .global)
-        if selectionFrame.maxY >= geometryFrame.maxY - padding.bottom {
-            return .down
-        }
         if selectionFrame.minY <= geometryFrame.minY + padding.top {
             return .up
+        }
+        if selectionFrame.maxY >= geometryFrame.maxY - padding.bottom {
+            return .down
         }
         return nil
     }

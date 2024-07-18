@@ -118,15 +118,12 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
         closePanel: @escaping () -> Void
     ) {
         super.init(
-            rootView: MenuBarSearchContentView(
-                itemCache: appState.itemManager.itemCache,
-                closePanel: closePanel
-            )
-            .environmentObject(appState)
-            .environmentObject(appState.itemManager)
-            .environmentObject(appState.imageCache)
-            .environmentObject(appState.menuBarManager)
-            .erased()
+            rootView: MenuBarSearchContentView(closePanel: closePanel)
+                .environmentObject(appState)
+                .environmentObject(appState.itemManager)
+                .environmentObject(appState.imageCache)
+                .environmentObject(appState.menuBarManager)
+                .erased()
         )
     }
 
@@ -142,38 +139,28 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
 }
 
 private struct MenuBarSearchContentView: View {
+    enum ItemID: Hashable {
+        case header(MenuBarSection.Name)
+        case item(MenuBarItemInfo)
+    }
+
     struct MenuBarSearchItem {
-        let listItem: SectionedListItem
+        let listItem: SectionedListItem<ItemID>
         let displayName: String
     }
 
+    @EnvironmentObject var itemManager: MenuBarItemManager
     @State private var searchText = ""
-    @State private var selection: ObjectIdentifier?
+    @State private var selection: ItemID?
     @FocusState private var searchFieldIsFocused: Bool
 
-    let items: [MenuBarSearchItem]
     let closePanel: () -> Void
 
     private let fuse = Fuse(threshold: 0.5, tokenize: false)
 
-    private var matchingItems: [SectionedListItem] {
-        if searchText.isEmpty {
-            return items.map { $0.listItem }
-        }
-        let selectableItems = items.compactMap { item in
-            if item.listItem.isSelectable {
-                return item
-            }
-            return nil
-        }
-        let results = fuse.searchSync(searchText, in: selectableItems.map { $0.displayName })
-        return results.map { selectableItems[$0.index].listItem }
-    }
-
-    init(itemCache: MenuBarItemManager.ItemCache, closePanel: @escaping () -> Void) {
-        self.closePanel = closePanel
-        self.items = MenuBarSection.Name.allCases.reduce(into: []) { items, section in
-            let headerItem = SectionedListHeaderItem {
+    private var searchItems: [MenuBarSearchItem] {
+        MenuBarSection.Name.allCases.reduce(into: []) { items, section in
+            let headerItem = SectionedListHeaderItem(id: ItemID.header(section)) {
                 Text(section.menuString)
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
@@ -182,13 +169,27 @@ private struct MenuBarSearchContentView: View {
             }
             items.append(MenuBarSearchItem(listItem: headerItem, displayName: section.menuString))
 
-            for item in itemCache.managedItems(for: section).reversed() {
-                let listItem = SectionedListItem(isSelectable: true, action: closePanel) {
+            for item in itemManager.itemCache.managedItems(for: section).reversed() {
+                let listItem = SectionedListItem(isSelectable: true, id: ItemID.item(item.info), action: { performAction(for: item) }) {
                     MenuBarSearchItemView(item: item)
                 }
                 items.append(MenuBarSearchItem(listItem: listItem, displayName: item.displayName))
             }
         }
+    }
+
+    private var matchingItems: [SectionedListItem<ItemID>] {
+        if searchText.isEmpty {
+            return searchItems.map { $0.listItem }
+        }
+        let selectableItems = searchItems.compactMap { item in
+            if item.listItem.isSelectable {
+                return item
+            }
+            return nil
+        }
+        let results = fuse.searchSync(searchText, in: selectableItems.map { $0.displayName })
+        return results.map { selectableItems[$0.index].listItem }
     }
 
     var body: some View {
@@ -209,25 +210,32 @@ private struct MenuBarSearchContentView: View {
                 .scrollContentBackground(.hidden)
 
             Divider()
+                .offset(y: 1)
+                .zIndex(1)
 
             HStack {
-                Spacer()
-                Text("Show item")
-                Image(systemName: "return")
+                Image(.iceCubeStroke)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 11, height: 11)
+                    .frame(width: 18, height: 18)
                     .foregroundStyle(.secondary)
-                    .padding(5)
-                    .background(
-                        Color.primary.opacity(0.1),
-                        in: RoundedRectangle(cornerRadius: 5, style: .circular)
-                    )
+                    .padding(3)
+                Spacer()
+                ShowItemButton {
+                    guard
+                        let selection,
+                        let item = menuBarItem(for: selection)
+                    else {
+                        return
+                    }
+                    performAction(for: item)
+                }
             }
-            .padding(10)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
             .background(.thinMaterial)
         }
-        .background(.background.opacity(0.75))
+        .background(.thickMaterial)
         .frame(minWidth: 600)
         .frame(height: 400)
         .fixedSize()
@@ -242,6 +250,56 @@ private struct MenuBarSearchContentView: View {
 
     private func selectFirstMatchingItem() {
         selection = matchingItems.first { $0.isSelectable }?.id
+    }
+
+    private func menuBarItem(for selection: ItemID) -> MenuBarItem? {
+        switch selection {
+        case .item(let info):
+            itemManager.itemCache.managedItems.first { $0.info == info }
+        case .header:
+            nil
+        }
+    }
+
+    private func performAction(for item: MenuBarItem) {
+        closePanel()
+        itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .left)
+    }
+}
+
+private struct ShowItemButton: View {
+    @State private var isHovering = false
+
+    let action: () -> Void
+
+    var body: some View {
+        HStack {
+            Text("Show item")
+                .padding(.horizontal, 5)
+            Image(systemName: "return")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 11, height: 11)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 5)
+                .background(
+                    Color.primary.opacity(0.1),
+                    in: RoundedRectangle(cornerRadius: 3, style: .circular)
+                )
+        }
+        .padding(3)
+        .background(
+            .primary.opacity(isHovering ? 0.1 : 0),
+            in: RoundedRectangle(cornerRadius: 5, style: .circular)
+        )
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            isHovering = hovering
+        }
+        .onTapGesture {
+            action()
+        }
     }
 }
 

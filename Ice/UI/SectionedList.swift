@@ -5,19 +5,19 @@
 
 import SwiftUI
 
-struct SectionedList: View {
+struct SectionedList<ItemID: Hashable>: View {
     private enum ScrollDirection {
         case up, down
     }
 
-    @Binding var selection: ObjectIdentifier?
-    @State private var itemFrames = [ObjectIdentifier: CGRect]()
+    @Binding var selection: ItemID?
+    @State private var itemFrames = [ItemID: CGRect]()
 
     let spacing: CGFloat
-    let items: [SectionedListItem]
+    let items: [SectionedListItem<ItemID>]
     let padding: EdgeInsets
 
-    private var nextSelectableItem: SectionedListItem? {
+    private var nextSelectableItem: SectionedListItem<ItemID>? {
         guard
             let index = items.firstIndex(where: { $0.id == selection }),
             items.indices.contains(index + 1)
@@ -27,7 +27,7 @@ struct SectionedList: View {
         return items[(index + 1)...].first { $0.isSelectable }
     }
 
-    private var previousSelectableItem: SectionedListItem? {
+    private var previousSelectableItem: SectionedListItem<ItemID>? {
         guard
             let index = items.firstIndex(where: { $0.id == selection }),
             items.indices.contains(index - 1)
@@ -38,10 +38,10 @@ struct SectionedList: View {
     }
 
     init(
-        selection: Binding<ObjectIdentifier?>,
+        selection: Binding<ItemID?>,
         spacing: CGFloat = 0,
         padding: EdgeInsets = EdgeInsets(),
-        items: [SectionedListItem]
+        items: [SectionedListItem<ItemID>]
     ) {
         self._selection = selection
         self.spacing = spacing
@@ -50,11 +50,11 @@ struct SectionedList: View {
     }
 
     init(
-        selection: Binding<ObjectIdentifier?>,
+        selection: Binding<ItemID?>,
         spacing: CGFloat = 0,
         horizontalPadding: CGFloat = 0,
         verticalPadding: CGFloat = 0,
-        items: [SectionedListItem]
+        items: [SectionedListItem<ItemID>]
     ) {
         self.init(
             selection: selection,
@@ -86,7 +86,7 @@ struct SectionedList: View {
     @ViewBuilder
     private func scrollContent(scrollView: ScrollViewProxy, geometry: GeometryProxy) -> some View {
         VStack(spacing: spacing) {
-            ForEach(items) { item in
+            ForEach(items, id: \.id) { item in
                 SectionedListItemView(
                     selection: $selection,
                     itemFrames: $itemFrames,
@@ -125,7 +125,7 @@ struct SectionedList: View {
         }
     }
 
-    private func scrollDirection(for selection: ObjectIdentifier, geometry: GeometryProxy) -> ScrollDirection? {
+    private func scrollDirection(for selection: ItemID, geometry: GeometryProxy) -> ScrollDirection? {
         guard let selectionFrame = itemFrames[selection] else {
             return nil
         }
@@ -140,38 +140,40 @@ struct SectionedList: View {
     }
 }
 
-class SectionedListItem: Identifiable {
+class SectionedListItem<ID: Hashable> {
     let content: AnyView
+    let id: ID
     let isSelectable: Bool
     let action: (() -> Void)?
 
-    init(content: AnyView, isSelectable: Bool, action: (() -> Void)?) {
+    init(content: AnyView, id: ID, isSelectable: Bool, action: (() -> Void)?) {
         self.content = content
+        self.id = id
         self.isSelectable = isSelectable
         self.action = action
     }
 
-    convenience init(isSelectable: Bool, action: (() -> Void)?, @ViewBuilder content: () -> some View) {
-        self.init(content: AnyView(content()), isSelectable: isSelectable, action: action)
+    convenience init(isSelectable: Bool, id: ID, action: (() -> Void)?, @ViewBuilder content: () -> some View) {
+        self.init(content: AnyView(content()), id: id, isSelectable: isSelectable, action: action)
     }
 }
 
-class SectionedListHeaderItem: SectionedListItem {
-    init(content: AnyView) {
-        super.init(content: content, isSelectable: false, action: nil)
+class SectionedListHeaderItem<ID: Hashable>: SectionedListItem<ID> {
+    init(content: AnyView, id: ID) {
+        super.init(content: content, id: id, isSelectable: false, action: nil)
     }
 
-    convenience init(@ViewBuilder content: () -> some View) {
-        self.init(content: AnyView(content()))
+    convenience init(id: ID, @ViewBuilder content: () -> some View) {
+        self.init(content: AnyView(content()), id: id)
     }
 }
 
-private struct SectionedListItemView: View {
-    @Binding var selection: ObjectIdentifier?
-    @Binding var itemFrames: [ObjectIdentifier: CGRect]
+private struct SectionedListItemView<ItemID: Hashable>: View {
+    @Binding var selection: ItemID?
+    @Binding var itemFrames: [ItemID: CGRect]
     @State private var isHovering = false
 
-    let item: SectionedListItem
+    let item: SectionedListItem<ItemID>
 
     var body: some View {
         ZStack {
@@ -203,7 +205,7 @@ private struct SectionedListItemView: View {
 
 #if DEBUG
 private struct PreviewHelper: View {
-    @State private var selection: ObjectIdentifier?
+    @State private var selection: Int?
 
     var body: some View {
         SectionedList(
@@ -211,18 +213,18 @@ private struct PreviewHelper: View {
             horizontalPadding: 10,
             verticalPadding: 10,
             items: [
-                SectionedListHeaderItem(content: AnyView(Text("Section One"))),
-                SectionedListItem(content: AnyView(Text("One")), isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Two")), isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Three")), isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Four")), isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Five")), isSelectable: true, action: nil),
-                SectionedListHeaderItem(content: AnyView(Text("Section Two"))),
-                SectionedListItem(content: AnyView(Text("Six")), isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Seven")), isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Eight")), isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Nine")), isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Ten")), isSelectable: true, action: nil),
+                SectionedListHeaderItem(content: AnyView(Text("Section One")), id: 0),
+                SectionedListItem(content: AnyView(Text("One")), id: 1, isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Two")), id: 2, isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Three")), id: 3, isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Four")), id: 4, isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Five")), id: 5, isSelectable: true, action: nil),
+                SectionedListHeaderItem(content: AnyView(Text("Section Two")), id: 6),
+                SectionedListItem(content: AnyView(Text("Six")), id: 7, isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Seven")), id: 8, isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Eight")), id: 9, isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Nine")), id: 10, isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Ten")), id: 11, isSelectable: true, action: nil),
             ]
         )
         .frame(width: 300, height: 100)

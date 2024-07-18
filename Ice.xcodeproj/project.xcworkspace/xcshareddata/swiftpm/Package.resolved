@@ -1,5 +1,5 @@
 {
-  "originHash" : "041f42d8ff3842bfd2a979ca1640e0292a5910cb327bf60beb5977a50e12edf5",
+  "originHash" : "24a4ad9c87c9d787a96ab567d6386b59cd16d86f1ddaee8967a10a304dca7993",
   "pins" : [
     {
       "identity" : "axswift",
@@ -17,6 +17,15 @@
       "state" : {
         "revision" : "abe4d1df6f0c85dcb133266cc07c2a5d08295726",
         "version" : "1.1.6"
+      }
+    },
+    {
+      "identity" : "ifrit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ukushu/Ifrit",
+      "state" : {
+        "revision" : "6c8a4bc89881e641c1ca8e559d7f41ad030d8561",
+        "version" : "1.1.1"
       }
     },
     {

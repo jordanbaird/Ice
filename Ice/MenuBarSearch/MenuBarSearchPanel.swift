@@ -4,12 +4,15 @@
 //
 
 import Combine
+import Ifrit
 import SwiftUI
 
 class MenuBarSearchPanel: NSPanel {
     private weak var appState: AppState?
 
-    private var mouseDownMonitor: GlobalEventMonitor?
+    private var mouseDownMonitor: UniversalEventMonitor?
+
+    private var keyDownMonitor: UniversalEventMonitor?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -56,10 +59,26 @@ class MenuBarSearchPanel: NSPanel {
             self?.close()
         })
 
-        mouseDownMonitor = GlobalEventMonitor(mask: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            self?.close()
+        mouseDownMonitor = UniversalEventMonitor(mask: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] event in
+            guard
+                let self,
+                event.window !== self
+            else {
+                return event
+            }
+            close()
+            return event
         }
+        keyDownMonitor = UniversalEventMonitor(mask: .keyDown) { [weak self] event in
+            if KeyCode(rawValue: Int(event.keyCode)) == .escape {
+                self?.close()
+                return nil
+            }
+            return event
+        }
+
         mouseDownMonitor?.start()
+        keyDownMonitor?.start()
 
         let topLeft = CGPoint(
             x: screen.frame.midX - frame.width / 2,
@@ -82,7 +101,9 @@ class MenuBarSearchPanel: NSPanel {
         super.close()
         contentView = nil
         mouseDownMonitor?.stop()
+        keyDownMonitor?.stop()
         mouseDownMonitor = nil
+        keyDownMonitor = nil
         appState?.navigationState.isSearchPresented = false
     }
 }
@@ -146,6 +167,18 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
     let itemCache: MenuBarItemManager.ItemCache
     let closePanel: () -> Void
 
+    private let fuse = Fuse(threshold: 0.5, tokenize: false)
+
+    private var matchingItems: [MenuBarItem] {
+        let managedItems = itemCache.managedItems
+        if searchText.isEmpty {
+            return managedItems.reversed()
+        }
+        let results = fuse.searchSync(searchText, in: managedItems.map { $0.displayName })
+        let indices = results.map { $0.index }
+        return indices.map { managedItems[$0] }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             TextField(text: $searchText, prompt: Text("Search menu bar items…")) {
@@ -186,12 +219,26 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
     @ViewBuilder
     private func scrollContent(scrollView: ScrollViewProxy, geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            ForEach(Array(MenuBarSection.Name.allCases.enumerated()), id: \.element) { index, section in
-                listSection(sectionIndex: index, section: section)
+            if searchText.isEmpty {
+                ForEach(Array(MenuBarSection.Name.allCases.enumerated()), id: \.element) { index, section in
+                    listSection(sectionIndex: index, section: section)
+                        .offset(y: scrollContentOffset)
+                }
+            } else {
+                ForEach(Array(matchingItems.enumerated()), id: \.element) { index, item in
+                    MenuBarSearchItemView(
+                        selection: $selection,
+                        itemFrames: $itemFrames,
+                        item: item,
+                        selectionValue: selectionValue(0, index),
+                        closePanel: closePanel
+                    )
+                    .id(selectionValue(0, index))
                     .offset(y: scrollContentOffset)
+                }
             }
         }
-        .padding([.bottom, .horizontal], 10)
+        .padding([.bottom, .horizontal], 8)
         .onKeyDown(key: .downArrow) {
             let section = MenuBarSection.Name.allCases[selection.sectionIndex]
             let items = itemCache.managedItems(for: section)
@@ -205,7 +252,7 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
             }
             if needsScrollToSelection(geometry: geometry) {
                 scrollView.scrollTo(selection, anchor: .bottom)
-                scrollContentOffset = -10
+                scrollContentOffset = -8
             }
         }
         .onKeyDown(key: .upArrow) {
@@ -222,7 +269,7 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
             }
             if needsScrollToSelection(geometry: geometry) {
                 scrollView.scrollTo(selection, anchor: .top)
-                scrollContentOffset = 10
+                scrollContentOffset = 8
             }
         }
         .localEventMonitor(mask: .scrollWheel) { event in
@@ -359,7 +406,7 @@ private struct MenuBarSearchItemView: View {
             Spacer()
             imageViewWithBackground
         }
-        .padding(5)
+        .padding(8)
     }
 
     @ViewBuilder

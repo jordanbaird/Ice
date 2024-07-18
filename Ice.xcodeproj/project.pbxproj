@@ -103,6 +103,7 @@
 		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
 		7127A9E92C45662B00D99DEF /* MenuBarSearchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */; };
 		7127A9F02C4687EE00D99DEF /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */; };
+		7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */ = {isa = PBXBuildFile; productRef = 7127A9FE2C4886D100D99DEF /* IfritStatic */; };
 		71287C602C3189AC0028706E /* IceBarColorManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C5F2C3189AC0028706E /* IceBarColorManager.swift */; };
 		71287C622C31D75F0028706E /* MenuBarAverageColorInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C612C31D75F0028706E /* MenuBarAverageColorInfo.swift */; };
 		71287C642C3233B30028706E /* NSScreen+hasNotch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71287C632C3233B30028706E /* NSScreen+hasNotch.swift */; };
@@ -272,6 +273,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				170423D92B56DE78004A2549 /* Sparkle in Frameworks */,
+				7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */,
 				175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */,
 				1787C4272B16890B002F50DF /* AXSwift in Frameworks */,
 				17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */,
@@ -828,6 +830,7 @@
 				1787C4262B16890B002F50DF /* AXSwift */,
 				170423D82B56DE78004A2549 /* Sparkle */,
 				17F71BB42B880B4500905CBA /* CompactSlider */,
+				7127A9FE2C4886D100D99DEF /* IfritStatic */,
 			);
 			productName = Ice;
 			productReference = 7166832A2A767E6A006ABF84 /* Ice.app */;
@@ -862,6 +865,7 @@
 				1787C4252B16890B002F50DF /* XCRemoteSwiftPackageReference "AXSwift" */,
 				170423D72B56DE78004A2549 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				17F71BB32B880B4500905CBA /* XCRemoteSwiftPackageReference "CompactSlider" */,
+				7127A9FB2C4881BC00D99DEF /* XCRemoteSwiftPackageReference "Ifrit" */,
 			);
 			productRefGroup = 7166832B2A767E6A006ABF84 /* Products */;
 			projectDirPath = "";
@@ -1279,6 +1283,14 @@
 				minimumVersion = 1.1.5;
 			};
 		};
+		7127A9FB2C4881BC00D99DEF /* XCRemoteSwiftPackageReference "Ifrit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ukushu/Ifrit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1301,6 +1313,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 17F71BB32B880B4500905CBA /* XCRemoteSwiftPackageReference "CompactSlider" */;
 			productName = CompactSlider;
+		};
+		7127A9FE2C4886D100D99DEF /* IfritStatic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7127A9FB2C4881BC00D99DEF /* XCRemoteSwiftPackageReference "Ifrit" */;
+			productName = IfritStatic;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

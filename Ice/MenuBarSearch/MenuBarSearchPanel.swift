@@ -141,15 +141,15 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
     }
 }
 
-private struct MenuBarSearchSelectionValue: Hashable {
-    var sectionIndex: Int
-    var itemIndex: Int
-}
-
 private struct MenuBarSearchContentView: View {
+    struct SelectionValue: Hashable {
+        var sectionIndex: Int
+        var itemIndex: Int
+    }
+
     @State private var searchText = ""
-    @State private var selection = MenuBarSearchSelectionValue(sectionIndex: 0, itemIndex: 0)
-    @State private var itemFrames = [MenuBarSearchSelectionValue: CGRect]()
+    @State private var selection = SelectionValue(sectionIndex: 0, itemIndex: 0)
+    @State private var itemFrames = [SelectionValue: CGRect]()
     @State private var scrollContentOffset: CGFloat = 0
     @FocusState private var searchFieldIsFocused: Bool
 
@@ -164,8 +164,7 @@ private struct MenuBarSearchContentView: View {
             return managedItems.reversed()
         }
         let results = fuse.searchSync(searchText, in: managedItems.map { $0.displayName })
-        let indices = results.map { $0.index }
-        return indices.map { managedItems[$0] }
+        return results.map { managedItems[$0.index] }
     }
 
     var body: some View {
@@ -293,8 +292,8 @@ private struct MenuBarSearchContentView: View {
         Array(itemCache.managedItems(for: section).reversed().enumerated())
     }
 
-    private func selectionValue(_ sectionIndex: Int, _ itemIndex: Int) -> MenuBarSearchSelectionValue {
-        MenuBarSearchSelectionValue(sectionIndex: sectionIndex, itemIndex: itemIndex)
+    private func selectionValue(_ sectionIndex: Int, _ itemIndex: Int) -> SelectionValue {
+        SelectionValue(sectionIndex: sectionIndex, itemIndex: itemIndex)
     }
 
     private func needsScrollToSelection(geometry: GeometryProxy) -> Bool {
@@ -316,12 +315,12 @@ private let controlCenterIcon: NSImage? = {
 private struct MenuBarSearchItemView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
     @EnvironmentObject var menuBarManager: MenuBarManager
-    @Binding var selection: MenuBarSearchSelectionValue
-    @Binding var itemFrames: [MenuBarSearchSelectionValue: CGRect]
+    @Binding var selection: MenuBarSearchContentView.SelectionValue
+    @Binding var itemFrames: [MenuBarSearchContentView.SelectionValue: CGRect]
     @State private var isHovering = false
 
     let item: MenuBarItem
-    let selectionValue: MenuBarSearchSelectionValue
+    let selectionValue: MenuBarSearchContentView.SelectionValue
     let closePanel: () -> Void
 
     private var image: NSImage? {

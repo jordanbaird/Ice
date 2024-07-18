@@ -7,6 +7,7 @@ import SwiftUI
 
 // MARK: - SectionedList
 
+/// A scrollable list of items broken up by section.
 struct SectionedList<ItemID: Hashable>: View {
     private enum ScrollDirection {
         case up, down
@@ -39,11 +40,8 @@ struct SectionedList<ItemID: Hashable>: View {
         return items[...(index - 1)].last { $0.isSelectable }
     }
 
-    init(
-        selection: Binding<ItemID?>,
-        spacing: CGFloat = 0,
-        items: [SectionedListItem<ItemID>]
-    ) {
+    /// Creates a sectioned list with the given selection, spacing, and items.
+    init(selection: Binding<ItemID?>, spacing: CGFloat = 0, items: [SectionedListItem<ItemID>]) {
         self._selection = selection
         self.spacing = spacing
         self.items = items
@@ -139,16 +137,19 @@ extension SectionedList {
 
 // MARK: - SectionedListItem
 
+/// An item in a sectioned list.
 struct SectionedListItem<ID: Hashable> {
     let content: AnyView
     let id: ID
     let isSelectable: Bool
     let action: (() -> Void)?
 
+    /// Returns a selectable item for a sectioned list.
     static func item(id: ID, isSelectable: Bool = true, action: (() -> Void)? = nil, @ViewBuilder content: () -> some View) -> SectionedListItem {
         SectionedListItem(content: AnyView(content()), id: id, isSelectable: isSelectable, action: action)
     }
 
+    /// Returns a section header item for a sectioned list.
     static func header(id: ID, @ViewBuilder content: () -> some View) -> SectionedListItem {
         item(id: id, isSelectable: false, action: nil) {
             content()
@@ -184,6 +185,11 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
         .onTapGesture {
             selection = item.id
         }
+        .simultaneousGesture(
+            TapGesture(count: 2).onEnded {
+                item.action?()
+            }
+        )
         .onFrameChange(in: .global) { frame in
             itemFrames[item.id] = frame
         }

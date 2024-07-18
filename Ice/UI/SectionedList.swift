@@ -5,6 +5,8 @@
 
 import SwiftUI
 
+// MARK: - SectionedList
+
 struct SectionedList<ItemID: Hashable>: View {
     private enum ScrollDirection {
         case up, down
@@ -15,7 +17,7 @@ struct SectionedList<ItemID: Hashable>: View {
 
     let spacing: CGFloat
     let items: [SectionedListItem<ItemID>]
-    let padding: EdgeInsets
+    private(set) var contentPadding = EdgeInsets()
 
     private var nextSelectableItem: SectionedListItem<ItemID>? {
         guard
@@ -40,33 +42,11 @@ struct SectionedList<ItemID: Hashable>: View {
     init(
         selection: Binding<ItemID?>,
         spacing: CGFloat = 0,
-        padding: EdgeInsets = EdgeInsets(),
         items: [SectionedListItem<ItemID>]
     ) {
         self._selection = selection
         self.spacing = spacing
-        self.padding = padding
         self.items = items
-    }
-
-    init(
-        selection: Binding<ItemID?>,
-        spacing: CGFloat = 0,
-        horizontalPadding: CGFloat = 0,
-        verticalPadding: CGFloat = 0,
-        items: [SectionedListItem<ItemID>]
-    ) {
-        self.init(
-            selection: selection,
-            spacing: spacing,
-            padding: EdgeInsets(
-                top: verticalPadding,
-                leading: horizontalPadding,
-                bottom: verticalPadding,
-                trailing: horizontalPadding
-            ),
-            items: items
-        )
     }
 
     var body: some View {
@@ -75,10 +55,10 @@ struct SectionedList<ItemID: Hashable>: View {
                 ScrollView {
                     scrollContent(scrollView: scrollView, geometry: geometry)
                 }
-                .padding(.top, padding.top)
-                .padding(.bottom, padding.bottom)
-                .contentMargins(.top, -padding.top, for: .scrollIndicators)
-                .contentMargins(.bottom, -padding.bottom, for: .scrollIndicators)
+                .padding(.top, contentPadding.top)
+                .padding(.bottom, contentPadding.bottom)
+                .contentMargins(.top, -contentPadding.top, for: .scrollIndicators)
+                .contentMargins(.bottom, -contentPadding.bottom, for: .scrollIndicators)
                 .scrollClipDisabled()
                 .clipped()
             }
@@ -97,8 +77,8 @@ struct SectionedList<ItemID: Hashable>: View {
                 .id(item.id)
             }
         }
-        .padding(.leading, padding.leading)
-        .padding(.trailing, padding.trailing)
+        .padding(.leading, contentPadding.leading)
+        .padding(.trailing, contentPadding.trailing)
         .onKeyDown(key: .downArrow) {
             if let nextSelectableItem {
                 selection = nextSelectableItem.id
@@ -132,43 +112,51 @@ struct SectionedList<ItemID: Hashable>: View {
             return nil
         }
         let geometryFrame = geometry.frame(in: .global)
-        if selectionFrame.minY <= geometryFrame.minY + padding.top {
+        if selectionFrame.minY <= geometryFrame.minY + contentPadding.top {
             return .up
         }
-        if selectionFrame.maxY >= geometryFrame.maxY - padding.bottom {
+        if selectionFrame.maxY >= geometryFrame.maxY - contentPadding.bottom {
             return .down
         }
         return nil
     }
 }
 
-class SectionedListItem<ID: Hashable> {
+// MARK: SectionedList Content Padding
+extension SectionedList {
+    /// Sets the padding of the sectioned list's content.
+    func contentPadding(_ insets: EdgeInsets) -> SectionedList {
+        with(self) { copy in
+            copy.contentPadding = insets
+        }
+    }
+
+    /// Sets the padding of the sectioned list's content.
+    func contentPadding(_ length: CGFloat) -> SectionedList {
+        contentPadding(EdgeInsets(top: length, leading: length, bottom: length, trailing: length))
+    }
+}
+
+// MARK: - SectionedListItem
+
+struct SectionedListItem<ID: Hashable> {
     let content: AnyView
     let id: ID
     let isSelectable: Bool
     let action: (() -> Void)?
 
-    init(content: AnyView, id: ID, isSelectable: Bool, action: (() -> Void)?) {
-        self.content = content
-        self.id = id
-        self.isSelectable = isSelectable
-        self.action = action
+    static func item(id: ID, isSelectable: Bool = true, action: (() -> Void)? = nil, @ViewBuilder content: () -> some View) -> SectionedListItem {
+        SectionedListItem(content: AnyView(content()), id: id, isSelectable: isSelectable, action: action)
     }
 
-    convenience init(isSelectable: Bool, id: ID, action: (() -> Void)?, @ViewBuilder content: () -> some View) {
-        self.init(content: AnyView(content()), id: id, isSelectable: isSelectable, action: action)
+    static func header(id: ID, @ViewBuilder content: () -> some View) -> SectionedListItem {
+        item(id: id, isSelectable: false, action: nil) {
+            content()
+        }
     }
 }
 
-class SectionedListHeaderItem<ID: Hashable>: SectionedListItem<ID> {
-    init(content: AnyView, id: ID) {
-        super.init(content: content, id: id, isSelectable: false, action: nil)
-    }
-
-    convenience init(id: ID, @ViewBuilder content: () -> some View) {
-        self.init(content: AnyView(content()), id: id)
-    }
-}
+// MARK: - SectionedListItemView
 
 private struct SectionedListItemView<ItemID: Hashable>: View {
     @Binding var selection: ItemID?
@@ -180,7 +168,11 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
     var body: some View {
         ZStack {
             if item.isSelectable {
-                itemBackground
+                if selection == item.id {
+                    itemBackground.opacity(0.5)
+                } else if isHovering {
+                    itemBackground.opacity(0.25)
+                }
             }
             item.content
         }
@@ -201,6 +193,5 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
     private var itemBackground: some View {
         VisualEffectView(material: .selection, blendingMode: .withinWindow)
             .clipShape(RoundedRectangle(cornerRadius: 5, style: .circular))
-            .opacity(selection == item.id ? 0.5 : isHovering ? 0.25 : 0)
     }
 }

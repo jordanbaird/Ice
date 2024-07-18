@@ -139,6 +139,8 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
 }
 
 private struct MenuBarSearchContentView: View {
+    private typealias ListItem = SectionedListItem<ItemID>
+
     private enum ItemID: Hashable {
         case header(MenuBarSection.Name)
         case item(MenuBarItemInfo)
@@ -168,13 +170,9 @@ private struct MenuBarSearchContentView: View {
 
             Divider()
 
-            SectionedList(
-                selection: $selection,
-                horizontalPadding: 8,
-                verticalPadding: 8,
-                items: displayedItems
-            )
-            .scrollContentBackground(.hidden)
+            SectionedList(selection: $selection, items: displayedItems)
+                .contentPadding(8)
+                .scrollContentBackground(.hidden)
 
             Divider()
                 .offset(y: 1)
@@ -222,8 +220,8 @@ private struct MenuBarSearchContentView: View {
     }
 
     private func updateDisplayedItems() {
-        let searchItems: [(listItem: SectionedListItem<ItemID>, title: String)] = MenuBarSection.Name.allCases.reduce(into: []) { items, section in
-            let headerItem = SectionedListHeaderItem(id: ItemID.header(section)) {
+        let searchItems: [(listItem: ListItem, title: String)] = MenuBarSection.Name.allCases.reduce(into: []) { items, section in
+            let headerItem = ListItem.header(id: .header(section)) {
                 Text(section.menuString)
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
@@ -233,16 +231,11 @@ private struct MenuBarSearchContentView: View {
             items.append((headerItem, section.menuString))
 
             for item in itemManager.itemCache.managedItems(for: section).reversed() {
-                let listItem = SectionedListItem(
-                    isSelectable: true,
-                    id: ItemID.item(item.info),
-                    action: {
-                        performAction(for: item)
-                    },
-                    content: {
-                        MenuBarSearchItemView(item: item)
-                    }
-                )
+                let listItem = ListItem.item(id: .item(item.info)) {
+                    performAction(for: item)
+                } content: {
+                    MenuBarSearchItemView(item: item)
+                }
                 items.append((listItem, item.displayName))
             }
         }

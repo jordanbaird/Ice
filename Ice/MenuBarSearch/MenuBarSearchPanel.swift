@@ -118,12 +118,15 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
         closePanel: @escaping () -> Void
     ) {
         super.init(
-            rootView: MenuBarSearchContentView(closePanel: closePanel)
-                .environmentObject(appState)
-                .environmentObject(appState.itemManager)
-                .environmentObject(appState.imageCache)
-                .environmentObject(appState.menuBarManager)
-                .erased()
+            rootView: MenuBarSearchContentView(
+                itemCache: appState.itemManager.itemCache,
+                closePanel: closePanel
+            )
+            .environmentObject(appState)
+            .environmentObject(appState.itemManager)
+            .environmentObject(appState.imageCache)
+            .environmentObject(appState.menuBarManager)
+            .erased()
         )
     }
 
@@ -138,26 +141,12 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
     }
 }
 
-private struct MenuBarSearchContentView: View {
-    @EnvironmentObject var itemManager: MenuBarItemManager
-
-    let closePanel: () -> Void
-
-    var body: some View {
-        MenuBarSearchEquatableContentView(
-            itemCache: itemManager.itemCache,
-            closePanel: closePanel
-        )
-        .equatable()
-    }
-}
-
 private struct MenuBarSearchSelectionValue: Hashable {
     var sectionIndex: Int
     var itemIndex: Int
 }
 
-private struct MenuBarSearchEquatableContentView: View, Equatable {
+private struct MenuBarSearchContentView: View {
     @State private var searchText = ""
     @State private var selection = MenuBarSearchSelectionValue(sectionIndex: 0, itemIndex: 0)
     @State private var itemFrames = [MenuBarSearchSelectionValue: CGRect]()
@@ -314,10 +303,6 @@ private struct MenuBarSearchEquatableContentView: View, Equatable {
         }
         let geometryFrame = geometry.frame(in: .global)
         return !geometryFrame.contains(selectionFrame)
-    }
-
-    static func == (lhs: MenuBarSearchEquatableContentView, rhs: MenuBarSearchEquatableContentView) -> Bool {
-        lhs.itemCache == rhs.itemCache
     }
 }
 

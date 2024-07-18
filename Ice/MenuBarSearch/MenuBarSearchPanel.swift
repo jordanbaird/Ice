@@ -205,14 +205,8 @@ private struct MenuBarSearchContentView: View {
 
             Divider()
 
-            SectionedList(selection: $selection, items: matchingItems) { scrollContent in
-                scrollContent
-                    .padding(.horizontal, 8)
-            }
-            .padding(.vertical, 8)
-            .scrollContentBackground(.hidden)
-            .scrollClipDisabled()
-            .clipped()
+            SectionedList(selection: $selection, horizontalPadding: 8, verticalPadding: 8, items: matchingItems)
+                .scrollContentBackground(.hidden)
         }
         .background(.background.opacity(0.75))
         .frame(minWidth: 550)

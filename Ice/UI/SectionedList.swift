@@ -21,7 +21,7 @@ struct SectionedList: View {
     let kind: Kind
     let spacing: CGFloat
     let items: [SectionedListItem]
-    let configureScrollContent: (AnyView) -> AnyView
+    let padding: EdgeInsets
 
     private var nextSelectableItem: SectionedListItem? {
         guard
@@ -47,31 +47,48 @@ struct SectionedList: View {
         selection: Binding<ObjectIdentifier?>,
         kind: Kind = .vertical(alignment: .center),
         spacing: CGFloat = 0,
-        items: [SectionedListItem],
-        configureScrollContent: @escaping (AnyView) -> some View
+        padding: EdgeInsets = EdgeInsets(),
+        items: [SectionedListItem]
     ) {
         self._selection = selection
         self.kind = kind
         self.spacing = spacing
+        self.padding = padding
         self.items = items
-        self.configureScrollContent = { scrollContent in
-            configureScrollContent(scrollContent)
-                .erased()
-        }
+    }
+
+    init(
+        selection: Binding<ObjectIdentifier?>,
+        kind: Kind = .vertical(alignment: .center),
+        spacing: CGFloat = 0,
+        horizontalPadding: CGFloat = 0,
+        verticalPadding: CGFloat = 0,
+        items: [SectionedListItem]
+    ) {
+        self.init(
+            selection: selection,
+            kind: kind,
+            spacing: spacing,
+            padding: EdgeInsets(
+                top: verticalPadding,
+                leading: horizontalPadding,
+                bottom: verticalPadding,
+                trailing: horizontalPadding
+            ),
+            items: items
+        )
     }
 
     var body: some View {
         ScrollViewReader { scrollView in
             GeometryReader { geometry in
                 ScrollView {
-                    configureScrollContent(
-                        scrollContent(
-                            scrollView: scrollView,
-                            geometry: geometry
-                        )
-                        .erased()
-                    )
+                    scrollContent(scrollView: scrollView, geometry: geometry)
                 }
+                .padding(.top, padding.top)
+                .padding(.bottom, padding.bottom)
+                .scrollClipDisabled()
+                .clipped()
             }
         }
     }
@@ -88,6 +105,8 @@ struct SectionedList: View {
                 .id(item.id)
             }
         }
+        .padding(.leading, padding.leading)
+        .padding(.trailing, padding.trailing)
         .onKeyDown(key: .downArrow) {
             if let nextSelectableItem {
                 selection = nextSelectableItem.id
@@ -135,10 +154,10 @@ struct SectionedList: View {
             return nil
         }
         let geometryFrame = geometry.frame(in: .global)
-        if selectionFrame.maxY >= geometryFrame.maxY {
+        if selectionFrame.maxY >= geometryFrame.maxY - padding.top {
             return .up
         }
-        if selectionFrame.minY <= geometryFrame.minY {
+        if selectionFrame.minY <= geometryFrame.minY + padding.bottom {
             return .down
         }
         return nil
@@ -185,6 +204,7 @@ private struct SectionedListItemView: View {
             }
             item.content
         }
+        .frame(minWidth: 22, minHeight: 22)
         .contentShape(Rectangle())
         .onHover { hovering in
             isHovering = hovering
@@ -200,7 +220,7 @@ private struct SectionedListItemView: View {
     @ViewBuilder
     private var itemBackground: some View {
         VisualEffectView(material: .selection, blendingMode: .withinWindow)
-            .clipShape(RoundedRectangle(cornerRadius: 7, style: .circular))
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .circular))
             .opacity(selection == item.id ? 0.5 : isHovering ? 0.25 : 0)
     }
 }
@@ -212,6 +232,8 @@ private struct PreviewHelper: View {
     var body: some View {
         SectionedList(
             selection: $selection,
+            horizontalPadding: 10,
+            verticalPadding: 10,
             items: [
                 SectionedListHeaderItem(content: AnyView(Text("Section One"))),
                 SectionedListItem(content: AnyView(Text("One")), isSelectable: true, action: nil),
@@ -226,11 +248,8 @@ private struct PreviewHelper: View {
                 SectionedListItem(content: AnyView(Text("Nine")), isSelectable: true, action: nil),
                 SectionedListItem(content: AnyView(Text("Ten")), isSelectable: true, action: nil),
             ]
-        ) { scrollContent in
-            scrollContent
-        }
-        .padding(10)
-        .frame(width: 300, height: 200)
+        )
+        .frame(width: 300, height: 100)
     }
 }
 

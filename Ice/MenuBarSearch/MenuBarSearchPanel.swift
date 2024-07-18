@@ -207,10 +207,29 @@ private struct MenuBarSearchContentView: View {
 
             SectionedList(selection: $selection, horizontalPadding: 8, verticalPadding: 8, items: matchingItems)
                 .scrollContentBackground(.hidden)
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Text("Show item")
+                Image(systemName: "return")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 11, height: 11)
+                    .foregroundStyle(.secondary)
+                    .padding(5)
+                    .background(
+                        Color.primary.opacity(0.1),
+                        in: RoundedRectangle(cornerRadius: 5, style: .circular)
+                    )
+            }
+            .padding(10)
+            .background(.thinMaterial)
         }
         .background(.background.opacity(0.75))
-        .frame(minWidth: 550)
-        .frame(height: 375)
+        .frame(minWidth: 600)
+        .frame(height: 400)
         .fixedSize()
         .onAppear {
             searchFieldIsFocused = true

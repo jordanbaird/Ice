@@ -75,10 +75,10 @@ struct SectionedList<ItemID: Hashable>: View {
                 ScrollView {
                     scrollContent(scrollView: scrollView, geometry: geometry)
                 }
-                .contentMargins(.top, -padding.top, for: .scrollIndicators)
-                .contentMargins(.bottom, -padding.bottom, for: .scrollIndicators)
                 .padding(.top, padding.top)
                 .padding(.bottom, padding.bottom)
+                .contentMargins(.top, -padding.top, for: .scrollIndicators)
+                .contentMargins(.bottom, -padding.bottom, for: .scrollIndicators)
                 .scrollClipDisabled()
                 .clipped()
             }

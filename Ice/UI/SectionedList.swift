@@ -202,36 +202,3 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
             .opacity(selection == item.id ? 0.5 : isHovering ? 0.25 : 0)
     }
 }
-
-#if DEBUG
-private struct PreviewHelper: View {
-    @State private var selection: Int?
-
-    var body: some View {
-        SectionedList(
-            selection: $selection,
-            horizontalPadding: 10,
-            verticalPadding: 10,
-            items: [
-                SectionedListHeaderItem(content: AnyView(Text("Section One")), id: 0),
-                SectionedListItem(content: AnyView(Text("One")), id: 1, isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Two")), id: 2, isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Three")), id: 3, isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Four")), id: 4, isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Five")), id: 5, isSelectable: true, action: nil),
-                SectionedListHeaderItem(content: AnyView(Text("Section Two")), id: 6),
-                SectionedListItem(content: AnyView(Text("Six")), id: 7, isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Seven")), id: 8, isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Eight")), id: 9, isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Nine")), id: 10, isSelectable: true, action: nil),
-                SectionedListItem(content: AnyView(Text("Ten")), id: 11, isSelectable: true, action: nil),
-            ]
-        )
-        .frame(width: 300, height: 100)
-    }
-}
-
-#Preview {
-    PreviewHelper()
-}
-#endif

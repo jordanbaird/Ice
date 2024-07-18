@@ -170,9 +170,16 @@ private struct MenuBarSearchContentView: View {
             items.append(MenuBarSearchItem(listItem: headerItem, displayName: section.menuString))
 
             for item in itemManager.itemCache.managedItems(for: section).reversed() {
-                let listItem = SectionedListItem(isSelectable: true, id: ItemID.item(item.info), action: { performAction(for: item) }) {
-                    MenuBarSearchItemView(item: item)
-                }
+                let listItem = SectionedListItem(
+                    isSelectable: true,
+                    id: ItemID.item(item.info),
+                    action: {
+                        performAction(for: item)
+                    },
+                    content: {
+                        MenuBarSearchItemView(item: item)
+                    }
+                )
                 items.append(MenuBarSearchItem(listItem: listItem, displayName: item.displayName))
             }
         }

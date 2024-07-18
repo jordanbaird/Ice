@@ -187,8 +187,13 @@ private struct MenuBarSearchContentView: View {
 
             Divider()
 
-            SectionedList(selection: $selection, horizontalPadding: 8, verticalPadding: 8, items: matchingItems)
-                .scrollContentBackground(.hidden)
+            SectionedList(
+                selection: $selection,
+                horizontalPadding: 8,
+                verticalPadding: 8,
+                items: matchingItems
+            )
+            .scrollContentBackground(.hidden)
 
             Divider()
                 .offset(y: 1)

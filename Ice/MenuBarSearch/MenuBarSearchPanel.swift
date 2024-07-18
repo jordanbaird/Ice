@@ -144,34 +144,15 @@ private struct MenuBarSearchContentView: View {
         case item(MenuBarItemInfo)
     }
 
-    private struct MenuBarSearchItem {
-        let listItem: SectionedListItem<ItemID>
-        let displayName: String
-    }
-
     @EnvironmentObject var itemManager: MenuBarItemManager
     @State private var searchText = ""
-    @State private var searchItems = [MenuBarSearchItem]()
+    @State private var displayedItems = [SectionedListItem<ItemID>]()
     @State private var selection: ItemID?
     @FocusState private var searchFieldIsFocused: Bool
 
     let closePanel: () -> Void
 
     private let fuse = Fuse(threshold: 0.5, tokenize: false)
-
-    private var matchingItems: [SectionedListItem<ItemID>] {
-        if searchText.isEmpty {
-            return searchItems.map { $0.listItem }
-        }
-        let selectableItems = searchItems.compactMap { item in
-            if item.listItem.isSelectable {
-                return item
-            }
-            return nil
-        }
-        let results = fuse.searchSync(searchText, in: selectableItems.map { $0.displayName })
-        return results.map { selectableItems[$0.index].listItem }
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -191,7 +172,7 @@ private struct MenuBarSearchContentView: View {
                 selection: $selection,
                 horizontalPadding: 8,
                 verticalPadding: 8,
-                items: matchingItems
+                items: displayedItems
             )
             .scrollContentBackground(.hidden)
 
@@ -222,27 +203,26 @@ private struct MenuBarSearchContentView: View {
             .background(.thinMaterial)
         }
         .background(.thickMaterial)
-        .frame(minWidth: 600)
-        .frame(height: 400)
+        .frame(width: 600, height: 400)
         .fixedSize()
         .onAppear {
             searchFieldIsFocused = true
-            selectFirstMatchingItem()
         }
-        .onChange(of: searchText) {
-            selectFirstMatchingItem()
+        .onChange(of: searchText, initial: true) {
+            updateDisplayedItems()
+            selectFirstDisplayedItem()
         }
         .onChange(of: itemManager.itemCache, initial: true) {
-            updateSearchItems()
+            updateDisplayedItems()
         }
     }
 
-    private func selectFirstMatchingItem() {
-        selection = matchingItems.first { $0.isSelectable }?.id
+    private func selectFirstDisplayedItem() {
+        selection = displayedItems.first { $0.isSelectable }?.id
     }
 
-    private func updateSearchItems() {
-        searchItems = MenuBarSection.Name.allCases.reduce(into: []) { items, section in
+    private func updateDisplayedItems() {
+        let searchItems: [(listItem: SectionedListItem<ItemID>, title: String)] = MenuBarSection.Name.allCases.reduce(into: []) { items, section in
             let headerItem = SectionedListHeaderItem(id: ItemID.header(section)) {
                 Text(section.menuString)
                     .fontWeight(.semibold)
@@ -250,7 +230,7 @@ private struct MenuBarSearchContentView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 10)
             }
-            items.append(MenuBarSearchItem(listItem: headerItem, displayName: section.menuString))
+            items.append((headerItem, section.menuString))
 
             for item in itemManager.itemCache.managedItems(for: section).reversed() {
                 let listItem = SectionedListItem(
@@ -263,8 +243,21 @@ private struct MenuBarSearchContentView: View {
                         MenuBarSearchItemView(item: item)
                     }
                 )
-                items.append(MenuBarSearchItem(listItem: listItem, displayName: item.displayName))
+                items.append((listItem, item.displayName))
             }
+        }
+
+        if searchText.isEmpty {
+            displayedItems = searchItems.map { $0.listItem }
+        } else {
+            let selectableItems = searchItems.compactMap { searchItem in
+                if searchItem.listItem.isSelectable {
+                    return searchItem
+                }
+                return nil
+            }
+            let results = fuse.searchSync(searchText, in: selectableItems.map { $0.title })
+            displayedItems = results.map { selectableItems[$0.index].listItem }
         }
     }
 

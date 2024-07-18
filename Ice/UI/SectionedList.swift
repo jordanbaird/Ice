@@ -120,8 +120,8 @@ struct SectionedList<ItemID: Hashable>: View {
                 return
             }
             let anchor: UnitPoint = switch direction {
-            case .up: .bottom
-            case .down: .top
+            case .up: .top
+            case .down: .bottom
             }
             scrollView.scrollTo(selection, anchor: anchor)
         }
@@ -132,11 +132,11 @@ struct SectionedList<ItemID: Hashable>: View {
             return nil
         }
         let geometryFrame = geometry.frame(in: .global)
-        if selectionFrame.maxY >= geometryFrame.maxY - padding.top {
-            return .up
-        }
-        if selectionFrame.minY <= geometryFrame.minY + padding.bottom {
+        if selectionFrame.maxY >= geometryFrame.maxY - padding.bottom {
             return .down
+        }
+        if selectionFrame.minY <= geometryFrame.minY + padding.top {
+            return .up
         }
         return nil
     }

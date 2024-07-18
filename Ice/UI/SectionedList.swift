@@ -6,11 +6,6 @@
 import SwiftUI
 
 struct SectionedList: View {
-    enum Kind {
-        case horizontal(alignment: VerticalAlignment)
-        case vertical(alignment: HorizontalAlignment)
-    }
-
     private enum ScrollDirection {
         case up, down
     }
@@ -18,7 +13,6 @@ struct SectionedList: View {
     @Binding var selection: ObjectIdentifier?
     @State private var itemFrames = [ObjectIdentifier: CGRect]()
 
-    let kind: Kind
     let spacing: CGFloat
     let items: [SectionedListItem]
     let padding: EdgeInsets
@@ -45,13 +39,11 @@ struct SectionedList: View {
 
     init(
         selection: Binding<ObjectIdentifier?>,
-        kind: Kind = .vertical(alignment: .center),
         spacing: CGFloat = 0,
         padding: EdgeInsets = EdgeInsets(),
         items: [SectionedListItem]
     ) {
         self._selection = selection
-        self.kind = kind
         self.spacing = spacing
         self.padding = padding
         self.items = items
@@ -59,7 +51,6 @@ struct SectionedList: View {
 
     init(
         selection: Binding<ObjectIdentifier?>,
-        kind: Kind = .vertical(alignment: .center),
         spacing: CGFloat = 0,
         horizontalPadding: CGFloat = 0,
         verticalPadding: CGFloat = 0,
@@ -67,7 +58,6 @@ struct SectionedList: View {
     ) {
         self.init(
             selection: selection,
-            kind: kind,
             spacing: spacing,
             padding: EdgeInsets(
                 top: verticalPadding,
@@ -95,7 +85,7 @@ struct SectionedList: View {
 
     @ViewBuilder
     private func scrollContent(scrollView: ScrollViewProxy, geometry: GeometryProxy) -> some View {
-        stack {
+        VStack(spacing: spacing) {
             ForEach(items) { item in
                 SectionedListItemView(
                     selection: $selection,
@@ -132,20 +122,6 @@ struct SectionedList: View {
             case .down: .top
             }
             scrollView.scrollTo(selection, anchor: anchor)
-        }
-    }
-
-    @ViewBuilder
-    private func stack(@ViewBuilder content: () -> some View) -> some View {
-        switch kind {
-        case .horizontal(let alignment):
-            HStack(alignment: alignment, spacing: spacing) {
-                content()
-            }
-        case .vertical(let alignment):
-            VStack(alignment: alignment, spacing: spacing) {
-                content()
-            }
         }
     }
 
@@ -192,8 +168,8 @@ class SectionedListHeaderItem: SectionedListItem {
 
 private struct SectionedListItemView: View {
     @Binding var selection: ObjectIdentifier?
-    @State private var isHovering = false
     @Binding var itemFrames: [ObjectIdentifier: CGRect]
+    @State private var isHovering = false
 
     let item: SectionedListItem
 

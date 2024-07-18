@@ -1,0 +1,240 @@
+//
+//  SectionedList.swift
+//  Ice
+//
+
+import SwiftUI
+
+struct SectionedList: View {
+    enum Kind {
+        case horizontal(alignment: VerticalAlignment)
+        case vertical(alignment: HorizontalAlignment)
+    }
+
+    private enum ScrollDirection {
+        case up, down
+    }
+
+    @Binding var selection: ObjectIdentifier?
+    @State private var itemFrames = [ObjectIdentifier: CGRect]()
+
+    let kind: Kind
+    let spacing: CGFloat
+    let items: [SectionedListItem]
+    let configureScrollContent: (AnyView) -> AnyView
+
+    private var nextSelectableItem: SectionedListItem? {
+        guard
+            let index = items.firstIndex(where: { $0.id == selection }),
+            items.indices.contains(index + 1)
+        else {
+            return nil
+        }
+        return items[(index + 1)...].first { $0.isSelectable }
+    }
+
+    private var previousSelectableItem: SectionedListItem? {
+        guard
+            let index = items.firstIndex(where: { $0.id == selection }),
+            items.indices.contains(index - 1)
+        else {
+            return nil
+        }
+        return items[...(index - 1)].last { $0.isSelectable }
+    }
+
+    init(
+        selection: Binding<ObjectIdentifier?>,
+        kind: Kind = .vertical(alignment: .center),
+        spacing: CGFloat = 0,
+        items: [SectionedListItem],
+        configureScrollContent: @escaping (AnyView) -> some View
+    ) {
+        self._selection = selection
+        self.kind = kind
+        self.spacing = spacing
+        self.items = items
+        self.configureScrollContent = { scrollContent in
+            configureScrollContent(scrollContent)
+                .erased()
+        }
+    }
+
+    var body: some View {
+        ScrollViewReader { scrollView in
+            GeometryReader { geometry in
+                ScrollView {
+                    configureScrollContent(
+                        scrollContent(
+                            scrollView: scrollView,
+                            geometry: geometry
+                        )
+                        .erased()
+                    )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func scrollContent(scrollView: ScrollViewProxy, geometry: GeometryProxy) -> some View {
+        stack {
+            ForEach(items) { item in
+                SectionedListItemView(
+                    selection: $selection,
+                    itemFrames: $itemFrames,
+                    item: item
+                )
+                .id(item.id)
+            }
+        }
+        .onKeyDown(key: .downArrow) {
+            if let nextSelectableItem {
+                selection = nextSelectableItem.id
+            }
+        }
+        .onKeyDown(key: .upArrow) {
+            if let previousSelectableItem {
+                selection = previousSelectableItem.id
+            }
+        }
+        .onKeyDown(key: .return) {
+            items.first { $0.id == selection }?.action?()
+        }
+        .onChange(of: selection) {
+            guard
+                let selection,
+                let direction = scrollDirection(for: selection, geometry: geometry)
+            else {
+                return
+            }
+            let anchor: UnitPoint = switch direction {
+            case .up: .bottom
+            case .down: .top
+            }
+            scrollView.scrollTo(selection, anchor: anchor)
+        }
+    }
+
+    @ViewBuilder
+    private func stack(@ViewBuilder content: () -> some View) -> some View {
+        switch kind {
+        case .horizontal(let alignment):
+            HStack(alignment: alignment, spacing: spacing) {
+                content()
+            }
+        case .vertical(let alignment):
+            VStack(alignment: alignment, spacing: spacing) {
+                content()
+            }
+        }
+    }
+
+    private func scrollDirection(for selection: ObjectIdentifier, geometry: GeometryProxy) -> ScrollDirection? {
+        guard let selectionFrame = itemFrames[selection] else {
+            return nil
+        }
+        let geometryFrame = geometry.frame(in: .global)
+        if selectionFrame.maxY >= geometryFrame.maxY {
+            return .up
+        }
+        if selectionFrame.minY <= geometryFrame.minY {
+            return .down
+        }
+        return nil
+    }
+}
+
+class SectionedListItem: Identifiable {
+    let content: AnyView
+    let isSelectable: Bool
+    let action: (() -> Void)?
+
+    init(content: AnyView, isSelectable: Bool, action: (() -> Void)?) {
+        self.content = content
+        self.isSelectable = isSelectable
+        self.action = action
+    }
+
+    convenience init(isSelectable: Bool, action: (() -> Void)?, @ViewBuilder content: () -> some View) {
+        self.init(content: AnyView(content()), isSelectable: isSelectable, action: action)
+    }
+}
+
+class SectionedListHeaderItem: SectionedListItem {
+    init(content: AnyView) {
+        super.init(content: content, isSelectable: false, action: nil)
+    }
+
+    convenience init(@ViewBuilder content: () -> some View) {
+        self.init(content: AnyView(content()))
+    }
+}
+
+private struct SectionedListItemView: View {
+    @Binding var selection: ObjectIdentifier?
+    @State private var isHovering = false
+    @Binding var itemFrames: [ObjectIdentifier: CGRect]
+
+    let item: SectionedListItem
+
+    var body: some View {
+        ZStack {
+            if item.isSelectable {
+                itemBackground
+            }
+            item.content
+        }
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            isHovering = hovering
+        }
+        .onTapGesture {
+            selection = item.id
+        }
+        .onFrameChange(in: .global) { frame in
+            itemFrames[item.id] = frame
+        }
+    }
+
+    @ViewBuilder
+    private var itemBackground: some View {
+        VisualEffectView(material: .selection, blendingMode: .withinWindow)
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .circular))
+            .opacity(selection == item.id ? 0.5 : isHovering ? 0.25 : 0)
+    }
+}
+
+#if DEBUG
+private struct PreviewHelper: View {
+    @State private var selection: ObjectIdentifier?
+
+    var body: some View {
+        SectionedList(
+            selection: $selection,
+            items: [
+                SectionedListHeaderItem(content: AnyView(Text("Section One"))),
+                SectionedListItem(content: AnyView(Text("One")), isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Two")), isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Three")), isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Four")), isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Five")), isSelectable: true, action: nil),
+                SectionedListHeaderItem(content: AnyView(Text("Section Two"))),
+                SectionedListItem(content: AnyView(Text("Six")), isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Seven")), isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Eight")), isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Nine")), isSelectable: true, action: nil),
+                SectionedListItem(content: AnyView(Text("Ten")), isSelectable: true, action: nil),
+            ]
+        ) { scrollContent in
+            scrollContent
+        }
+        .padding(10)
+        .frame(width: 300, height: 200)
+    }
+}
+
+#Preview {
+    PreviewHelper()
+}
+#endif

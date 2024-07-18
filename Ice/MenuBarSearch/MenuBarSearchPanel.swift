@@ -142,29 +142,53 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
 }
 
 private struct MenuBarSearchContentView: View {
-    struct SelectionValue: Hashable {
-        var sectionIndex: Int
-        var itemIndex: Int
+    struct MenuBarSearchItem {
+        let listItem: SectionedListItem
+        let displayName: String
     }
 
     @State private var searchText = ""
-    @State private var selection = SelectionValue(sectionIndex: 0, itemIndex: 0)
-    @State private var itemFrames = [SelectionValue: CGRect]()
-    @State private var scrollContentOffset: CGFloat = 0
+    @State private var selection: ObjectIdentifier?
     @FocusState private var searchFieldIsFocused: Bool
 
-    let itemCache: MenuBarItemManager.ItemCache
+    let items: [MenuBarSearchItem]
     let closePanel: () -> Void
 
     private let fuse = Fuse(threshold: 0.5, tokenize: false)
 
-    private var matchingItems: [MenuBarItem] {
-        let managedItems = itemCache.managedItems
+    private var matchingItems: [SectionedListItem] {
         if searchText.isEmpty {
-            return managedItems.reversed()
+            return items.map { $0.listItem }
         }
-        let results = fuse.searchSync(searchText, in: managedItems.map { $0.displayName })
-        return results.map { managedItems[$0.index] }
+        let selectableItems = items.compactMap { item in
+            if item.listItem.isSelectable {
+                return item
+            }
+            return nil
+        }
+        let results = fuse.searchSync(searchText, in: selectableItems.map { $0.displayName })
+        return results.map { selectableItems[$0.index].listItem }
+    }
+
+    init(itemCache: MenuBarItemManager.ItemCache, closePanel: @escaping () -> Void) {
+        self.closePanel = closePanel
+        self.items = MenuBarSection.Name.allCases.reduce(into: []) { items, section in
+            let headerItem = SectionedListHeaderItem {
+                Text(section.menuString)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 10)
+            }
+            items.append(MenuBarSearchItem(listItem: headerItem, displayName: section.menuString))
+
+            for item in itemCache.managedItems(for: section).reversed() {
+                let listItem = SectionedListItem(isSelectable: true, action: closePanel) {
+                    MenuBarSearchItemView(item: item)
+                }
+                items.append(MenuBarSearchItem(listItem: listItem, displayName: item.displayName))
+            }
+        }
     }
 
     var body: some View {
@@ -181,127 +205,30 @@ private struct MenuBarSearchContentView: View {
 
             Divider()
 
-            scrollView
+            SectionedList(selection: $selection, items: matchingItems) { scrollContent in
+                scrollContent
+                    .padding(.horizontal, 8)
+            }
+            .padding(.vertical, 8)
+            .scrollContentBackground(.hidden)
+            .scrollClipDisabled()
+            .clipped()
         }
         .background(.background.opacity(0.75))
         .frame(minWidth: 550)
-        .frame(height: 365)
+        .frame(height: 375)
         .fixedSize()
         .onAppear {
             searchFieldIsFocused = true
+            selectFirstMatchingItem()
+        }
+        .onChange(of: searchText) {
+            selectFirstMatchingItem()
         }
     }
 
-    @ViewBuilder
-    private var scrollView: some View {
-        ScrollViewReader { scrollView in
-            GeometryReader { geometry in
-                ScrollView {
-                    scrollContent(scrollView: scrollView, geometry: geometry)
-                }
-                .scrollContentBackground(.hidden)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func scrollContent(scrollView: ScrollViewProxy, geometry: GeometryProxy) -> some View {
-        VStack(spacing: 0) {
-            if searchText.isEmpty {
-                ForEach(Array(MenuBarSection.Name.allCases.enumerated()), id: \.element) { index, section in
-                    listSection(sectionIndex: index, section: section)
-                        .offset(y: scrollContentOffset)
-                }
-            } else {
-                ForEach(Array(matchingItems.enumerated()), id: \.element) { index, item in
-                    MenuBarSearchItemView(
-                        selection: $selection,
-                        itemFrames: $itemFrames,
-                        item: item,
-                        selectionValue: selectionValue(0, index),
-                        closePanel: closePanel
-                    )
-                    .id(selectionValue(0, index))
-                    .offset(y: scrollContentOffset)
-                }
-            }
-        }
-        .padding([.bottom, .horizontal], 8)
-        .onKeyDown(key: .downArrow) {
-            let section = MenuBarSection.Name.allCases[selection.sectionIndex]
-            let items = itemCache.managedItems(for: section)
-            if selection.itemIndex >= items.endIndex - 1 {
-                if selection.sectionIndex < MenuBarSection.Name.allCases.endIndex - 1 {
-                    selection.sectionIndex += 1
-                    selection.itemIndex = 0
-                }
-            } else if selection.itemIndex < items.endIndex {
-                selection.itemIndex += 1
-            }
-            if needsScrollToSelection(geometry: geometry) {
-                scrollView.scrollTo(selection, anchor: .bottom)
-                scrollContentOffset = -8
-            }
-        }
-        .onKeyDown(key: .upArrow) {
-            let section = MenuBarSection.Name.allCases[selection.sectionIndex]
-            let items = itemCache.managedItems(for: section)
-            if selection.itemIndex <= items.startIndex {
-                if selection.sectionIndex > MenuBarSection.Name.allCases.startIndex {
-                    let previousItems = itemCache.managedItems(for: MenuBarSection.Name.allCases[selection.sectionIndex - 1])
-                    selection.sectionIndex -= 1
-                    selection.itemIndex = previousItems.endIndex - 1
-                }
-            } else if selection.itemIndex >= items.startIndex + 1 {
-                selection.itemIndex -= 1
-            }
-            if needsScrollToSelection(geometry: geometry) {
-                scrollView.scrollTo(selection, anchor: .top)
-                scrollContentOffset = 8
-            }
-        }
-        .localEventMonitor(mask: .scrollWheel) { event in
-            scrollContentOffset = 0
-            return event
-        }
-    }
-
-    @ViewBuilder
-    private func listSection(sectionIndex: Int, section: MenuBarSection.Name) -> some View {
-        Section {
-            ForEach(enumeratedItems(for: section), id: \.element.info) { itemIndex, item in
-                MenuBarSearchItemView(
-                    selection: $selection,
-                    itemFrames: $itemFrames,
-                    item: item,
-                    selectionValue: selectionValue(sectionIndex, itemIndex),
-                    closePanel: closePanel
-                )
-                .id(selectionValue(sectionIndex, itemIndex))
-            }
-        } header: {
-            Text(section.menuString)
-                .fontWeight(.semibold)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 10)
-        }
-    }
-
-    private func enumeratedItems(for section: MenuBarSection.Name) -> [(offset: Int, element: MenuBarItem)] {
-        Array(itemCache.managedItems(for: section).reversed().enumerated())
-    }
-
-    private func selectionValue(_ sectionIndex: Int, _ itemIndex: Int) -> SelectionValue {
-        SelectionValue(sectionIndex: sectionIndex, itemIndex: itemIndex)
-    }
-
-    private func needsScrollToSelection(geometry: GeometryProxy) -> Bool {
-        guard let selectionFrame = itemFrames[selection] else {
-            return false
-        }
-        let geometryFrame = geometry.frame(in: .global)
-        return !geometryFrame.contains(selectionFrame)
+    private func selectFirstMatchingItem() {
+        selection = matchingItems.first { $0.isSelectable }?.id
     }
 }
 
@@ -315,13 +242,8 @@ private let controlCenterIcon: NSImage? = {
 private struct MenuBarSearchItemView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
     @EnvironmentObject var menuBarManager: MenuBarManager
-    @Binding var selection: MenuBarSearchContentView.SelectionValue
-    @Binding var itemFrames: [MenuBarSearchContentView.SelectionValue: CGRect]
-    @State private var isHovering = false
 
     let item: MenuBarItem
-    let selectionValue: MenuBarSearchContentView.SelectionValue
-    let closePanel: () -> Void
 
     private var image: NSImage? {
         guard
@@ -354,31 +276,6 @@ private struct MenuBarSearchItemView: View {
     }
 
     var body: some View {
-        ZStack {
-            itemBackground
-            itemContent
-        }
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            isHovering = hovering
-        }
-        .onTapGesture {
-            selection = selectionValue
-        }
-        .onFrameChange(in: .global) { frame in
-            itemFrames[selectionValue] = frame
-        }
-    }
-
-    @ViewBuilder
-    private var itemBackground: some View {
-        VisualEffectView(material: .selection, blendingMode: .withinWindow)
-            .clipShape(RoundedRectangle(cornerRadius: 7, style: .circular))
-            .opacity(selection == selectionValue ? 0.5 : isHovering ? 0.25 : 0)
-    }
-
-    @ViewBuilder
-    private var itemContent: some View {
         HStack {
             if let appIcon {
                 Image(nsImage: appIcon)

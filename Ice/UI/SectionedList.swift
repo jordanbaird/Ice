@@ -53,12 +53,8 @@ struct SectionedList<ItemID: Hashable>: View {
                 ScrollView {
                     scrollContent(scrollView: scrollView, geometry: geometry)
                 }
-                .padding(.top, contentPadding.top)
-                .padding(.bottom, contentPadding.bottom)
-                .contentMargins(.top, -contentPadding.top, for: .scrollIndicators)
-                .contentMargins(.bottom, -contentPadding.bottom, for: .scrollIndicators)
-                .scrollClipDisabled()
-                .clipped()
+                .contentMargins(.all, contentPadding, for: .scrollContent)
+                .contentMargins(.all, -contentPadding, for: .scrollIndicators)
             }
         }
     }
@@ -75,8 +71,6 @@ struct SectionedList<ItemID: Hashable>: View {
                 .id(item.id)
             }
         }
-        .padding(.leading, contentPadding.leading)
-        .padding(.trailing, contentPadding.trailing)
         .onKeyDown(key: .downArrow) {
             if let nextSelectableItem {
                 selection = nextSelectableItem.id

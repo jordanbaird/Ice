@@ -42,6 +42,17 @@ class MenuBarSearchPanel: NSPanel {
             }
             .store(in: &c)
 
+        // close the panel when the active space changes, or when the
+        // screen parameters change
+        Publishers.Merge(
+            NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
+            NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+        )
+        .sink { [weak self] _ in
+            self?.close()
+        }
+        .store(in: &c)
+
         cancellables = c
     }
 

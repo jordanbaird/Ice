@@ -158,9 +158,9 @@ private struct MenuBarSearchContentView: View {
     @State private var selection: ItemID?
     @FocusState private var searchFieldIsFocused: Bool
 
-    let closePanel: () -> Void
+    private let fuse = Fuse(threshold: 0.5)
 
-    private let fuse = Fuse(threshold: 0.5, tokenize: false)
+    let closePanel: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {

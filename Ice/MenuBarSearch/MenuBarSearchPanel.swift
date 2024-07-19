@@ -59,12 +59,18 @@ class MenuBarSearchPanel: NSPanel {
             self?.close()
         })
 
-        mouseDownMonitor = UniversalEventMonitor(mask: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] event in
+        mouseDownMonitor = UniversalEventMonitor(mask: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self, weak appState] event in
             guard
                 let self,
+                let appState,
                 event.window !== self
             else {
                 return event
+            }
+            if let lastItemMoveStartDate = appState.itemManager.lastItemMoveStartDate {
+                guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
+                    return event
+                }
             }
             close()
             return event
@@ -285,16 +291,18 @@ private struct ShowItemButton: View {
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 7)
                 .padding(.vertical, 5)
-                .background(
-                    Color.primary.opacity(0.1),
-                    in: RoundedRectangle(cornerRadius: 3, style: .circular)
-                )
+                .background {
+                    VisualEffectView(material: .selection, blendingMode: .withinWindow)
+                        .clipShape(RoundedRectangle(cornerRadius: 3, style: .circular))
+                        .opacity(0.5)
+                }
         }
         .padding(3)
-        .background(
-            .primary.opacity(isHovering ? 0.1 : 0),
-            in: RoundedRectangle(cornerRadius: 5, style: .circular)
-        )
+        .background {
+            VisualEffectView(material: .selection, blendingMode: .withinWindow)
+                .clipShape(RoundedRectangle(cornerRadius: 5, style: .circular))
+                .opacity(isHovering ? 0.25 : 0)
+        }
         .contentShape(Rectangle())
         .onHover { hovering in
             isHovering = hovering

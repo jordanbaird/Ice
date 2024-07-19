@@ -92,3 +92,71 @@ func update<Value>(_ value: inout Value, body: (inout Value) throws -> Void) ret
 func update<Value>(_ value: inout Value, body: (inout Value) async throws -> Void) async rethrows {
     try await body(&value)
 }
+
+/// Updates a copy of the given value using a closure.
+///
+/// Use this function as shorthand for the following pattern:
+///
+/// * Example 1:
+///
+/// ```swift
+/// let item = Item(index: 0, title: "Title")
+///
+/// let item2: Item = {
+///     var copy = item
+///     copy.index += 1
+///     copy.title = "Title2"
+///     return copy
+/// }()
+/// ```
+///
+/// * Example 2:
+///
+/// ```swift
+/// let item = Item(index: 0, title: "Title")
+///
+/// let item2 = with(item) { item in
+///     item.index += 1
+///     item.title = "Title2"
+/// }
+/// ```
+@discardableResult
+func with<Value>(_ value: Value, update: (inout Value) throws -> Void) rethrows -> Value {
+    var copy = value
+    try update(&copy)
+    return copy
+}
+
+/// Updates a copy of the given value using a closure.
+///
+/// Use this function as shorthand for the following pattern:
+///
+/// * Example 1:
+///
+/// ```swift
+/// let item = Item(index: 0, title: "Title")
+///
+/// let item2: Item = {
+///     var copy = item
+///     copy.index += 1
+///     copy.title = "Title2"
+///     return copy
+/// }()
+/// ```
+///
+/// * Example 2:
+///
+/// ```swift
+/// let item = Item(index: 0, title: "Title")
+///
+/// let item2 = with(item) { item in
+///     item.index += 1
+///     item.title = "Title2"
+/// }
+/// ```
+@discardableResult
+func with<Value>(_ value: Value, update: (inout Value) async throws -> Void) async rethrows -> Value {
+    var copy = value
+    try await update(&copy)
+    return copy
+}

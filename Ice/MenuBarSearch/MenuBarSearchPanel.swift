@@ -136,10 +136,8 @@ private class MenuBarSearchHostingView: NSHostingView<AnyView> {
     ) {
         super.init(
             rootView: MenuBarSearchContentView(closePanel: closePanel)
-                .environmentObject(appState)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.imageCache)
-                .environmentObject(appState.menuBarManager)
                 .erased()
         )
     }
@@ -333,7 +331,6 @@ private let controlCenterIcon: NSImage? = {
 
 private struct MenuBarSearchItemView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
-    @EnvironmentObject var menuBarManager: MenuBarManager
 
     let item: MenuBarItem
 
@@ -359,14 +356,6 @@ private struct MenuBarSearchItemView: View {
         }
     }
 
-    private var imageBackgroundColor: Color {
-        if let colorInfo = menuBarManager.averageColorInfo {
-            Color(cgColor: colorInfo.color)
-        } else {
-            Color.gray
-        }
-    }
-
     var body: some View {
         HStack {
             if let appIcon {
@@ -387,7 +376,7 @@ private struct MenuBarSearchItemView: View {
         if let image {
             ZStack {
                 RoundedRectangle(cornerRadius: 5, style: .circular)
-                    .fill(imageBackgroundColor)
+                    .fill(.gray)
                     .frame(width: item.frame.width)
                 Image(nsImage: image)
             }

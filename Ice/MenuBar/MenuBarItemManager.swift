@@ -1007,7 +1007,7 @@ extension MenuBarItemManager {
         let rehideInterval: TimeInterval = 20
 
         if tempShownItemContexts.contains(where: { $0.item.info == item.info }) {
-            Logger.itemManager.info("Item \"\(item.logString)\" is already temporarily shown, so extending timer")
+            Logger.itemManager.info("Item \"\(item.logString)\" is already shown, so extending timer")
             runTempShownItemTimer(for: rehideInterval)
             return
         }

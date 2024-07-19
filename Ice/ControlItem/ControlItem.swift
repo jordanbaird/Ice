@@ -22,7 +22,7 @@ final class ControlItem: ObservableObject {
     }
 
     enum Lengths {
-        static let standard: CGFloat = 25
+        static let standard: CGFloat = NSStatusItem.variableLength
         static let expanded: CGFloat = 10_000
     }
 

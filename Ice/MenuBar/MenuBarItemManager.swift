@@ -1004,19 +1004,20 @@ extension MenuBarItemManager {
     ///     should be clicked once its movement has finished.
     ///   - mouseButton: The mouse button of the click.
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
-        guard
-            let appState,
-            let screen = NSScreen.main,
-            let applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
-        else {
-            return
-        }
-
         let rehideInterval: TimeInterval = 20
 
         if tempShownItemContexts.contains(where: { $0.item.info == item.info }) {
             Logger.itemManager.info("Item \"\(item.logString)\" is already shown, so extending timer")
             runTempShownItemTimer(for: rehideInterval)
+            return
+        }
+
+        guard
+            let appState,
+            let screen = NSScreen.main,
+            let applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
+        else {
+            Logger.itemManager.warning("No application menu frame, so not showing item \"\(item.logString)\"")
             return
         }
 

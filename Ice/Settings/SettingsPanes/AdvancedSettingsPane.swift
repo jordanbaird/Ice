@@ -71,7 +71,7 @@ struct AdvancedSettingsPane: View {
     private var canToggleAlwaysHiddenSection: some View {
         if manager.enableAlwaysHiddenSection {
             Toggle(isOn: manager.bindings.canToggleAlwaysHiddenSection) {
-                Text("Can toggle the always-hidden section")
+                Text("Always-hidden section can be toggled")
                 if appState.settingsManager.generalSettingsManager.showOnClick {
                     Text("\(Modifiers.option.combinedValue) + click one of Ice's menu bar items, or inside an empty area of the menu bar to toggle the section")
                 } else {

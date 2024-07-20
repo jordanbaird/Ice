@@ -28,7 +28,7 @@ final class GeneralSettingsManager: ObservableObject {
     @Published var useIceBar = false
 
     /// The location where the Ice Bar appears.
-    @Published var iceBarLocation: IceBarLocation = .dynamic
+    @Published var iceBarLocation: IceBarLocation = .default
 
     /// A Boolean value that indicates whether the hidden section
     /// should be shown when the mouse pointer clicks in an empty

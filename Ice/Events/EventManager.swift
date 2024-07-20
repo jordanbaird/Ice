@@ -25,7 +25,7 @@ final class EventManager {
         switch event.type {
         case .leftMouseDown:
             handleShowOnClick()
-            handleDefaultRehide(with: event)
+            handleSmartRehide(with: event)
         case .rightMouseDown:
             handleShowRightClickMenu()
         default:
@@ -161,13 +161,13 @@ extension EventManager {
         }
     }
 
-    // MARK: Handle Default Rehide
+    // MARK: Handle Smart Rehide
 
-    private func handleDefaultRehide(with event: NSEvent) {
+    private func handleSmartRehide(with event: NSEvent) {
         guard
             let appState,
             appState.settingsManager.generalSettingsManager.autoRehide,
-            case .default = appState.settingsManager.generalSettingsManager.rehideStrategy
+            case .smart = appState.settingsManager.generalSettingsManager.rehideStrategy
         else {
             return
         }

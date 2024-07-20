@@ -50,7 +50,7 @@ final class GeneralSettingsManager: ObservableObject {
     @Published var autoRehide = true
 
     /// A strategy that determines how the auto-rehide feature works.
-    @Published var rehideStrategy: RehideStrategy = .default
+    @Published var rehideStrategy: RehideStrategy = .smart
 
     /// A time interval for the auto-rehide feature when its rule
     /// is ``RehideStrategy/timed``.

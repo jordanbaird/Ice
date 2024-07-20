@@ -207,8 +207,8 @@ struct GeneralSettingsPane: View {
         } label: {
             Text("Strategy")
             switch manager.rehideStrategy {
-            case .default:
-                Text("Menu bar items are rehidden using the default algorithm")
+            case .smart:
+                Text("Menu bar items are rehidden using a smart algorithm")
             case .timed:
                 Text("Menu bar items are rehidden after a fixed amount of time")
             case .focusedApp:

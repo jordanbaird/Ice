@@ -162,18 +162,14 @@ struct GeneralSettingsPane: View {
                 Text(location.localized).tag(location)
             }
         } label: {
-            Text("Ice Bar location")
+            Text("Location")
             switch manager.iceBarLocation {
-            case .dynamic:
-                Text("The Ice Bar appears in various locations based on context")
+            case .default:
+                Text("The Ice Bar's location changes based on context")
             case .mousePointer:
-                Text("The Ice Bar appears centered below the mouse pointer")
+                Text("The Ice Bar is centered below the mouse pointer")
             case .iceIcon:
-                Text("The Ice Bar appears centered below the Ice icon")
-            case .leftOfScreen:
-                Text("The Ice Bar appears on the left side of the screen")
-            case .rightOfScreen:
-                Text("The Ice Bar appears on the right side of the screen")
+                Text("The Ice Bar is centered below the Ice icon")
             }
         }
     }
@@ -211,8 +207,8 @@ struct GeneralSettingsPane: View {
         } label: {
             Text("Strategy")
             switch manager.rehideStrategy {
-            case .smart:
-                Text("Menu bar items are rehidden using a smart algorithm")
+            case .default:
+                Text("Menu bar items are rehidden using the default algorithm")
             case .timed:
                 Text("Menu bar items are rehidden after a fixed amount of time")
             case .focusedApp:

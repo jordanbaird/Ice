@@ -459,10 +459,11 @@ extension EventManager {
             let mouseLocation = MouseCursor.location(flipped: true),
             let screen = bestScreen,
             let appState,
-            let applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
+            var applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
         else {
             return false
         }
+        applicationMenuFrame.size.width += 15 // extra width to accomodate menu padding
         return applicationMenuFrame.contains(mouseLocation)
     }
 

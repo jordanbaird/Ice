@@ -1006,22 +1006,31 @@ extension MenuBarItemManager {
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
         let rehideInterval: TimeInterval = 20
 
-        if tempShownItemContexts.contains(where: { $0.item.info == item.info }) {
-            Logger.itemManager.info("Item \"\(item.logString)\" is already temporarily shown, so extending timer")
-            runTempShownItemTimer(for: rehideInterval)
+        guard
+            let appState,
+            let screen = NSScreen.main,
+            let applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
+        else {
+            Logger.itemManager.warning("No application menu frame, so not showing item \"\(item.logString)\"")
             return
         }
 
         Logger.itemManager.info("Temporarily showing \"\(item.logString)\"")
 
-        let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
+        var items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
 
         guard let destination = getReturnDestination(for: item, in: items) else {
             Logger.itemManager.warning("No return destination for item \"\(item.logString)\"")
             return
         }
-        guard let hiddenControlItem = items.first(where: { $0.info == .hiddenControlItem }) else {
-            Logger.itemManager.warning("No hidden control item")
+
+        items.trimPrefix { $0.info != .hiddenControlItem }
+        items.removeFirst() // remove hidden control item
+        items.trimPrefix { !$0.isOnScreen }
+        items.trimPrefix { $0.frame.minX - item.frame.width <= applicationMenuFrame.maxX }
+
+        guard let targetItem = items.first else {
+            Logger.itemManager.warning("Not enough room to show item")
             return
         }
 
@@ -1030,7 +1039,7 @@ extension MenuBarItemManager {
         Task {
             if clickWhenFinished {
                 do {
-                    try await slowMove(item: item, to: .rightOfItem(hiddenControlItem))
+                    try await slowMove(item: item, to: .leftOfItem(targetItem))
                     switch mouseButton {
                     case .left:
                         try await leftClick(item: item)
@@ -1046,7 +1055,7 @@ extension MenuBarItemManager {
                 }
             } else {
                 do {
-                    try await move(item: item, to: .rightOfItem(hiddenControlItem))
+                    try await move(item: item, to: .leftOfItem(targetItem))
                 } catch {
                     Logger.itemManager.error("ERROR: \(error)")
                 }

@@ -1006,12 +1006,6 @@ extension MenuBarItemManager {
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
         let rehideInterval: TimeInterval = 20
 
-        if tempShownItemContexts.contains(where: { $0.item.info == item.info }) {
-            Logger.itemManager.info("Item \"\(item.logString)\" is already shown, so extending timer")
-            runTempShownItemTimer(for: rehideInterval)
-            return
-        }
-
         guard
             let appState,
             let screen = NSScreen.main,

@@ -1032,7 +1032,7 @@ extension MenuBarItemManager {
         items.trimPrefix { $0.info != .hiddenControlItem }
         items.removeFirst() // remove hidden control item
         items.trimPrefix { !$0.isOnScreen }
-        items.trimPrefix { $0.frame.minX - item.frame.width <= applicationMenuFrame.maxX - 15 }
+        items.trimPrefix { $0.frame.minX - item.frame.width <= applicationMenuFrame.maxX }
 
         guard let targetItem = items.first else {
             Logger.itemManager.warning("Not enough room to show item")

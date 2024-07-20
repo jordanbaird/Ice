@@ -531,12 +531,12 @@ private class MenuBarOverlayPanelContentView: NSView {
                 return .zero
             }
             if shouldInset {
-                maxX -= 5
+                maxX += 10
                 if info.leading.leadingEndCap == .square {
                     maxX += appearanceManager.menuBarInsetAmount
                 }
             } else {
-                maxX += 5
+                maxX += 20
             }
             return CGRect(x: rect.minX, y: rect.minY, width: maxX, height: rect.height)
         }()

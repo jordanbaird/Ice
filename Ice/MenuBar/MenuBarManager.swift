@@ -326,7 +326,7 @@ final class MenuBarManager: ObservableObject {
         }
 
         let itemFrames = items.lazy.compactMap { try? $0.attribute(.frame) as CGRect? }
-        var applicationMenuFrame = itemFrames.reduce(.null, CGRectUnion)
+        let applicationMenuFrame = itemFrames.reduce(.null, CGRectUnion)
 
         if applicationMenuFrame.width <= 0 {
             return nil
@@ -346,9 +346,6 @@ final class MenuBarManager: ObservableObject {
         {
             return nil
         }
-
-        // add extra width to accomodate menu padding
-        applicationMenuFrame.size.width += 15
 
         return applicationMenuFrame
     }

@@ -107,8 +107,12 @@ class IceBarPanel: NSPanel {
         let originY = ((screen.frame.maxY - 1) - menuBarHeight) - frame.height
 
         func getOrigin(for iceBarLocation: IceBarLocation) -> CGPoint {
+            func getOriginForRightOfScreen() -> CGPoint {
+                CGPoint(x: screen.frame.maxX - frame.width, y: originY)
+            }
+
             switch iceBarLocation {
-            case .dynamic:
+            case .default:
                 if appState.eventManager.isMouseInsideEmptyMenuBarSpace {
                     return getOrigin(for: .mousePointer)
                 }
@@ -122,7 +126,7 @@ class IceBarPanel: NSPanel {
                 let upperBound = screen.frame.maxX - frame.width
 
                 guard lowerBound <= upperBound else {
-                    return getOrigin(for: .rightOfScreen)
+                    return getOriginForRightOfScreen()
                 }
 
                 return CGPoint(x: (location.x - frame.width / 2).clamped(to: lowerBound...upperBound), y: originY)
@@ -137,14 +141,10 @@ class IceBarPanel: NSPanel {
                     // `Bridging.getWindowFrame(_:)` is more reliable than `ControlItem.windowFrame`
                     let itemFrame = Bridging.getWindowFrame(for: windowID)
                 else {
-                    return getOrigin(for: .rightOfScreen)
+                    return getOriginForRightOfScreen()
                 }
 
                 return CGPoint(x: (itemFrame.midX - frame.width / 2).clamped(to: lowerBound...upperBound), y: originY)
-            case .leftOfScreen:
-                return CGPoint(x: screen.frame.minX, y: originY)
-            case .rightOfScreen:
-                return CGPoint(x: screen.frame.maxX - frame.width, y: originY)
             }
         }
 

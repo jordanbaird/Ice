@@ -225,7 +225,7 @@ final class MenuBarManager: ObservableObject {
 
                     // if the offset value is less than or equal to the maxX of the
                     // application menu frame, activate the app to hide the menu
-                    if offsetMinX <= applicationMenuFrame.maxX {
+                    if offsetMinX <= applicationMenuFrame.maxX + 15 {
                         hideApplicationMenus()
                     }
                 } else if isHidingApplicationMenus {

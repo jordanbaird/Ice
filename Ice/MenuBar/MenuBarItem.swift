@@ -163,8 +163,19 @@ struct MenuBarItem {
 
 // MARK: MenuBarItem Getters
 extension MenuBarItem {
-    /// Returns an array of menu bar items in the menu bar for the given display.
-    static func getMenuBarItemsCoreGraphics(for display: CGDirectDisplayID, onScreenOnly: Bool) -> [MenuBarItem] {
+    /// The method to use to get the menu bar items.
+    enum GetterMethod {
+        case coreGraphics
+        case bridging
+    }
+
+    /// The method to use to sort the menu bar items.
+    enum SortingMethod {
+        case orderInMenuBar
+        case custom((MenuBarItem, MenuBarItem) -> Bool)
+    }
+
+    private static func getMenuBarItems_CoreGraphics(on display: CGDirectDisplayID, onScreenOnly: Bool) -> [MenuBarItem] {
         let windows = if onScreenOnly {
             WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
         } else {
@@ -173,46 +184,65 @@ extension MenuBarItem {
         guard let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display) else {
             return []
         }
-        return windows.lazy
-            .compactMap { window in
-                guard
-                    window.isMenuBarItem,
-                    window.title != "",
-                    window.frame.minY == menuBarWindow.frame.minY,
-                    window.frame.maxY == menuBarWindow.frame.maxY
-                else {
-                    return nil
-                }
-                return MenuBarItem(uncheckedItemWindow: window)
+        return windows.compactMap { window in
+            guard
+                window.isMenuBarItem,
+                window.title != "",
+                window.frame.minY == menuBarWindow.frame.minY,
+                window.frame.maxY == menuBarWindow.frame.maxY
+            else {
+                return nil
             }
-            .sortedByOrderInMenuBar()
+            return MenuBarItem(uncheckedItemWindow: window)
+        }
     }
 
-    /// Returns an array of menu bar items using private APIs to retrieve the
-    /// windows.
-    ///
-    /// - Parameter onScreenOnly: A Boolean value that indicates whether only
-    ///   the items that are on screen should be returned.
-    static func getMenuBarItemsPrivateAPI(for display: CGDirectDisplayID, onScreenOnly: Bool) -> [MenuBarItem] {
+    private static func getMenuBarItems_Bridging(on display: CGDirectDisplayID, onScreenOnly: Bool) -> [MenuBarItem] {
         var option: Bridging.WindowListOption = [.menuBarItems]
         if onScreenOnly {
             option.insert(.onScreen)
         }
         let displayBounds = CGDisplayBounds(display)
-        return Bridging.getWindowList(option: option).lazy
-            .compactMap { windowID in
-                guard
-                    let windowFrame = Bridging.getWindowFrame(for: windowID),
-                    displayBounds.intersects(windowFrame)
-                else {
-                    return nil
-                }
-                return MenuBarItem(windowID: windowID)
+        return Bridging.getWindowList(option: option).compactMap { windowID in
+            guard
+                let windowFrame = Bridging.getWindowFrame(for: windowID),
+                displayBounds.intersects(windowFrame)
+            else {
+                return nil
             }
-            .sortedByOrderInMenuBar()
+            return MenuBarItem(windowID: windowID)
+        }
     }
 
-    /// Returns an array of menu bar items using private APIs to retrieve
+    /// Returns an array of the current menu bar items in the menu bar on
+    /// the given display.
+    ///
+    /// - Parameters:
+    ///   - display: The display to retrieve the menu bar items on.
+    ///   - method: The method to use to get the items.
+    ///   - onScreenOnly: A Boolean value that indicates whether only the
+    ///     items that are on screen should be returned.
+    static func getMenuBarItems(
+        on display: CGDirectDisplayID,
+        using getterMethod: GetterMethod,
+        onScreenOnly: Bool,
+        sortingBy sortingMethod: SortingMethod?
+    ) -> [MenuBarItem] {
+        let items = switch getterMethod {
+        case .coreGraphics: getMenuBarItems_CoreGraphics(on: display, onScreenOnly: onScreenOnly)
+        case .bridging: getMenuBarItems_Bridging(on: display, onScreenOnly: onScreenOnly)
+        }
+        return switch sortingMethod {
+        case .orderInMenuBar:
+            items.sortedByOrderInMenuBar()
+        case .custom(let areInIncreasingOrder):
+            items.sorted(by: areInIncreasingOrder)
+        case nil:
+            items
+        }
+    }
+
+    /// Returns an array of menu bar items using a private API to retrieve
     /// the windows.
     ///
     /// - Parameters:

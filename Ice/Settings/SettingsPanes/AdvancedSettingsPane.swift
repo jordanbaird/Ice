@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import CompactSlider
 import SwiftUI
 
 struct AdvancedSettingsPane: View {
@@ -16,6 +17,15 @@ struct AdvancedSettingsPane: View {
         appState.settingsManager.advancedSettingsManager
     }
 
+    private var showOnHoverDelay: LocalizedStringKey {
+        let formatted = manager.showOnHoverDelay.formatted()
+        return if manager.showOnHoverDelay == 1 {
+            LocalizedStringKey(formatted + " second")
+        } else {
+            LocalizedStringKey(formatted + " seconds")
+        }
+    }
+
     var body: some View {
         Form {
             Section {
@@ -25,6 +35,9 @@ struct AdvancedSettingsPane: View {
             Section("Always-Hidden Section") {
                 enableAlwaysHiddenSection
                 canToggleAlwaysHiddenSection
+            }
+            Section("Other") {
+                showOnHoverDelaySlider
             }
         }
         .formStyle(.grouped)
@@ -78,6 +91,26 @@ struct AdvancedSettingsPane: View {
                     Text("\(Modifiers.option.combinedValue) + click one of Ice's menu bar items to toggle the section")
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var showOnHoverDelaySlider: some View {
+        LabeledContent {
+            CompactSlider(
+                value: manager.bindings.showOnHoverDelay,
+                in: 0...1,
+                step: 0.1,
+                handleVisibility: .hovering(width: 1)
+            ) {
+                Text(showOnHoverDelay)
+                    .textSelection(.disabled)
+            }
+            .compactSliderDisabledHapticFeedback(true)
+        } label: {
+            Text("Show on hover delay")
+                .frame(minHeight: .compactSliderMinHeight)
+            Text("The amount of time to wait before showing on hover")
         }
     }
 }

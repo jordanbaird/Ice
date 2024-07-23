@@ -146,6 +146,7 @@ extension Defaults {
         case useIceBar = "UseIceBar"
         case showOnClick = "ShowOnClick"
         case showOnHover = "ShowOnHover"
+        case showOnHoverDelay = "ShowOnHoverDelay"
         case showOnScroll = "ShowOnScroll"
         case autoRehide = "AutoRehide"
         case rehideStrategy = "RehideStrategy"

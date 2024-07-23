@@ -348,13 +348,15 @@ extension EventManager {
             return
         }
 
+        let delay = appState.settingsManager.advancedSettingsManager.showOnHoverDelay
+
         Task {
             do {
                 if hiddenSection.isHidden {
                     guard self.isMouseInsideEmptyMenuBarSpace else {
                         return
                     }
-                    try await Task.sleep(for: .seconds(0.2))
+                    try await Task.sleep(for: .seconds(delay))
                     // make sure the mouse is still inside
                     guard self.isMouseInsideEmptyMenuBarSpace else {
                         return
@@ -367,7 +369,7 @@ extension EventManager {
                     else {
                         return
                     }
-                    try await Task.sleep(for: .seconds(0.2))
+                    try await Task.sleep(for: .seconds(delay))
                     // make sure the mouse is still outside
                     guard
                         !self.isMouseInsideMenuBar,
@@ -476,7 +478,7 @@ extension EventManager {
         else {
             return false
         }
-        let menuBarItems = MenuBarItem.getMenuBarItemsPrivateAPI(for: screen.displayID, onScreenOnly: true)
+        let menuBarItems = MenuBarItem.getMenuBarItems(on: screen.displayID, using: .bridging, onScreenOnly: true, sortingBy: .orderInMenuBar)
         return menuBarItems.contains { $0.frame.contains(mouseLocation) }
     }
 

@@ -214,7 +214,7 @@ final class MenuBarManager: ObservableObject {
                         return
                     }
 
-                    let items = MenuBarItem.getMenuBarItemsCoreGraphics(for: displayID, onScreenOnly: true)
+                    let items = MenuBarItem.getMenuBarItems(on: displayID, using: .coreGraphics, onScreenOnly: true, sortingBy: .orderInMenuBar)
 
                     // get the leftmost item on the screen; the application menu should
                     // be hidden if the item's minX is close to the maxX of the menu
@@ -228,7 +228,7 @@ final class MenuBarManager: ObservableObject {
 
                     // if the offset value is less than or equal to the maxX of the
                     // application menu frame, activate the app to hide the menu
-                    if offsetMinX <= applicationMenuFrame.maxX {
+                    if offsetMinX <= applicationMenuFrame.maxX + 15 {
                         hideApplicationMenus()
                     }
                 } else if isHidingApplicationMenus {

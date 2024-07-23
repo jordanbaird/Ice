@@ -541,7 +541,7 @@ private class MenuBarOverlayPanelContentView: NSView {
             return CGRect(x: rect.minX, y: rect.minY, width: maxX, height: rect.height)
         }()
         let trailingPathBounds: CGRect = {
-            let items = MenuBarItem.getMenuBarItemsPrivateAPI(for: screen.displayID, onScreenOnly: true)
+            let items = MenuBarItem.getMenuBarItems(on: screen.displayID, using: .bridging, onScreenOnly: true, sortingBy: .orderInMenuBar)
             guard !items.isEmpty else {
                 return .zero
             }

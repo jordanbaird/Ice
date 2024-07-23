@@ -28,6 +28,9 @@ final class AdvancedSettingsManager: ObservableObject {
     /// can be toggled by holding down the Option key.
     @Published var canToggleAlwaysHiddenSection = true
 
+    /// The delay before showing on hover.
+    @Published var showOnHoverDelay: TimeInterval = 0.2
+
     private var cancellables = Set<AnyCancellable>()
 
     private(set) weak var appState: AppState?
@@ -46,6 +49,7 @@ final class AdvancedSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .showSectionDividers, assign: &showSectionDividers)
         Defaults.ifPresent(key: .enableAlwaysHiddenSection, assign: &enableAlwaysHiddenSection)
         Defaults.ifPresent(key: .canToggleAlwaysHiddenSection, assign: &canToggleAlwaysHiddenSection)
+        Defaults.ifPresent(key: .showOnHoverDelay, assign: &showOnHoverDelay)
     }
 
     private func configureCancellables() {
@@ -76,6 +80,13 @@ final class AdvancedSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { canToggle in
                 Defaults.set(canToggle, forKey: .canToggleAlwaysHiddenSection)
+            }
+            .store(in: &c)
+
+        $showOnHoverDelay
+            .receive(on: DispatchQueue.main)
+            .sink { delay in
+                Defaults.set(delay, forKey: .showOnHoverDelay)
             }
             .store(in: &c)
 

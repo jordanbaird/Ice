@@ -4,7 +4,6 @@
 //
 
 import Cocoa
-import Combine
 
 /// Manager for menu bar item spacing.
 class MenuBarItemSpacingManager {

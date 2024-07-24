@@ -12,44 +12,12 @@ class MenuBarItemSpacingManager {
     private enum Key: String {
         case spacing = "NSStatusItemSpacing"
         case padding = "NSStatusItemSelectionPadding"
-    }
 
-    /// The standard values for the keys.
-    private enum StandardValues {
-        static let spacing = 16
-        static let padding = 16
-    }
-
-    enum AdjustSpacingError: LocalizedError {
-        case quitAppFailed(String?)
-        case launchAppFailed(String?)
-        case restartAppFailed(String?)
-
-        var errorDescription: String? {
+        /// The default value for the key.
+        var defaultValue: Int {
             switch self {
-            case .quitAppFailed(let app?):
-                "Failed to quit \"\(app)\"."
-            case .launchAppFailed(let app?):
-                "Failed to launch \"\(app)\"."
-            case .restartAppFailed(let app?):
-                "Failed to restart \"\(app)\"."
-            case .quitAppFailed:
-                "Failed to quit application."
-            case .launchAppFailed:
-                "Failed to launch application."
-            case .restartAppFailed:
-                "Failed to restart application."
-            }
-        }
-
-        var recoverySuggestion: String? {
-            switch self {
-            case .quitAppFailed, .restartAppFailed:
-                "You may need to log out for the changes to take effect."
-            case .launchAppFailed(.some):
-                "You may need to manually launch the app."
-            case .launchAppFailed:
-                "The application does not provide its name. You may need to check which apps are open and manually launch the one that failed."
+            case .spacing: 16
+            case .padding: 16
             }
         }
     }
@@ -78,9 +46,19 @@ class MenuBarItemSpacingManager {
         try await runCommand("defaults", with: ["-currentHost", "delete", "-globalDomain", key.rawValue])
     }
 
-    /// Sets the value for the specified key.
-    private func setValue(_ value: Int, forKey key: Key) async throws {
-        try await runCommand("defaults", with: ["-currentHost", "write", "-globalDomain", key.rawValue, "-int", String(value)])
+    /// Sets the value for the specified key to the key's default value plus the given offset.
+    private func setOffset(_ offset: Int, forKey key: Key) async throws {
+        try await runCommand("defaults", with: ["-currentHost", "write", "-globalDomain", key.rawValue, "-int", String(key.defaultValue + offset)])
+    }
+
+    /// Quits the app with the given process identifier.
+    private func quitApp(with pid: pid_t) async throws {
+        try await runCommand("kill", with: [String(pid)])
+    }
+
+    /// Launches the app at the given URL.
+    private func launchApp(at url: URL) async throws {
+        try await runCommand("open", with: ["-g", url.path()])
     }
 
     /// Applies the current ``offset``.
@@ -91,8 +69,8 @@ class MenuBarItemSpacingManager {
             try await removeValue(forKey: .spacing)
             try await removeValue(forKey: .padding)
         } else {
-            try await setValue(StandardValues.spacing + offset, forKey: .spacing)
-            try await setValue(StandardValues.padding + offset, forKey: .padding)
+            try await setOffset(offset, forKey: .spacing)
+            try await setOffset(offset, forKey: .padding)
         }
 
         try await Task.sleep(for: .milliseconds(100))
@@ -108,14 +86,14 @@ class MenuBarItemSpacingManager {
             else {
                 continue
             }
-            try await runCommand("kill", with: [String(app.processIdentifier)])
-            try await runCommand("open", with: ["-g", url.path()])
+            try await quitApp(with: pid)
+            try await launchApp(at: url)
         }
 
         try await Task.sleep(for: .milliseconds(100))
 
         if let app = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first {
-            try await runCommand("kill", with: [String(app.processIdentifier)])
+            try await quitApp(with: app.processIdentifier)
         }
     }
 }

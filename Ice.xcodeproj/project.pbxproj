@@ -100,6 +100,7 @@
 		17FE5AD32BCA7A7500E4F8D9 /* ScreenStateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE5AD22BCA7A7500E4F8D9 /* ScreenStateManager.swift */; };
 		17FE5AD52BCA9BE200E4F8D9 /* ScreenState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */; };
 		71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */; };
+		710C4FC62C50514D00F7196A /* MenuBarItemSpacingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710C4FC52C50514D00F7196A /* MenuBarItemSpacingManager.swift */; };
 		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
 		7127A9E92C45662B00D99DEF /* MenuBarSearchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */; };
 		7127A9F02C4687EE00D99DEF /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */; };
@@ -230,6 +231,7 @@
 		17FE5AD22BCA7A7500E4F8D9 /* ScreenStateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenStateManager.swift; sourceTree = "<group>"; };
 		17FE5AD42BCA9BE200E4F8D9 /* ScreenState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenState.swift; sourceTree = "<group>"; };
 		71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectAssociation.swift; sourceTree = "<group>"; };
+		710C4FC52C50514D00F7196A /* MenuBarItemSpacingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemSpacingManager.swift; sourceTree = "<group>"; };
 		711535F12AB9F6C1003193AD /* BindingExposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingExposable.swift; sourceTree = "<group>"; };
 		7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSearchPanel.swift; sourceTree = "<group>"; };
 		7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
@@ -598,6 +600,14 @@
 			path = ScreenState;
 			sourceTree = "<group>";
 		};
+		710C4FC42C50511000F7196A /* MenuBarItemSpacing */ = {
+			isa = PBXGroup;
+			children = (
+				710C4FC52C50514D00F7196A /* MenuBarItemSpacingManager.swift */,
+			);
+			path = MenuBarItemSpacing;
+			sourceTree = "<group>";
+		};
 		7127A9E72C45661C00D99DEF /* MenuBarSearch */ = {
 			isa = PBXGroup;
 			children = (
@@ -683,6 +693,7 @@
 				17C261E72B5AEB7A0076F129 /* Main */,
 				7166834E2A768190006ABF84 /* MenuBar */,
 				179F13BC2B91E7F700EC6B52 /* MenuBarAppearance */,
+				710C4FC42C50511000F7196A /* MenuBarItemSpacing */,
 				7127A9E72C45661C00D99DEF /* MenuBarSearch */,
 				71F4280B2C3B5BF00025706C /* Navigation */,
 				1787C42A2B16ADF2002F50DF /* Permissions */,
@@ -1008,6 +1019,7 @@
 				7166834B2A76811C006ABF84 /* Logger+initWithCategory.swift in Sources */,
 				17B380F52ADCBE090002C9C3 /* LocalEventMonitorModifier.swift in Sources */,
 				17B331D52B991D8D0084EBB0 /* AdvancedSettingsManager.swift in Sources */,
+				710C4FC62C50514D00F7196A /* MenuBarItemSpacingManager.swift in Sources */,
 				170CF8902B101D980073F982 /* ColorStop.swift in Sources */,
 				1773546C2B1BBBA1001CF731 /* MenuBarShapePicker.swift in Sources */,
 				17D1AC8F2B97E71D00726180 /* AdvancedSettingsPane.swift in Sources */,

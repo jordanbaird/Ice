@@ -43,6 +43,9 @@ struct GeneralSettingsPane: View {
                 showOnScroll
             }
             Section {
+                spacingOptions
+            }
+            Section {
                 autoRehideOptions
             }
         }
@@ -195,6 +198,36 @@ struct GeneralSettingsPane: View {
         Toggle(isOn: manager.bindings.showOnScroll) {
             Text("Show on scroll")
             Text("Scroll or swipe in the menu bar to toggle hidden items")
+        }
+    }
+
+    @ViewBuilder
+    private var spacingOptions: some View {
+        LabeledContent {
+            CompactSlider(
+                value: manager.bindings.itemSpacingOffset,
+                in: -16...16,
+                step: 1,
+                handleVisibility: .hovering(width: 1)
+            ) {
+                Text(manager.itemSpacingOffset.formatted())
+            }
+            .compactSliderDisabledHapticFeedback(true)
+        } label: {
+            HStack {
+                Text("Spacing")
+                Spacer()
+                Button("Apply") {
+                    Task {
+                        do {
+                            try await appState.spacingManager.applyOffset()
+                        } catch {
+                            let alert = NSAlert(error: error)
+                            alert.runModal()
+                        }
+                    }
+                }
+            }
         }
     }
 

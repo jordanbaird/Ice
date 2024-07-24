@@ -73,8 +73,6 @@ class MenuBarItemSpacingManager {
             try await setOffset(offset, forKey: .padding)
         }
 
-        try await Task.sleep(for: .milliseconds(100))
-
         let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
         let pids = Set(items.map { $0.ownerPID })
 
@@ -89,8 +87,6 @@ class MenuBarItemSpacingManager {
             try await quitApp(with: pid)
             try await launchApp(at: url)
         }
-
-        try await Task.sleep(for: .milliseconds(100))
 
         if let app = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first {
             try await quitApp(with: app.processIdentifier)

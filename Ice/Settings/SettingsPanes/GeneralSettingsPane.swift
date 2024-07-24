@@ -211,11 +211,12 @@ struct GeneralSettingsPane: View {
                 handleVisibility: .hovering(width: 1)
             ) {
                 Text(manager.itemSpacingOffset.formatted())
+                    .textSelection(.disabled)
             }
             .compactSliderDisabledHapticFeedback(true)
         } label: {
             HStack {
-                Text("Spacing")
+                Text("Menu bar item spacing")
                 Spacer()
                 Button("Apply") {
                     Task {
@@ -227,6 +228,19 @@ struct GeneralSettingsPane: View {
                         }
                     }
                 }
+                Button("Reset", systemImage: "arrow.counterclockwise.circle.fill") {
+                    manager.itemSpacingOffset = 0
+                    Task {
+                        do {
+                            try await appState.spacingManager.applyOffset()
+                        } catch {
+                            let alert = NSAlert(error: error)
+                            alert.runModal()
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .labelStyle(.iconOnly)
             }
         }
     }

@@ -89,18 +89,22 @@ There are a number of system APIs that Ice uses that are only available starting
 
 ## Gallery
 
+#### Arrange items in settings
+![Arrange Menu Bar Items](https://github.com/user-attachments/assets/c2f4a3e2-f58e-45a0-b648-5f0af8fb84c0)
+
+#### Show hidden items below the menu bar
+![Ice Bar](https://github.com/user-attachments/assets/55cc4772-5177-48fe-94ab-95a09af66fcd)
+
+#### Customize the menu bar's appearance
+![Menu Bar Appearance](https://github.com/user-attachments/assets/fa825d2e-492a-4e49-af22-e6cf809b9b76)
+
 #### Choose your own icon to show in the menu bar
 ![Custom Icon Example](https://github.com/jordanbaird/Ice/assets/90936861/f5a5e195-152a-4d47-bd3c-23557d1ab4ec)
 
-#### Customize the menu bar's appearance
-![Menu Bar Appearance Example 1](https://github.com/jordanbaird/Ice/assets/90936861/c9cc629d-e27d-4d77-a72a-da4e169f2b37)
-![Menu Bar Appearance Example 2](https://github.com/jordanbaird/Ice/assets/90936861/f7670573-513a-475d-ab69-7864bed5c5c1)
+### Coming soon...
 
-#### Arrange items in settings
-![Arrange Menu Bar Items](https://github.com/jordanbaird/Ice/assets/90936861/97b71fa7-eb4d-47e4-8978-18cdab7df675)
-
-#### Show hidden items below the menu bar
-![Ice Bar](https://github.com/jordanbaird/Ice/assets/90936861/6f5da9a1-258e-4b56-a38c-8be543a6a5ae)
+#### Menu bar search
+![Menu Bar Search](https://github.com/user-attachments/assets/a76abd4b-8e92-4e51-b661-56b637eeecf7)
 
 ## License
 

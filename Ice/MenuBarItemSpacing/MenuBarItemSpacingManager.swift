@@ -4,6 +4,8 @@
 //
 
 import Cocoa
+import Combine
+import OSLog
 
 /// Manager for menu bar item spacing.
 class MenuBarItemSpacingManager {
@@ -18,6 +20,19 @@ class MenuBarItemSpacingManager {
             case .spacing: 16
             case .padding: 16
             }
+        }
+    }
+
+    /// An error that groups multiple failed app relaunches.
+    private struct GroupedRelaunchError: LocalizedError {
+        let failedApps: [String]
+
+        var errorDescription: String? {
+            "The following applications failed to relaunch:\n" + failedApps.joined(separator: "\n")
+        }
+
+        var recoverySuggestion: String? {
+            "You may need to log out for the changes to take effect."
         }
     }
 
@@ -50,14 +65,46 @@ class MenuBarItemSpacingManager {
         try await runCommand("defaults", with: ["-currentHost", "write", "-globalDomain", key.rawValue, "-int", String(key.defaultValue + offset)])
     }
 
-    /// Quits the app with the given process identifier.
-    private func quitApp(with pid: pid_t) async throws {
-        try await runCommand("kill", with: [String(pid)])
+    /// Asynchronously quits the given app.
+    private func quitApp(_ app: NSRunningApplication) async throws {
+        try await runCommand("kill", with: [String(app.processIdentifier)])
+        var cancellable: AnyCancellable?
+        return try await withCheckedThrowingContinuation { continuation in
+            cancellable = app.publisher(for: \.isTerminated).sink { isTerminated in
+                if isTerminated {
+                    cancellable?.cancel()
+                    continuation.resume()
+                }
+            }
+        }
     }
 
-    /// Launches the app at the given URL.
-    private func launchApp(at url: URL) async throws {
-        try await runCommand("open", with: ["-g", url.path()])
+    /// Asynchronously launches the app at the given URL.
+    private func launchApp(at applicationURL: URL, bundleIdentifier: String) async throws {
+        if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
+            Logger.spacing.debug("Application \"\(app.localizedName ?? "<NIL>")\" is already open, so skipping launch")
+            return
+        }
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = false
+        configuration.addsToRecentItems = false
+        configuration.createsNewApplicationInstance = false
+        configuration.promptsUserIfNeeded = false
+        try await NSWorkspace.shared.openApplication(at: applicationURL, configuration: configuration)
+    }
+
+    /// Asynchronously relaunches the given app.
+    private func relaunchApp(_ app: NSRunningApplication) async throws {
+        struct RelaunchError: Error { }
+        guard
+            let url = app.bundleURL,
+            let bundleIdentifier = app.bundleIdentifier
+        else {
+            throw RelaunchError()
+        }
+        try await quitApp(app)
+        try? await Task.sleep(for: .milliseconds(50))
+        try await launchApp(at: url, bundleIdentifier: bundleIdentifier)
     }
 
     /// Applies the current ``offset``.
@@ -72,23 +119,49 @@ class MenuBarItemSpacingManager {
             try await setOffset(offset, forKey: .padding)
         }
 
+        try? await Task.sleep(for: .milliseconds(100))
+
         let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
         let pids = Set(items.map { $0.ownerPID })
+
+        var failedApps = [String]()
 
         for pid in pids {
             guard
                 let app = NSRunningApplication(processIdentifier: pid),
-                let url = app.bundleURL,
+                // ControlCenter handles its own relaunch, so quit it separately
+                app.bundleIdentifier != "com.apple.controlcenter",
                 app != .current
             else {
                 continue
             }
-            try await quitApp(with: pid)
-            try await launchApp(at: url)
+            do {
+                try await relaunchApp(app)
+            } catch {
+                if let name = app.localizedName {
+                    failedApps.append(name)
+                }
+            }
         }
 
+        try? await Task.sleep(for: .milliseconds(100))
+
         if let app = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first {
-            try await quitApp(with: app.processIdentifier)
+            do {
+                try await quitApp(app)
+            } catch {
+                if let name = app.localizedName {
+                    failedApps.append(name)
+                }
+            }
+        }
+
+        if !failedApps.isEmpty {
+            throw GroupedRelaunchError(failedApps: failedApps)
         }
     }
+}
+
+private extension Logger {
+    static let spacing = Logger(category: "Spacing")
 }

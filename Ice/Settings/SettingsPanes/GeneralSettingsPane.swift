@@ -239,7 +239,7 @@ struct GeneralSettingsPane: View {
                         }
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderless)
                 .labelStyle(.iconOnly)
             }
         }

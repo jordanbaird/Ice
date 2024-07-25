@@ -17,6 +17,18 @@ struct GeneralSettingsPane: View {
         appState.settingsManager.generalSettingsManager
     }
 
+    private var itemSpacingOffset: LocalizedStringKey {
+        if manager.itemSpacingOffset == -16 {
+            LocalizedStringKey("none")
+        } else if manager.itemSpacingOffset == 0 {
+            LocalizedStringKey("default")
+        } else if manager.itemSpacingOffset == 16 {
+            LocalizedStringKey("max")
+        } else {
+            LocalizedStringKey(manager.itemSpacingOffset.formatted())
+        }
+    }
+
     private var rehideInterval: LocalizedStringKey {
         let formatted = manager.rehideInterval.formatted()
         return if manager.rehideInterval == 1 {
@@ -207,10 +219,10 @@ struct GeneralSettingsPane: View {
             CompactSlider(
                 value: manager.bindings.itemSpacingOffset,
                 in: -16...16,
-                step: 1,
+                step: 2,
                 handleVisibility: .hovering(width: 1)
             ) {
-                Text(manager.itemSpacingOffset.formatted())
+                Text(itemSpacingOffset)
                     .textSelection(.disabled)
             }
             .compactSliderDisabledHapticFeedback(true)

@@ -36,6 +36,9 @@ final class AppState: ObservableObject {
     /// The app's hotkey registry.
     nonisolated let hotkeyRegistry = HotkeyRegistry()
 
+    /// Manager for menu bar item spacing.
+    let spacingManager = MenuBarItemSpacingManager()
+
     /// Manager for app updates.
     let updatesManager = UpdatesManager()
 

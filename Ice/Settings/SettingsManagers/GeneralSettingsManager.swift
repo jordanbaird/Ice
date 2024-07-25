@@ -45,6 +45,9 @@ final class GeneralSettingsManager: ObservableObject {
     /// menu bar.
     @Published var showOnScroll = true
 
+    /// The offset to apply to the menu bar item spacing and padding.
+    @Published var itemSpacingOffset: Double = 0
+
     /// A Boolean value that indicates whether the hidden section
     /// should automatically rehide.
     @Published var autoRehide = true
@@ -80,6 +83,7 @@ final class GeneralSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .showOnClick, assign: &showOnClick)
         Defaults.ifPresent(key: .showOnHover, assign: &showOnHover)
         Defaults.ifPresent(key: .showOnScroll, assign: &showOnScroll)
+        Defaults.ifPresent(key: .itemSpacingOffset, assign: &itemSpacingOffset)
         Defaults.ifPresent(key: .autoRehide, assign: &autoRehide)
         Defaults.ifPresent(key: .rehideInterval, assign: &rehideInterval)
 
@@ -173,6 +177,14 @@ final class GeneralSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { showOnScroll in
                 Defaults.set(showOnScroll, forKey: .showOnScroll)
+            }
+            .store(in: &c)
+
+        $itemSpacingOffset
+            .receive(on: DispatchQueue.main)
+            .sink { [weak appState] offset in
+                Defaults.set(offset, forKey: .itemSpacingOffset)
+                appState?.spacingManager.offset = Int(offset)
             }
             .store(in: &c)
 

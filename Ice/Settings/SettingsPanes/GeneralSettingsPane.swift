@@ -17,6 +17,18 @@ struct GeneralSettingsPane: View {
         appState.settingsManager.generalSettingsManager
     }
 
+    private var itemSpacingOffset: LocalizedStringKey {
+        if manager.itemSpacingOffset == -16 {
+            LocalizedStringKey("none")
+        } else if manager.itemSpacingOffset == 0 {
+            LocalizedStringKey("default")
+        } else if manager.itemSpacingOffset == 16 {
+            LocalizedStringKey("max")
+        } else {
+            LocalizedStringKey(manager.itemSpacingOffset.formatted())
+        }
+    }
+
     private var rehideInterval: LocalizedStringKey {
         let formatted = manager.rehideInterval.formatted()
         return if manager.rehideInterval == 1 {
@@ -41,6 +53,9 @@ struct GeneralSettingsPane: View {
                 showOnClick
                 showOnHover
                 showOnScroll
+            }
+            Section {
+                spacingOptions
             }
             Section {
                 autoRehideOptions
@@ -195,6 +210,61 @@ struct GeneralSettingsPane: View {
         Toggle(isOn: manager.bindings.showOnScroll) {
             Text("Show on scroll")
             Text("Scroll or swipe in the menu bar to toggle hidden items")
+        }
+    }
+
+    @ViewBuilder
+    private var spacingOptions: some View {
+        VStack(alignment: .leading) {
+            LabeledContent {
+                CompactSlider(
+                    value: manager.bindings.itemSpacingOffset,
+                    in: -16...16,
+                    step: 2,
+                    handleVisibility: .hovering(width: 1)
+                ) {
+                    Text(itemSpacingOffset)
+                        .textSelection(.disabled)
+                }
+                .compactSliderDisabledHapticFeedback(true)
+            } label: {
+                HStack {
+                    Text("Menu bar item spacing")
+
+                    Spacer()
+
+                    Button("Apply") {
+                        Task {
+                            do {
+                                try await appState.spacingManager.applyOffset()
+                            } catch {
+                                let alert = NSAlert(error: error)
+                                alert.runModal()
+                            }
+                        }
+                    }
+                    .help("Apply the current spacing")
+
+                    Button("Reset", systemImage: "arrow.counterclockwise.circle.fill") {
+                        manager.itemSpacingOffset = 0
+                        Task {
+                            do {
+                                try await appState.spacingManager.applyOffset()
+                            } catch {
+                                let alert = NSAlert(error: error)
+                                alert.runModal()
+                            }
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .labelStyle(.iconOnly)
+                    .help("Reset to the default spacing")
+                }
+            }
+
+            Text("Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
     }
 

@@ -58,12 +58,7 @@ struct GeneralSettingsPane: View {
                 autoRehideOptions
             }
             Section {
-                VStack(alignment: .leading) {
-                    spacingOptions
-                    Text("Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                spacingOptions
             }
         }
         .formStyle(.grouped)
@@ -220,50 +215,56 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var spacingOptions: some View {
-        LabeledContent {
-            CompactSlider(
-                value: manager.bindings.itemSpacingOffset,
-                in: -16...16,
-                step: 2,
-                handleVisibility: .hovering(width: 1)
-            ) {
-                Text(itemSpacingOffset)
-                    .textSelection(.disabled)
-            }
-            .compactSliderDisabledHapticFeedback(true)
-        } label: {
-            HStack {
-                Text("Menu bar item spacing")
+        VStack(alignment: .leading) {
+            LabeledContent {
+                CompactSlider(
+                    value: manager.bindings.itemSpacingOffset,
+                    in: -16...16,
+                    step: 2,
+                    handleVisibility: .hovering(width: 1)
+                ) {
+                    Text(itemSpacingOffset)
+                        .textSelection(.disabled)
+                }
+                .compactSliderDisabledHapticFeedback(true)
+            } label: {
+                HStack {
+                    Text("Menu bar item spacing")
 
-                Spacer()
+                    Spacer()
 
-                Button("Apply") {
-                    Task {
-                        do {
-                            try await appState.spacingManager.applyOffset()
-                        } catch {
-                            let alert = NSAlert(error: error)
-                            alert.runModal()
+                    Button("Apply") {
+                        Task {
+                            do {
+                                try await appState.spacingManager.applyOffset()
+                            } catch {
+                                let alert = NSAlert(error: error)
+                                alert.runModal()
+                            }
                         }
                     }
-                }
-                .help("Apply the current spacing")
+                    .help("Apply the current spacing")
 
-                Button("Reset", systemImage: "arrow.counterclockwise.circle.fill") {
-                    manager.itemSpacingOffset = 0
-                    Task {
-                        do {
-                            try await appState.spacingManager.applyOffset()
-                        } catch {
-                            let alert = NSAlert(error: error)
-                            alert.runModal()
+                    Button("Reset", systemImage: "arrow.counterclockwise.circle.fill") {
+                        manager.itemSpacingOffset = 0
+                        Task {
+                            do {
+                                try await appState.spacingManager.applyOffset()
+                            } catch {
+                                let alert = NSAlert(error: error)
+                                alert.runModal()
+                            }
                         }
                     }
+                    .buttonStyle(.borderless)
+                    .labelStyle(.iconOnly)
+                    .help("Reset to the default spacing")
                 }
-                .buttonStyle(.borderless)
-                .labelStyle(.iconOnly)
-                .help("Reset to the default spacing")
             }
+
+            Text("Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
     }
 

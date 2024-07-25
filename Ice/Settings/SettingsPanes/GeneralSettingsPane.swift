@@ -58,7 +58,12 @@ struct GeneralSettingsPane: View {
                 autoRehideOptions
             }
             Section {
-                spacingOptions
+                VStack(alignment: .leading) {
+                    spacingOptions
+                    Text("Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
@@ -229,7 +234,9 @@ struct GeneralSettingsPane: View {
         } label: {
             HStack {
                 Text("Menu bar item spacing")
+
                 Spacer()
+
                 Button("Apply") {
                     Task {
                         do {
@@ -240,6 +247,8 @@ struct GeneralSettingsPane: View {
                         }
                     }
                 }
+                .help("Apply the current spacing")
+
                 Button("Reset", systemImage: "arrow.counterclockwise.circle.fill") {
                     manager.itemSpacingOffset = 0
                     Task {
@@ -253,6 +262,7 @@ struct GeneralSettingsPane: View {
                 }
                 .buttonStyle(.borderless)
                 .labelStyle(.iconOnly)
+                .help("Reset to the default spacing")
             }
         }
     }

@@ -17,12 +17,6 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 > [!NOTE]
 > Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features. 
 
-## Usage
-
-Simply `Command` + drag your menu bar items to rearrange them.
-
-![Rearranging](Resources/rearranging.gif)
-
 ## Install
 
 ### Manual Installation
@@ -36,6 +30,12 @@ If you use [Homebrew](https://brew.sh/), you can install Ice using the following
 ```sh
 brew install jordanbaird-ice
 ```
+
+## Usage
+
+`Command` + drag your menu bar items to rearrange them.
+
+![Rearranging](Resources/rearranging.gif)
 
 ## Features/Roadmap
 
@@ -79,10 +79,6 @@ brew install jordanbaird-ice
 - [x] Automatic updates
 - [ ] Menu bar widgets
 
-## Why the name?
-
-Because your menu bar becomes like ice, allowing your menu bar items to slide away 🧊🧊🧊
-
 ## Why not support earlier operating systems?
 
 There are a number of system APIs that Ice uses that are only available starting with macOS 14.
@@ -93,23 +89,26 @@ There are a number of system APIs that Ice uses that are only available starting
 ![Arrange Menu Bar Items](https://github.com/user-attachments/assets/c2f4a3e2-f58e-45a0-b648-5f0af8fb84c0)
 
 #### Show hidden items below the menu bar
-![Ice Bar](https://github.com/user-attachments/assets/55cc4772-5177-48fe-94ab-95a09af66fcd)
+![Ice Bar](https://github.com/user-attachments/assets/f1429589-6186-4e1b-8aef-592219d49b9b)
 
 #### Customize the menu bar's appearance
-![Menu Bar Appearance](https://github.com/user-attachments/assets/fa825d2e-492a-4e49-af22-e6cf809b9b76)
+![Menu Bar Appearance](https://github.com/user-attachments/assets/8c22c185-c3d2-49bb-971e-e1fc17df04b3)
 
 #### Choose your own icon to show in the menu bar
-![Custom Icon Example](https://github.com/jordanbaird/Ice/assets/90936861/f5a5e195-152a-4d47-bd3c-23557d1ab4ec)
+![Custom Icon](https://github.com/user-attachments/assets/2f3668c1-9b48-46de-98e7-74bf9ff4fcce)
 
 ### Coming soon...
 
 #### Menu bar search
-![Menu Bar Search](https://github.com/user-attachments/assets/a76abd4b-8e92-4e51-b661-56b637eeecf7)
+![Menu Bar Search](https://github.com/user-attachments/assets/ceca6fc6-4695-4a5c-ad64-3d92ce0dc234)
 
-## License
-
-Ice is available under the [GPL-3.0 license](LICENSE).
+#### Custom item spacing
+![Custom Item Spacing](https://github.com/user-attachments/assets/b196aa7e-184a-4d4c-b040-502f4aae40a6)
 
 ## Stargazers over time
 
 [![Star History Chart](https://api.star-history.com/svg?repos=jordanbaird/Ice&type=Date)](https://star-history.com/#jordanbaird/Ice&Date)
+
+## License
+
+Ice is available under the [GPL-3.0 license](LICENSE).

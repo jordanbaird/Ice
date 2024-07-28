@@ -38,6 +38,8 @@ class LayoutBarScrollView: NSScrollView {
         self.hasHorizontalScroller = true
         self.horizontalScroller = HorizontalScroller()
 
+        self.autohidesScrollers = true
+
         self.verticalScrollElasticity = .none
         self.horizontalScrollElasticity = .none
 
@@ -81,7 +83,5 @@ extension LayoutBarScrollView {
         required init?(coder: NSCoder) {
             fatalError("init(coder:) has not been implemented")
         }
-
-        override func drawKnobSlot(in slotRect: NSRect, highlight flag: Bool) { }
     }
 }

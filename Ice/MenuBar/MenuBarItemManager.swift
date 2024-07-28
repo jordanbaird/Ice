@@ -1004,8 +1004,6 @@ extension MenuBarItemManager {
     ///     should be clicked once its movement has finished.
     ///   - mouseButton: The mouse button of the click.
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
-        let rehideInterval: TimeInterval = 20
-
         guard
             let appState,
             let screen = NSScreen.main,
@@ -1079,7 +1077,7 @@ extension MenuBarItemManager {
             )
 
             tempShownItemContexts.append(context)
-            runTempShownItemTimer(for: rehideInterval)
+            runTempShownItemTimer(for: appState.settingsManager.advancedSettingsManager.tempShowInterval)
         }
     }
 

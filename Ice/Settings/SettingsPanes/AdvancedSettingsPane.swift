@@ -8,6 +8,7 @@ import SwiftUI
 
 struct AdvancedSettingsPane: View {
     @EnvironmentObject var appState: AppState
+    @State private var maxSliderLabelWidth: CGFloat = 0
 
     private var menuBarManager: MenuBarManager {
         appState.menuBarManager
@@ -17,9 +18,9 @@ struct AdvancedSettingsPane: View {
         appState.settingsManager.advancedSettingsManager
     }
 
-    private var showOnHoverDelay: LocalizedStringKey {
-        let formatted = manager.showOnHoverDelay.formatted()
-        return if manager.showOnHoverDelay == 1 {
+    private func formattedToSeconds(_ interval: TimeInterval) -> LocalizedStringKey {
+        let formatted = interval.formatted()
+        return if interval == 1 {
             LocalizedStringKey(formatted + " second")
         } else {
             LocalizedStringKey(formatted + " seconds")
@@ -32,12 +33,13 @@ struct AdvancedSettingsPane: View {
                 hideApplicationMenus
                 showSectionDividers
             }
-            Section("Always-Hidden Section") {
+            Section {
                 enableAlwaysHiddenSection
                 canToggleAlwaysHiddenSection
             }
-            Section("Other") {
+            Section {
                 showOnHoverDelaySlider
+                tempShowIntervalSlider
             }
         }
         .formStyle(.grouped)
@@ -103,14 +105,46 @@ struct AdvancedSettingsPane: View {
                 step: 0.1,
                 handleVisibility: .hovering(width: 1)
             ) {
-                Text(showOnHoverDelay)
+                Text(formattedToSeconds(manager.showOnHoverDelay))
                     .textSelection(.disabled)
             }
             .compactSliderDisabledHapticFeedback(true)
         } label: {
             Text("Show on hover delay")
                 .frame(minHeight: .compactSliderMinHeight)
+                .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
+                .onFrameChange { frame in
+                    maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
+                }
+        }
+        .annotation(font: .subheadline) {
             Text("The amount of time to wait before showing on hover")
+        }
+    }
+
+    @ViewBuilder
+    private var tempShowIntervalSlider: some View {
+        LabeledContent {
+            CompactSlider(
+                value: manager.bindings.tempShowInterval,
+                in: 0...30,
+                step: 1,
+                handleVisibility: .hovering(width: 1)
+            ) {
+                Text(formattedToSeconds(manager.tempShowInterval))
+                    .textSelection(.disabled)
+            }
+            .compactSliderDisabledHapticFeedback(true)
+        } label: {
+            Text("Temporarily shown item delay")
+                .frame(minHeight: .compactSliderMinHeight)
+                .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
+                .onFrameChange { frame in
+                    maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
+                }
+        }
+        .annotation(font: .subheadline) {
+            Text("The amount of time to wait before hiding temporarily shown menu bar items")
         }
     }
 }

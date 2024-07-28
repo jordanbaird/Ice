@@ -27,9 +27,7 @@ struct HotkeysSettingsPane: View {
             }
         }
         .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
-        .frame(maxHeight: .infinity)
     }
 
     @ViewBuilder

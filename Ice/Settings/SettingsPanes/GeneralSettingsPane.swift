@@ -62,9 +62,7 @@ struct GeneralSettingsPane: View {
             }
         }
         .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
-        .frame(maxHeight: .infinity)
         .alert(isPresented: $isPresentingError, error: presentedError) {
             Button("OK") {
                 presentedError = nil
@@ -166,7 +164,7 @@ struct GeneralSettingsPane: View {
     private var useIceBar: some View {
         Toggle(isOn: manager.bindings.useIceBar) {
             Text("Use Ice Bar")
-            Text("Hidden items are shown in a separate bar below the menu bar")
+            Text("Show hidden menu bar items in a separate bar below the menu bar")
         }
     }
 
@@ -193,7 +191,7 @@ struct GeneralSettingsPane: View {
     private var showOnClick: some View {
         Toggle(isOn: manager.bindings.showOnClick) {
             Text("Show on click")
-            Text("Click inside an empty area of the menu bar to show hidden items")
+            Text("Click inside an empty area of the menu bar to show hidden menu bar items")
         }
     }
 
@@ -201,7 +199,7 @@ struct GeneralSettingsPane: View {
     private var showOnHover: some View {
         Toggle(isOn: manager.bindings.showOnHover) {
             Text("Show on hover")
-            Text("Hover over an empty area of the menu bar to show hidden items")
+            Text("Hover over an empty area of the menu bar to show hidden menu bar items")
         }
     }
 
@@ -209,7 +207,7 @@ struct GeneralSettingsPane: View {
     private var showOnScroll: some View {
         Toggle(isOn: manager.bindings.showOnScroll) {
             Text("Show on scroll")
-            Text("Scroll or swipe in the menu bar to toggle hidden items")
+            Text("Scroll or swipe in the menu bar to toggle hidden menu bar items")
         }
     }
 
@@ -262,9 +260,12 @@ struct GeneralSettingsPane: View {
                 }
             }
 
-            Text("Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            Group {
+                Text("Applying this setting will relaunch all apps with menu bar items")
+                Text("Some apps may need to be manually relaunched")
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
         }
     }
 

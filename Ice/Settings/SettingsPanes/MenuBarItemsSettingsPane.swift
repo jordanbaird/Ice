@@ -29,7 +29,7 @@ struct MenuBarItemsSettingsPane: View {
         Text("Drag to arrange your menu bar items")
             .font(.title2)
             .annotation {
-                Text("Tip: you can also arrange items by ⌘ (Command) + dragging them in the menu bar.")
+                Text("Tip: you can also arrange menu bar items by ⌘ + dragging them in the menu bar.")
             }
     }
 

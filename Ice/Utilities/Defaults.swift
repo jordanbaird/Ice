@@ -146,7 +146,6 @@ extension Defaults {
         case useIceBar = "UseIceBar"
         case showOnClick = "ShowOnClick"
         case showOnHover = "ShowOnHover"
-        case showOnHoverDelay = "ShowOnHoverDelay"
         case showOnScroll = "ShowOnScroll"
         case itemSpacingOffset = "ItemSpacingOffset"
         case autoRehide = "AutoRehide"
@@ -163,6 +162,8 @@ extension Defaults {
         case showSectionDividers = "ShowSectionDividers"
         case enableAlwaysHiddenSection = "EnableAlwaysHiddenSection"
         case canToggleAlwaysHiddenSection = "CanToggleAlwaysHiddenSection"
+        case showOnHoverDelay = "ShowOnHoverDelay"
+        case tempShowInterval = "TempShowInterval"
 
         // MARK: Menu Bar Appearance Settings
 

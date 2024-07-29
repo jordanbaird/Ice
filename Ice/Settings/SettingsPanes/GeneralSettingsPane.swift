@@ -35,7 +35,7 @@ struct GeneralSettingsPane: View {
                 iceIconOptions
             }
             Section {
-                iceBarOptions
+                useIceBar
             }
             Section {
                 showOnClick
@@ -138,37 +138,10 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private var iceBarOptions: some View {
-        useIceBar
-        if manager.useIceBar {
-            iceBarLocationPicker
-        }
-    }
-
-    @ViewBuilder
     private var useIceBar: some View {
         Toggle(isOn: manager.bindings.useIceBar) {
             Text("Use Ice Bar")
             Text("Show hidden menu bar items in a separate bar below the menu bar")
-        }
-    }
-
-    @ViewBuilder
-    private var iceBarLocationPicker: some View {
-        Picker(selection: manager.bindings.iceBarLocation) {
-            ForEach(IceBarLocation.allCases) { location in
-                Text(location.localized).tag(location)
-            }
-        } label: {
-            Text("Location")
-            switch manager.iceBarLocation {
-            case .default:
-                Text("The Ice Bar's location changes based on context")
-            case .mousePointer:
-                Text("The Ice Bar is centered below the mouse pointer")
-            case .iceIcon:
-                Text("The Ice Bar is centered below the Ice icon")
-            }
         }
     }
 

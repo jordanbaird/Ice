@@ -132,7 +132,7 @@ struct GeneralSettingsPane: View {
 
             if case .custom = manager.iceIcon.name {
                 Toggle(isOn: manager.bindings.customIceIconIsTemplate) {
-                    Text("Use template image")
+                    Text("Apply system theme to icon")
                     Text("Display the icon as a monochrome image matching the system appearance")
                 }
             }

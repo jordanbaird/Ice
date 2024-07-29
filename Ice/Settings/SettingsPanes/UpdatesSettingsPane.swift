@@ -14,10 +14,7 @@ struct UpdatesSettingsPane: View {
 
     private var lastUpdateCheckString: String {
         if let date = updatesManager.lastUpdateCheckDate {
-            date.formatted(
-                date: .abbreviated,
-                time: .standard
-            )
+            date.formatted(date: .abbreviated, time: .standard)
         } else {
             "Never"
         }
@@ -36,9 +33,7 @@ struct UpdatesSettingsPane: View {
             }
         }
         .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
-        .frame(maxHeight: .infinity)
     }
 
     @ViewBuilder

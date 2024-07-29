@@ -7,6 +7,7 @@ import SwiftUI
 
 struct AboutSettingsPane: View {
     @Environment(\.openURL) private var openURL
+    @State private var frame = CGRect.zero
 
     private var acknowledgementsURL: URL {
         // swiftlint:disable:next force_unwrapping
@@ -33,7 +34,7 @@ struct AboutSettingsPane: View {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 300)
+                    .frame(width: frame.height / 2)
             }
 
             VStack(alignment: .leading) {
@@ -59,6 +60,7 @@ struct AboutSettingsPane: View {
             maxWidth: .infinity,
             maxHeight: .infinity
         )
+        .onFrameChange(update: $frame)
         .bottomBar {
             HStack {
                 Button("Quit Ice") {

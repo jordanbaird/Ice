@@ -41,16 +41,14 @@ struct AdvancedSettingsPane: View {
             }
         }
         .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
-        .frame(maxHeight: .infinity)
     }
 
     @ViewBuilder
     private var hideApplicationMenus: some View {
         Toggle(isOn: manager.bindings.hideApplicationMenus) {
             Text("Hide application menus when showing menu bar items")
-            Text("Make more room in the menu bar by hiding the left application menus")
+            Text("Make more room in the menu bar by hiding the left application menus if needed")
         }
     }
 
@@ -70,25 +68,25 @@ struct AdvancedSettingsPane: View {
                             .font(.body.monospaced().bold())
                     }
                 }
-                Text("between adjacent sections")
+                Text("between sections")
             }
         }
     }
 
     @ViewBuilder
     private var enableAlwaysHiddenSection: some View {
-        Toggle("Enable the always-hidden section", isOn: manager.bindings.enableAlwaysHiddenSection)
+        Toggle("Enable always-hidden section", isOn: manager.bindings.enableAlwaysHiddenSection)
     }
 
     @ViewBuilder
     private var canToggleAlwaysHiddenSection: some View {
         if manager.enableAlwaysHiddenSection {
             Toggle(isOn: manager.bindings.canToggleAlwaysHiddenSection) {
-                Text("Always-hidden section can be toggled")
+                Text("Always-hidden section can be shown")
                 if appState.settingsManager.generalSettingsManager.showOnClick {
-                    Text("\(Modifiers.option.combinedValue) + click one of Ice's menu bar items, or inside an empty area of the menu bar to toggle the section")
+                    Text("⌥ + click one of Ice's menu bar items, or inside an empty area of the menu bar to show the section")
                 } else {
-                    Text("\(Modifiers.option.combinedValue) + click one of Ice's menu bar items to toggle the section")
+                    Text("⌥ + click one of Ice's menu bar items to show the section")
                 }
             }
         }

@@ -105,7 +105,7 @@ struct MenuBarAppearanceEditor: View {
 
     @ViewBuilder
     private var cannotEdit: some View {
-        Text("Ice cannot edit the appearance of automatically hidden menu bars.")
+        Text("Ice cannot edit the appearance of automatically hidden menu bars")
             .font(.title3)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }

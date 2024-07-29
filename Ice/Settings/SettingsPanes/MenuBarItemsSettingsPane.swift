@@ -29,55 +29,38 @@ struct MenuBarItemsSettingsPane: View {
         Text("Drag to arrange your menu bar items")
             .font(.title2)
             .annotation {
-                Text("Tip: you can also arrange menu bar items by ⌘ + dragging them in the menu bar.")
+                Text("Tip: you can also arrange menu bar items by ⌘ + dragging them in the menu bar")
             }
     }
 
     @ViewBuilder
     private var layoutBars: some View {
-        VStack(spacing: 25) {
-            layoutBar(
-                for: .visible,
-                annotation: "Drag menu bar items to this section if you want them to always be visible."
-            )
-            layoutBar(
-                for: .hidden,
-                annotation: "Drag menu bar items to this section if you want them to be hidden."
-            )
-            layoutBar(
-                for: .alwaysHidden,
-                annotation: "Drag menu bar items to this section if you want them to always be hidden."
-            )
+        VStack(spacing: 10) {
+            ForEach(MenuBarSection.Name.allCases, id: \.self) { section in
+                layoutBar(for: section)
+            }
         }
     }
 
     @ViewBuilder
     private var cannotArrange: some View {
-        Text("Ice cannot arrange menu bar items in automatically hidden menu bars.")
+        Text("Ice cannot arrange menu bar items in automatically hidden menu bars")
             .font(.title3)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     @ViewBuilder
-    private func layoutBar(
-        for section: MenuBarSection.Name,
-        annotation: LocalizedStringKey
-    ) -> some View {
+    private func layoutBar(for section: MenuBarSection.Name) -> some View {
         if
             let section = appState.menuBarManager.section(withName: section),
             section.isEnabled
         {
-            VStack(alignment: .leading) {
-                Section {
-                    LayoutBar(section: section)
-                        .environmentObject(appState.imageCache)
-                } header: {
-                    Text(section.name.menuString)
-                } footer: {
-                    Text(annotation)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(section.name.menuString)
+                    .font(.system(size: 15))
+                    .padding(.leading, 5)
+                LayoutBar(section: section)
+                    .environmentObject(appState.imageCache)
             }
         }
     }

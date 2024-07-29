@@ -55,10 +55,10 @@ struct GeneralSettingsPane: View {
                 showOnScroll
             }
             Section {
-                spacingOptions
+                autoRehideOptions
             }
             Section {
-                autoRehideOptions
+                spacingOptions
             }
         }
         .formStyle(.grouped)

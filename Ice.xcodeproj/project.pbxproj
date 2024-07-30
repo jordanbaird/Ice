@@ -83,7 +83,6 @@
 		17EE69612C26A80300F778A7 /* CGColor+brightness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69602C26A80300F778A7 /* CGColor+brightness.swift */; };
 		17EE69652C27777C00F778A7 /* MenuBarItemImageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69642C27777C00F778A7 /* MenuBarItemImageCache.swift */; };
 		17EE69682C277B4E00F778A7 /* Publisher+mapToVoid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69672C277B4E00F778A7 /* Publisher+mapToVoid.swift */; };
-		17EE696A2C282ACC00F778A7 /* IceBarLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17EE69692C282ACC00F778A7 /* IceBarLocation.swift */; };
 		17F71BB22B87E37800905CBA /* RehideStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F71BB12B87E37800905CBA /* RehideStrategy.swift */; };
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
 		17F93D2C2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */; };
@@ -102,6 +101,7 @@
 		71008DF02AB907B00036B1F3 /* ObjectAssociation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */; };
 		710C4FC62C50514D00F7196A /* MenuBarItemSpacingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710C4FC52C50514D00F7196A /* MenuBarItemSpacingManager.swift */; };
 		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
+        711568B02C59ADBF00CDF58F /* NSScreen+frameOfNotch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711568AF2C59ADBF00CDF58F /* NSScreen+frameOfNotch.swift */; };
 		7127A9E92C45662B00D99DEF /* MenuBarSearchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */; };
 		7127A9F02C4687EE00D99DEF /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */; };
 		7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */ = {isa = PBXBuildFile; productRef = 7127A9FE2C4886D100D99DEF /* IfritStatic */; };
@@ -215,7 +215,6 @@
 		17EE69602C26A80300F778A7 /* CGColor+brightness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGColor+brightness.swift"; sourceTree = "<group>"; };
 		17EE69642C27777C00F778A7 /* MenuBarItemImageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemImageCache.swift; sourceTree = "<group>"; };
 		17EE69672C277B4E00F778A7 /* Publisher+mapToVoid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publisher+mapToVoid.swift"; sourceTree = "<group>"; };
-		17EE69692C282ACC00F778A7 /* IceBarLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceBarLocation.swift; sourceTree = "<group>"; };
 		17F71BB12B87E37800905CBA /* RehideStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RehideStrategy.swift; sourceTree = "<group>"; };
 		17F93D2B2C20FC440058C0AF /* Sequence+sortedByOrderInMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sequence+sortedByOrderInMenuBar.swift"; sourceTree = "<group>"; };
 		17F998312C15C91400D75EC0 /* MouseCursor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseCursor.swift; sourceTree = "<group>"; };
@@ -233,6 +232,7 @@
 		71008DEF2AB907B00036B1F3 /* ObjectAssociation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectAssociation.swift; sourceTree = "<group>"; };
 		710C4FC52C50514D00F7196A /* MenuBarItemSpacingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemSpacingManager.swift; sourceTree = "<group>"; };
 		711535F12AB9F6C1003193AD /* BindingExposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingExposable.swift; sourceTree = "<group>"; };
+        711568AF2C59ADBF00CDF58F /* NSScreen+frameOfNotch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+frameOfNotch.swift"; sourceTree = "<group>"; };
 		7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSearchPanel.swift; sourceTree = "<group>"; };
 		7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		7127AA002C48ED7300D99DEF /* SectionedList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionedList.swift; sourceTree = "<group>"; };
@@ -461,7 +461,6 @@
 			children = (
 				17BE3DCF2C1A45B3008B98EF /* IceBar.swift */,
 				71287C5F2C3189AC0028706E /* IceBarColorManager.swift */,
-				17EE69692C282ACC00F778A7 /* IceBarLocation.swift */,
 			);
 			path = IceBar;
 			sourceTree = "<group>";
@@ -480,6 +479,7 @@
 			isa = PBXGroup;
 			children = (
 				17C3C5F62B75A36100B9648C /* NSScreen+displayID.swift */,
+				711568AF2C59ADBF00CDF58F /* NSScreen+frameOfNotch.swift */,
 				71829E092C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift */,
 				71287C632C3233B30028706E /* NSScreen+hasNotch.swift */,
 				718152C22C34E595005564AA /* NSScreen+screenWithMouse.swift */,
@@ -940,7 +940,6 @@
 				17BE3DE02C1A705E008B98EF /* IceBarPanel+hasKeyAppearance.swift in Sources */,
 				173C24892B8E80830096F7A1 /* AboutSettingsPane.swift in Sources */,
 				177386F32B092A0700448BBF /* ControlItemImage.swift in Sources */,
-				17EE696A2C282ACC00F778A7 /* IceBarLocation.swift in Sources */,
 				17EC6B582AE0C34A0065F260 /* Comparable+clamped.swift in Sources */,
 				1787C43B2B187187002F50DF /* MenuBarTintKind.swift in Sources */,
 				71287C642C3233B30028706E /* NSScreen+hasNotch.swift in Sources */,
@@ -1003,6 +1002,7 @@
 				17B331D32B991D290084EBB0 /* GeneralSettingsManager.swift in Sources */,
 				1736F7802ADBC02B0073428E /* CustomGradient.swift in Sources */,
 				7166834C2A76811C006ABF84 /* NSStatusItem+showMenu.swift in Sources */,
+				711568B02C59ADBF00CDF58F /* NSScreen+frameOfNotch.swift in Sources */,
 				17BE3DDB2C1A63B6008B98EF /* LayoutBarStyle.swift in Sources */,
 				711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,

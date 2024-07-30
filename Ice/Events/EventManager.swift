@@ -483,11 +483,28 @@ extension EventManager {
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within
+    /// the bounds of the screen's notch, if it has one.
+    ///
+    /// If the screen returned from ``bestScreen`` does not have a notch,
+    /// this property returns `false`.
+    var isMouseInsideNotch: Bool {
+        guard
+            let screen = bestScreen,
+            let mouseLocation = MouseCursor.location(flipped: false),
+            let frameOfNotch = screen.frameOfNotch
+        else {
+            return false
+        }
+        return frameOfNotch.contains(mouseLocation)
+    }
+
+    /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of an empty space in the menu bar.
     var isMouseInsideEmptyMenuBarSpace: Bool {
         isMouseInsideMenuBar &&
         !isMouseInsideApplicationMenu &&
-        !isMouseInsideMenuBarItem
+        !isMouseInsideMenuBarItem &&
+        !isMouseInsideNotch
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within

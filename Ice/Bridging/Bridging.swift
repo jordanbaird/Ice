@@ -313,20 +313,27 @@ extension Bridging {
 // MARK: - Process Responsivity
 
 extension Bridging {
-    /// Returns a Boolean value that indicates whether the given process is responsive.
+    /// Constants that indicate the responsivity of an app.
+    enum Responsivity {
+        case responsive
+        case unresponsive
+        case unknown
+    }
+
+    /// Returns the responsivity of the given process.
     ///
     /// - Parameter pid: The Unix process identifier of the process to check.
-    static func isResponsive(_ pid: pid_t) -> Bool {
+    static func responsivity(for pid: pid_t) -> Responsivity {
         var psn = ProcessSerialNumber()
         let result = GetProcessForPID(pid, &psn)
         guard result == noErr else {
             Logger.bridging.error("GetProcessForPID failed with error \(result)")
-            return false
+            return .unknown
         }
         if CGSEventIsAppUnresponsive(CGSMainConnectionID(), &psn) {
-            return false
+            return .unresponsive
         }
-        return true
+        return .responsive
     }
 }
 

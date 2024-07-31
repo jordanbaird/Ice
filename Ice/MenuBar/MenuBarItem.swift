@@ -12,6 +12,9 @@ struct MenuBarItem {
     /// The item's window.
     let window: WindowInfo
 
+    /// The menu bar item info associated with this item.
+    let info: MenuBarItemInfo
+
     /// The identifier of the item's window.
     var windowID: CGWindowID {
         window.windowID
@@ -60,11 +63,6 @@ struct MenuBarItem {
     /// The application that owns the item.
     var owningApplication: NSRunningApplication? {
         window.owningApplication
-    }
-
-    /// The menu bar item info associated with this item.
-    var info: MenuBarItemInfo {
-        MenuBarItemInfo(item: self)
     }
 
     /// A name associated with the item that is suited for display to
@@ -129,6 +127,7 @@ struct MenuBarItem {
     /// certain that the window is valid.
     private init(uncheckedItemWindow itemWindow: WindowInfo) {
         self.window = itemWindow
+        self.info = MenuBarItemInfo(uncheckedItemWindow: itemWindow)
     }
 
     /// Creates a menu bar item.
@@ -325,11 +324,6 @@ struct MenuBarItemInfo: Hashable, CustomStringConvertible {
         } else {
             self.title = ""
         }
-    }
-
-    /// Creates a simplified item from the given menu bar item.
-    init(item: MenuBarItem) {
-        self.init(uncheckedItemWindow: item.window)
     }
 }
 

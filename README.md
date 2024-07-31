@@ -29,7 +29,7 @@ Download the "Ice.zip" file from the [latest release](https://github.com/jordanb
 
 ### Homebrew
 
-If you use [Homebrew](https://brew.sh/), you can install Ice using the following command:
+Install Ice using the following command:
 
 ```sh
 brew install jordanbaird-ice
@@ -46,17 +46,17 @@ brew install jordanbaird-ice
 ### Menu bar item management
 
 - [x] Hide menu bar items
-- [x] "Always Hidden" menu bar section
-- [x] Show hidden items when hovering over the menu bar
-- [x] Show hidden items when an empty area in the menu bar is clicked
-- [x] Show hidden items by scrolling or swiping in the menu bar
-- [x] Automatically rehide
+- [x] "Always-hidden" menu bar section
+- [x] Show hidden menu bar items when hovering over the menu bar
+- [x] Show hidden menu bar items when an empty area in the menu bar is clicked
+- [x] Show hidden menu bar items by scrolling or swiping in the menu bar
+- [x] Automatically rehide menu bar items
 - [x] Hide application menus when they overlap with shown menu bar items
-- [x] Drag and drop interface to arrange individual items
-- [x] Display hidden items in a separate bar (e.g. for MacBooks with the notch)
-- [ ] Custom spacing between items
-- [ ] Profiles for menu bar layout
+- [x] Drag and drop interface to arrange individual menu bar items
+- [x] Display hidden menu bar items in a separate bar (e.g. for MacBooks with the notch)
 - [ ] Search menu bar items
+- [ ] Custom menu bar item spacing
+- [ ] Profiles for menu bar layout
 - [ ] Menu bar item groups
 - [ ] Show menu bar items when trigger conditions are met
 
@@ -83,16 +83,16 @@ brew install jordanbaird-ice
 - [x] Automatic updates
 - [ ] Menu bar widgets
 
-## Why not support earlier operating systems?
+## Why does Ice only support macOS 14 and later?
 
-There are a number of system APIs that Ice uses that are only available starting with macOS 14.
+Ice uses a number of system APIs that are available starting in macOS 14. As such, there are no plans to support earlier versions of macOS.
 
 ## Gallery
 
-#### Arrange items in settings
+#### Arrange menu bar items in settings
 ![Arrange Menu Bar Items](https://github.com/user-attachments/assets/c2f4a3e2-f58e-45a0-b648-5f0af8fb84c0)
 
-#### Show hidden items below the menu bar
+#### Show hidden menu bar items below the menu bar
 ![Ice Bar](https://github.com/user-attachments/assets/f1429589-6186-4e1b-8aef-592219d49b9b)
 
 #### Customize the menu bar's appearance
@@ -103,11 +103,11 @@ There are a number of system APIs that Ice uses that are only available starting
 
 ### Coming soon...
 
-#### Menu bar search
-![Menu Bar Search](https://github.com/user-attachments/assets/ceca6fc6-4695-4a5c-ad64-3d92ce0dc234)
+#### Menu bar item search
+![Menu Bar Item Search](https://github.com/user-attachments/assets/ceca6fc6-4695-4a5c-ad64-3d92ce0dc234)
 
-#### Custom item spacing
-![Custom Item Spacing](https://github.com/user-attachments/assets/b196aa7e-184a-4d4c-b040-502f4aae40a6)
+#### Custom menu bar item spacing
+![Custom Menu Bar Item Spacing](https://github.com/user-attachments/assets/b196aa7e-184a-4d4c-b040-502f4aae40a6)
 
 ## Stargazers over time
 

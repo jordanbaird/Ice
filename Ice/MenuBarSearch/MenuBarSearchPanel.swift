@@ -215,7 +215,13 @@ private struct MenuBarSearchContentView: View {
             .padding(.vertical, 5)
             .background(.thinMaterial)
         }
-        .background(.thickMaterial)
+        .background {
+            VisualEffectView(
+                material: .sheet,
+                blendingMode: .behindWindow
+            )
+            .opacity(0.5)
+        }
         .frame(width: 600, height: 400)
         .fixedSize()
         .onAppear {

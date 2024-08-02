@@ -147,17 +147,22 @@ class MenuBarOverlayPanel: NSPanel {
             }
             let displayID = owningScreen.displayID
             updateTaskContext.setTask(for: .applicationMenuFrame, timeout: .seconds(10)) {
+                var hasDoneInitialUpdate = false
                 while true {
                     try Task.checkCancellation()
                     guard
                         let latestFrame = appState.menuBarManager.getApplicationMenuFrame(for: displayID),
                         latestFrame != self.applicationMenuFrame
                     else {
-                        try await Task.sleep(for: .milliseconds(1))
+                        if hasDoneInitialUpdate {
+                            try await Task.sleep(for: .seconds(1))
+                        } else {
+                            try await Task.sleep(for: .milliseconds(1))
+                        }
                         continue
                     }
                     self.insertUpdateFlag(.applicationMenuFrame)
-                    return
+                    hasDoneInitialUpdate = true
                 }
             }
             Task {
@@ -190,6 +195,13 @@ class MenuBarOverlayPanel: NSPanel {
             .autoconnect()
             .sink { [weak self] _ in
                 self?.insertUpdateFlag(.desktopWallpaper)
+            }
+            .store(in: &c)
+
+        Timer.publish(every: 10, on: .main, in: .default)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.insertUpdateFlag(.applicationMenuFrame)
             }
             .store(in: &c)
 

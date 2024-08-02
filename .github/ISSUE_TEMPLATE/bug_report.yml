@@ -8,7 +8,7 @@ body:
       label: Check Existing Issues
       description: Check existing open and closed issues to prevent duplicates. Use the search field at the top of the issue tracker. Please only submit a new issue if it has not been covered by an existing issue, or if a regression has occurred.
       options:
-        - label: I have searched existing issues, and this issue is not a duplicate
+        - label: I have checked existing issues, and this issue is not a duplicate
           required: true
   - type: textarea
     attributes:

@@ -10,10 +10,7 @@ import Combine
 class LayoutBarContainer: NSView {
     /// Phases for a dragging session.
     enum DraggingPhase {
-        case entered
-        case exited
-        case updated
-        case ended
+        case entered, exited, updated, ended
     }
 
     /// Cached width constraint for the container view.

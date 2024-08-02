@@ -53,7 +53,7 @@ class MenuBarItemManager: ObservableObject {
     }
 
     private struct TempShownItemContext {
-        let item: MenuBarItem
+        let info: MenuBarItemInfo
         let returnDestination: MoveDestination
         let shownInterfaceWindow: WindowInfo?
 
@@ -1077,7 +1077,7 @@ extension MenuBarItemManager {
             }
 
             let context = TempShownItemContext(
-                item: item,
+                info: item.info,
                 returnDestination: destination,
                 shownInterfaceWindow: shownInterfaceWindow
             )
@@ -1116,11 +1116,16 @@ extension MenuBarItemManager {
 
         var failedContexts = [TempShownItemContext]()
 
+        let items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
+
         while let context = tempShownItemContexts.popLast() {
+            guard let item = items.first(where: { $0.info == context.info }) else {
+                continue
+            }
             do {
-                try await move(item: context.item, to: context.returnDestination)
+                try await move(item: item, to: context.returnDestination)
             } catch {
-                Logger.itemManager.error("Failed to rehide \"\(context.item.logString)\": \(error)")
+                Logger.itemManager.error("Failed to rehide \"\(item.logString)\": \(error)")
                 failedContexts.append(context)
             }
         }
@@ -1139,7 +1144,7 @@ extension MenuBarItemManager {
     /// This has the effect of ensuring that the item will not be returned to
     /// its previous location.
     func removeTempShownItemFromCache(with info: MenuBarItemInfo) {
-        tempShownItemContexts.removeAll(where: { $0.item.info == info })
+        tempShownItemContexts.removeAll(where: { $0.info == info })
     }
 }
 

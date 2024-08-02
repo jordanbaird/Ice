@@ -101,13 +101,14 @@ final class ControlItem: ObservableObject {
         self.identifier = identifier
         self.state = .hideItems
 
-        // FIXME: This is a strong candidate for a new macOS release to break, but we need this
-        // constraint to hide control items when the `ShowSectionDividers` setting is disabled.
-        // We used to use the status item's `isVisible` property, which was more robust, but would
-        // completely remove the control item. Now that we have profiles, we need to be able to
-        // accurately retrieve the items for each section, so we need the control items to always
-        // be present to act as delimiters. The new solution is to remove the constraint that
-        // prevents status items from having a length of zero, then resizing the content view.
+        // This is a strong candidate for a new macOS release to break, but we need this constraint
+        // to hide control items when the `ShowSectionDividers` setting is disabled. We used to use
+        // the status item's `isVisible` property, which was more robust, but would completely remove
+        // the control item. Now that we have profiles, we need to be able to accurately retrieve the
+        // items for each section, so we need the control items to always be present to act as
+        // delimiters. The new solution is to remove the constraint that prevents status items from
+        // having a length of zero, then resize the content view.
+        // FIXME: Find a replacement for this
         if
             let button = statusItem.button,
             let constraints = button.window?.contentView?.constraintsAffectingLayout(for: .horizontal),
@@ -539,62 +540,6 @@ final class ControlItem: ObservableObject {
             StatusItemDefaults[.preferredPosition, autosaveName] = cached
         }
         statusItem.isVisible = false
-    }
-}
-
-// MARK: - StatusItemDefaultsKey
-
-/// Keys used to look up user defaults for status items.
-struct StatusItemDefaultsKey<Value> {
-    let rawValue: String
-}
-
-extension StatusItemDefaultsKey<CGFloat> {
-    static let preferredPosition = StatusItemDefaultsKey(rawValue: "Preferred Position")
-}
-
-extension StatusItemDefaultsKey<Bool> {
-    static let isVisible = StatusItemDefaultsKey(rawValue: "Visible")
-}
-
-// MARK: - StatusItemDefaults
-
-/// Proxy getters and setters for a status item's user default values.
-enum StatusItemDefaults {
-    private static func stringKey<Value>(
-        forKey key: StatusItemDefaultsKey<Value>,
-        autosaveName: String
-    ) -> String {
-        return "NSStatusItem \(key.rawValue) \(autosaveName)"
-    }
-
-    /// Accesses the value associated with the specified key and autosave name.
-    static subscript<Value>(
-        key: StatusItemDefaultsKey<Value>,
-        autosaveName: String
-    ) -> Value? {
-        get {
-            let key = stringKey(forKey: key, autosaveName: autosaveName)
-            return UserDefaults.standard.object(forKey: key) as? Value
-        }
-        set {
-            let key = stringKey(forKey: key, autosaveName: autosaveName)
-            UserDefaults.standard.set(newValue, forKey: key)
-        }
-    }
-
-    /// Migrates the given status item defaults key from an old autosave name
-    /// to a new autosave name.
-    static func migrate<Value>(
-        key: StatusItemDefaultsKey<Value>,
-        from oldAutosaveName: String,
-        to newAutosaveName: String
-    ) {
-        guard newAutosaveName != oldAutosaveName else {
-            return
-        }
-        Self[key, newAutosaveName] = Self[key, oldAutosaveName]
-        Self[key, oldAutosaveName] = nil
     }
 }
 

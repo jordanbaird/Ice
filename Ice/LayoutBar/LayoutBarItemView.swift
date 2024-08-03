@@ -128,7 +128,7 @@ class LayoutBarItemView: NSView {
                 operation: .sourceOver,
                 fraction: isEnabled ? 1.0 : 0.67
             )
-            if !Bridging.isResponsive(item.ownerPID) {
+            if Bridging.responsivity(for: item.ownerPID) == .unresponsive {
                 let warningImage = NSImage.warning
                 let width: CGFloat = 15
                 let scale = width / warningImage.size.width
@@ -157,7 +157,7 @@ class LayoutBarItemView: NSView {
             return
         }
 
-        guard Bridging.isResponsive(item.ownerPID) else {
+        guard Bridging.responsivity(for: item.ownerPID) != .unresponsive else {
             let alert = provideAlertForUnresponsiveItem()
             alert.runModal()
             return

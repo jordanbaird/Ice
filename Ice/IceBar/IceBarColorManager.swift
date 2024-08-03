@@ -9,9 +9,7 @@ import Combine
 @MainActor
 class IceBarColorManager: ObservableObject {
     @Published private(set) var colorInfo: MenuBarAverageColorInfo?
-
     private weak var iceBarPanel: IceBarPanel?
-
     private var windowImage: CGImage?
 
     private var cancellables = Set<AnyCancellable>()
@@ -26,6 +24,7 @@ class IceBarColorManager: ObservableObject {
 
         if let iceBarPanel {
             iceBarPanel.publisher(for: \.screen)
+                .receive(on: DispatchQueue.main)
                 .sink { [weak self] screen in
                     guard
                         let self,
@@ -42,6 +41,7 @@ class IceBarColorManager: ObservableObject {
                 iceBarPanel.publisher(for: \.frame),
                 iceBarPanel.publisher(for: \.isVisible)
             )
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] frame, isVisible in
                 guard
                     let self,
@@ -61,6 +61,7 @@ class IceBarColorManager: ObservableObject {
                 DistributedNotificationCenter.default().publisher(for: DistributedNotificationCenter.interfaceThemeChangedNotification).mapToVoid(),
                 Timer.publish(every: 5, on: .main, in: .default).autoconnect().mapToVoid()
             )
+            .receive(on: DispatchQueue.main)
             .sink { [weak self, weak iceBarPanel] in
                 guard
                     let self,
@@ -93,7 +94,7 @@ class IceBarColorManager: ObservableObject {
         }
     }
 
-    func updateColorInfo(with frame: CGRect, screen: NSScreen) {
+    private func updateColorInfo(with frame: CGRect, screen: NSScreen) {
         guard let windowImage else {
             colorInfo = nil
             return
@@ -115,5 +116,10 @@ class IceBarColorManager: ObservableObject {
         }
 
         colorInfo = MenuBarAverageColorInfo(color: averageColor, source: .menuBarWindow)
+    }
+
+    func updateAllProperties(with frame: CGRect, screen: NSScreen) {
+        updateWindowImage(for: screen)
+        updateColorInfo(with: frame, screen: screen)
     }
 }

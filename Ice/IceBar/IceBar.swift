@@ -309,7 +309,7 @@ private struct IceBarContentView: View {
     @ViewBuilder
     private var content: some View {
         if menuBarManager.isMenuBarHiddenBySystemUserDefaults {
-            Text("Ice cannot display menu bar items for automatically hidden menu bars.")
+            Text("Ice cannot display menu bar items for automatically hidden menu bars")
                 .padding(.horizontal, 5)
         } else if imageCache.cacheFailed(for: section) {
             Text("Unable to display menu bar items")
@@ -364,6 +364,8 @@ private struct IceBarItemView: View {
         }
     }
 }
+
+// MARK: - IceBarItemClickView
 
 private struct IceBarItemClickView: NSViewRepresentable {
     private class Represented: NSView {

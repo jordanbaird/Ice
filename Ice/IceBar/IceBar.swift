@@ -10,9 +10,7 @@ import SwiftUI
 
 class IceBarPanel: NSPanel {
     private weak var appState: AppState?
-
     private(set) var currentSection: MenuBarSection.Name?
-
     private lazy var colorManager = IceBarColorManager(iceBarPanel: self)
 
     private var cancellables = Set<AnyCancellable>()
@@ -24,7 +22,6 @@ class IceBarPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
-
         self.appState = appState
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = true
@@ -143,7 +140,7 @@ class IceBarPanel: NSPanel {
                     let section = appState.menuBarManager.section(withName: .visible),
                     let windowID = section.controlItem.windowID,
                     // Bridging.getWindowFrame is more reliable than ControlItem.windowFrame,
-                    // i.e. if the item is offscreen
+                    // i.e. if the control item is offscreen
                     let itemFrame = Bridging.getWindowFrame(for: windowID)
                 else {
                     return originForRightOfScreen
@@ -168,15 +165,20 @@ class IceBarPanel: NSPanel {
 
         await appState.imageCache.updateCache()
 
-        contentView = IceBarHostingView(
-            appState: appState,
-            colorManager: colorManager,
-            section: section
-        ) { [weak self] in
+        contentView = IceBarHostingView(appState: appState, colorManager: colorManager, section: section) { [weak self] in
             self?.close()
         }
 
         updateOrigin(for: screen)
+
+        // the color manager must be updated after updating the panel's
+        // origin, but before it is shown...
+        //
+        // the color manager handles frame changes automatically, but does
+        // so on the main queue, so we need to update manually once before
+        // showing the panel to prevent the color from flashing
+        colorManager.updateAllProperties(with: frame, screen: screen)
+
         orderFrontRegardless()
     }
 
@@ -365,15 +367,16 @@ private struct IceBarItemView: View {
 
 private struct IceBarItemClickView: NSViewRepresentable {
     private class Represented: NSView {
-        private(set) weak var itemManager: MenuBarItemManager?
+        private weak var itemManager: MenuBarItemManager?
+
         let item: MenuBarItem
         let closePanel: () -> Void
 
         private var lastLeftMouseDownDate = Date.now
         private var lastRightMouseDownDate = Date.now
 
-        private var locationOfLastLeftMouseDown = CGPoint.zero
-        private var locationOfLastRightMouseDown = CGPoint.zero
+        private var lastLeftMouseDownLocation = CGPoint.zero
+        private var lastRightMouseDownLocation = CGPoint.zero
 
         init(itemManager: MenuBarItemManager, item: MenuBarItem, closePanel: @escaping () -> Void) {
             self.item = item
@@ -395,13 +398,13 @@ private struct IceBarItemClickView: NSViewRepresentable {
         override func mouseDown(with event: NSEvent) {
             super.mouseDown(with: event)
             lastLeftMouseDownDate = .now
-            locationOfLastLeftMouseDown = NSEvent.mouseLocation
+            lastLeftMouseDownLocation = NSEvent.mouseLocation
         }
 
         override func rightMouseDown(with event: NSEvent) {
             super.rightMouseDown(with: event)
             lastRightMouseDownDate = .now
-            locationOfLastRightMouseDown = NSEvent.mouseLocation
+            lastRightMouseDownLocation = NSEvent.mouseLocation
         }
 
         override func mouseUp(with event: NSEvent) {
@@ -409,7 +412,7 @@ private struct IceBarItemClickView: NSViewRepresentable {
             guard
                 let itemManager,
                 Date.now.timeIntervalSince(lastLeftMouseDownDate) < 0.5,
-                absoluteDistance(locationOfLastLeftMouseDown, NSEvent.mouseLocation) < 5
+                absoluteDistance(lastLeftMouseDownLocation, NSEvent.mouseLocation) < 5
             else {
                 return
             }
@@ -422,7 +425,7 @@ private struct IceBarItemClickView: NSViewRepresentable {
             guard
                 let itemManager,
                 Date.now.timeIntervalSince(lastRightMouseDownDate) < 0.5,
-                absoluteDistance(locationOfLastRightMouseDown, NSEvent.mouseLocation) < 5
+                absoluteDistance(lastRightMouseDownLocation, NSEvent.mouseLocation) < 5
             else {
                 return
             }

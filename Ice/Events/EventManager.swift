@@ -465,7 +465,8 @@ extension EventManager {
         else {
             return false
         }
-        applicationMenuFrame.size.width += 15 // extra width to accomodate menu padding
+        applicationMenuFrame.size.width += applicationMenuFrame.origin.x - screen.frame.origin.x
+        applicationMenuFrame.origin.x = screen.frame.origin.x
         return applicationMenuFrame.contains(mouseLocation)
     }
 

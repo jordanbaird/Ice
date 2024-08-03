@@ -70,6 +70,12 @@ class LayoutBarScrollView: NSScrollView {
 }
 
 extension LayoutBarScrollView {
+    override func accessibilityChildren() -> [Any]? {
+        return arrangedViews
+    }
+}
+
+extension LayoutBarScrollView {
     /// A custom scroller that overrides its knob slot to be transparent.
     class HorizontalScroller: NSScroller {
         override class var isCompatibleWithOverlayScrollers: Bool { true }

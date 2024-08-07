@@ -15,7 +15,7 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 [![License](https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square)](LICENSE)
 
 > [!NOTE]
-> Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features. 
+> Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
 
 <a href="https://www.buymeacoffee.com/jordanbaird" target="_blank">
     <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;">
@@ -87,26 +87,42 @@ brew install jordanbaird-ice
 
 Ice uses a number of system APIs that are available starting in macOS 14. As such, there are no plans to support earlier versions of macOS.
 
+## How do I solve the `Ice cannot arrange menu bar items in automatically hidden menu bars` error?
+
+1. Open `System Preferences` on your Mac
+2. Go to `Control Center`
+3. Select `Never` as shown in the image below
+4. Update your `Menu Bar Items` in `Ice`
+5. Return `Automatically hide and show the menu bar` to your preferred settings
+
+![Disable Menu Bar Hiding](https://github.com/user-attachments/assets/74c1fde6-d310-4fe3-9f2b-703d8ccb636a)
+
 ## Gallery
 
 #### Arrange menu bar items in settings
+
 ![Arrange Menu Bar Items](https://github.com/user-attachments/assets/c2f4a3e2-f58e-45a0-b648-5f0af8fb84c0)
 
 #### Show hidden menu bar items below the menu bar
+
 ![Ice Bar](https://github.com/user-attachments/assets/f1429589-6186-4e1b-8aef-592219d49b9b)
 
 #### Customize the menu bar's appearance
+
 ![Menu Bar Appearance](https://github.com/user-attachments/assets/8c22c185-c3d2-49bb-971e-e1fc17df04b3)
 
 #### Choose your own icon to show in the menu bar
+
 ![Custom Icon](https://github.com/user-attachments/assets/2f3668c1-9b48-46de-98e7-74bf9ff4fcce)
 
 ### Coming soon...
 
 #### Menu bar item search
+
 ![Menu Bar Item Search](https://github.com/user-attachments/assets/ceca6fc6-4695-4a5c-ad64-3d92ce0dc234)
 
 #### Custom menu bar item spacing
+
 ![Custom Menu Bar Item Spacing](https://github.com/user-attachments/assets/b196aa7e-184a-4d4c-b040-502f4aae40a6)
 
 ## Stargazers over time

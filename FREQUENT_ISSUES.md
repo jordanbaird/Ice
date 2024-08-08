@@ -1,10 +1,5 @@
 # Frequent Issues
 
-## Bug Reports
-
-There are a number of issues that are frequently reported as bugs. Some of them are, some of them aren't. Below is a list of the most common ones,
-along with what can be done about them.
-
 ### Items are moved to the always-hidden section
 
 By default, macOS adds new items to the far left of the menu bar, which is also the location of Ice's always-hidden section. Most apps are configured

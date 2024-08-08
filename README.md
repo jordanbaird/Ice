@@ -87,16 +87,6 @@ brew install jordanbaird-ice
 
 Ice uses a number of system APIs that are available starting in macOS 14. As such, there are no plans to support earlier versions of macOS.
 
-## How do I solve the `Ice cannot arrange menu bar items in automatically hidden menu bars` error?
-
-1. Open `System Preferences` on your Mac
-2. Go to `Control Center`
-3. Select `Never` as shown in the image below
-4. Update your `Menu Bar Items` in `Ice`
-5. Return `Automatically hide and show the menu bar` to your preferred settings
-
-![Disable Menu Bar Hiding](https://github.com/user-attachments/assets/74c1fde6-d310-4fe3-9f2b-703d8ccb636a)
-
 ## Gallery
 
 #### Arrange menu bar items in settings

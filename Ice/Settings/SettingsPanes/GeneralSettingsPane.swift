@@ -12,54 +12,55 @@ struct GeneralSettingsPane: View {
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false
     @State private var presentedError: AnyLocalizedError?
+    @State private var isApplyingOffset = false
+    @State private var tempItemSpacingOffset: CGFloat = 0 // Temporary state for the slider
 
     private var manager: GeneralSettingsManager {
         appState.settingsManager.generalSettingsManager
     }
 
     private var itemSpacingOffset: LocalizedStringKey {
-        if manager.itemSpacingOffset == -16 {
-            LocalizedStringKey("none")
-        } else if manager.itemSpacingOffset == 0 {
-            LocalizedStringKey("default")
-        } else if manager.itemSpacingOffset == 16 {
-            LocalizedStringKey("max")
-        } else {
-            LocalizedStringKey(manager.itemSpacingOffset.formatted())
+        localizedOffsetString(for: manager.itemSpacingOffset)
+    }
+
+    private func localizedOffsetString(for offset: CGFloat) -> LocalizedStringKey {
+        switch offset {
+        case -16:
+            return LocalizedStringKey("none")
+        case 0:
+            return LocalizedStringKey("default")
+        case 16:
+            return LocalizedStringKey("max")
+        default:
+            return LocalizedStringKey(offset.formatted())
         }
     }
 
     private var rehideInterval: LocalizedStringKey {
         let formatted = manager.rehideInterval.formatted()
-        return if manager.rehideInterval == 1 {
-            LocalizedStringKey(formatted + " second")
+        if manager.rehideInterval == 1 {
+            return LocalizedStringKey(formatted + " second")
         } else {
-            LocalizedStringKey(formatted + " seconds")
+            return LocalizedStringKey(formatted + " seconds")
         }
+    }
+
+    private var hasSliderValueChanged: Bool {
+        tempItemSpacingOffset != manager.itemSpacingOffset
+    }
+
+    private var isActualValueDifferentFromDefault: Bool {
+        manager.itemSpacingOffset != 0
     }
 
     var body: some View {
         Form {
-            Section {
-                launchAtLogin
-            }
-            Section {
-                iceIconOptions
-            }
-            Section {
-                useIceBar
-            }
-            Section {
-                showOnClick
-                showOnHover
-                showOnScroll
-            }
-            Section {
-                autoRehideOptions
-            }
-            Section {
-                spacingOptions
-            }
+            Section { launchAtLogin }
+            Section { iceIconOptions }
+            Section { useIceBar }
+            Section { showOnClick; showOnHover; showOnScroll }
+            Section { autoRehideOptions }
+            Section { spacingOptions }
         }
         .formStyle(.grouped)
         .scrollBounceBehavior(.basedOnSize)
@@ -131,9 +132,7 @@ struct GeneralSettingsPane: View {
                 do {
                     let url = try result.get()
                     if url.startAccessingSecurityScopedResource() {
-                        defer {
-                            url.stopAccessingSecurityScopedResource()
-                        }
+                        defer { url.stopAccessingSecurityScopedResource() }
                         let data = try Data(contentsOf: url)
                         manager.iceIcon = ControlItemImageSet(name: .custom, image: .data(data))
                     }
@@ -189,15 +188,16 @@ struct GeneralSettingsPane: View {
         VStack(alignment: .leading) {
             LabeledContent {
                 CompactSlider(
-                    value: manager.bindings.itemSpacingOffset,
+                    value: $tempItemSpacingOffset,
                     in: -16...16,
                     step: 2,
                     handleVisibility: .hovering(width: 1)
                 ) {
-                    Text(itemSpacingOffset)
+                    Text(localizedOffsetString(for: tempItemSpacingOffset))
                         .textSelection(.disabled)
                 }
                 .compactSliderDisabledHapticFeedback(true)
+                .disabled(isApplyingOffset)
             } label: {
                 HStack {
                     Text("Menu bar item spacing")
@@ -205,31 +205,26 @@ struct GeneralSettingsPane: View {
                     Spacer()
 
                     Button("Apply") {
-                        Task {
-                            do {
-                                try await appState.spacingManager.applyOffset()
-                            } catch {
-                                let alert = NSAlert(error: error)
-                                alert.runModal()
-                            }
-                        }
+                        applyOffset()
                     }
                     .help("Apply the current spacing")
+                    .disabled(isApplyingOffset || !hasSliderValueChanged)
 
-                    Button("Reset", systemImage: "arrow.counterclockwise.circle.fill") {
-                        manager.itemSpacingOffset = 0
-                        Task {
-                            do {
-                                try await appState.spacingManager.applyOffset()
-                            } catch {
-                                let alert = NSAlert(error: error)
-                                alert.runModal()
-                            }
+                    if isApplyingOffset {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle())
+                            .scaleEffect(0.5)
+                            .frame(width: 15, height: 15)
+                    } else {
+                        Button {
+                            resetOffsetToDefault()
+                        } label: {
+                            Image(systemName: "arrow.counterclockwise.circle.fill")
                         }
+                        .buttonStyle(.borderless)
+                        .help("Reset to the default spacing")
+                        .disabled(isApplyingOffset || !isActualValueDifferentFromDefault)
                     }
-                    .buttonStyle(.borderless)
-                    .labelStyle(.iconOnly)
-                    .help("Reset to the default spacing")
                 }
             }
 
@@ -240,6 +235,31 @@ struct GeneralSettingsPane: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
         }
+        .onAppear {
+            tempItemSpacingOffset = manager.itemSpacingOffset
+        }
+    }
+
+    // Apply offset
+    private func applyOffset() {
+        isApplyingOffset = true
+        manager.itemSpacingOffset = tempItemSpacingOffset
+        Task {
+            do {
+                try await appState.spacingManager.applyOffset()
+            } catch {
+                let alert = NSAlert(error: error)
+                alert.runModal()
+            }
+            isApplyingOffset = false
+        }
+    }
+
+    // Reset offset to default
+    private func resetOffsetToDefault() {
+        tempItemSpacingOffset = 0
+        manager.itemSpacingOffset = tempItemSpacingOffset
+        applyOffset()
     }
 
     @ViewBuilder

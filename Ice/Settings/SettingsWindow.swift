@@ -16,9 +16,28 @@ struct SettingsWindow: Scene {
                 .onAppear(perform: onAppear)
                 .environmentObject(appState)
                 .environmentObject(appState.navigationState)
+                .background(WindowAccessor { window in
+                    window.level = .floating
+                })
         }
         .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultSize(width: 900, height: 625)
     }
+}
+
+struct WindowAccessor: NSViewRepresentable {
+    var onReceiveWindow: (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            if let window = view.window {
+                self.onReceiveWindow(window)
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }

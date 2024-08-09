@@ -16,6 +16,9 @@ struct SettingsWindow: Scene {
                 .onAppear(perform: onAppear)
                 .environmentObject(appState)
                 .environmentObject(appState.navigationState)
+                .readWindow { window in
+                    window?.level = .floating
+                }
         }
         .commandsRemoved()
         .windowResizability(.contentSize)

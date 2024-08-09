@@ -61,7 +61,11 @@ class MenuBarSearchPanel: NSPanel {
             return
         }
 
-        // important that we set the navigation before updating the cache
+        // Set the desired frame size for the panel before positioning
+        let panelSize = CGSize(width: 600, height: 400)
+        setFrame(NSRect(origin: .zero, size: panelSize), display: false)
+
+        // Important that we set the navigation before updating the cache
         appState.navigationState.isSearchPresented = true
 
         await appState.imageCache.updateCache()
@@ -97,6 +101,7 @@ class MenuBarSearchPanel: NSPanel {
         mouseDownMonitor?.start()
         keyDownMonitor?.start()
 
+        // Calculate the top-left position
         let topLeft = CGPoint(
             x: screen.frame.midX - frame.width / 2,
             y: screen.frame.midY + (frame.height / 2) + (screen.frame.height / 8)

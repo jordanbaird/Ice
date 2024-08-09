@@ -8,6 +8,7 @@ import Combine
 import OSLog
 
 /// Manager for menu bar item spacing.
+@MainActor
 class MenuBarItemSpacingManager {
     /// UserDefaults keys.
     private enum Key: String {
@@ -94,7 +95,7 @@ class MenuBarItemSpacingManager {
     }
 
     /// Asynchronously launches the app at the given URL.
-    private func launchApp(at applicationURL: URL, bundleIdentifier: String) async throws {
+    private nonisolated func launchApp(at applicationURL: URL, bundleIdentifier: String) async throws {
         if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
             Logger.spacing.debug("Application \"\(app.localizedName ?? "<NIL>")\" is already open, so skipping launch")
             return
@@ -109,7 +110,7 @@ class MenuBarItemSpacingManager {
 
     /// Asynchronously relaunches the given app.
     private func relaunchApp(_ app: NSRunningApplication) async throws {
-        struct RelaunchError: Error {}
+        struct RelaunchError: Error { }
         guard
             let url = app.bundleURL,
             let bundleIdentifier = app.bundleIdentifier

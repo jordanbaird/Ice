@@ -6,6 +6,7 @@
 import Combine
 import OSLog
 
+@MainActor
 final class HotkeySettingsManager: ObservableObject {
     @Published private(set) var hotkeys = HotkeyAction.allCases.map { action in
         Hotkey(keyCombination: nil, action: action)

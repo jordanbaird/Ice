@@ -7,6 +7,7 @@ import Combine
 import Foundation
 import OSLog
 
+@MainActor
 final class GeneralSettingsManager: ObservableObject {
     /// A Boolean value that indicates whether the Ice icon
     /// should be shown.

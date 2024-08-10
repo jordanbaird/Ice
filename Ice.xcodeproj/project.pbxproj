@@ -126,6 +126,7 @@
 		718152C32C34E595005564AA /* NSScreen+screenWithMouse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 718152C22C34E595005564AA /* NSScreen+screenWithMouse.swift */; };
 		71829E0A2C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71829E092C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift */; };
 		71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C152A9B6A0D00250044 /* OnFrameChange.swift */; };
+		718E3F782C679F680029B835 /* IceBarLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 718E3F772C679F680029B835 /* IceBarLocation.swift */; };
 		71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C400312AAD76A8006FDB1C /* ReadWindow.swift */; };
 		71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */; };
 		71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */; };
@@ -256,6 +257,7 @@
 		718152C22C34E595005564AA /* NSScreen+screenWithMouse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+screenWithMouse.swift"; sourceTree = "<group>"; };
 		71829E092C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+getMenuBarHeight.swift"; sourceTree = "<group>"; };
 		71839C152A9B6A0D00250044 /* OnFrameChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnFrameChange.swift; sourceTree = "<group>"; };
+		718E3F772C679F680029B835 /* IceBarLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceBarLocation.swift; sourceTree = "<group>"; };
 		71C400312AAD76A8006FDB1C /* ReadWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadWindow.swift; sourceTree = "<group>"; };
 		71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+versionString.swift"; sourceTree = "<group>"; };
 		71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
@@ -455,6 +457,7 @@
 			children = (
 				17BE3DCF2C1A45B3008B98EF /* IceBar.swift */,
 				71287C5F2C3189AC0028706E /* IceBarColorManager.swift */,
+				718E3F772C679F680029B835 /* IceBarLocation.swift */,
 			);
 			path = IceBar;
 			sourceTree = "<group>";
@@ -969,6 +972,7 @@
 				17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */,
 				17F998512C16D02E00D75EC0 /* LayoutBarScrollView.swift in Sources */,
 				179AC2FC2C1146EF0051E7B0 /* RemoveSidebarToggle.swift in Sources */,
+				718E3F782C679F680029B835 /* IceBarLocation.swift in Sources */,
 				17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */,
 				17F9984D2C16CD8E00D75EC0 /* MenuBarItemsSettingsPane.swift in Sources */,
 				71F428152C3B5F3D0025706C /* AppNavigationState.swift in Sources */,

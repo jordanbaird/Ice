@@ -23,6 +23,7 @@ class IceBarPanel: NSPanel {
             defer: false
         )
         self.appState = appState
+        self.title = "Ice Bar"
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = true
         self.allowsToolTipsWhenApplicationIsInactive = true
@@ -336,9 +337,30 @@ private struct IceBarContentView: View {
 
 private struct IceBarItemView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
+    @EnvironmentObject var itemManager: MenuBarItemManager
 
     let item: MenuBarItem
     let closePanel: () -> Void
+
+    private var leftClickAction: () -> Void {
+        return { [weak itemManager] in
+            guard let itemManager else {
+                return
+            }
+            closePanel()
+            itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .left)
+        }
+    }
+
+    private var rightClickAction: () -> Void {
+        return { [weak itemManager] in
+            guard let itemManager else {
+                return
+            }
+            closePanel()
+            itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .right)
+        }
+    }
 
     private var image: NSImage? {
         guard
@@ -359,8 +381,11 @@ private struct IceBarItemView: View {
             Image(nsImage: image)
                 .contentShape(Rectangle())
                 .overlay {
-                    IceBarItemClickView(item: item, closePanel: closePanel)
+                    IceBarItemClickView(item: item, leftClickAction: leftClickAction, rightClickAction: rightClickAction)
                 }
+                .accessibilityLabel(item.displayName)
+                .accessibilityAction(named: "left click", leftClickAction)
+                .accessibilityAction(named: "right click", rightClickAction)
         }
     }
 }
@@ -369,10 +394,10 @@ private struct IceBarItemView: View {
 
 private struct IceBarItemClickView: NSViewRepresentable {
     private class Represented: NSView {
-        private weak var itemManager: MenuBarItemManager?
-
         let item: MenuBarItem
-        let closePanel: () -> Void
+
+        let leftClickAction: () -> Void
+        let rightClickAction: () -> Void
 
         private var lastLeftMouseDownDate = Date.now
         private var lastRightMouseDownDate = Date.now
@@ -380,11 +405,11 @@ private struct IceBarItemClickView: NSViewRepresentable {
         private var lastLeftMouseDownLocation = CGPoint.zero
         private var lastRightMouseDownLocation = CGPoint.zero
 
-        init(itemManager: MenuBarItemManager, item: MenuBarItem, closePanel: @escaping () -> Void) {
+        init(item: MenuBarItem, leftClickAction: @escaping () -> Void, rightClickAction: @escaping () -> Void) {
             self.item = item
-            self.closePanel = closePanel
+            self.leftClickAction = leftClickAction
+            self.rightClickAction = rightClickAction
             super.init(frame: .zero)
-            self.itemManager = itemManager
             self.toolTip = item.displayName
         }
 
@@ -412,37 +437,33 @@ private struct IceBarItemClickView: NSViewRepresentable {
         override func mouseUp(with event: NSEvent) {
             super.mouseUp(with: event)
             guard
-                let itemManager,
                 Date.now.timeIntervalSince(lastLeftMouseDownDate) < 0.5,
                 absoluteDistance(lastLeftMouseDownLocation, NSEvent.mouseLocation) < 5
             else {
                 return
             }
-            closePanel()
-            itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .left)
+            leftClickAction()
         }
 
         override func rightMouseUp(with event: NSEvent) {
             super.rightMouseUp(with: event)
             guard
-                let itemManager,
                 Date.now.timeIntervalSince(lastRightMouseDownDate) < 0.5,
                 absoluteDistance(lastRightMouseDownLocation, NSEvent.mouseLocation) < 5
             else {
                 return
             }
-            closePanel()
-            itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .right)
+            rightClickAction()
         }
     }
 
-    @EnvironmentObject var itemManager: MenuBarItemManager
-
     let item: MenuBarItem
-    let closePanel: () -> Void
+
+    let leftClickAction: () -> Void
+    let rightClickAction: () -> Void
 
     func makeNSView(context: Context) -> NSView {
-        Represented(itemManager: itemManager, item: item, closePanel: closePanel)
+        Represented(item: item, leftClickAction: leftClickAction, rightClickAction: rightClickAction)
     }
 
     func updateNSView(_ nsView: NSView, context: Context) { }

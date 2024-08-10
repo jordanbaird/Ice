@@ -223,6 +223,8 @@ extension LayoutBarItemView: NSDraggingSource {
     }
 }
 
+extension LayoutBarItemView: NSAccessibilityLayoutItem { }
+
 // MARK: Layout Bar Item Pasteboard Type
 extension NSPasteboard.PasteboardType {
     static let layoutBarItem = Self("\(Constants.bundleIdentifier).layout-bar-item")

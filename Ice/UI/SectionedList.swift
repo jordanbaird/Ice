@@ -15,6 +15,7 @@ struct SectionedList<ItemID: Hashable>: View {
 
     @Binding var selection: ItemID?
     @State private var itemFrames = [ItemID: CGRect]()
+    @State private var scrollIndicatorsFlashTrigger = 0
 
     let spacing: CGFloat
     let items: [SectionedListItem<ItemID>]
@@ -55,6 +56,10 @@ struct SectionedList<ItemID: Hashable>: View {
                 }
                 .contentMargins(.all, contentPadding, for: .scrollContent)
                 .contentMargins(.all, -contentPadding, for: .scrollIndicators)
+                .scrollIndicatorsFlash(trigger: scrollIndicatorsFlashTrigger)
+                .task {
+                    scrollIndicatorsFlashTrigger += 1
+                }
             }
         }
     }

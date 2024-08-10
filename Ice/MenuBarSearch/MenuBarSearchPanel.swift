@@ -221,11 +221,8 @@ private struct MenuBarSearchContentView: View {
             .background(.thinMaterial)
         }
         .background {
-            VisualEffectView(
-                material: .sheet,
-                blendingMode: .behindWindow
-            )
-            .opacity(0.5)
+            VisualEffectView(material: .sheet, blendingMode: .behindWindow)
+                .opacity(0.5)
         }
         .frame(width: 600, height: 400)
         .fixedSize()
@@ -304,6 +301,7 @@ private struct ShowItemButton: View {
         HStack {
             Text("Show item")
                 .padding(.horizontal, 5)
+
             Image(systemName: "return")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
@@ -386,10 +384,22 @@ private struct MenuBarSearchItemView: View {
     private var imageViewWithBackground: some View {
         if let image {
             ZStack {
-                RoundedRectangle(cornerRadius: 5, style: .circular)
-                    .fill(.gray)
+                VisualEffectView(material: .selection, blendingMode: .behindWindow)
+                    .clipShape(
+                        RoundedRectangle(cornerRadius: 5, style: .circular)
+                    )
+                    .opacity(0.75)
                     .frame(width: item.frame.width)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 5, style: .circular)
+                            .inset(by: 0.5)
+                            .stroke(lineWidth: 1)
+                            .foregroundStyle(.white)
+                            .opacity(0.15)
+                    }
+
                 Image(nsImage: image)
+                    .frame(height: 24)
             }
         }
     }

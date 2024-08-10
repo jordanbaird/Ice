@@ -5,6 +5,7 @@
 
 import Combine
 
+@MainActor
 final class SettingsManager: ObservableObject {
     let generalSettingsManager: GeneralSettingsManager
 

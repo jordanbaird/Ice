@@ -6,6 +6,7 @@
 import Combine
 import Foundation
 
+@MainActor
 final class AdvancedSettingsManager: ObservableObject {
     /// Valid modifier keys that can be used to trigger the secondary
     /// action of all control items.

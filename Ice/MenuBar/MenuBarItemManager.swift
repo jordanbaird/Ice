@@ -514,6 +514,12 @@ extension MenuBarItemManager {
                     return rEvent
                 }
 
+                // ensure the tap is enabled, preventing multiple calls to resume()
+                guard proxy.isEnabled else {
+                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled")
+                    return rEvent
+                }
+
                 Logger.itemManager.debug("Received \(type.logString) at \(location.logString)")
 
                 proxy.disable()
@@ -566,6 +572,12 @@ extension MenuBarItemManager {
 
                 // verify that the received event was the sent event
                 guard eventsMatch([rEvent, event], by: CGEventField.menuBarItemEventFields) else {
+                    return rEvent
+                }
+
+                // ensure the tap is enabled, preventing multiple calls to resume()
+                guard proxy.isEnabled else {
+                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled")
                     return rEvent
                 }
 

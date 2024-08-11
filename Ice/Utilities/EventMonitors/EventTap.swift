@@ -50,6 +50,11 @@ class EventTap {
 
         private let pointer: CGEventTapProxy
 
+        /// The label associated with the event tap.
+        var label: String {
+            tap.label
+        }
+
         /// A Boolean value that indicates whether the event tap is enabled.
         var isEnabled: Bool {
             tap.isEnabled

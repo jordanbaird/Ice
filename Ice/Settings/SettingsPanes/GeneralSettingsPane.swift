@@ -55,12 +55,26 @@ struct GeneralSettingsPane: View {
 
     var body: some View {
         Form {
-            Section { launchAtLogin }
-            Section { iceIconOptions }
-            Section { useIceBar }
-            Section { showOnClick; showOnHover; showOnScroll }
-            Section { autoRehideOptions }
-            Section { spacingOptions }
+            Section {
+                launchAtLogin
+            }
+            Section {
+                iceIconOptions
+            }
+            Section {
+                useIceBar
+            }
+            Section {
+                showOnClick
+                showOnHover
+                showOnScroll
+            }
+            Section {
+                autoRehideOptions
+            }
+            Section {
+                spacingOptions
+            }
         }
         .formStyle(.grouped)
         .scrollBounceBehavior(.basedOnSize)

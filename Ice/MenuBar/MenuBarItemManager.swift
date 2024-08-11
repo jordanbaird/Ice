@@ -915,6 +915,7 @@ extension MenuBarItemManager {
 
         do {
             try await postEventAndWaitToReceive(mouseDownEvent, to: .sessionEventTap)
+            try? await Task.sleep(for: .milliseconds(15))
             try await postEventAndWaitToReceive(mouseUpEvent, to: .sessionEventTap)
         } catch {
             // call with `try?`, as we don't want to circumvent the existing error

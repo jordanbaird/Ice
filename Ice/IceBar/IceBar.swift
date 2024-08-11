@@ -97,10 +97,6 @@ class IceBarPanel: NSPanel {
     }
 
     private func updateOrigin(for screen: NSScreen) {
-        enum IceBarLocation {
-            case dynamic, mousePointer, iceIcon
-        }
-
         guard let appState else {
             return
         }
@@ -114,7 +110,7 @@ class IceBarPanel: NSPanel {
             }
 
             switch iceBarLocation {
-            case .dynamic:
+            case .default:
                 if appState.eventManager.isMouseInsideEmptyMenuBarSpace {
                     return getOrigin(for: .mousePointer)
                 }
@@ -151,7 +147,7 @@ class IceBarPanel: NSPanel {
             }
         }
 
-        setFrameOrigin(getOrigin(for: .dynamic))
+        setFrameOrigin(getOrigin(for: appState.settingsManager.generalSettingsManager.iceBarLocation))
     }
 
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {

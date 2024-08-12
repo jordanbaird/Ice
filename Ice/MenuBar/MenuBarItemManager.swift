@@ -260,10 +260,10 @@ extension MenuBarItemManager {
 // MARK: - Menu Bar Item Events -
 
 extension MenuBarItemManager {
-    /// An error that can occur during menu bar item event processing.
+    /// An error that can occur during menu bar item event operations.
     struct EventError: Error, CustomStringConvertible, LocalizedError {
         /// Error codes within the domain of menu bar item event errors.
-        enum ErrorCode: Int {
+        enum ErrorCode: Int, CustomStringConvertible {
             /// Indicates that an operation could not be completed.
             case couldNotComplete
 
@@ -289,43 +289,58 @@ extension MenuBarItemManager {
 
             /// Indicates that a menu bar item event operation timed out.
             case timeout
+
+            var description: String {
+                switch self {
+                case .couldNotComplete: "couldNotComplete"
+                case .eventCreationFailure: "eventCreationFailure"
+                case .invalidAppState: "invalidAppState"
+                case .invalidEventSource: "invalidEventSource"
+                case .invalidCursorLocation: "invalidCursorLocation"
+                case .invalidItem: "invalidItem"
+                case .notMovable: "notMovable"
+                case .timeout: "timeout"
+                }
+            }
+
+            /// A string to use for logging purposes.
+            var logString: String {
+                "\(self) (\(rawValue))"
+            }
         }
 
         /// The error code of this error.
         let code: ErrorCode
 
-        /// A simplified representation of the error's menu bar item.
-        let info: MenuBarItemInfo?
+        /// The error's menu bar item.
+        let item: MenuBarItem
 
         /// The message associated with this error.
         var message: String {
             switch code {
             case .couldNotComplete:
-                "Could not complete"
+                "Could not complete event operation for \"\(item.displayName)\""
             case .eventCreationFailure:
-                "Failed to create event"
+                "Failed to create event for \"\(item.displayName)\""
             case .invalidAppState:
-                "Invalid app state"
+                "Invalid app state for \"\(item.displayName)\""
             case .invalidEventSource:
-                "Invalid event source"
+                "Invalid event source for \"\(item.displayName)\""
             case .invalidCursorLocation:
-                "Invalid cursor location"
+                "Invalid cursor location for \"\(item.displayName)\""
             case .invalidItem:
-                "Menu bar item is invalid"
+                "\"\(item.displayName)\" is invalid"
             case .notMovable:
-                "Menu bar item is not movable"
+                "\"\(item.displayName)\" is not movable"
             case .timeout:
-                "Operation timed out"
+                "Operation timed out for \"\(item.displayName)\""
             }
         }
 
         var description: String {
             var parameters = [String]()
-            parameters.append("message: \(message)")
-            parameters.append("code: \(code.rawValue)")
-            if let info {
-                parameters.append("info: \(info)")
-            }
+            parameters.append("code: \(code.logString)")
+            parameters.append("item: \(item.logString)")
             return "\(Self.self)(\(parameters.joined(separator: ", ")))"
         }
 
@@ -333,13 +348,8 @@ extension MenuBarItemManager {
             message
         }
 
-        init(code: ErrorCode, info: MenuBarItemInfo? = nil) {
-            self.code = code
-            self.info = info
-        }
-
-        init(code: ErrorCode, item: MenuBarItem?) {
-            self.init(code: code, info: item?.info)
+        var recoverySuggestion: String? {
+            "Please try again. If the error persists, please file a bug report at https://github.com/jordanbaird/Ice/issues."
         }
     }
 }
@@ -489,7 +499,7 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - event: The event to post.
     ///   - location: The event tap location to post the event to.
-    private func postEventAndWaitToReceive(_ event: CGEvent, to location: EventTap.Location) async throws {
+    private func postEventAndWaitToReceive(_ event: CGEvent, to location: EventTap.Location, item: MenuBarItem) async throws {
         return try await withCheckedThrowingContinuation { continuation in
             let eventTap = EventTap(
                 options: .defaultTap,
@@ -499,7 +509,7 @@ extension MenuBarItemManager {
             ) { [weak self] proxy, type, rEvent in
                 guard let self else {
                     proxy.disable()
-                    continuation.resume(throwing: EventError(code: .couldNotComplete))
+                    continuation.resume(throwing: EventError(code: .couldNotComplete, item: item))
                     return rEvent
                 }
 
@@ -516,11 +526,11 @@ extension MenuBarItemManager {
 
                 // ensure the tap is enabled, preventing multiple calls to resume()
                 guard proxy.isEnabled else {
-                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled")
+                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled (item: \"\(item.logString)\")")
                     return rEvent
                 }
 
-                Logger.itemManager.debug("Received \(type.logString) at \(location.logString)")
+                Logger.itemManager.debug("Received \(type.logString) at \(location.logString) (item: \"\(item.logString)\")")
 
                 proxy.disable()
                 delayEventTapCallback()
@@ -530,7 +540,7 @@ extension MenuBarItemManager {
             }
 
             eventTap.enable(timeout: .milliseconds(50)) {
-                Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out")
+                Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out (item: \"\(item.logString)\")")
                 eventTap.disable()
                 continuation.resume()
             }
@@ -549,7 +559,8 @@ extension MenuBarItemManager {
     private func forwardEvent(
         _ event: CGEvent,
         from initialLocation: EventTap.Location,
-        to forwardedLocation: EventTap.Location
+        to forwardedLocation: EventTap.Location,
+        item: MenuBarItem
     ) async throws {
         return try await withCheckedThrowingContinuation { continuation in
             let eventTap = EventTap(
@@ -560,7 +571,7 @@ extension MenuBarItemManager {
             ) { [weak self] proxy, type, rEvent in
                 guard let self else {
                     proxy.disable()
-                    continuation.resume(throwing: EventError(code: .couldNotComplete))
+                    continuation.resume(throwing: EventError(code: .couldNotComplete, item: item))
                     return rEvent
                 }
 
@@ -577,11 +588,11 @@ extension MenuBarItemManager {
 
                 // ensure the tap is enabled, preventing multiple calls to resume()
                 guard proxy.isEnabled else {
-                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled")
+                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled (item: \"\(item.logString)\")")
                     return rEvent
                 }
 
-                Logger.itemManager.debug("Forwarding \(type.logString) from \(initialLocation.logString) to \(forwardedLocation.logString)")
+                Logger.itemManager.debug("Forwarding \(type.logString) from \(initialLocation.logString) to \(forwardedLocation.logString) (item: \"\(item.logString)\")")
 
                 postEvent(event, to: forwardedLocation)
 
@@ -593,7 +604,7 @@ extension MenuBarItemManager {
             }
 
             eventTap.enable(timeout: .milliseconds(50)) {
-                Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out")
+                Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out (item: \"\(item.logString)\")")
                 eventTap.disable()
                 continuation.resume()
             }
@@ -618,14 +629,17 @@ extension MenuBarItemManager {
         to forwardedLocation: EventTap.Location,
         waitingForFrameChangeOf item: MenuBarItem
     ) async throws {
+        var error: EventError {
+            EventError(code: .couldNotComplete, item: item)
+        }
         guard let currentFrame = getCurrentFrame(for: item) else {
-            try await forwardEvent(event, from: initialLocation, to: forwardedLocation)
-            Logger.itemManager.warning("No item frame, so using fixed delay instead of frame check")
+            try await forwardEvent(event, from: initialLocation, to: forwardedLocation, item: item)
+            Logger.itemManager.warning("Couldn't get menu bar item frame for \"\(item.logString)\", so using fixed delay")
             // this will be slow, but subsequent events will have a better chance of succeeding
             try await Task.sleep(for: .milliseconds(50))
             return
         }
-        try await forwardEvent(event, from: initialLocation, to: forwardedLocation)
+        try await forwardEvent(event, from: initialLocation, to: forwardedLocation, item: item)
         try await waitForFrameChange(of: item, initialFrame: currentFrame, timeout: .milliseconds(50))
     }
 
@@ -645,7 +659,7 @@ extension MenuBarItemManager {
                     throw FrameCheckCancellationError()
                 }
                 if currentFrame != initialFrame {
-                    Logger.itemManager.debug("Menu bar item frame has changed to \(NSStringFromRect(currentFrame))")
+                    Logger.itemManager.debug("Menu bar item frame for \"\(item.logString)\" has changed to \(NSStringFromRect(currentFrame))")
                     return
                 }
             }
@@ -654,7 +668,7 @@ extension MenuBarItemManager {
         do {
             try await frameCheckTask.value
         } catch is FrameCheckCancellationError {
-            Logger.itemManager.warning("Frame check was cancelled, so using fixed delay")
+            Logger.itemManager.warning("Menu bar item frame check for \"\(item.logString)\" was cancelled, so using fixed delay")
             // this will be slow, but subsequent events will have a better chance of succeeding
             try await Task.sleep(for: .milliseconds(50))
         } catch is TaskTimeoutError {
@@ -667,10 +681,11 @@ extension MenuBarItemManager {
     private func permitAllEvents(
         for stateID: CGEventSourceStateID,
         during states: [CGEventSuppressionState],
-        suppressionInterval: TimeInterval
+        suppressionInterval: TimeInterval,
+        item: MenuBarItem
     ) throws {
         guard let source = CGEventSource(stateID: stateID) else {
-            throw EventError(code: .invalidEventSource)
+            throw EventError(code: .invalidEventSource, item: item)
         }
         for state in states {
             source.setLocalEventsFilterDuringSuppressionState(.permitAllEvents, state: state)
@@ -701,7 +716,8 @@ extension MenuBarItemManager {
         try await forwardEvent(
             mouseUpEvent,
             from: .pid(item.ownerPID),
-            to: .sessionEventTap
+            to: .sessionEventTap,
+            item: item
         )
     }
 
@@ -760,7 +776,8 @@ extension MenuBarItemManager {
                 .eventSuppressionStateRemoteMouseDrag,
                 .eventSuppressionStateSuppressionInterval,
             ],
-            suppressionInterval: 0
+            suppressionInterval: 0,
+            item: item
         )
 
         lastItemMoveStartDate = .now
@@ -826,10 +843,10 @@ extension MenuBarItemManager {
         for n in 1...5 {
             do {
                 try await moveItemWithoutRestoringMouseLocation(item, to: destination)
-                if
-                    let newFrame = getCurrentFrame(for: item),
-                    newFrame != initialFrame
-                {
+                guard let newFrame = getCurrentFrame(for: item) else {
+                    throw EventError(code: .invalidItem, item: item)
+                }
+                if newFrame != initialFrame {
                     Logger.itemManager.info("Successfully moved \"\(item.logString)\"")
                     break
                 } else {
@@ -915,7 +932,8 @@ extension MenuBarItemManager {
                 .eventSuppressionStateRemoteMouseDrag,
                 .eventSuppressionStateSuppressionInterval,
             ],
-            suppressionInterval: 0
+            suppressionInterval: 0,
+            item: item
         )
 
         MouseCursor.hide()
@@ -926,12 +944,17 @@ extension MenuBarItemManager {
         }
 
         do {
-            try await postEventAndWaitToReceive(mouseDownEvent, to: .sessionEventTap)
-            try? await Task.sleep(for: .milliseconds(50))
-            try await postEventAndWaitToReceive(mouseUpEvent, to: .sessionEventTap)
+            try await postEventAndWaitToReceive(mouseDownEvent, to: .sessionEventTap, item: item)
+            try await Task.sleep(for: .milliseconds(50))
+            try await postEventAndWaitToReceive(mouseUpEvent, to: .sessionEventTap, item: item)
+            try await Task.sleep(for: .milliseconds(50))
         } catch {
-            // call with `try?`, as we don't want to circumvent the existing error
-            try? await postEventAndWaitToReceive(fallbackEvent, to: .sessionEventTap)
+            do {
+                // Catch this, as we still want to throw the existing error if the fallback fails.
+                try await postEventAndWaitToReceive(fallbackEvent, to: .sessionEventTap, item: item)
+            } catch {
+                Logger.itemManager.error("Failed to post fallback event for clicking \"\(item.logString)\"")
+            }
             throw error
         }
     }

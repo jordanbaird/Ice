@@ -115,10 +115,6 @@ Ice uses a number of system APIs that are available starting in macOS 14. As suc
 
 ![Custom Menu Bar Item Spacing](https://github.com/user-attachments/assets/b196aa7e-184a-4d4c-b040-502f4aae40a6)
 
-## Stargazers over time
-
-[![Star History Chart](https://api.star-history.com/svg?repos=jordanbaird/Ice&type=Date)](https://star-history.com/#jordanbaird/Ice&Date)
-
 ## License
 
 Ice is available under the [GPL-3.0 license](LICENSE).

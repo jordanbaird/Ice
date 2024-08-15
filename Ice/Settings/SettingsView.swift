@@ -29,13 +29,13 @@ struct SettingsView: View {
                     Image(.iceCubeStroke)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 30, height: 30)
 
                     Text("Ice")
-                        .font(.system(size: 28, weight: .medium))
+                        .font(.system(size: 30, weight: .medium))
                 }
                 .foregroundStyle(.primary)
-                .padding(.bottom, 8)
+                .padding(.vertical, 8)
             }
             .collapsible(false)
         }
@@ -73,7 +73,7 @@ struct SettingsView: View {
             icon(for: identifier).view
                 .foregroundStyle(.primary)
         }
-        .frame(height: 30)
+        .frame(height: 32)
     }
 
     private func icon(for identifier: SettingsNavigationIdentifier) -> IconResource {

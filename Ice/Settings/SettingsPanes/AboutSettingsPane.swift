@@ -28,29 +28,33 @@ struct AboutSettingsPane: View {
         URL(string: "https://github.com/sponsors/jordanbaird")!
     }
 
+    private var minFrameDimension: CGFloat {
+        min(frame.width, frame.height)
+    }
+
     var body: some View {
         HStack {
             if let nsImage = NSImage(named: NSImage.applicationIconName) {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: frame.height / 2)
+                    .frame(width: minFrameDimension / 1.5)
             }
 
             VStack(alignment: .leading) {
                 Text("Ice")
-                    .font(.system(size: 64))
+                    .font(.system(size: minFrameDimension / 7))
                     .foregroundStyle(.primary)
 
                 HStack(spacing: 4) {
                     Text("Version")
                     Text(Constants.appVersion)
                 }
-                .font(.system(size: 16))
+                .font(.system(size: minFrameDimension / 30))
                 .foregroundStyle(.secondary)
 
                 Text(Constants.copyright)
-                    .font(.system(size: 14))
+                    .font(.system(size: minFrameDimension / 40))
                     .foregroundStyle(.tertiary)
             }
             .fontWeight(.medium)

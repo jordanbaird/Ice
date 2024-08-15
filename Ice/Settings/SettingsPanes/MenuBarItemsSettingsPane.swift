@@ -35,7 +35,7 @@ struct MenuBarItemsSettingsPane: View {
 
     @ViewBuilder
     private var layoutBars: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 30) {
             ForEach(MenuBarSection.Name.allCases, id: \.self) { section in
                 layoutBar(for: section)
             }
@@ -56,9 +56,9 @@ struct MenuBarItemsSettingsPane: View {
             section.isEnabled
         {
             VStack(alignment: .leading, spacing: 2) {
-                Text(section.name.menuString)
+                Text(section.name.menuString + " Menu Bar Items")
                     .font(.system(size: 15))
-                    .padding(.leading, 5)
+                    .padding(.leading, 2.5)
                 LayoutBar(section: section)
                     .environmentObject(appState.imageCache)
             }

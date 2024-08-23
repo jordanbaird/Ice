@@ -47,7 +47,6 @@ class EventTap {
     /// or to disable the tap from within the callback.
     struct Proxy {
         private let tap: EventTap
-
         private let pointer: CGEventTapProxy
 
         /// The label associated with the event tap.
@@ -87,13 +86,11 @@ class EventTap {
     }
 
     private let runLoop = CFRunLoopGetCurrent()
-
     private let mode: CFRunLoopMode = .commonModes
-
     private let callback: (EventTap, CGEventTapProxy, CGEventType, CGEvent) -> Unmanaged<CGEvent>?
+    private let queue: DispatchQueue
 
     private var machPort: CFMachPort?
-
     private var source: CFRunLoopSource?
 
     /// The label associated with the event tap.
@@ -128,6 +125,7 @@ class EventTap {
         self.callback = { tap, pointer, type, event in
             callback(Proxy(tap: tap, pointer: pointer), type, event).map(Unmanaged.passUnretained)
         }
+        self.queue = DispatchQueue(label: label)
         guard let machPort = Self.createTapMachPort(
             location: location,
             place: place,
@@ -159,7 +157,10 @@ class EventTap {
         event: CGEvent
     ) -> Unmanaged<CGEvent>? {
         let callback = eventTap.callback
-        return callback(eventTap, proxy, type, event)
+        let queue = eventTap.queue
+        return queue.sync {
+            callback(eventTap, proxy, type, event)
+        }
     }
 
     private static func createTapMachPort(
@@ -221,8 +222,11 @@ class EventTap {
     /// Enables the event tap.
     func enable() {
         withUnwrappedComponents { runLoop, source, machPort in
-            CFRunLoopAddSource(runLoop, source, mode)
-            CGEvent.tapEnable(tap: machPort, enable: true)
+            let mode = self.mode
+            queue.async {
+                CFRunLoopAddSource(runLoop, source, mode)
+                CGEvent.tapEnable(tap: machPort, enable: true)
+            }
         }
     }
 
@@ -234,8 +238,10 @@ class EventTap {
             guard let self else {
                 return
             }
-            if isEnabled {
-                onTimeout()
+            queue.async {
+                if self.isEnabled {
+                    onTimeout()
+                }
             }
         }
     }
@@ -243,8 +249,11 @@ class EventTap {
     /// Disables the event tap.
     func disable() {
         withUnwrappedComponents { runLoop, source, machPort in
-            CFRunLoopRemoveSource(runLoop, source, mode)
-            CGEvent.tapEnable(tap: machPort, enable: false)
+            let mode = self.mode
+            queue.async {
+                CFRunLoopRemoveSource(runLoop, source, mode)
+                CGEvent.tapEnable(tap: machPort, enable: false)
+            }
         }
     }
 }

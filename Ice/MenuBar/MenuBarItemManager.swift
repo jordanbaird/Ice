@@ -278,7 +278,13 @@ extension MenuBarItemManager {
             case notMovable
 
             /// Indicates that a menu bar item event operation timed out.
-            case timeout
+            case eventOperationTimeout
+
+            /// Indicates that a menu bar item frame check timed out.
+            case frameCheckTimeout
+
+            /// Indicates that an operation timed out.
+            case otherTimeout
 
             var description: String {
                 switch self {
@@ -289,7 +295,9 @@ extension MenuBarItemManager {
                 case .invalidCursorLocation: "invalidCursorLocation"
                 case .invalidItem: "invalidItem"
                 case .notMovable: "notMovable"
-                case .timeout: "timeout"
+                case .eventOperationTimeout: "eventOperationTimeout"
+                case .frameCheckTimeout: "frameCheckTimeout"
+                case .otherTimeout: "otherTimeout"
                 }
             }
 
@@ -322,7 +330,11 @@ extension MenuBarItemManager {
                 "\"\(item.displayName)\" is invalid"
             case .notMovable:
                 "\"\(item.displayName)\" is not movable"
-            case .timeout:
+            case .eventOperationTimeout:
+                "Event operation timed out for \"\(item.displayName)\""
+            case .frameCheckTimeout:
+                "Frame check timed out for \"\(item.displayName)\""
+            case .otherTimeout:
                 "Operation timed out for \"\(item.displayName)\""
             }
         }
@@ -475,6 +487,13 @@ extension MenuBarItemManager {
         }
     }
 
+    /// Delays an event tap callback from returning.
+    private func delayEventTapCallback() {
+        // Small delay to prevent timeouts when running alongside certain event tapping apps.
+        // TODO: Try to find a better solution for this.
+        Thread.sleep(forTimeInterval: 0.015)
+    }
+
     /// Posts an event to the given event tap location and waits until it is
     /// received before returning.
     ///
@@ -484,11 +503,10 @@ extension MenuBarItemManager {
     ///   - item: The menu bar item that the event affects.
     private func postEventAndWaitToReceive(_ event: CGEvent, to location: EventTap.Location, item: MenuBarItem) async throws {
         return try await withCheckedThrowingContinuation { continuation in
-            var resumed = false
             let eventTap = EventTap(
                 options: .defaultTap,
                 location: location,
-                place: .headInsertEventTap,
+                place: .tailAppendEventTap,
                 types: [event.type]
             ) { [weak self] proxy, type, rEvent in
                 guard let self else {
@@ -517,21 +535,15 @@ extension MenuBarItemManager {
                 Logger.itemManager.debug("Received \(type.logString) at \(location.logString) (item: \(item.logString))")
 
                 proxy.disable()
-                if !resumed {
-                    resumed = true
-                    continuation.resume()
-                }
+                continuation.resume()
 
                 return rEvent
             }
 
-            eventTap.enable(timeout: 0.05) {
+            eventTap.enable(timeout: .milliseconds(50)) {
                 Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out (item: \(item.logString))")
                 eventTap.disable()
-                if !resumed {
-                    resumed = true
-                    continuation.resume()
-                }
+                continuation.resume(throwing: EventError(code: .eventOperationTimeout, item: item))
             }
 
             postEvent(event, to: location)
@@ -553,11 +565,10 @@ extension MenuBarItemManager {
         item: MenuBarItem
     ) async throws {
         return try await withCheckedThrowingContinuation { continuation in
-            var resumed = false
             let eventTap = EventTap(
                 options: .defaultTap,
                 location: initialLocation,
-                place: .headInsertEventTap,
+                place: .tailAppendEventTap,
                 types: [event.type]
             ) { [weak self] proxy, type, rEvent in
                 guard let self else {
@@ -585,24 +596,19 @@ extension MenuBarItemManager {
 
                 Logger.itemManager.debug("Forwarding \(type.logString) from \(initialLocation.logString) to \(forwardedLocation.logString) (item: \(item.logString))")
 
-                postEvent(event, to: forwardedLocation)
-
                 proxy.disable()
-                if !resumed {
-                    resumed = true
-                    continuation.resume()
-                }
+                continuation.resume()
+
+                postEvent(event, to: forwardedLocation)
+                delayEventTapCallback()
 
                 return rEvent
             }
 
-            eventTap.enable(timeout: 0.05) {
+            eventTap.enable(timeout: .milliseconds(50)) {
                 Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out (item: \(item.logString))")
                 eventTap.disable()
-                if !resumed {
-                    resumed = true
-                    continuation.resume()
-                }
+                continuation.resume(throwing: EventError(code: .eventOperationTimeout, item: item))
             }
 
             postEvent(event, to: initialLocation)
@@ -632,11 +638,11 @@ extension MenuBarItemManager {
             try await forwardEvent(event, from: initialLocation, to: forwardedLocation, item: item)
             Logger.itemManager.warning("Couldn't get menu bar item frame for \(item.logString), so using fixed delay")
             // This will be slow, but subsequent events will have a better chance of succeeding.
-            try await Task.sleep(for: .milliseconds(100))
+            try await Task.sleep(for: .milliseconds(50))
             return
         }
         try await forwardEvent(event, from: initialLocation, to: forwardedLocation, item: item)
-        try await waitForFrameChange(of: item, initialFrame: currentFrame, timeout: .milliseconds(100))
+        try await waitForFrameChange(of: item, initialFrame: currentFrame, timeout: .milliseconds(50))
     }
 
     /// Waits for a menu bar item's frame to change from an initial frame.
@@ -666,9 +672,9 @@ extension MenuBarItemManager {
         } catch is FrameCheckCancellationError {
             Logger.itemManager.warning("Menu bar item frame check for \(item.logString) was cancelled, so using fixed delay")
             // This will be slow, but subsequent events will have a better chance of succeeding.
-            try await Task.sleep(for: .milliseconds(100))
+            try await Task.sleep(for: .milliseconds(50))
         } catch is TaskTimeoutError {
-            throw EventError(code: .timeout, item: item)
+            throw EventError(code: .frameCheckTimeout, item: item)
         }
     }
 
@@ -861,7 +867,7 @@ extension MenuBarItemManager {
         do {
             try await waitTask.value
         } catch is TaskTimeoutError {
-            throw EventError(code: .timeout, item: item)
+            throw EventError(code: .otherTimeout, item: item)
         }
     }
 }
@@ -1130,7 +1136,7 @@ extension MenuBarItemManager {
                 continue
             }
             do {
-                try await slowMove(item: item, to: context.returnDestination)
+                try await move(item: item, to: context.returnDestination)
             } catch {
                 Logger.itemManager.error("Failed to rehide \(item.logString) (error: \(error))")
                 failedContexts.append(context)

@@ -75,7 +75,7 @@ class EventTap {
         }
 
         /// Enables the event tap with the given timeout.
-        func enable(timeout: Duration, onTimeout: @escaping () -> Void) {
+        func enable(timeout: TimeInterval, onTimeout: @escaping () -> Void) {
             tap.enable(timeout: timeout, onTimeout: onTimeout)
         }
 
@@ -231,17 +231,14 @@ class EventTap {
     }
 
     /// Enables the event tap with the given timeout.
-    func enable(timeout: Duration, onTimeout: @escaping () -> Void) {
+    func enable(timeout: TimeInterval, onTimeout: @escaping () -> Void) {
         enable()
-        Task { [weak self] in
-            try await Task.sleep(for: timeout)
+        queue.asyncAfter(deadline: .now() + timeout) { [weak self] in
             guard let self else {
                 return
             }
-            queue.async {
-                if self.isEnabled {
-                    onTimeout()
-                }
+            if isEnabled {
+                onTimeout()
             }
         }
     }

@@ -475,13 +475,6 @@ extension MenuBarItemManager {
         }
     }
 
-    /// Delays an event tap callback from returning.
-    private func delayEventTapCallback() {
-        // Small delay to prevent timeouts when running alongside certain event tapping apps.
-        // TODO: Try to find a better solution for this.
-        Thread.sleep(forTimeInterval: 0.015)
-    }
-
     /// Posts an event to the given event tap location and waits until it is
     /// received before returning.
     ///
@@ -491,6 +484,7 @@ extension MenuBarItemManager {
     ///   - item: The menu bar item that the event affects.
     private func postEventAndWaitToReceive(_ event: CGEvent, to location: EventTap.Location, item: MenuBarItem) async throws {
         return try await withCheckedThrowingContinuation { continuation in
+            var resumed = false
             let eventTap = EventTap(
                 options: .defaultTap,
                 location: location,
@@ -523,16 +517,21 @@ extension MenuBarItemManager {
                 Logger.itemManager.debug("Received \(type.logString) at \(location.logString) (item: \(item.logString))")
 
                 proxy.disable()
-                continuation.resume()
-                delayEventTapCallback()
+                if !resumed {
+                    resumed = true
+                    continuation.resume()
+                }
 
                 return rEvent
             }
 
-            eventTap.enable(timeout: .milliseconds(50)) {
+            eventTap.enable(timeout: 0.05) {
                 Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out (item: \(item.logString))")
                 eventTap.disable()
-                continuation.resume()
+                if !resumed {
+                    resumed = true
+                    continuation.resume()
+                }
             }
 
             postEvent(event, to: location)
@@ -554,6 +553,7 @@ extension MenuBarItemManager {
         item: MenuBarItem
     ) async throws {
         return try await withCheckedThrowingContinuation { continuation in
+            var resumed = false
             let eventTap = EventTap(
                 options: .defaultTap,
                 location: initialLocation,
@@ -588,16 +588,21 @@ extension MenuBarItemManager {
                 postEvent(event, to: forwardedLocation)
 
                 proxy.disable()
-                continuation.resume()
-                delayEventTapCallback()
+                if !resumed {
+                    resumed = true
+                    continuation.resume()
+                }
 
                 return rEvent
             }
 
-            eventTap.enable(timeout: .milliseconds(50)) {
+            eventTap.enable(timeout: 0.05) {
                 Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out (item: \(item.logString))")
                 eventTap.disable()
-                continuation.resume()
+                if !resumed {
+                    resumed = true
+                    continuation.resume()
+                }
             }
 
             postEvent(event, to: initialLocation)
@@ -1125,7 +1130,7 @@ extension MenuBarItemManager {
                 continue
             }
             do {
-                try await move(item: item, to: context.returnDestination)
+                try await slowMove(item: item, to: context.returnDestination)
             } catch {
                 Logger.itemManager.error("Failed to rehide \(item.logString) (error: \(error))")
                 failedContexts.append(context)

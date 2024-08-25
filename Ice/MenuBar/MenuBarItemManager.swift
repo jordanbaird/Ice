@@ -10,29 +10,36 @@ import OSLog
 /// A type that manages menu bar items.
 @MainActor
 class MenuBarItemManager: ObservableObject {
+    /// Cache for menu bar items.
     struct ItemCache: Hashable {
         var hiddenControlItem: MenuBarItem?
         var alwaysHiddenControlItem: MenuBarItem?
+
         private var items = [MenuBarSection.Name: [MenuBarItem]]()
 
+        /// Appends the given item to the given section.
         mutating func appendItem(_ item: MenuBarItem, to section: MenuBarSection.Name) {
             items[section, default: []].append(item)
         }
 
+        /// Clears the cached items for the given section.
         mutating func clearItems(for section: MenuBarSection.Name) {
             items[section, default: []].removeAll()
         }
 
+        /// Clears the cache.
         mutating func clear() {
             hiddenControlItem = nil
             alwaysHiddenControlItem = nil
             items.removeAll()
         }
 
+        /// Returns the items for the given section.
         func allItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
             items[section, default: []]
         }
 
+        /// Returns the items managed by Ice for the given section.
         func managedItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
             allItems(for: section).filter { item in
                 // Filter out items that can't be hidden.
@@ -52,11 +59,13 @@ class MenuBarItemManager: ObservableObject {
         }
     }
 
+    /// Context for a temporarily shown menu bar item.
     private struct TempShownItemContext {
         let info: MenuBarItemInfo
         let returnDestination: MoveDestination
         let shownInterfaceWindow: WindowInfo?
 
+        /// A Boolean value that indicates whether the menu bar item's interface is showing.
         var isShowingInterface: Bool {
             guard let currentWindow = shownInterfaceWindow.flatMap({ WindowInfo(windowID: $0.windowID) }) else {
                 return false
@@ -74,16 +83,17 @@ class MenuBarItemManager: ObservableObject {
 
     @Published private(set) var itemCache = ItemCache()
 
-    private(set) var lastItemMoveStartDate: Date?
+    private(set) weak var appState: AppState?
+
+    private var cancellables = Set<AnyCancellable>()
 
     private var cachedItemWindowIDs = [CGWindowID]()
 
     private var tempShownItemContexts = [TempShownItemContext]()
-
     private var tempShownItemsTimer: Timer?
 
+    private(set) var lastItemMoveStartDate: Date?
     private var isMouseButtonDown = false
-
     private var mouseMovedCount = 0
 
     private let mouseTrackingMask: NSEvent.EventTypeMask = [
@@ -95,10 +105,6 @@ class MenuBarItemManager: ObservableObject {
         .rightMouseUp,
         .otherMouseUp,
     ]
-
-    private(set) weak var appState: AppState?
-
-    private var cancellables = Set<AnyCancellable>()
 
     init(appState: AppState) {
         self.appState = appState
@@ -156,8 +162,7 @@ class MenuBarItemManager: ObservableObject {
 // MARK: - Cache Items
 
 extension MenuBarItemManager {
-    /// Caches the given menu bar items, without checking whether the control items
-    /// are in the correct order.
+    /// Caches the given menu bar items, without checking whether the control items are in the correct order.
     private func uncheckedCacheItems(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem?, otherItems: [MenuBarItem]) {
         func logNotAddedWarning(for item: MenuBarItem) {
             Logger.itemManager.warning("\(item.logString) doesn't seem to be in a section, so it wasn't cached")
@@ -213,7 +218,7 @@ extension MenuBarItemManager {
 
         let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
         if cachedItemWindowIDs == itemWindowIDs {
-            Logger.itemManager.debug("Skipping item cache as menu bar item windows have not changed")
+            Logger.itemManager.debug("Skipping item cache as item windows have not changed")
             return
         } else {
             cachedItemWindowIDs = itemWindowIDs
@@ -470,9 +475,9 @@ extension MenuBarItemManager {
         }
     }
 
-    /// Delays the event tap callback from returning.
+    /// Delays an event tap callback from returning.
     private func delayEventTapCallback() {
-        // Small delay to prevent a timeout when running alongside certain event tapping apps.
+        // Small delay to prevent timeouts when running alongside certain event tapping apps.
         // TODO: Try to find a better solution for this.
         Thread.sleep(forTimeInterval: 0.015)
     }
@@ -483,6 +488,7 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - event: The event to post.
     ///   - location: The event tap location to post the event to.
+    ///   - item: The menu bar item that the event affects.
     private func postEventAndWaitToReceive(_ event: CGEvent, to location: EventTap.Location, item: MenuBarItem) async throws {
         return try await withCheckedThrowingContinuation { continuation in
             let eventTap = EventTap(
@@ -540,6 +546,7 @@ extension MenuBarItemManager {
     ///   - event: The event to forward.
     ///   - initialLocation: The initial location to post the event.
     ///   - forwardedLocation: The location to forward the event.
+    ///   - item: The menu bar item that the event affects.
     private func forwardEvent(
         _ event: CGEvent,
         from initialLocation: EventTap.Location,
@@ -688,7 +695,7 @@ extension MenuBarItemManager {
             throw EventError(code: .invalidItem, item: item)
         }
         guard let mouseUpEvent = CGEvent.menuBarItemEvent(
-            with: .move(.leftMouseUp),
+            type: .move(.leftMouseUp),
             location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
             item: item,
             pid: item.ownerPID,
@@ -697,25 +704,16 @@ extension MenuBarItemManager {
             throw EventError(code: .eventCreationFailure, item: item)
         }
 
-        try await forwardEvent(
-            mouseUpEvent,
-            from: .pid(item.ownerPID),
-            to: .sessionEventTap,
-            item: item
-        )
+        try await forwardEvent(mouseUpEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
     }
 
-    /// Moves a menu bar item to the given destination, without restoring
-    /// the mouse pointer to its pre-move location.
-    /// 
+    /// Moves a menu bar item to the given destination, without restoring the mouse
+    /// pointer to its initial location.
+    ///
     /// - Parameters:
     ///   - item: A menu bar item to move.
     ///   - destination: A destination to move the menu bar item.
-    ///   - source: An event source.
-    private func moveItemWithoutRestoringMouseLocation(
-        _ item: MenuBarItem,
-        to destination: MoveDestination
-    ) async throws {
+    private func moveItemWithoutRestoringMouseLocation(_ item: MenuBarItem, to destination: MoveDestination) async throws {
         guard item.isMovable else {
             throw EventError(code: .notMovable, item: item)
         }
@@ -730,21 +728,21 @@ extension MenuBarItemManager {
 
         guard
             let mouseDownEvent = CGEvent.menuBarItemEvent(
-                with: .move(.leftMouseDown),
+                type: .move(.leftMouseDown),
                 location: startPoint,
                 item: item,
                 pid: item.ownerPID,
                 source: source
             ),
             let mouseUpEvent = CGEvent.menuBarItemEvent(
-                with: .move(.leftMouseUp),
+                type: .move(.leftMouseUp),
                 location: endPoint,
                 item: targetItem,
                 pid: item.ownerPID,
                 source: source
             ),
             let fallbackEvent = CGEvent.menuBarItemEvent(
-                with: .move(.leftMouseUp),
+                type: .move(.leftMouseUp),
                 location: fallbackPoint,
                 item: item,
                 pid: item.ownerPID,
@@ -816,8 +814,8 @@ extension MenuBarItemManager {
             MouseCursor.show()
         }
 
-        // Item movement can occasionally fail. Retry up to a total of attempts,
-        // throwing the error on the last attempt if it fails.
+        // Item movement can occasionally fail. Retry up to a total of 5 attempts,
+        // throwing the last attempt's error if it fails.
         for n in 1...5 {
             do {
                 try await moveItemWithoutRestoringMouseLocation(item, to: destination)
@@ -839,8 +837,8 @@ extension MenuBarItemManager {
         }
     }
 
-    /// Moves a menu bar item to the given destination and waits until the
-    /// move completes before returning.
+    /// Moves a menu bar item to the given destination and waits until the move
+    /// completes before returning.
     ///
     /// - Parameters:
     ///   - item: A menu bar item to move.
@@ -886,21 +884,21 @@ extension MenuBarItemManager {
 
         guard
             let mouseDownEvent = CGEvent.menuBarItemEvent(
-                with: .click(mouseDownButtonState),
+                type: .click(mouseDownButtonState),
                 location: clickPoint,
                 item: item,
                 pid: item.ownerPID,
                 source: source
             ),
             let mouseUpEvent = CGEvent.menuBarItemEvent(
-                with: .click(mouseUpButtonState),
+                type: .click(mouseUpButtonState),
                 location: clickPoint,
                 item: item,
                 pid: item.ownerPID,
                 source: source
             ),
             let fallbackEvent = CGEvent.menuBarItemEvent(
-                with: .click(mouseUpButtonState),
+                type: .click(mouseUpButtonState),
                 location: clickPoint,
                 item: item,
                 pid: item.ownerPID,
@@ -980,17 +978,14 @@ extension MenuBarItemManager {
     /// Schedules a timer for the given interval, attempting to rehide the current temporarily shown
     /// items when the timer fires.
     private func runTempShownItemTimer(for interval: TimeInterval) {
-        Logger.itemManager.debug("Running rehide timer for temp shown items with interval: \(interval, format: .hybrid)")
-
+        Logger.itemManager.debug("Running rehide timer for temporarily shown items with interval: \(interval, format: .hybrid)")
         tempShownItemsTimer?.invalidate()
         tempShownItemsTimer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
             guard let self else {
                 timer.invalidate()
                 return
             }
-
             Logger.itemManager.debug("Rehide timer fired")
-
             Task {
                 await self.rehideTempShownItems()
             }
@@ -1028,17 +1023,24 @@ extension MenuBarItemManager {
             return
         }
 
+        // Remove all items up to the hidden control item.
         items.trimPrefix { $0.info != .hiddenControlItem }
-        items.removeFirst() // remove hidden control item
+        // Remove the hidden control item.
+        items.removeFirst()
+        // Remove all offscreen items.
         items.trimPrefix { !$0.isOnScreen }
+
         if let rightArea = screen.auxiliaryTopRightArea {
+            // Remove items to the right of the notch until we have enough room to show this item.
             items.trimPrefix { $0.frame.minX - item.frame.width <= rightArea.minX + 20 }
         } else {
+            // Remove items to the right of the application menu frame until we have enough room
+            // to show this item.
             items.trimPrefix { $0.frame.minX - item.frame.width <= applicationMenuFrame.maxX }
         }
 
         guard let targetItem = items.first else {
-            Logger.itemManager.warning("Not enough room to show item")
+            Logger.itemManager.warning("Not enough room to show \(item.logString)")
             return
         }
 
@@ -1080,13 +1082,9 @@ extension MenuBarItemManager {
                 }
             }
 
-            let context = TempShownItemContext(
-                info: item.info,
-                returnDestination: destination,
-                shownInterfaceWindow: shownInterfaceWindow
-            )
-
+            let context = TempShownItemContext(info: item.info, returnDestination: destination, shownInterfaceWindow: shownInterfaceWindow)
             tempShownItemContexts.append(context)
+
             runTempShownItemTimer(for: rehideInterval)
         }
     }
@@ -1109,14 +1107,14 @@ extension MenuBarItemManager {
         do {
             try await interfaceCheckTask.value
         } catch is TaskTimeoutError {
-            Logger.itemManager.debug("Menu check task timed out. Switching to timer")
+            Logger.itemManager.debug("Menu check task timed out, switching to timer")
             runTempShownItemTimer(for: 3)
             return
         } catch {
             Logger.itemManager.error("ERROR: \(error)")
         }
 
-        Logger.itemManager.info("Rehiding temp shown items")
+        Logger.itemManager.info("Rehiding temporarily shown items")
 
         var failedContexts = [TempShownItemContext]()
 
@@ -1147,7 +1145,7 @@ extension MenuBarItemManager {
     ///
     /// This has the effect of ensuring that the item will not be returned to its previous location.
     func removeTempShownItemFromCache(with info: MenuBarItemInfo) {
-        tempShownItemContexts.removeAll(where: { $0.info == info })
+        tempShownItemContexts.removeAll { $0.info == info }
     }
 }
 
@@ -1307,19 +1305,11 @@ private extension CGEvent {
     ///   - item: The target item of the event.
     ///   - pid: The target process identifier of the event. Does not need to be the item's `ownerPID`.
     ///   - source: The source of the event.
-    class func menuBarItemEvent(
-        with type: MenuBarItemEventType,
-        location: CGPoint,
-        item: MenuBarItem,
-        pid: pid_t,
-        source: CGEventSource
-    ) -> CGEvent? {
-        guard let event = CGEvent(
-            mouseEventSource: source,
-            mouseType: type.cgEventType,
-            mouseCursorPosition: location,
-            mouseButton: type.mouseButton
-        ) else {
+    class func menuBarItemEvent(type: MenuBarItemEventType, location: CGPoint, item: MenuBarItem, pid: pid_t, source: CGEventSource) -> CGEvent? {
+        let mouseType = type.cgEventType
+        let mouseButton = type.mouseButton
+
+        guard let event = CGEvent(mouseEventSource: source, mouseType: mouseType, mouseCursorPosition: location, mouseButton: mouseButton) else {
             return nil
         }
 

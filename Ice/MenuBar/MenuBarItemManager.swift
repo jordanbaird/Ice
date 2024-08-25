@@ -627,11 +627,11 @@ extension MenuBarItemManager {
             try await forwardEvent(event, from: initialLocation, to: forwardedLocation, item: item)
             Logger.itemManager.warning("Couldn't get menu bar item frame for \(item.logString), so using fixed delay")
             // This will be slow, but subsequent events will have a better chance of succeeding.
-            try await Task.sleep(for: .milliseconds(50))
+            try await Task.sleep(for: .milliseconds(100))
             return
         }
         try await forwardEvent(event, from: initialLocation, to: forwardedLocation, item: item)
-        try await waitForFrameChange(of: item, initialFrame: currentFrame, timeout: .milliseconds(50))
+        try await waitForFrameChange(of: item, initialFrame: currentFrame, timeout: .milliseconds(100))
     }
 
     /// Waits for a menu bar item's frame to change from an initial frame.
@@ -661,7 +661,7 @@ extension MenuBarItemManager {
         } catch is FrameCheckCancellationError {
             Logger.itemManager.warning("Menu bar item frame check for \(item.logString) was cancelled, so using fixed delay")
             // This will be slow, but subsequent events will have a better chance of succeeding.
-            try await Task.sleep(for: .milliseconds(50))
+            try await Task.sleep(for: .milliseconds(100))
         } catch is TaskTimeoutError {
             throw EventError(code: .timeout, item: item)
         }

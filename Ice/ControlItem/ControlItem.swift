@@ -7,7 +7,7 @@ import Cocoa
 import Combine
 import OSLog
 
-/// A status item that controls the a section in the menu bar.
+/// A status item that controls a section in the menu bar.
 @MainActor
 final class ControlItem {
     enum Identifier: String, Hashable, CaseIterable {

@@ -9,7 +9,7 @@ import OSLog
 
 /// A status item that controls the a section in the menu bar.
 @MainActor
-final class ControlItem: ObservableObject {
+final class ControlItem {
     enum Identifier: String, Hashable, CaseIterable {
         case iceIcon = "SItem"
         case hidden = "HItem"

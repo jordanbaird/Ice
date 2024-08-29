@@ -24,27 +24,22 @@ final class MenuBarManager: ObservableObject {
     @Published private(set) var isMenuBarHiddenBySystemUserDefaults = false
 
     private(set) weak var appState: AppState?
-
-    private(set) var sections = [MenuBarSection]()
+    private var cancellables = Set<AnyCancellable>()
 
     let appearanceManager: MenuBarAppearanceManager
-
     let iceBarPanel: IceBarPanel
 
     private let encoder = JSONEncoder()
-
     private let decoder = JSONDecoder()
 
     private var isHidingApplicationMenus = false
-
     private var canUpdateAverageColor = false
 
-    private var cancellables = Set<AnyCancellable>()
+    private(set) var sections = [MenuBarSection]()
 
     /// The currently shown section.
     var shownSection: MenuBarSection? {
-        // filter out the visible section;
-        // if multiple sections are shown, return the last one
+        // Filter out the visible section. If multiple sections are shown, return the last one.
         sections.lazy
             .filter { section in
                 section.name != .visible
@@ -71,7 +66,7 @@ final class MenuBarManager: ObservableObject {
 
     /// Performs the initial setup of the menu bar's section list.
     private func initializeSections() {
-        // make sure initialization can only happen once
+        // Make sure initialization can only happen once.
         guard sections.isEmpty else {
             Logger.menuBarManager.warning("Sections already initialized")
             return
@@ -83,7 +78,7 @@ final class MenuBarManager: ObservableObject {
             MenuBarSection(name: .alwaysHidden),
         ]
 
-        // assign the global app state to each section
+        // Assign the global app state to each section.
         if let appState {
             for section in sections {
                 section.assignAppState(appState)
@@ -123,7 +118,7 @@ final class MenuBarManager: ObservableObject {
                 .store(in: &c)
         }
 
-        // handle focusedApp rehide strategy
+        // Handle the `focusedApp` rehide strategy.
         NSWorkspace.shared.publisher(for: \.frontmostApplication)
             .sink { [weak self] _ in
                 if
@@ -173,7 +168,7 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        // hide application menus when a section is shown (if applicable)
+        // Hide application menus when a section is shown (if applicable).
         Publishers.MergeMany(sections.map { $0.controlItem.$state })
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
@@ -185,11 +180,11 @@ final class MenuBarManager: ObservableObject {
                     return
                 }
 
-                // don't continue if:
-                //   * the "HideApplicationMenus" setting isn't enabled
-                //   * the menu bar is hidden by the system
-                //   * the active space is fullscreen
-                //   * the settings window is visible
+                // Don't continue if:
+                //   * The "HideApplicationMenus" setting isn't enabled.
+                //   * The menu bar is hidden by the system.
+                //   * The active space is fullscreen.
+                //   * The settings window is visible.
                 guard
                     appState.settingsManager.advancedSettingsManager.hideApplicationMenus,
                     !isMenuBarHiddenBySystem,
@@ -206,25 +201,25 @@ final class MenuBarManager: ObservableObject {
 
                     let displayID = screen.displayID
 
-                    // get the application menu frame for the display
+                    // Get the application menu frame for the display.
                     guard let applicationMenuFrame = getApplicationMenuFrame(for: displayID) else {
                         return
                     }
 
                     let items = MenuBarItem.getMenuBarItems(on: displayID, using: .coreGraphics, onScreenOnly: true, sortingBy: .orderInMenuBar)
 
-                    // get the leftmost item on the screen; the application menu should
-                    // be hidden if the item's minX is close to the maxX of the menu
+                    // Get the leftmost item on the screen. The application menu should
+                    // be hidden if the item's minX is close to the maxX of the menu.
                     guard let leftmostItem = items.min(by: { $0.frame.minX < $1.frame.minX }) else {
                         return
                     }
 
-                    // offset the leftmost item's minX by its width to give ourselves
-                    // a little wiggle room
+                    // Offset the leftmost item's minX by its width to give ourselves
+                    // a little wiggle room.
                     let offsetMinX = leftmostItem.frame.minX - leftmostItem.frame.width
 
-                    // if the offset value is less than or equal to the maxX of the
-                    // application menu frame, activate the app to hide the menu
+                    // If the offset value is less than or equal to the maxX of the
+                    // application menu frame, activate the app to hide the menu.
                     if offsetMinX <= applicationMenuFrame.maxX + 15 {
                         hideApplicationMenus()
                     }
@@ -233,15 +228,6 @@ final class MenuBarManager: ObservableObject {
                 }
             }
             .store(in: &c)
-
-        // propagate changes from all sections
-        for section in sections {
-            section.objectWillChange
-                .sink { [weak self] in
-                    self?.objectWillChange.send()
-                }
-                .store(in: &c)
-        }
 
         cancellables = c
     }
@@ -329,10 +315,9 @@ final class MenuBarManager: ObservableObject {
             return nil
         }
 
-        // the Accessibility API returns the menu bar for the active screen, regardless of
-        // the display origin used; this workaround prevents an incorrect frame from being
-        // returned for inactive displays in multi-display setups where one display has a
-        // notch
+        // The Accessibility API returns the menu bar for the active screen, regardless of the
+        // display origin used. This workaround prevents an incorrect frame from being returned
+        // for inactive displays in multi-display setups where one display has a notch.
         if
             let mainScreen = NSScreen.main,
             let thisScreen = NSScreen.screens.first(where: { $0.displayID == displayID }),
@@ -416,10 +401,8 @@ final class MenuBarManager: ObservableObject {
     }
 }
 
-// MARK: MenuBarManager: BindingExposable
 extension MenuBarManager: BindingExposable { }
 
-// MARK: - Logger
 private extension Logger {
     static let menuBarManager = Logger(category: "MenuBarManager")
 }

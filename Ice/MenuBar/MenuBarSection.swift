@@ -4,21 +4,39 @@
 //
 
 import Cocoa
-import Combine
 import OSLog
 
 /// A representation of a section in a menu bar.
 @MainActor
-final class MenuBarSection: ObservableObject {
-    let name: Name
+final class MenuBarSection {
+    /// The name of a menu bar section.
+    enum Name: CaseIterable {
+        case visible
+        case hidden
+        case alwaysHidden
 
+        var menuString: String {
+            switch self {
+            case .visible: "Visible"
+            case .hidden: "Hidden"
+            case .alwaysHidden: "Always Hidden"
+            }
+        }
+
+        var logString: String {
+            switch self {
+            case .visible: "visible section"
+            case .hidden: "hidden section"
+            case .alwaysHidden: "always hidden section"
+            }
+        }
+    }
+
+    let name: Name
     let controlItem: ControlItem
 
     private var rehideTimer: Timer?
-
     private var rehideMonitor: UniversalEventMonitor?
-
-    private var cancellables = Set<AnyCancellable>()
 
     private var useIceBar: Bool {
         appState?.settingsManager.generalSettingsManager.useIceBar ?? false
@@ -52,6 +70,7 @@ final class MenuBarSection: ObservableObject {
         appState?.menuBarManager
     }
 
+    /// A Boolean value that indicates whether the section is hidden.
     var isHidden: Bool {
         if useIceBar {
             if controlItem.state == .showItems {
@@ -78,44 +97,29 @@ final class MenuBarSection: ObservableObject {
         }
     }
 
+    /// A Boolean value that indicates whether the section is enabled.
     var isEnabled: Bool {
         if case .visible = name {
-            // visible section should always be enabled
+            // The visible section should always be enabled.
             return true
         }
         return controlItem.isAddedToMenuBar
     }
 
+    /// Creates a section with the given name and control item.
     init(name: Name, controlItem: ControlItem) {
         self.name = name
         self.controlItem = controlItem
-        configureCancellables()
     }
 
-    /// Creates a menu bar section with the given name.
+    /// Creates a section with the given name.
     convenience init(name: Name) {
-        let controlItem = switch name {
-        case .visible:
-            ControlItem(identifier: .iceIcon)
-        case .hidden:
-            ControlItem(identifier: .hidden)
-        case .alwaysHidden:
-            ControlItem(identifier: .alwaysHidden)
+        let identifier: ControlItem.Identifier = switch name {
+        case .visible: .iceIcon
+        case .hidden: .hidden
+        case .alwaysHidden: .alwaysHidden
         }
-        self.init(name: name, controlItem: controlItem)
-    }
-
-    private func configureCancellables() {
-        var c = Set<AnyCancellable>()
-
-        // propagate changes from the section's control item
-        controlItem.objectWillChange
-            .sink { [weak self] in
-                self?.objectWillChange.send()
-            }
-            .store(in: &c)
-
-        cancellables = c
+        self.init(name: name, controlItem: ControlItem(identifier: identifier))
     }
 
     /// Assigns the section's app state.
@@ -127,7 +131,7 @@ final class MenuBarSection: ObservableObject {
         self.appState = appState
     }
 
-    /// Shows the status items in the section.
+    /// Shows the section.
     func show() {
         guard
             let menuBarManager,
@@ -136,7 +140,7 @@ final class MenuBarSection: ObservableObject {
             return
         }
         guard controlItem.isAddedToMenuBar else {
-            // section is disabled
+            // The section is disabled.
             return
         }
         switch name {
@@ -187,7 +191,7 @@ final class MenuBarSection: ObservableObject {
         startRehideChecks()
     }
 
-    /// Hides the status items in the section.
+    /// Hides the section.
     func hide() {
         guard
             let appState,
@@ -229,7 +233,7 @@ final class MenuBarSection: ObservableObject {
         stopRehideChecks()
     }
 
-    /// Toggles the visibility of the status items in the section.
+    /// Toggles the visibility of the section.
     func toggle() {
         if isHidden {
             show()
@@ -298,36 +302,8 @@ final class MenuBarSection: ObservableObject {
     }
 }
 
-// MARK: MenuBarSection: BindingExposable
 extension MenuBarSection: BindingExposable { }
 
-// MARK: MenuBarSection.Name
-extension MenuBarSection {
-    /// The name of a menu bar section.
-    enum Name: CaseIterable {
-        case visible
-        case hidden
-        case alwaysHidden
-
-        var menuString: String {
-            switch self {
-            case .visible: "Visible"
-            case .hidden: "Hidden"
-            case .alwaysHidden: "Always-Hidden"
-            }
-        }
-
-        var logString: String {
-            switch self {
-            case .visible: "visible section"
-            case .hidden: "hidden section"
-            case .alwaysHidden: "always-hidden section"
-            }
-        }
-    }
-}
-
-// MARK: - Logger
 private extension Logger {
     static let menuBarSection = Logger(category: "MenuBarSection")
 }

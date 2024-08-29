@@ -7,9 +7,9 @@ import Cocoa
 import Combine
 import OSLog
 
-/// A status item that controls the visibility of a section in the menu bar.
+/// A status item that controls the a section in the menu bar.
 @MainActor
-final class ControlItem: ObservableObject {
+final class ControlItem {
     enum Identifier: String, Hashable, CaseIterable {
         case iceIcon = "SItem"
         case hidden = "HItem"
@@ -28,22 +28,20 @@ final class ControlItem: ObservableObject {
 
     private static let sectionStorage = ObjectAssociation<MenuBarSection>()
 
+    private weak var appState: AppState?
     private var cancellables = Set<AnyCancellable>()
 
-    private weak var appState: AppState?
-
     private let statusItem: NSStatusItem
-
     private let constraint: NSLayoutConstraint?
 
     /// The control item's identifier.
     let identifier: Identifier
 
+    /// The control item's hiding state.
+    @Published var state = HidingState.hideItems
+
     /// A Boolean value that indicates whether the control item is visible.
     @Published var isVisible = true
-
-    /// The hiding state of the control item.
-    @Published var state: HidingState
 
     /// The frame of the control item's window.
     @Published private(set) var windowFrame: CGRect?
@@ -83,8 +81,8 @@ final class ControlItem: ObservableObject {
     init(identifier: Identifier) {
         let autosaveName = identifier.rawValue
 
-        // if the status item doesn't have a preferred position, set it according to
-        // the identifier
+        // If the status item doesn't have a preferred position, set it
+        // according to the identifier.
         if StatusItemDefaults[.preferredPosition, autosaveName] == nil {
             switch identifier {
             case .iceIcon:
@@ -96,19 +94,18 @@ final class ControlItem: ObservableObject {
             }
         }
 
-        self.statusItem = NSStatusBar.system.statusItem(withLength: Lengths.standard)
+        self.statusItem = NSStatusBar.system.statusItem(withLength: 0)
         self.statusItem.autosaveName = autosaveName
         self.identifier = identifier
-        self.state = .hideItems
 
-        // This is a strong candidate for a new macOS release to break, but we need this constraint
-        // to hide control items when the `ShowSectionDividers` setting is disabled. We used to use
-        // the status item's `isVisible` property, which was more robust, but would completely remove
-        // the control item. Now that we have profiles, we need to be able to accurately retrieve the
-        // items for each section, so we need the control items to always be present to act as
-        // delimiters. The new solution is to remove the constraint that prevents status items from
-        // having a length of zero, then resize the content view.
-        // FIXME: Find a replacement for this
+        // This could break in a new macOS release, but we need this constraint in order to be
+        // able to hide the control item when the `ShowSectionDividers` setting is disabled. A
+        // previous implementation used the status item's `isVisible` property, which was more
+        // robust, but would completely remove the control item. With the current set of
+        // features, we need to be able to accurately retrieve the items for each section, so
+        // we need the control item to always be present to act as a delimiter. The new solution
+        // is to remove the constraint that prevents status items from having a length of zero,
+        // then resize the content view. FIXME: Find a replacement for this.
         if
             let button = statusItem.button,
             let constraints = button.window?.contentView?.constraintsAffectingLayout(for: .horizontal),
@@ -124,28 +121,12 @@ final class ControlItem: ObservableObject {
     }
 
     deinit {
-        guard let autosaveName = statusItem.autosaveName else {
-            return
-        }
-        // removing the status item has the unwanted side effect of deleting the
-        // preferredPosition; cache and restore after removing
+        // Removing the status item has the unwanted side effect of
+        // deleting the preferredPosition. Cache and restore it.
+        let autosaveName = statusItem.autosaveName as String
         let cached = StatusItemDefaults[.preferredPosition, autosaveName]
-        defer {
-            StatusItemDefaults[.preferredPosition, autosaveName] = cached
-        }
         NSStatusBar.system.removeStatusItem(statusItem)
-    }
-
-    private func configureStatusItem() {
-        defer {
-            configureCancellables()
-            updateStatusItem(with: state)
-        }
-        guard let button = statusItem.button else {
-            return
-        }
-        button.target = self
-        button.action = #selector(performAction)
+        StatusItemDefaults[.preferredPosition, autosaveName] = cached
     }
 
     private func configureCancellables() {
@@ -225,20 +206,18 @@ final class ControlItem: ObservableObject {
             }
             .store(in: &c)
 
-        if let window {
-            window.publisher(for: \.frame)
-                .sink { [weak self, weak window] frame in
-                    guard
-                        let self,
-                        let screen = window?.screen,
-                        screen.frame.intersects(frame)
-                    else {
-                        return
-                    }
-                    windowFrame = frame
+        window?.publisher(for: \.frame)
+            .sink { [weak self] frame in
+                guard
+                    let self,
+                    let screen = window?.screen,
+                    screen.frame.intersects(frame)
+                else {
+                    return
                 }
-                .store(in: &c)
-        }
+                windowFrame = frame
+            }
+            .store(in: &c)
 
         if let appState {
             appState.settingsManager.generalSettingsManager.$showIceIcon
@@ -330,6 +309,18 @@ final class ControlItem: ObservableObject {
         cancellables = c
     }
 
+    private func configureStatusItem() {
+        defer {
+            configureCancellables()
+            updateStatusItem(with: state)
+        }
+        guard let button = statusItem.button else {
+            return
+        }
+        button.target = self
+        button.action = #selector(performAction)
+    }
+
     private func updateStatusItem(with state: HidingState) {
         guard
             let appState,
@@ -342,10 +333,10 @@ final class ControlItem: ObservableObject {
         switch section.name {
         case .visible:
             isVisible = true
-            // enable cell, as it may have been previously disabled
+            // Enable the cell, as it may have been previously disabled.
             button.cell?.isEnabled = true
             let icon = appState.settingsManager.generalSettingsManager.iceIcon
-            // we can usually just set the image directly from the icon
+            // We can usually just set the image directly from the icon.
             button.image = switch state {
             case .hideItems: icon.hidden.nsImage(for: appState)
             case .showItems: icon.visible.nsImage(for: appState)
@@ -354,7 +345,7 @@ final class ControlItem: ObservableObject {
                 case .custom = icon.name,
                 let originalImage = button.image
             {
-                // custom icons need to be resized to fit inside the button
+                // Custom icons need to be resized to fit inside the button.
                 let originalWidth = originalImage.size.width
                 let originalHeight = originalImage.size.height
                 let ratio = max(originalWidth / 25, originalHeight / 17)
@@ -365,17 +356,16 @@ final class ControlItem: ObservableObject {
             switch state {
             case .hideItems:
                 isVisible = true
-                // prevent the cell from highlighting while expanded
+                // Prevent the cell from highlighting while expanded.
                 button.cell?.isEnabled = false
-                // cell still sometimes briefly flashes on expansion
-                // unless manually unhighlighted
+                // Cell still sometimes briefly flashes on expansion unless manually unhighlighted.
                 button.isHighlighted = false
                 button.image = nil
             case .showItems:
                 isVisible = appState.settingsManager.advancedSettingsManager.showSectionDividers
-                // enable cell, as it may have been previously disabled
+                // Enable the cell, as it may have been previously disabled.
                 button.cell?.isEnabled = true
-                // set the image based on section name and state
+                // Set the image based on the section name and the hiding state.
                 switch section.name {
                 case .hidden:
                     button.image = ControlItemImage.builtin(.chevronLarge).nsImage(for: appState)
@@ -416,14 +406,14 @@ final class ControlItem: ObservableObject {
     private func createMenu(with appState: AppState) -> NSMenu {
         let menu = NSMenu(title: "Ice")
 
-        // add menu items to toggle the hidden and always-hidden sections
+        // Add menu items to toggle the hidden and always-hidden sections.
         let sectionNames: [MenuBarSection.Name] = [.hidden, .alwaysHidden]
         for name in sectionNames {
             guard
                 let section = appState.menuBarManager.section(withName: name),
                 section.controlItem.isAddedToMenuBar
             else {
-                // section doesn't exist, or is disabled
+                // Section doesn't exist, or is disabled.
                 continue
             }
             let item = NSMenuItem(
@@ -501,7 +491,7 @@ final class ControlItem: ObservableObject {
         else {
             return
         }
-        // open the settings window in case an alert needs to be displayed
+        // Open the settings window in case an alert needs to be displayed.
         appDelegate.openSettingsWindow()
         appState.updatesManager.checkForUpdates()
     }
@@ -530,20 +520,15 @@ final class ControlItem: ObservableObject {
         guard isAddedToMenuBar else {
             return
         }
-        guard let autosaveName = statusItem.autosaveName else {
-            return
-        }
-        // setting the visibility of the status item has the unwanted side
-        // effect of deleting the preferredPosition; cache and restore afterward
+        // Setting `statusItem.isVisible` to `false` has the unwanted side
+        // effect of deleting the preferredPosition. Cache and restore it.
+        let autosaveName = statusItem.autosaveName as String
         let cached = StatusItemDefaults[.preferredPosition, autosaveName]
-        defer {
-            StatusItemDefaults[.preferredPosition, autosaveName] = cached
-        }
         statusItem.isVisible = false
+        StatusItemDefaults[.preferredPosition, autosaveName] = cached
     }
 }
 
-// MARK: - Logger
 private extension Logger {
     static let controlItem = Logger(category: "ControlItem")
 }

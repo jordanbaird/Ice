@@ -137,7 +137,7 @@ struct MenuBarItem {
     /// the initializer will fail.
     ///
     /// - Parameter itemWindow: A window that contains information about the item.
-    private init?(itemWindow: WindowInfo) {
+    init?(itemWindow: WindowInfo) {
         guard itemWindow.isMenuBarItem else {
             return nil
         }
@@ -152,7 +152,7 @@ struct MenuBarItem {
     ///
     /// - Parameter windowID: An identifier for a window that contains information
     ///   about the item.
-    private init?(windowID: CGWindowID) {
+    init?(windowID: CGWindowID) {
         guard let window = WindowInfo(windowID: windowID) else {
             return nil
         }

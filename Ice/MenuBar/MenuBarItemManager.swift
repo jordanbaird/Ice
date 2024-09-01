@@ -1011,6 +1011,31 @@ extension MenuBarItemManager {
     ///     movement has finished.
     ///   - mouseButton: The mouse button of the click.
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
+        if
+            let latest = MenuBarItem(windowID: item.windowID),
+            latest.isOnScreen
+        {
+            Task {
+                if clickWhenFinished {
+                    do {
+                        switch mouseButton {
+                        case .left:
+                            try await leftClick(item: latest)
+                        case .right:
+                            try await rightClick(item: latest)
+                        case .center:
+                            try await centerClick(item: latest)
+                        @unknown default:
+                            assertionFailure("Unknown mouse button \(mouseButton)")
+                        }
+                    } catch {
+                        Logger.itemManager.error("ERROR: \(error)")
+                    }
+                }
+            }
+            return
+        }
+
         let rehideInterval: TimeInterval = 20
 
         guard

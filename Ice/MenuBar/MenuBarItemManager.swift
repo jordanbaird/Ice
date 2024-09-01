@@ -631,9 +631,6 @@ extension MenuBarItemManager {
         to forwardedLocation: EventTap.Location,
         waitingForFrameChangeOf item: MenuBarItem
     ) async throws {
-        var error: EventError {
-            EventError(code: .couldNotComplete, item: item)
-        }
         guard let currentFrame = getCurrentFrame(for: item) else {
             try await forwardEvent(event, from: initialLocation, to: forwardedLocation, item: item)
             Logger.itemManager.warning("Couldn't get menu bar item frame for \(item.logString), so using fixed delay")

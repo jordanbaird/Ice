@@ -643,9 +643,6 @@ extension MenuBarItemManager {
         to forwardedLocation: EventTap.Location,
         waitingForFrameChangeOf item: MenuBarItem
     ) async throws {
-        var error: EventError {
-            EventError(code: .couldNotComplete, item: item)
-        }
         guard let currentFrame = getCurrentFrame(for: item) else {
             try await forwardEvent(event, from: initialLocation, to: forwardedLocation, item: item)
             Logger.itemManager.warning("Couldn't get menu bar item frame for \(item.logString), so using fixed delay")
@@ -1026,6 +1023,31 @@ extension MenuBarItemManager {
     ///     movement has finished.
     ///   - mouseButton: The mouse button of the click.
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
+        if
+            let latest = MenuBarItem(windowID: item.windowID),
+            latest.isOnScreen
+        {
+            Task {
+                if clickWhenFinished {
+                    do {
+                        switch mouseButton {
+                        case .left:
+                            try await leftClick(item: latest)
+                        case .right:
+                            try await rightClick(item: latest)
+                        case .center:
+                            try await centerClick(item: latest)
+                        @unknown default:
+                            assertionFailure("Unknown mouse button \(mouseButton)")
+                        }
+                    } catch {
+                        Logger.itemManager.error("ERROR: \(error)")
+                    }
+                }
+            }
+            return
+        }
+
         guard
             let appState,
             let screen = NSScreen.main,

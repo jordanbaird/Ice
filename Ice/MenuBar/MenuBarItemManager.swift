@@ -457,7 +457,7 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - events: The events to compare.
     ///   - integerFields: An array of integer value fields to compare on each event.
-    private func eventsMatch(_ events: [CGEvent], by integerFields: [CGEventField]) -> Bool {
+    private nonisolated func eventsMatch(_ events: [CGEvent], by integerFields: [CGEventField]) -> Bool {
         var fieldValues = Set<[Int64]>()
         for event in events {
             let values = integerFields.map(event.getIntegerValueField)
@@ -474,7 +474,8 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - event: The event to post.
     ///   - location: The event tap location to post the event to.
-    private func postEvent(_ event: CGEvent, to location: EventTap.Location) {
+    private nonisolated func postEvent(_ event: CGEvent, to location: EventTap.Location) {
+        Logger.itemManager.debug("Posting \(event.type.logString) to \(location.logString)")
         switch location {
         case .hidEventTap:
             event.post(tap: .cghidEventTap)
@@ -485,13 +486,6 @@ extension MenuBarItemManager {
         case .pid(let pid):
             event.postToPid(pid)
         }
-    }
-
-    /// Delays an event tap callback from returning.
-    private func delayEventTapCallback() {
-        // Small delay to prevent timeouts when running alongside certain event tapping apps.
-        // TODO: Try to find a better solution for this.
-        Thread.sleep(forTimeInterval: 0.015)
     }
 
     /// Posts an event to the given event tap location and waits until it is
@@ -511,7 +505,6 @@ extension MenuBarItemManager {
             ) { [weak self] proxy, type, rEvent in
                 guard let self else {
                     proxy.disable()
-                    continuation.resume(throwing: EventError(code: .couldNotComplete, item: item))
                     return rEvent
                 }
 
@@ -564,17 +557,58 @@ extension MenuBarItemManager {
         to forwardedLocation: EventTap.Location,
         item: MenuBarItem
     ) async throws {
+        guard let nullEvent = CGEvent(source: nil) else {
+            throw EventError(code: .eventCreationFailure, item: item)
+        }
+        let userData: Int64 = 0xFE
+        nullEvent.setIntegerValueField(.eventSourceUserData, value: userData)
+
         return try await withCheckedThrowingContinuation { continuation in
-            let eventTap = EventTap(
+            // Create a tap for the null event at the initial location that throws away all
+            // events it receives. Once the null event is received, post the real event to
+            // the forwarded location.
+            let nullTap = EventTap(
+                label: "Event Forwarding (NULL Event)",
                 options: .defaultTap,
                 location: initialLocation,
+                place: .tailAppendEventTap,
+                types: [nullEvent.type]
+            ) { [weak self] proxy, type, rEvent in
+                guard let self else {
+                    proxy.disable()
+                    return nil
+                }
+
+                // Reenable the tap if disabled by the system.
+                if type == .tapDisabledByUserInput || type == .tapDisabledByTimeout {
+                    proxy.enable()
+                    return nil
+                }
+
+                // Verify that the received event was the sent event.
+                guard rEvent.getIntegerValueField(.eventSourceUserData) == userData else {
+                    return nil
+                }
+
+                proxy.disable()
+                postEvent(event, to: forwardedLocation)
+
+                return nil
+            }
+
+            // Create a tap for the real event at the forwarded location that can listen
+            // for events, but not alter or discard them. Once the real event is received,
+            // post it to the initial location.
+            let realTap = EventTap(
+                label: "Event Forwarding (Real Event)",
+                options: .listenOnly,
+                location: forwardedLocation,
                 place: .tailAppendEventTap,
                 types: [event.type]
             ) { [weak self] proxy, type, rEvent in
                 guard let self else {
                     proxy.disable()
-                    continuation.resume(throwing: EventError(code: .couldNotComplete, item: item))
-                    return rEvent
+                    return nil
                 }
 
                 // Reenable the tap if disabled by the system.
@@ -585,33 +619,27 @@ extension MenuBarItemManager {
 
                 // Verify that the received event was the sent event.
                 guard eventsMatch([rEvent, event], by: CGEventField.menuBarItemEventFields) else {
-                    return rEvent
+                    return nil
                 }
-
-                // Ensure the tap is enabled, preventing multiple calls to resume().
-                guard proxy.isEnabled else {
-                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled (item: \(item.logString))")
-                    return rEvent
-                }
-
-                Logger.itemManager.debug("Forwarding \(type.logString) from \(initialLocation.logString) to \(forwardedLocation.logString) (item: \(item.logString))")
 
                 proxy.disable()
+                postEvent(event, to: initialLocation)
                 continuation.resume()
 
-                postEvent(event, to: forwardedLocation)
-                delayEventTapCallback()
-
-                return rEvent
+                return nil
             }
 
-            eventTap.enable(timeout: .milliseconds(50)) {
-                Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out (item: \(item.logString))")
-                eventTap.disable()
+            // Enable both taps, with a timeout on the real tap.
+            nullTap.enable()
+            realTap.enable(timeout: .milliseconds(50)) {
+                Logger.itemManager.error("Event tap \"\(realTap.label)\" timed out (item: \(item.logString))")
+                nullTap.disable()
+                realTap.disable()
                 continuation.resume(throwing: EventError(code: .eventOperationTimeout, item: item))
             }
 
-            postEvent(event, to: initialLocation)
+            // Post the null event to the initial location.
+            postEvent(nullEvent, to: initialLocation)
         }
     }
 
@@ -702,16 +730,27 @@ extension MenuBarItemManager {
         guard let currentFrame = getCurrentFrame(for: item) else {
             throw EventError(code: .invalidItem, item: item)
         }
-        guard let mouseUpEvent = CGEvent.menuBarItemEvent(
-            type: .move(.leftMouseUp),
-            location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
-            item: item,
-            pid: item.ownerPID,
-            source: source
-        ) else {
+
+        guard
+            let mouseDownEvent = CGEvent.menuBarItemEvent(
+                type: .move(.leftMouseDown),
+                location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
+                item: item,
+                pid: item.ownerPID,
+                source: source
+            ),
+            let mouseUpEvent = CGEvent.menuBarItemEvent(
+                type: .move(.leftMouseUp),
+                location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
+                item: item,
+                pid: item.ownerPID,
+                source: source
+            )
+        else {
             throw EventError(code: .eventCreationFailure, item: item)
         }
 
+        try await forwardEvent(mouseDownEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
         try await forwardEvent(mouseUpEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
     }
 

@@ -543,18 +543,17 @@ extension MenuBarItemManager {
         }
     }
 
-    /// Posts the given event to an initial location, then forwards the event to a
-    /// second location when an event tap at the initial location receives the event.
+    /// Does a lot of weird magic to make a menu bar item receive an event.
     ///
     /// - Parameters:
-    ///   - event: The event to forward.
-    ///   - initialLocation: The initial location to post the event.
-    ///   - forwardedLocation: The location to forward the event.
-    ///   - item: The menu bar item that the event affects.
-    private func forwardEvent(
+    ///   - event: The event to scromble.
+    ///   - firstLocation: The first location for scrombling.
+    ///   - secondLocation: The second location for scrombling.
+    ///   - item: The menu bar item that the scrombling affects.
+    private func scrombleEvent(
         _ event: CGEvent,
-        from initialLocation: EventTap.Location,
-        to forwardedLocation: EventTap.Location,
+        from firstLocation: EventTap.Location,
+        to secondLocation: EventTap.Location,
         item: MenuBarItem
     ) async throws {
         guard let nullEvent = CGEvent(source: nil) else {
@@ -564,13 +563,13 @@ extension MenuBarItemManager {
         nullEvent.setIntegerValueField(.eventSourceUserData, value: userData)
 
         return try await withCheckedThrowingContinuation { continuation in
-            // Create a tap for the null event at the initial location that throws away all
+            // Create a tap for the null event at the first location that throws away all
             // events it receives. Once the null event is received, post the real event to
-            // the forwarded location.
+            // the second location.
             let nullTap = EventTap(
-                label: "Event Forwarding (NULL Event)",
+                label: "Event Scrombling (NULL Event)",
                 options: .defaultTap,
-                location: initialLocation,
+                location: firstLocation,
                 place: .tailAppendEventTap,
                 types: [nullEvent.type]
             ) { [weak self] proxy, type, rEvent in
@@ -591,18 +590,18 @@ extension MenuBarItemManager {
                 }
 
                 proxy.disable()
-                postEvent(event, to: forwardedLocation)
+                postEvent(event, to: secondLocation)
 
                 return nil
             }
 
-            // Create a tap for the real event at the forwarded location that can listen
-            // for events, but not alter or discard them. Once the real event is received,
-            // post it to the initial location.
+            // Create a tap for the real event at the second location that can listen for
+            // events but not alter or discard them. Once the event is received, post it
+            // to the first location.
             let realTap = EventTap(
-                label: "Event Forwarding (Real Event)",
+                label: "Event Scrombling (Real Event)",
                 options: .listenOnly,
-                location: forwardedLocation,
+                location: secondLocation,
                 place: .tailAppendEventTap,
                 types: [event.type]
             ) { [weak self] proxy, type, rEvent in
@@ -623,7 +622,7 @@ extension MenuBarItemManager {
                 }
 
                 proxy.disable()
-                postEvent(event, to: initialLocation)
+                postEvent(event, to: firstLocation)
                 continuation.resume()
 
                 return nil
@@ -638,35 +637,34 @@ extension MenuBarItemManager {
                 continuation.resume(throwing: EventError(code: .eventOperationTimeout, item: item))
             }
 
-            // Post the null event to the initial location.
-            postEvent(nullEvent, to: initialLocation)
+            // Post the null event to the first location.
+            postEvent(nullEvent, to: firstLocation)
         }
     }
 
-    /// Posts the given event to an initial location, then forwards the event to a
-    /// second location when an event tap at the initial location receives the event.
-    /// After the event is forwarded, this function waits for the frame of the given
-    /// menu bar item to change before returning.
+    /// Does a lot of weird magic to make a menu bar item receive an event. After the
+    /// scrombling, this function waits for the frame of the given menu bar item to
+    /// change before returning.
     ///
     /// - Parameters:
-    ///   - event: The event to forward.
-    ///   - initialLocation: The initial location to post the event.
-    ///   - forwardedLocation: The location to forward the event.
+    ///   - event: The event to scromble.
+    ///   - firstLocation: The first location for scrombling.
+    ///   - secondLocation: The second location for scrombling.
     ///   - item: The item whose frame should be observed.
-    private func forwardEvent(
+    private func scrombleEvent(
         _ event: CGEvent,
-        from initialLocation: EventTap.Location,
-        to forwardedLocation: EventTap.Location,
+        from firstLocation: EventTap.Location,
+        to secondLocation: EventTap.Location,
         waitingForFrameChangeOf item: MenuBarItem
     ) async throws {
         guard let currentFrame = getCurrentFrame(for: item) else {
-            try await forwardEvent(event, from: initialLocation, to: forwardedLocation, item: item)
+            try await scrombleEvent(event, from: firstLocation, to: secondLocation, item: item)
             Logger.itemManager.warning("Couldn't get menu bar item frame for \(item.logString), so using fixed delay")
             // This will be slow, but subsequent events will have a better chance of succeeding.
             try await Task.sleep(for: .milliseconds(50))
             return
         }
-        try await forwardEvent(event, from: initialLocation, to: forwardedLocation, item: item)
+        try await scrombleEvent(event, from: firstLocation, to: secondLocation, item: item)
         try await waitForFrameChange(of: item, initialFrame: currentFrame, timeout: .milliseconds(50))
     }
 
@@ -750,8 +748,8 @@ extension MenuBarItemManager {
             throw EventError(code: .eventCreationFailure, item: item)
         }
 
-        try await forwardEvent(mouseDownEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
-        try await forwardEvent(mouseUpEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
+        try await scrombleEvent(mouseDownEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
+        try await scrombleEvent(mouseUpEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
     }
 
     /// Moves a menu bar item to the given destination, without restoring the mouse
@@ -812,8 +810,8 @@ extension MenuBarItemManager {
         lastItemMoveStartDate = .now
 
         do {
-            try await forwardEvent(mouseDownEvent, from: .pid(item.ownerPID), to: .sessionEventTap, waitingForFrameChangeOf: item)
-            try await forwardEvent(mouseUpEvent, from: .pid(item.ownerPID), to: .sessionEventTap, waitingForFrameChangeOf: item)
+            try await scrombleEvent(mouseDownEvent, from: .pid(item.ownerPID), to: .sessionEventTap, waitingForFrameChangeOf: item)
+            try await scrombleEvent(mouseUpEvent, from: .pid(item.ownerPID), to: .sessionEventTap, waitingForFrameChangeOf: item)
         } catch {
             do {
                 Logger.itemManager.debug("Posting fallback event for moving \(item.logString)")

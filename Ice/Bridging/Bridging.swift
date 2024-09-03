@@ -315,9 +315,7 @@ extension Bridging {
 extension Bridging {
     /// Constants that indicate the responsivity of an app.
     enum Responsivity {
-        case responsive
-        case unresponsive
-        case unknown
+        case responsive, unresponsive, unknown
     }
 
     /// Returns the responsivity of the given process.

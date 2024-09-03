@@ -9,41 +9,47 @@ import OSLog
 
 /// A status item that controls a section in the menu bar.
 @MainActor
-final class ControlItem {
-    enum Identifier: String, Hashable, CaseIterable {
+class ControlItem {
+    /// Possible identifiers for control items.
+    enum Identifier: String, CaseIterable {
         case iceIcon = "SItem"
         case hidden = "HItem"
         case alwaysHidden = "AHItem"
     }
 
-    enum HidingState: Int, Hashable {
-        case hideItems
-        case showItems
+    /// Possible hiding states for control items.
+    enum HidingState {
+        case hideItems, showItems
     }
 
+    /// Possible lengths for control items.
     enum Lengths {
         static let standard: CGFloat = NSStatusItem.variableLength
         static let expanded: CGFloat = 10_000
     }
 
-    private static let sectionStorage = ObjectAssociation<MenuBarSection>()
-
-    private weak var appState: AppState?
+    /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
+    /// The shared app state.
+    private weak var appState: AppState?
+
+    /// The control item's underlying status item.
     private let statusItem: NSStatusItem
+
+    /// A horizontal constraint for the control item's content view.
     private let constraint: NSLayoutConstraint?
 
     /// The control item's identifier.
-    let identifier: Identifier
+    private let identifier: Identifier
 
-    /// The control item's hiding state.
+    /// The control item's hiding state (`@Published`).
     @Published var state = HidingState.hideItems
 
-    /// A Boolean value that indicates whether the control item is visible.
+    /// A Boolean value that indicates whether the control item is visible (`@Published`).
     @Published var isVisible = true
 
-    /// The frame of the control item's window.
+    /// The frame of the control item's window (`@Published`).
     @Published private(set) var windowFrame: CGRect?
 
     /// The menu bar section associated with the control item.
@@ -64,20 +70,19 @@ final class ControlItem {
         return CGWindowID(window.windowNumber)
     }
 
-    /// A Boolean value that indicates whether the control item is a section divider.
+    /// A Boolean value that indicates whether the control item serves as
+    /// a divider between sections.
     var isSectionDivider: Bool {
-        guard let section else {
-            return false
-        }
-        return section.name != .visible
+        identifier != .iceIcon
     }
 
-    /// A Boolean value that indicates whether the control item is currently displayed
-    /// in the menu bar.
+    /// A Boolean value that indicates whether the control item is currently
+    /// displayed in the menu bar.
     var isAddedToMenuBar: Bool {
         statusItem.isVisible
     }
 
+    /// Creates a control item with the given identifier.
     init(identifier: Identifier) {
         let autosaveName = identifier.rawValue
 
@@ -120,15 +125,17 @@ final class ControlItem {
         configureStatusItem()
     }
 
+    /// Removes the status item without clearing its stored position.
     deinit {
-        // Removing the status item has the unwanted side effect of
-        // deleting the preferredPosition. Cache and restore it.
+        // Removing the status item has the unwanted side effect of deleting
+        // the preferredPosition. Cache and restore it.
         let autosaveName = statusItem.autosaveName as String
         let cached = StatusItemDefaults[.preferredPosition, autosaveName]
         NSStatusBar.system.removeStatusItem(statusItem)
         StatusItemDefaults[.preferredPosition, autosaveName] = cached
     }
 
+    /// Configures the internal observers for the control item.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -309,6 +316,7 @@ final class ControlItem {
         cancellables = c
     }
 
+    /// Sets the initial configuration for the status item.
     private func configureStatusItem() {
         defer {
             configureCancellables()
@@ -321,6 +329,7 @@ final class ControlItem {
         button.action = #selector(performAction)
     }
 
+    /// Updates the appearance of the status item using the given hiding state.
     private func updateStatusItem(with state: HidingState) {
         guard
             let appState,
@@ -377,6 +386,7 @@ final class ControlItem {
         }
     }
 
+    /// Performs the control item's action.
     @objc private func performAction() {
         guard
             let appState,
@@ -403,6 +413,7 @@ final class ControlItem {
         }
     }
 
+    /// Creates a menu to show under the control item.
     private func createMenu(with appState: AppState) -> NSMenu {
         let menu = NSMenu(title: "Ice")
 
@@ -480,10 +491,12 @@ final class ControlItem {
         return menu
     }
 
+    /// Toggles the menu bar section associated with the given menu item.
     @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
         Self.sectionStorage[menuItem]?.toggle()
     }
 
+    /// Opens the settings window and checks for app updates.
     @objc private func checkForUpdates() {
         guard
             let appState,
@@ -529,6 +542,15 @@ final class ControlItem {
     }
 }
 
+private extension ControlItem {
+    /// Storage for menu items that toggle a menu bar section.
+    ///
+    /// When one of these menu items is created, its section is stored here.
+    /// When its action is invoked, the section is retrieved from storage.
+    static let sectionStorage = ObjectAssociation<MenuBarSection>()
+}
+
 private extension Logger {
+    /// The logger to use for control items.
     static let controlItem = Logger(category: "ControlItem")
 }

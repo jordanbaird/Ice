@@ -105,7 +105,10 @@ final class AccessibilityPermission: Permission {
     init() {
         super.init(
             title: "Accessibility",
-            details: ["Get real-time information about the menu bar."],
+            details: [
+                "Get real-time information about the menu bar.",
+                "Move individual menu bar items."
+            ],
             notes: [],
             check: {
                 checkIsProcessTrusted()
@@ -125,7 +128,10 @@ final class ScreenRecordingPermission: Permission {
     init() {
         super.init(
             title: "Screen Recording",
-            details: ["Apply custom styling to the menu bar."],
+            details: [
+                "Apply custom styling to the menu bar.",
+                "Capture images of menu bar items to display in Ice's interface.",
+            ],
             notes: ["Ice does not record your screen."],
             check: {
                 CGPreflightScreenCaptureAccess()

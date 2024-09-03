@@ -107,7 +107,7 @@ final class AccessibilityPermission: Permission {
             title: "Accessibility",
             details: [
                 "Get real-time information about the menu bar.",
-                "Move individual menu bar items."
+                "Move individual menu bar items.",
             ],
             notes: [],
             check: {

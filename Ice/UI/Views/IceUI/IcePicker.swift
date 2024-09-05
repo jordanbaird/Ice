@@ -75,7 +75,7 @@ private struct IcePickerLayout<Label: View, SelectionValue: Hashable>: _Variadic
                     Image(systemName: "chevron.up.chevron.down")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .padding(3)
+                        .padding(2.25)
                         .fontWeight(.bold)
                 }
                 .frame(width: 16, height: 16)

@@ -104,6 +104,9 @@
 		710C4FC62C50514D00F7196A /* MenuBarItemSpacingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 710C4FC52C50514D00F7196A /* MenuBarItemSpacingManager.swift */; };
 		711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711535F12AB9F6C1003193AD /* BindingExposable.swift */; };
 		711568B02C59ADBF00CDF58F /* NSScreen+frameOfNotch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711568AF2C59ADBF00CDF58F /* NSScreen+frameOfNotch.swift */; };
+		711D17232C89AD2500E73108 /* IceLabeledContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D17222C89AD2500E73108 /* IceLabeledContent.swift */; };
+		711D17252C89AD5B00E73108 /* IceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D17242C89AD5B00E73108 /* IceSection.swift */; };
+		711D17292C89B33C00E73108 /* IcePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D17282C89B33C00E73108 /* IcePicker.swift */; };
 		7127A9E92C45662B00D99DEF /* MenuBarSearchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */; };
 		7127A9F02C4687EE00D99DEF /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */; };
 		7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */ = {isa = PBXBuildFile; productRef = 7127A9FE2C4886D100D99DEF /* IfritStatic */; };
@@ -238,6 +241,9 @@
 		710C4FC52C50514D00F7196A /* MenuBarItemSpacingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemSpacingManager.swift; sourceTree = "<group>"; };
 		711535F12AB9F6C1003193AD /* BindingExposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindingExposable.swift; sourceTree = "<group>"; };
 		711568AF2C59ADBF00CDF58F /* NSScreen+frameOfNotch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+frameOfNotch.swift"; sourceTree = "<group>"; };
+		711D17222C89AD2500E73108 /* IceLabeledContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceLabeledContent.swift; sourceTree = "<group>"; };
+		711D17242C89AD5B00E73108 /* IceSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceSection.swift; sourceTree = "<group>"; };
+		711D17282C89B33C00E73108 /* IcePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IcePicker.swift; sourceTree = "<group>"; };
 		7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSearchPanel.swift; sourceTree = "<group>"; };
 		7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		7127AA002C48ED7300D99DEF /* SectionedList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionedList.swift; sourceTree = "<group>"; };
@@ -624,6 +630,26 @@
 			path = MenuBarItemSpacing;
 			sourceTree = "<group>";
 		};
+		711D17202C89ACD600E73108 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7127AA002C48ED7300D99DEF /* SectionedList.swift */,
+				7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */,
+				711D17212C89ACEE00E73108 /* IceUI */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		711D17212C89ACEE00E73108 /* IceUI */ = {
+			isa = PBXGroup;
+			children = (
+				711D17222C89AD2500E73108 /* IceLabeledContent.swift */,
+				711D17282C89B33C00E73108 /* IcePicker.swift */,
+				711D17242C89AD5B00E73108 /* IceSection.swift */,
+			);
+			path = IceUI;
+			sourceTree = "<group>";
+		};
 		7127A9E72C45661C00D99DEF /* MenuBarSearch */ = {
 			isa = PBXGroup;
 			children = (
@@ -812,11 +838,10 @@
 		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
-				7127AA002C48ED7300D99DEF /* SectionedList.swift */,
-				7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */,
 				17EC6B522AE0C09F0065F260 /* Pickers */,
 				17EE695C2C26617100F778A7 /* Shapes */,
 				179267372AE98870006AFBAF /* ViewModifiers */,
+				711D17202C89ACD600E73108 /* Views */,
 			);
 			path = UI;
 			sourceTree = "<group>";
@@ -978,6 +1003,7 @@
 				71F4280F2C3B5C870025706C /* SettingsNavigationIdentifier.swift in Sources */,
 				17CDCACD2C2E6F6A000B1CFF /* Deprecated.swift in Sources */,
 				17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */,
+				711D17232C89AD2500E73108 /* IceLabeledContent.swift in Sources */,
 				17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */,
 				17F998462C16C78000D75EC0 /* Injection.swift in Sources */,
 				7127A9E92C45662B00D99DEF /* MenuBarSearchPanel.swift in Sources */,
@@ -1012,6 +1038,7 @@
 				17D1AC8D2B97BB5900726180 /* MenuBarItem.swift in Sources */,
 				7105CA212C5D2EFF004E439E /* StatusItemDefaults.swift in Sources */,
 				71553E372C378BF50083F5BE /* Notifications.swift in Sources */,
+				711D17292C89B33C00E73108 /* IcePicker.swift in Sources */,
 				173C248C2B8E821C0096F7A1 /* UpdatesSettingsPane.swift in Sources */,
 				171C6F9C2C0356BC0097A5C8 /* GeneralSettingsPane.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* KeyCode.swift in Sources */,
@@ -1026,6 +1053,7 @@
 				711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				17EE695E2C26618F00F778A7 /* AnyInsettableShape.swift in Sources */,
+				711D17252C89AD5B00E73108 /* IceSection.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				7105CA252C5D2F44004E439E /* StatusItemDefaultsKey.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,

@@ -107,6 +107,7 @@
 		711D17252C89AD5B00E73108 /* IceSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D17242C89AD5B00E73108 /* IceSection.swift */; };
 		711D17292C89B33C00E73108 /* IcePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D17282C89B33C00E73108 /* IcePicker.swift */; };
 		711D172D2C8A620D00E73108 /* GeneralSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D172C2C8A620D00E73108 /* GeneralSettingsPane.swift */; };
+		711D17312C8B1E9700E73108 /* IceMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D17302C8B1E9700E73108 /* IceMenu.swift */; };
 		7127A9E92C45662B00D99DEF /* MenuBarSearchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */; };
 		7127A9F02C4687EE00D99DEF /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */; };
 		7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */ = {isa = PBXBuildFile; productRef = 7127A9FE2C4886D100D99DEF /* IfritStatic */; };
@@ -244,6 +245,7 @@
 		711D17242C89AD5B00E73108 /* IceSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceSection.swift; sourceTree = "<group>"; };
 		711D17282C89B33C00E73108 /* IcePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IcePicker.swift; sourceTree = "<group>"; };
 		711D172C2C8A620D00E73108 /* GeneralSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsPane.swift; sourceTree = "<group>"; };
+		711D17302C8B1E9700E73108 /* IceMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceMenu.swift; sourceTree = "<group>"; };
 		7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSearchPanel.swift; sourceTree = "<group>"; };
 		7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		7127AA002C48ED7300D99DEF /* SectionedList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionedList.swift; sourceTree = "<group>"; };
@@ -645,6 +647,7 @@
 			children = (
 				711D17222C89AD2500E73108 /* IceLabeledContent.swift */,
 				711D17282C89B33C00E73108 /* IcePicker.swift */,
+				711D17302C8B1E9700E73108 /* IceMenu.swift */,
 				711D17242C89AD5B00E73108 /* IceSection.swift */,
 			);
 			path = IceUI;
@@ -1043,6 +1046,7 @@
 				173C248C2B8E821C0096F7A1 /* UpdatesSettingsPane.swift in Sources */,
 				7150A7B12AA427F80045EA68 /* KeyCode.swift in Sources */,
 				7127AA012C48ED7300D99DEF /* SectionedList.swift in Sources */,
+				711D17312C8B1E9700E73108 /* IceMenu.swift in Sources */,
 				71829E0A2C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift in Sources */,
 				17B331D02B9916E70084EBB0 /* SettingsManager.swift in Sources */,
 				17B331D32B991D290084EBB0 /* GeneralSettingsManager.swift in Sources */,

@@ -8,6 +8,8 @@ import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsPane: View {
+    private struct ChooseImageID: Hashable { }
+
     @EnvironmentObject var appState: AppState
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false
@@ -55,7 +57,7 @@ struct GeneralSettingsPane: View {
 
     var body: some View {
         ScrollView {
-            Group {
+            VStack(spacing: 10) {
                 IceSection {
                     launchAtLogin
                 }
@@ -77,7 +79,7 @@ struct GeneralSettingsPane: View {
                     spacingOptions
                 }
             }
-            .padding()
+            .padding(20)
         }
         .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
@@ -113,7 +115,7 @@ struct GeneralSettingsPane: View {
                 }
             }
         }
-        .tag(imageSet)
+        .id(imageSet)
     }
 
     @ViewBuilder
@@ -127,17 +129,27 @@ struct GeneralSettingsPane: View {
             }
         }
         if manager.showIceIcon {
-            IcePicker(selection: manager.bindings.iceIcon) {
-                ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
-                    label(for: imageSet)
+            IceLabeledContent {
+                IceMenu { id in
+                    if let imageSet = id as? ControlItemImageSet {
+                        manager.iceIcon = imageSet
+                    } else if id is ChooseImageID {
+                        isImportingCustomIceIcon = true
+                    }
+                } content: {
+                    ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
+                        label(for: imageSet)
+                    }
+                    if let lastCustomIceIcon = manager.lastCustomIceIcon {
+                        label(for: lastCustomIceIcon)
+                    }
+                    Divider()
+                    Text("Choose image…")
+                        .id(ChooseImageID())
+                } label: {
+                    label(for: manager.iceIcon)
                 }
-                if let lastCustomIceIcon = manager.lastCustomIceIcon {
-                    label(for: lastCustomIceIcon)
-                }
-                Divider()
-                Button("Choose image…") {
-                    isImportingCustomIceIcon = true
-                }
+                .labelStyle(.titleAndIcon)
             } label: {
                 Text("Ice icon")
                 Text("Choose a custom icon to show in the menu bar")

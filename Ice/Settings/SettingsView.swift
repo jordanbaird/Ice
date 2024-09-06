@@ -47,7 +47,7 @@ struct SettingsView: View {
     private var detailView: some View {
         switch navigationState.settingsNavigationIdentifier {
         case .general:
-            GeneralSettingsPane()
+            GeneralSettingsPaneNew()
         case .menuBarItems:
             MenuBarItemsSettingsPane()
         case .menuBarAppearance:

@@ -7,6 +7,7 @@ import SwiftUI
 
 struct IcePicker<Label: View, SelectionValue: Hashable, Content: View>: View {
     @Binding var selection: SelectionValue
+    @State private var isHovering = false
 
     let label: Label
     let content: Content
@@ -35,12 +36,28 @@ struct IcePicker<Label: View, SelectionValue: Hashable, Content: View>: View {
 
     var body: some View {
         IceLabeledContent {
-            _VariadicView.Tree(
-                IcePickerLayout(selection: $selection) {
+            ZStack(alignment: .trailing) {
+                IcePickerButton()
+                    .allowsHitTesting(false)
+                    .opacity(isHovering ? 1 : 0)
+
+                Picker(selection: $selection) {
+                    content
+                        .labelStyle(.titleAndIcon)
+                } label: {
                     label
                 }
-            ) {
-                content
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .buttonStyle(.plain)
+                .menuIndicator(.visible)
+                .baselineOffset(1)
+                .padding(.leading, 5)
+            }
+            .frame(height: 22)
+            .fixedSize()
+            .onHover { hovering in
+                isHovering = hovering
             }
         } label: {
             label
@@ -48,67 +65,23 @@ struct IcePicker<Label: View, SelectionValue: Hashable, Content: View>: View {
     }
 }
 
-private struct IcePickerLayout<Label: View, SelectionValue: Hashable>: _VariadicView_UnaryViewRoot {
-    @Binding var selection: SelectionValue
-    @State private var isHovering = false
-
-    let label: Label
-
-    init(selection: Binding<SelectionValue>, @ViewBuilder label: () -> Label) {
-        self._selection = selection
-        self.label = label()
+private struct IcePickerButton: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSButton {
+        let button = NSButton()
+        button.title = ""
+        return button
     }
 
-    @ViewBuilder
-    func body(children: _VariadicView.Children) -> some View {
-        ZStack(alignment: .trailing) {
-            HStack(spacing: 4) {
-                if let child = children.first(where: { $0.id() == selection }) {
-                    child
-                }
-                ZStack {
-                    if !isHovering {
-                        RoundedRectangle(cornerRadius: 4, style: .circular)
-                            .fill(.quaternary)
-                            .aspectRatio(contentMode: .fill)
-                    }
-                    Image(systemName: "chevron.up.chevron.down")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .padding(2.25)
-                        .fontWeight(.bold)
-                }
-                .frame(width: 16, height: 16)
-            }
-            .padding(.horizontal, 2)
-            .padding(.leading, 10)
-
-            Picker(selection: $selection) {
-                children
-            } label: {
-                label
-            }
-            .labelsHidden()
-            .pickerStyle(.menu)
-            .opacity(isHovering ? 1 : 0)
-            .menuIndicator(.hidden)
-        }
-        .onHover { hovering in
-            isHovering = hovering
-        }
-        .fixedSize()
-    }
+    func updateNSView(_ nsView: NSButton, context: Context) { }
 }
 
 #Preview {
-    VStack {
-        IcePicker(selection: .constant(0)) {
-            ForEach(0...10, id: \.self) { i in
-                Text(i.formatted())
-            }
-        } label: {
-            Text("Ice Picker")
+    IcePicker(selection: .constant(RehideStrategy.smart)) {
+        ForEach(RehideStrategy.allCases) { strategy in
+            Text(strategy.localized).tag(strategy)
         }
-        .padding()
+    } label: {
+        Text("Strategy")
     }
+    .padding()
 }

@@ -8,7 +8,9 @@ import SwiftUI
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
-    private var appState: AppState?
+    private weak var appState: AppState?
+
+    // MARK: NSApplicationDelegate Methods
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         guard let appState else {
@@ -16,13 +18,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // assign the delegate to the shared app state
+        // Assign the delegate to the shared app state.
         appState.assignAppDelegate(self)
 
-        // allow the app to set the cursor in the background
+        // Allow the app to set the cursor in the background.
         appState.setsCursorInBackground = true
 
-        // set up the shared screen state manager
+        // Set up the shared screen state manager.
         ScreenStateManager.setUpSharedManager()
     }
 
@@ -32,52 +34,51 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // assign the settings window to the shared app state
-        if let settingsWindow = NSApp.window(withIdentifier: Constants.settingsWindowID) {
-            appState.assignSettingsWindow(settingsWindow)
-            settingsWindow.close()
-        }
-
-        // assign the permissions window to the shared app state
-        if let permissionsWindow = NSApp.window(withIdentifier: Constants.permissionsWindowID) {
-            appState.assignPermissionsWindow(permissionsWindow)
-        }
-
-        if !appState.isPreview {
-            // if we have the required permissions, set up the
-            // shared app state
-            if appState.permissionsManager.hasPermission {
-                appState.performSetup()
+        // Assign and close the various windows.
+        let windowAssignments: KeyValuePairs = [
+            Constants.settingsWindowID: appState.assignSettingsWindow,
+            Constants.permissionsWindowID: appState.assignPermissionsWindow,
+        ]
+        for (identifier, assign) in windowAssignments {
+            if let window = NSApp.window(withIdentifier: identifier) {
+                assign(window)
+                window.close()
             }
         }
 
-        // hide the main menu to make more space in the menu bar
+        // Hide the main menu to make more space in the menu bar.
         if let mainMenu = NSApp.mainMenu {
             for item in mainMenu.items {
                 item.isHidden = true
             }
         }
 
-        // hide all sections
-        for section in appState.menuBarManager.sections {
-            section.hide()
+        if !appState.isPreview {
+            // If we have the required permissions, set up the shared app state.
+            // Otherwise, open the permissions window.
+            if appState.permissionsManager.hasPermission {
+                appState.performSetup()
+            } else if let permissionsWindow = appState.permissionsWindow {
+                appState.activate(withPolicy: .regular)
+                permissionsWindow.center()
+                permissionsWindow.makeKeyAndOrderFront(nil)
+            } else {
+                Logger.appDelegate.error("Failed to open permissions window")
+            }
         }
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        // Deactivate and set the policy to accessory when all windows are closed.
+        appState?.deactivate(withPolicy: .accessory)
+        return false
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         return true
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        if
-            let appState,
-            appState.permissionsManager.hasPermission
-        {
-            appState.deactivate(withPolicy: .accessory)
-            return false
-        }
-        return true
-    }
+    // MARK: Other Methods
 
     /// Assigns the app state to the delegate.
     func assignAppState(_ appState: AppState) {
@@ -97,10 +98,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Logger.appDelegate.warning("Failed to open settings window")
             return
         }
+        // Small delay makes this more reliable.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             appState.activate(withPolicy: .regular)
             settingsWindow.center()
-            settingsWindow.makeKeyAndOrderFront(self)
+            settingsWindow.makeKeyAndOrderFront(nil)
         }
     }
 }

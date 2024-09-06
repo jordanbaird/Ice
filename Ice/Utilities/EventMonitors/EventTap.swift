@@ -55,6 +55,7 @@ class EventTap {
         }
 
         /// A Boolean value that indicates whether the event tap is enabled.
+        @MainActor
         var isEnabled: Bool {
             tap.isEnabled
         }
@@ -70,16 +71,19 @@ class EventTap {
         }
 
         /// Enables the event tap.
+        @MainActor
         func enable() {
             tap.enable()
         }
 
         /// Enables the event tap with the given timeout.
+        @MainActor
         func enable(timeout: Duration, onTimeout: @escaping () -> Void) {
             tap.enable(timeout: timeout, onTimeout: onTimeout)
         }
 
         /// Disables the event tap.
+        @MainActor
         func disable() {
             tap.disable()
         }
@@ -88,15 +92,15 @@ class EventTap {
     private let runLoop = CFRunLoopGetCurrent()
     private let mode: CFRunLoopMode = .commonModes
     private let callback: (EventTap, CGEventTapProxy, CGEventType, CGEvent) -> Unmanaged<CGEvent>?
-    private let queue: DispatchQueue
 
     private var machPort: CFMachPort?
     private var source: CFRunLoopSource?
 
     /// The label associated with the event tap.
-    var label: String
+    let label: String
 
     /// A Boolean value that indicates whether the event tap is enabled.
+    @MainActor
     var isEnabled: Bool {
         guard let machPort else {
             return false
@@ -125,7 +129,6 @@ class EventTap {
         self.callback = { tap, pointer, type, event in
             callback(Proxy(tap: tap, pointer: pointer), type, event).map(Unmanaged.passUnretained)
         }
-        self.queue = DispatchQueue(label: label)
         guard let machPort = Self.createTapMachPort(
             location: location,
             place: place,
@@ -146,7 +149,11 @@ class EventTap {
     }
 
     deinit {
-        disable()
+        guard let machPort else {
+            return
+        }
+        CFRunLoopRemoveSource(runLoop, source, mode)
+        CGEvent.tapEnable(tap: machPort, enable: false)
         CFMachPortInvalidate(machPort)
     }
 
@@ -157,10 +164,7 @@ class EventTap {
         event: CGEvent
     ) -> Unmanaged<CGEvent>? {
         let callback = eventTap.callback
-        let queue = eventTap.queue
-        return queue.sync {
-            callback(eventTap, proxy, type, event)
-        }
+        return callback(eventTap, proxy, type, event)
     }
 
     private static func createTapMachPort(
@@ -203,7 +207,8 @@ class EventTap {
         )
     }
 
-    private func withUnwrappedComponents(body: (CFRunLoop, CFRunLoopSource, CFMachPort) -> Void) {
+    @MainActor
+    private func withUnwrappedComponents(body: @MainActor (CFRunLoop, CFRunLoopSource, CFMachPort) -> Void) {
         guard let runLoop else {
             Logger.eventTap.error("Missing run loop for event tap \"\(self.label)\"")
             return
@@ -220,40 +225,33 @@ class EventTap {
     }
 
     /// Enables the event tap.
+    @MainActor
     func enable() {
         withUnwrappedComponents { runLoop, source, machPort in
-            let mode = self.mode
-            queue.async {
-                CFRunLoopAddSource(runLoop, source, mode)
-                CGEvent.tapEnable(tap: machPort, enable: true)
-            }
+            CFRunLoopAddSource(runLoop, source, mode)
+            CGEvent.tapEnable(tap: machPort, enable: true)
         }
     }
 
     /// Enables the event tap with the given timeout.
+    @MainActor
     func enable(timeout: Duration, onTimeout: @escaping () -> Void) {
         enable()
         Task { [weak self] in
             try await Task.sleep(for: timeout)
-            guard let self else {
+            guard self?.isEnabled == true else {
                 return
             }
-            queue.async {
-                if self.isEnabled {
-                    onTimeout()
-                }
-            }
+            onTimeout()
         }
     }
 
     /// Disables the event tap.
+    @MainActor
     func disable() {
         withUnwrappedComponents { runLoop, source, machPort in
-            let mode = self.mode
-            queue.async {
-                CFRunLoopRemoveSource(runLoop, source, mode)
-                CGEvent.tapEnable(tap: machPort, enable: false)
-            }
+            CFRunLoopRemoveSource(runLoop, source, mode)
+            CGEvent.tapEnable(tap: machPort, enable: false)
         }
     }
 }

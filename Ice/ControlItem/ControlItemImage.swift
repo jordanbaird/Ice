@@ -7,7 +7,7 @@ import Cocoa
 
 /// A Codable image for a control item.
 enum ControlItemImage: Codable, Hashable {
-    /// An image created from drawing code in the app.
+    /// An image created from drawing code built into the app.
     case builtin(_ name: ImageBuiltinName)
     /// A system symbol image.
     case symbol(_ name: String)
@@ -26,7 +26,7 @@ enum ControlItemImage: Codable, Hashable {
             case .chevronSmall: StaticBuiltins.Chevron.small
             }
         case .symbol(let name):
-            let image = NSImage(systemSymbolName: name, accessibilityDescription: "")
+            let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
             image?.isTemplate = true
             return image
         case .catalog(let name):
@@ -60,9 +60,8 @@ extension ControlItemImage {
 extension ControlItemImage {
     /// A namespace for static builtin images.
     ///
-    /// - Note: We use the static properties `large` and `small` to avoid
-    ///   repeatedly executing code every time the ``nsImage`` property is
-    ///   accessed.
+    /// - Note: We use the static properties `large` and `small` to avoid repeatedly
+    ///   executing code every time ``nsImage(for:)`` is called.
     private enum StaticBuiltins {
         /// A namespace for static builtin chevron images.
         enum Chevron {

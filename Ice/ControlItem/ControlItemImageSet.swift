@@ -3,6 +3,9 @@
 //  Ice
 //
 
+/// A named set of images that are used by control items.
+///
+/// An image set contains images for a control item in both the hidden and visible states.
 struct ControlItemImageSet: Codable, Hashable, Identifiable {
     enum Name: String, Codable, Hashable {
         case arrow = "Arrow"
@@ -33,12 +36,14 @@ struct ControlItemImageSet: Codable, Hashable, Identifiable {
 }
 
 extension ControlItemImageSet {
+    /// The default image set for the Ice icon.
     static let defaultIceIcon = ControlItemImageSet(
         name: .dot,
         hidden: .catalog("DotFill"),
         visible: .catalog("DotStroke")
     )
 
+    /// The image sets that the user can choose to display in the Ice icon.
     static let userSelectableIceIcons = [
         ControlItemImageSet(
             name: .arrow,

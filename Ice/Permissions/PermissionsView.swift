@@ -6,56 +6,59 @@
 import SwiftUI
 
 struct PermissionsView: View {
-    @EnvironmentObject var appState: AppState
-
-    @Environment(\.dismissWindow) private var dismissWindow
+    @EnvironmentObject var permissionsManager: PermissionsManager
     @Environment(\.openWindow) private var openWindow
 
     let onContinue: () -> Void
 
-    private var permissionsManager: PermissionsManager {
-        appState.permissionsManager
-    }
-
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
             headerView
+                .padding(.vertical)
+
             explanationView
             permissionsGroupStack
+
             footerView
+                .padding(.vertical)
         }
+        .padding(.horizontal)
         .fixedSize()
-        .padding()
     }
 
     @ViewBuilder
     private var headerView: some View {
         Label {
             Text("Permissions")
-                .font(.system(size: 30))
+                .font(.system(size: 36))
         } icon: {
             if let nsImage = NSImage(named: NSImage.applicationIconName) {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 50, height: 50)
+                    .frame(width: 75, height: 75)
             }
         }
     }
 
     @ViewBuilder
     private var explanationView: some View {
-        VStack {
-            Text("Ice needs your permission to manage your menu bar.")
-            Text("Absolutely no personal information is collected or stored.")
-                .bold()
-                .underline()
+        GroupBox {
+            VStack {
+                Text("Ice needs permission to manage the menu bar.")
+                Text("Absolutely no personal information is collected or stored.")
+                    .bold()
+                    .foregroundStyle(.red)
+            }
+            .padding()
         }
+        .font(.title3)
+        .padding(.bottom, 10)
     }
 
     @ViewBuilder
     private var permissionsGroupStack: some View {
-        VStack {
+        VStack(spacing: 7.5) {
             permissionBox(permissionsManager.accessibilityPermission)
             permissionBox(permissionsManager.screenRecordingPermission)
         }
@@ -63,77 +66,73 @@ struct PermissionsView: View {
 
     @ViewBuilder
     private var footerView: some View {
+        HStack {
+            quitButton
+            continueButton
+        }
+        .controlSize(.large)
+    }
+
+    @ViewBuilder
+    private var quitButton: some View {
         Button {
-            dismissWindow()
+            NSApp.terminate(nil)
+        } label: {
+            Text("Quit")
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private var continueButton: some View {
+        Button {
             onContinue()
         } label: {
             Text("Continue")
                 .frame(maxWidth: .infinity)
         }
-        .controlSize(.large)
-        .opacity(permissionsManager.hasPermission ? 1 : 0)
         .disabled(!permissionsManager.hasPermission)
     }
 
     @ViewBuilder
     private func permissionBox(_ permission: Permission) -> some View {
         GroupBox {
-            VStack(spacing: 2) {
+            VStack(spacing: 10) {
                 Text(permission.title)
                     .font(.title)
                     .underline()
 
-                Text("Ice needs your permission to:")
-                    .font(.subheadline)
+                VStack(spacing: 0) {
+                    Text("Ice needs this permission to:")
+                        .font(.title3)
+                        .bold()
 
-                VStack(alignment: .leading) {
-                    ForEach(permission.details, id: \.self) { detail in
-                        Text(detail)
-                    }
-                }
-
-                VStack(spacing: 1) {
-                    ForEach(permission.notes, id: \.self) { note in
-                        Text(note)
-                            .bold()
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background {
-                                RoundedRectangle(
-                                    cornerRadius: 5,
-                                    style: .circular
-                                )
-                                .fill(.quinary)
+                    VStack(alignment: .leading) {
+                        ForEach(permission.details, id: \.self) { detail in
+                            HStack {
+                                Text("•").bold()
+                                Text(detail)
                             }
-                    }
-                }
-                .padding(3)
-
-                if permission.hasPermission {
-                    Label(
-                        "Ice has been granted permission",
-                        systemImage: "checkmark"
-                    )
-                    .foregroundStyle(.green)
-                    .symbolVariant(.circle.fill)
-                    .focusable(false)
-                    .frame(height: 21)
-                } else {
-                    Button("Grant Permission") {
-                        permission.runWithCompletion {
-                            openWindow(id: Constants.permissionsWindowID)
                         }
                     }
-                    .frame(height: 21)
                 }
+
+                Button {
+                    permission.runWithCompletion {
+                        openWindow(id: Constants.permissionsWindowID)
+                    }
+                } label: {
+                    if permission.hasPermission {
+                        Text("Permission Granted")
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("Grant Permission")
+                    }
+                }
+                .allowsHitTesting(!permission.hasPermission)
             }
-            .padding(5)
+            .padding(10)
             .frame(maxWidth: .infinity)
         }
     }
-}
-
-#Preview {
-    PermissionsView { }
-        .environmentObject(AppState())
 }

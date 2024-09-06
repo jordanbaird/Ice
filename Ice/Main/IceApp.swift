@@ -14,14 +14,16 @@ struct IceApp: App {
     init() {
         NSSplitViewItem.swizzle()
         IceBarPanel.swizzle()
+        // Occurs before AppDelegate.applicationWillFinishLaunching(_:).
         appDelegate.assignAppState(appState)
     }
 
     var body: some Scene {
         SettingsWindow(appState: appState, onAppear: {
-            if !appState.permissionsManager.hasPermission {
-                openWindow(id: Constants.permissionsWindowID)
-            }
+            // Open the permissions window no matter what, so that we can
+            // reference it. We'll close it in AppDelegate if permissions
+            // have already been granted.
+            openWindow(id: Constants.permissionsWindowID)
         })
         PermissionsWindow(appState: appState, onContinue: {
             appState.performSetup()

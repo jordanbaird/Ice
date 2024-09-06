@@ -100,7 +100,17 @@ struct GeneralSettingsPane: View {
             Text(imageSet.name.rawValue)
         } icon: {
             if let nsImage = imageSet.hidden.nsImage(for: appState) {
-                Image(nsImage: nsImage)
+                switch imageSet.name {
+                case .custom:
+                    Image(size: CGSize(width: 18, height: 18)) { context in
+                        context.draw(
+                            Image(nsImage: nsImage),
+                            in: context.clipBoundingRect
+                        )
+                    }
+                default:
+                    Image(nsImage: nsImage)
+                }
             }
         }
         .tag(imageSet)

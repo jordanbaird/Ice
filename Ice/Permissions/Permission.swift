@@ -10,17 +10,11 @@ import Cocoa
 // MARK: - Permission
 
 class Permission: ObservableObject {
-    /// A Boolean value that indicates whether the user has
-    /// granted this permission.
+    /// A Boolean value that indicates whether the user has granted this permission.
     @Published private(set) var hasPermission = false
 
-    /// The permission's title.
     let title: String
-    /// Details that describe the reasons the app needs this
-    /// permission.
     let details: [String]
-    /// Contextual notes that further explain the permission.
-    let notes: [String]
 
     private let check: () -> Bool
     private let request: () -> Void
@@ -28,18 +22,14 @@ class Permission: ObservableObject {
     private var timerCancellable: AnyCancellable?
     private var hasPermissionCancellable: AnyCancellable?
 
-    /// Creates a permissions check with the given information
-    /// and body.
     init(
         title: String,
         details: [String],
-        notes: [String],
         check: @escaping () -> Bool,
         request: @escaping () -> Void
     ) {
         self.title = title
         self.details = details
-        self.notes = notes
         self.check = check
         self.request = request
         self.hasPermission = check()
@@ -49,10 +39,9 @@ class Permission: ObservableObject {
         stopCheck()
     }
 
-    /// Runs the permission check. If the user has not granted
-    /// permission, performs the request and waits for the user
-    /// to respond. When permission is granted, performs the
-    /// given completion handler.
+    /// Runs the permission check. If the user has not granted permission, performs
+    /// the request and waits for the user to respond. When permission is granted,
+    /// performs the given completion handler.
     func runWithCompletion(_ completionHandler: @escaping () -> Void) {
         if check() {
             hasPermission = true
@@ -100,13 +89,13 @@ class Permission: ObservableObject {
 // MARK: - AccessibilityPermission
 
 final class AccessibilityPermission: Permission {
-    static let shared = AccessibilityPermission()
-
     init() {
         super.init(
             title: "Accessibility",
-            details: ["Get real-time information about the menu bar."],
-            notes: [],
+            details: [
+                "Get real-time information about the menu bar.",
+                "Move individual menu bar items.",
+            ],
             check: {
                 checkIsProcessTrusted()
             },
@@ -120,13 +109,13 @@ final class AccessibilityPermission: Permission {
 // MARK: - ScreenRecordingPermission
 
 final class ScreenRecordingPermission: Permission {
-    static let shared = ScreenRecordingPermission()
-
     init() {
         super.init(
             title: "Screen Recording",
-            details: ["Apply custom styling to the menu bar."],
-            notes: ["Ice does not record your screen."],
+            details: [
+                "Apply custom styling to the menu bar.",
+                "Display images of individual menu bar items.",
+            ],
             check: {
                 CGPreflightScreenCaptureAccess()
             },

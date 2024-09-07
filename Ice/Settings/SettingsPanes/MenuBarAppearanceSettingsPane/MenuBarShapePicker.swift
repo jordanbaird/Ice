@@ -16,7 +16,7 @@ struct MenuBarShapePicker: View {
 
     @ViewBuilder
     private var shapeKindPicker: some View {
-        Picker("Shape Kind", selection: appearanceManager.bindings.configuration.shapeKind) {
+        IcePicker("Shape Kind", selection: appearanceManager.bindings.configuration.shapeKind) {
             ForEach(MenuBarShapeKind.allCases, id: \.self) { shape in
                 switch shape {
                 case .none:

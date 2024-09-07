@@ -21,19 +21,17 @@ struct UpdatesSettingsPane: View {
     }
 
     var body: some View {
-        Form {
-            Section {
+        IceForm {
+            IceSection {
                 automaticallyCheckForUpdates
                 automaticallyDownloadUpdates
             }
             if updatesManager.canCheckForUpdates {
-                Section {
+                IceSection {
                     checkForUpdates
                 }
             }
         }
-        .formStyle(.grouped)
-        .scrollBounceBehavior(.basedOnSize)
     }
 
     @ViewBuilder

@@ -28,9 +28,7 @@ struct MenuBarItemsSettingsPane: View {
     private var headerText: some View {
         Text("Drag to arrange your menu bar items")
             .font(.title2)
-            .annotation {
-                Text("Tip: you can also arrange menu bar items by ⌘ + dragging them in the menu bar")
-            }
+            .annotation("Tip: you can also arrange menu bar items by ⌘ + dragging them in the menu bar")
     }
 
     @ViewBuilder

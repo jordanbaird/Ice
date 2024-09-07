@@ -13,12 +13,14 @@ struct SettingsWindow: Scene {
         Window("Ice", id: Constants.settingsWindowID) {
             SettingsView()
                 .frame(minWidth: 825, minHeight: 500)
+                .background {
+                    VisualEffectView(material: .contentBackground, blendingMode: .behindWindow)
+                        .opacity(0.25)
+                        .blendMode(.softLight)
+                }
                 .onAppear(perform: onAppear)
                 .environmentObject(appState)
                 .environmentObject(appState.navigationState)
-                .readWindow { window in
-                    window?.level = .floating
-                }
         }
         .commandsRemoved()
         .windowResizability(.contentSize)

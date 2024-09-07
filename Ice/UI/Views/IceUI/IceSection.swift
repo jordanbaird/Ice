@@ -73,6 +73,7 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
             _VariadicView.Tree(IceSectionLayout(spacing: spacing)) {
                 content
                     .toggleStyle(IceSectionToggleStyle())
+                    .frame(maxWidth: .infinity)
             }
             .background {
                 backgroundShape

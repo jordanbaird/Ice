@@ -5,29 +5,30 @@
 
 import SwiftUI
 
-private class LocalEventMonitorModifierState: ObservableObject {
-    let monitor: LocalEventMonitor
+@Observable
+private class LocalEventMonitorModifierState {
+    var monitor: LocalEventMonitor
 
     init(mask: NSEvent.EventTypeMask, action: @escaping (NSEvent) -> NSEvent?) {
         self.monitor = LocalEventMonitor(mask: mask, handler: action)
-        self.monitor.start()
-    }
-
-    deinit {
-        monitor.stop()
     }
 }
 
-private struct LocalEventMonitorModifier: ViewModifier {
-    @StateObject private var state: LocalEventMonitorModifierState
+private struct LocalEventMonitorView<Content: View>: View {
+    @State private var state: LocalEventMonitorModifierState
 
-    init(mask: NSEvent.EventTypeMask, action: @escaping (NSEvent) -> NSEvent?) {
-        let state = LocalEventMonitorModifierState(mask: mask, action: action)
-        self._state = StateObject(wrappedValue: state)
+    let content: Content
+
+    init(mask: NSEvent.EventTypeMask, action: @escaping (NSEvent) -> NSEvent?, @ViewBuilder content: () -> Content) {
+        self._state = State(wrappedValue: LocalEventMonitorModifierState(mask: mask, action: action))
+        self.content = content()
     }
 
-    func body(content: Content) -> some View {
+    var body: some View {
         content
+            .onAppear {
+                state.monitor.start()
+            }
     }
 }
 
@@ -43,6 +44,8 @@ extension View {
         mask: NSEvent.EventTypeMask,
         action: @escaping (NSEvent) -> NSEvent?
     ) -> some View {
-        modifier(LocalEventMonitorModifier(mask: mask, action: action))
+        LocalEventMonitorView(mask: mask, action: action) {
+            self
+        }
     }
 }

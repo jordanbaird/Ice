@@ -16,6 +16,7 @@ struct SectionedList<ItemID: Hashable>: View {
     @Binding var selection: ItemID?
     @State private var itemFrames = [ItemID: CGRect]()
     @State private var scrollIndicatorsFlashTrigger = 0
+    @FocusState private var focused: Bool
 
     let spacing: CGFloat
     let items: [SectionedListItem<ItemID>]
@@ -62,6 +63,28 @@ struct SectionedList<ItemID: Hashable>: View {
                 }
             }
         }
+        .focusable()
+        .focused($focused)
+        .focusEffectDisabled()
+        .onKeyPress(.downArrow) {
+            if let nextSelectableItem {
+                selection = nextSelectableItem.id
+            }
+            return .handled
+        }
+        .onKeyPress(.upArrow) {
+            if let previousSelectableItem {
+                selection = previousSelectableItem.id
+            }
+            return .handled
+        }
+        .onKeyPress(.return) {
+            items.first { $0.id == selection }?.action?()
+            return .handled
+        }
+        .task {
+            focused = true
+        }
     }
 
     @ViewBuilder
@@ -75,19 +98,6 @@ struct SectionedList<ItemID: Hashable>: View {
                 )
                 .id(item.id)
             }
-        }
-        .onKeyDown(key: .downArrow) {
-            if let nextSelectableItem {
-                selection = nextSelectableItem.id
-            }
-        }
-        .onKeyDown(key: .upArrow) {
-            if let previousSelectableItem {
-                selection = previousSelectableItem.id
-            }
-        }
-        .onKeyDown(key: .return) {
-            items.first { $0.id == selection }?.action?()
         }
         .onChange(of: selection) {
             guard

@@ -34,7 +34,7 @@
 		17540BDC2B23BD5700A0F965 /* NSBezierPath+intersects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */; };
 		17543EB12C2C7A100052711E /* RunLoopLocalEventMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17543EB02C2C7A100052711E /* RunLoopLocalEventMonitor.swift */; };
 		175812542B80FBFA00D622DA /* MenuBarAppearanceEditorPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175812532B80FBFA00D622DA /* MenuBarAppearanceEditorPanel.swift */; };
-		175812592B82ACA900D622DA /* Annotation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175812582B82ACA800D622DA /* Annotation.swift */; };
+		175812592B82ACA900D622DA /* AnnotationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175812582B82ACA800D622DA /* AnnotationView.swift */; };
 		176B23F42ADB76A1008AE86B /* CustomColorPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */; };
 		177354662B1B8502001CF731 /* MenuBarShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177354652B1B8502001CF731 /* MenuBarShape.swift */; };
 		1773546C2B1BBBA1001CF731 /* MenuBarShapePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1773546B2B1BBBA1001CF731 /* MenuBarShapePicker.swift */; };
@@ -175,7 +175,7 @@
 		17540BDB2B23BD5700A0F965 /* NSBezierPath+intersects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSBezierPath+intersects.swift"; sourceTree = "<group>"; };
 		17543EB02C2C7A100052711E /* RunLoopLocalEventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunLoopLocalEventMonitor.swift; sourceTree = "<group>"; };
 		175812532B80FBFA00D622DA /* MenuBarAppearanceEditorPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarAppearanceEditorPanel.swift; sourceTree = "<group>"; };
-		175812582B82ACA800D622DA /* Annotation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Annotation.swift; sourceTree = "<group>"; };
+		175812582B82ACA800D622DA /* AnnotationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnnotationView.swift; sourceTree = "<group>"; };
 		176B23F32ADB76A1008AE86B /* CustomColorPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomColorPicker.swift; sourceTree = "<group>"; };
 		177354652B1B8502001CF731 /* MenuBarShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarShape.swift; sourceTree = "<group>"; };
 		1773546B2B1BBBA1001CF731 /* MenuBarShapePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarShapePicker.swift; sourceTree = "<group>"; };
@@ -420,7 +420,6 @@
 		179267372AE98870006AFBAF /* ViewModifiers */ = {
 			isa = PBXGroup;
 			children = (
-				175812582B82ACA800D622DA /* Annotation.swift */,
 				71604D602AAE62DA002FE96F /* BottomBar.swift */,
 				17BE3DE12C1ACAEA008B98EF /* Erased.swift */,
 				17BE3DDA2C1A63B6008B98EF /* LayoutBarStyle.swift */,
@@ -639,6 +638,7 @@
 		711D17202C89ACD600E73108 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				175812582B82ACA800D622DA /* AnnotationView.swift */,
 				7127AA002C48ED7300D99DEF /* SectionedList.swift */,
 				7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */,
 				711D17212C89ACEE00E73108 /* IceUI */,
@@ -1102,7 +1102,7 @@
 				170423DD2B56E77D004A2549 /* UpdatesManager.swift in Sources */,
 				177354662B1B8502001CF731 /* MenuBarShape.swift in Sources */,
 				71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */,
-				175812592B82ACA900D622DA /* Annotation.swift in Sources */,
+				175812592B82ACA900D622DA /* AnnotationView.swift in Sources */,
 				17AB36322BA081D800F50C0F /* NSImage+resized.swift in Sources */,
 				1787C4302B16AE78002F50DF /* PermissionsManager.swift in Sources */,
 				170CF88E2B0EDD780073F982 /* AnyLocalizedError.swift in Sources */,

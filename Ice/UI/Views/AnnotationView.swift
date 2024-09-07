@@ -1,5 +1,5 @@
 //
-//  Annotation.swift
+//  AnnotationView.swift
 //  Ice
 //
 

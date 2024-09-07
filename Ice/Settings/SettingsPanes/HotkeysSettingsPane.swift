@@ -13,21 +13,19 @@ struct HotkeysSettingsPane: View {
     }
 
     var body: some View {
-        Form {
-            Section("Menu Bar Sections") {
+        IceForm {
+            IceSection("Menu Bar Sections") {
                 hotkeyRecorder(forSection: .hidden)
                 hotkeyRecorder(forSection: .alwaysHidden)
             }
-            Section("Menu Bar Items") {
+            IceSection("Menu Bar Items") {
                 hotkeyRecorder(forAction: .searchMenuBarItems)
             }
-            Section("Other") {
+            IceSection("Other") {
                 hotkeyRecorder(forAction: .toggleApplicationMenus)
                 hotkeyRecorder(forAction: .showSectionDividers)
             }
         }
-        .formStyle(.grouped)
-        .scrollBounceBehavior(.basedOnSize)
     }
 
     @ViewBuilder

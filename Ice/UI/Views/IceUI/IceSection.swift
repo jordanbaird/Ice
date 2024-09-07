@@ -5,27 +5,84 @@
 
 import SwiftUI
 
-struct IceSection<Content: View>: View {
+struct IceSection<Header: View, Content: View, Footer: View>: View {
     private let spacing: CGFloat = 10
 
+    let header: Header
     let content: Content
+    let footer: Footer
 
-    init(@ViewBuilder content: () -> Content) {
+    init(
+        @ViewBuilder header: () -> Header,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.header = header()
         self.content = content()
+        self.footer = footer()
+    }
+
+    init(
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) where Header == EmptyView {
+        self.init {
+            EmptyView()
+        } content: {
+            content()
+        } footer: {
+            footer()
+        }
+    }
+
+    init(
+        @ViewBuilder header: () -> Header,
+        @ViewBuilder content: () -> Content
+    ) where Footer == EmptyView {
+        self.init {
+            header()
+        } content: {
+            content()
+        } footer: {
+            EmptyView()
+        }
+    }
+
+    init(@ViewBuilder content: () -> Content) where Header == EmptyView, Footer == EmptyView {
+        self.init {
+            EmptyView()
+        } content: {
+            content()
+        } footer: {
+            EmptyView()
+        }
+    }
+
+    init(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) where Header == Text, Footer == EmptyView {
+        self.init {
+            Text(title)
+                .font(.headline)
+        } content: {
+            content()
+        }
     }
 
     var body: some View {
-        _VariadicView.Tree(IceSectionLayout(spacing: spacing)) {
-            content
-                .toggleStyle(IceSectionToggleStyle())
-        }
-        .background {
-            backgroundShape
-                .fill(.quinary)
-                .overlay {
-                    backgroundShape
-                        .stroke(.quaternary)
-                }
+        VStack(alignment: .leading) {
+            header
+            _VariadicView.Tree(IceSectionLayout(spacing: spacing)) {
+                content
+                    .toggleStyle(IceSectionToggleStyle())
+            }
+            .background {
+                backgroundShape
+                    .fill(.quinary)
+                    .overlay {
+                        backgroundShape
+                            .stroke(.quaternary)
+                    }
+            }
+            footer
         }
     }
 

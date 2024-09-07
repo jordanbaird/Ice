@@ -16,14 +16,20 @@ struct HotkeyRecorder<Label: View>: View {
     }
 
     var body: some View {
-        LabeledContent {
+        IceLabeledContent {
             HStack(spacing: 1) {
                 leadingSegment
                 trailingSegment
             }
             .frame(width: 130, height: 22)
+            .alignmentGuide(.firstTextBaseline) { dimension in
+                dimension[VerticalAlignment.center]
+            }
         } label: {
             label
+                .alignmentGuide(.firstTextBaseline) { dimension in
+                    dimension[VerticalAlignment.center]
+                }
         }
         .alert(
             "Hotkey is reserved by macOS",
@@ -128,9 +134,8 @@ private struct HotkeyRecorderSegmentButtonStyle: PrimitiveButtonStyle {
     }
 
     func makeBody(configuration: Configuration) -> some View {
-        UnevenRoundedRectangle(cornerRadii: radii)
-            .foregroundStyle(Color.primary) // explicitly specify `Color.primary`
-            .opacity(isHighlighted || isPressed ? 0.2 : 0.1)
+        UnevenRoundedRectangle(cornerRadii: radii, style: .circular)
+            .fill(isHighlighted || isPressed ? .tertiary : .quaternary)
             .overlay {
                 configuration.label
                     .lineLimit(1)

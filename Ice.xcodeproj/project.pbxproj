@@ -108,6 +108,7 @@
 		711D17292C89B33C00E73108 /* IcePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D17282C89B33C00E73108 /* IcePicker.swift */; };
 		711D172D2C8A620D00E73108 /* GeneralSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D172C2C8A620D00E73108 /* GeneralSettingsPane.swift */; };
 		711D17312C8B1E9700E73108 /* IceMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D17302C8B1E9700E73108 /* IceMenu.swift */; };
+		711D17752C8C2B8500E73108 /* IceForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 711D17742C8C2B8500E73108 /* IceForm.swift */; };
 		7127A9E92C45662B00D99DEF /* MenuBarSearchPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */; };
 		7127A9F02C4687EE00D99DEF /* VisualEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */; };
 		7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */ = {isa = PBXBuildFile; productRef = 7127A9FE2C4886D100D99DEF /* IfritStatic */; };
@@ -246,6 +247,7 @@
 		711D17282C89B33C00E73108 /* IcePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IcePicker.swift; sourceTree = "<group>"; };
 		711D172C2C8A620D00E73108 /* GeneralSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsPane.swift; sourceTree = "<group>"; };
 		711D17302C8B1E9700E73108 /* IceMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceMenu.swift; sourceTree = "<group>"; };
+		711D17742C8C2B8500E73108 /* IceForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceForm.swift; sourceTree = "<group>"; };
 		7127A9E82C45662B00D99DEF /* MenuBarSearchPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarSearchPanel.swift; sourceTree = "<group>"; };
 		7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		7127AA002C48ED7300D99DEF /* SectionedList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionedList.swift; sourceTree = "<group>"; };
@@ -645,9 +647,10 @@
 		711D17212C89ACEE00E73108 /* IceUI */ = {
 			isa = PBXGroup;
 			children = (
+				711D17742C8C2B8500E73108 /* IceForm.swift */,
 				711D17222C89AD2500E73108 /* IceLabeledContent.swift */,
-				711D17282C89B33C00E73108 /* IcePicker.swift */,
 				711D17302C8B1E9700E73108 /* IceMenu.swift */,
+				711D17282C89B33C00E73108 /* IcePicker.swift */,
 				711D17242C89AD5B00E73108 /* IceSection.swift */,
 			);
 			path = IceUI;
@@ -1007,6 +1010,7 @@
 				71F4280F2C3B5C870025706C /* SettingsNavigationIdentifier.swift in Sources */,
 				17CDCACD2C2E6F6A000B1CFF /* Deprecated.swift in Sources */,
 				17CC22B52B8A55E7001A0582 /* WindowInfo.swift in Sources */,
+				711D17752C8C2B8500E73108 /* IceForm.swift in Sources */,
 				711D17232C89AD2500E73108 /* IceLabeledContent.swift in Sources */,
 				17CC22B02B8A0CA6001A0582 /* HotkeysSettingsPane.swift in Sources */,
 				17F998462C16C78000D75EC0 /* Injection.swift in Sources */,

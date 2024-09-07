@@ -56,33 +56,28 @@ struct GeneralSettingsPane: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 10) {
-                IceSection {
-                    launchAtLogin
-                }
-                IceSection {
-                    iceIconOptions
-                }
-                IceSection {
-                    iceBarOptions
-                }
-                IceSection {
-                    showOnClick
-                    showOnHover
-                    showOnScroll
-                }
-                IceSection {
-                    autoRehideOptions
-                }
-                IceSection {
-                    spacingOptions
-                }
+        IceForm {
+            IceSection {
+                launchAtLogin
             }
-            .padding(20)
+            IceSection {
+                iceIconOptions
+            }
+            IceSection {
+                iceBarOptions
+            }
+            IceSection {
+                showOnClick
+                showOnHover
+                showOnScroll
+            }
+            IceSection {
+                autoRehideOptions
+            }
+            IceSection {
+                spacingOptions
+            }
         }
-        .scrollContentBackground(.hidden)
-        .scrollBounceBehavior(.basedOnSize)
         .alert(isPresented: $isPresentingError, error: presentedError) {
             Button("OK") {
                 presentedError = nil

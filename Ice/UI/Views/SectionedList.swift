@@ -14,11 +14,17 @@ struct SectionedList<ItemID: Hashable>: View {
     }
 
     @Binding var selection: ItemID?
+
     @State private var itemFrames = [ItemID: CGRect]()
+
     @State private var scrollIndicatorsFlashTrigger = 0
 
+    @FocusState private var focused: Bool
+
     let spacing: CGFloat
+
     let items: [SectionedListItem<ItemID>]
+
     private(set) var contentPadding = EdgeInsets()
 
     private var nextSelectableItem: SectionedListItem<ItemID>? {
@@ -49,18 +55,49 @@ struct SectionedList<ItemID: Hashable>: View {
     }
 
     var body: some View {
+        if #available(macOS 15.0, *) {
+            scrollView
+                .contentMargins(.all, contentPadding, for: .scrollContent)
+                .contentMargins(.all, -contentPadding * 0.25, for: .scrollIndicators)
+        } else {
+            scrollView
+                .contentMargins(.all, contentPadding, for: .scrollContent)
+                .contentMargins(.all, -contentPadding, for: .scrollIndicators)
+        }
+    }
+
+    @ViewBuilder
+    private var scrollView: some View {
         ScrollViewReader { scrollView in
             GeometryReader { geometry in
                 ScrollView {
                     scrollContent(scrollView: scrollView, geometry: geometry)
                 }
-                .contentMargins(.all, contentPadding, for: .scrollContent)
-                .contentMargins(.all, -contentPadding, for: .scrollIndicators)
-                .scrollIndicatorsFlash(trigger: scrollIndicatorsFlashTrigger)
-                .task {
-                    scrollIndicatorsFlashTrigger += 1
-                }
             }
+        }
+        .focusable()
+        .focused($focused)
+        .focusEffectDisabled()
+        .scrollIndicatorsFlash(trigger: scrollIndicatorsFlashTrigger)
+        .onKeyPress(.downArrow) {
+            if let nextSelectableItem {
+                selection = nextSelectableItem.id
+            }
+            return .handled
+        }
+        .onKeyPress(.upArrow) {
+            if let previousSelectableItem {
+                selection = previousSelectableItem.id
+            }
+            return .handled
+        }
+        .onKeyPress(.return) {
+            items.first { $0.id == selection }?.action?()
+            return .handled
+        }
+        .task {
+            focused = true
+            scrollIndicatorsFlashTrigger += 1
         }
     }
 
@@ -75,19 +112,6 @@ struct SectionedList<ItemID: Hashable>: View {
                 )
                 .id(item.id)
             }
-        }
-        .onKeyDown(key: .downArrow) {
-            if let nextSelectableItem {
-                selection = nextSelectableItem.id
-            }
-        }
-        .onKeyDown(key: .upArrow) {
-            if let previousSelectableItem {
-                selection = previousSelectableItem.id
-            }
-        }
-        .onKeyDown(key: .return) {
-            items.first { $0.id == selection }?.action?()
         }
         .onChange(of: selection) {
             guard

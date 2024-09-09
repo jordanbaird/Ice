@@ -21,7 +21,7 @@ struct UpdatesSettingsPane: View {
     }
 
     var body: some View {
-        GroupedForm {
+        Form {
             Section {
                 automaticallyCheckForUpdates
                 automaticallyDownloadUpdates
@@ -32,6 +32,8 @@ struct UpdatesSettingsPane: View {
                 }
             }
         }
+        .formStyle(.grouped)
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     @ViewBuilder

@@ -28,7 +28,7 @@ struct AdvancedSettingsPane: View {
     }
 
     var body: some View {
-        GroupedForm {
+        Form {
             Section {
                 hideApplicationMenus
                 showSectionDividers
@@ -42,6 +42,8 @@ struct AdvancedSettingsPane: View {
                 tempShowIntervalSlider
             }
         }
+        .formStyle(.grouped)
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     @ViewBuilder

@@ -54,7 +54,7 @@ struct GeneralSettingsPane: View {
     }
 
     var body: some View {
-        GroupedForm {
+        Form {
             Section {
                 launchAtLogin
             }
@@ -76,6 +76,8 @@ struct GeneralSettingsPane: View {
                 spacingOptions
             }
         }
+        .formStyle(.grouped)
+        .scrollBounceBehavior(.basedOnSize)
         .alert(isPresented: $isPresentingError, error: presentedError) {
             Button("OK") {
                 presentedError = nil

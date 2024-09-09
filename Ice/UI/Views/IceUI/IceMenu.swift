@@ -8,9 +8,9 @@ import SwiftUI
 struct IceMenu<Label: View, Content: View>: View {
     @State private var isHovering = false
 
-    let label: Label
-    let content: Content
-    let action: (AnyHashable) -> Void
+    private let label: Label
+    private let content: Content
+    private let action: (AnyHashable) -> Void
 
     init(
         action: @escaping (AnyHashable) -> Void,

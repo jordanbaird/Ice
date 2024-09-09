@@ -6,18 +6,16 @@
 import SwiftUI
 
 struct IceLabeledContent<Label: View, Content: View>: View {
-    let spacing: CGFloat?
-    let label: Label
-    let content: Content
+    private let label: Label
+    private let content: Content
 
-    init(spacing: CGFloat? = nil, @ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
-        self.spacing = spacing
+    init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
         self.label = label()
         self.content = content()
     }
 
-    init(_ titleKey: LocalizedStringKey, spacing: CGFloat? = nil, @ViewBuilder content: () -> Content) where Label == Text {
-        self.init(spacing: spacing) {
+    init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) where Label == Text {
+        self.init {
             content()
         } label: {
             Text(titleKey)
@@ -25,13 +23,13 @@ struct IceLabeledContent<Label: View, Content: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: spacing) {
-            // Place label in VStack so that multiple views are laid out vertically.
-            VStack(alignment: .leading) {
-                label
-            }
-            Spacer()
+        LabeledContent {
             content
+                .layoutPriority(1)
+        } label: {
+            label
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(0)
         }
     }
 }

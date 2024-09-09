@@ -6,26 +6,18 @@
 import SwiftUI
 
 struct IceSection<Header: View, Content: View, Footer: View>: View {
+    private let header: Header
+    private let content: Content
+    private let footer: Footer
     private let spacing: CGFloat = 10
 
-    let header: Header
-    let content: Content
-    let footer: Footer
-
-    init(
-        @ViewBuilder header: () -> Header,
-        @ViewBuilder content: () -> Content,
-        @ViewBuilder footer: () -> Footer
-    ) {
+    init(@ViewBuilder header: () -> Header, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) {
         self.header = header()
         self.content = content()
         self.footer = footer()
     }
 
-    init(
-        @ViewBuilder content: () -> Content,
-        @ViewBuilder footer: () -> Footer
-    ) where Header == EmptyView {
+    init(@ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) where Header == EmptyView {
         self.init {
             EmptyView()
         } content: {
@@ -35,10 +27,7 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
         }
     }
 
-    init(
-        @ViewBuilder header: () -> Header,
-        @ViewBuilder content: () -> Content
-    ) where Footer == EmptyView {
+    init(@ViewBuilder header: () -> Header, @ViewBuilder content: () -> Content) where Footer == EmptyView {
         self.init {
             header()
         } content: {
@@ -72,7 +61,6 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
             header
             _VariadicView.Tree(IceSectionLayout(spacing: spacing)) {
                 content
-                    .toggleStyle(IceSectionToggleStyle())
                     .frame(maxWidth: .infinity)
             }
             .background {
@@ -110,21 +98,6 @@ private struct IceSectionLayout: _VariadicView_UnaryViewRoot {
             }
         }
         .padding(spacing)
-    }
-}
-
-private struct IceSectionToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        IceLabeledContent {
-            Toggle(isOn: configuration.$isOn) {
-                configuration.label
-            }
-            .labelsHidden()
-            .toggleStyle(.switch)
-            .controlSize(.mini)
-        } label: {
-            configuration.label
-        }
     }
 }
 

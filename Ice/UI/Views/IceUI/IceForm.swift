@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct IceForm<Content: View>: View {
-    let content: Content
+    private let content: Content
 
     init(@ViewBuilder content: () -> Content) {
         self.content = content()
@@ -21,5 +21,21 @@ struct IceForm<Content: View>: View {
         }
         .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)
+        .toggleStyle(IceFormToggleStyle())
+    }
+}
+
+private struct IceFormToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        IceLabeledContent {
+            Toggle(isOn: configuration.$isOn) {
+                configuration.label
+            }
+            .labelsHidden()
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+        } label: {
+            configuration.label
+        }
     }
 }

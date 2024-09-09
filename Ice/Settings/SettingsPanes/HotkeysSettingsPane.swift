@@ -13,7 +13,7 @@ struct HotkeysSettingsPane: View {
     }
 
     var body: some View {
-        Form {
+        GroupedForm {
             Section("Menu Bar Sections") {
                 hotkeyRecorder(forSection: .hidden)
                 hotkeyRecorder(forSection: .alwaysHidden)
@@ -26,8 +26,6 @@ struct HotkeysSettingsPane: View {
                 hotkeyRecorder(forAction: .showSectionDividers)
             }
         }
-        .formStyle(.grouped)
-        .scrollBounceBehavior(.basedOnSize)
     }
 
     @ViewBuilder

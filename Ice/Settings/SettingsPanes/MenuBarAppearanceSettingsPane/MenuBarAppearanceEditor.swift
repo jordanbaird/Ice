@@ -75,7 +75,7 @@ struct MenuBarAppearanceEditor: View {
 
     @ViewBuilder
     private var mainForm: some View {
-        Form {
+        GroupedForm {
             Section {
                 tintPicker
                 shadowToggle
@@ -98,9 +98,6 @@ struct MenuBarAppearanceEditor: View {
                 }
             }
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
-        .scrollBounceBehavior(.basedOnSize)
     }
 
     @ViewBuilder

@@ -135,6 +135,7 @@
 		71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C400312AAD76A8006FDB1C /* ReadWindow.swift */; };
 		71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */; };
 		71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */; };
+		71F422782C8FA77B00209CC7 /* GroupedForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71F422772C8FA77B00209CC7 /* GroupedForm.swift */; };
 		71F4280F2C3B5C870025706C /* SettingsNavigationIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71F4280E2C3B5C870025706C /* SettingsNavigationIdentifier.swift */; };
 		71F428112C3B5CE90025706C /* NavigationIdentifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71F428102C3B5CE90025706C /* NavigationIdentifier.swift */; };
 		71F428132C3B5E030025706C /* IconResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71F428122C3B5E030025706C /* IconResource.swift */; };
@@ -270,6 +271,7 @@
 		71C400312AAD76A8006FDB1C /* ReadWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadWindow.swift; sourceTree = "<group>"; };
 		71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+versionString.swift"; sourceTree = "<group>"; };
 		71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
+		71F422772C8FA77B00209CC7 /* GroupedForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupedForm.swift; sourceTree = "<group>"; };
 		71F4280E2C3B5C870025706C /* SettingsNavigationIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsNavigationIdentifier.swift; sourceTree = "<group>"; };
 		71F428102C3B5CE90025706C /* NavigationIdentifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationIdentifier.swift; sourceTree = "<group>"; };
 		71F428122C3B5E030025706C /* IconResource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IconResource.swift; sourceTree = "<group>"; };
@@ -812,6 +814,7 @@
 		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				71F422772C8FA77B00209CC7 /* GroupedForm.swift */,
 				7127AA002C48ED7300D99DEF /* SectionedList.swift */,
 				7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */,
 				17EC6B522AE0C09F0065F260 /* Pickers */,
@@ -1026,6 +1029,7 @@
 				711535F22AB9F6C1003193AD /* BindingExposable.swift in Sources */,
 				7166833D2A7680CE006ABF84 /* AppDelegate.swift in Sources */,
 				17EE695E2C26618F00F778A7 /* AnyInsettableShape.swift in Sources */,
+				71F422782C8FA77B00209CC7 /* GroupedForm.swift in Sources */,
 				7133ED6A2A85870E000A7E1B /* SettingsView.swift in Sources */,
 				7105CA252C5D2F44004E439E /* StatusItemDefaultsKey.swift in Sources */,
 				7133ED652A85811C000A7E1B /* NSApplication+windowWithIdentifier.swift in Sources */,

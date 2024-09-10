@@ -11,17 +11,18 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
     private let title: Title
     private let label: Label
     private let content: Content
-    private let action: (AnyHashable) -> Void
+    private let action: (any Hashable) -> Void
 
     /// Creates a menu with the given action, content, titlel, and label.
     ///
     /// - Parameters:
-    ///   - action: The action to perform when a menu item is clicked.
+    ///   - action: An action to perform when a menu item is clicked. The action takes
+    ///     a hashable id as its parameter.
     ///   - content: A group of menu items.
     ///   - title: A view to display inside the menu.
     ///   - label: A view to display as an external label for the menu.
     init(
-        action: @escaping (AnyHashable) -> Void,
+        action: @escaping (any Hashable) -> Void,
         @ViewBuilder content: () -> Content,
         @ViewBuilder title: () -> Title,
         @ViewBuilder label: () -> Label
@@ -66,7 +67,7 @@ private struct IceMenuButton: NSViewRepresentable {
 
 private struct IceMenuLayout<Title: View>: _VariadicView_UnaryViewRoot {
     let title: Title
-    let action: (AnyHashable) -> Void
+    let action: (any Hashable) -> Void
 
     func body(children: _VariadicView.Children) -> some View {
         Menu {

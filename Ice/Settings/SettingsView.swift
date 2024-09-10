@@ -25,20 +25,14 @@ struct SettingsView: View {
                     sidebarItem(for: identifier)
                 }
             } header: {
-                HStack {
-                    Image(.iceCubeStroke)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 30, height: 30)
-
-                    Text("Ice")
-                        .font(.system(size: 30, weight: .medium))
-                }
-                .foregroundStyle(.primary)
-                .padding(.vertical, 8)
+                Text("Ice")
+                    .font(.system(size: 36, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .padding(.vertical, 5)
             }
             .collapsible(false)
         }
+        .scrollDisabled(true)
         .removeSidebarToggle()
         .navigationSplitViewColumnWidth(210)
     }
@@ -71,7 +65,6 @@ struct SettingsView: View {
                 .padding(.leading, 2)
         } icon: {
             icon(for: identifier).view
-                .foregroundStyle(.primary)
         }
         .frame(height: 32)
     }

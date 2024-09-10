@@ -121,27 +121,26 @@ struct GeneralSettingsPane: View {
                 }
             }
         if manager.showIceIcon {
-            IceLabeledContent("Ice icon") {
-                IceMenu { id in
-                    if let imageSet = id as? ControlItemImageSet {
-                        manager.iceIcon = imageSet
-                    } else if id is ChooseImageID {
-                        isImportingCustomIceIcon = true
-                    }
-                } content: {
-                    ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
-                        label(for: imageSet)
-                    }
-                    if let lastCustomIceIcon = manager.lastCustomIceIcon {
-                        label(for: lastCustomIceIcon)
-                    }
-                    Divider()
-                    Text("Choose image…")
-                        .id(ChooseImageID())
-                } label: {
-                    label(for: manager.iceIcon)
+            IceMenu { id in
+                if let imageSet = id as? ControlItemImageSet {
+                    manager.iceIcon = imageSet
+                } else if id is ChooseImageID {
+                    isImportingCustomIceIcon = true
                 }
-                .labelStyle(.titleAndIcon)
+            } content: {
+                ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
+                    label(for: imageSet)
+                }
+                if let lastCustomIceIcon = manager.lastCustomIceIcon {
+                    label(for: lastCustomIceIcon)
+                }
+                Divider()
+                Text("Choose image…")
+                    .id(ChooseImageID())
+            } title: {
+                label(for: manager.iceIcon)
+            } label: {
+                Text("Ice icon")
             }
             .annotation("Choose a custom icon to show in the menu bar")
             .fileImporter(

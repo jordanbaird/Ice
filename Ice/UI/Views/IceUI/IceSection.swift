@@ -11,13 +11,20 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
     private let footer: Footer
     private let spacing: CGFloat = 10
 
-    init(@ViewBuilder header: () -> Header, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) {
+    init(
+        @ViewBuilder header: () -> Header,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
         self.header = header()
         self.content = content()
         self.footer = footer()
     }
 
-    init(@ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) where Header == EmptyView {
+    init(
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) where Header == EmptyView {
         self.init {
             EmptyView()
         } content: {
@@ -27,7 +34,10 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
         }
     }
 
-    init(@ViewBuilder header: () -> Header, @ViewBuilder content: () -> Content) where Footer == EmptyView {
+    init(
+        @ViewBuilder header: () -> Header,
+        @ViewBuilder content: () -> Content
+    ) where Footer == EmptyView {
         self.init {
             header()
         } content: {
@@ -37,7 +47,9 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
         }
     }
 
-    init(@ViewBuilder content: () -> Content) where Header == EmptyView, Footer == EmptyView {
+    init(
+        @ViewBuilder content: () -> Content
+    ) where Header == EmptyView, Footer == EmptyView {
         self.init {
             EmptyView()
         } content: {
@@ -47,7 +59,10 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
         }
     }
 
-    init(_ title: LocalizedStringKey, @ViewBuilder content: () -> Content) where Header == Text, Footer == EmptyView {
+    init(
+        _ title: LocalizedStringKey,
+        @ViewBuilder content: () -> Content
+    ) where Header == Text, Footer == EmptyView {
         self.init {
             Text(title)
                 .font(.headline)
@@ -97,40 +112,4 @@ private struct IceSectionLayout: _VariadicView_UnaryViewRoot {
         }
         .padding(spacing)
     }
-}
-
-#Preview("IceSection") {
-    IceSection {
-        Text("Hello")
-        Text("How")
-        Text("Are")
-        Text("You")
-        Toggle("Toggle", isOn: .constant(true))
-        IcePicker("Picker", selection: .constant(0)) {
-            ForEach(0...10, id: \.self) { i in
-                Text(i.formatted())
-            }
-        }
-    }
-    .padding()
-    .frame(width: 500)
-    .fixedSize()
-}
-
-#Preview("Grouped Form") {
-    Form {
-        Text("Hello")
-        Text("How")
-        Text("Are")
-        Text("You")
-        Toggle("Toggle", isOn: .constant(true))
-        Picker("Picker", selection: .constant(0)) {
-            ForEach(0...10, id: \.self) { i in
-                Text(i.formatted())
-            }
-        }
-    }
-    .formStyle(.grouped)
-    .frame(width: 500)
-    .fixedSize()
 }

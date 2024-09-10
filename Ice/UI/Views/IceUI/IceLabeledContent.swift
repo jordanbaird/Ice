@@ -9,12 +9,18 @@ struct IceLabeledContent<Label: View, Content: View>: View {
     private let label: Label
     private let content: Content
 
-    init(@ViewBuilder content: () -> Content, @ViewBuilder label: () -> Label) {
+    init(
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder label: () -> Label
+    ) {
         self.label = label()
         self.content = content()
     }
 
-    init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) where Label == Text {
+    init(
+        _ titleKey: LocalizedStringKey,
+        @ViewBuilder content: () -> Content
+    ) where Label == Text {
         self.init {
             content()
         } label: {

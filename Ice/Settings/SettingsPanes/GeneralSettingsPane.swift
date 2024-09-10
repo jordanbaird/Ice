@@ -127,7 +127,7 @@ struct GeneralSettingsPane: View {
                 }
             }
         if manager.showIceIcon {
-            IceMenu {
+            IceMenu("Ice icon") {
                 ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
                     label(for: imageSet)
                 }
@@ -141,8 +141,6 @@ struct GeneralSettingsPane: View {
                     }
             } title: {
                 label(for: manager.iceIcon)
-            } label: {
-                Text("Ice icon")
             }
             .annotation("Choose a custom icon to show in the menu bar")
             .fileImporter(

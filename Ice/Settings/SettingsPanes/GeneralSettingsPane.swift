@@ -95,7 +95,7 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private func label(for imageSet: ControlItemImageSet) -> some View {
+    private func menuItem(for imageSet: ControlItemImageSet) -> some View {
         Label {
             Text(imageSet.name.rawValue)
         } icon: {
@@ -129,10 +129,10 @@ struct GeneralSettingsPane: View {
         if manager.showIceIcon {
             IceMenu("Ice icon") {
                 ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
-                    label(for: imageSet)
+                    menuItem(for: imageSet)
                 }
                 if let lastCustomIceIcon = manager.lastCustomIceIcon {
-                    label(for: lastCustomIceIcon)
+                    menuItem(for: lastCustomIceIcon)
                 }
                 Divider()
                 Text("Choose image…")
@@ -140,7 +140,7 @@ struct GeneralSettingsPane: View {
                         isImportingCustomIceIcon = true
                     }
             } title: {
-                label(for: manager.iceIcon)
+                menuItem(for: manager.iceIcon)
             }
             .annotation("Choose a custom icon to show in the menu bar")
             .fileImporter(

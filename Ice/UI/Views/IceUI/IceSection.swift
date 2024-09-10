@@ -90,7 +90,6 @@ private struct IceSectionLayout: _VariadicView_UnaryViewRoot {
         VStack(alignment: .leading, spacing: spacing) {
             ForEach(children) { child in
                 child
-                    .mask(Rectangle())
                 if child.id != last {
                     Divider()
                         .opacity(0.5)

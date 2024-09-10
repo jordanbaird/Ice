@@ -92,9 +92,15 @@ struct MenuBarAppearanceEditor: View {
             if case .settings = location {
                 IceSection {
                     AnnotationView(
-                        "Tip: you can also edit these settings by right-clicking in an empty area of the menu bar",
-                        alignment: .center
-                    )
+                        alignment: .center,
+                        font: .callout.bold()
+                    ) {
+                        Label {
+                            Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
+                        } icon: {
+                            Image(systemName: "lightbulb")
+                        }
+                    }
                 }
             }
         }

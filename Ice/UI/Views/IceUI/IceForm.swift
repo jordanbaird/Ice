@@ -6,18 +6,29 @@
 import SwiftUI
 
 struct IceForm<Content: View>: View {
+    private let alignment: HorizontalAlignment
+    private let padding: CGFloat
+    private let spacing: CGFloat
     private let content: Content
 
-    init(@ViewBuilder content: () -> Content) {
+    init(
+        alignment: HorizontalAlignment = .center,
+        padding: CGFloat = 20,
+        spacing: CGFloat = 10,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.alignment = alignment
+        self.padding = padding
+        self.spacing = spacing
         self.content = content()
     }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 10) {
+            VStack(alignment: alignment, spacing: spacing) {
                 content
             }
-            .padding(20)
+            .padding(padding)
         }
         .scrollContentBackground(.hidden)
         .scrollBounceBehavior(.basedOnSize)

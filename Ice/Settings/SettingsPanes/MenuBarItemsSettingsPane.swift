@@ -12,28 +12,35 @@ struct MenuBarItemsSettingsPane: View {
         if appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults {
             cannotArrange
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    headerText
-                    layoutBars
-                    Spacer()
-                }
-                .padding()
+            IceForm(alignment: .leading, spacing: 20) {
+                header
+                layoutBars
             }
-            .scrollBounceBehavior(.basedOnSize)
         }
     }
 
     @ViewBuilder
-    private var headerText: some View {
+    private var header: some View {
         Text("Drag to arrange your menu bar items")
             .font(.title2)
-            .annotation("Tip: you can also arrange menu bar items by ⌘ + dragging them in the menu bar")
+
+        IceSection {
+            AnnotationView(
+                alignment: .center,
+                font: .callout.bold()
+            ) {
+                Label {
+                    Text("Tip: you can also arrange menu bar items by ⌘ + dragging them in the menu bar")
+                } icon: {
+                    Image(systemName: "lightbulb")
+                }
+            }
+        }
     }
 
     @ViewBuilder
     private var layoutBars: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 25) {
             ForEach(MenuBarSection.Name.allCases, id: \.self) { section in
                 layoutBar(for: section)
             }
@@ -54,9 +61,9 @@ struct MenuBarItemsSettingsPane: View {
             section.isEnabled
         {
             VStack(alignment: .leading, spacing: 2) {
-                Text(section.name.menuString + " Menu Bar Items")
-                    .font(.system(size: 15))
-                    .padding(.leading, 2.5)
+                Text(section.name.menuString + " Section")
+                    .font(.system(size: 14))
+
                 LayoutBar(section: section)
                     .environmentObject(appState.imageCache)
             }

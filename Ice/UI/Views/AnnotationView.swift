@@ -7,13 +7,22 @@ import SwiftUI
 
 /// A view that displays content as an annotation below a parent view.
 struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>: View {
-    let alignment: HorizontalAlignment
-    let spacing: CGFloat
-    let font: Font?
-    let foregroundStyle: ForegroundStyle
-    let parent: Parent
-    let content: Content
+    private let alignment: HorizontalAlignment
+    private let spacing: CGFloat
+    private let font: Font?
+    private let foregroundStyle: ForegroundStyle
+    private let parent: Parent
+    private let content: Content
 
+    /// Creates an annotation view with a parent and content view.
+    ///
+    /// - Parameters:
+    ///   - alignment: The alignment of the content view in relation to the parent view.
+    ///   - spacing: The spacing between the parent and content view.
+    ///   - font: The font to apply to the content view's environment.
+    ///   - foregroundStyle: The foreground style to apply to the content view's environment.
+    ///   - parent: The parent view of the annotation.
+    ///   - content: The content view of the annotation.
     init(
         alignment: HorizontalAlignment = .leading,
         spacing: CGFloat = 0,
@@ -30,6 +39,15 @@ struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>:
         self.content = content()
     }
 
+    /// Creates an annotation view with a string key and parent view.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The string key to display as text below the parent view.
+    ///   - alignment: The alignment of the content view in relation to the parent view.
+    ///   - spacing: The spacing between the parent and content view.
+    ///   - font: The font to apply to the content view's environment.
+    ///   - foregroundStyle: The foreground style to apply to the content view's environment.
+    ///   - parent: The parent view of the annotation.
     init(
         _ titleKey: LocalizedStringKey,
         alignment: HorizontalAlignment = .leading,
@@ -50,6 +68,14 @@ struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>:
         }
     }
 
+    /// Creates an annotation view with a content view.
+    ///
+    /// - Parameters:
+    ///   - alignment: The alignment of the content view in relation to the parent view.
+    ///   - spacing: The spacing between the parent and content view.
+    ///   - font: The font to apply to the content view's environment.
+    ///   - foregroundStyle: The foreground style to apply to the content view's environment.
+    ///   - content: The content view of the annotation.
     init(
         alignment: HorizontalAlignment = .leading,
         spacing: CGFloat = 0,
@@ -69,6 +95,14 @@ struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>:
         }
     }
 
+    /// Creates an annotation view with a string key.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The string key to display as text.
+    ///   - alignment: The alignment of the content view in relation to the parent view.
+    ///   - spacing: The spacing between the parent and content view.
+    ///   - font: The font to apply to the content view's environment.
+    ///   - foregroundStyle: The foreground style to apply to the content view's environment.
     init(
         _ titleKey: LocalizedStringKey,
         alignment: HorizontalAlignment = .leading,
@@ -94,6 +128,7 @@ struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>:
                 .font(font)
                 .foregroundStyle(foregroundStyle)
         }
+        .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
     }
 }
 
@@ -106,11 +141,11 @@ extension View {
     ///   - font: The font to apply to the annotation content's environment.
     ///   - foregroundStyle: The foreground style to apply to the annotation content's environment.
     ///   - content: A view builder that creates the annotation content.
-    func annotation<Content: View, S: ShapeStyle>(
+    func annotation<Content: View, ForegroundStyle: ShapeStyle>(
         alignment: HorizontalAlignment = .leading,
         spacing: CGFloat = 0,
         font: Font? = .subheadline,
-        foregroundStyle: S = .secondary,
+        foregroundStyle: ForegroundStyle = .secondary,
         @ViewBuilder content: () -> Content
     ) -> some View {
         AnnotationView(
@@ -128,17 +163,17 @@ extension View {
     /// Adds the given text as an annotation below this view.
     ///
     /// - Parameters:
-    ///   - titleKey: The string key to add as an annotation.
+    ///   - titleKey: The string key to display as text below this view.
     ///   - alignment: The guide for aligning the annotation content horizontally with this view.
     ///   - spacing: The vertical spacing between this view and the annotation content.
     ///   - font: The font to apply to the annotation content's environment.
     ///   - foregroundStyle: The foreground style to apply to the annotation content's environment.
-    func annotation<S: ShapeStyle>(
+    func annotation<ForegroundStyle: ShapeStyle>(
         _ titleKey: LocalizedStringKey,
         alignment: HorizontalAlignment = .leading,
         spacing: CGFloat = 0,
         font: Font? = .subheadline,
-        foregroundStyle: S = .secondary
+        foregroundStyle: ForegroundStyle = .secondary
     ) -> some View {
         AnnotationView(
             titleKey,

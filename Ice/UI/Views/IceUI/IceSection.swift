@@ -92,7 +92,6 @@ private struct IceSectionLayout: _VariadicView_UnaryViewRoot {
                 child
                 if child.id != last {
                     Divider()
-                        .opacity(0.5)
                 }
             }
         }

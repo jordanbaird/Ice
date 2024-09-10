@@ -73,7 +73,7 @@ struct SettingsView: View {
         switch identifier {
         case .general: .systemSymbol("gearshape")
         case .menuBarItems: .systemSymbol("menubar.rectangle")
-        case .menuBarAppearance: .systemSymbol("paintpalette")
+        case .menuBarAppearance: .systemSymbol("swatchpalette")
         case .hotkeys: .systemSymbol("keyboard")
         case .advanced: .systemSymbol("gearshape.2")
         case .updates: .systemSymbol("arrow.triangle.2.circlepath.circle")

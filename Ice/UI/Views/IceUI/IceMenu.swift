@@ -11,7 +11,7 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
     private let title: Title
     private let label: Label
     private let content: Content
-    private let action: (any Hashable) -> Void
+    private let action: (any IceMenuIdentifier) -> Void
 
     /// Creates a menu with the given action, content, titlel, and label.
     ///
@@ -22,7 +22,7 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
     ///   - title: A view to display inside the menu.
     ///   - label: A view to display as an external label for the menu.
     init(
-        action: @escaping (any Hashable) -> Void,
+        action: @escaping (any IceMenuIdentifier) -> Void,
         @ViewBuilder content: () -> Content,
         @ViewBuilder title: () -> Title,
         @ViewBuilder label: () -> Label
@@ -67,13 +67,16 @@ private struct IceMenuButton: NSViewRepresentable {
 
 private struct IceMenuLayout<Title: View>: _VariadicView_UnaryViewRoot {
     let title: Title
-    let action: (any Hashable) -> Void
+    let action: (any IceMenuIdentifier) -> Void
 
     func body(children: _VariadicView.Children) -> some View {
         Menu {
             ForEach(children) { child in
                 Button {
-                    action(child.id)
+                    guard let id = child.id as? any IceMenuIdentifier else {
+                        fatalError("Menu item id is not an IceMenuIdentifier")
+                    }
+                    action(id)
                 } label: {
                     child
                 }
@@ -86,5 +89,13 @@ private struct IceMenuLayout<Title: View>: _VariadicView_UnaryViewRoot {
         .labelStyle(.titleAndIcon)
         .baselineOffset(1)
         .padding(.leading, 5)
+    }
+}
+
+protocol IceMenuIdentifier: Hashable { }
+
+extension View {
+    func iceMenuID<Identifier: IceMenuIdentifier>(_ identifier: Identifier) -> some View {
+        id(identifier)
     }
 }

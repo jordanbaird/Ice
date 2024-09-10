@@ -41,7 +41,7 @@ struct GeneralSettingsPane: View {
         }
     }
 
-    private var rehideInterval: LocalizedStringKey {
+    private var rehideIntervalKey: LocalizedStringKey {
         let formatted = manager.rehideInterval.formatted()
         if manager.rehideInterval == 1 {
             return LocalizedStringKey(formatted + " second")
@@ -222,13 +222,11 @@ struct GeneralSettingsPane: View {
     private var spacingOptions: some View {
         IceLabeledContent {
             IceSlider(
+                localizedOffsetString(for: tempItemSpacingOffset),
                 value: $tempItemSpacingOffset,
                 in: -16...16,
                 step: 2
-            ) {
-                Text(localizedOffsetString(for: tempItemSpacingOffset))
-                    .textSelection(.disabled)
-            }
+            )
             .disabled(isApplyingOffset)
         } label: {
             IceLabeledContent("Menu bar item spacing") {
@@ -282,20 +280,17 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var autoRehideOptions: some View {
-        Toggle(isOn: manager.bindings.autoRehide) {
-            Text("Automatically rehide")
-        }
+        Toggle("Automatically rehide", isOn: manager.bindings.autoRehide)
         if manager.autoRehide {
             if case .timed = manager.rehideStrategy {
-                VStack(alignment: .trailing) {
+                VStack {
                     rehideStrategyPicker
                     IceSlider(
+                        rehideIntervalKey,
                         value: manager.bindings.rehideInterval,
                         in: 0...30,
                         step: 1
-                    ) {
-                        Text(rehideInterval)
-                    }
+                    )
                 }
             } else {
                 rehideStrategyPicker

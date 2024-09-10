@@ -93,13 +93,11 @@ struct AdvancedSettingsPane: View {
     private var showOnHoverDelaySlider: some View {
         IceLabeledContent {
             IceSlider(
+                formattedToSeconds(manager.showOnHoverDelay),
                 value: manager.bindings.showOnHoverDelay,
                 in: 0...1,
                 step: 0.1
-            ) {
-                Text(formattedToSeconds(manager.showOnHoverDelay))
-                    .textSelection(.disabled)
-            }
+            )
         } label: {
             Text("Show on hover delay")
                 .frame(minHeight: .compactSliderMinHeight)
@@ -115,13 +113,11 @@ struct AdvancedSettingsPane: View {
     private var tempShowIntervalSlider: some View {
         IceLabeledContent {
             IceSlider(
+                formattedToSeconds(manager.tempShowInterval),
                 value: manager.bindings.tempShowInterval,
                 in: 0...30,
                 step: 1
-            ) {
-                Text(formattedToSeconds(manager.tempShowInterval))
-                    .textSelection(.disabled)
-            }
+            )
         } label: {
             Text("Temporarily shown item delay")
                 .frame(minHeight: .compactSliderMinHeight)

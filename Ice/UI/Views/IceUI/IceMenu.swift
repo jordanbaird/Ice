@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import OSLog
 
 struct IceMenu<Title: View, Label: View, Content: View>: View {
     @State private var isHovering = false
@@ -11,18 +12,14 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
     private let title: Title
     private let label: Label
     private let content: Content
-    private let action: (any IceMenuIdentifier) -> Void
 
-    /// Creates a menu with the given action, content, titlel, and label.
+    /// Creates a menu with the given content, title, and label.
     ///
     /// - Parameters:
-    ///   - action: An action to perform when a menu item is clicked. The action takes
-    ///     a hashable id as its parameter.
     ///   - content: A group of menu items.
     ///   - title: A view to display inside the menu.
     ///   - label: A view to display as an external label for the menu.
     init(
-        action: @escaping (any IceMenuIdentifier) -> Void,
         @ViewBuilder content: () -> Content,
         @ViewBuilder title: () -> Title,
         @ViewBuilder label: () -> Label
@@ -30,7 +27,6 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
         self.title = title()
         self.label = label()
         self.content = content()
-        self.action = action
     }
 
     var body: some View {
@@ -40,7 +36,7 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
                     .allowsHitTesting(false)
                     .opacity(isHovering ? 1 : 0)
 
-                _VariadicView.Tree(IceMenuLayout(title: title, action: action)) {
+                _VariadicView.Tree(IceMenuLayout(title: title)) {
                     content
                 }
             }
@@ -67,19 +63,11 @@ private struct IceMenuButton: NSViewRepresentable {
 
 private struct IceMenuLayout<Title: View>: _VariadicView_UnaryViewRoot {
     let title: Title
-    let action: (any IceMenuIdentifier) -> Void
 
     func body(children: _VariadicView.Children) -> some View {
         Menu {
             ForEach(children) { child in
-                Button {
-                    guard let id = child.id as? any IceMenuIdentifier else {
-                        fatalError("Menu item id is not an IceMenuIdentifier")
-                    }
-                    action(id)
-                } label: {
-                    child
-                }
+                IceMenuItem(child: child)
             }
         } label: {
             title
@@ -92,10 +80,60 @@ private struct IceMenuLayout<Title: View>: _VariadicView_UnaryViewRoot {
     }
 }
 
-protocol IceMenuIdentifier: Hashable { }
+private class IceMenuItemAction: Hashable {
+    static let nullAction = IceMenuItemAction {
+        Logger.iceMenu.warning("No action assigned to menu item")
+    }
+
+    let body: () -> Void
+
+    init(body: @escaping () -> Void) {
+        self.body = body
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(ObjectIdentifier(self))
+    }
+
+    static func == (lhs: IceMenuItemAction, rhs: IceMenuItemAction) -> Bool {
+        ObjectIdentifier(lhs) == ObjectIdentifier(rhs)
+    }
+}
+
+private struct IceMenuItemActionKey: PreferenceKey {
+    static let defaultValue = IceMenuItemAction.nullAction
+
+    static func reduce(value: inout IceMenuItemAction, nextValue: () -> IceMenuItemAction) {
+        value = nextValue()
+    }
+}
+
+private struct IceMenuItem: View {
+    @State private var action = IceMenuItemAction.nullAction
+
+    let child: _VariadicView.Children.Element
+
+    var body: some View {
+        Button {
+            action.body()
+        } label: {
+            child
+        }
+        .onPreferenceChange(IceMenuItemActionKey.self) { action in
+            self.action = action
+        }
+    }
+}
 
 extension View {
-    func iceMenuID<Identifier: IceMenuIdentifier>(_ identifier: Identifier) -> some View {
-        id(identifier)
+    /// Adds an action to perform when this view is clicked inside an ``IceMenu``.
+    ///
+    /// - Parameter action: An action to perform.
+    func iceMenuItemAction(_ action: @escaping () -> Void) -> some View {
+        preference(key: IceMenuItemActionKey.self, value: IceMenuItemAction(body: action))
     }
+}
+
+private extension Logger {
+    static let iceMenu = Logger(category: "IceMenu")
 }

@@ -7,11 +7,11 @@ import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsPane: View {
-    private struct ChooseImageID: IceMenuIdentifier { }
-
-    private struct ImageSetID: IceMenuIdentifier {
-        let imageSet: ControlItemImageSet
-    }
+//    private struct ChooseImageID: IceMenuIdentifier { }
+//
+//    private struct ImageSetID: IceMenuIdentifier {
+//        let imageSet: ControlItemImageSet
+//    }
 
     @EnvironmentObject var appState: AppState
     @State private var isImportingCustomIceIcon = false
@@ -113,7 +113,9 @@ struct GeneralSettingsPane: View {
                 }
             }
         }
-        .iceMenuID(ImageSetID(imageSet: imageSet))
+        .iceMenuItemAction {
+            manager.iceIcon = imageSet
+        }
     }
 
     @ViewBuilder
@@ -125,13 +127,7 @@ struct GeneralSettingsPane: View {
                 }
             }
         if manager.showIceIcon {
-            IceMenu { id in
-                if let id = id as? ImageSetID {
-                    manager.iceIcon = id.imageSet
-                } else if id is ChooseImageID {
-                    isImportingCustomIceIcon = true
-                }
-            } content: {
+            IceMenu {
                 ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
                     label(for: imageSet)
                 }
@@ -140,7 +136,9 @@ struct GeneralSettingsPane: View {
                 }
                 Divider()
                 Text("Choose image…")
-                    .iceMenuID(ChooseImageID())
+                    .iceMenuItemAction {
+                        isImportingCustomIceIcon = true
+                    }
             } title: {
                 label(for: manager.iceIcon)
             } label: {

@@ -58,7 +58,7 @@ struct SectionedList<ItemID: Hashable>: View {
         if #available(macOS 15.0, *) {
             scrollView
                 .contentMargins(.all, contentPadding, for: .scrollContent)
-                .contentMargins(.all, -contentPadding * 0.25, for: .scrollIndicators)
+                .contentMargins(.all, -0.5, for: .scrollIndicators)
         } else {
             scrollView
                 .contentMargins(.all, contentPadding, for: .scrollContent)

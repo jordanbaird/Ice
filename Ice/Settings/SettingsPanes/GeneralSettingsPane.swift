@@ -7,12 +7,6 @@ import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsPane: View {
-//    private struct ChooseImageID: IceMenuIdentifier { }
-//
-//    private struct ImageSetID: IceMenuIdentifier {
-//        let imageSet: ControlItemImageSet
-//    }
-
     @EnvironmentObject var appState: AppState
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false

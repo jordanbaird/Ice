@@ -74,14 +74,3 @@ private struct IcePickerButton: NSViewRepresentable {
 
     func updateNSView(_ nsView: NSButton, context: Context) { }
 }
-
-#Preview {
-    IcePicker(selection: .constant(RehideStrategy.smart)) {
-        ForEach(RehideStrategy.allCases) { strategy in
-            Text(strategy.localized).tag(strategy)
-        }
-    } label: {
-        Text("Strategy")
-    }
-    .padding()
-}

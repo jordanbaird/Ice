@@ -15,6 +15,12 @@ struct SettingsView: View {
             detailView
         }
         .navigationTitle(navigationState.settingsNavigationIdentifier.localized)
+        .frame(minWidth: 825, minHeight: 500)
+        .background {
+            VisualEffectView(material: .contentBackground, blendingMode: .behindWindow)
+                .opacity(0.25)
+                .blendMode(.softLight)
+        }
     }
 
     @ViewBuilder

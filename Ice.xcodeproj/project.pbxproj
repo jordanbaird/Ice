@@ -138,6 +138,7 @@
 		71829E0A2C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71829E092C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift */; };
 		71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71839C152A9B6A0D00250044 /* OnFrameChange.swift */; };
 		718E3F782C679F680029B835 /* IceBarLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 718E3F772C679F680029B835 /* IceBarLocation.swift */; };
+		71BAAB682C910D9600C0D804 /* Once.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71BAAB672C910D9600C0D804 /* Once.swift */; };
 		71C400322AAD76A8006FDB1C /* ReadWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C400312AAD76A8006FDB1C /* ReadWindow.swift */; };
 		71D2B02E2AAFDD5C0002B6C8 /* Bundle+versionString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */; };
 		71D36C4F2A88FE4900D89CD5 /* SettingsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */; };
@@ -279,6 +280,7 @@
 		71829E092C2FDCC200503604 /* NSScreen+getMenuBarHeight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSScreen+getMenuBarHeight.swift"; sourceTree = "<group>"; };
 		71839C152A9B6A0D00250044 /* OnFrameChange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnFrameChange.swift; sourceTree = "<group>"; };
 		718E3F772C679F680029B835 /* IceBarLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IceBarLocation.swift; sourceTree = "<group>"; };
+		71BAAB672C910D9600C0D804 /* Once.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Once.swift; sourceTree = "<group>"; };
 		71C400312AAD76A8006FDB1C /* ReadWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadWindow.swift; sourceTree = "<group>"; };
 		71D2B02D2AAFDD5C0002B6C8 /* Bundle+versionString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Bundle+versionString.swift"; sourceTree = "<group>"; };
 		71D36C4E2A88FE4900D89CD5 /* SettingsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindow.swift; sourceTree = "<group>"; };
@@ -424,6 +426,7 @@
 				17BE3DE12C1ACAEA008B98EF /* Erased.swift */,
 				17BE3DDA2C1A63B6008B98EF /* LayoutBarStyle.swift */,
 				17B380F42ADCBE090002C9C3 /* LocalEventMonitorModifier.swift */,
+				71BAAB672C910D9600C0D804 /* Once.swift */,
 				71839C152A9B6A0D00250044 /* OnFrameChange.swift */,
 				17B380F22ADCBC8A0002C9C3 /* OnKeyDown.swift */,
 				71C400312AAD76A8006FDB1C /* ReadWindow.swift */,
@@ -1024,6 +1027,7 @@
 				71839C162A9B6A0D00250044 /* OnFrameChange.swift in Sources */,
 				17C298B82BD42C390074DEAC /* Predicates.swift in Sources */,
 				17F998412C16568600D75EC0 /* CGImage+trimmingTransparentPixels.swift in Sources */,
+				71BAAB682C910D9600C0D804 /* Once.swift in Sources */,
 				170749C82B12078F009DDF73 /* GlobalEventMonitor.swift in Sources */,
 				17ECD4EE2B290F8D00E33147 /* PermissionsWindow.swift in Sources */,
 				17FE5AD32BCA7A7500E4F8D9 /* ScreenStateManager.swift in Sources */,

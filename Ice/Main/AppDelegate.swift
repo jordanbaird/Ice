@@ -34,18 +34,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Assign and close the various windows.
-        let windowAssignments: KeyValuePairs = [
-            Constants.settingsWindowID: appState.assignSettingsWindow,
-            Constants.permissionsWindowID: appState.assignPermissionsWindow,
-        ]
-        for (identifier, assign) in windowAssignments {
-            if let window = NSApp.window(withIdentifier: identifier) {
-                assign(window)
-                window.close()
-            }
-        }
-
         // Hide the main menu to make more space in the menu bar.
         if let mainMenu = NSApp.mainMenu {
             for item in mainMenu.items {

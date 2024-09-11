@@ -7,23 +7,55 @@ import SwiftUI
 
 struct SettingsWindow: Scene {
     @ObservedObject var appState: AppState
+
     let onAppear: () -> Void
 
     var body: some Scene {
-        Window("Ice", id: Constants.settingsWindowID) {
-            SettingsView()
-                .frame(minWidth: 825, minHeight: 500)
-                .background {
-                    VisualEffectView(material: .contentBackground, blendingMode: .behindWindow)
-                        .opacity(0.25)
-                        .blendMode(.softLight)
-                }
-                .onAppear(perform: onAppear)
-                .environmentObject(appState)
-                .environmentObject(appState.navigationState)
+        settingsWindow
+            .commandsRemoved()
+            .windowResizability(.contentSize)
+            .defaultSize(width: 900, height: 625)
+            .environmentObject(appState)
+            .environmentObject(appState.navigationState)
+    }
+
+    private var settingsWindow: some Scene {
+        if #available(macOS 15.0, *) {
+            return SettingsWindowMacOS15(onAppear: onAppear)
+        } else {
+            return SettingsWindowMacOS14(onAppear: onAppear)
         }
-        .commandsRemoved()
-        .windowResizability(.contentSize)
-        .defaultSize(width: 900, height: 625)
+    }
+}
+
+@available(macOS 14.0, *)
+struct SettingsWindowMacOS14: Scene {
+    let onAppear: () -> Void
+
+    var body: some Scene {
+        Window(Constants.settingsWindowTitle, id: Constants.settingsWindowID) {
+            SettingsView()
+                .once(perform: onAppear)
+        }
+    }
+}
+
+@available(macOS 15.0, *)
+struct SettingsWindowMacOS15: Scene {
+    @Environment(\.dismissWindow) private var dismissWindow
+    @State private var launchBehavior: SceneLaunchBehavior = .presented
+
+    let onAppear: () -> Void
+
+    var body: some Scene {
+        Window(Constants.settingsWindowTitle, id: Constants.settingsWindowID) {
+            SettingsView()
+                .once {
+                    onAppear()
+                    dismissWindow(id: Constants.settingsWindowID)
+                    launchBehavior = .suppressed // Suppress the scene after first dismissing.
+                }
+        }
+        .defaultLaunchBehavior(launchBehavior)
     }
 }

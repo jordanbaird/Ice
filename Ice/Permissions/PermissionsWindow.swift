@@ -16,7 +16,7 @@ struct PermissionsWindow: Scene {
     }
 
     var body: some Scene {
-        Window("Permissions", id: Constants.permissionsWindowID) {
+        Window(Constants.permissionsWindowTitle, id: Constants.permissionsWindowID) {
             PermissionsView(onContinue: onContinue)
                 .environmentObject(permissionsManager)
                 .readWindow { window in

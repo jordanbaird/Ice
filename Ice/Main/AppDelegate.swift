@@ -41,6 +41,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // On macOS 15, the windows handle their own closure. If on macOS 14,
+        // close them here.
+        //
+        // NOTE: The windows might not close when running from Xcode, but it
+        // does work when running standalone.
+        if #unavailable(macOS 15.0) {
+            appState.settingsWindow?.close()
+            appState.permissionsWindow?.close()
+        }
+
         if !appState.isPreview {
             // If we have the required permissions, set up the shared app state.
             // Otherwise, open the permissions window.

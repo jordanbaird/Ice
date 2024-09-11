@@ -30,14 +30,9 @@ struct PermissionsWindow: Scene {
 
 @available(macOS 14.0, *)
 private struct PermissionsWindowMacOS14: Scene {
-    @Environment(\.dismissWindow) private var dismissWindow
-
     var body: some Scene {
         Window(Constants.permissionsWindowTitle, id: Constants.permissionsWindowID) {
             PermissionsView()
-                .once {
-                    dismissWindow(id: Constants.permissionsWindowID)
-                }
         }
     }
 }
@@ -52,7 +47,7 @@ private struct PermissionsWindowMacOS15: Scene {
             PermissionsView()
                 .once {
                     dismissWindow(id: Constants.permissionsWindowID)
-                    launchBehavior = .suppressed // Suppress the scene after first dismissing.
+                    launchBehavior = .suppressed // Keep the window from reopening.
                 }
         }
         .defaultLaunchBehavior(launchBehavior)

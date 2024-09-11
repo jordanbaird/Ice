@@ -126,6 +126,8 @@ final class AppState: ObservableObject {
                     navigationState.isSettingsPresented = isVisible
                 }
                 .store(in: &c)
+        } else {
+            Logger.appState.warning("No settings window!")
         }
 
         Publishers.Merge(
@@ -175,7 +177,6 @@ final class AppState: ObservableObject {
         settingsManager.performSetup()
         itemManager.performSetup()
         imageCache.performSetup()
-        permissionsWindow?.close()
     }
 
     /// Assigns the app delegate to the app state.

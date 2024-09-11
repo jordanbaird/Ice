@@ -29,14 +29,12 @@ struct SettingsWindow: Scene {
 @available(macOS 14.0, *)
 private struct SettingsWindowMacOS14: Scene {
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.dismissWindow) private var dismissWindow
 
     var body: some Scene {
         Window(Constants.settingsWindowTitle, id: Constants.settingsWindowID) {
             SettingsView()
                 .once {
                     openWindow(id: Constants.permissionsWindowID)
-                    dismissWindow(id: Constants.settingsWindowID)
                 }
         }
     }
@@ -52,7 +50,7 @@ private struct SettingsWindowMacOS15: Scene {
             SettingsView()
                 .once {
                     dismissWindow(id: Constants.settingsWindowID)
-                    launchBehavior = .suppressed // Suppress the scene after first dismissing.
+                    launchBehavior = .suppressed // Keep the window from reopening.
                 }
         }
         .defaultLaunchBehavior(launchBehavior)

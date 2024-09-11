@@ -99,8 +99,12 @@ struct PermissionsView: View {
     @ViewBuilder
     private var continueButton: some View {
         Button {
-            permissionsManager.appState?.performSetup()
-            openWindow(id: Constants.settingsWindowID)
+            guard let appState = permissionsManager.appState else {
+                return
+            }
+            appState.performSetup()
+            appState.permissionsWindow?.close()
+            appState.appDelegate?.openSettingsWindow()
         } label: {
             Text("Continue")
                 .frame(maxWidth: .infinity)

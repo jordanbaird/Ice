@@ -56,7 +56,7 @@ struct PermissionsView: View {
 
     @ViewBuilder
     private var explanationView: some View {
-        GroupBox {
+        IceSection {
             VStack {
                 Text("Ice needs permission to manage the menu bar.")
                 Text("Absolutely no personal information is collected or stored.")
@@ -114,7 +114,7 @@ struct PermissionsView: View {
 
     @ViewBuilder
     private func permissionBox(_ permission: Permission) -> some View {
-        GroupBox {
+        IceSection {
             VStack(spacing: 10) {
                 Text(permission.title)
                     .font(.title)

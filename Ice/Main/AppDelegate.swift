@@ -7,7 +7,7 @@ import OSLog
 import SwiftUI
 
 @MainActor
-class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private weak var appState: AppState?
 
     // MARK: NSApplicationDelegate Methods
@@ -83,7 +83,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let appState,
             let settingsWindow = appState.settingsWindow
         else {
-            Logger.appDelegate.warning("Failed to open settings window")
+            Logger.appDelegate.error("Failed to open settings window")
             return
         }
         // Small delay makes this more reliable.

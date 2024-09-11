@@ -13,8 +13,6 @@ final class AppState: ObservableObject {
     /// A Boolean value that indicates whether the active space is fullscreen.
     @Published private(set) var isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
 
-    private var cancellables = Set<AnyCancellable>()
-
     /// Manager for events received by the app.
     private(set) lazy var eventManager = EventManager(appState: self)
 
@@ -33,9 +31,6 @@ final class AppState: ObservableObject {
     /// Global cache for menu bar item images.
     private(set) lazy var imageCache = MenuBarItemImageCache(appState: self)
 
-    /// The app's hotkey registry.
-    nonisolated let hotkeyRegistry = HotkeyRegistry()
-
     /// Manager for menu bar item spacing.
     let spacingManager = MenuBarItemSpacingManager()
 
@@ -45,30 +40,17 @@ final class AppState: ObservableObject {
     /// Model for app-wide navigation.
     let navigationState = AppNavigationState()
 
+    /// The app's hotkey registry.
+    nonisolated let hotkeyRegistry = HotkeyRegistry()
+
     /// The app's delegate.
     private(set) weak var appDelegate: AppDelegate?
 
     /// A Boolean value that indicates whether the "ShowOnHover" feature is prevented.
     private(set) var isShowOnHoverPrevented = false
 
-    /// The window that contains the settings interface.
-    var settingsWindow: NSWindow? {
-        NSApplication.shared.window(withIdentifier: Constants.settingsWindowID)
-    }
-
-    /// The window that contains the permissions interface.
-    var permissionsWindow: NSWindow? {
-        NSApplication.shared.window(withIdentifier: Constants.permissionsWindowID)
-    }
-
-    /// A Boolean value that indicates whether the application can set the
-    /// cursor in the background.
-    ///
-    /// The default value of this property is `false`.
-    var setsCursorInBackground: Bool {
-        get { Bridging.getConnectionProperty(forKey: "SetsCursorInBackground") as? Bool ?? false }
-        set { Bridging.setConnectionProperty(newValue, forKey: "SetsCursorInBackground") }
-    }
+    /// Storage for internal observers.
+    private var cancellables = Set<AnyCancellable>()
 
     /// A Boolean value that indicates whether the app is running as a SwiftUI preview.
     let isPreview: Bool = {
@@ -81,8 +63,21 @@ final class AppState: ObservableObject {
         #endif
     }()
 
-    init() {
-        MigrationManager(appState: self).migrateAll()
+    /// The window that contains the settings interface.
+    var settingsWindow: NSWindow? {
+        NSApp.window(withIdentifier: Constants.settingsWindowID)
+    }
+
+    /// The window that contains the permissions interface.
+    var permissionsWindow: NSWindow? {
+        NSApp.window(withIdentifier: Constants.permissionsWindowID)
+    }
+
+    /// A Boolean value that indicates whether the application can set the cursor
+    /// in the background.
+    var setsCursorInBackground: Bool {
+        get { Bridging.getConnectionProperty(forKey: "SetsCursorInBackground") as? Bool ?? false }
+        set { Bridging.setConnectionProperty(newValue, forKey: "SetsCursorInBackground") }
     }
 
     private func configureCancellables() {
@@ -92,12 +87,12 @@ final class AppState: ObservableObject {
             NSWorkspace.shared.notificationCenter
                 .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
                 .mapToVoid(),
-            // frontmost application change can indicate a space change from one display to
-            // another, which gets ignored by `NSWorkspace.activeSpaceDidChangeNotification`
+            // Frontmost application change can indicate a space change from one display to
+            // another, which gets ignored by NSWorkspace.activeSpaceDidChangeNotification.
             NSWorkspace.shared
                 .publisher(for: \.frontmostApplication)
                 .mapToVoid(),
-            // clicking into a fullscreen space from another space is also ignored
+            // Clicking into a fullscreen space from another space is also ignored.
             UniversalEventMonitor
                 .publisher(for: .leftMouseDown)
                 .delay(for: 0.1, scheduler: DispatchQueue.main)
@@ -194,8 +189,8 @@ final class AppState: ObservableObject {
 
     /// Activates the app and sets its activation policy to the given value.
     func activate(withPolicy policy: NSApplication.ActivationPolicy) {
-        // store whether the app has previously activated inside an internal
-        // context to keep it isolated
+        // Store whether the app has previously activated inside an internal
+        // context to keep it isolated.
         enum Context {
             static let hasActivated = ObjectAssociation<Bool>()
         }
@@ -214,7 +209,7 @@ final class AppState: ObservableObject {
         } else {
             Context.hasActivated[self] = true
             Logger.appState.debug("First time activating app, so going through Dock")
-            // hack to make sure the app properly activates for the first time
+            // Hack to make sure the app properly activates for the first time.
             NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.activate()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 activate()

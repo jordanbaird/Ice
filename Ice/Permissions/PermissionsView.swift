@@ -9,8 +9,6 @@ struct PermissionsView: View {
     @EnvironmentObject var permissionsManager: PermissionsManager
     @Environment(\.openWindow) private var openWindow
 
-    let onContinue: () -> Void
-
     var body: some View {
         VStack(spacing: 0) {
             headerView
@@ -24,6 +22,21 @@ struct PermissionsView: View {
         }
         .padding(.horizontal)
         .fixedSize()
+        .readWindow { window in
+            guard let window else {
+                return
+            }
+            window.styleMask.remove([.closable, .miniaturizable])
+            if let contentView = window.contentView {
+                with(contentView.safeAreaInsets) { insets in
+                    insets.bottom = -insets.bottom
+                    insets.left = -insets.left
+                    insets.right = -insets.right
+                    insets.top = -insets.top
+                    contentView.additionalSafeAreaInsets = insets
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -86,7 +99,8 @@ struct PermissionsView: View {
     @ViewBuilder
     private var continueButton: some View {
         Button {
-            onContinue()
+            permissionsManager.appState?.performSetup()
+            openWindow(id: Constants.settingsWindowID)
         } label: {
             Text("Continue")
                 .frame(maxWidth: .infinity)

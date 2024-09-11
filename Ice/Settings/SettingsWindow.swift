@@ -8,8 +8,6 @@ import SwiftUI
 struct SettingsWindow: Scene {
     @ObservedObject var appState: AppState
 
-    let onAppear: () -> Void
-
     var body: some Scene {
         settingsWindow
             .commandsRemoved()
@@ -21,21 +19,25 @@ struct SettingsWindow: Scene {
 
     private var settingsWindow: some Scene {
         if #available(macOS 15.0, *) {
-            return SettingsWindowMacOS15(onAppear: onAppear)
+            return SettingsWindowMacOS15()
         } else {
-            return SettingsWindowMacOS14(onAppear: onAppear)
+            return SettingsWindowMacOS14()
         }
     }
 }
 
 @available(macOS 14.0, *)
 private struct SettingsWindowMacOS14: Scene {
-    let onAppear: () -> Void
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
 
     var body: some Scene {
         Window(Constants.settingsWindowTitle, id: Constants.settingsWindowID) {
             SettingsView()
-                .once(perform: onAppear)
+                .once {
+                    openWindow(id: Constants.permissionsWindowID)
+                    dismissWindow(id: Constants.settingsWindowID)
+                }
         }
     }
 }
@@ -45,13 +47,10 @@ private struct SettingsWindowMacOS15: Scene {
     @Environment(\.dismissWindow) private var dismissWindow
     @State private var launchBehavior: SceneLaunchBehavior = .presented
 
-    let onAppear: () -> Void
-
     var body: some Scene {
         Window(Constants.settingsWindowTitle, id: Constants.settingsWindowID) {
             SettingsView()
                 .once {
-                    onAppear()
                     dismissWindow(id: Constants.settingsWindowID)
                     launchBehavior = .suppressed // Suppress the scene after first dismissing.
                 }

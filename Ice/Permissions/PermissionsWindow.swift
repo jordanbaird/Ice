@@ -8,34 +8,53 @@ import SwiftUI
 struct PermissionsWindow: Scene {
     @ObservedObject var permissionsManager: PermissionsManager
 
-    let onContinue: () -> Void
-
-    init(appState: AppState, onContinue: @escaping () -> Void) {
+    init(appState: AppState) {
         self.permissionsManager = appState.permissionsManager
-        self.onContinue = onContinue
     }
 
     var body: some Scene {
+        permissionsWindow
+            .windowResizability(.contentSize)
+            .windowStyle(.hiddenTitleBar)
+            .environmentObject(permissionsManager)
+    }
+
+    private var permissionsWindow: some Scene {
+        if #available(macOS 15.0, *) {
+            return PermissionsWindowMacOS15()
+        } else {
+            return PermissionsWindowMacOS14()
+        }
+    }
+}
+
+@available(macOS 14.0, *)
+private struct PermissionsWindowMacOS14: Scene {
+    @Environment(\.dismissWindow) private var dismissWindow
+
+    var body: some Scene {
         Window(Constants.permissionsWindowTitle, id: Constants.permissionsWindowID) {
-            PermissionsView(onContinue: onContinue)
-                .environmentObject(permissionsManager)
-                .readWindow { window in
-                    guard let window else {
-                        return
-                    }
-                    window.styleMask.remove([.closable, .miniaturizable])
-                    if let contentView = window.contentView {
-                        with(contentView.safeAreaInsets) { insets in
-                            insets.bottom = -insets.bottom
-                            insets.left = -insets.left
-                            insets.right = -insets.right
-                            insets.top = -insets.top
-                            contentView.additionalSafeAreaInsets = insets
-                        }
-                    }
+            PermissionsView()
+                .once {
+                    dismissWindow(id: Constants.permissionsWindowID)
                 }
         }
-        .windowResizability(.contentSize)
-        .windowStyle(.hiddenTitleBar)
+    }
+}
+
+@available(macOS 15.0, *)
+private struct PermissionsWindowMacOS15: Scene {
+    @Environment(\.dismissWindow) private var dismissWindow
+    @State private var launchBehavior: SceneLaunchBehavior = .presented
+
+    var body: some Scene {
+        Window(Constants.permissionsWindowTitle, id: Constants.permissionsWindowID) {
+            PermissionsView()
+                .once {
+                    dismissWindow(id: Constants.permissionsWindowID)
+                    launchBehavior = .suppressed // Suppress the scene after first dismissing.
+                }
+        }
+        .defaultLaunchBehavior(launchBehavior)
     }
 }

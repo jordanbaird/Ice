@@ -7,7 +7,7 @@ import OSLog
 import SwiftUI
 
 @MainActor
-class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private weak var appState: AppState?
 
     // MARK: NSApplicationDelegate Methods
@@ -34,23 +34,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Assign and close the various windows.
-        let windowAssignments: KeyValuePairs = [
-            Constants.settingsWindowID: appState.assignSettingsWindow,
-            Constants.permissionsWindowID: appState.assignPermissionsWindow,
-        ]
-        for (identifier, assign) in windowAssignments {
-            if let window = NSApp.window(withIdentifier: identifier) {
-                assign(window)
-                window.close()
-            }
-        }
-
         // Hide the main menu to make more space in the menu bar.
         if let mainMenu = NSApp.mainMenu {
             for item in mainMenu.items {
                 item.isHidden = true
             }
+        }
+
+        // On macOS 15, the windows handle their own closure. If on macOS 14,
+        // close them here.
+        //
+        // NOTE: The windows might not close when running from Xcode, but it
+        // does work when running standalone.
+        if #unavailable(macOS 15.0) {
+            appState.settingsWindow?.close()
+            appState.permissionsWindow?.close()
         }
 
         if !appState.isPreview {
@@ -95,7 +93,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let appState,
             let settingsWindow = appState.settingsWindow
         else {
-            Logger.appDelegate.warning("Failed to open settings window")
+            Logger.appDelegate.error("Failed to open settings window")
             return
         }
         // Small delay makes this more reliable.

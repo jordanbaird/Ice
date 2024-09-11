@@ -3,11 +3,16 @@
 //  Ice
 //
 
-import CompactSlider
 import LaunchAtLogin
 import SwiftUI
 
 struct GeneralSettingsPane: View {
+//    private struct ChooseImageID: IceMenuIdentifier { }
+//
+//    private struct ImageSetID: IceMenuIdentifier {
+//        let imageSet: ControlItemImageSet
+//    }
+
     @EnvironmentObject var appState: AppState
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false
@@ -36,7 +41,7 @@ struct GeneralSettingsPane: View {
         }
     }
 
-    private var rehideInterval: LocalizedStringKey {
+    private var rehideIntervalKey: LocalizedStringKey {
         let formatted = manager.rehideInterval.formatted()
         if manager.rehideInterval == 1 {
             return LocalizedStringKey(formatted + " second")
@@ -54,30 +59,28 @@ struct GeneralSettingsPane: View {
     }
 
     var body: some View {
-        Form {
-            Section {
+        IceForm {
+            IceSection {
                 launchAtLogin
             }
-            Section {
+            IceSection {
                 iceIconOptions
             }
-            Section {
+            IceSection {
                 iceBarOptions
             }
-            Section {
+            IceSection {
                 showOnClick
                 showOnHover
                 showOnScroll
             }
-            Section {
+            IceSection {
                 autoRehideOptions
             }
-            Section {
+            IceSection {
                 spacingOptions
             }
         }
-        .formStyle(.grouped)
-        .scrollBounceBehavior(.basedOnSize)
         .alert(isPresented: $isPresentingError, error: presentedError) {
             Button("OK") {
                 presentedError = nil
@@ -92,53 +95,54 @@ struct GeneralSettingsPane: View {
     }
 
     @ViewBuilder
-    private func label(for imageSet: ControlItemImageSet) -> some View {
+    private func menuItem(for imageSet: ControlItemImageSet) -> some View {
         Label {
             Text(imageSet.name.rawValue)
         } icon: {
             if let nsImage = imageSet.hidden.nsImage(for: appState) {
-                Image(nsImage: nsImage)
+                switch imageSet.name {
+                case .custom:
+                    Image(size: CGSize(width: 18, height: 18)) { context in
+                        context.draw(
+                            Image(nsImage: nsImage),
+                            in: context.clipBoundingRect
+                        )
+                    }
+                default:
+                    Image(nsImage: nsImage)
+                }
             }
         }
-        .tag(imageSet)
+        .iceMenuItemAction {
+            manager.iceIcon = imageSet
+        }
     }
 
     @ViewBuilder
     private var iceIconOptions: some View {
-        Toggle(isOn: manager.bindings.showIceIcon) {
-            Text("Show Ice icon")
-            if !manager.showIceIcon {
-                Text("You can still access Ice's settings by right-clicking an empty area in the menu bar")
+        Toggle("Show Ice icon", isOn: manager.bindings.showIceIcon)
+            .annotation {
+                if !manager.showIceIcon {
+                    Text("You can still access Ice's settings by right-clicking an empty area in the menu bar")
+                }
             }
-        }
         if manager.showIceIcon {
-            LabeledContent {
-                Menu {
-                    Picker("Ice icon", selection: manager.bindings.iceIcon) {
-                        ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
-                            label(for: imageSet)
-                        }
-
-                        if let lastCustomIceIcon = manager.lastCustomIceIcon {
-                            label(for: lastCustomIceIcon)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
-
-                    Button("Choose image…") {
+            IceMenu("Ice icon") {
+                ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
+                    menuItem(for: imageSet)
+                }
+                if let lastCustomIceIcon = manager.lastCustomIceIcon {
+                    menuItem(for: lastCustomIceIcon)
+                }
+                Divider()
+                Text("Choose image…")
+                    .iceMenuItemAction {
                         isImportingCustomIceIcon = true
                     }
-                } label: {
-                    label(for: manager.iceIcon)
-                }
-                .labelStyle(.titleAndIcon)
-                .scaledToFit()
-                .fixedSize()
-            } label: {
-                Text("Ice icon")
-                Text("Choose a custom icon to show in the menu bar")
+            } title: {
+                menuItem(for: manager.iceIcon)
             }
+            .annotation("Choose a custom icon to show in the menu bar")
             .fileImporter(
                 isPresented: $isImportingCustomIceIcon,
                 allowedContentTypes: [.image]
@@ -157,10 +161,8 @@ struct GeneralSettingsPane: View {
             }
 
             if case .custom = manager.iceIcon.name {
-                Toggle(isOn: manager.bindings.customIceIconIsTemplate) {
-                    Text("Apply system theme to icon")
-                    Text("Display the icon as a monochrome image matching the system appearance")
-                }
+                Toggle("Apply system theme to icon", isOn: manager.bindings.customIceIconIsTemplate)
+                    .annotation("Display the icon as a monochrome image matching the system appearance")
             }
         }
     }
@@ -175,20 +177,18 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var useIceBar: some View {
-        Toggle(isOn: manager.bindings.useIceBar) {
-            Text("Use Ice Bar")
-            Text("Show hidden menu bar items in a separate bar below the menu bar")
-        }
+        Toggle("Use Ice Bar", isOn: manager.bindings.useIceBar)
+            .annotation("Show hidden menu bar items in a separate bar below the menu bar")
     }
 
     @ViewBuilder
     private var iceBarLocationPicker: some View {
-        Picker(selection: manager.bindings.iceBarLocation) {
+        IcePicker("Location", selection: manager.bindings.iceBarLocation) {
             ForEach(IceBarLocation.allCases) { location in
                 Text(location.localized).tag(location)
             }
-        } label: {
-            Text("Location")
+        }
+        .annotation {
             switch manager.iceBarLocation {
             case .default:
                 Text("The Ice Bar's location changes based on context")
@@ -202,86 +202,103 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var showOnClick: some View {
-        Toggle(isOn: manager.bindings.showOnClick) {
-            Text("Show on click")
-            Text("Click inside an empty area of the menu bar to show hidden menu bar items")
-        }
+        Toggle("Show on click", isOn: manager.bindings.showOnClick)
+            .annotation("Click inside an empty area of the menu bar to show hidden menu bar items")
     }
 
     @ViewBuilder
     private var showOnHover: some View {
-        Toggle(isOn: manager.bindings.showOnHover) {
-            Text("Show on hover")
-            Text("Hover over an empty area of the menu bar to show hidden menu bar items")
-        }
+        Toggle("Show on hover", isOn: manager.bindings.showOnHover)
+            .annotation("Hover over an empty area of the menu bar to show hidden menu bar items")
     }
 
     @ViewBuilder
     private var showOnScroll: some View {
-        Toggle(isOn: manager.bindings.showOnScroll) {
-            Text("Show on scroll")
-            Text("Scroll or swipe in the menu bar to toggle hidden menu bar items")
-        }
+        Toggle("Show on scroll", isOn: manager.bindings.showOnScroll)
+            .annotation("Scroll or swipe in the menu bar to toggle hidden menu bar items")
     }
 
     @ViewBuilder
     private var spacingOptions: some View {
-        VStack(alignment: .leading) {
-            LabeledContent {
-                CompactSlider(
-                    value: $tempItemSpacingOffset,
-                    in: -16...16,
-                    step: 2,
-                    handleVisibility: .hovering(width: 1)
-                ) {
-                    Text(localizedOffsetString(for: tempItemSpacingOffset))
-                        .textSelection(.disabled)
+        IceLabeledContent {
+            IceSlider(
+                localizedOffsetString(for: tempItemSpacingOffset),
+                value: $tempItemSpacingOffset,
+                in: -16...16,
+                step: 2
+            )
+            .disabled(isApplyingOffset)
+        } label: {
+            IceLabeledContent("Menu bar item spacing") {
+                Button("Apply") {
+                    applyOffset()
                 }
-                .compactSliderDisabledHapticFeedback(true)
-                .disabled(isApplyingOffset)
-            } label: {
-                HStack {
-                    Text("Menu bar item spacing")
+                .help("Apply the current spacing")
+                .disabled(isApplyingOffset || !hasSliderValueChanged)
 
-                    Spacer()
-
-                    Button("Apply") {
-                        applyOffset()
+                if isApplyingOffset {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .scaleEffect(0.5)
+                        .frame(width: 15, height: 15)
+                } else {
+                    Button {
+                        resetOffsetToDefault()
+                    } label: {
+                        Image(systemName: "arrow.counterclockwise.circle.fill")
                     }
-                    .help("Apply the current spacing")
-                    .disabled(isApplyingOffset || !hasSliderValueChanged)
-
-                    if isApplyingOffset {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .scaleEffect(0.5)
-                            .frame(width: 15, height: 15)
-                    } else {
-                        Button {
-                            resetOffsetToDefault()
-                        } label: {
-                            Image(systemName: "arrow.counterclockwise.circle.fill")
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Reset to the default spacing")
-                        .disabled(isApplyingOffset || !isActualValueDifferentFromDefault)
-                    }
+                    .buttonStyle(.borderless)
+                    .help("Reset to the default spacing")
+                    .disabled(isApplyingOffset || !isActualValueDifferentFromDefault)
                 }
             }
-
-            Group {
-                Text("Applying this setting will relaunch all apps with menu bar items")
-                Text("Some apps may need to be manually relaunched")
-            }
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
         }
+        .annotation("Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.")
         .onAppear {
             tempItemSpacingOffset = manager.itemSpacingOffset
         }
     }
 
-    // Apply offset
+    @ViewBuilder
+    private var rehideStrategyPicker: some View {
+        IcePicker("Strategy", selection: manager.bindings.rehideStrategy) {
+            ForEach(RehideStrategy.allCases) { strategy in
+                Text(strategy.localized).tag(strategy)
+            }
+        }
+        .annotation {
+            switch manager.rehideStrategy {
+            case .smart:
+                Text("Menu bar items are rehidden using a smart algorithm")
+            case .timed:
+                Text("Menu bar items are rehidden after a fixed amount of time")
+            case .focusedApp:
+                Text("Menu bar items are rehidden when the focused app changes")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var autoRehideOptions: some View {
+        Toggle("Automatically rehide", isOn: manager.bindings.autoRehide)
+        if manager.autoRehide {
+            if case .timed = manager.rehideStrategy {
+                VStack {
+                    rehideStrategyPicker
+                    IceSlider(
+                        rehideIntervalKey,
+                        value: manager.bindings.rehideInterval,
+                        in: 0...30,
+                        step: 1
+                    )
+                }
+            } else {
+                rehideStrategyPicker
+            }
+        }
+    }
+
+    /// Apply menu bar spacing offset.
     private func applyOffset() {
         isApplyingOffset = true
         manager.itemSpacingOffset = tempItemSpacingOffset
@@ -296,55 +313,11 @@ struct GeneralSettingsPane: View {
         }
     }
 
-    // Reset offset to default
+    /// Reset menu bar spacing offset to default.
     private func resetOffsetToDefault() {
         tempItemSpacingOffset = 0
         manager.itemSpacingOffset = tempItemSpacingOffset
         applyOffset()
-    }
-
-    @ViewBuilder
-    private var rehideStrategyPicker: some View {
-        Picker(selection: manager.bindings.rehideStrategy) {
-            ForEach(RehideStrategy.allCases) { strategy in
-                Text(strategy.localized).tag(strategy)
-            }
-        } label: {
-            Text("Strategy")
-            switch manager.rehideStrategy {
-            case .smart:
-                Text("Menu bar items are rehidden using a smart algorithm")
-            case .timed:
-                Text("Menu bar items are rehidden after a fixed amount of time")
-            case .focusedApp:
-                Text("Menu bar items are rehidden when the focused app changes")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var autoRehideOptions: some View {
-        Toggle(isOn: manager.bindings.autoRehide) {
-            Text("Automatically rehide")
-        }
-        if manager.autoRehide {
-            if case .timed = manager.rehideStrategy {
-                VStack(alignment: .trailing) {
-                    rehideStrategyPicker
-                    CompactSlider(
-                        value: manager.bindings.rehideInterval,
-                        in: 0...30,
-                        step: 1,
-                        handleVisibility: .hovering(width: 1)
-                    ) {
-                        Text(rehideInterval)
-                    }
-                    .compactSliderDisabledHapticFeedback(true)
-                }
-            } else {
-                rehideStrategyPicker
-            }
-        }
     }
 }
 

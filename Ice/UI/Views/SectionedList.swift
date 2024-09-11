@@ -19,7 +19,7 @@ struct SectionedList<ItemID: Hashable>: View {
 
     @State private var scrollIndicatorsFlashTrigger = 0
 
-    @FocusState private var focused: Bool
+    @FocusState private var isFocused: Bool
 
     let spacing: CGFloat
 
@@ -58,7 +58,7 @@ struct SectionedList<ItemID: Hashable>: View {
         if #available(macOS 15.0, *) {
             scrollView
                 .contentMargins(.all, contentPadding, for: .scrollContent)
-                .contentMargins(.all, -contentPadding * 0.25, for: .scrollIndicators)
+                .contentMargins(.all, -0.5, for: .scrollIndicators)
         } else {
             scrollView
                 .contentMargins(.all, contentPadding, for: .scrollContent)
@@ -76,27 +76,36 @@ struct SectionedList<ItemID: Hashable>: View {
             }
         }
         .focusable()
-        .focused($focused)
+        .focused($isFocused)
         .focusEffectDisabled()
         .scrollIndicatorsFlash(trigger: scrollIndicatorsFlashTrigger)
-        .onKeyPress(.downArrow) {
-            if let nextSelectableItem {
-                selection = nextSelectableItem.id
+        .onKeyPress(phases: [.down, .repeat]) { keyPress in
+            switch keyPress.key {
+            case .downArrow:
+                DispatchQueue.main.async {
+                    if let nextSelectableItem {
+                        selection = nextSelectableItem.id
+                    }
+                }
+                return .handled
+            case .upArrow:
+                DispatchQueue.main.async {
+                    if let previousSelectableItem {
+                        selection = previousSelectableItem.id
+                    }
+                }
+                return .handled
+            case .return:
+                DispatchQueue.main.async {
+                    items.first { $0.id == selection }?.action?()
+                }
+                return .handled
+            default:
+                return .ignored
             }
-            return .handled
-        }
-        .onKeyPress(.upArrow) {
-            if let previousSelectableItem {
-                selection = previousSelectableItem.id
-            }
-            return .handled
-        }
-        .onKeyPress(.return) {
-            items.first { $0.id == selection }?.action?()
-            return .handled
         }
         .task {
-            focused = true
+            isFocused = true
             scrollIndicatorsFlashTrigger += 1
         }
     }

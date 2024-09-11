@@ -6,6 +6,7 @@ disabled_rules:
   - file_length
   - function_body_length
   - function_parameter_count
+  - generic_type_name
   - identifier_name
   - large_tuple
   - line_length

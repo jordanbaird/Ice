@@ -29,7 +29,7 @@ struct SettingsWindow: Scene {
 }
 
 @available(macOS 14.0, *)
-struct SettingsWindowMacOS14: Scene {
+private struct SettingsWindowMacOS14: Scene {
     let onAppear: () -> Void
 
     var body: some Scene {
@@ -41,7 +41,7 @@ struct SettingsWindowMacOS14: Scene {
 }
 
 @available(macOS 15.0, *)
-struct SettingsWindowMacOS15: Scene {
+private struct SettingsWindowMacOS15: Scene {
     @Environment(\.dismissWindow) private var dismissWindow
     @State private var launchBehavior: SceneLaunchBehavior = .presented
 

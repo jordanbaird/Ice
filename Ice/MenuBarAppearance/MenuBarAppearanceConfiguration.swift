@@ -98,7 +98,7 @@ extension MenuBarAppearanceConfiguration {
     static let defaultConfiguration = MenuBarAppearanceConfiguration(
         hasShadow: false,
         hasBorder: false,
-        isInset: false,
+        isInset: true,
         borderColor: .black,
         borderWidth: 1,
         shapeKind: .none,

@@ -52,9 +52,8 @@ struct IcePicker<Label: View, SelectionValue: Hashable, Content: View>: View {
                 .buttonStyle(.plain)
                 .menuIndicator(.visible)
                 .baselineOffset(1)
-                .padding(.leading, 5)
+                .padding(.leading, 3)
             }
-            .frame(height: 22)
             .fixedSize()
             .onHover { hovering in
                 isHovering = hovering

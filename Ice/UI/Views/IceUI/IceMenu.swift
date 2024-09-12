@@ -60,7 +60,6 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
                     content
                 }
             }
-            .frame(height: 22)
             .fixedSize()
             .onHover { hovering in
                 isHovering = hovering
@@ -96,7 +95,7 @@ private struct IceMenuLayout<Title: View>: _VariadicView_UnaryViewRoot {
         .menuIndicator(.visible)
         .labelStyle(.titleAndIcon)
         .baselineOffset(1)
-        .padding(.leading, 5)
+        .padding(.leading, 3)
     }
 }
 

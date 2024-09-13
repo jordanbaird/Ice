@@ -119,7 +119,7 @@ struct MenuBarAppearanceEditor: View {
             HStack {
                 IcePicker("Tint", selection: appearanceManager.bindings.configuration.tintKind) {
                     ForEach(MenuBarTintKind.allCases) { tintKind in
-                        Text(tintKind.localized).tag(tintKind)
+                        Text(tintKind.localized).icePickerID(tintKind)
                     }
                 }
                 .labelsHidden()
@@ -176,9 +176,9 @@ struct MenuBarAppearanceEditor: View {
                 "Border Width",
                 selection: appearanceManager.bindings.configuration.borderWidth
             ) {
-                Text("1").tag(1.0)
-                Text("2").tag(2.0)
-                Text("3").tag(3.0)
+                Text("1").icePickerID(1.0)
+                Text("2").icePickerID(2.0)
+                Text("3").icePickerID(3.0)
             }
         }
     }

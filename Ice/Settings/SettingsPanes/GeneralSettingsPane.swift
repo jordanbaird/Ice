@@ -179,7 +179,7 @@ struct GeneralSettingsPane: View {
     private var iceBarLocationPicker: some View {
         IcePicker("Location", selection: manager.bindings.iceBarLocation) {
             ForEach(IceBarLocation.allCases) { location in
-                Text(location.localized).tag(location)
+                Text(location.localized).icePickerID(location)
             }
         }
         .annotation {
@@ -257,7 +257,7 @@ struct GeneralSettingsPane: View {
     private var rehideStrategyPicker: some View {
         IcePicker("Strategy", selection: manager.bindings.rehideStrategy) {
             ForEach(RehideStrategy.allCases) { strategy in
-                Text(strategy.localized).tag(strategy)
+                Text(strategy.localized).icePickerID(strategy)
             }
         }
         .annotation {

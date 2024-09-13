@@ -51,14 +51,25 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
 
     var body: some View {
         IceLabeledContent {
-            ZStack(alignment: .trailing) {
-                IceMenuButton()
-                    .allowsHitTesting(false)
+            ZStack {
+                IceMenuButtonView()
                     .opacity(isHovering ? 1 : 0)
+                    .allowsHitTesting(false)
 
                 _VariadicView.Tree(IceMenuLayout(title: title)) {
                     content
                 }
+                .blendMode(.destinationOver)
+
+                HStack(spacing: 5) {
+                    title
+                        .offset(y: -0.5)
+
+                    IcePopUpIndicator(isHovering: isHovering, isBordered: true, style: .pullDown)
+                }
+                .allowsHitTesting(false)
+                .padding(.trailing, 2)
+                .padding(.leading, 10)
             }
             .fixedSize()
             .onHover { hovering in
@@ -70,7 +81,7 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
     }
 }
 
-private struct IceMenuButton: NSViewRepresentable {
+private struct IceMenuButtonView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSButton {
         let button = NSButton()
         button.title = ""
@@ -92,10 +103,8 @@ private struct IceMenuLayout<Title: View>: _VariadicView_UnaryViewRoot {
             title
         }
         .menuStyle(.borderlessButton)
-        .menuIndicator(.visible)
+        .menuIndicator(.hidden)
         .labelStyle(.titleAndIcon)
-        .baselineOffset(1)
-        .padding(.leading, 3)
     }
 }
 

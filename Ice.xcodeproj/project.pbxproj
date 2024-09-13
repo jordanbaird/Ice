@@ -646,7 +646,6 @@
 				175812582B82ACA800D622DA /* AnnotationView.swift */,
 				7127AA002C48ED7300D99DEF /* SectionedList.swift */,
 				7127A9EF2C4687EE00D99DEF /* VisualEffectView.swift */,
-				711D17212C89ACEE00E73108 /* IceUI */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -853,6 +852,7 @@
 		71D36C522A89443800D89CD5 /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				711D17212C89ACEE00E73108 /* IceUI */,
 				17EC6B522AE0C09F0065F260 /* Pickers */,
 				17EE695C2C26617100F778A7 /* Shapes */,
 				179267372AE98870006AFBAF /* ViewModifiers */,

@@ -215,8 +215,8 @@ class MenuBarItemImageCache: ObservableObject {
                 Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings not visible")
                 return
             }
-            guard case .menuBarItems = appState.navigationState.settingsNavigationIdentifier else {
-                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Items pane")
+            guard case .menuBarLayout = appState.navigationState.settingsNavigationIdentifier else {
+                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Layout pane")
                 return
             }
         }

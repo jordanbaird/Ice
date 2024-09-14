@@ -91,7 +91,7 @@
 		17F998412C16568600D75EC0 /* CGImage+trimmingTransparentPixels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F998402C16568600D75EC0 /* CGImage+trimmingTransparentPixels.swift */; };
 		17F998462C16C78000D75EC0 /* Injection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F998452C16C78000D75EC0 /* Injection.swift */; };
 		17F9984B2C16CBC100D75EC0 /* LayoutBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F9984A2C16CBC100D75EC0 /* LayoutBar.swift */; };
-		17F9984D2C16CD8E00D75EC0 /* MenuBarItemsSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F9984C2C16CD8E00D75EC0 /* MenuBarItemsSettingsPane.swift */; };
+		17F9984D2C16CD8E00D75EC0 /* MenuBarLayoutSettingsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F9984C2C16CD8E00D75EC0 /* MenuBarLayoutSettingsPane.swift */; };
 		17F9984F2C16CF8600D75EC0 /* LayoutBarPaddingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F9984E2C16CF8600D75EC0 /* LayoutBarPaddingView.swift */; };
 		17F998512C16D02E00D75EC0 /* LayoutBarScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F998502C16D02E00D75EC0 /* LayoutBarScrollView.swift */; };
 		17F998532C16EFCD00D75EC0 /* CGImage+averageColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F998522C16EFCD00D75EC0 /* CGImage+averageColor.swift */; };
@@ -233,7 +233,7 @@
 		17F998402C16568600D75EC0 /* CGImage+trimmingTransparentPixels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGImage+trimmingTransparentPixels.swift"; sourceTree = "<group>"; };
 		17F998452C16C78000D75EC0 /* Injection.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Injection.swift; sourceTree = "<group>"; };
 		17F9984A2C16CBC100D75EC0 /* LayoutBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutBar.swift; sourceTree = "<group>"; };
-		17F9984C2C16CD8E00D75EC0 /* MenuBarItemsSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarItemsSettingsPane.swift; sourceTree = "<group>"; };
+		17F9984C2C16CD8E00D75EC0 /* MenuBarLayoutSettingsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLayoutSettingsPane.swift; sourceTree = "<group>"; };
 		17F9984E2C16CF8600D75EC0 /* LayoutBarPaddingView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LayoutBarPaddingView.swift; sourceTree = "<group>"; };
 		17F998502C16D02E00D75EC0 /* LayoutBarScrollView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LayoutBarScrollView.swift; sourceTree = "<group>"; };
 		17F998522C16EFCD00D75EC0 /* CGImage+averageColor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "CGImage+averageColor.swift"; sourceTree = "<group>"; };
@@ -712,7 +712,7 @@
 				17D1AC8E2B97E71D00726180 /* AdvancedSettingsPane.swift */,
 				711D172C2C8A620D00E73108 /* GeneralSettingsPane.swift */,
 				17CC22AF2B8A0CA6001A0582 /* HotkeysSettingsPane.swift */,
-				17F9984C2C16CD8E00D75EC0 /* MenuBarItemsSettingsPane.swift */,
+				17F9984C2C16CD8E00D75EC0 /* MenuBarLayoutSettingsPane.swift */,
 				173C248B2B8E821C0096F7A1 /* UpdatesSettingsPane.swift */,
 				177354672B1BBAB3001CF731 /* MenuBarAppearanceSettingsPane */,
 			);
@@ -1053,7 +1053,7 @@
 				179AC2FC2C1146EF0051E7B0 /* RemoveSidebarToggle.swift in Sources */,
 				718E3F782C679F680029B835 /* IceBarLocation.swift in Sources */,
 				17B7F32B2B264C1800CDCF49 /* MenuBarAppearanceManager.swift in Sources */,
-				17F9984D2C16CD8E00D75EC0 /* MenuBarItemsSettingsPane.swift in Sources */,
+				17F9984D2C16CD8E00D75EC0 /* MenuBarLayoutSettingsPane.swift in Sources */,
 				71F428152C3B5F3D0025706C /* AppNavigationState.swift in Sources */,
 				17D1AC8D2B97BB5900726180 /* MenuBarItem.swift in Sources */,
 				7105CA212C5D2EFF004E439E /* StatusItemDefaults.swift in Sources */,

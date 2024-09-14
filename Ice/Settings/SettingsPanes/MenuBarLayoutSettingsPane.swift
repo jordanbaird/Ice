@@ -1,11 +1,11 @@
 //
-//  MenuBarItemsSettingsPane.swift
+//  MenuBarLayoutSettingsPane.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct MenuBarItemsSettingsPane: View {
+struct MenuBarLayoutSettingsPane: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {

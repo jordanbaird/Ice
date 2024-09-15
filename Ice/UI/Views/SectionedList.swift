@@ -15,15 +15,13 @@ struct SectionedList<ItemID: Hashable>: View {
 
     @Binding var selection: ItemID?
 
+    @Binding var items: [SectionedListItem<ItemID>]
+
     @State private var itemFrames = [ItemID: CGRect]()
 
     @State private var scrollIndicatorsFlashTrigger = 0
 
-    @FocusState private var isFocused: Bool
-
     let spacing: CGFloat
-
-    let items: [SectionedListItem<ItemID>]
 
     private(set) var contentPadding = EdgeInsets()
 
@@ -48,10 +46,10 @@ struct SectionedList<ItemID: Hashable>: View {
     }
 
     /// Creates a sectioned list with the given selection, spacing, and items.
-    init(selection: Binding<ItemID?>, spacing: CGFloat = 0, items: [SectionedListItem<ItemID>]) {
+    init(selection: Binding<ItemID?>, items: Binding<[SectionedListItem<ItemID>]>, spacing: CGFloat = 0) {
         self._selection = selection
+        self._items = items
         self.spacing = spacing
-        self.items = items
     }
 
     var body: some View {
@@ -75,37 +73,27 @@ struct SectionedList<ItemID: Hashable>: View {
                 }
             }
         }
-        .focusable()
-        .focused($isFocused)
-        .focusEffectDisabled()
         .scrollIndicatorsFlash(trigger: scrollIndicatorsFlashTrigger)
-        .onKeyPress(phases: [.down, .repeat]) { keyPress in
-            switch keyPress.key {
-            case .downArrow:
-                DispatchQueue.main.async {
-                    if let nextSelectableItem {
-                        selection = nextSelectableItem.id
-                    }
+        .onKeyDown(key: .downArrow) {
+            DispatchQueue.main.async {
+                if let nextSelectableItem {
+                    selection = nextSelectableItem.id
                 }
-                return .handled
-            case .upArrow:
-                DispatchQueue.main.async {
-                    if let previousSelectableItem {
-                        selection = previousSelectableItem.id
-                    }
+            }
+        }
+        .onKeyDown(key: .upArrow) {
+            DispatchQueue.main.async {
+                if let previousSelectableItem {
+                    selection = previousSelectableItem.id
                 }
-                return .handled
-            case .return:
-                DispatchQueue.main.async {
-                    items.first { $0.id == selection }?.action?()
-                }
-                return .handled
-            default:
-                return .ignored
+            }
+        }
+        .onKeyDown(key: .return) {
+            DispatchQueue.main.async {
+                items.first { $0.id == selection }?.action?()
             }
         }
         .task {
-            isFocused = true
             scrollIndicatorsFlashTrigger += 1
         }
     }

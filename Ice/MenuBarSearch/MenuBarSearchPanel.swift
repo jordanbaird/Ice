@@ -190,7 +190,7 @@ private struct MenuBarSearchContentView: View {
 
             Divider()
 
-            SectionedList(selection: $selection, items: displayedItems)
+            SectionedList(selection: $selection, items: $displayedItems)
                 .contentPadding(8)
                 .scrollContentBackground(.hidden)
 

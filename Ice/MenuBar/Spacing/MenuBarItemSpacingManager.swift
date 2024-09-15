@@ -37,8 +37,8 @@ class MenuBarItemSpacingManager {
         }
     }
 
-    /// The wait time before force terminating an app.
-    private let waitTimeBeforeForceTerminate = 1
+    /// Delay before force terminating an app.
+    private let forceTerminateDelay = 1
 
     /// The offset to apply to the default spacing and padding.
     /// Does not take effect until ``applyOffset()`` is called.
@@ -69,39 +69,40 @@ class MenuBarItemSpacingManager {
         try await runCommand("defaults", with: ["-currentHost", "write", "-globalDomain", key.rawValue, "-int", String(key.defaultValue + offset)])
     }
 
+    /// Returns a log string for the given app.
     private nonisolated func logString(for app: NSRunningApplication) -> String {
         app.localizedName ?? app.bundleIdentifier ?? "<NIL>"
     }
 
     /// Asynchronously signals the given app to quit.
     private func signalAppToQuit(_ app: NSRunningApplication) async throws {
-        guard !app.isTerminated else {
+        if app.isTerminated {
             Logger.spacing.debug("Application \"\(self.logString(for: app))\" is already terminated")
             return
+        } else {
+            Logger.spacing.debug("Signaling application \"\(self.logString(for: app))\" to quit")
         }
-
-        Logger.spacing.debug("Signaling application \"\(self.logString(for: app))\" to quit")
 
         app.terminate()
 
         var cancellable: AnyCancellable?
-
         return try await withCheckedThrowingContinuation { continuation in
             let timeoutTask = Task {
-                try await Task.sleep(for: .seconds(waitTimeBeforeForceTerminate))
+                try await Task.sleep(for: .seconds(forceTerminateDelay))
                 if !app.isTerminated {
-                    Logger.spacing.debug("Application \"\(self.logString(for: app))\" did not terminate within \(self.waitTimeBeforeForceTerminate) seconds, attempting to force terminate")
+                    Logger.spacing.debug("Application \"\(self.logString(for: app))\" did not terminate within \(self.forceTerminateDelay) seconds, attempting to force terminate")
                     app.forceTerminate()
                 }
             }
 
             cancellable = app.publisher(for: \.isTerminated).sink { isTerminated in
-                if isTerminated {
-                    timeoutTask.cancel()
-                    cancellable?.cancel()
-                    Logger.spacing.debug("Application \"\(self.logString(for: app))\" terminated successfully")
-                    continuation.resume()
+                guard isTerminated else {
+                    return
                 }
+                timeoutTask.cancel()
+                cancellable?.cancel()
+                Logger.spacing.debug("Application \"\(self.logString(for: app))\" terminated successfully")
+                continuation.resume()
             }
         }
     }
@@ -163,7 +164,7 @@ class MenuBarItemSpacingManager {
                     app.bundleIdentifier != "com.apple.controlcenter", // ControlCenter handles its own relaunch, so skip it.
                     app != .current
                 else {
-                    return
+                    break
                 }
                 group.addTask { @MainActor in
                     do {

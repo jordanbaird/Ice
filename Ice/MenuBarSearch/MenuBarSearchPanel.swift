@@ -199,13 +199,13 @@ private struct MenuBarSearchContentView: View {
                 .zIndex(1)
 
             HStack {
-                Image(.iceCubeStroke)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 18, height: 18)
-                    .foregroundStyle(.secondary)
-                    .padding(3)
+                SettingsButton {
+                    closePanel()
+                    itemManager.appState?.appDelegate?.openSettingsWindow()
+                }
+
                 Spacer()
+
                 ShowItemButton {
                     guard
                         let selection,
@@ -216,8 +216,7 @@ private struct MenuBarSearchContentView: View {
                     performAction(for: item)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(5)
             .background(.thinMaterial)
         }
         .background {
@@ -226,7 +225,7 @@ private struct MenuBarSearchContentView: View {
         }
         .frame(width: 600, height: 400)
         .fixedSize()
-        .onAppear {
+        .task {
             searchFieldIsFocused = true
         }
         .onChange(of: searchText, initial: true) {
@@ -292,41 +291,74 @@ private struct MenuBarSearchContentView: View {
     }
 }
 
+private struct BottomBarButton<Content: View>: View {
+    @State private var isHovering = false
+
+    let content: Content
+    let action: () -> Void
+
+    init(action: @escaping () -> Void, @ViewBuilder content: () -> Content) {
+        self.action = action
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(3)
+            .background {
+                VisualEffectView(material: .selection, blendingMode: .withinWindow)
+                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .circular))
+                    .opacity(isHovering ? 0.25 : 0)
+            }
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                isHovering = hovering
+            }
+            .onTapGesture {
+                action()
+            }
+    }
+}
+
+private struct SettingsButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        BottomBarButton(action: action) {
+            Image(.iceCubeStroke)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 18, height: 18)
+                .foregroundStyle(.secondary)
+                .padding(2)
+        }
+    }
+}
+
 private struct ShowItemButton: View {
     @State private var isHovering = false
 
     let action: () -> Void
 
     var body: some View {
-        HStack {
-            Text("Show item")
-                .padding(.horizontal, 5)
+        BottomBarButton(action: action) {
+            HStack {
+                Text("Show item")
+                    .padding(.horizontal, 5)
 
-            Image(systemName: "return")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 11, height: 11)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 5)
-                .background {
-                    VisualEffectView(material: .selection, blendingMode: .withinWindow)
-                        .clipShape(RoundedRectangle(cornerRadius: 3, style: .circular))
-                        .opacity(0.5)
-                }
-        }
-        .padding(3)
-        .background {
-            VisualEffectView(material: .selection, blendingMode: .withinWindow)
-                .clipShape(RoundedRectangle(cornerRadius: 5, style: .circular))
-                .opacity(isHovering ? 0.25 : 0)
-        }
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            isHovering = hovering
-        }
-        .onTapGesture {
-            action()
+                Image(systemName: "return")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 11, height: 11)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 5)
+                    .background {
+                        VisualEffectView(material: .selection, blendingMode: .withinWindow)
+                            .clipShape(RoundedRectangle(cornerRadius: 3, style: .circular))
+                            .opacity(0.5)
+                    }
+            }
         }
     }
 }

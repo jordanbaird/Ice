@@ -223,7 +223,7 @@ struct GeneralSettingsPane: View {
             )
             .disabled(isApplyingOffset)
         } label: {
-            IceLabeledContent("Menu bar item spacing") {
+            IceLabeledContent {
                 Button("Apply") {
                     applyOffset()
                 }
@@ -245,6 +245,12 @@ struct GeneralSettingsPane: View {
                     .help("Reset to the default spacing")
                     .disabled(isApplyingOffset || !isActualValueDifferentFromDefault)
                 }
+            } label: {
+                HStack {
+                    Text("Menu bar item spacing")
+                    BetaBadge()
+                }
+                .offset(y: -3)
             }
         }
         .annotation("Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.")

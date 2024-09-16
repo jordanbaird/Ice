@@ -5,7 +5,7 @@
 
 Ice is a powerful menu bar management tool. While its primary function is hiding and showing menu bar items, it aims to cover a wide variety of additional features to make it one of the most versatile menu bar tools available.
 
-![Banner](https://github.com/jordanbaird/Ice/assets/90936861/e256575b-880c-49ee-90a1-b6eabd4a7868)
+![Banner](https://github.com/user-attachments/assets/9fa8c0a2-9ef4-491f-80e6-5d7d33b8d818)
 
 [![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
@@ -54,8 +54,8 @@ brew install jordanbaird-ice
 - [x] Hide application menus when they overlap with shown menu bar items
 - [x] Drag and drop interface to arrange individual menu bar items
 - [x] Display hidden menu bar items in a separate bar (e.g. for MacBooks with the notch)
-- [ ] Search menu bar items
-- [ ] Custom menu bar item spacing
+- [x] Search menu bar items
+- [x] Custom menu bar item spacing
 - [ ] Profiles for menu bar layout
 - [ ] Menu bar item groups
 - [ ] Show menu bar items when trigger conditions are met
@@ -104,8 +104,6 @@ Ice uses a number of system APIs that are available starting in macOS 14. As suc
 #### Choose your own icon to show in the menu bar
 
 ![Custom Icon](https://github.com/user-attachments/assets/2f3668c1-9b48-46de-98e7-74bf9ff4fcce)
-
-### Coming soon...
 
 #### Menu bar item search
 

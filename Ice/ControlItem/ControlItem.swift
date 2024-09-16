@@ -396,7 +396,9 @@ class ControlItem {
         }
         switch event.type {
         case .leftMouseDown, .leftMouseUp:
-            if
+            if NSEvent.modifierFlags == .control {
+                statusItem.showMenu(createMenu(with: appState))
+            } else if
                 NSEvent.modifierFlags == .option,
                 appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
             {

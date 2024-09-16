@@ -109,14 +109,23 @@ class LayoutBarItemView: NSView {
     /// Provides an alert to display when the item view is disabled.
     func provideAlertForDisabledItem() -> NSAlert {
         let alert = NSAlert()
-        alert.messageText = "Item is not movable."
+        alert.messageText = "Menu bar item is not movable."
         alert.informativeText = "macOS prohibits \"\(item.displayName)\" from being moved."
         return alert
     }
 
+    /// Provides an alert to display when a menu bar item is unresponsive.
     func provideAlertForUnresponsiveItem() -> NSAlert {
         let alert = provideAlertForDisabledItem()
-        alert.informativeText = "\(item.displayName) is unresponsive. Until it is restarted, it cannot be moved. Movement of other items may also be affected until this is resolved."
+        alert.informativeText = "\(item.displayName) is unresponsive. Until it is restarted, it cannot be moved. Movement of other menu bar items may also be affected until this is resolved."
+        return alert
+    }
+
+    /// Provides an alert to display when the user is pressing a key while
+    /// moving a menu bar item.
+    func provideAlertForKeyDown() -> NSAlert {
+        let alert = NSAlert()
+        alert.messageText = "Do not press keys while moving menu bar items."
         return alert
     }
 
@@ -150,6 +159,12 @@ class LayoutBarItemView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         super.mouseDragged(with: event)
+
+        guard event.modifierFlags.isEmpty else {
+            let alert = provideAlertForKeyDown()
+            alert.runModal()
+            return
+        }
 
         guard isEnabled else {
             let alert = provideAlertForDisabledItem()

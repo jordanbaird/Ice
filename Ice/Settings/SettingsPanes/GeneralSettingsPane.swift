@@ -250,18 +250,19 @@ struct GeneralSettingsPane: View {
                     Text("Menu bar item spacing")
                     BetaBadge()
                 }
-                .offset(y: -3)
             }
         }
-        .annotation("Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.")
+        .annotation(
+            "Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.",
+            spacing: 2
+        )
         .annotation(spacing: 10, font: .callout.bold()) {
-            GroupBox {
+            IceSection {
                 Label {
-                    Text("Beta Note: You may need to log out and back in for this setting to apply properly.")
+                    Text("Note: You may need to log out and back in for this setting to apply properly.")
                 } icon: {
                     Image(systemName: "exclamationmark.circle")
                 }
-                .padding(4)
             }
         }
         .onAppear {

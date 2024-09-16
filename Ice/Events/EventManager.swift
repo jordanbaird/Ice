@@ -146,7 +146,9 @@ extension EventManager {
             // short delay helps the toggle action feel more natural
             try await Task.sleep(for: .milliseconds(50))
 
-            if
+            if NSEvent.modifierFlags == .control {
+                handleShowRightClickMenu()
+            } else if
                 NSEvent.modifierFlags == .option,
                 appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
             {

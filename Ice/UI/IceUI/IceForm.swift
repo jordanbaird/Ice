@@ -6,6 +6,8 @@
 import SwiftUI
 
 struct IceForm<Content: View>: View {
+    @State private var contentFrame = CGRect.zero
+
     private let alignment: HorizontalAlignment
     private let padding: CGFloat
     private let spacing: CGFloat
@@ -24,14 +26,26 @@ struct IceForm<Content: View>: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: alignment, spacing: spacing) {
-                content
+        GeometryReader { geometry in
+            if contentFrame.height > geometry.size.height {
+                ScrollView {
+                    contentStack
+                }
+                .scrollContentBackground(.hidden)
+            } else {
+                contentStack
             }
-            .padding(padding)
         }
-        .scrollContentBackground(.hidden)
-        .toggleStyle(IceFormToggleStyle())
+    }
+
+    @ViewBuilder
+    private var contentStack: some View {
+        VStack(alignment: alignment, spacing: spacing) {
+            content
+                .toggleStyle(IceFormToggleStyle())
+        }
+        .padding(padding)
+        .onFrameChange(update: $contentFrame)
     }
 }
 

@@ -44,11 +44,11 @@ struct GeneralSettingsPane: View {
         }
     }
 
-    private var hasSliderValueChanged: Bool {
+    private var hasSpacingSliderValueChanged: Bool {
         tempItemSpacingOffset != manager.itemSpacingOffset
     }
 
-    private var isActualValueDifferentFromDefault: Bool {
+    private var isActualOffsetDifferentFromDefault: Bool {
         manager.itemSpacingOffset != 0
     }
 
@@ -228,7 +228,7 @@ struct GeneralSettingsPane: View {
                     applyOffset()
                 }
                 .help("Apply the current spacing")
-                .disabled(isApplyingOffset || !hasSliderValueChanged)
+                .disabled(isApplyingOffset || !hasSpacingSliderValueChanged)
 
                 if isApplyingOffset {
                     ProgressView()
@@ -243,7 +243,7 @@ struct GeneralSettingsPane: View {
                     }
                     .buttonStyle(.borderless)
                     .help("Reset to the default spacing")
-                    .disabled(isApplyingOffset || !isActualValueDifferentFromDefault)
+                    .disabled(isApplyingOffset || !isActualOffsetDifferentFromDefault)
                 }
             } label: {
                 HStack {
@@ -254,6 +254,16 @@ struct GeneralSettingsPane: View {
             }
         }
         .annotation("Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.")
+        .annotation(spacing: 10, font: .callout.bold()) {
+            GroupBox {
+                Label {
+                    Text("Beta Note: You may need to log out and back in for this setting to apply properly.")
+                } icon: {
+                    Image(systemName: "exclamationmark.circle")
+                }
+                .padding(4)
+            }
+        }
         .onAppear {
             tempItemSpacingOffset = manager.itemSpacingOffset
         }

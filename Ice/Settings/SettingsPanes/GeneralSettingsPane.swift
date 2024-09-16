@@ -257,12 +257,13 @@ struct GeneralSettingsPane: View {
             spacing: 2
         )
         .annotation(spacing: 10, font: .callout.bold()) {
-            IceSection {
+            IceGroupBox {
                 Label {
                     Text("Note: You may need to log out and back in for this setting to apply properly.")
                 } icon: {
                     Image(systemName: "exclamationmark.circle")
                 }
+                .frame(maxWidth: .infinity)
             }
         }
         .onAppear {

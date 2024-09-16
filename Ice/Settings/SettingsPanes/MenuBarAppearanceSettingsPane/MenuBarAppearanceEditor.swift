@@ -90,7 +90,7 @@ struct MenuBarAppearanceEditor: View {
                 isInset
             }
             if case .settings = location {
-                IceSection {
+                IceGroupBox {
                     AnnotationView(
                         alignment: .center,
                         font: .callout.bold()

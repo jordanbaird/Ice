@@ -24,7 +24,7 @@ struct MenuBarLayoutSettingsPane: View {
         Text("Drag to arrange your menu bar items")
             .font(.title2)
 
-        IceSection {
+        IceGroupBox {
             AnnotationView(
                 alignment: .center,
                 font: .callout.bold()

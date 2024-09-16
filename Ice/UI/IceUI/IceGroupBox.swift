@@ -1,31 +1,34 @@
 //
-//  IceSection.swift
+//  IceGroupBox.swift
 //  Ice
 //
 
 import SwiftUI
 
-struct IceSection<Header: View, Content: View, Footer: View>: View {
+struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
     private let header: Header
     private let content: Content
     private let footer: Footer
-    private let spacing: CGFloat = 10
+    private let padding: CGFloat
 
     init(
+        padding: CGFloat = 10,
         @ViewBuilder header: () -> Header,
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
     ) {
+        self.padding = padding
         self.header = header()
         self.content = content()
         self.footer = footer()
     }
 
     init(
+        padding: CGFloat = 10,
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
     ) where Header == EmptyView {
-        self.init {
+        self.init(padding: padding) {
             EmptyView()
         } content: {
             content()
@@ -35,10 +38,11 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
     }
 
     init(
+        padding: CGFloat = 10,
         @ViewBuilder header: () -> Header,
         @ViewBuilder content: () -> Content
     ) where Footer == EmptyView {
-        self.init {
+        self.init(padding: padding) {
             header()
         } content: {
             content()
@@ -48,9 +52,10 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
     }
 
     init(
+        padding: CGFloat = 10,
         @ViewBuilder content: () -> Content
     ) where Header == EmptyView, Footer == EmptyView {
-        self.init {
+        self.init(padding: padding) {
             EmptyView()
         } content: {
             content()
@@ -61,9 +66,10 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
 
     init(
         _ title: LocalizedStringKey,
+        padding: CGFloat = 10,
         @ViewBuilder content: () -> Content
     ) where Header == Text, Footer == EmptyView {
-        self.init {
+        self.init(padding: padding) {
             Text(title)
                 .font(.headline)
         } content: {
@@ -72,32 +78,24 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
     }
 
     var body: some View {
-        IceGroupBox(padding: spacing) {
+        VStack(alignment: .leading) {
             header
-        } content: {
-            _VariadicView.Tree(IceSectionLayout(spacing: spacing)) {
-                content
-                    .frame(maxWidth: .infinity)
-            }
-        } footer: {
+            content
+                .padding(padding)
+                .background {
+                    backgroundShape
+                        .fill(.quinary)
+                        .overlay {
+                            backgroundShape
+                                .stroke(.quaternary)
+                        }
+                }
             footer
         }
     }
-}
-
-private struct IceSectionLayout: _VariadicView_UnaryViewRoot {
-    let spacing: CGFloat
 
     @ViewBuilder
-    func body(children: _VariadicView.Children) -> some View {
-        let last = children.last?.id
-        VStack(alignment: .leading, spacing: spacing) {
-            ForEach(children) { child in
-                child
-                if child.id != last {
-                    Divider()
-                }
-            }
-        }
+    private var backgroundShape: some Shape {
+        RoundedRectangle(cornerRadius: 7, style: .circular)
     }
 }

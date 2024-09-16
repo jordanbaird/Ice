@@ -186,6 +186,7 @@ struct MenuBarAppearanceEditor: View {
     @ViewBuilder
     private var shapePicker: some View {
         MenuBarShapePicker()
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder

@@ -23,9 +23,9 @@ struct AboutSettingsPane: View {
         contributeURL.appendingPathComponent("issues")
     }
 
-    private var sponsorURL: URL {
+    private var donateURL: URL {
         // swiftlint:disable:next force_unwrapping
-        URL(string: "https://github.com/sponsors/jordanbaird")!
+        URL(string: "https://icemenubar.app/Donate")!
     }
 
     private var minFrameDimension: CGFloat {
@@ -54,16 +54,13 @@ struct AboutSettingsPane: View {
                 .foregroundStyle(.secondary)
 
                 Text(Constants.copyright)
-                    .font(.system(size: minFrameDimension / 40))
+                    .font(.system(size: minFrameDimension / 37))
                     .foregroundStyle(.tertiary)
             }
             .fontWeight(.medium)
             .padding([.vertical, .trailing])
         }
-        .frame(
-            maxWidth: .infinity,
-            maxHeight: .infinity
-        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onFrameChange(update: $frame)
         .bottomBar {
             HStack {
@@ -81,7 +78,7 @@ struct AboutSettingsPane: View {
                     openURL(issuesURL)
                 }
                 Button {
-                    openURL(sponsorURL)
+                    openURL(donateURL)
                 } label: {
                     Label(
                         "Support Ice",

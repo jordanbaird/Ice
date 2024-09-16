@@ -31,7 +31,6 @@ struct IceForm<Content: View>: View {
             .padding(padding)
         }
         .scrollContentBackground(.hidden)
-        .scrollBounceBehavior(.basedOnSize)
         .toggleStyle(IceFormToggleStyle())
     }
 }

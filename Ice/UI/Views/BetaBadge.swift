@@ -13,7 +13,7 @@ struct BetaBadge: View {
             .padding(.horizontal, 6)
             .background {
                 Capsule(style: .circular)
-                    .fill(.tertiary)
+                    .fill(.quinary)
             }
     }
 }

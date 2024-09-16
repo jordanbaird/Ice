@@ -30,7 +30,7 @@ struct MenuBarLayoutSettingsPane: View {
                 font: .callout.bold()
             ) {
                 Label {
-                    Text("Tip: you can also arrange menu bar items by ⌘ + dragging them in the menu bar")
+                    Text("Tip: you can also arrange menu bar items by Command + dragging them in the menu bar")
                 } icon: {
                     Image(systemName: "lightbulb")
                 }

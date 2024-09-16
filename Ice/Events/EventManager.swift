@@ -89,9 +89,10 @@ final class EventManager {
 
         if let appState {
             if let hiddenSection = appState.menuBarManager.section(withName: .hidden) {
-                // in fullscreen mode, the menu bar slides down from the top on hover;
-                // observe the frame of the only control item we know will always be
-                // in the menu bar, and run the show-on-hover check when it changes
+                // In fullscreen mode, the menu bar slides down from the top on hover.
+                // Observe the frame of the hidden section's control item, which we know
+                // will always be in the menu bar, and run the show-on-hover check when
+                // it changes.
                 Publishers.CombineLatest(
                     hiddenSection.controlItem.$windowFrame,
                     appState.$isActiveSpaceFullscreen
@@ -114,12 +115,14 @@ final class EventManager {
 
     // MARK: Start/Stop
 
+    /// Starts all monitors.
     func startAll() {
         for monitor in allMonitors {
             monitor.start()
         }
     }
 
+    /// Stops all monitors.
     func stopAll() {
         for monitor in allMonitors {
             monitor.stop()
@@ -143,7 +146,7 @@ extension EventManager {
         }
 
         Task {
-            // short delay helps the toggle action feel more natural
+            // Short delay helps the toggle action feel more natural.
             try await Task.sleep(for: .milliseconds(50))
 
             if NSEvent.modifierFlags == .control {
@@ -180,17 +183,17 @@ extension EventManager {
             }
         }
 
-        // make sure clicking the Ice Bar doesn't trigger rehide
+        // Make sure clicking the Ice Bar doesn't trigger rehide.
         guard event.window !== appState.menuBarManager.iceBarPanel else {
             return
         }
 
-        // only continue if a section is currently visible
+        // Only continue if a section is currently visible.
         guard let shownSection = appState.menuBarManager.shownSection else {
             return
         }
 
-        // make sure the mouse is not in the menu bar
+        // Make sure the mouse is not in the menu bar.
         guard !isMouseInsideMenuBar else {
             return
         }
@@ -199,16 +202,16 @@ extension EventManager {
             do {
                 let initialSpaceID = Bridging.activeSpaceID
 
-                // sleep for a bit to give the window under the mouse a chance to focus
+                // Sleep for a bit to give the window under the mouse a chance to focus.
                 try await Task.sleep(for: .seconds(0.25))
 
-                // if clicking caused a space change, don't bother with the window check
+                // If clicking caused a space change, don't bother with the window check.
                 if Bridging.activeSpaceID != initialSpaceID {
                     shownSection.hide()
                     return
                 }
 
-                // get the window that the user has clicked into
+                // Get the window that the user has clicked into.
                 guard
                     let mouseLocation = MouseCursor.location(flipped: true),
                     let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
@@ -219,10 +222,10 @@ extension EventManager {
                     return
                 }
 
-                // the dock is an exception to the following check
+                // The dock is an exception to the following check.
                 if owningApplication.bundleIdentifier != "com.apple.dock" {
-                    // only continue if the user has clicked into an active window with
-                    // a regular activation policy
+                    // Only continue if the user has clicked into an active window with
+                    // a regular activation policy.
                     guard
                         owningApplication.isActive,
                         owningApplication.activationPolicy == .regular
@@ -231,7 +234,7 @@ extension EventManager {
                     }
                 }
 
-                // if all the above checks have passed, hide
+                // If all the above checks have passed, hide.
                 shownSection.hide()
             } catch {
                 Logger.eventManager.error("ERROR: \(error)")
@@ -268,23 +271,23 @@ extension EventManager {
             switch event.type {
             case .leftMouseDown:
                 if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) || isMouseInsideIceIcon {
-                    // we have a left click that is inside the menu bar while at least one
-                    // section is visible or the mouse is inside the Ice icon
+                    // We have a left click that is inside the menu bar while at least one
+                    // section is visible or the mouse is inside the Ice icon.
                     appState.preventShowOnHover()
                 }
             case .rightMouseDown:
                 if appState.menuBarManager.sections.contains(where: { !$0.isHidden }) {
-                    // we have a right click that is inside the menu bar while at least one
-                    // section is visible
+                    // We have a right click that is inside the menu bar while at least one
+                    // section is visible.
                     appState.preventShowOnHover()
                 }
             default:
                 break
             }
         } else if !isMouseInsideApplicationMenu {
-            // we have a left or right click that is inside the menu bar, outside
+            // We have a left or right click that is inside the menu bar, outside
             // a menu bar item, and outside the application menu, so it _must_ be
-            // inside an empty menu bar space
+            // inside an empty menu bar space.
             appState.preventShowOnHover()
         }
     }
@@ -309,15 +312,15 @@ extension EventManager {
             return
         }
 
-        // notify each overlay panel that a menu bar item is being dragged
+        // Notify each overlay panel that a menu bar item is being dragged.
         appState.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
 
-        // stop here if using the Ice Bar
+        // Stop here if using the Ice Bar.
         guard !appState.settingsManager.generalSettingsManager.useIceBar else {
             return
         }
 
-        // show all items, including section dividers
+        // Show all items, including section dividers.
         for section in appState.menuBarManager.sections {
             section.show()
             guard
@@ -337,7 +340,7 @@ extension EventManager {
             return
         }
 
-        // make sure the "ShowOnHover" feature is enabled and not prevented
+        // Make sure the "ShowOnHover" feature is enabled and not prevented.
         guard
             appState.settingsManager.generalSettingsManager.showOnHover,
             !appState.isShowOnHoverPrevented
@@ -345,7 +348,7 @@ extension EventManager {
             return
         }
 
-        // only continue if we have a hidden section (we should)
+        // Only continue if we have a hidden section (we should).
         guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
             return
         }
@@ -359,7 +362,7 @@ extension EventManager {
                         return
                     }
                     try await Task.sleep(for: .seconds(delay))
-                    // make sure the mouse is still inside
+                    // Make sure the mouse is still inside.
                     guard self.isMouseInsideEmptyMenuBarSpace else {
                         return
                     }
@@ -372,7 +375,7 @@ extension EventManager {
                         return
                     }
                     try await Task.sleep(for: .seconds(delay))
-                    // make sure the mouse is still outside
+                    // Make sure the mouse is still outside.
                     guard
                         !self.isMouseInsideMenuBar,
                         !self.isMouseInsideIceBar
@@ -394,17 +397,17 @@ extension EventManager {
             return
         }
 
-        // make sure the "ShowOnScroll" feature is enabled
+        // Make sure the "ShowOnScroll" feature is enabled.
         guard appState.settingsManager.generalSettingsManager.showOnScroll else {
             return
         }
 
-        // make sure the mouse is inside the menu bar
+        // Make sure the mouse is inside the menu bar.
         guard isMouseInsideMenuBar else {
             return
         }
 
-        // only continue if we have a hidden section (we should)
+        // Only continue if we have a hidden section (we should).
         guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
             return
         }
@@ -520,8 +523,8 @@ extension EventManager {
             return false
         }
         let panel = appState.menuBarManager.iceBarPanel
-        // pad the frame to be more forgiving if the user accidentally
-        // moves their mouse outside of the Ice Bar
+        // Pad the frame to be more forgiving if the user accidentally
+        // moves their mouse outside of the Ice Bar.
         let paddedFrame = panel.frame.insetBy(dx: -10, dy: -10)
         return paddedFrame.contains(mouseLocation)
     }

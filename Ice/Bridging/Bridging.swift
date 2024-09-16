@@ -263,8 +263,7 @@ extension Bridging {
 extension Bridging {
     /// Options that determine the space identifiers to return in a space list.
     enum SpaceListOption {
-        case allSpaces
-        case visibleSpaces
+        case allSpaces, visibleSpaces
     }
 
     /// The identifier of the active space.

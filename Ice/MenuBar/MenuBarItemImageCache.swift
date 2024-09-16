@@ -206,7 +206,7 @@ class MenuBarItemImageCache: ObservableObject {
             return
         }
 
-        if !appState.navigationState.isIceBarPresented {
+        if !appState.navigationState.isIceBarPresented && !appState.navigationState.isSearchPresented {
             guard appState.navigationState.isAppFrontmost else {
                 Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, app not frontmost")
                 return
@@ -215,8 +215,8 @@ class MenuBarItemImageCache: ObservableObject {
                 Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings not visible")
                 return
             }
-            guard case .menuBarItems = appState.navigationState.settingsNavigationIdentifier else {
-                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Items pane")
+            guard case .menuBarLayout = appState.navigationState.settingsNavigationIdentifier else {
+                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Layout pane")
                 return
             }
         }
@@ -229,7 +229,7 @@ class MenuBarItemImageCache: ObservableObject {
         }
 
         var sectionsNeedingDisplay = [MenuBarSection.Name]()
-        if appState.navigationState.isSettingsPresented {
+        if appState.navigationState.isSettingsPresented || appState.navigationState.isSearchPresented {
             sectionsNeedingDisplay = MenuBarSection.Name.allCases
         } else if
             appState.navigationState.isIceBarPresented,

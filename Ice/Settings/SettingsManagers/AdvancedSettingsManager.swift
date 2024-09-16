@@ -6,6 +6,7 @@
 import Combine
 import Foundation
 
+@MainActor
 final class AdvancedSettingsManager: ObservableObject {
     /// Valid modifier keys that can be used to trigger the secondary
     /// action of all control items.
@@ -31,6 +32,9 @@ final class AdvancedSettingsManager: ObservableObject {
     /// The delay before showing on hover.
     @Published var showOnHoverDelay: TimeInterval = 0.2
 
+    /// Time interval to temporarily show items for.
+    @Published var tempShowInterval: TimeInterval = 15
+
     private var cancellables = Set<AnyCancellable>()
 
     private(set) weak var appState: AppState?
@@ -50,6 +54,7 @@ final class AdvancedSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .enableAlwaysHiddenSection, assign: &enableAlwaysHiddenSection)
         Defaults.ifPresent(key: .canToggleAlwaysHiddenSection, assign: &canToggleAlwaysHiddenSection)
         Defaults.ifPresent(key: .showOnHoverDelay, assign: &showOnHoverDelay)
+        Defaults.ifPresent(key: .tempShowInterval, assign: &tempShowInterval)
     }
 
     private func configureCancellables() {
@@ -87,6 +92,13 @@ final class AdvancedSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { delay in
                 Defaults.set(delay, forKey: .showOnHoverDelay)
+            }
+            .store(in: &c)
+
+        $tempShowInterval
+            .receive(on: DispatchQueue.main)
+            .sink { interval in
+                Defaults.set(interval, forKey: .tempShowInterval)
             }
             .store(in: &c)
 

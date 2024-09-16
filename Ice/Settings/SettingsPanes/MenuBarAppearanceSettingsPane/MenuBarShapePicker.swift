@@ -16,15 +16,15 @@ struct MenuBarShapePicker: View {
 
     @ViewBuilder
     private var shapeKindPicker: some View {
-        Picker("Shape Kind", selection: appearanceManager.bindings.configuration.shapeKind) {
+        IcePicker("Shape Kind", selection: appearanceManager.bindings.configuration.shapeKind) {
             ForEach(MenuBarShapeKind.allCases, id: \.self) { shape in
                 switch shape {
                 case .none:
-                    Text("None").tag(shape)
+                    Text("None").icePickerID(shape)
                 case .full:
-                    Text("Full").tag(shape)
+                    Text("Full").icePickerID(shape)
                 case .split:
-                    Text("Split").tag(shape)
+                    Text("Split").icePickerID(shape)
                 }
             }
         }

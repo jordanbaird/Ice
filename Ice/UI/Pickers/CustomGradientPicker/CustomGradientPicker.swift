@@ -60,12 +60,6 @@ struct CustomGradientPicker: View {
             .onChange(of: gradient) { _, newValue in
                 gradientChanged(to: newValue)
             }
-            .onKeyDown(key: .escape) {
-                selectedStop = nil
-            }
-            .onKeyDown(key: .delete) {
-                deleteSelectedStop()
-            }
             .readWindow(window: $window)
     }
 
@@ -106,7 +100,22 @@ struct CustomGradientPicker: View {
     private func selectionReader(geometry: GeometryProxy) -> some View {
         Color.clear
             .localEventMonitor(mask: .leftMouseDown) { event in
-                leftMouseDown(with: event, in: geometry)
+                guard
+                    let window = event.window,
+                    self.window === window
+                else {
+                    return event
+                }
+                let locationInWindow = event.locationInWindow
+                guard window.contentLayoutRect.contains(locationInWindow) else {
+                    return event
+                }
+                let globalFrame = geometry.frame(in: .global)
+                let flippedLocation = CGPoint(x: locationInWindow.x, y: window.frame.height - locationInWindow.y)
+                if !globalFrame.contains(flippedLocation) {
+                    selectedStop = nil
+                }
+                return event
             }
     }
 
@@ -115,23 +124,20 @@ struct CustomGradientPicker: View {
         Color.clear
             .contentShape(borderShape)
             .gesture(
-                DragGesture(
-                    minimumDistance: 0,
-                    coordinateSpace: .local
-                )
-                .onEnded { value in
-                    guard abs(value.translation.width) <= 2 else {
-                        return
+                DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                    .onEnded { value in
+                        guard abs(value.translation.width) <= 2 else {
+                            return
+                        }
+                        let frame = geometry.frame(in: .local)
+                        guard frame.contains(value.location) else {
+                            return
+                        }
+                        let x = value.location.x
+                        let width = frame.width - 10
+                        let location = (x / width) - (6 / width)
+                        insertStop(at: location, select: true)
                     }
-                    let frame = geometry.frame(in: .local)
-                    guard frame.contains(value.location) else {
-                        return
-                    }
-                    let x = value.location.x
-                    let width = frame.width - 10
-                    let location = (x / width) - (6 / width)
-                    insertStop(at: location)
-                }
             )
     }
 
@@ -151,31 +157,26 @@ struct CustomGradientPicker: View {
         }
     }
 
-    /// Inserts a new stop with the appropriate color
-    /// at the given location in the gradient.
-    private func insertStop(at location: CGFloat) {
+    /// Inserts a new stop with the appropriate color at the given location
+    /// in the gradient.
+    private func insertStop(at location: CGFloat, select: Bool) {
         var location = location.clamped(to: 0...1)
         if (0.48...0.52).contains(location) {
             location = 0.5
         }
-        let newStop: ColorStop
-        if
+        let newStop: ColorStop = if
             !gradient.stops.isEmpty,
             let color = gradient.color(at: location)
         {
-            newStop = ColorStop(
-                color: color,
-                location: location
-            )
+            ColorStop(color: color, location: location)
         } else {
-            newStop = ColorStop(
-                color: CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1),
-                location: location
-            )
+            ColorStop(color: .black, location: location)
         }
         gradient.stops.append(newStop)
-        DispatchQueue.main.async {
-            self.selectedStop = newStop
+        if select {
+            DispatchQueue.main.async {
+                self.selectedStop = newStop
+            }
         }
     }
 
@@ -199,42 +200,6 @@ struct CustomGradientPicker: View {
             self.gradient = gradient
         }
     }
-
-    private func deleteSelectedStop() {
-        guard
-            let selectedStop,
-            let index = gradient.stops.firstIndex(of: selectedStop)
-        else {
-            return
-        }
-        gradient.stops.remove(at: index)
-        self.selectedStop = nil
-    }
-
-    private func leftMouseDown(
-        with event: NSEvent,
-        in geometry: GeometryProxy
-    ) -> NSEvent? {
-        guard
-            let window = event.window,
-            self.window === window
-        else {
-            return event
-        }
-        let locationInWindow = event.locationInWindow
-        guard window.contentLayoutRect.contains(locationInWindow) else {
-            return event
-        }
-        let globalFrame = geometry.frame(in: .global)
-        let flippedLocation = CGPoint(
-            x: locationInWindow.x,
-            y: window.frame.height - locationInWindow.y
-        )
-        if !globalFrame.contains(flippedLocation) {
-            selectedStop = nil
-        }
-        return event
-    }
 }
 
 private struct CustomGradientPickerHandle: View {
@@ -243,6 +208,7 @@ private struct CustomGradientPickerHandle: View {
     @Binding var zOrderedStops: [ColorStop]
     @Binding var cancellables: Set<AnyCancellable>
     @State private var canActivate = true
+    @FocusState private var isFocused: Bool
 
     let index: Int
     let supportsOpacity: Bool
@@ -326,6 +292,16 @@ private struct CustomGradientPickerHandle: View {
                         }
                     }
                 }
+                .focusable()
+                .focusEffectDisabled()
+                .focused($isFocused)
+                .onKeyPress(.escape) {
+                    selectedStop = nil
+                    return .handled
+                }
+                .onDeleteCommand {
+                    deleteSelectedStop()
+                }
         }
     }
 
@@ -396,6 +372,8 @@ private struct CustomGradientPickerHandle: View {
             zOrderedStops.append(zOrderedStops.remove(at: index))
         }
 
+        isFocused = true
+
         var c = Set<AnyCancellable>()
 
         NSColorPanel.shared.publisher(for: \.color)
@@ -433,6 +411,18 @@ private struct CustomGradientPickerHandle: View {
             cancellable.cancel()
         }
         cancellables.removeAll()
+        isFocused = false
+    }
+
+    private func deleteSelectedStop() {
+        guard
+            let selectedStop,
+            let index = gradient.stops.firstIndex(of: selectedStop)
+        else {
+            return
+        }
+        gradient.stops.remove(at: index)
+        self.selectedStop = nil
     }
 }
 

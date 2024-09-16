@@ -9,8 +9,6 @@ struct PermissionsView: View {
     @EnvironmentObject var permissionsManager: PermissionsManager
     @Environment(\.openWindow) private var openWindow
 
-    let onContinue: () -> Void
-
     var body: some View {
         VStack(spacing: 0) {
             headerView
@@ -24,6 +22,21 @@ struct PermissionsView: View {
         }
         .padding(.horizontal)
         .fixedSize()
+        .readWindow { window in
+            guard let window else {
+                return
+            }
+            window.styleMask.remove([.closable, .miniaturizable])
+            if let contentView = window.contentView {
+                with(contentView.safeAreaInsets) { insets in
+                    insets.bottom = -insets.bottom
+                    insets.left = -insets.left
+                    insets.right = -insets.right
+                    insets.top = -insets.top
+                    contentView.additionalSafeAreaInsets = insets
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -43,7 +56,7 @@ struct PermissionsView: View {
 
     @ViewBuilder
     private var explanationView: some View {
-        GroupBox {
+        IceSection {
             VStack {
                 Text("Ice needs permission to manage the menu bar.")
                 Text("Absolutely no personal information is collected or stored.")
@@ -86,7 +99,12 @@ struct PermissionsView: View {
     @ViewBuilder
     private var continueButton: some View {
         Button {
-            onContinue()
+            guard let appState = permissionsManager.appState else {
+                return
+            }
+            appState.performSetup()
+            appState.permissionsWindow?.close()
+            appState.appDelegate?.openSettingsWindow()
         } label: {
             Text("Continue")
                 .frame(maxWidth: .infinity)
@@ -96,7 +114,7 @@ struct PermissionsView: View {
 
     @ViewBuilder
     private func permissionBox(_ permission: Permission) -> some View {
-        GroupBox {
+        IceSection {
             VStack(spacing: 10) {
                 Text(permission.title)
                     .font(.title)

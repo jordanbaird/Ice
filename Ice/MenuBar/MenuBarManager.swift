@@ -29,6 +29,8 @@ final class MenuBarManager: ObservableObject {
     let appearanceManager: MenuBarAppearanceManager
     let iceBarPanel: IceBarPanel
 
+    let searchPanel: MenuBarSearchPanel
+
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
@@ -53,6 +55,7 @@ final class MenuBarManager: ObservableObject {
     init(appState: AppState) {
         self.appearanceManager = MenuBarAppearanceManager(appState: appState)
         self.iceBarPanel = IceBarPanel(appState: appState)
+        self.searchPanel = MenuBarSearchPanel(appState: appState)
         self.appState = appState
     }
 

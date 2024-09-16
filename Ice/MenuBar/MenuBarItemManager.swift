@@ -17,6 +17,18 @@ class MenuBarItemManager: ObservableObject {
 
         private var items = [MenuBarSection.Name: [MenuBarItem]]()
 
+        var allItems: [MenuBarItem] {
+            MenuBarSection.Name.allCases.reduce(into: []) { result, section in
+                result.append(contentsOf: allItems(for: section))
+            }
+        }
+
+        var managedItems: [MenuBarItem] {
+            MenuBarSection.Name.allCases.reduce(into: []) { result, section in
+                result.append(contentsOf: managedItems(for: section))
+            }
+        }
+
         /// Appends the given item to the given section.
         mutating func appendItem(_ item: MenuBarItem, to section: MenuBarSection.Name) {
             items[section, default: []].append(item)
@@ -1079,8 +1091,6 @@ extension MenuBarItemManager {
             return
         }
 
-        let rehideInterval: TimeInterval = 20
-
         guard
             let appState,
             let screen = NSScreen.main,
@@ -1160,8 +1170,7 @@ extension MenuBarItemManager {
 
             let context = TempShownItemContext(info: item.info, returnDestination: destination, shownInterfaceWindow: shownInterfaceWindow)
             tempShownItemContexts.append(context)
-
-            runTempShownItemTimer(for: rehideInterval)
+            runTempShownItemTimer(for: appState.settingsManager.advancedSettingsManager.tempShowInterval)
         }
     }
 

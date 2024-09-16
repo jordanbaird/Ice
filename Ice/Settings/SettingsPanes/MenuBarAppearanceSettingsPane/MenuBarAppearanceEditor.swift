@@ -75,32 +75,35 @@ struct MenuBarAppearanceEditor: View {
 
     @ViewBuilder
     private var mainForm: some View {
-        Form {
-            Section {
+        IceForm {
+            IceSection {
                 tintPicker
                 shadowToggle
             }
-            Section {
+            IceSection {
                 borderToggle
                 borderColor
                 borderWidth
             }
-            Section("Menu Bar Shape") {
+            IceSection("Menu Bar Shape") {
                 shapePicker
                 isInset
             }
             if case .settings = location {
-                Section {
-                    Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                IceSection {
+                    AnnotationView(
+                        alignment: .center,
+                        font: .callout.bold()
+                    ) {
+                        Label {
+                            Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
+                        } icon: {
+                            Image(systemName: "lightbulb")
+                        }
+                    }
                 }
             }
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
-        .scrollBounceBehavior(.basedOnSize)
     }
 
     @ViewBuilder
@@ -112,11 +115,11 @@ struct MenuBarAppearanceEditor: View {
 
     @ViewBuilder
     private var tintPicker: some View {
-        LabeledContent("Tint") {
+        IceLabeledContent("Tint") {
             HStack {
-                Picker("Tint", selection: appearanceManager.bindings.configuration.tintKind) {
+                IcePicker("Tint", selection: appearanceManager.bindings.configuration.tintKind) {
                     ForEach(MenuBarTintKind.allCases) { tintKind in
-                        Text(tintKind.localized).tag(tintKind)
+                        Text(tintKind.localized).icePickerID(tintKind)
                     }
                 }
                 .labelsHidden()
@@ -156,7 +159,7 @@ struct MenuBarAppearanceEditor: View {
     @ViewBuilder
     private var borderColor: some View {
         if appearanceManager.configuration.hasBorder {
-            LabeledContent("Border Color") {
+            IceLabeledContent("Border Color") {
                 CustomColorPicker(
                     selection: appearanceManager.bindings.configuration.borderColor,
                     supportsOpacity: true,
@@ -169,13 +172,13 @@ struct MenuBarAppearanceEditor: View {
     @ViewBuilder
     private var borderWidth: some View {
         if appearanceManager.configuration.hasBorder {
-            Picker(
+            IcePicker(
                 "Border Width",
                 selection: appearanceManager.bindings.configuration.borderWidth
             ) {
-                Text("1").tag(1.0)
-                Text("2").tag(2.0)
-                Text("3").tag(3.0)
+                Text("1").icePickerID(1.0)
+                Text("2").icePickerID(2.0)
+                Text("3").icePickerID(3.0)
             }
         }
     }
@@ -188,7 +191,10 @@ struct MenuBarAppearanceEditor: View {
     @ViewBuilder
     private var isInset: some View {
         if appearanceManager.configuration.shapeKind != .none {
-            Toggle("Use inset shape on screens with notch", isOn: appearanceManager.bindings.configuration.isInset)
+            Toggle(
+                "Use inset shape on screens with notch",
+                isOn: appearanceManager.bindings.configuration.isInset
+            )
         }
     }
 }

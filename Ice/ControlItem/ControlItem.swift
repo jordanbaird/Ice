@@ -415,7 +415,39 @@ class ControlItem {
 
     /// Creates a menu to show under the control item.
     private func createMenu(with appState: AppState) -> NSMenu {
+        func hotkey(withAction action: HotkeyAction) -> Hotkey? {
+            let hotkeySettingsManager = appState.settingsManager.hotkeySettingsManager
+            return hotkeySettingsManager.hotkey(withAction: action)
+        }
+
         let menu = NSMenu(title: "Ice")
+
+        let settingsItem = NSMenuItem(
+            title: "Ice Settings…",
+            action: #selector(AppDelegate.openSettingsWindow),
+            keyEquivalent: ","
+        )
+        settingsItem.keyEquivalentModifierMask = .command
+        menu.addItem(settingsItem)
+
+        menu.addItem(.separator())
+
+        let searchItem = NSMenuItem(
+            title: "Search Menu Bar Items",
+            action: #selector(showSearchPanel),
+            keyEquivalent: ""
+        )
+        searchItem.target = self
+        if
+            let hotkey = hotkey(withAction: .searchMenuBarItems),
+            let keyCombination = hotkey.keyCombination
+        {
+            searchItem.keyEquivalent = keyCombination.key.keyEquivalent
+            searchItem.keyEquivalentModifierMask = keyCombination.modifiers.nsEventFlags
+        }
+        menu.addItem(searchItem)
+
+        menu.addItem(.separator())
 
         // Add menu items to toggle the hidden and always-hidden sections.
         let sectionNames: [MenuBarSection.Name] = [.hidden, .alwaysHidden]
@@ -434,13 +466,12 @@ class ControlItem {
             )
             item.target = self
             Self.sectionStorage[item] = section
-            let hotkeySettingsManager = appState.settingsManager.hotkeySettingsManager
             switch name {
             case .visible:
                 break
             case .hidden:
                 if
-                    let hotkey = hotkeySettingsManager.hotkey(withAction: .toggleHiddenSection),
+                    let hotkey = hotkey(withAction: .toggleHiddenSection),
                     let keyCombination = hotkey.keyCombination
                 {
                     item.keyEquivalent = keyCombination.key.keyEquivalent
@@ -448,7 +479,7 @@ class ControlItem {
                 }
             case .alwaysHidden:
                 if
-                    let hotkey = hotkeySettingsManager.hotkey(withAction: .toggleAlwaysHiddenSection),
+                    let hotkey = hotkey(withAction: .toggleAlwaysHiddenSection),
                     let keyCombination = hotkey.keyCombination
                 {
                     item.keyEquivalent = keyCombination.key.keyEquivalent
@@ -457,16 +488,6 @@ class ControlItem {
             }
             menu.addItem(item)
         }
-
-        menu.addItem(.separator())
-
-        let settingsItem = NSMenuItem(
-            title: "Settings…",
-            action: #selector(AppDelegate.openSettingsWindow),
-            keyEquivalent: ","
-        )
-        settingsItem.keyEquivalentModifierMask = .command
-        menu.addItem(settingsItem)
 
         menu.addItem(.separator())
 
@@ -494,6 +515,19 @@ class ControlItem {
     /// Toggles the menu bar section associated with the given menu item.
     @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
         Self.sectionStorage[menuItem]?.toggle()
+    }
+
+    /// Opens the menu bar search panel.
+    @objc private func showSearchPanel() {
+        guard
+            let appState,
+            let screen = NSScreen.screenWithMouse
+        else {
+            return
+        }
+        Task {
+            await appState.menuBarManager.searchPanel.show(on: screen)
+        }
     }
 
     /// Opens the settings window and checks for app updates.

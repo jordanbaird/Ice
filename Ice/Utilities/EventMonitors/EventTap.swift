@@ -28,14 +28,10 @@ class EventTap {
 
         var logString: String {
             switch self {
-            case .hidEventTap:
-                "HID event tap"
-            case .sessionEventTap:
-                "session event tap"
-            case .annotatedSessionEventTap:
-                "annotated session event tap"
-            case .pid(let pid):
-                "PID \(pid)"
+            case .hidEventTap: "HID event tap"
+            case .sessionEventTap: "session event tap"
+            case .annotatedSessionEventTap: "annotated session event tap"
+            case .pid(let pid): "PID \(pid)"
             }
         }
     }

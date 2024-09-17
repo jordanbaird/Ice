@@ -8,12 +8,12 @@ import SwiftUI
 struct BetaBadge: View {
     var body: some View {
         Text("BETA")
-            .foregroundStyle(.green)
-            .font(.caption)
+            .font(.caption.bold())
             .padding(.horizontal, 6)
             .background {
                 Capsule(style: .circular)
-                    .fill(.quinary)
+                    .stroke()
             }
+            .foregroundStyle(.green)
     }
 }

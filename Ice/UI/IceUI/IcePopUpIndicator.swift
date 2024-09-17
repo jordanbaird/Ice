@@ -34,7 +34,7 @@ struct IcePopUpIndicator: View {
                 }
             case .pullDown:
                 chevron(.down)
-                    .offset(y: 0.75)
+                    .offset(y: 0.5)
             }
         }
         .frame(width: 16, height: 16)

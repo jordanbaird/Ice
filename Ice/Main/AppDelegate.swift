@@ -41,27 +41,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // On macOS 15, the windows handle their own closure. If on macOS 14,
-        // close them here.
-        //
-        // NOTE: The windows might not close when running from Xcode, but it
-        // does work when running standalone.
-        if #unavailable(macOS 15.0) {
+        // Temporary hack to make sure the window opens on Sequoia is to
+        // let them open, wait a bit, then close them.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             appState.settingsWindow?.close()
             appState.permissionsWindow?.close()
-        }
 
-        if !appState.isPreview {
-            // If we have the required permissions, set up the shared app state.
-            // Otherwise, open the permissions window.
-            if appState.permissionsManager.hasPermission {
-                appState.performSetup()
-            } else if let permissionsWindow = appState.permissionsWindow {
-                appState.activate(withPolicy: .regular)
-                permissionsWindow.center()
-                permissionsWindow.makeKeyAndOrderFront(nil)
-            } else {
-                Logger.appDelegate.error("Failed to open permissions window")
+            if !appState.isPreview {
+                // If we have the required permissions, set up the shared app state.
+                // Otherwise, open the permissions window.
+                if appState.permissionsManager.hasPermission {
+                    appState.performSetup()
+                } else if let permissionsWindow = appState.permissionsWindow {
+                    appState.activate(withPolicy: .regular)
+                    permissionsWindow.center()
+                    permissionsWindow.makeKeyAndOrderFront(nil)
+                } else {
+                    Logger.appDelegate.error("Failed to open permissions window")
+                }
             }
         }
     }

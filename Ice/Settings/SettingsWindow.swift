@@ -7,6 +7,7 @@ import SwiftUI
 
 struct SettingsWindow: Scene {
     @ObservedObject var appState: AppState
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         settingsWindow
@@ -19,40 +20,20 @@ struct SettingsWindow: Scene {
 
     private var settingsWindow: some Scene {
         if #available(macOS 15.0, *) {
-            return SettingsWindowMacOS15()
+            return window
+                .defaultLaunchBehavior(.presented)
         } else {
-            return SettingsWindowMacOS14()
+            return window
         }
     }
-}
 
-@available(macOS 14.0, *)
-private struct SettingsWindowMacOS14: Scene {
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some Scene {
+    @SceneBuilder
+    private var window: some Scene {
         Window(Constants.settingsWindowTitle, id: Constants.settingsWindowID) {
             SettingsView()
                 .once {
                     openWindow(id: Constants.permissionsWindowID)
                 }
         }
-    }
-}
-
-@available(macOS 15.0, *)
-private struct SettingsWindowMacOS15: Scene {
-    @Environment(\.dismissWindow) private var dismissWindow
-    @State private var launchBehavior: SceneLaunchBehavior = .presented
-
-    var body: some Scene {
-        Window(Constants.settingsWindowTitle, id: Constants.settingsWindowID) {
-            SettingsView()
-                .once {
-                    dismissWindow(id: Constants.settingsWindowID)
-                    launchBehavior = .suppressed // Keep the window from reopening.
-                }
-        }
-        .defaultLaunchBehavior(launchBehavior)
     }
 }

@@ -10,7 +10,9 @@ import SwiftUI
 
 class IceBarPanel: NSPanel {
     private weak var appState: AppState?
+
     private(set) var currentSection: MenuBarSection.Name?
+
     private lazy var colorManager = IceBarColorManager(iceBarPanel: self)
 
     private var cancellables = Set<AnyCancellable>()
@@ -265,7 +267,7 @@ private struct IceBarContentView: View {
         guard let menuBarHeight = imageCache.menuBarHeight else {
             return nil
         }
-        if configuration.isInset && imageCache.screen?.hasNotch == true {
+        if configuration.shapeKind != .none && configuration.isInset && imageCache.screen?.hasNotch == true {
             return menuBarHeight - menuBarManager.appearanceManager.menuBarInsetAmount * 2
         }
         return menuBarHeight

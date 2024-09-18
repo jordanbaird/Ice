@@ -6,7 +6,7 @@
 import Cocoa
 import Combine
 
-class RunLoopLocalEventMonitor {
+final class RunLoopLocalEventMonitor {
     private let runLoop = CFRunLoopGetCurrent()
     private let mode: RunLoop.Mode
     private let handler: (NSEvent) -> NSEvent?
@@ -100,7 +100,7 @@ extension RunLoopLocalEventMonitor {
 }
 
 extension RunLoopLocalEventMonitor.RunLoopLocalEventPublisher {
-    private class RunLoopLocalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
+    private final class RunLoopLocalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
         var subscriber: S?
         let monitor: RunLoopLocalEventMonitor
 

@@ -9,7 +9,7 @@ import SwiftUI
 // MARK: - MenuBarAppearanceEditorPanel
 
 /// A panel that manages the appearance editor popover.
-class MenuBarAppearanceEditorPanel: NSPanel {
+final class MenuBarAppearanceEditorPanel: NSPanel {
     private weak var appState: AppState?
 
     private var cancellables = Set<AnyCancellable>()
@@ -77,7 +77,7 @@ extension MenuBarAppearanceEditorPanel: NSPopoverDelegate {
 
 /// A popover that displays the menu bar appearance editor
 /// at a centered location under the menu bar.
-private class MenuBarAppearanceEditorPopover: NSPopover {
+private final class MenuBarAppearanceEditorPopover: NSPopover {
     private weak var appState: AppState?
 
     private(set) lazy var mouseDownMonitor = GlobalEventMonitor(mask: .leftMouseDown) { [weak self] _ in

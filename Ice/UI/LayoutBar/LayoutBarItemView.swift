@@ -9,7 +9,7 @@ import Combine
 // MARK: - LayoutBarItemView
 
 /// A view that displays an image in a menu bar layout view.
-class LayoutBarItemView: NSView {
+final class LayoutBarItemView: NSView {
     private weak var appState: AppState?
 
     private var cancellables = Set<AnyCancellable>()

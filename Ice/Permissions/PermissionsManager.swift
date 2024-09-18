@@ -6,7 +6,7 @@
 import Combine
 
 /// A type that manages the permissions of the app.
-class PermissionsManager: ObservableObject {
+final class PermissionsManager: ObservableObject {
     /// A Boolean value that indicates whether the app has been granted all permissions.
     @Published var hasPermission: Bool = false
 

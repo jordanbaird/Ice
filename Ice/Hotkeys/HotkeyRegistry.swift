@@ -9,7 +9,7 @@ import Combine
 import OSLog
 
 /// An object that manages the registration, storage, and unregistration of hotkeys.
-class HotkeyRegistry {
+final class HotkeyRegistry {
     /// The event kinds that a hotkey can be registered for.
     enum EventKind {
         case keyUp
@@ -28,7 +28,7 @@ class HotkeyRegistry {
     }
 
     /// An object that stores the information needed to cancel a registration.
-    private class Registration {
+    private final class Registration {
         let eventKind: EventKind
         let key: KeyCode
         let modifiers: Modifiers

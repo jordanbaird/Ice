@@ -10,7 +10,7 @@ import OSLog
 // MARK: - Overlay Panel
 
 /// A subclass of `NSPanel` that sits atop the menu bar to alter its appearance.
-class MenuBarOverlayPanel: NSPanel {
+final class MenuBarOverlayPanel: NSPanel {
     /// Flags representing the updatable components of a panel.
     enum UpdateFlag: String, CustomStringConvertible {
         case applicationMenuFrame
@@ -26,7 +26,7 @@ class MenuBarOverlayPanel: NSPanel {
     }
 
     /// A context that manages panel update tasks.
-    private class UpdateTaskContext {
+    private final class UpdateTaskContext {
         private var tasks = [UpdateFlag: Task<Void, any Error>]()
 
         /// Sets the task for the given update flag.
@@ -357,7 +357,7 @@ class MenuBarOverlayPanel: NSPanel {
 
 // MARK: - Content View
 
-private class MenuBarOverlayPanelContentView: NSView {
+private final class MenuBarOverlayPanelContentView: NSView {
     private var cancellables = Set<AnyCancellable>()
 
     @Published private var configuration: MenuBarAppearanceConfiguration = .defaultConfiguration

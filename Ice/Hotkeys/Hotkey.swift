@@ -48,7 +48,7 @@ final class Hotkey: ObservableObject {
 
 extension Hotkey {
     /// An object that manges the lifetime of a hotkey observation.
-    private class Listener {
+    private final class Listener {
         private weak var appState: AppState?
 
         private var id: UInt32?

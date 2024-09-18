@@ -9,7 +9,7 @@ import OSLog
 
 /// A type that manages menu bar items.
 @MainActor
-class MenuBarItemManager: ObservableObject {
+final class MenuBarItemManager: ObservableObject {
     /// Cache for menu bar items.
     struct ItemCache: Hashable {
         var hiddenControlItem: MenuBarItem?

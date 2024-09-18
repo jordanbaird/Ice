@@ -5,7 +5,7 @@
 
 import Cocoa
 
-class LayoutBarScrollView: NSScrollView {
+final class LayoutBarScrollView: NSScrollView {
     private let paddingView: LayoutBarPaddingView
 
     /// The amount of space between each arranged view.
@@ -77,7 +77,7 @@ extension LayoutBarScrollView {
 
 extension LayoutBarScrollView {
     /// A custom scroller that overrides its knob slot to be transparent.
-    class HorizontalScroller: NSScroller {
+    final class HorizontalScroller: NSScroller {
         override class var isCompatibleWithOverlayScrollers: Bool { true }
 
         override init(frame frameRect: NSRect) {

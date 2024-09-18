@@ -8,7 +8,7 @@ import Combine
 import OSLog
 
 /// A Cocoa view that manages the menu bar layout interface.
-class LayoutBarPaddingView: NSView {
+final class LayoutBarPaddingView: NSView {
     private let container: LayoutBarContainer
 
     /// The section whose items are represented.

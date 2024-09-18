@@ -7,7 +7,7 @@ import Combine
 import Ifrit
 import SwiftUI
 
-class MenuBarSearchPanel: NSPanel {
+final class MenuBarSearchPanel: NSPanel {
     static var defaultScreen: NSScreen? {
         NSScreen.screenWithMouse ?? NSScreen.main
     }
@@ -134,7 +134,7 @@ class MenuBarSearchPanel: NSPanel {
     }
 }
 
-private class MenuBarSearchHostingView: NSHostingView<AnyView> {
+private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
     override var safeAreaInsets: NSEdgeInsets {
         NSEdgeInsets()
     }

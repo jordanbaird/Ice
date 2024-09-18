@@ -7,7 +7,7 @@ import Combine
 import SwiftUI
 
 struct CustomColorPicker: NSViewRepresentable {
-    class Coordinator {
+    final class Coordinator {
         @Binding var selection: CGColor
 
         let supportsOpacity: Bool

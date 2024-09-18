@@ -8,7 +8,7 @@ import Combine
 import OSLog
 
 @MainActor
-class MenuBarItemImageCache: ObservableObject {
+final class MenuBarItemImageCache: ObservableObject {
     /// The cached item images.
     @Published private(set) var images = [MenuBarItemInfo: CGImage]()
 

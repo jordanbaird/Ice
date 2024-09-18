@@ -7,7 +7,7 @@ import Combine
 import SwiftUI
 
 private struct WindowReader: NSViewRepresentable {
-    class Coordinator: ObservableObject {
+    final class Coordinator: ObservableObject {
         private var cancellable: AnyCancellable?
 
         func configure(for view: NSView, onWindowChange: @escaping (NSWindow?) -> Void) {

@@ -8,7 +8,7 @@ import OSLog
 
 /// A type that receives system events from various locations within the
 /// event stream.
-class EventTap {
+final class EventTap {
     /// Constants that specify the possible tapping locations for events.
     enum Location {
         /// The location where HID system events enter the window server.

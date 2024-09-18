@@ -7,7 +7,7 @@ import Cocoa
 import Combine
 
 /// A container for the items in the menu bar layout interface.
-class LayoutBarContainer: NSView {
+final class LayoutBarContainer: NSView {
     /// Phases for a dragging session.
     enum DraggingPhase {
         case entered, exited, updated, ended

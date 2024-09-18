@@ -7,7 +7,7 @@ import Cocoa
 import Combine
 
 /// A type that monitors for local and global events.
-class UniversalEventMonitor {
+final class UniversalEventMonitor {
     private let local: LocalEventMonitor
     private let global: GlobalEventMonitor
 
@@ -63,7 +63,7 @@ extension UniversalEventMonitor {
 }
 
 extension UniversalEventMonitor.UniversalEventPublisher {
-    private class UniversalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
+    private final class UniversalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
         var subscriber: S?
         let monitor: UniversalEventMonitor
 

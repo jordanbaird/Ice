@@ -8,7 +8,7 @@ import SwiftUI
 
 // MARK: - IceBarPanel
 
-class IceBarPanel: NSPanel {
+final class IceBarPanel: NSPanel {
     private weak var appState: AppState?
 
     private(set) var currentSection: MenuBarSection.Name?
@@ -191,7 +191,7 @@ class IceBarPanel: NSPanel {
 
 // MARK: - IceBarHostingView
 
-private class IceBarHostingView: NSHostingView<AnyView> {
+private final class IceBarHostingView: NSHostingView<AnyView> {
     override var safeAreaInsets: NSEdgeInsets {
         NSEdgeInsets()
     }
@@ -391,7 +391,7 @@ private struct IceBarItemView: View {
 // MARK: - IceBarItemClickView
 
 private struct IceBarItemClickView: NSViewRepresentable {
-    private class Represented: NSView {
+    private final class Represented: NSView {
         let item: MenuBarItem
 
         let leftClickAction: () -> Void

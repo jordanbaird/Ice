@@ -7,7 +7,7 @@ import Cocoa
 import Combine
 
 /// A type that monitors for events outside the scope of the current process.
-class GlobalEventMonitor {
+final class GlobalEventMonitor {
     private let mask: NSEvent.EventTypeMask
     private let handler: (NSEvent) -> Void
     private var monitor: Any?
@@ -71,7 +71,7 @@ extension GlobalEventMonitor {
 }
 
 extension GlobalEventMonitor.GlobalEventPublisher {
-    private class GlobalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
+    private final class GlobalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
         var subscriber: S?
         let monitor: GlobalEventMonitor
 

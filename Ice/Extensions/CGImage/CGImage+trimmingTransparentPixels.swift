@@ -8,7 +8,7 @@ import CoreGraphics
 // MARK: - TransparencyContext
 
 /// A context for handling transparency data in an image.
-private class TransparencyContext {
+private final class TransparencyContext {
     private let image: CGImage
     private let maxAlpha: UInt8
     private let cgContext: CGContext

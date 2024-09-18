@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-private class LocalEventMonitorModifierState: ObservableObject {
+private final class LocalEventMonitorModifierState: ObservableObject {
     let monitor: LocalEventMonitor
 
     init(mask: NSEvent.EventTypeMask, action: @escaping (NSEvent) -> NSEvent?) {

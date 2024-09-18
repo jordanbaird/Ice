@@ -9,7 +9,7 @@ import OSLog
 
 /// A status item that controls a section in the menu bar.
 @MainActor
-class ControlItem {
+final class ControlItem {
     /// Possible identifiers for control items.
     enum Identifier: String, CaseIterable {
         case iceIcon = "SItem"

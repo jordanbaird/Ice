@@ -7,7 +7,7 @@ import Cocoa
 import Combine
 
 /// A type that monitors for events within the scope of the current process.
-class LocalEventMonitor {
+final class LocalEventMonitor {
     private let mask: NSEvent.EventTypeMask
     private let handler: (NSEvent) -> NSEvent?
     private var monitor: Any?
@@ -71,7 +71,7 @@ extension LocalEventMonitor {
 }
 
 extension LocalEventMonitor.LocalEventPublisher {
-    private class LocalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
+    private final class LocalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
         var subscriber: S?
         let monitor: LocalEventMonitor
 

@@ -9,7 +9,7 @@ import OSLog
 
 /// Manager for menu bar item spacing.
 @MainActor
-class MenuBarItemSpacingManager {
+final class MenuBarItemSpacingManager {
     /// UserDefaults keys.
     private enum Key: String {
         case spacing = "NSStatusItemSpacing"

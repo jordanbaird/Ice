@@ -7,7 +7,7 @@ import Combine
 import SwiftUI
 
 @MainActor
-class HotkeyRecorderModel: ObservableObject {
+final class HotkeyRecorderModel: ObservableObject {
     @EnvironmentObject private var appState: AppState
 
     @Published private(set) var isRecording = false

@@ -6,7 +6,7 @@
 import Cocoa
 import Combine
 
-class ScreenStateManager {
+final class ScreenStateManager {
     static let shared = ScreenStateManager()
 
     private(set) var screenIsLocked = false

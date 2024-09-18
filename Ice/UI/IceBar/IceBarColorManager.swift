@@ -7,7 +7,7 @@ import Cocoa
 import Combine
 
 @MainActor
-class IceBarColorManager: ObservableObject {
+final class IceBarColorManager: ObservableObject {
     @Published private(set) var colorInfo: MenuBarAverageColorInfo?
     private weak var iceBarPanel: IceBarPanel?
     private var windowImage: CGImage?

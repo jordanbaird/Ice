@@ -24,17 +24,21 @@ final class MenuBarManager: ObservableObject {
     @Published private(set) var isMenuBarHiddenBySystemUserDefaults = false
 
     private(set) weak var appState: AppState?
+
     private var cancellables = Set<AnyCancellable>()
 
     let appearanceManager: MenuBarAppearanceManager
+
     let iceBarPanel: IceBarPanel
 
     let searchPanel: MenuBarSearchPanel
 
     private let encoder = JSONEncoder()
+
     private let decoder = JSONDecoder()
 
     private var isHidingApplicationMenus = false
+
     private var canUpdateAverageColor = false
 
     private(set) var sections = [MenuBarSection]()

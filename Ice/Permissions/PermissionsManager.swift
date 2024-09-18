@@ -6,11 +6,13 @@
 import Combine
 
 /// A type that manages the permissions of the app.
+@MainActor
 final class PermissionsManager: ObservableObject {
     /// A Boolean value that indicates whether the app has been granted all permissions.
     @Published var hasPermission: Bool = false
 
     let accessibilityPermission = AccessibilityPermission()
+
     let screenRecordingPermission = ScreenRecordingPermission()
 
     private(set) weak var appState: AppState?

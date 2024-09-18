@@ -8,16 +8,21 @@ import OSLog
 
 @MainActor
 final class HotkeySettingsManager: ObservableObject {
+    /// All hotkeys.
     @Published private(set) var hotkeys = HotkeyAction.allCases.map { action in
         Hotkey(keyCombination: nil, action: action)
     }
 
-    private var cancellables = Set<AnyCancellable>()
-
+    /// Encoder for hotkeys.
     private let encoder = JSONEncoder()
 
+    /// Decoder for hotkeys.
     private let decoder = JSONDecoder()
 
+    /// Storage for internal observers.
+    private var cancellables = Set<AnyCancellable>()
+
+    /// The shared app state.
     private(set) weak var appState: AppState?
 
     init(appState: AppState) {

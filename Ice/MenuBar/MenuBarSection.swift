@@ -33,9 +33,11 @@ final class MenuBarSection {
     }
 
     let name: Name
+
     let controlItem: ControlItem
 
     private var rehideTimer: Timer?
+
     private var rehideMonitor: UniversalEventMonitor?
 
     private var useIceBar: Bool {

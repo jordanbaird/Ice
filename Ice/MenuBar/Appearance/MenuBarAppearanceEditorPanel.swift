@@ -10,8 +10,10 @@ import SwiftUI
 
 /// A panel that manages the appearance editor popover.
 final class MenuBarAppearanceEditorPanel: NSPanel {
+    /// The shared app state.
     private weak var appState: AppState?
 
+    /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
     init(appState: AppState) {

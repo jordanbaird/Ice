@@ -60,12 +60,16 @@ final class GeneralSettingsManager: ObservableObject {
     /// is ``RehideStrategy/timed``.
     @Published var rehideInterval: TimeInterval = 15
 
-    private var cancellables = Set<AnyCancellable>()
-
+    /// Encoder for properties.
     private let encoder = JSONEncoder()
 
+    /// Decoder for properties.
     private let decoder = JSONDecoder()
 
+    /// Storage for internal observers.
+    private var cancellables = Set<AnyCancellable>()
+
+    /// The shared app state.
     private(set) weak var appState: AppState?
 
     init(appState: AppState) {

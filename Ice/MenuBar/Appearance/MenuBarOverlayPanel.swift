@@ -52,17 +52,6 @@ final class MenuBarOverlayPanel: NSPanel {
         }
     }
 
-    private var cancellables = Set<AnyCancellable>()
-
-    /// The context that manages panel update tasks.
-    private let updateTaskContext = UpdateTaskContext()
-
-    /// The shared app state.
-    private(set) weak var appState: AppState?
-
-    /// The screen that owns the panel.
-    let owningScreen: NSScreen
-
     /// A Boolean value that indicates whether the panel needs to be shown.
     @Published var needsShow = false
 
@@ -77,6 +66,18 @@ final class MenuBarOverlayPanel: NSPanel {
 
     /// The current desktop wallpaper, clipped to the bounds of the menu bar.
     @Published private(set) var desktopWallpaper: CGImage?
+
+    /// Storage for internal observers.
+    private var cancellables = Set<AnyCancellable>()
+
+    /// The context that manages panel update tasks.
+    private let updateTaskContext = UpdateTaskContext()
+
+    /// The shared app state.
+    private(set) weak var appState: AppState?
+
+    /// The screen that owns the panel.
+    let owningScreen: NSScreen
 
     /// Creates an overlay panel with the given app state and owning screen.
     init(appState: AppState, owningScreen: NSScreen) {
@@ -358,9 +359,9 @@ final class MenuBarOverlayPanel: NSPanel {
 // MARK: - Content View
 
 private final class MenuBarOverlayPanelContentView: NSView {
-    private var cancellables = Set<AnyCancellable>()
-
     @Published private var configuration: MenuBarAppearanceConfiguration = .defaultConfiguration
+
+    private var cancellables = Set<AnyCancellable>()
 
     /// The overlay panel that contains the content view.
     private var overlayPanel: MenuBarOverlayPanel? {

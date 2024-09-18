@@ -28,8 +28,14 @@ final class ControlItem {
         static let expanded: CGFloat = 10_000
     }
 
-    /// Storage for internal observers.
-    private var cancellables = Set<AnyCancellable>()
+    /// The control item's hiding state (`@Published`).
+    @Published var state = HidingState.hideItems
+
+    /// A Boolean value that indicates whether the control item is visible (`@Published`).
+    @Published var isVisible = true
+
+    /// The frame of the control item's window (`@Published`).
+    @Published private(set) var windowFrame: CGRect?
 
     /// The shared app state.
     private weak var appState: AppState?
@@ -43,14 +49,8 @@ final class ControlItem {
     /// The control item's identifier.
     private let identifier: Identifier
 
-    /// The control item's hiding state (`@Published`).
-    @Published var state = HidingState.hideItems
-
-    /// A Boolean value that indicates whether the control item is visible (`@Published`).
-    @Published var isVisible = true
-
-    /// The frame of the control item's window (`@Published`).
-    @Published private(set) var windowFrame: CGRect?
+    /// Storage for internal observers.
+    private var cancellables = Set<AnyCancellable>()
 
     /// The menu bar section associated with the control item.
     private weak var section: MenuBarSection? {

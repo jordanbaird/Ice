@@ -102,10 +102,13 @@ final class MenuBarItemManager: ObservableObject {
     private var cachedItemWindowIDs = [CGWindowID]()
 
     private var tempShownItemContexts = [TempShownItemContext]()
+
     private var tempShownItemsTimer: Timer?
 
     private(set) var lastItemMoveStartDate: Date?
+
     private var isMouseButtonDown = false
+
     private var mouseMovedCount = 0
 
     private let mouseTrackingMask: NSEvent.EventTypeMask = [

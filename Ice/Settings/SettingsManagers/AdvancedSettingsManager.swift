@@ -8,10 +8,6 @@ import Foundation
 
 @MainActor
 final class AdvancedSettingsManager: ObservableObject {
-    /// Valid modifier keys that can be used to trigger the secondary
-    /// action of all control items.
-    static let validSecondaryActionModifiers: [Modifiers] = [.control, .option, .shift]
-
     /// A Boolean value that indicates whether the application menus
     /// should be hidden if needed to show all menu bar items.
     @Published var hideApplicationMenus = true
@@ -34,8 +30,10 @@ final class AdvancedSettingsManager: ObservableObject {
     /// Time interval to temporarily show items for.
     @Published var tempShowInterval: TimeInterval = 15
 
+    /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
+    /// The shared app state.
     private(set) weak var appState: AppState?
 
     init(appState: AppState) {

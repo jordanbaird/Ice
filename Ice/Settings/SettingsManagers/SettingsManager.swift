@@ -7,15 +7,20 @@ import Combine
 
 @MainActor
 final class SettingsManager: ObservableObject {
+    /// The manager for general settings.
     let generalSettingsManager: GeneralSettingsManager
 
+    /// The manager for advanced settings.
     let advancedSettingsManager: AdvancedSettingsManager
 
+    /// The manager for hotkey settings.
     let hotkeySettingsManager: HotkeySettingsManager
 
-    private(set) weak var appState: AppState?
-
+    /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
+
+    /// The shared app state.
+    private(set) weak var appState: AppState?
 
     init(appState: AppState) {
         self.generalSettingsManager = GeneralSettingsManager(appState: appState)

@@ -54,8 +54,11 @@ final class HotkeyRegistry {
     }
 
     private let signature = OSType(1231250720) // OSType for Ice
+
     private var eventHandlerRef: EventHandlerRef?
+
     private var registrations = [UInt32: Registration]()
+
     private var cancellables = Set<AnyCancellable>()
 
     /// Installs the global event handler reference, if it isn't already installed.

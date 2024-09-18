@@ -18,8 +18,10 @@ final class MenuBarItemImageCache: ObservableObject {
     /// The height of the menu bar of the cached item images.
     private(set) var menuBarHeight: CGFloat?
 
+    /// The shared app state.
     private weak var appState: AppState?
 
+    /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
     init(appState: AppState) {

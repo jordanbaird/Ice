@@ -78,7 +78,7 @@ extension LayoutBarScrollView {
 extension LayoutBarScrollView {
     /// A custom scroller that overrides its knob slot to be transparent.
     final class HorizontalScroller: NSScroller {
-        override class var isCompatibleWithOverlayScrollers: Bool { true }
+        override static var isCompatibleWithOverlayScrollers: Bool { true }
 
         override init(frame frameRect: NSRect) {
             super.init(frame: frameRect)

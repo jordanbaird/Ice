@@ -20,10 +20,9 @@ final class AdvancedSettingsManager: ObservableObject {
     /// items should be shown.
     @Published var showSectionDividers = false
 
-    // TODO: To avoid breaking existing user configurations, wait until this setting has shipped in an official release, then change its default value to false
     /// A Boolean value that indicates whether the always-hidden section
     /// is enabled.
-    @Published var enableAlwaysHiddenSection = true
+    @Published var enableAlwaysHiddenSection = false
 
     /// A Boolean value that indicates whether the always-hidden section
     /// can be toggled by holding down the Option key.

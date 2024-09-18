@@ -8,6 +8,10 @@ import Ifrit
 import SwiftUI
 
 class MenuBarSearchPanel: NSPanel {
+    static var defaultScreen: NSScreen? {
+        NSScreen.screenWithMouse ?? NSScreen.main
+    }
+
     private weak var appState: AppState?
 
     private var mouseDownMonitor: UniversalEventMonitor?
@@ -114,7 +118,7 @@ class MenuBarSearchPanel: NSPanel {
     func toggle() async {
         if isVisible {
             close()
-        } else if let screen = NSScreen.screenWithMouse ?? NSScreen.main {
+        } else if let screen = MenuBarSearchPanel.defaultScreen {
             await show(on: screen)
         }
     }

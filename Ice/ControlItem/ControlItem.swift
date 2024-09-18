@@ -523,7 +523,7 @@ class ControlItem {
     @objc private func showSearchPanel() {
         guard
             let appState,
-            let screen = NSScreen.screenWithMouse
+            let screen = MenuBarSearchPanel.defaultScreen
         else {
             return
         }

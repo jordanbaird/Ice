@@ -6,6 +6,7 @@
 import AXSwift
 import Combine
 import Cocoa
+import ScreenCaptureKit
 
 // MARK: - Permission
 
@@ -120,7 +121,11 @@ final class ScreenRecordingPermission: Permission {
                 CGPreflightScreenCaptureAccess()
             },
             request: {
-                CGRequestScreenCaptureAccess()
+                if #available(macOS 15.0, *) {
+                    SCShareableContent.getWithCompletionHandler { _, _ in }
+                } else {
+                    CGRequestScreenCaptureAccess()
+                }
             }
         )
     }

@@ -123,7 +123,7 @@ final class MenuBarItemImageCache: ObservableObject {
             }
 
             if
-                let compositeImage = Bridging.captureWindows(windowIDs, option: option),
+                let compositeImage = ScreenCapture.captureWindows(windowIDs, option: option),
                 CGFloat(compositeImage.width) == frame.width * backingScaleFactor
             {
                 for windowID in windowIDs {
@@ -164,7 +164,7 @@ final class MenuBarItemImageCache: ObservableObject {
                     )
 
                     guard
-                        let itemImage = Bridging.captureWindow(windowID, option: option),
+                        let itemImage = ScreenCapture.captureWindow(windowID, option: option),
                         let croppedImage = itemImage.cropping(to: frame)
                     else {
                         continue

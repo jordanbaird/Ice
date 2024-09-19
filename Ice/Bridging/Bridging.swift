@@ -196,68 +196,6 @@ extension Bridging {
     }
 }
 
-// MARK: Capture Windows
-extension Bridging {
-    private static func createImageFromWindowIDs(
-        _ windowIDs: [CGWindowID],
-        screenBounds: CGRect,
-        option: CGWindowImageOption
-    ) -> CGImage? {
-        let pointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: windowIDs.count)
-        for (index, windowID) in windowIDs.enumerated() {
-            pointer[index] = UnsafeRawPointer(bitPattern: UInt(windowID))
-        }
-        guard let windowArray = CFArrayCreate(kCFAllocatorDefault, pointer, windowIDs.count, nil) else {
-            return nil
-        }
-        return CGImage(windowListFromArrayScreenBounds: screenBounds, windowArray: windowArray, imageOption: option)
-    }
-
-    private static func createImageFromWindowID(
-        _ windowID: CGWindowID,
-        screenBounds: CGRect,
-        option: CGWindowImageOption
-    ) -> CGImage? {
-        CGWindowListCreateImage(screenBounds, .optionIncludingWindow, windowID, option)
-    }
-
-    /// Captures an image of a window.
-    ///
-    /// - Parameters:
-    ///   - windowID: The identifier of the window to capture.
-    ///   - screenBounds: The bounds to capture. Pass `nil` to capture the minimum
-    ///     rectangle that encloses the window.
-    ///   - option: Options that specify the image to be captured.
-    static func captureWindow(
-        _ windowID: CGWindowID,
-        screenBounds: CGRect? = nil,
-        option: CGWindowImageOption = []
-    ) -> CGImage? {
-        let onScreenWindows = Set(getOnScreenWindowList())
-        let bounds = screenBounds ?? .null
-        return if onScreenWindows.contains(windowID) {
-            createImageFromWindowID(windowID, screenBounds: bounds, option: option)
-        } else {
-            createImageFromWindowIDs([windowID], screenBounds: bounds, option: option)
-        }
-    }
-
-    /// Captures a composite image of an array of windows.
-    ///
-    /// - Parameters:
-    ///   - windowIDs: The identifiers of the windows to capture.
-    ///   - screenBounds: The bounds to capture. Pass `nil` to capture the minimum
-    ///     rectangle that encloses the windows.
-    ///   - option: Options that specify the image to be captured.
-    static func captureWindows(
-        _ windowIDs: [CGWindowID],
-        screenBounds: CGRect? = nil,
-        option: CGWindowImageOption = []
-    ) -> CGImage? {
-        createImageFromWindowIDs(windowIDs, screenBounds: screenBounds ?? .null, option: option)
-    }
-}
-
 // MARK: - CGSSpace
 
 extension Bridging {

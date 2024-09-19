@@ -259,7 +259,7 @@ final class MenuBarManager: ObservableObject {
             bounds.origin.x = bounds.midX
             bounds.size.width /= 2
 
-            image = Bridging.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
+            image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
             source = .menuBarWindow
         } else if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
             var bounds = window.frame
@@ -267,7 +267,7 @@ final class MenuBarManager: ObservableObject {
             bounds.origin.x = bounds.midX
             bounds.size.width /= 2
 
-            image = Bridging.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
+            image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
             source = .desktopWallpaper
         } else {
             return

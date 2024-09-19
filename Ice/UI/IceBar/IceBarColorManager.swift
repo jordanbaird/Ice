@@ -88,7 +88,7 @@ final class IceBarColorManager: ObservableObject {
         let displayID = screen.displayID
         if
             let window = WindowInfo.getMenuBarWindow(for: displayID),
-            let image = Bridging.captureWindow(window.windowID, option: .nominalResolution)
+            let image = ScreenCapture.captureWindow(window.windowID, option: .nominalResolution)
         {
             windowImage = image
         } else {

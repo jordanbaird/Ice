@@ -118,14 +118,10 @@ final class ScreenRecordingPermission: Permission {
                 "Display images of individual menu bar items.",
             ],
             check: {
-                CGPreflightScreenCaptureAccess()
+                ScreenCapture.hasPermissions
             },
             request: {
-                if #available(macOS 15.0, *) {
-                    SCShareableContent.getWithCompletionHandler { _, _ in }
-                } else {
-                    CGRequestScreenCaptureAccess()
-                }
+                ScreenCapture.requestPermissions()
             }
         )
     }

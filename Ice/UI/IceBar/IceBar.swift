@@ -44,8 +44,7 @@ final class IceBarPanel: NSPanel {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // close the panel when the active space changes, or when the
-        // screen parameters change
+        // Close the panel when the active space changes, or when the screen parameters change.
         Publishers.Merge(
             NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
             NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
@@ -65,12 +64,12 @@ final class IceBarPanel: NSPanel {
                 .sink { [weak self, weak window] _ in
                     guard
                         let self,
-                        // only continue if the menu bar is automatically hidden, as Ice
-                        // can't currently display its menu bar items
+                        // Only continue if the menu bar is automatically hidden, as Ice
+                        // can't currently display its menu bar items.
                         appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
                         let info = window.flatMap({ WindowInfo(windowID: CGWindowID($0.windowNumber)) }),
-                        // window being offscreen means the menu bar is currently hidden;
-                        // close the bar, as things will start to look weird if we don't
+                        // Window being offscreen means the menu bar is currently hidden.
+                        // Close the bar, as things will start to look weird if we don't.
                         !info.isOnScreen
                     else {
                         return
@@ -80,7 +79,7 @@ final class IceBarPanel: NSPanel {
                 .store(in: &c)
         }
 
-        // update the panel's origin whenever its size changes
+        // Update the panel's origin whenever its size changes.
         publisher(for: \.frame)
             .map(\.size)
             .removeDuplicates()
@@ -139,7 +138,7 @@ final class IceBarPanel: NSPanel {
                     let section = appState.menuBarManager.section(withName: .visible),
                     let windowID = section.controlItem.windowID,
                     // Bridging.getWindowFrame is more reliable than ControlItem.windowFrame,
-                    // i.e. if the control item is offscreen
+                    // i.e. if the control item is offscreen.
                     let itemFrame = Bridging.getWindowFrame(for: windowID)
                 else {
                     return originForRightOfScreen
@@ -157,12 +156,11 @@ final class IceBarPanel: NSPanel {
             return
         }
 
-        // important that we set the navigation state and current section
-        // before updating the cache
+        // Important that we set the navigation state and current section before updating the cache.
         appState.navigationState.isIceBarPresented = true
         currentSection = section
 
-        await appState.imageCache.updateCache()
+        appState.imageCache.updateCache()
 
         contentView = IceBarHostingView(appState: appState, colorManager: colorManager, section: section) { [weak self] in
             self?.close()
@@ -170,12 +168,10 @@ final class IceBarPanel: NSPanel {
 
         updateOrigin(for: screen)
 
-        // the color manager must be updated after updating the panel's
-        // origin, but before it is shown...
+        // Color manager must be updated after updating the panel's origin, but before it is shown.
         //
-        // the color manager handles frame changes automatically, but does
-        // so on the main queue, so we need to update manually once before
-        // showing the panel to prevent the color from flashing
+        // Color manager handles frame changes automatically, but does so on the main queue, so we
+        // need to update manually once before showing the panel to prevent the color from flashing.
         colorManager.updateAllProperties(with: frame, screen: screen)
 
         orderFrontRegardless()
@@ -310,7 +306,7 @@ private struct IceBarContentView: View {
         if menuBarManager.isMenuBarHiddenBySystemUserDefaults {
             Text("Ice cannot display menu bar items for automatically hidden menu bars")
                 .padding(.horizontal, 5)
-        } else if imageCache.cacheFailed(for: section) {
+        } else if !imageCache.hasImages(for: section) {
             Text("Unable to display menu bar items")
                 .padding(.horizontal, 5)
         } else {

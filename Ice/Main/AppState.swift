@@ -135,13 +135,14 @@ final class AppState: ObservableObject {
             navigationState.$isSettingsPresented
         )
         .debounce(for: 0.1, scheduler: DispatchQueue.main)
-        .sink { shouldUpdate in
-            guard shouldUpdate else {
+        .sink { [weak self] shouldUpdate in
+            guard
+                let self,
+                shouldUpdate
+            else {
                 return
             }
-            Task {
-                await self.imageCache.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
-            }
+            imageCache.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
         }
         .store(in: &c)
 

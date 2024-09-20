@@ -72,7 +72,7 @@ final class MenuBarSearchPanel: NSPanel {
         // Important that we set the navigation before updating the cache
         appState.navigationState.isSearchPresented = true
 
-        await appState.imageCache.updateCache()
+        appState.imageCache.updateCache()
 
         contentView = MenuBarSearchHostingView(appState: appState, closePanel: { [weak self] in
             self?.close()

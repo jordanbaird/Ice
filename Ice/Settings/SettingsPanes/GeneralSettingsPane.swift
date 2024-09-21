@@ -184,7 +184,7 @@ struct GeneralSettingsPane: View {
         }
         .annotation {
             switch manager.iceBarLocation {
-            case .default:
+            case .dynamic:
                 Text("The Ice Bar's location changes based on context")
             case .mousePointer:
                 Text("The Ice Bar is centered below the mouse pointer")

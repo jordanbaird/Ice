@@ -8,7 +8,7 @@ import SwiftUI
 /// Locations where the Ice Bar can appear.
 enum IceBarLocation: Int, CaseIterable, Identifiable {
     /// The Ice Bar will appear in different locations based on context.
-    case `default` = 0
+    case dynamic = 0
 
     /// The Ice Bar will appear centered below the mouse pointer.
     case mousePointer = 1
@@ -21,7 +21,7 @@ enum IceBarLocation: Int, CaseIterable, Identifiable {
     /// Localized string key representation.
     var localized: LocalizedStringKey {
         switch self {
-        case .default: "Default"
+        case .dynamic: "Dynamic"
         case .mousePointer: "Mouse pointer"
         case .iceIcon: "Ice icon"
         }

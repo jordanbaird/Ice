@@ -16,8 +16,8 @@ enum ScreenCapture {
     /// Requests screen capture permissions.
     static func requestPermissions() {
         if #available(macOS 15.0, *) {
-            // CGRequestScreenCaptureAccess() is broken on macOS 15. Using one of SCShareableContent's accessors
-            // requires screen capture permissions, and triggers a request if the user doesn't have them.
+            // CGRequestScreenCaptureAccess() is broken on macOS 15. SCShareableContent requires
+            // screen capture permissions, and triggers a request if the user doesn't have them.
             SCShareableContent.getWithCompletionHandler { _, _ in }
         } else {
             CGRequestScreenCaptureAccess()
@@ -38,7 +38,8 @@ enum ScreenCapture {
         guard let windowArray = CFArrayCreate(kCFAllocatorDefault, pointer, windowIDs.count, nil) else {
             return nil
         }
-        // FIXME: ScreenCaptureKit doesn't yet support composite offscreen menu bar item images, but this should be replaced once it does.
+        // ScreenCaptureKit doesn't support capturing composite images of offscreen menu bar items,
+        // but this should be replaced once it does.
         return CGImage(windowListFromArrayScreenBounds: screenBounds ?? .null, windowArray: windowArray, imageOption: option)
     }
 

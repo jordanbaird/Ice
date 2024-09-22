@@ -114,7 +114,7 @@ final class ScreenRecordingPermission: Permission {
         super.init(
             title: "Screen Recording",
             details: [
-                "Apply custom styling to the menu bar.",
+                "Edit the menu bar's appearance.",
                 "Display images of individual menu bar items.",
             ],
             check: {

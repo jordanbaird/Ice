@@ -226,19 +226,19 @@ final class MenuBarItemImageCache: ObservableObject {
 
         if !isIceBarPresented && !isSearchPresented {
             guard await appState.navigationState.isAppFrontmost else {
-                logDebugMessage(to: .imageCache, "Skipping image cache as Ice Bar not visible, app not frontmost")
+                logDebug(to: .imageCache, "Skipping image cache as Ice Bar not visible, app not frontmost")
                 return
             }
 
             isSettingsPresented = await appState.navigationState.isSettingsPresented
 
             guard isSettingsPresented else {
-                logDebugMessage(to: .imageCache, "Skipping image cache as Ice Bar not visible, Settings not visible")
+                logDebug(to: .imageCache, "Skipping image cache as Ice Bar not visible, Settings not visible")
                 return
             }
 
             guard case .menuBarLayout = await appState.navigationState.settingsNavigationIdentifier else {
-                logDebugMessage(to: .imageCache, "Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Layout pane")
+                logDebug(to: .imageCache, "Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Layout pane")
                 return
             }
         } else {
@@ -247,7 +247,7 @@ final class MenuBarItemImageCache: ObservableObject {
 
         if let lastItemMoveStartDate = await appState.itemManager.lastItemMoveStartDate {
             guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 3 else {
-                logDebugMessage(to: .imageCache, "Skipping image cache as an item was recently moved")
+                logDebug(to: .imageCache, "Skipping image cache as an item was recently moved")
                 return
             }
         }

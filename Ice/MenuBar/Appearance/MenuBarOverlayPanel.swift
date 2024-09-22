@@ -260,20 +260,20 @@ final class MenuBarOverlayPanel: NSPanel {
         case .updates: "Preventing overlay panel from updating."
         }
         guard let appState else {
-            logDebugMessage(to: .overlayPanel, "No app state. \(actionMessage)")
+            logDebug(to: .overlayPanel, "No app state. \(actionMessage)")
             return nil
         }
         guard !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults else {
-            logDebugMessage(to: .overlayPanel, "Menu bar is hidden by system. \(actionMessage)")
+            logDebug(to: .overlayPanel, "Menu bar is hidden by system. \(actionMessage)")
             return nil
         }
         guard !appState.isActiveSpaceFullscreen else {
-            logDebugMessage(to: .overlayPanel, "Active space is fullscreen. \(actionMessage)")
+            logDebug(to: .overlayPanel, "Active space is fullscreen. \(actionMessage)")
             return nil
         }
         let owningDisplay = owningScreen.displayID
         guard appState.menuBarManager.hasValidMenuBar(in: windows, for: owningDisplay) else {
-            logDebugMessage(to: .overlayPanel, "No valid menu bar found. \(actionMessage)")
+            logDebug(to: .overlayPanel, "No valid menu bar found. \(actionMessage)")
             return nil
         }
         return owningDisplay

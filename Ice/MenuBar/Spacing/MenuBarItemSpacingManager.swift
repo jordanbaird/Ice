@@ -77,10 +77,10 @@ final class MenuBarItemSpacingManager {
     /// Asynchronously signals the given app to quit.
     private func signalAppToQuit(_ app: NSRunningApplication) async throws {
         if app.isTerminated {
-            logDebugMessage(to: .spacing, "Application \"\(logString(for: app))\" is already terminated")
+            logDebug(to: .spacing, "Application \"\(logString(for: app))\" is already terminated")
             return
         } else {
-            logDebugMessage(to: .spacing, "Signaling application \"\(logString(for: app))\" to quit")
+            logDebug(to: .spacing, "Signaling application \"\(logString(for: app))\" to quit")
         }
 
         app.terminate()
@@ -90,7 +90,7 @@ final class MenuBarItemSpacingManager {
             let timeoutTask = Task {
                 try await Task.sleep(for: .seconds(forceTerminateDelay))
                 if !app.isTerminated {
-                    logDebugMessage(to: .spacing, "Application \"\(logString(for: app))\" did not terminate within \(forceTerminateDelay) seconds, attempting to force terminate")
+                    logDebug(to: .spacing, "Application \"\(logString(for: app))\" did not terminate within \(forceTerminateDelay) seconds, attempting to force terminate")
                     app.forceTerminate()
                 }
             }
@@ -104,7 +104,7 @@ final class MenuBarItemSpacingManager {
                 }
                 timeoutTask.cancel()
                 cancellable?.cancel()
-                logDebugMessage(to: .spacing, "Application \"\(logString(for: app))\" terminated successfully")
+                logDebug(to: .spacing, "Application \"\(logString(for: app))\" terminated successfully")
                 continuation.resume()
             }
         }
@@ -113,7 +113,7 @@ final class MenuBarItemSpacingManager {
     /// Asynchronously launches the app at the given URL.
     private nonisolated func launchApp(at applicationURL: URL, bundleIdentifier: String) async throws {
         if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
-            logDebugMessage(to: .spacing, "Application \"\(logString(for: app))\" is already open, so skipping launch")
+            logDebug(to: .spacing, "Application \"\(logString(for: app))\" is already open, so skipping launch")
             return
         }
         let configuration = NSWorkspace.OpenConfiguration()

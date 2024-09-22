@@ -16,7 +16,7 @@ func logInfo(to logger: Logger, _ message: String) {
 }
 
 /// Logs the given debug message using the specified logger.
-func logDebugMessage(to logger: Logger, _ message: String) {
+func logDebug(to logger: Logger, _ message: String) {
     logMessage(to: logger, at: .debug, message)
 }
 

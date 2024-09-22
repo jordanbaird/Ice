@@ -8,8 +8,8 @@ import ScreenCaptureKit
 
 /// A namespace for screen capture operations.
 enum ScreenCapture {
-    /// A Boolean value that indicates whether the app has been granted screen capture permissions.
-    static var hasPermissions: Bool {
+    /// Returns a Boolean value that indicates whether the app has been granted screen capture permissions.
+    static func checkPermissions() -> Bool {
         CGPreflightScreenCaptureAccess()
     }
 

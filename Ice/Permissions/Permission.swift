@@ -118,7 +118,7 @@ final class ScreenRecordingPermission: Permission {
                 "Display images of individual menu bar items.",
             ],
             check: {
-                ScreenCapture.hasPermissions
+                ScreenCapture.checkPermissions()
             },
             request: {
                 ScreenCapture.requestPermissions()

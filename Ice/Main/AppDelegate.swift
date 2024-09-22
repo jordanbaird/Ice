@@ -14,7 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         guard let appState else {
-            Logger.appDelegate.warning("Missing app state in applicationWillFinishLaunching")
+            logWarning(to: .appDelegate, "Missing app state in applicationWillFinishLaunching")
             return
         }
 
@@ -30,7 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let appState else {
-            Logger.appDelegate.warning("Missing app state in applicationDidFinishLaunching")
+            logWarning(to: .appDelegate, "Missing app state in applicationDidFinishLaunching")
             return
         }
 
@@ -57,7 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     permissionsWindow.center()
                     permissionsWindow.makeKeyAndOrderFront(nil)
                 } else {
-                    Logger.appDelegate.error("Failed to open permissions window")
+                    logError(to: .appDelegate, "Failed to open permissions window")
                 }
             }
         }
@@ -78,7 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Assigns the app state to the delegate.
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
-            Logger.appDelegate.warning("Multiple attempts made to assign app state")
+            logWarning(to: .appDelegate, "Multiple attempts made to assign app state")
             return
         }
         self.appState = appState
@@ -90,7 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let appState,
             let settingsWindow = appState.settingsWindow
         else {
-            Logger.appDelegate.error("Failed to open settings window")
+            logError(to: .appDelegate, "Failed to open settings window")
             return
         }
         // Small delay makes this more reliable.

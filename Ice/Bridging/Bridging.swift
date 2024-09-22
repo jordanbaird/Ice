@@ -25,7 +25,7 @@ extension Bridging {
             value as CFTypeRef
         )
         if result != .success {
-            Logger.bridging.error("CGSSetConnectionProperty failed with error \(result.logString)")
+            logError(to: .bridging, "CGSSetConnectionProperty failed with error \(result.logString)")
         }
     }
 
@@ -42,7 +42,7 @@ extension Bridging {
             &value
         )
         if result != .success {
-            Logger.bridging.error("CGSCopyConnectionProperty failed with error \(result.logString)")
+            logError(to: .bridging, "CGSCopyConnectionProperty failed with error \(result.logString)")
         }
         return value?.takeRetainedValue()
     }
@@ -60,7 +60,7 @@ extension Bridging {
         var rect = CGRect.zero
         let result = CGSGetScreenRectForWindow(CGSMainConnectionID(), windowID, &rect)
         guard result == .success else {
-            Logger.bridging.error("CGSGetScreenRectForWindow failed with error \(result.logString)")
+            logError(to: .bridging, "CGSGetScreenRectForWindow failed with error \(result.logString)")
             return nil
         }
         return rect
@@ -73,7 +73,7 @@ extension Bridging {
         var count: Int32 = 0
         let result = CGSGetWindowCount(CGSMainConnectionID(), 0, &count)
         if result != .success {
-            Logger.bridging.error("CGSGetWindowCount failed with error \(result.logString)")
+            logError(to: .bridging, "CGSGetWindowCount failed with error \(result.logString)")
         }
         return Int(count)
     }
@@ -82,7 +82,7 @@ extension Bridging {
         var count: Int32 = 0
         let result = CGSGetOnScreenWindowCount(CGSMainConnectionID(), 0, &count)
         if result != .success {
-            Logger.bridging.error("CGSGetOnScreenWindowCount failed with error \(result.logString)")
+            logError(to: .bridging, "CGSGetOnScreenWindowCount failed with error \(result.logString)")
         }
         return Int(count)
     }
@@ -99,7 +99,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            Logger.bridging.error("CGSGetWindowList failed with error \(result.logString)")
+            logError(to: .bridging, "CGSGetWindowList failed with error \(result.logString)")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -117,7 +117,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            Logger.bridging.error("CGSGetOnScreenWindowList failed with error \(result.logString)")
+            logError(to: .bridging, "CGSGetOnScreenWindowList failed with error \(result.logString)")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -135,7 +135,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            Logger.bridging.error("CGSGetProcessMenuBarWindowList failed with error \(result.logString)")
+            logError(to: .bridging, "CGSGetProcessMenuBarWindowList failed with error \(result.logString)")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -219,11 +219,11 @@ extension Bridging {
         case .visibleSpaces: .allVisibleSpaces
         }
         guard let spaces = CGSCopySpacesForWindows(CGSMainConnectionID(), mask, [windowID] as CFArray) else {
-            Logger.bridging.error("CGSCopySpacesForWindows failed")
+            logError(to: .bridging, "CGSCopySpacesForWindows failed")
             return []
         }
         guard let spaceIDs = spaces.takeRetainedValue() as? [CGSSpaceID] else {
-            Logger.bridging.error("CGSCopySpacesForWindows returned array of unexpected type")
+            logError(to: .bridging, "CGSCopySpacesForWindows returned array of unexpected type")
             return []
         }
         return spaceIDs
@@ -262,7 +262,7 @@ extension Bridging {
         var psn = ProcessSerialNumber()
         let result = GetProcessForPID(pid, &psn)
         guard result == noErr else {
-            Logger.bridging.error("GetProcessForPID failed with error \(result)")
+            logError(to: .bridging, "GetProcessForPID failed with error \(result)")
             return .unknown
         }
         if CGSEventIsAppUnresponsive(CGSMainConnectionID(), &psn) {
@@ -272,6 +272,7 @@ extension Bridging {
     }
 }
 
+// MARK: - Logger
 private extension Logger {
     static let bridging = Logger(category: "Bridging")
 }

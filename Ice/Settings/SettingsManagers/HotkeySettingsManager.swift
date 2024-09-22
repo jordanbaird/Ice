@@ -41,7 +41,7 @@ final class HotkeySettingsManager: ObservableObject {
                     do {
                         hotkey.keyCombination = try decoder.decode(KeyCombination?.self, from: data)
                     } catch {
-                        Logger.hotkeySettingsManager.error("Error decoding hotkey: \(error)")
+                        logError(to: .hotkeySettingsManager, "Error decoding hotkey: \(error)")
                     }
                 }
             }
@@ -66,7 +66,7 @@ final class HotkeySettingsManager: ObservableObject {
                     do {
                         dict[hotkey.action.rawValue] = try self.encoder.encode(hotkey.keyCombination)
                     } catch {
-                        Logger.hotkeySettingsManager.error("Error encoding hotkey: \(error)")
+                        logError(to: .hotkeySettingsManager, "Error encoding hotkey: \(error)")
                     }
                 }
                 Defaults.set(dict, forKey: .hotkeys)

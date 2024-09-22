@@ -548,7 +548,7 @@ final class ControlItem {
     /// Assigns the app state to the control item.
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
-            Logger.controlItem.warning("Multiple attempts made to assign app state")
+            logWarning(to: .controlItem, "Multiple attempts made to assign app state")
             return
         }
         self.appState = appState
@@ -586,6 +586,7 @@ private extension ControlItem {
     static let sectionStorage = ObjectAssociation<MenuBarSection>()
 }
 
+// MARK: - Logger
 private extension Logger {
     /// The logger to use for control items.
     static let controlItem = Logger(category: "ControlItem")

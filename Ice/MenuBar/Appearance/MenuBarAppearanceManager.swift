@@ -43,7 +43,7 @@ final class MenuBarAppearanceManager: ObservableObject {
         do {
             configuration = try .migrate(encoder: encoder, decoder: decoder)
         } catch {
-            Logger.appearanceManager.error("Error decoding configuration: \(error)")
+            logError(to: .appearanceManager, "Error decoding configuration: \(error)")
         }
     }
 
@@ -70,7 +70,7 @@ final class MenuBarAppearanceManager: ObservableObject {
             .encode(encoder: encoder)
             .sink { completion in
                 if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding configuration: \(error)")
+                    logError(to: .appearanceManager, "Error encoding configuration: \(error)")
                 }
             } receiveValue: { data in
                 Defaults.set(data, forKey: .menuBarAppearanceConfiguration)

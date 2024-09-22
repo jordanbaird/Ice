@@ -110,7 +110,7 @@ private struct IceMenuLayout<Title: View>: _VariadicView_UnaryViewRoot {
 
 private final class IceMenuItemAction: Hashable {
     static let nullAction = IceMenuItemAction {
-        Logger.iceMenu.warning("No action assigned to menu item")
+        logWarning(to: .iceMenu, "No action assigned to menu item")
     }
 
     let body: () -> Void
@@ -162,6 +162,7 @@ extension View {
     }
 }
 
+// MARK: - Logger
 private extension Logger {
     static let iceMenu = Logger(category: "IceMenu")
 }

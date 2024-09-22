@@ -91,7 +91,7 @@ extension Hotkey {
                 return
             }
             guard let appState else {
-                Logger.hotkey.error("Error invalidating hotkey: Missing AppState")
+                logError(to: .hotkey, "Error invalidating hotkey: Missing AppState")
                 return
             }
             defer {

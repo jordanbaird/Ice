@@ -32,11 +32,11 @@ private func getSystemReservedKeyCombinations() -> [KeyCombination] {
     let status = CopySymbolicHotKeys(&symbolicHotkeys)
 
     guard status == noErr else {
-        Logger.keyCombination.error("CopySymbolicHotKeys returned invalid status: \(status)")
+        logError(to: .keyCombination, "CopySymbolicHotKeys returned invalid status: \(status)")
         return []
     }
     guard let reservedHotkeys = symbolicHotkeys?.takeRetainedValue() as? [[String: Any]] else {
-        Logger.keyCombination.error("Failed to serialize symbolic hotkeys")
+        logError(to: .keyCombination, "Failed to serialize symbolic hotkeys")
         return []
     }
 

@@ -12,7 +12,7 @@ enum MouseCursor {
     static func hide() {
         let result = CGDisplayHideCursor(CGMainDisplayID())
         if result != .success {
-            Logger.mouseCursor.error("CGDisplayHideCursor failed with error \(result.logString)")
+            logError(to: .mouseCursor, "CGDisplayHideCursor failed with error \(result.logString)")
         }
     }
 
@@ -20,7 +20,7 @@ enum MouseCursor {
     static func show() {
         let result = CGDisplayShowCursor(CGMainDisplayID())
         if result != .success {
-            Logger.mouseCursor.error("CGDisplayShowCursor failed with error \(result.logString)")
+            logError(to: .mouseCursor, "CGDisplayShowCursor failed with error \(result.logString)")
         }
     }
 
@@ -30,7 +30,7 @@ enum MouseCursor {
     static func warp(to point: CGPoint) {
         let result = CGWarpMouseCursorPosition(point)
         if result != .success {
-            Logger.mouseCursor.error("CGWarpMouseCursorPosition failed with error \(result.logString)")
+            logError(to: .mouseCursor, "CGWarpMouseCursorPosition failed with error \(result.logString)")
         }
     }
 
@@ -54,7 +54,6 @@ enum MouseCursor {
 }
 
 // MARK: - Logger
-
 private extension Logger {
     static let mouseCursor = Logger(category: "MouseCursor")
 }

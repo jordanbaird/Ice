@@ -127,7 +127,7 @@ final class MenuBarSection {
     /// Assigns the section's app state.
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
-            Logger.menuBarSection.warning("Multiple attempts made to assign app state")
+            logWarning(to: .menuBarSection, "Multiple attempts made to assign app state")
             return
         }
         self.appState = appState
@@ -304,8 +304,10 @@ final class MenuBarSection {
     }
 }
 
+// MARK: MenuBarSection: BindingExposable
 extension MenuBarSection: BindingExposable { }
 
+// MARK: - Logger
 private extension Logger {
     static let menuBarSection = Logger(category: "MenuBarSection")
 }

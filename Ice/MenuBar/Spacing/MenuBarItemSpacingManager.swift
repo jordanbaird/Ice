@@ -77,10 +77,10 @@ final class MenuBarItemSpacingManager {
     /// Asynchronously signals the given app to quit.
     private func signalAppToQuit(_ app: NSRunningApplication) async throws {
         if app.isTerminated {
-            Logger.spacing.debug("Application \"\(self.logString(for: app))\" is already terminated")
+            logDebugMessage(to: .spacing, "Application \"\(logString(for: app))\" is already terminated")
             return
         } else {
-            Logger.spacing.debug("Signaling application \"\(self.logString(for: app))\" to quit")
+            logDebugMessage(to: .spacing, "Signaling application \"\(logString(for: app))\" to quit")
         }
 
         app.terminate()
@@ -90,18 +90,21 @@ final class MenuBarItemSpacingManager {
             let timeoutTask = Task {
                 try await Task.sleep(for: .seconds(forceTerminateDelay))
                 if !app.isTerminated {
-                    Logger.spacing.debug("Application \"\(self.logString(for: app))\" did not terminate within \(self.forceTerminateDelay) seconds, attempting to force terminate")
+                    logDebugMessage(to: .spacing, "Application \"\(logString(for: app))\" did not terminate within \(forceTerminateDelay) seconds, attempting to force terminate")
                     app.forceTerminate()
                 }
             }
 
-            cancellable = app.publisher(for: \.isTerminated).sink { isTerminated in
-                guard isTerminated else {
+            cancellable = app.publisher(for: \.isTerminated).sink { [weak self] isTerminated in
+                guard
+                    let self,
+                    isTerminated
+                else {
                     return
                 }
                 timeoutTask.cancel()
                 cancellable?.cancel()
-                Logger.spacing.debug("Application \"\(self.logString(for: app))\" terminated successfully")
+                logDebugMessage(to: .spacing, "Application \"\(logString(for: app))\" terminated successfully")
                 continuation.resume()
             }
         }
@@ -110,7 +113,7 @@ final class MenuBarItemSpacingManager {
     /// Asynchronously launches the app at the given URL.
     private nonisolated func launchApp(at applicationURL: URL, bundleIdentifier: String) async throws {
         if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
-            Logger.spacing.debug("Application \"\(self.logString(for: app))\" is already open, so skipping launch")
+            logDebugMessage(to: .spacing, "Application \"\(logString(for: app))\" is already open, so skipping launch")
             return
         }
         let configuration = NSWorkspace.OpenConfiguration()
@@ -207,6 +210,7 @@ final class MenuBarItemSpacingManager {
     }
 }
 
+// MARK: - Logger
 private extension Logger {
     static let spacing = Logger(category: "Spacing")
 }

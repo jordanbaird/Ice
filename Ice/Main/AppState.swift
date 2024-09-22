@@ -127,7 +127,7 @@ final class AppState: ObservableObject {
                 }
                 .store(in: &c)
         } else {
-            Logger.appState.warning("No settings window!")
+            logWarning(to: .appState, "No settings window!")
         }
 
         Publishers.Merge(
@@ -185,7 +185,7 @@ final class AppState: ObservableObject {
     /// Assigns the app delegate to the app state.
     func assignAppDelegate(_ appDelegate: AppDelegate) {
         guard self.appDelegate == nil else {
-            Logger.appState.warning("Multiple attempts made to assign app delegate")
+            logWarning(to: .appState, "Multiple attempts made to assign app delegate")
             return
         }
         self.appDelegate = appDelegate
@@ -212,7 +212,7 @@ final class AppState: ObservableObject {
             activate()
         } else {
             Context.hasActivated[self] = true
-            Logger.appState.debug("First time activating app, so going through Dock")
+            logDebugMessage(to: .appState, "First time activating app, so going through Dock")
             // Hack to make sure the app properly activates for the first time.
             NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.activate()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {

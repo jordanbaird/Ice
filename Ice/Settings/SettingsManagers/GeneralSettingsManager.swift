@@ -107,7 +107,7 @@ final class GeneralSettingsManager: ObservableObject {
             do {
                 iceIcon = try decoder.decode(ControlItemImageSet.self, from: data)
             } catch {
-                Logger.generalSettingsManager.error("Error decoding Ice icon: \(error)")
+                logError(to: .generalSettingsManager, "Error decoding Ice icon: \(error)")
             }
             if case .custom = iceIcon.name {
                 lastCustomIceIcon = iceIcon
@@ -138,7 +138,7 @@ final class GeneralSettingsManager: ObservableObject {
                     let data = try encoder.encode(iceIcon)
                     Defaults.set(data, forKey: .iceIcon)
                 } catch {
-                    Logger.generalSettingsManager.error("Error encoding Ice icon: \(error)")
+                    logError(to: .generalSettingsManager, "Error encoding Ice icon: \(error)")
                 }
             }
             .store(in: &c)

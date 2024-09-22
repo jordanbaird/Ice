@@ -75,7 +75,7 @@ final class MenuBarManager: ObservableObject {
     private func initializeSections() {
         // Make sure initialization can only happen once.
         guard sections.isEmpty else {
-            Logger.menuBarManager.warning("Sections already initialized")
+            logWarning(to: .menuBarManager, "Sections already initialized")
             return
         }
 
@@ -365,20 +365,20 @@ final class MenuBarManager: ObservableObject {
 
     func hideApplicationMenus() {
         guard let appState else {
-            Logger.menuBarManager.error("Error hiding application menus: Missing app state")
+            logError(to: .menuBarManager, "Error hiding application menus: Missing app state")
             return
         }
-        Logger.menuBarManager.info("Hiding application menus")
+        logInfo(to: .menuBarManager, "Hiding application menus")
         appState.activate(withPolicy: .regular)
         isHidingApplicationMenus = true
     }
 
     func showApplicationMenus() {
         guard let appState else {
-            Logger.menuBarManager.error("Error showing application menus: Missing app state")
+            logError(to: .menuBarManager, "Error showing application menus: Missing app state")
             return
         }
-        Logger.menuBarManager.info("Showing application menus")
+        logInfo(to: .menuBarManager, "Showing application menus")
         appState.deactivate(withPolicy: .accessory)
         isHidingApplicationMenus = false
     }
@@ -394,7 +394,7 @@ final class MenuBarManager: ObservableObject {
     /// Shows the appearance editor popover, centered under the menu bar.
     @objc private func showAppearanceEditorPopover() {
         guard let appState else {
-            Logger.menuBarManager.error("Error showing appearance editor popover: Missing app state")
+            logError(to: .menuBarManager, "Error showing appearance editor popover: Missing app state")
             return
         }
         let panel = MenuBarAppearanceEditorPanel(appState: appState)
@@ -408,8 +408,10 @@ final class MenuBarManager: ObservableObject {
     }
 }
 
+// MARK: MenuBarManager: BindingExposable
 extension MenuBarManager: BindingExposable { }
 
+// MARK: - Logger
 private extension Logger {
     static let menuBarManager = Logger(category: "MenuBarManager")
 }

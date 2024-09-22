@@ -237,7 +237,7 @@ extension EventManager {
                 // If all the above checks have passed, hide.
                 shownSection.hide()
             } catch {
-                Logger.eventManager.error("ERROR: \(error)")
+                logError(to: .eventManager, "ERROR: \(error)")
             }
         }
     }
@@ -385,7 +385,7 @@ extension EventManager {
                     hiddenSection.hide()
                 }
             } catch {
-                Logger.eventManager.error("ERROR: \(error)")
+                logError(to: .eventManager, "ERROR: \(error)")
             }
         }
     }

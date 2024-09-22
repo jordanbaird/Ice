@@ -112,7 +112,7 @@ final class LayoutBarPaddingView: NSView {
                 if let targetItem {
                     move(item: draggingSource.item, to: .leftOfItem(targetItem))
                 } else {
-                    Logger.layoutBar.error("No target item for layout bar drag")
+                    logError(to: .layoutBar, "No target item for layout bar drag")
                 }
             } else if arrangedViews.indices.contains(index + 1) {
                 // we have a view to the right of the dragging source
@@ -137,7 +137,7 @@ final class LayoutBarPaddingView: NSView {
                 try await appState.itemManager.slowMove(item: item, to: destination)
                 appState.itemManager.removeTempShownItemFromCache(with: item.info)
             } catch {
-                Logger.layoutBar.error("Error moving menu bar item: \(error)")
+                logError(to: .layoutBar, "Error moving menu bar item: \(error)")
                 let alert = NSAlert(error: error)
                 alert.runModal()
             }

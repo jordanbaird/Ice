@@ -133,11 +133,11 @@ final class EventTap {
             callback: handleEvent,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            Logger.eventTap.error("Error creating mach port for event tap \"\(self.label)\"")
+            logError(to: .eventTap, "Error creating mach port for event tap \"\(self.label)\"")
             return
         }
         guard let source = CFMachPortCreateRunLoopSource(nil, machPort, 0) else {
-            Logger.eventTap.error("Error creating run loop source for event tap \"\(self.label)\"")
+            logError(to: .eventTap, "Error creating run loop source for event tap \"\(self.label)\"")
             return
         }
         self.machPort = machPort
@@ -206,15 +206,15 @@ final class EventTap {
     @MainActor
     private func withUnwrappedComponents(body: @MainActor (CFRunLoop, CFRunLoopSource, CFMachPort) -> Void) {
         guard let runLoop else {
-            Logger.eventTap.error("Missing run loop for event tap \"\(self.label)\"")
+            logError(to: .eventTap, "Missing run loop for event tap \"\(self.label)\"")
             return
         }
         guard let source else {
-            Logger.eventTap.error("Missing run loop source for event tap \"\(self.label)\"")
+            logError(to: .eventTap, "Missing run loop source for event tap \"\(self.label)\"")
             return
         }
         guard let machPort else {
-            Logger.eventTap.error("Missing mach port for event tap \"\(self.label)\"")
+            logError(to: .eventTap, "Missing mach port for event tap \"\(self.label)\"")
             return
         }
         body(runLoop, source, machPort)
@@ -235,10 +235,9 @@ final class EventTap {
         enable()
         Task { [weak self] in
             try await Task.sleep(for: timeout)
-            guard self?.isEnabled == true else {
-                return
+            if self?.isEnabled == true {
+                onTimeout()
             }
-            onTimeout()
         }
     }
 
@@ -267,7 +266,6 @@ private func handleEvent(
 }
 
 // MARK: - Logger
-
 private extension Logger {
     static let eventTap = Logger(category: "EventTap")
 }

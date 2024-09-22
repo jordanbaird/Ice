@@ -41,9 +41,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Temporary hack to make sure the window opens on Sequoia is to
-        // let them open, wait a bit, then close them.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        // Temporary hack to make sure the windows are retained on Sequoia:
+        // Let them open, wait a bit, then close them.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             appState.settingsWindow?.close()
             appState.permissionsWindow?.close()
 

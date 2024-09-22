@@ -24,7 +24,7 @@ final class MenuBarAppearanceEditorPanel: NSPanel {
             defer: false
         )
         self.appState = appState
-        self.level = .statusBar
+        self.isFloatingPanel = true
         self.backgroundColor = .clear
         configureCancellables()
     }

@@ -11,10 +11,12 @@ extension View {
     /// - Parameter content: A view to be added as a bottom bar to the current view.
     func bottomBar<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         safeAreaInset(edge: .bottom) {
-            VStack(spacing: 0) {
-                Divider()
-                content()
-            }
+            content()
+                .background {
+                    Rectangle()
+                        .fill(.quinary.shadow(.inner(radius: 4)))
+                        .shadow(radius: 1)
+                }
         }
     }
 }

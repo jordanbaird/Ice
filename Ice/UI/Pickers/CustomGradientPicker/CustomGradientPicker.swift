@@ -208,7 +208,6 @@ private struct CustomGradientPickerHandle: View {
     @Binding var zOrderedStops: [ColorStop]
     @Binding var cancellables: Set<AnyCancellable>
     @State private var canActivate = true
-    @FocusState private var isFocused: Bool
 
     let index: Int
     let supportsOpacity: Bool
@@ -292,14 +291,10 @@ private struct CustomGradientPickerHandle: View {
                         }
                     }
                 }
-                .focusable()
-                .focusEffectDisabled()
-                .focused($isFocused)
-                .onKeyPress(.escape) {
+                .onKeyDown(key: .escape) {
                     selectedStop = nil
-                    return .handled
                 }
-                .onDeleteCommand {
+                .onKeyDown(key: .delete) {
                     deleteSelectedStop()
                 }
         }
@@ -372,8 +367,6 @@ private struct CustomGradientPickerHandle: View {
             zOrderedStops.append(zOrderedStops.remove(at: index))
         }
 
-        isFocused = true
-
         var c = Set<AnyCancellable>()
 
         NSColorPanel.shared.publisher(for: \.color)
@@ -411,7 +404,6 @@ private struct CustomGradientPickerHandle: View {
             cancellable.cancel()
         }
         cancellables.removeAll()
-        isFocused = false
     }
 
     private func deleteSelectedStop() {

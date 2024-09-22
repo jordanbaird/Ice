@@ -7,22 +7,22 @@ import Cocoa
 import Combine
 import OSLog
 
-/// A type that manages menu bar items.
+/// Manager for menu bar items.
 @MainActor
 final class MenuBarItemManager: ObservableObject {
     /// Cache for menu bar items.
     struct ItemCache: Hashable {
-        var hiddenControlItem: MenuBarItem?
-        var alwaysHiddenControlItem: MenuBarItem?
-
+        /// All cached menu bar items, keyed by section.
         private var items = [MenuBarSection.Name: [MenuBarItem]]()
 
+        /// All cached menu bar items.
         var allItems: [MenuBarItem] {
             MenuBarSection.Name.allCases.reduce(into: []) { result, section in
                 result.append(contentsOf: allItems(for: section))
             }
         }
 
+        /// The cached menu bar items managed by Ice.
         var managedItems: [MenuBarItem] {
             MenuBarSection.Name.allCases.reduce(into: []) { result, section in
                 result.append(contentsOf: managedItems(for: section))
@@ -41,17 +41,15 @@ final class MenuBarItemManager: ObservableObject {
 
         /// Clears the cache.
         mutating func clear() {
-            hiddenControlItem = nil
-            alwaysHiddenControlItem = nil
             items.removeAll()
         }
 
-        /// Returns the items for the given section.
+        /// Returns the cached menu bar items for the given section.
         func allItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
             items[section, default: []]
         }
 
-        /// Returns the items managed by Ice for the given section.
+        /// Returns the cached menu bar items managed by Ice for the given section.
         func managedItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
             allItems(for: section).filter { item in
                 // Filter out items that can't be hidden.

@@ -404,9 +404,11 @@ private struct CustomGradientPickerHandle: View {
             cancellable.cancel()
         }
         cancellables.removeAll()
+        NSColorPanel.shared.close()
     }
 
     private func deleteSelectedStop() {
+        deactivate()
         guard
             let selectedStop,
             let index = gradient.stops.firstIndex(of: selectedStop)

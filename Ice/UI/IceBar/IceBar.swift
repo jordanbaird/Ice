@@ -160,7 +160,7 @@ final class IceBarPanel: NSPanel {
         appState.navigationState.isIceBarPresented = true
         currentSection = section
 
-        appState.imageCache.updateCache()
+        await appState.imageCache.updateCache()
 
         contentView = IceBarHostingView(appState: appState, colorManager: colorManager, section: section) { [weak self] in
             self?.close()

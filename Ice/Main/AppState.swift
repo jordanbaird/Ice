@@ -142,7 +142,9 @@ final class AppState: ObservableObject {
             else {
                 return
             }
-            imageCache.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
+            Task.detached {
+                await self.imageCache.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
+            }
         }
         .store(in: &c)
 

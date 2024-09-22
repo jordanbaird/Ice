@@ -8,7 +8,6 @@ import Combine
 import OSLog
 
 /// Cache for menu bar item images.
-@MainActor
 final class MenuBarItemImageCache: ObservableObject {
     /// The cached item images.
     @Published private(set) var images = [MenuBarItemInfo: CGImage]()
@@ -31,11 +30,13 @@ final class MenuBarItemImageCache: ObservableObject {
     }
 
     /// Sets up the cache.
+    @MainActor
     func performSetup() {
         configureCancellables()
     }
 
     /// Configures the internal observers for the cache.
+    @MainActor
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -59,7 +60,12 @@ final class MenuBarItemImageCache: ObservableObject {
             )
             .throttle(for: 0.5, scheduler: DispatchQueue.main, latest: false)
             .sink { [weak self] in
-                self?.updateCache()
+                guard let self else {
+                    return
+                }
+                Task.detached {
+                    await self.updateCache()
+                }
             }
             .store(in: &c)
         }
@@ -69,6 +75,7 @@ final class MenuBarItemImageCache: ObservableObject {
 
     /// Returns a Boolean value that indicates whether the cache contains at least _some_
     /// images for the given section.
+    @MainActor
     func hasImages(for section: MenuBarSection.Name) -> Bool {
         let items = appState?.itemManager.itemCache.allItems(for: section) ?? []
         return !Set(items.map { $0.info }).isDisjoint(with: images.keys)
@@ -76,12 +83,12 @@ final class MenuBarItemImageCache: ObservableObject {
 
     /// Captures the images of the current menu bar items and returns a dictionary containing
     /// the images, keyed by the current menu bar item infos.
-    func createImages(for section: MenuBarSection.Name, screen: NSScreen) -> [MenuBarItemInfo: CGImage] {
+    func createImages(for section: MenuBarSection.Name, screen: NSScreen) async -> [MenuBarItemInfo: CGImage] {
         guard let appState else {
             return [:]
         }
 
-        let items = appState.itemManager.itemCache.allItems(for: section)
+        let items = await appState.itemManager.itemCache.allItems(for: section)
 
         var images = [MenuBarItemInfo: CGImage]()
         let backingScaleFactor = screen.backingScaleFactor
@@ -168,52 +175,77 @@ final class MenuBarItemImageCache: ObservableObject {
 
     /// Updates the cache with the current menu bar item images, without checking whether
     /// caching is necessary.
-    func updateCacheWithoutChecks(sections: [MenuBarSection.Name]) {
+    func updateCacheWithoutChecks(sections: [MenuBarSection.Name]) async {
+        actor Context {
+            var images = [MenuBarItemInfo: CGImage]()
+
+            func merge(_ other: [MenuBarItemInfo: CGImage]) {
+                images.merge(other) { (_, new) in new }
+            }
+        }
+
         guard
             let appState,
             let screen = NSScreen.main
         else {
             return
         }
-        var images = images
+
+        let context = Context()
+
         for section in sections {
-            guard !appState.itemManager.itemCache.allItems(for: section).isEmpty else {
+            guard await !appState.itemManager.itemCache.allItems(for: section).isEmpty else {
                 continue
             }
-            let sectionImages = createImages(for: section, screen: screen)
+            let sectionImages = await createImages(for: section, screen: screen)
             guard !sectionImages.isEmpty else {
                 Logger.imageCache.warning("Update image cache failed for \(section.logString)")
                 continue
             }
-            images.merge(sectionImages) { (_, new) in new }
+            await context.merge(sectionImages)
         }
-        self.images = images
+
+        let task = Task { @MainActor in
+            self.images = await context.images
+        }
+        await task.value
+
         self.screen = screen
         self.menuBarHeight = screen.getMenuBarHeight()
     }
 
     /// Updates the cache with the current menu bar item images, if necessary.
-    func updateCache() {
+    func updateCache() async {
         guard let appState else {
             return
         }
 
-        if !appState.navigationState.isIceBarPresented && !appState.navigationState.isSearchPresented {
-            guard appState.navigationState.isAppFrontmost else {
+        let isIceBarPresented = await appState.navigationState.isIceBarPresented
+        let isSearchPresented = await appState.navigationState.isSearchPresented
+        let isSettingsPresented: Bool
+
+        if !isIceBarPresented && !isSearchPresented {
+            guard await appState.navigationState.isAppFrontmost else {
                 Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, app not frontmost")
                 return
             }
-            guard appState.navigationState.isSettingsPresented else {
+
+            isSettingsPresented = await appState.navigationState.isSettingsPresented
+
+            guard isSettingsPresented else {
                 Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings not visible")
                 return
             }
-            guard case .menuBarLayout = appState.navigationState.settingsNavigationIdentifier else {
+
+            guard case .menuBarLayout = await appState.navigationState.settingsNavigationIdentifier else {
                 Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Layout pane")
                 return
             }
+        } else {
+            isSettingsPresented = await appState.navigationState.isSettingsPresented
         }
 
-        if let lastItemMoveStartDate = appState.itemManager.lastItemMoveStartDate {
+        if let lastItemMoveStartDate = await appState.itemManager.lastItemMoveStartDate {
             guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 3 else {
                 Logger.imageCache.debug("Skipping image cache as an item was recently moved")
                 return
@@ -221,16 +253,16 @@ final class MenuBarItemImageCache: ObservableObject {
         }
 
         var sectionsNeedingDisplay = [MenuBarSection.Name]()
-        if appState.navigationState.isSettingsPresented || appState.navigationState.isSearchPresented {
+        if isSettingsPresented || isSearchPresented {
             sectionsNeedingDisplay = MenuBarSection.Name.allCases
         } else if
-            appState.navigationState.isIceBarPresented,
-            let section = appState.menuBarManager.iceBarPanel.currentSection
+            isIceBarPresented,
+            let section = await appState.menuBarManager.iceBarPanel.currentSection
         {
             sectionsNeedingDisplay.append(section)
         }
 
-        updateCacheWithoutChecks(sections: sectionsNeedingDisplay)
+        await updateCacheWithoutChecks(sections: sectionsNeedingDisplay)
     }
 }
 

@@ -6,7 +6,6 @@
 import Cocoa
 import Combine
 
-@MainActor
 final class IceBarColorManager: ObservableObject {
     @Published private(set) var colorInfo: MenuBarAverageColorInfo?
 

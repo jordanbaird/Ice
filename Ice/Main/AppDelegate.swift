@@ -3,7 +3,6 @@
 //  Ice
 //
 
-import OSLog
 import SwiftUI
 
 @MainActor
@@ -14,7 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         guard let appState else {
-            logWarning(to: .appDelegate, "Missing app state in applicationWillFinishLaunching")
+            Logger.appDelegate.warning("Missing app state in applicationWillFinishLaunching")
             return
         }
 
@@ -30,7 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let appState else {
-            logWarning(to: .appDelegate, "Missing app state in applicationDidFinishLaunching")
+            Logger.appDelegate.warning("Missing app state in applicationDidFinishLaunching")
             return
         }
 
@@ -57,7 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     permissionsWindow.center()
                     permissionsWindow.makeKeyAndOrderFront(nil)
                 } else {
-                    logError(to: .appDelegate, "Failed to open permissions window")
+                    Logger.appDelegate.error("Failed to open permissions window")
                 }
             }
         }
@@ -78,7 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Assigns the app state to the delegate.
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
-            logWarning(to: .appDelegate, "Multiple attempts made to assign app state")
+            Logger.appDelegate.warning("Multiple attempts made to assign app state")
             return
         }
         self.appState = appState
@@ -90,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let appState,
             let settingsWindow = appState.settingsWindow
         else {
-            logError(to: .appDelegate, "Failed to open settings window")
+            Logger.appDelegate.error("Failed to open settings window")
             return
         }
         // Small delay makes this more reliable.

@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import OSLog
 
 /// Manager for the various event monitors maintained by the app.
 @MainActor
@@ -237,7 +236,7 @@ extension EventManager {
                 // If all the above checks have passed, hide.
                 shownSection.hide()
             } catch {
-                logError(to: .eventManager, "ERROR: \(error)")
+                Logger.eventManager.error("ERROR: \(error)")
             }
         }
     }
@@ -385,7 +384,7 @@ extension EventManager {
                     hiddenSection.hide()
                 }
             } catch {
-                logError(to: .eventManager, "ERROR: \(error)")
+                Logger.eventManager.error("ERROR: \(error)")
             }
         }
     }

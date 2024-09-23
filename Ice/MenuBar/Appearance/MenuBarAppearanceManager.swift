@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import OSLog
 
 /// A manager for the appearance of the menu bar.
 @MainActor
@@ -43,7 +42,7 @@ final class MenuBarAppearanceManager: ObservableObject {
         do {
             configuration = try .migrate(encoder: encoder, decoder: decoder)
         } catch {
-            logError(to: .appearanceManager, "Error decoding configuration: \(error)")
+            Logger.appearanceManager.error("Error decoding configuration: \(error)")
         }
     }
 
@@ -70,7 +69,7 @@ final class MenuBarAppearanceManager: ObservableObject {
             .encode(encoder: encoder)
             .sink { completion in
                 if case .failure(let error) = completion {
-                    logError(to: .appearanceManager, "Error encoding configuration: \(error)")
+                    Logger.appearanceManager.error("Error encoding configuration: \(error)")
                 }
             } receiveValue: { data in
                 Defaults.set(data, forKey: .menuBarAppearanceConfiguration)

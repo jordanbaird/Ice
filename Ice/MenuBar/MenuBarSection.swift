@@ -4,7 +4,6 @@
 //
 
 import Cocoa
-import OSLog
 
 /// A representation of a section in a menu bar.
 @MainActor
@@ -127,7 +126,7 @@ final class MenuBarSection {
     /// Assigns the section's app state.
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
-            logWarning(to: .menuBarSection, "Multiple attempts made to assign app state")
+            Logger.menuBarSection.warning("Multiple attempts made to assign app state")
             return
         }
         self.appState = appState

@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import OSLog
 
 struct IceMenu<Title: View, Label: View, Content: View>: View {
     @State private var isHovering = false
@@ -110,7 +109,7 @@ private struct IceMenuLayout<Title: View>: _VariadicView_UnaryViewRoot {
 
 private final class IceMenuItemAction: Hashable {
     static let nullAction = IceMenuItemAction {
-        logWarning(to: .iceMenu, "No action assigned to menu item")
+        Logger.iceMenu.warning("No action assigned to menu item")
     }
 
     let body: () -> Void

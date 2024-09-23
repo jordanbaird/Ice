@@ -5,7 +5,6 @@
 
 import Combine
 import Foundation
-import OSLog
 
 @MainActor
 final class GeneralSettingsManager: ObservableObject {
@@ -107,7 +106,7 @@ final class GeneralSettingsManager: ObservableObject {
             do {
                 iceIcon = try decoder.decode(ControlItemImageSet.self, from: data)
             } catch {
-                logError(to: .generalSettingsManager, "Error decoding Ice icon: \(error)")
+                Logger.generalSettingsManager.error("Error decoding Ice icon: \(error)")
             }
             if case .custom = iceIcon.name {
                 lastCustomIceIcon = iceIcon
@@ -138,7 +137,7 @@ final class GeneralSettingsManager: ObservableObject {
                     let data = try encoder.encode(iceIcon)
                     Defaults.set(data, forKey: .iceIcon)
                 } catch {
-                    logError(to: .generalSettingsManager, "Error encoding Ice icon: \(error)")
+                    Logger.generalSettingsManager.error("Error encoding Ice icon: \(error)")
                 }
             }
             .store(in: &c)

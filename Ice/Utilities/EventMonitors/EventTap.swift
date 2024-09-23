@@ -4,7 +4,6 @@
 //
 
 import Cocoa
-import OSLog
 
 /// A type that receives system events from various locations within the
 /// event stream.
@@ -133,11 +132,11 @@ final class EventTap {
             callback: handleEvent,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            logError(to: .eventTap, "Error creating mach port for event tap \"\(self.label)\"")
+            Logger.eventTap.error("Error creating mach port for event tap \"\(self.label)\"")
             return
         }
         guard let source = CFMachPortCreateRunLoopSource(nil, machPort, 0) else {
-            logError(to: .eventTap, "Error creating run loop source for event tap \"\(self.label)\"")
+            Logger.eventTap.error("Error creating run loop source for event tap \"\(self.label)\"")
             return
         }
         self.machPort = machPort
@@ -206,15 +205,15 @@ final class EventTap {
     @MainActor
     private func withUnwrappedComponents(body: @MainActor (CFRunLoop, CFRunLoopSource, CFMachPort) -> Void) {
         guard let runLoop else {
-            logError(to: .eventTap, "Missing run loop for event tap \"\(self.label)\"")
+            Logger.eventTap.error("Missing run loop for event tap \"\(self.label)\"")
             return
         }
         guard let source else {
-            logError(to: .eventTap, "Missing run loop source for event tap \"\(self.label)\"")
+            Logger.eventTap.error("Missing run loop source for event tap \"\(self.label)\"")
             return
         }
         guard let machPort else {
-            logError(to: .eventTap, "Missing mach port for event tap \"\(self.label)\"")
+            Logger.eventTap.error("Missing mach port for event tap \"\(self.label)\"")
             return
         }
         body(runLoop, source, machPort)

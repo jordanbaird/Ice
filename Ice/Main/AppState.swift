@@ -4,7 +4,6 @@
 //
 
 import Combine
-import OSLog
 import SwiftUI
 
 /// The model for app-wide state.
@@ -127,7 +126,7 @@ final class AppState: ObservableObject {
                 }
                 .store(in: &c)
         } else {
-            logWarning(to: .appState, "No settings window!")
+            Logger.appState.warning("No settings window!")
         }
 
         Publishers.Merge(
@@ -185,7 +184,7 @@ final class AppState: ObservableObject {
     /// Assigns the app delegate to the app state.
     func assignAppDelegate(_ appDelegate: AppDelegate) {
         guard self.appDelegate == nil else {
-            logWarning(to: .appState, "Multiple attempts made to assign app delegate")
+            Logger.appState.warning("Multiple attempts made to assign app delegate")
             return
         }
         self.appDelegate = appDelegate
@@ -212,7 +211,7 @@ final class AppState: ObservableObject {
             activate()
         } else {
             Context.hasActivated[self] = true
-            logDebug(to: .appState, "First time activating app, so going through Dock")
+            Logger.appState.debug("First time activating app, so going through Dock")
             // Hack to make sure the app properly activates for the first time.
             NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.activate()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {

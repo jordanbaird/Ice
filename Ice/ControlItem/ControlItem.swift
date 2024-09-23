@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import OSLog
 
 /// A status item that controls a section in the menu bar.
 @MainActor
@@ -548,7 +547,7 @@ final class ControlItem {
     /// Assigns the app state to the control item.
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
-            logWarning(to: .controlItem, "Multiple attempts made to assign app state")
+            Logger.controlItem.warning("Multiple attempts made to assign app state")
             return
         }
         self.appState = appState

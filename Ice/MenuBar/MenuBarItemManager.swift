@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import OSLog
 
 /// Manager for menu bar items.
 @MainActor
@@ -178,10 +177,10 @@ extension MenuBarItemManager {
     /// Caches the given menu bar items, without checking whether the control items are in the correct order.
     private func uncheckedCacheItems(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem?, otherItems: [MenuBarItem]) {
         func logNotAddedWarning(for item: MenuBarItem) {
-            logWarning(to: .itemManager, "\(item.logString) doesn't seem to be in a section, so it wasn't cached")
+            Logger.itemManager.warning("\(item.logString) doesn't seem to be in a section, so it wasn't cached")
         }
 
-        logDebug(to: .itemManager, "Caching menu bar items")
+        Logger.itemManager.debug("Caching menu bar items")
 
         update(&itemCache) { cache in
             cache.clear()
@@ -218,20 +217,20 @@ extension MenuBarItemManager {
     /// Caches the current menu bar items if needed, ensuring that the control items are in the correct order.
     private func cacheItemsIfNeeded() async {
         guard tempShownItemContexts.isEmpty else {
-            logDebug(to: .itemManager, "Skipping item cache as items are temporarily shown")
+            Logger.itemManager.debug("Skipping item cache as items are temporarily shown")
             return
         }
 
         if let lastItemMoveStartDate {
             guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 3 else {
-                logDebug(to: .itemManager, "Skipping item cache as an item was recently moved")
+                Logger.itemManager.debug("Skipping item cache as an item was recently moved")
                 return
             }
         }
 
         let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
         if cachedItemWindowIDs == itemWindowIDs {
-            logDebug(to: .itemManager, "Skipping item cache as item windows have not changed")
+            Logger.itemManager.debug("Skipping item cache as item windows have not changed")
             return
         } else {
             cachedItemWindowIDs = itemWindowIDs
@@ -250,8 +249,8 @@ extension MenuBarItemManager {
             .map { items.remove(at: $0) }
 
         guard let hiddenControlItem else {
-            logWarning(to: .itemManager, "Missing control item for hidden section")
-            logDebug(to: .itemManager, "Clearing item cache")
+            Logger.itemManager.warning("Missing control item for hidden section")
+            Logger.itemManager.debug("Clearing item cache")
             itemCache.clear()
             return
         }
@@ -269,8 +268,8 @@ extension MenuBarItemManager {
                 otherItems: items
             )
         } catch {
-            logError(to: .itemManager, "Error enforcing control item order: \(error)")
-            logDebug(to: .itemManager, "Clearing item cache")
+            Logger.itemManager.error("Error enforcing control item order: \(error)")
+            Logger.itemManager.debug("Clearing item cache")
             itemCache.clear()
         }
     }
@@ -410,7 +409,7 @@ extension MenuBarItemManager {
     /// - Parameter item: The item to return the current frame for.
     private func getCurrentFrame(for item: MenuBarItem) -> CGRect? {
         guard let frame = Bridging.getWindowFrame(for: item.window.windowID) else {
-            logError(to: .itemManager, "Couldn't get current frame for \(item.logString)")
+            Logger.itemManager.error("Couldn't get current frame for \(item.logString)")
             return nil
         }
         return frame
@@ -502,7 +501,7 @@ extension MenuBarItemManager {
     ///   - event: The event to post.
     ///   - location: The event tap location to post the event to.
     private nonisolated func postEvent(_ event: CGEvent, to location: EventTap.Location) {
-        logDebug(to: .itemManager, "Posting \(event.type.logString) to \(location.logString)")
+        Logger.itemManager.debug("Posting \(event.type.logString) to \(location.logString)")
         switch location {
         case .hidEventTap:
             event.post(tap: .cghidEventTap)
@@ -548,11 +547,11 @@ extension MenuBarItemManager {
 
                 // Ensure the tap is enabled, preventing multiple calls to resume().
                 guard proxy.isEnabled else {
-                    logDebug(to: .itemManager, "Event tap \"\(proxy.label)\" is disabled (item: \(item.logString))")
+                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled (item: \(item.logString))")
                     return nil
                 }
 
-                logDebug(to: .itemManager, "Received \(type.logString) at \(location.logString) (item: \(item.logString))")
+                Logger.itemManager.debug("Received \(type.logString) at \(location.logString) (item: \(item.logString))")
 
                 proxy.disable()
                 continuation.resume()
@@ -561,7 +560,7 @@ extension MenuBarItemManager {
             }
 
             eventTap.enable(timeout: .milliseconds(50)) {
-                logError(to: .itemManager, "Event tap \"\(eventTap.label)\" timed out (item: \(item.logString))")
+                Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out (item: \(item.logString))")
                 eventTap.disable()
                 continuation.resume(throwing: EventError(code: .eventOperationTimeout, item: item))
             }
@@ -650,7 +649,7 @@ extension MenuBarItemManager {
 
                 // Ensure the tap is enabled, preventing multiple calls to resume().
                 guard proxy.isEnabled else {
-                    logDebug(to: .itemManager, "Event tap \"\(proxy.label)\" is disabled (item: \(item.logString))")
+                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled (item: \(item.logString))")
                     return nil
                 }
 
@@ -664,7 +663,7 @@ extension MenuBarItemManager {
             // Enable both taps, with a timeout on the second tap.
             eventTap1.enable()
             eventTap2.enable(timeout: .milliseconds(50)) {
-                logError(to: .itemManager, "Event tap \"\(eventTap2.label)\" timed out (item: \(item.logString))")
+                Logger.itemManager.error("Event tap \"\(eventTap2.label)\" timed out (item: \(item.logString))")
                 eventTap1.disable()
                 eventTap2.disable()
                 continuation.resume(throwing: EventError(code: .eventOperationTimeout, item: item))
@@ -692,7 +691,7 @@ extension MenuBarItemManager {
     ) async throws {
         guard let currentFrame = getCurrentFrame(for: item) else {
             try await scrombleEvent(event, from: firstLocation, to: secondLocation, item: item)
-            logWarning(to: .itemManager, "Couldn't get menu bar item frame for \(item.logString), so using fixed delay")
+            Logger.itemManager.warning("Couldn't get menu bar item frame for \(item.logString), so using fixed delay")
             // This will be slow, but subsequent events will have a better chance of succeeding.
             try await Task.sleep(for: .milliseconds(50))
             return
@@ -717,7 +716,7 @@ extension MenuBarItemManager {
                     throw FrameCheckCancellationError()
                 }
                 if currentFrame != initialFrame {
-                    logDebug(to: .itemManager, "Menu bar item frame for \(item.logString) has changed to \(NSStringFromRect(currentFrame))")
+                    Logger.itemManager.debug("Menu bar item frame for \(item.logString) has changed to \(NSStringFromRect(currentFrame))")
                     return
                 }
             }
@@ -726,7 +725,7 @@ extension MenuBarItemManager {
         do {
             try await frameCheckTask.value
         } catch is FrameCheckCancellationError {
-            logWarning(to: .itemManager, "Menu bar item frame check for \(item.logString) was cancelled, so using fixed delay")
+            Logger.itemManager.warning("Menu bar item frame check for \(item.logString) was cancelled, so using fixed delay")
             // This will be slow, but subsequent events will have a better chance of succeeding.
             try await Task.sleep(for: .milliseconds(50))
         } catch is TaskTimeoutError {
@@ -753,7 +752,7 @@ extension MenuBarItemManager {
 
     /// Tries to wake up the given item if it is not responding to events.
     private func wakeUpItem(_ item: MenuBarItem) async throws {
-        logDebug(to: .itemManager, "Attempting to wake up \(item.logString)")
+        Logger.itemManager.debug("Attempting to wake up \(item.logString)")
 
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .invalidEventSource, item: item)
@@ -847,11 +846,11 @@ extension MenuBarItemManager {
             try await scrombleEvent(mouseUpEvent, from: .pid(item.ownerPID), to: .sessionEventTap, waitingForFrameChangeOf: item)
         } catch {
             do {
-                logDebug(to: .itemManager, "Posting fallback event for moving \(item.logString)")
+                Logger.itemManager.debug("Posting fallback event for moving \(item.logString)")
                 // Catch this, as we still want to throw the existing error if the fallback fails.
                 try await postEventAndWaitToReceive(fallbackEvent, to: .sessionEventTap, item: item)
             } catch {
-                logError(to: .itemManager, "Failed to post fallback event for moving \(item.logString)")
+                Logger.itemManager.error("Failed to post fallback event for moving \(item.logString)")
             }
             throw error
         }
@@ -864,11 +863,11 @@ extension MenuBarItemManager {
     ///   - destination: A destination to move the menu bar item.
     func move(item: MenuBarItem, to destination: MoveDestination) async throws {
         if try itemHasCorrectPosition(item: item, for: destination) {
-            logDebug(to: .itemManager, "\(item.logString) is already in the correct position")
+            Logger.itemManager.debug("\(item.logString) is already in the correct position")
             return
         }
 
-        logInfo(to: .itemManager, "Moving \(item.logString) to \(destination.logString)")
+        Logger.itemManager.info("Moving \(item.logString) to \(destination.logString)")
 
         guard let appState else {
             throw EventError(code: .invalidAppState, item: item)
@@ -901,15 +900,15 @@ extension MenuBarItemManager {
                     throw EventError(code: .invalidItem, item: item)
                 }
                 if newFrame != initialFrame {
-                    logInfo(to: .itemManager, "Successfully moved \(item.logString)")
+                    Logger.itemManager.info("Successfully moved \(item.logString)")
                     break
                 } else {
                     throw EventError(code: .couldNotComplete, item: item)
                 }
             } catch where n < 5 {
-                logWarning(to: .itemManager, "Attempt \(n) to move \(item.logString) failed (error: \(error))")
+                Logger.itemManager.warning("Attempt \(n) to move \(item.logString) failed (error: \(error))")
                 try await wakeUpItem(item)
-                logInfo(to: .itemManager, "Retrying move of \(item.logString)")
+                Logger.itemManager.info("Retrying move of \(item.logString)")
                 continue
             }
         }
@@ -1008,11 +1007,11 @@ extension MenuBarItemManager {
             try await postEventAndWaitToReceive(mouseUpEvent, to: .sessionEventTap, item: item)
         } catch {
             do {
-                logDebug(to: .itemManager, "Posting fallback event for clicking \(item.logString)")
+                Logger.itemManager.debug("Posting fallback event for clicking \(item.logString)")
                 // Catch this, as we still want to throw the existing error if the fallback fails.
                 try await postEventAndWaitToReceive(fallbackEvent, to: .sessionEventTap, item: item)
             } catch {
-                logError(to: .itemManager, "Failed to post fallback event for clicking \(item.logString)")
+                Logger.itemManager.error("Failed to post fallback event for clicking \(item.logString)")
             }
             throw error
         }
@@ -1020,19 +1019,19 @@ extension MenuBarItemManager {
 
     /// Clicks the given menu bar item with the left mouse button.
     func leftClick(item: MenuBarItem) async throws {
-        logInfo(to: .itemManager, "Left clicking \(item.logString)")
+        Logger.itemManager.info("Left clicking \(item.logString)")
         try await click(item: item, mouseDownButtonState: .leftMouseDown, mouseUpButtonState: .leftMouseUp)
     }
 
     /// Clicks the given menu bar item with the right mouse button.
     func rightClick(item: MenuBarItem) async throws {
-        logInfo(to: .itemManager, "Right clicking \(item.logString)")
+        Logger.itemManager.info("Right clicking \(item.logString)")
         try await click(item: item, mouseDownButtonState: .rightMouseDown, mouseUpButtonState: .rightMouseUp)
     }
 
     /// Clicks the given menu bar item with the center mouse button.
     func centerClick(item: MenuBarItem) async throws {
-        logInfo(to: .itemManager, "Center clicking \(item.logString)")
+        Logger.itemManager.info("Center clicking \(item.logString)")
         try await click(item: item, mouseDownButtonState: .otherMouseDown, mouseUpButtonState: .otherMouseUp)
     }
 }
@@ -1056,14 +1055,14 @@ extension MenuBarItemManager {
     /// Schedules a timer for the given interval, attempting to rehide the current temporarily shown
     /// items when the timer fires.
     private func runTempShownItemTimer(for interval: TimeInterval) {
-        logDebug(to: .itemManager, "Running rehide timer for temporarily shown items with interval: \(interval)")
+        Logger.itemManager.debug("Running rehide timer for temporarily shown items with interval: \(interval)")
         tempShownItemsTimer?.invalidate()
         tempShownItemsTimer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
             guard let self else {
                 timer.invalidate()
                 return
             }
-            logDebug(to: .itemManager, "Rehide timer fired")
+            Logger.itemManager.debug("Rehide timer fired")
             Task {
                 await self.rehideTempShownItems()
             }
@@ -1099,7 +1098,7 @@ extension MenuBarItemManager {
                             assertionFailure("Unknown mouse button \(mouseButton)")
                         }
                     } catch {
-                        logError(to: .itemManager, "ERROR: \(error)")
+                        Logger.itemManager.error("ERROR: \(error)")
                     }
                 }
             }
@@ -1111,16 +1110,16 @@ extension MenuBarItemManager {
             let screen = NSScreen.main,
             let applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
         else {
-            logWarning(to: .itemManager, "No application menu frame, so not showing \(item.logString)")
+            Logger.itemManager.warning("No application menu frame, so not showing \(item.logString)")
             return
         }
 
-        logInfo(to: .itemManager, "Temporarily showing \(item.logString)")
+        Logger.itemManager.info("Temporarily showing \(item.logString)")
 
         var items = MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true)
 
         guard let destination = getReturnDestination(for: item, in: items) else {
-            logError(to: .itemManager, "No return destination for \(item.logString)")
+            Logger.itemManager.warning("No return destination for \(item.logString)")
             return
         }
 
@@ -1141,7 +1140,7 @@ extension MenuBarItemManager {
         }
 
         guard let targetItem = items.first else {
-            logError(to: .itemManager, "Not enough room to show \(item.logString)")
+            Logger.itemManager.warning("Not enough room to show \(item.logString)")
             return
         }
 
@@ -1162,13 +1161,13 @@ extension MenuBarItemManager {
                         assertionFailure("Unknown mouse button \(mouseButton)")
                     }
                 } catch {
-                    logError(to: .itemManager, "ERROR: \(error)")
+                    Logger.itemManager.error("ERROR: \(error)")
                 }
             } else {
                 do {
                     try await move(item: item, to: .leftOfItem(targetItem))
                 } catch {
-                    logError(to: .itemManager, "ERROR: \(error)")
+                    Logger.itemManager.error("ERROR: \(error)")
                 }
             }
 
@@ -1207,14 +1206,14 @@ extension MenuBarItemManager {
         do {
             try await interfaceCheckTask.value
         } catch is TaskTimeoutError {
-            logDebug(to: .itemManager, "Menu check task timed out, switching to timer")
+            Logger.itemManager.debug("Menu check task timed out, switching to timer")
             runTempShownItemTimer(for: 3)
             return
         } catch {
-            logError(to: .itemManager, "ERROR: \(error)")
+            Logger.itemManager.error("ERROR: \(error)")
         }
 
-        logInfo(to: .itemManager, "Rehiding temporarily shown items")
+        Logger.itemManager.info("Rehiding temporarily shown items")
 
         var failedContexts = [TempShownItemContext]()
 
@@ -1227,7 +1226,7 @@ extension MenuBarItemManager {
             do {
                 try await move(item: item, to: context.returnDestination)
             } catch {
-                logError(to: .itemManager, "Failed to rehide \(item.logString) (error: \(error))")
+                Logger.itemManager.error("Failed to rehide \(item.logString) (error: \(error))")
                 failedContexts.append(context)
             }
         }
@@ -1260,15 +1259,15 @@ extension MenuBarItemManager {
     ///   - alwaysHiddenControlItem: A menu bar item that represents the control item for the always-hidden section.
     func enforceControlItemOrder(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem) async throws {
         guard !isMouseButtonDown else {
-            logDebug(to: .itemManager, "Mouse button is down, so will not enforce control item order")
+            Logger.itemManager.debug("Mouse button is down, so will not enforce control item order")
             return
         }
         guard mouseMovedCount <= 0 else {
-            logDebug(to: .itemManager, "Mouse has recently moved, so will not enforce control item order")
+            Logger.itemManager.debug("Mouse has recently moved, so will not enforce control item order")
             return
         }
         if hiddenControlItem.frame.maxX <= alwaysHiddenControlItem.frame.minX {
-            logInfo(to: .itemManager, "Arranging menu bar items")
+            Logger.itemManager.info("Arranging menu bar items")
             try await slowMove(item: alwaysHiddenControlItem, to: .leftOfItem(hiddenControlItem))
         }
     }

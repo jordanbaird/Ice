@@ -4,7 +4,6 @@
 //
 
 import CoreGraphics
-import OSLog
 
 /// A namespace for mouse cursor operations.
 enum MouseCursor {
@@ -12,7 +11,7 @@ enum MouseCursor {
     static func hide() {
         let result = CGDisplayHideCursor(CGMainDisplayID())
         if result != .success {
-            logError(to: .mouseCursor, "CGDisplayHideCursor failed with error \(result.logString)")
+            Logger.mouseCursor.error("CGDisplayHideCursor failed with error \(result.logString)")
         }
     }
 
@@ -20,7 +19,7 @@ enum MouseCursor {
     static func show() {
         let result = CGDisplayShowCursor(CGMainDisplayID())
         if result != .success {
-            logError(to: .mouseCursor, "CGDisplayShowCursor failed with error \(result.logString)")
+            Logger.mouseCursor.error("CGDisplayShowCursor failed with error \(result.logString)")
         }
     }
 
@@ -30,7 +29,7 @@ enum MouseCursor {
     static func warp(to point: CGPoint) {
         let result = CGWarpMouseCursorPosition(point)
         if result != .success {
-            logError(to: .mouseCursor, "CGWarpMouseCursorPosition failed with error \(result.logString)")
+            Logger.mouseCursor.error("CGWarpMouseCursorPosition failed with error \(result.logString)")
         }
     }
 

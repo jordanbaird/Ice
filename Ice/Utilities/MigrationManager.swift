@@ -4,7 +4,6 @@
 //
 
 import Cocoa
-import OSLog
 
 @MainActor
 struct MigrationManager {
@@ -42,7 +41,7 @@ extension MigrationManager {
     }
 
     private func logError(_ error: any Error) {
-        Ice.logError(to: .migration, "Migration failed with error: \(error)")
+        Logger.migration.error("Migration failed with error: \(error)")
     }
 }
 
@@ -61,7 +60,7 @@ extension MigrationManager {
             migrateSections0_8_0,
         ])
         Defaults.set(true, forKey: .hasMigrated0_8_0)
-        logInfo(to: .migration, "Successfully migrated to 0.8.0 settings")
+        Logger.migration.info("Successfully migrated to 0.8.0 settings")
     }
 
     // MARK: Migrate Hotkeys
@@ -186,7 +185,7 @@ extension MigrationManager {
             migrateControlItems0_10_0,
         ])
         Defaults.set(true, forKey: .hasMigrated0_10_0)
-        logInfo(to: .migration, "Successfully migrated to 0.10.0 settings")
+        Logger.migration.info("Successfully migrated to 0.10.0 settings")
     }
 
     private func migrateControlItems0_10_0() throws {
@@ -212,7 +211,7 @@ extension MigrationManager {
         switch result {
         case .success, .successButShowAlert:
             Defaults.set(true, forKey: .hasMigrated0_10_1)
-            logInfo(to: .migration, "Successfully migrated to 0.10.1 settings")
+            Logger.migration.info("Successfully migrated to 0.10.1 settings")
         case .failureLoggingError:
             break
         }

@@ -5,34 +5,33 @@
 
 import OSLog
 
-/// Logs the given message using the specified logger and level.
-func logMessage(to logger: Logger, at level: OSLogType, _ message: String) {
-    logger.log(level: level, "\(message, privacy: .public)")
-}
+/// A type that encapsulates logging behavior for Ice.
+struct Logger {
+    /// The unified logger at the base of this logger.
+    private let base: os.Logger
 
-/// Logs the given informative message using the specified logger.
-func logInfo(to logger: Logger, _ message: String) {
-    logMessage(to: logger, at: .info, message)
-}
-
-/// Logs the given debug message using the specified logger.
-func logDebug(to logger: Logger, _ message: String) {
-    logMessage(to: logger, at: .debug, message)
-}
-
-/// Logs the given error message using the specified logger.
-func logError(to logger: Logger, _ message: String) {
-    logMessage(to: logger, at: .error, message)
-}
-
-/// Logs the given warning message using the specified logger.
-func logWarning(to logger: Logger, _ message: String) {
-    logError(to: logger, message)
-}
-
-extension Logger {
     /// Creates a logger for Ice using the specified category.
     init(category: String) {
-        self.init(subsystem: Constants.bundleIdentifier, category: category)
+        self.base = os.Logger(subsystem: Constants.bundleIdentifier, category: category)
+    }
+
+    /// Logs the given informative message to the logger.
+    func info(_ message: String) {
+        base.info("\(message, privacy: .public)")
+    }
+
+    /// Logs the given debug message to the logger.
+    func debug(_ message: String) {
+        base.debug("\(message, privacy: .public)")
+    }
+
+    /// Logs the given error message to the logger.
+    func error(_ message: String) {
+        base.error("\(message, privacy: .public)")
+    }
+
+    /// Logs the given warning message to the logger.
+    func warning(_ message: String) {
+        base.warning("\(message, privacy: .public)")
     }
 }

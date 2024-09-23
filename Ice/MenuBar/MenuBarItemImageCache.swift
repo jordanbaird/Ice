@@ -5,7 +5,6 @@
 
 import Cocoa
 import Combine
-import OSLog
 
 /// Cache for menu bar item images.
 final class MenuBarItemImageCache: ObservableObject {
@@ -142,7 +141,7 @@ final class MenuBarItemImageCache: ObservableObject {
                 images[itemInfo] = itemImage
             }
         } else {
-            logWarning(to: .imageCache, "Composite image capture failed. Attempting to capturing items individually.")
+            Logger.imageCache.warning("Composite image capture failed. Attempting to capturing items individually.")
 
             for windowID in windowIDs {
                 guard
@@ -199,7 +198,7 @@ final class MenuBarItemImageCache: ObservableObject {
             }
             let sectionImages = await createImages(for: section, screen: screen)
             guard !sectionImages.isEmpty else {
-                logWarning(to: .imageCache, "Update image cache failed for \(section.logString)")
+                Logger.imageCache.warning("Update image cache failed for \(section.logString)")
                 continue
             }
             await context.merge(sectionImages)
@@ -226,19 +225,19 @@ final class MenuBarItemImageCache: ObservableObject {
 
         if !isIceBarPresented && !isSearchPresented {
             guard await appState.navigationState.isAppFrontmost else {
-                logDebug(to: .imageCache, "Skipping image cache as Ice Bar not visible, app not frontmost")
+                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, app not frontmost")
                 return
             }
 
             isSettingsPresented = await appState.navigationState.isSettingsPresented
 
             guard isSettingsPresented else {
-                logDebug(to: .imageCache, "Skipping image cache as Ice Bar not visible, Settings not visible")
+                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings not visible")
                 return
             }
 
             guard case .menuBarLayout = await appState.navigationState.settingsNavigationIdentifier else {
-                logDebug(to: .imageCache, "Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Layout pane")
+                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Layout pane")
                 return
             }
         } else {
@@ -247,7 +246,7 @@ final class MenuBarItemImageCache: ObservableObject {
 
         if let lastItemMoveStartDate = await appState.itemManager.lastItemMoveStartDate {
             guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 3 else {
-                logDebug(to: .imageCache, "Skipping image cache as an item was recently moved")
+                Logger.imageCache.debug("Skipping image cache as an item was recently moved")
                 return
             }
         }

@@ -4,7 +4,7 @@
 //
 
 import Combine
-import OSLog
+import Foundation
 
 @MainActor
 final class HotkeySettingsManager: ObservableObject {
@@ -41,7 +41,7 @@ final class HotkeySettingsManager: ObservableObject {
                     do {
                         hotkey.keyCombination = try decoder.decode(KeyCombination?.self, from: data)
                     } catch {
-                        logError(to: .hotkeySettingsManager, "Error decoding hotkey: \(error)")
+                        Logger.hotkeySettingsManager.error("Error decoding hotkey: \(error)")
                     }
                 }
             }
@@ -66,7 +66,7 @@ final class HotkeySettingsManager: ObservableObject {
                     do {
                         dict[hotkey.action.rawValue] = try self.encoder.encode(hotkey.keyCombination)
                     } catch {
-                        logError(to: .hotkeySettingsManager, "Error encoding hotkey: \(error)")
+                        Logger.hotkeySettingsManager.error("Error encoding hotkey: \(error)")
                     }
                 }
                 Defaults.set(dict, forKey: .hotkeys)

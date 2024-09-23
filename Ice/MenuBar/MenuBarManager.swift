@@ -5,7 +5,6 @@
 
 import AXSwift
 import Combine
-import OSLog
 import SwiftUI
 
 /// Manager for the state of the menu bar.
@@ -75,7 +74,7 @@ final class MenuBarManager: ObservableObject {
     private func initializeSections() {
         // Make sure initialization can only happen once.
         guard sections.isEmpty else {
-            logWarning(to: .menuBarManager, "Sections already initialized")
+            Logger.menuBarManager.warning("Sections already initialized")
             return
         }
 
@@ -365,20 +364,20 @@ final class MenuBarManager: ObservableObject {
 
     func hideApplicationMenus() {
         guard let appState else {
-            logError(to: .menuBarManager, "Error hiding application menus: Missing app state")
+            Logger.menuBarManager.error("Error hiding application menus: Missing app state")
             return
         }
-        logInfo(to: .menuBarManager, "Hiding application menus")
+        Logger.menuBarManager.info("Hiding application menus")
         appState.activate(withPolicy: .regular)
         isHidingApplicationMenus = true
     }
 
     func showApplicationMenus() {
         guard let appState else {
-            logError(to: .menuBarManager, "Error showing application menus: Missing app state")
+            Logger.menuBarManager.error("Error showing application menus: Missing app state")
             return
         }
-        logInfo(to: .menuBarManager, "Showing application menus")
+        Logger.menuBarManager.info("Showing application menus")
         appState.deactivate(withPolicy: .accessory)
         isHidingApplicationMenus = false
     }
@@ -394,7 +393,7 @@ final class MenuBarManager: ObservableObject {
     /// Shows the appearance editor popover, centered under the menu bar.
     @objc private func showAppearanceEditorPopover() {
         guard let appState else {
-            logError(to: .menuBarManager, "Error showing appearance editor popover: Missing app state")
+            Logger.menuBarManager.error("Error showing appearance editor popover: Missing app state")
             return
         }
         let panel = MenuBarAppearanceEditorPanel(appState: appState)

@@ -14,8 +14,8 @@ extension View {
             content()
                 .background {
                     Rectangle()
-                        .fill(.quinary.shadow(.inner(radius: 4)))
-                        .shadow(radius: 1)
+                        .fill(.quinary.shadow(.inner(radius: 2)))
+                        .shadow(radius: 2)
                 }
         }
     }

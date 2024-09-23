@@ -9,7 +9,7 @@ import Combine
 @MainActor
 final class PermissionsManager: ObservableObject {
     /// A Boolean value that indicates whether the app has been granted all permissions.
-    @Published var hasPermission: Bool = false
+    @Published var hasAllPermissions: Bool = false
 
     let accessibilityPermission = AccessibilityPermission()
 
@@ -30,7 +30,7 @@ final class PermissionsManager: ObservableObject {
         accessibilityPermission.$hasPermission
             .combineLatest(screenRecordingPermission.$hasPermission)
             .sink { [weak self] hasPermission1, hasPermission2 in
-                self?.hasPermission = hasPermission1 && hasPermission2
+                self?.hasAllPermissions = hasPermission1 && hasPermission2
             }
             .store(in: &c)
 

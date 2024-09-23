@@ -45,6 +45,12 @@ final class AppState: ObservableObject {
     /// The app's delegate.
     private(set) weak var appDelegate: AppDelegate?
 
+    /// The window that contains the settings interface.
+    private(set) weak var settingsWindow: NSWindow?
+
+    /// The window that contains the permissions interface.
+    private(set) weak var permissionsWindow: NSWindow?
+
     /// A Boolean value that indicates whether the "ShowOnHover" feature is prevented.
     private(set) var isShowOnHoverPrevented = false
 
@@ -61,16 +67,6 @@ final class AppState: ObservableObject {
         return false
         #endif
     }()
-
-    /// The window that contains the settings interface.
-    var settingsWindow: NSWindow? {
-        NSApp.window(withIdentifier: Constants.settingsWindowID)
-    }
-
-    /// The window that contains the permissions interface.
-    var permissionsWindow: NSWindow? {
-        NSApp.window(withIdentifier: Constants.permissionsWindowID)
-    }
 
     /// A Boolean value that indicates whether the application can set the cursor
     /// in the background.
@@ -188,6 +184,24 @@ final class AppState: ObservableObject {
             return
         }
         self.appDelegate = appDelegate
+    }
+
+    /// Assigns the settings window to the app state.
+    func assignSettingsWindow(_ settingsWindow: NSWindow) {
+        guard self.settingsWindow == nil else {
+            Logger.appState.warning("Multiple attempts made to assign settings window")
+            return
+        }
+        self.settingsWindow = settingsWindow
+    }
+
+    /// Assigns the permissions window to the app state.
+    func assignPermissionsWindow(_ permissionsWindow: NSWindow) {
+        guard self.permissionsWindow == nil else {
+            Logger.appState.warning("Multiple attempts made to assign permissions window")
+            return
+        }
+        self.permissionsWindow = permissionsWindow
     }
 
     /// Activates the app and sets its activation policy to the given value.

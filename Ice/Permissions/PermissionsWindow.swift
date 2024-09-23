@@ -13,43 +13,11 @@ struct PermissionsWindow: Scene {
     }
 
     var body: some Scene {
-        permissionsWindow
-            .windowResizability(.contentSize)
-            .windowStyle(.hiddenTitleBar)
-            .environmentObject(permissionsManager)
-    }
-
-    private var permissionsWindow: some Scene {
-        if #available(macOS 15.0, *) {
-            return PermissionsWindowMacOS15()
-        } else {
-            return PermissionsWindowMacOS14()
-        }
-    }
-}
-
-@available(macOS 14.0, *)
-private struct PermissionsWindowMacOS14: Scene {
-    var body: some Scene {
         Window(Constants.permissionsWindowTitle, id: Constants.permissionsWindowID) {
             PermissionsView()
         }
-    }
-}
-
-@available(macOS 15.0, *)
-private struct PermissionsWindowMacOS15: Scene {
-    @Environment(\.dismissWindow) private var dismissWindow
-    @State private var launchBehavior: SceneLaunchBehavior = .presented
-
-    var body: some Scene {
-        Window(Constants.permissionsWindowTitle, id: Constants.permissionsWindowID) {
-            PermissionsView()
-                .once {
-                    dismissWindow(id: Constants.permissionsWindowID)
-                    launchBehavior = .suppressed // Keep the window from reopening.
-                }
-        }
-        .defaultLaunchBehavior(launchBehavior)
+        .windowResizability(.contentSize)
+        .windowStyle(.hiddenTitleBar)
+        .environmentObject(permissionsManager)
     }
 }

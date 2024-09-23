@@ -33,6 +33,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // Assign and close the various windows.
+        let windowAssignments: KeyValuePairs = [
+            Constants.settingsWindowID: appState.assignSettingsWindow,
+            Constants.permissionsWindowID: appState.assignPermissionsWindow,
+        ]
+        for (identifier, assign) in windowAssignments {
+            if let window = NSApp.window(withIdentifier: identifier) {
+                assign(window)
+                window.close()
+            }
+        }
+
         // Hide the main menu to make more space in the menu bar.
         if let mainMenu = NSApp.mainMenu {
             for item in mainMenu.items {
@@ -40,24 +52,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Temporary hack to make sure the windows are retained on Sequoia:
-        // Let them open, wait a bit, then close them.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            appState.settingsWindow?.close()
-            appState.permissionsWindow?.close()
-
-            if !appState.isPreview {
-                // If we have the required permissions, set up the shared app state.
-                // Otherwise, open the permissions window.
-                if appState.permissionsManager.hasPermission {
-                    appState.performSetup()
-                } else if let permissionsWindow = appState.permissionsWindow {
-                    appState.activate(withPolicy: .regular)
-                    permissionsWindow.center()
-                    permissionsWindow.makeKeyAndOrderFront(nil)
-                } else {
-                    Logger.appDelegate.error("Failed to open permissions window")
-                }
+        if !appState.isPreview {
+            // If we have the required permissions, set up the shared app state.
+            // Otherwise, open the permissions window.
+            if appState.permissionsManager.hasAllPermissions {
+                appState.performSetup()
+            } else if let permissionsWindow = appState.permissionsWindow {
+                appState.activate(withPolicy: .regular)
+                permissionsWindow.center()
+                permissionsWindow.makeKeyAndOrderFront(nil)
+            } else {
+                Logger.appDelegate.error("Failed to open permissions window")
             }
         }
     }

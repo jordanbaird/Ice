@@ -109,7 +109,7 @@ struct PermissionsView: View {
             Text("Continue")
                 .frame(maxWidth: .infinity)
         }
-        .disabled(!permissionsManager.hasPermission)
+        .disabled(!permissionsManager.hasAllPermissions)
     }
 
     @ViewBuilder

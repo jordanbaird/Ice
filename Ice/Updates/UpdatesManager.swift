@@ -8,8 +8,7 @@ import SwiftUI
 
 /// Manager for app updates.
 final class UpdatesManager: ObservableObject {
-    /// A Boolean value that indicates whether the user can
-    /// check for updates.
+    /// A Boolean value that indicates whether the user can check for updates.
     @Published var canCheckForUpdates = false
 
     /// The date of the last update check.
@@ -23,8 +22,7 @@ final class UpdatesManager: ObservableObject {
         updaterController.updater
     }
 
-    /// A Boolean value that indicates whether to automatically
-    /// check for updates.
+    /// A Boolean value that indicates whether to automatically check for updates.
     var automaticallyChecksForUpdates: Bool {
         get {
             updater.automaticallyChecksForUpdates
@@ -35,8 +33,7 @@ final class UpdatesManager: ObservableObject {
         }
     }
 
-    /// A Boolean value that indicates whether to automatically
-    /// download updates.
+    /// A Boolean value that indicates whether to automatically download updates.
     var automaticallyDownloadsUpdates: Bool {
         get {
             updater.automaticallyDownloadsUpdates
@@ -47,6 +44,7 @@ final class UpdatesManager: ObservableObject {
         }
     }
 
+    /// Creates an updates manager.
     init() {
         self.updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
@@ -56,6 +54,7 @@ final class UpdatesManager: ObservableObject {
         configureCancellables()
     }
 
+    /// Configures the internal observers for the manager.
     private func configureCancellables() {
         updater.publisher(for: \.canCheckForUpdates)
             .assign(to: &$canCheckForUpdates)
@@ -63,9 +62,10 @@ final class UpdatesManager: ObservableObject {
             .assign(to: &$lastUpdateCheckDate)
     }
 
+    /// Checks for app updates.
     @objc func checkForUpdates() {
         #if DEBUG
-        // checking for updates hangs in debug mode
+        // Checking for updates hangs in debug mode.
         let alert = NSAlert()
         alert.messageText = "Checking for updates is not supported in debug mode."
         alert.runModal()

@@ -5,8 +5,8 @@
 
 import SwiftUI
 
-/// A type that acts as a lens that exposes bindings to the
-/// writable properties of a base object.
+/// A type that acts as a lens that exposes bindings to the writable properties
+/// of a base object.
 @dynamicMemberLookup
 struct ExposedBindings<Base: BindingExposable> {
     /// The base object whose bindings are exposed.
@@ -29,12 +29,11 @@ struct ExposedBindings<Base: BindingExposable> {
 
 /// A type that exposes its writable properties as bindings.
 protocol BindingExposable {
-    /// A type that acts as a lens that exposes bindings to the
-    /// writable properties of this type.
+    /// A type that acts as a lens that exposes bindings to the writable properties
+    /// of this type.
     typealias Bindings = ExposedBindings<Self>
 
-    /// A lens that exposes bindings to the writable properties
-    /// of this instance.
+    /// A lens that exposes bindings to the writable properties of this instance.
     var bindings: Bindings { get }
 }
 

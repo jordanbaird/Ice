@@ -10,14 +10,16 @@ private struct WindowReader: NSViewRepresentable {
     final class Coordinator: ObservableObject {
         private var cancellable: AnyCancellable?
 
-        func configure(for view: NSView, onWindowChange: @escaping (NSWindow?) -> Void) {
-            cancellable = view.publisher(for: \.window)
-                .receive(on: DispatchQueue.main)
-                .sink(receiveValue: onWindowChange)
+        func configure(for view: NSView, onWindowChange: @MainActor @escaping (NSWindow?) -> Void) {
+            cancellable = view.publisher(for: \.window).sink { window in
+                Task { @MainActor in
+                    onWindowChange(window)
+                }
+            }
         }
     }
 
-    let onWindowChange: (NSWindow?) -> Void
+    let onWindowChange: @MainActor (NSWindow?) -> Void
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
@@ -28,7 +30,7 @@ private struct WindowReader: NSViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        return Coordinator()
     }
 
     func updateNSView(_: NSView, context: Context) { }
@@ -39,7 +41,7 @@ extension View {
     /// the window changes.
     ///
     /// - Parameter onChange: A closure to perform when the window changes.
-    func readWindow(onChange: @escaping (NSWindow?) -> Void) -> some View {
+    func readWindow(onChange: @MainActor @escaping (_ window: NSWindow?) -> Void) -> some View {
         background {
             WindowReader(onWindowChange: onChange)
         }

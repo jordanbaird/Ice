@@ -10,7 +10,7 @@ struct GeneralSettingsPane: View {
     @EnvironmentObject var appState: AppState
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false
-    @State private var presentedError: AnyLocalizedError?
+    @State private var presentedError: LocalizedErrorWrapper?
     @State private var isApplyingOffset = false
     @State private var tempItemSpacingOffset: CGFloat = 0 // Temporary state for the slider
 
@@ -149,7 +149,7 @@ struct GeneralSettingsPane: View {
                         manager.iceIcon = ControlItemImageSet(name: .custom, image: .data(data))
                     }
                 } catch {
-                    presentedError = AnyLocalizedError(error: error)
+                    presentedError = LocalizedErrorWrapper(error)
                     isPresentingError = true
                 }
             }

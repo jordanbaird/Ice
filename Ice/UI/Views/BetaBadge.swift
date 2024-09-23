@@ -5,6 +5,7 @@
 
 import SwiftUI
 
+/// A view that displays a badge indicating a beta feature.
 struct BetaBadge: View {
     var body: some View {
         Text("BETA")

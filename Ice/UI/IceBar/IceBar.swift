@@ -205,7 +205,7 @@ private final class IceBarHostingView: NSHostingView<AnyView> {
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.menuBarManager)
                 .environmentObject(colorManager)
-                .erased()
+                .erasedToAnyView()
         )
     }
 

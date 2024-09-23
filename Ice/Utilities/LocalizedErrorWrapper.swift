@@ -1,5 +1,5 @@
 //
-//  AnyLocalizedError.swift
+//  LocalizedErrorWrapper.swift
 //  Ice
 //
 
@@ -9,14 +9,15 @@ import Foundation
 ///
 /// If the error used to initialize the box is also a `LocalizedError`, its
 /// information is passed through to the box. Otherwise, a description of the
-/// error is passed to the box.
-struct AnyLocalizedError: LocalizedError {
+/// error is passed to the wrapper.
+struct LocalizedErrorWrapper: LocalizedError {
     let errorDescription: String?
     let failureReason: String?
     let helpAnchor: String?
     let recoverySuggestion: String?
 
-    init(error: any Error) {
+    /// Creates a wrapper with the given error.
+    init(_ error: any Error) {
         if let error = error as? any LocalizedError {
             self.errorDescription = error.errorDescription
             self.failureReason = error.failureReason

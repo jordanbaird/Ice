@@ -14,12 +14,14 @@ enum IconResource: Hashable {
     case assetCatalog(_ resource: ImageResource)
 
     /// The view produced by the resource.
+    @ViewBuilder
     var view: some View {
         image
             .resizable()
             .aspectRatio(contentMode: .fit)
     }
 
+    /// The image produced by the resource.
     private var image: Image {
         switch self {
         case .systemSymbol(let name):

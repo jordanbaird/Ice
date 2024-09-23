@@ -1,5 +1,5 @@
 //
-//  Erased.swift
+//  ErasedToAnyView.swift
 //  Ice
 //
 
@@ -7,7 +7,7 @@ import SwiftUI
 
 extension View {
     /// Returns a view that has been erased to the `AnyView` type.
-    func erased() -> AnyView {
+    func erasedToAnyView() -> AnyView {
         AnyView(erasing: self)
     }
 }

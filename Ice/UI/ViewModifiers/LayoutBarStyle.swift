@@ -8,11 +8,8 @@ import SwiftUI
 extension View {
     /// Returns a view that is drawn in the style of a layout bar.
     ///
-    /// - Note: The view this modifier is applied to must be transparent,
-    ///   or the style will be drawn incorrectly.
-    ///
-    /// - Parameter appState: The shared app state.
-    @MainActor
+    /// - Note: The view this modifier is applied to must be transparent, or the style
+    ///   will be drawn incorrectly.
     @ViewBuilder
     func layoutBarStyle(appState: AppState, averageColorInfo: MenuBarAverageColorInfo?) -> some View {
         background {

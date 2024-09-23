@@ -147,7 +147,7 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
             rootView: MenuBarSearchContentView(closePanel: closePanel)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.imageCache)
-                .erased()
+                .erasedToAnyView()
         )
     }
 

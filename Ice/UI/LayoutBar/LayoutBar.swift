@@ -49,11 +49,11 @@ struct LayoutBar: View {
 
     @ViewBuilder
     private var conditionalBody: some View {
-        if imageCache.hasImages(for: section.name) {
-            Representable(appState: appState, section: section, spacing: spacing)
-        } else {
+        if imageCache.cacheFailed(for: section.name) {
             Text("Unable to display menu bar items")
                 .foregroundStyle(menuBarManager.averageColorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
+        } else {
+            Representable(appState: appState, section: section, spacing: spacing)
         }
     }
 

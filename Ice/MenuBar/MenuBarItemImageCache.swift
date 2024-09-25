@@ -72,12 +72,19 @@ final class MenuBarItemImageCache: ObservableObject {
         cancellables = c
     }
 
-    /// Returns a Boolean value that indicates whether the cache contains at least _some_
-    /// images for the given section.
+    /// Returns a Boolean value that indicates whether caching menu bar items failed for
+    /// the given section.
     @MainActor
-    func hasImages(for section: MenuBarSection.Name) -> Bool {
+    func cacheFailed(for section: MenuBarSection.Name) -> Bool {
         let items = appState?.itemManager.itemCache.allItems(for: section) ?? []
-        return !Set(items.map { $0.info }).isDisjoint(with: images.keys)
+        guard !items.isEmpty else {
+            return false
+        }
+        let keys = Set(images.keys)
+        for item in items where keys.contains(item.info) {
+            return false
+        }
+        return true
     }
 
     /// Captures the images of the current menu bar items and returns a dictionary containing

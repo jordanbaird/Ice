@@ -306,7 +306,7 @@ private struct IceBarContentView: View {
         if menuBarManager.isMenuBarHiddenBySystemUserDefaults {
             Text("Ice cannot display menu bar items for automatically hidden menu bars")
                 .padding(.horizontal, 5)
-        } else if !imageCache.hasImages(for: section) {
+        } else if imageCache.cacheFailed(for: section) {
             Text("Unable to display menu bar items")
                 .padding(.horizontal, 5)
         } else {

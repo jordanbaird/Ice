@@ -179,8 +179,7 @@ final class MenuBarItemImageCache: ObservableObject {
         return images
     }
 
-    /// Updates the cache with the current menu bar item images, without checking whether
-    /// caching is necessary.
+    /// Updates the cache for the given sections, without checking whether caching is necessary.
     func updateCacheWithoutChecks(sections: [MenuBarSection.Name]) async {
         actor Context {
             var images = [MenuBarItemInfo: CGImage]()
@@ -212,7 +211,8 @@ final class MenuBarItemImageCache: ObservableObject {
         }
 
         let task = Task { @MainActor in
-            self.images = await context.images
+            let images = await context.images
+            self.images.merge(images) { (_, new) in new }
         }
         await task.value
 
@@ -220,35 +220,28 @@ final class MenuBarItemImageCache: ObservableObject {
         self.menuBarHeight = screen.getMenuBarHeight()
     }
 
-    /// Updates the cache with the current menu bar item images, if necessary.
-    func updateCache() async {
+    /// Updates the cache for the given sections, if necessary.
+    func updateCache(sections: [MenuBarSection.Name]) async {
         guard let appState else {
             return
         }
 
         let isIceBarPresented = await appState.navigationState.isIceBarPresented
         let isSearchPresented = await appState.navigationState.isSearchPresented
-        let isSettingsPresented: Bool
 
         if !isIceBarPresented && !isSearchPresented {
             guard await appState.navigationState.isAppFrontmost else {
                 Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, app not frontmost")
                 return
             }
-
-            isSettingsPresented = await appState.navigationState.isSettingsPresented
-
-            guard isSettingsPresented else {
+            guard await appState.navigationState.isSettingsPresented else {
                 Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings not visible")
                 return
             }
-
             guard case .menuBarLayout = await appState.navigationState.settingsNavigationIdentifier else {
                 Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Layout pane")
                 return
             }
-        } else {
-            isSettingsPresented = await appState.navigationState.isSettingsPresented
         }
 
         if let lastItemMoveStartDate = await appState.itemManager.lastItemMoveStartDate {
@@ -257,6 +250,19 @@ final class MenuBarItemImageCache: ObservableObject {
                 return
             }
         }
+
+        await updateCacheWithoutChecks(sections: sections)
+    }
+
+    /// Updates the cache for all sections, if necessary.
+    func updateCache() async {
+        guard let appState else {
+            return
+        }
+
+        let isIceBarPresented = await appState.navigationState.isIceBarPresented
+        let isSearchPresented = await appState.navigationState.isSearchPresented
+        let isSettingsPresented = await appState.navigationState.isSettingsPresented
 
         var sectionsNeedingDisplay = [MenuBarSection.Name]()
         if isSettingsPresented || isSearchPresented {
@@ -268,7 +274,7 @@ final class MenuBarItemImageCache: ObservableObject {
             sectionsNeedingDisplay.append(section)
         }
 
-        await updateCacheWithoutChecks(sections: sectionsNeedingDisplay)
+        await updateCache(sections: sectionsNeedingDisplay)
     }
 }
 

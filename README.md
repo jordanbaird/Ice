@@ -35,12 +35,6 @@ Install Ice using the following command:
 brew install jordanbaird-ice
 ```
 
-## Usage
-
-`Command` + drag your menu bar items to rearrange them.
-
-![Rearranging](Resources/rearranging.gif)
-
 ## Features/Roadmap
 
 ### Menu bar item management

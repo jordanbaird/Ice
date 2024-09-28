@@ -67,6 +67,7 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         $configuration
             .encode(encoder: encoder)
+            .receive(on: DispatchQueue.main)
             .sink { completion in
                 if case .failure(let error) = completion {
                     Logger.appearanceManager.error("Error encoding configuration: \(error)")

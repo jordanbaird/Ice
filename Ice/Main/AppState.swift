@@ -93,6 +93,7 @@ final class AppState: ObservableObject {
                 .delay(for: 0.1, scheduler: DispatchQueue.main)
                 .mapToVoid()
         )
+        .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in
             guard let self else {
                 return

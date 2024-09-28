@@ -96,6 +96,7 @@ final class MenuBarManager: ObservableObject {
         var c = Set<AnyCancellable>()
 
         NSApp.publisher(for: \.currentSystemPresentationOptions)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] options in
                 guard let self else {
                     return
@@ -112,6 +113,7 @@ final class MenuBarManager: ObservableObject {
             window.publisher(for: \.frame)
                 .map { $0.origin.y }
                 .removeDuplicates()
+                .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     guard
                         let self,
@@ -126,6 +128,7 @@ final class MenuBarManager: ObservableObject {
 
         // Handle the `focusedApp` rehide strategy.
         NSWorkspace.shared.publisher(for: \.frontmostApplication)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 if
                     let self,
@@ -150,6 +153,7 @@ final class MenuBarManager: ObservableObject {
                 settingsWindow.publisher(for: \.isVisible),
                 iceBarPanel.publisher(for: \.isVisible)
             )
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] settingsIsVisible, iceBarIsVisible in
                 guard let self else {
                     return

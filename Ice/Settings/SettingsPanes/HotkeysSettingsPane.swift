@@ -22,8 +22,9 @@ struct HotkeysSettingsPane: View {
                 hotkeyRecorder(forAction: .searchMenuBarItems)
             }
             IceSection("Other") {
-                hotkeyRecorder(forAction: .toggleApplicationMenus)
+                hotkeyRecorder(forAction: .enableIceBar)
                 hotkeyRecorder(forAction: .showSectionDividers)
+                hotkeyRecorder(forAction: .toggleApplicationMenus)
             }
         }
     }
@@ -37,12 +38,14 @@ struct HotkeysSettingsPane: View {
                     Text("Toggle the hidden section")
                 case .toggleAlwaysHiddenSection:
                     Text("Toggle the always-hidden section")
-                case .toggleApplicationMenus:
-                    Text("Toggle application menus")
-                case .showSectionDividers:
-                    Text("Show section dividers")
                 case .searchMenuBarItems:
                     Text("Search menu bar items")
+                case .enableIceBar:
+                    Text("Enable the Ice Bar")
+                case .showSectionDividers:
+                    Text("Show section dividers")
+                case .toggleApplicationMenus:
+                    Text("Toggle application menus")
                 }
             }
         }

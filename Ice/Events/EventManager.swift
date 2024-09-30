@@ -314,14 +314,9 @@ extension EventManager {
         // Notify each overlay panel that a menu bar item is being dragged.
         appState.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
 
-        // Stop here if using the Ice Bar.
-        guard !appState.settingsManager.generalSettingsManager.useIceBar else {
-            return
-        }
-
         // Show all items, including section dividers.
         for section in appState.menuBarManager.sections {
-            section.show()
+            section.controlItem.state = .showItems
             guard
                 section.controlItem.isSectionDivider,
                 !section.controlItem.isVisible

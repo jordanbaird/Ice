@@ -57,10 +57,18 @@ final class IceBarColorManager: ObservableObject {
             .store(in: &c)
 
             Publishers.Merge4(
-                NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification).mapToVoid(),
-                NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification).mapToVoid(),
-                DistributedNotificationCenter.default().publisher(for: DistributedNotificationCenter.interfaceThemeChangedNotification).mapToVoid(),
-                Timer.publish(every: 5, on: .main, in: .default).autoconnect().mapToVoid()
+                NSWorkspace.shared.notificationCenter
+                    .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+                    .replace(with: ()),
+                NotificationCenter.default
+                    .publisher(for: NSApplication.didChangeScreenParametersNotification)
+                    .replace(with: ()),
+                DistributedNotificationCenter.default()
+                    .publisher(for: DistributedNotificationCenter.interfaceThemeChangedNotification)
+                    .replace(with: ()),
+                Timer.publish(every: 5, on: .main, in: .default)
+                    .autoconnect()
+                    .replace(with: ())
             )
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak iceBarPanel] in

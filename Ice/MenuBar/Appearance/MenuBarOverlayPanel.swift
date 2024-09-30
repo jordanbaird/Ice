@@ -178,10 +178,10 @@ final class MenuBarOverlayPanel: NSPanel {
         Publishers.Merge(
             publisher(for: \.isOnActiveSpace)
                 .receive(on: DispatchQueue.main)
-                .mapToVoid(),
+                .replace(with: ()),
             UniversalEventMonitor.publisher(for: .leftMouseUp)
                 .filter { [weak self] _ in self?.isOnActiveSpace ?? false }
-                .mapToVoid()
+                .replace(with: ())
         )
         .debounce(for: 0.05, scheduler: DispatchQueue.main)
         .sink { [weak self] in

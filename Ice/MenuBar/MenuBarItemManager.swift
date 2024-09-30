@@ -745,7 +745,6 @@ extension MenuBarItemManager {
                 }
             }
         }
-
         do {
             try await frameCheckTask.value
         } catch is FrameCheckCancellationError {
@@ -967,13 +966,14 @@ extension MenuBarItemManager {
 
     /// Moves a menu bar item to the given destination and waits until the move
     /// completes before returning.
-    ///
+    /// 
     /// - Parameters:
     ///   - item: A menu bar item to move.
     ///   - destination: A destination to move the menu bar item.
-    func slowMove(item: MenuBarItem, to destination: MoveDestination) async throws {
+    ///   - timeout: Amount of time to wait before throwing an error.
+    func slowMove(item: MenuBarItem, to destination: MoveDestination, timeout: Duration = .seconds(1)) async throws {
         try await move(item: item, to: destination)
-        let waitTask = Task(timeout: .seconds(1)) {
+        let waitTask = Task(timeout: timeout) {
             while true {
                 try Task.checkCancellation()
                 if try await self.itemHasCorrectPosition(item: item, for: destination) {
@@ -1284,7 +1284,7 @@ extension MenuBarItemManager {
         let interfaceCheckTask = Task(timeout: .seconds(1)) {
             while await self.tempShownItemContexts.contains(where: { $0.isShowingInterface }) {
                 try Task.checkCancellation()
-                try await Task.sleep(for: .milliseconds(10))
+                try await Task.sleep(for: .milliseconds(100))
             }
         }
         do {

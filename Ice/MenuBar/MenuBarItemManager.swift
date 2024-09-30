@@ -70,8 +70,13 @@ final class MenuBarItemManager: ObservableObject {
 
     /// Context for a temporarily shown menu bar item.
     private struct TempShownItemContext {
+        /// The information associated with the item.
         let info: MenuBarItemInfo
+
+        /// The destination to return the item to.
         let returnDestination: MoveDestination
+
+        /// The window of the item's shown interface.
         let shownInterfaceWindow: WindowInfo?
 
         /// A Boolean value that indicates whether the menu bar item's interface is showing.
@@ -90,24 +95,34 @@ final class MenuBarItemManager: ObservableObject {
         }
     }
 
+    /// The manager's menu bar item cache.
     @Published private(set) var itemCache = ItemCache()
 
+    /// The shared app state.
     private(set) weak var appState: AppState?
 
+    /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
+    /// Cached window identifiers for the most recent items.
     private var cachedItemWindowIDs = [CGWindowID]()
 
+    /// Context values for the current temporarily shown items.
     private var tempShownItemContexts = [TempShownItemContext]()
 
+    /// A timer that determines when to rehide the temporarily shown items.
     private var tempShownItemsTimer: Timer?
 
+    /// The last time an item was moved.
     private(set) var lastItemMoveStartDate: Date?
 
+    /// A Boolean value that indicates whether the mouse button is down.
     private var isMouseButtonDown = false
 
+    /// Counter for mouse movement.
     private var mouseMovedCount = 0
 
+    /// Event type mask for tracking mouse events.
     private let mouseTrackingMask: NSEvent.EventTypeMask = [
         .mouseMoved,
         .leftMouseDown,
@@ -118,14 +133,17 @@ final class MenuBarItemManager: ObservableObject {
         .otherMouseUp,
     ]
 
+    /// Creates a manager with the given app state.
     init(appState: AppState) {
         self.appState = appState
     }
 
+    /// Sets up the manager.
     func performSetup() {
         configureCancellables()
     }
 
+    /// Configures the internal observers for the manager.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -286,36 +304,28 @@ extension MenuBarItemManager {
     struct EventError: Error, CustomStringConvertible, LocalizedError {
         /// Error codes within the domain of menu bar item event errors.
         enum ErrorCode: Int, CustomStringConvertible {
-            /// Indicates that an operation could not be completed.
+            /// An operation could not be completed.
             case couldNotComplete
-
-            /// Indicates that the creation of a menu bar item event failed.
+            /// The creation of a menu bar item event failed.
             case eventCreationFailure
-
-            /// Indicates that the shared app state is invalid or could not be found.
+            /// The shared app state is invalid or could not be found.
             case invalidAppState
-
-            /// Indicates that an event source could not be created or is otherwise invalid.
+            /// An event source could not be created or is otherwise invalid.
             case invalidEventSource
-
-            /// Indicates that the location of the mouse cursor is invalid or could not be found.
+            /// The location of the mouse cursor is invalid or could not be found.
             case invalidCursorLocation
-
-            /// Indicates an invalid menu bar item.
+            /// A menu bar item is invalid.
             case invalidItem
-
-            /// Indicates that a menu bar item cannot be moved.
+            /// A menu bar item cannot be moved.
             case notMovable
-
-            /// Indicates that a menu bar item event operation timed out.
+            /// A menu bar item event operation timed out.
             case eventOperationTimeout
-
-            /// Indicates that a menu bar item frame check timed out.
+            /// A menu bar item frame check timed out.
             case frameCheckTimeout
-
-            /// Indicates that an operation timed out.
+            /// An operation timed out.
             case otherTimeout
 
+            /// Description of the code for debugging purposes.
             var description: String {
                 switch self {
                 case .couldNotComplete: "couldNotComplete"
@@ -369,6 +379,7 @@ extension MenuBarItemManager {
             }
         }
 
+        /// Description of the error for debugging purposes.
         var description: String {
             var parameters = [String]()
             parameters.append("code: \(code.logString)")
@@ -376,10 +387,12 @@ extension MenuBarItemManager {
             return "\(Self.self)(\(parameters.joined(separator: ", ")))"
         }
 
+        /// Description of the error for display purposes.
         var errorDescription: String? {
             message
         }
 
+        /// Suggestion for recovery from the error.
         var recoverySuggestion: String? {
             "Please try again. If the error persists, please file a bug report."
         }
@@ -1364,15 +1377,19 @@ private extension CGEvent {
 
     /// Event types for menu bar item events.
     enum MenuBarItemEventType {
+        /// The event type for moving a menu bar item.
         case move(MenuBarItemEventButtonState)
+        /// The event type for clicking a menu bar item.
         case click(MenuBarItemEventButtonState)
 
+        /// The button state of this event type.
         var buttonState: MenuBarItemEventButtonState {
             switch self {
             case .move(let state), .click(let state): state
             }
         }
 
+        /// This event type's equivalent CGEventType.
         var cgEventType: CGEventType {
             switch buttonState {
             case .leftMouseDown: .leftMouseDown
@@ -1384,6 +1401,7 @@ private extension CGEvent {
             }
         }
 
+        /// The event flags for this event type.
         var cgEventFlags: CGEventFlags {
             switch self {
             case .move(.leftMouseDown): .maskCommand
@@ -1391,6 +1409,7 @@ private extension CGEvent {
             }
         }
 
+        /// The mouse button for this event type.
         var mouseButton: CGMouseButton {
             switch buttonState {
             case .leftMouseDown, .leftMouseUp: .left
@@ -1521,5 +1540,6 @@ private extension CGEvent {
 
 // MARK: - Logger
 private extension Logger {
+    /// The logger to use for the menu bar item manager.
     static let itemManager = Logger(category: "MenuBarItemManager")
 }

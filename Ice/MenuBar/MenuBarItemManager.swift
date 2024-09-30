@@ -175,7 +175,11 @@ final class MenuBarItemManager: ObservableObject {
 
 extension MenuBarItemManager {
     /// Caches the given menu bar items, without checking whether the control items are in the correct order.
-    private func uncheckedCacheItems(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem?, otherItems: [MenuBarItem]) {
+    private func uncheckedCacheItems(
+        hiddenControlItem: MenuBarItem,
+        alwaysHiddenControlItem: MenuBarItem?,
+        otherItems: [MenuBarItem]
+    ) {
         func logNotAddedWarning(for item: MenuBarItem) {
             Logger.itemManager.warning("\(item.logString) doesn't seem to be in a section, so it wasn't cached")
         }
@@ -521,7 +525,11 @@ extension MenuBarItemManager {
     ///   - event: The event to post.
     ///   - location: The event tap location to post the event to.
     ///   - item: The menu bar item that the event affects.
-    private func postEventAndWaitToReceive(_ event: CGEvent, to location: EventTap.Location, item: MenuBarItem) async throws {
+    private func postEventAndWaitToReceive(
+        _ event: CGEvent,
+        to location: EventTap.Location,
+        item: MenuBarItem
+    ) async throws {
         return try await withCheckedThrowingContinuation { continuation in
             let eventTap = EventTap(
                 options: .listenOnly,
@@ -572,10 +580,10 @@ extension MenuBarItemManager {
     /// Does a lot of weird magic to make a menu bar item receive an event.
     ///
     /// - Parameters:
-    ///   - event: The event to scromble.
-    ///   - firstLocation: The first location for scrombling.
-    ///   - secondLocation: The second location for scrombling.
-    ///   - item: The menu bar item that the scrombling affects.
+    ///   - event: The event to send.
+    ///   - firstLocation: The first location to send the event to.
+    ///   - secondLocation: The second location to send the event to.
+    ///   - item: The menu bar item that the event affects.
     private func scrombleEvent(
         _ event: CGEvent,
         from firstLocation: EventTap.Location,
@@ -589,9 +597,9 @@ extension MenuBarItemManager {
         nullEvent.setIntegerValueField(.eventSourceUserData, value: userData)
 
         return try await withCheckedThrowingContinuation { continuation in
-            // Create a tap for the null event at the first location that throws away all
-            // events it receives. Once the null event is received, post the real event to
-            // the second location.
+            // Create an event tap for the null event at the first location that throws away
+            // all events it receives. Once the null event is received, post the real event
+            // to the second location.
             let eventTap1 = EventTap(
                 label: "EventTap 1",
                 options: .defaultTap,
@@ -621,8 +629,8 @@ extension MenuBarItemManager {
                 return nil
             }
 
-            // Create a tap for the real event at the second location that can listen for
-            // events but not alter or discard them. Once the event is received, post it
+            // Create an event tap for the real event at the second location that can listen
+            // for events but not alter or discard them. Once the event is received, post it
             // to the first location.
             let eventTap2 = EventTap(
                 label: "EventTap 2",
@@ -674,14 +682,13 @@ extension MenuBarItemManager {
         }
     }
 
-    /// Does a lot of weird magic to make a menu bar item receive an event. After the
-    /// scrombling, this function waits for the frame of the given menu bar item to
-    /// change before returning.
+    /// Does a lot of weird magic to make a menu bar item receive an event, then
+    /// waits for the frame of the given menu bar item to change before returning.
     ///
     /// - Parameters:
-    ///   - event: The event to scromble.
-    ///   - firstLocation: The first location for scrombling.
-    ///   - secondLocation: The second location for scrombling.
+    ///   - event: The event to send.
+    ///   - firstLocation: The first location to send the event to.
+    ///   - secondLocation: The second location to send the event to.
     ///   - item: The item whose frame should be observed.
     private func scrombleEvent(
         _ event: CGEvent,
@@ -706,7 +713,11 @@ extension MenuBarItemManager {
     ///   - item: The item whose frame should be observed.
     ///   - initialFrame: An initial frame to compare the item's frame against.
     ///   - timeout: The amount of time to wait before throwing a timeout error.
-    private func waitForFrameChange(of item: MenuBarItem, initialFrame: CGRect, timeout: Duration) async throws {
+    private func waitForFrameChange(
+        of item: MenuBarItem,
+        initialFrame: CGRect,
+        timeout: Duration
+    ) async throws {
         struct FrameCheckCancellationError: Error { }
 
         let frameCheckTask = Task.detached(timeout: timeout) {
@@ -780,8 +791,18 @@ extension MenuBarItemManager {
             throw EventError(code: .eventCreationFailure, item: item)
         }
 
-        try await scrombleEvent(mouseDownEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
-        try await scrombleEvent(mouseUpEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
+        try await scrombleEvent(
+            mouseDownEvent,
+            from: .pid(item.ownerPID),
+            to: .sessionEventTap,
+            item: item
+        )
+        try await scrombleEvent(
+            mouseUpEvent,
+            from: .pid(item.ownerPID),
+            to: .sessionEventTap,
+            item: item
+        )
     }
 
     /// Moves a menu bar item to the given destination, without restoring the mouse
@@ -790,7 +811,10 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - item: A menu bar item to move.
     ///   - destination: A destination to move the menu bar item.
-    private func moveItemWithoutRestoringMouseLocation(_ item: MenuBarItem, to destination: MoveDestination) async throws {
+    private func moveItemWithoutRestoringMouseLocation(
+        _ item: MenuBarItem,
+        to destination: MoveDestination
+    ) async throws {
         guard item.isMovable else {
             throw EventError(code: .notMovable, item: item)
         }
@@ -842,13 +866,27 @@ extension MenuBarItemManager {
         lastItemMoveStartDate = .now
 
         do {
-            try await scrombleEvent(mouseDownEvent, from: .pid(item.ownerPID), to: .sessionEventTap, waitingForFrameChangeOf: item)
-            try await scrombleEvent(mouseUpEvent, from: .pid(item.ownerPID), to: .sessionEventTap, waitingForFrameChangeOf: item)
+            try await scrombleEvent(
+                mouseDownEvent,
+                from: .pid(item.ownerPID),
+                to: .sessionEventTap,
+                waitingForFrameChangeOf: item
+            )
+            try await scrombleEvent(
+                mouseUpEvent,
+                from: .pid(item.ownerPID),
+                to: .sessionEventTap,
+                waitingForFrameChangeOf: item
+            )
         } catch {
             do {
                 Logger.itemManager.debug("Posting fallback event for moving \(item.logString)")
                 // Catch this, as we still want to throw the existing error if the fallback fails.
-                try await postEventAndWaitToReceive(fallbackEvent, to: .sessionEventTap, item: item)
+                try await postEventAndWaitToReceive(
+                    fallbackEvent,
+                    to: .sessionEventTap,
+                    item: item
+                )
             } catch {
                 Logger.itemManager.error("Failed to post fallback event for moving \(item.logString)")
             }
@@ -1003,13 +1041,25 @@ extension MenuBarItemManager {
         }
 
         do {
-            try await postEventAndWaitToReceive(mouseDownEvent, to: .sessionEventTap, item: item)
-            try await postEventAndWaitToReceive(mouseUpEvent, to: .sessionEventTap, item: item)
+            try await postEventAndWaitToReceive(
+                mouseDownEvent,
+                to: .sessionEventTap,
+                item: item
+            )
+            try await postEventAndWaitToReceive(
+                mouseUpEvent,
+                to: .sessionEventTap,
+                item: item
+            )
         } catch {
             do {
                 Logger.itemManager.debug("Posting fallback event for clicking \(item.logString)")
                 // Catch this, as we still want to throw the existing error if the fallback fails.
-                try await postEventAndWaitToReceive(fallbackEvent, to: .sessionEventTap, item: item)
+                try await postEventAndWaitToReceive(
+                    fallbackEvent,
+                    to: .sessionEventTap,
+                    item: item
+                )
             } catch {
                 Logger.itemManager.error("Failed to post fallback event for clicking \(item.logString)")
             }
@@ -1020,19 +1070,31 @@ extension MenuBarItemManager {
     /// Clicks the given menu bar item with the left mouse button.
     func leftClick(item: MenuBarItem) async throws {
         Logger.itemManager.info("Left clicking \(item.logString)")
-        try await click(item: item, mouseDownButtonState: .leftMouseDown, mouseUpButtonState: .leftMouseUp)
+        try await click(
+            item: item,
+            mouseDownButtonState: .leftMouseDown,
+            mouseUpButtonState: .leftMouseUp
+        )
     }
 
     /// Clicks the given menu bar item with the right mouse button.
     func rightClick(item: MenuBarItem) async throws {
         Logger.itemManager.info("Right clicking \(item.logString)")
-        try await click(item: item, mouseDownButtonState: .rightMouseDown, mouseUpButtonState: .rightMouseUp)
+        try await click(
+            item: item,
+            mouseDownButtonState: .rightMouseDown,
+            mouseUpButtonState: .rightMouseUp
+        )
     }
 
     /// Clicks the given menu bar item with the center mouse button.
     func centerClick(item: MenuBarItem) async throws {
         Logger.itemManager.info("Center clicking \(item.logString)")
-        try await click(item: item, mouseDownButtonState: .otherMouseDown, mouseUpButtonState: .otherMouseUp)
+        try await click(
+            item: item,
+            mouseDownButtonState: .otherMouseDown,
+            mouseUpButtonState: .otherMouseUp
+        )
     }
 }
 
@@ -1052,8 +1114,8 @@ extension MenuBarItemManager {
         return nil
     }
 
-    /// Schedules a timer for the given interval, attempting to rehide the current temporarily shown
-    /// items when the timer fires.
+    /// Schedules a timer for the given interval, attempting to rehide the current
+    /// temporarily shown items when the timer fires.
     private func runTempShownItemTimer(for interval: TimeInterval) {
         Logger.itemManager.debug("Running rehide timer for temporarily shown items with interval: \(interval)")
         tempShownItemsTimer?.invalidate()
@@ -1071,15 +1133,20 @@ extension MenuBarItemManager {
 
     /// Temporarily shows the given item.
     ///
-    /// The item is cached alongside a destination that it will be automatically returned to. If `true`
-    /// is passed to the `clickWhenFinished` parameter, the item is clicked once movement is finished.
+    /// The item is cached alongside a destination that it will be automatically
+    /// returned to. If `true` is passed to the `clickWhenFinished` parameter, the
+    /// item is clicked once movement is finished.
     ///
     /// - Parameters:
     ///   - item: An item to show.
-    ///   - clickWhenFinished: A Boolean value that indicates whether the item should be clicked once
-    ///     movement has finished.
+    ///   - clickWhenFinished: A Boolean value that indicates whether the item should
+    ///     be clicked once movement has finished.
     ///   - mouseButton: The mouse button of the click.
-    func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
+    func tempShowItem(
+        _ item: MenuBarItem,
+        clickWhenFinished: Bool,
+        mouseButton: CGMouseButton
+    ) {
         if
             let latest = MenuBarItem(windowID: item.windowID),
             latest.isOnScreen
@@ -1182,7 +1249,11 @@ extension MenuBarItemManager {
                 }
             }
 
-            let context = TempShownItemContext(info: item.info, returnDestination: destination, shownInterfaceWindow: shownInterfaceWindow)
+            let context = TempShownItemContext(
+                info: item.info,
+                returnDestination: destination,
+                shownInterfaceWindow: shownInterfaceWindow
+            )
             tempShownItemContexts.append(context)
             runTempShownItemTimer(for: appState.settingsManager.advancedSettingsManager.tempShowInterval)
         }
@@ -1190,8 +1261,8 @@ extension MenuBarItemManager {
 
     /// Rehides all temporarily shown items.
     ///
-    /// If an item is currently showing its menu, this method waits for the menu to close before
-    /// hiding the items.
+    /// If an item is currently showing its menu, this method waits for the menu
+    /// to close before hiding the items.
     func rehideTempShownItems() async {
         guard !tempShownItemContexts.isEmpty else {
             return
@@ -1242,7 +1313,7 @@ extension MenuBarItemManager {
 
     /// Removes a temporarily shown item from the cache.
     ///
-    /// This has the effect of ensuring that the item will not be returned to its previous location.
+    /// This ensures that the item will _not_ be returned to its previous location.
     func removeTempShownItemFromCache(with info: MenuBarItemInfo) {
         tempShownItemContexts.removeAll { $0.info == info }
     }
@@ -1251,13 +1322,18 @@ extension MenuBarItemManager {
 // MARK: - Arrange Items
 
 extension MenuBarItemManager {
-    /// Enforces the order of the given control items, ensuring that the always-hidden control item stays
-    /// to the left of the hidden control item.
+    /// Enforces the order of the given control items, ensuring that the always-hidden
+    /// control item stays to the left of the hidden control item.
     ///
     /// - Parameters:
-    ///   - hiddenControlItem: A menu bar item that represents the control item for the hidden section.
-    ///   - alwaysHiddenControlItem: A menu bar item that represents the control item for the always-hidden section.
-    func enforceControlItemOrder(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem) async throws {
+    ///   - hiddenControlItem: A menu bar item that represents the control item for
+    ///     the hidden section.
+    ///   - alwaysHiddenControlItem: A menu bar item that represents the control item
+    ///     for the always-hidden section.
+    func enforceControlItemOrder(
+        hiddenControlItem: MenuBarItem,
+        alwaysHiddenControlItem: MenuBarItem
+    ) async throws {
         guard !isMouseButtonDown else {
             Logger.itemManager.debug("Mouse button is down, so will not enforce control item order")
             return
@@ -1404,11 +1480,22 @@ private extension CGEvent {
     ///   - item: The target item of the event.
     ///   - pid: The target process identifier of the event. Does not need to be the item's `ownerPID`.
     ///   - source: The source of the event.
-    class func menuBarItemEvent(type: MenuBarItemEventType, location: CGPoint, item: MenuBarItem, pid: pid_t, source: CGEventSource) -> CGEvent? {
+    class func menuBarItemEvent(
+        type: MenuBarItemEventType,
+        location: CGPoint,
+        item: MenuBarItem,
+        pid: pid_t,
+        source: CGEventSource
+    ) -> CGEvent? {
         let mouseType = type.cgEventType
         let mouseButton = type.mouseButton
 
-        guard let event = CGEvent(mouseEventSource: source, mouseType: mouseType, mouseCursorPosition: location, mouseButton: mouseButton) else {
+        guard let event = CGEvent(
+            mouseEventSource: source,
+            mouseType: mouseType,
+            mouseCursorPosition: location,
+            mouseButton: mouseButton
+        ) else {
             return nil
         }
 

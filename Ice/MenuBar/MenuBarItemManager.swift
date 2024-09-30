@@ -720,7 +720,7 @@ extension MenuBarItemManager {
     ) async throws {
         struct FrameCheckCancellationError: Error { }
 
-        let frameCheckTask = Task.detached(timeout: timeout) {
+        let frameCheckTask = Task(timeout: timeout) {
             while true {
                 try Task.checkCancellation()
                 guard let currentFrame = await self.getCurrentFrame(for: item) else {
@@ -960,7 +960,7 @@ extension MenuBarItemManager {
     ///   - destination: A destination to move the menu bar item.
     func slowMove(item: MenuBarItem, to destination: MoveDestination) async throws {
         try await move(item: item, to: destination)
-        let waitTask = Task.detached(timeout: .seconds(1)) {
+        let waitTask = Task(timeout: .seconds(1)) {
             while true {
                 try Task.checkCancellation()
                 if try await self.itemHasCorrectPosition(item: item, for: destination) {
@@ -1268,7 +1268,7 @@ extension MenuBarItemManager {
             return
         }
 
-        let interfaceCheckTask = Task.detached(timeout: .seconds(1)) {
+        let interfaceCheckTask = Task(timeout: .seconds(1)) {
             while await self.tempShownItemContexts.contains(where: { $0.isShowingInterface }) {
                 try Task.checkCancellation()
                 try await Task.sleep(for: .milliseconds(10))

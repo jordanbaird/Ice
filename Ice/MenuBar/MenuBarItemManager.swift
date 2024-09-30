@@ -116,22 +116,8 @@ final class MenuBarItemManager: ObservableObject {
     /// The last time an item was moved.
     private(set) var lastItemMoveStartDate: Date?
 
-    /// A Boolean value that indicates whether the mouse button is down.
-    private var isMouseButtonDown = false
-
     /// Counter for mouse movement.
     private var mouseMovedCount = 0
-
-    /// Event type mask for tracking mouse events.
-    private let mouseTrackingMask: NSEvent.EventTypeMask = [
-        .mouseMoved,
-        .leftMouseDown,
-        .rightMouseDown,
-        .otherMouseDown,
-        .leftMouseUp,
-        .rightMouseUp,
-        .otherMouseUp,
-    ]
 
     /// Creates a manager with the given app state.
     init(appState: AppState) {
@@ -161,26 +147,17 @@ final class MenuBarItemManager: ObservableObject {
             .store(in: &c)
 
         Publishers.Merge(
-            UniversalEventMonitor.publisher(for: mouseTrackingMask),
-            RunLoopLocalEventMonitor.publisher(for: mouseTrackingMask, mode: .eventTracking)
+            UniversalEventMonitor.publisher(for: .mouseMoved),
+            RunLoopLocalEventMonitor.publisher(for: .mouseMoved, mode: .eventTracking)
         )
         .removeDuplicates()
-        .sink { [weak self] event in
+        .sink { [weak self] _ in
             guard let self else {
                 return
             }
-            switch event.type {
-            case .mouseMoved:
-                mouseMovedCount += 1
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    self.mouseMovedCount = max(self.mouseMovedCount - 1, 0)
-                }
-            case .leftMouseDown, .rightMouseDown, .otherMouseDown:
-                isMouseButtonDown = true
-            case .leftMouseUp, .rightMouseUp, .otherMouseUp:
-                isMouseButtonDown = false
-            default:
-                break
+            mouseMovedCount += 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                self.mouseMovedCount = max(self.mouseMovedCount - 1, 0)
             }
         }
         .store(in: &c)
@@ -1347,9 +1324,12 @@ extension MenuBarItemManager {
         hiddenControlItem: MenuBarItem,
         alwaysHiddenControlItem: MenuBarItem
     ) async throws {
-        guard !isMouseButtonDown else {
+        switch NSApp.currentEvent?.type {
+        case .leftMouseDown, .rightMouseDown, .otherMouseDown:
             Logger.itemManager.debug("Mouse button is down, so will not enforce control item order")
             return
+        default:
+            break
         }
         guard mouseMovedCount <= 0 else {
             Logger.itemManager.debug("Mouse has recently moved, so will not enforce control item order")

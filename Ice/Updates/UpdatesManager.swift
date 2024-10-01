@@ -7,15 +7,23 @@ import Sparkle
 import SwiftUI
 
 /// Manager for app updates.
-final class UpdatesManager: ObservableObject {
+@MainActor
+final class UpdatesManager: NSObject, ObservableObject {
     /// A Boolean value that indicates whether the user can check for updates.
     @Published var canCheckForUpdates = false
 
     /// The date of the last update check.
     @Published var lastUpdateCheckDate: Date?
 
+    /// The shared app state.
+    private(set) weak var appState: AppState?
+
     /// The underlying updater controller.
-    let updaterController: SPUStandardUpdaterController
+    private(set) lazy var updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: self,
+        userDriverDelegate: self
+    )
 
     /// The underlying updater.
     var updater: SPUUpdater {
@@ -44,13 +52,15 @@ final class UpdatesManager: ObservableObject {
         }
     }
 
-    /// Creates an updates manager.
-    init() {
-        self.updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
-            updaterDelegate: nil,
-            userDriverDelegate: nil
-        )
+    /// Creates an updates manager with the given app state.
+    init(appState: AppState) {
+        self.appState = appState
+        super.init()
+    }
+
+    /// Sets up the manager.
+    func performSetup() {
+        _ = updaterController
         configureCancellables()
     }
 
@@ -70,9 +80,65 @@ final class UpdatesManager: ObservableObject {
         alert.messageText = "Checking for updates is not supported in debug mode."
         alert.runModal()
         #else
+        guard let appState else {
+            return
+        }
+        // Activate the app in case an alert needs to be displayed.
+        appState.activate(withPolicy: .regular)
         updater.checkForUpdates()
         #endif
     }
 }
 
+// MARK: UpdatesManager: SPUUpdaterDelegate
+extension UpdatesManager: @preconcurrency SPUUpdaterDelegate {
+    func updater(_ updater: SPUUpdater, willScheduleUpdateCheckAfterDelay delay: TimeInterval) {
+        guard let appState else {
+            return
+        }
+        appState.userNotificationManager.requestAuthorization()
+    }
+}
+
+// MARK: UpdatesManager: SPUStandardUserDriverDelegate
+extension UpdatesManager: @preconcurrency SPUStandardUserDriverDelegate {
+    var supportsGentleScheduledUpdateReminders: Bool { true }
+
+    func standardUserDriverShouldHandleShowingScheduledUpdate(
+        _ update: SUAppcastItem,
+        andInImmediateFocus immediateFocus: Bool
+    ) -> Bool {
+        if NSApp.isActive {
+            return immediateFocus
+        } else {
+            return false
+        }
+    }
+
+    func standardUserDriverWillHandleShowingUpdate(
+        _ handleShowingUpdate: Bool,
+        forUpdate update: SUAppcastItem,
+        state: SPUUserUpdateState
+    ) {
+        guard let appState else {
+            return
+        }
+        if !state.userInitiated {
+            appState.userNotificationManager.addRequest(
+                with: .updateCheck,
+                title: "A new update is available",
+                body: "Version \(update.displayVersionString) is now available"
+            )
+        }
+    }
+
+    func standardUserDriverDidReceiveUserAttention(forUpdate update: SUAppcastItem) {
+        guard let appState else {
+            return
+        }
+        appState.userNotificationManager.removeDeliveredNotifications(with: [.updateCheck])
+    }
+}
+
+// MARK: UpdatesManager: BindingExposable
 extension UpdatesManager: BindingExposable { }

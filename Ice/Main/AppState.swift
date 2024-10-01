@@ -27,14 +27,17 @@ final class AppState: ObservableObject {
     /// Manager for the app's settings.
     private(set) lazy var settingsManager = SettingsManager(appState: self)
 
+    /// Manager for app updates.
+    private(set) lazy var updatesManager = UpdatesManager(appState: self)
+
+    /// Manager for user notifications.
+    private(set) lazy var userNotificationManager = UserNotificationManager(appState: self)
+
     /// Global cache for menu bar item images.
     private(set) lazy var imageCache = MenuBarItemImageCache(appState: self)
 
     /// Manager for menu bar item spacing.
     let spacingManager = MenuBarItemSpacingManager()
-
-    /// Manager for app updates.
-    let updatesManager = UpdatesManager()
 
     /// Model for app-wide navigation.
     let navigationState = AppNavigationState()
@@ -176,6 +179,8 @@ final class AppState: ObservableObject {
         settingsManager.performSetup()
         itemManager.performSetup()
         imageCache.performSetup()
+        updatesManager.performSetup()
+        userNotificationManager.performSetup()
     }
 
     /// Assigns the app delegate to the app state.

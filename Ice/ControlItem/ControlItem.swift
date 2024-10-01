@@ -533,14 +533,9 @@ final class ControlItem {
 
     /// Opens the settings window and checks for app updates.
     @objc private func checkForUpdates() {
-        guard
-            let appState,
-            let appDelegate = appState.appDelegate
-        else {
+        guard let appState else {
             return
         }
-        // Open the settings window in case an alert needs to be displayed.
-        appDelegate.openSettingsWindow()
         appState.updatesManager.checkForUpdates()
     }
 

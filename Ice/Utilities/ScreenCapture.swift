@@ -10,7 +10,16 @@ import ScreenCaptureKit
 enum ScreenCapture {
     /// Returns a Boolean value that indicates whether the app has been granted screen capture permissions.
     static func checkPermissions() -> Bool {
-        CGPreflightScreenCaptureAccess()
+        for item in MenuBarItem.getMenuBarItemsPrivateAPI(onScreenOnly: false, activeSpaceOnly: true) {
+            // Don't check items owned by Ice.
+            if item.owningApplication == .current {
+                continue
+            }
+            return item.title != nil
+        }
+        // CGPreflightScreenCaptureAccess() only returns an initial value for whether the app
+        // has permissions, but we can use it as a fallback.
+        return CGPreflightScreenCaptureAccess()
     }
 
     /// Requests screen capture permissions.

@@ -121,7 +121,7 @@ struct PermissionsView: View {
                     .underline()
 
                 VStack(spacing: 0) {
-                    Text("Ice needs this permission to:")
+                    Text("Ice needs this to:")
                         .font(.title3)
                         .bold()
 
@@ -136,7 +136,13 @@ struct PermissionsView: View {
                 }
 
                 Button {
-                    permission.runWithCompletion {
+                    guard let appState = permissionsManager.appState else {
+                        return
+                    }
+                    permission.performRequest()
+                    Task {
+                        await permission.waitForPermission()
+                        appState.activate(withPolicy: .regular)
                         openWindow(id: Constants.permissionsWindowID)
                     }
                 } label: {

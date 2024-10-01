@@ -10,20 +10,38 @@ import ScreenCaptureKit
 
 // MARK: - Permission
 
+/// An object that encapsulates the behavior of checking for and requesting
+/// a specific permission for the app.
+@MainActor
 class Permission: ObservableObject {
-    /// A Boolean value that indicates whether the user has granted this permission.
+    /// A Boolean value that indicates whether the app has this permission.
     @Published private(set) var hasPermission = false
 
+    /// The title of the permission.
     let title: String
+    /// Descriptive details for the permission.
     let details: [String]
-    let settingsURL: URL?
 
+    /// The URL of the settings pane to open.
+    private let settingsURL: URL?
+    /// The function that checks permissions.
     private let check: () -> Bool
+    /// The function that requests permissions.
     private let request: () -> Void
 
+    /// Observer that runs on a timer to check permissions.
     private var timerCancellable: AnyCancellable?
+    /// Observer that observes the ``hasPermission`` property.
     private var hasPermissionCancellable: AnyCancellable?
 
+    /// Creates a permission.
+    ///
+    /// - Parameters:
+    ///   - title: The title of the permission.
+    ///   - details: Descriptive details for the permission.
+    ///   - settingsURL: The URL of the settings pane to open.
+    ///   - check: A function that checks permissions.
+    ///   - request: A function that requests permissions.
     init(
         title: String,
         details: [String],
@@ -37,56 +55,46 @@ class Permission: ObservableObject {
         self.check = check
         self.request = request
         self.hasPermission = check()
+        configureCancellables()
     }
 
-    deinit {
-        stopCheck()
+    /// Sets up the internal observers for the permission.
+    private func configureCancellables() {
+        timerCancellable = Timer.publish(every: 1, on: .main, in: .default)
+            .autoconnect()
+            .merge(with: Just(.now))
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                hasPermission = check()
+            }
     }
 
-    /// Performs the request and opens the settings app to the appropriate settings pane
-    /// if the request does not do so.
-    func performRequestAndOpenSettingsPaneIfNeeded() {
+    /// Performs the request and opens the System Settings app to the appropriate pane.
+    func performRequest() {
         request()
         if let settingsURL {
             NSWorkspace.shared.open(settingsURL)
         }
     }
 
-    /// Runs the permission check. If the user has not granted permission, performs
-    /// the request and waits for the user to respond. When permission is granted,
-    /// performs the given completion handler.
-    func runWithCompletion(_ completionHandler: @escaping () -> Void) {
-        if check() {
-            hasPermission = true
-        } else {
-            hasPermission = false
-            performRequestAndOpenSettingsPaneIfNeeded()
-            timerCancellable = Timer.publish(every: 1, on: .main, in: .default)
-                .autoconnect()
-                .sink { [weak self] _ in
-                    guard let self else {
-                        return
-                    }
-                    let hasPermission = check()
-                    DispatchQueue.main.async {
-                        self.hasPermission = hasPermission
-                    }
+    /// Asynchronously waits for the app to be granted this permission.
+    func waitForPermission() async {
+        guard !hasPermission else {
+            return
+        }
+        return await withCheckedContinuation { continuation in
+            hasPermissionCancellable = $hasPermission.sink { [weak self] hasPermission in
+                guard let self else {
+                    continuation.resume()
+                    return
                 }
-            hasPermissionCancellable = $hasPermission
-                .sink { [weak self] hasPermission in
-                    guard let self else {
-                        return
-                    }
-                    if hasPermission {
-                        if let app = NSWorkspace.shared.frontmostApplication {
-                            NSRunningApplication.current.activate(from: app)
-                        } else {
-                            NSApp.activate()
-                        }
-                        completionHandler()
-                        stopCheck()
-                    }
+                if hasPermission {
+                    hasPermissionCancellable?.cancel()
+                    continuation.resume()
                 }
+            }
         }
     }
 
@@ -107,7 +115,7 @@ final class AccessibilityPermission: Permission {
             title: "Accessibility",
             details: [
                 "Get real-time information about the menu bar.",
-                "Move individual menu bar items.",
+                "Arrange menu bar items.",
             ],
             settingsURL: nil,
             check: {

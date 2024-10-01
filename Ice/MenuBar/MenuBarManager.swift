@@ -253,20 +253,20 @@ final class MenuBarManager: ObservableObject {
         let image: CGImage?
         let source: MenuBarAverageColorInfo.Source
 
-        let windows = WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
+        let windows = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
         let displayID = screen.displayID
 
         if let window = WindowInfo.getMenuBarWindow(from: windows, for: displayID) {
             var bounds = window.frame
             bounds.size.height = 1
-            bounds.origin.x = bounds.midX
-            bounds.size.width /= 2
+            bounds.origin.x = bounds.maxX - (bounds.width / 4)
+            bounds.size.width /= 4
 
             image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
             source = .menuBarWindow
         } else if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
             var bounds = window.frame
-            bounds.size.height = 10
+            bounds.size.height = 1
             bounds.origin.x = bounds.midX
             bounds.size.width /= 2
 

@@ -114,7 +114,7 @@ final class AppState: ObservableObject {
 
         if let settingsWindow {
             settingsWindow.publisher(for: \.isVisible)
-                .receive(on: DispatchQueue.main)
+                .debounce(for: 0.05, scheduler: DispatchQueue.main)
                 .sink { [weak self] isVisible in
                     guard let self else {
                         return

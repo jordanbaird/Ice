@@ -33,17 +33,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Assign and close the various windows.
-        let windowAssignments: KeyValuePairs = [
-            Constants.settingsWindowID: appState.assignSettingsWindow,
-            Constants.permissionsWindowID: appState.assignPermissionsWindow,
-        ]
-        for (identifier, assign) in windowAssignments {
-            if let window = NSApp.window(withIdentifier: identifier) {
-                assign(window)
-                window.close()
-            }
-        }
+        // Dismiss the windows.
+        appState.dismissSettingsWindow()
+        appState.dismissPermissionsWindow()
 
         // Hide the main menu to make more space in the menu bar.
         if let mainMenu = NSApp.mainMenu {
@@ -52,17 +44,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        if !appState.isPreview {
+        // Perform setup after a small delay to ensure that the settings window
+        // has been assigned.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            guard !appState.isPreview else {
+                return
+            }
             // If we have the required permissions, set up the shared app state.
             // Otherwise, open the permissions window.
             if appState.permissionsManager.hasAllPermissions {
                 appState.performSetup()
-            } else if let permissionsWindow = appState.permissionsWindow {
-                appState.activate(withPolicy: .regular)
-                permissionsWindow.center()
-                permissionsWindow.makeKeyAndOrderFront(nil)
             } else {
-                Logger.appDelegate.error("Failed to open permissions window")
+                appState.activate(withPolicy: .regular)
+                appState.openPermissionsWindow()
             }
         }
     }
@@ -90,18 +84,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Opens the settings window and activates the app.
     @objc func openSettingsWindow() {
-        guard
-            let appState,
-            let settingsWindow = appState.settingsWindow
-        else {
+        guard let appState else {
             Logger.appDelegate.error("Failed to open settings window")
             return
         }
         // Small delay makes this more reliable.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             appState.activate(withPolicy: .regular)
-            settingsWindow.center()
-            settingsWindow.makeKeyAndOrderFront(nil)
+            appState.openSettingsWindow()
         }
     }
 }

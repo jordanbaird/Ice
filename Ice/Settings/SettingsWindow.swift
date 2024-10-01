@@ -7,15 +7,15 @@ import SwiftUI
 
 struct SettingsWindow: Scene {
     @ObservedObject var appState: AppState
-    @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         Window(Constants.settingsWindowTitle, id: Constants.settingsWindowID) {
             SettingsView()
-                .onAppear {
-                    if !appState.permissionsManager.hasAllPermissions {
-                        openWindow(id: Constants.permissionsWindowID)
+                .readWindow { window in
+                    guard let window else {
+                        return
                     }
+                    appState.assignSettingsWindow(window)
                 }
         }
         .commandsRemoved()

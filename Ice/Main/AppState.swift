@@ -188,21 +188,51 @@ final class AppState: ObservableObject {
     }
 
     /// Assigns the settings window to the app state.
-    func assignSettingsWindow(_ settingsWindow: NSWindow) {
-        guard self.settingsWindow == nil else {
-            Logger.appState.warning("Multiple attempts made to assign settings window")
+    func assignSettingsWindow(_ window: NSWindow) {
+        guard window.identifier?.rawValue == Constants.settingsWindowID else {
+            Logger.appState.warning("Window \(window.identifier?.rawValue ?? "<NIL>") is not the settings window!")
             return
         }
-        self.settingsWindow = settingsWindow
+        settingsWindow = window
+        configureCancellables()
     }
 
     /// Assigns the permissions window to the app state.
-    func assignPermissionsWindow(_ permissionsWindow: NSWindow) {
-        guard self.permissionsWindow == nil else {
-            Logger.appState.warning("Multiple attempts made to assign permissions window")
+    func assignPermissionsWindow(_ window: NSWindow) {
+        guard window.identifier?.rawValue == Constants.permissionsWindowID else {
+            Logger.appState.warning("Window \(window.identifier?.rawValue ?? "<NIL>") is not the permissions window!")
             return
         }
-        self.permissionsWindow = permissionsWindow
+        permissionsWindow = window
+        configureCancellables()
+    }
+
+    /// Opens the settings window.
+    func openSettingsWindow() {
+        with(EnvironmentValues()) { environment in
+            environment.openWindow(id: Constants.settingsWindowID)
+        }
+    }
+
+    /// Dismisses the settings window.
+    func dismissSettingsWindow() {
+        with(EnvironmentValues()) { environment in
+            environment.dismissWindow(id: Constants.settingsWindowID)
+        }
+    }
+
+    /// Opens the permissions window.
+    func openPermissionsWindow() {
+        with(EnvironmentValues()) { environment in
+            environment.openWindow(id: Constants.permissionsWindowID)
+        }
+    }
+
+    /// Dismisses the permissions window.
+    func dismissPermissionsWindow() {
+        with(EnvironmentValues()) { environment in
+            environment.dismissWindow(id: Constants.permissionsWindowID)
+        }
     }
 
     /// Activates the app and sets its activation policy to the given value.

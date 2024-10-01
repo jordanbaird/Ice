@@ -6,18 +6,20 @@
 import SwiftUI
 
 struct PermissionsWindow: Scene {
-    @ObservedObject var permissionsManager: PermissionsManager
-
-    init(appState: AppState) {
-        self.permissionsManager = appState.permissionsManager
-    }
+    @ObservedObject var appState: AppState
 
     var body: some Scene {
         Window(Constants.permissionsWindowTitle, id: Constants.permissionsWindowID) {
             PermissionsView()
+                .readWindow { window in
+                    guard let window else {
+                        return
+                    }
+                    appState.assignPermissionsWindow(window)
+                }
         }
         .windowResizability(.contentSize)
         .windowStyle(.hiddenTitleBar)
-        .environmentObject(permissionsManager)
+        .environmentObject(appState.permissionsManager)
     }
 }

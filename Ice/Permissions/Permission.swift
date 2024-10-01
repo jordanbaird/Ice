@@ -47,20 +47,8 @@ class Permission: ObservableObject {
     /// if the request does not do so.
     func performRequestAndOpenSettingsPaneIfNeeded() {
         request()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            // Workaround for a bug where the request fails to automatically open the settings pane.
-            // Check for the panel that prompts the user to open System Settings, and try to open the
-            // settings pane manually if it doesn't exist.
-            if WindowInfo.getAllWindows().first?.owningApplication?.bundleIdentifier != "com.apple.accessibility.universalAccessAuthWarn" {
-                if let settingsApp = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "com.apple.systempreferences" }) {
-                    // If the System Settings app is already running, it could open the settings pane
-                    // without activating, so we need to do that manually.
-                    settingsApp.activate(from: .current)
-                }
-                if let settingsURL = self.settingsURL {
-                    NSWorkspace.shared.open(settingsURL)
-                }
-            }
+        if let settingsURL {
+            NSWorkspace.shared.open(settingsURL)
         }
     }
 
@@ -121,7 +109,7 @@ final class AccessibilityPermission: Permission {
                 "Get real-time information about the menu bar.",
                 "Move individual menu bar items.",
             ],
-            settingsURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"),
+            settingsURL: nil,
             check: {
                 checkIsProcessTrusted()
             },

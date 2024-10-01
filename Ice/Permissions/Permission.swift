@@ -16,6 +16,7 @@ class Permission: ObservableObject {
 
     let title: String
     let details: [String]
+    let settingsURL: URL?
 
     private let check: () -> Bool
     private let request: () -> Void
@@ -26,11 +27,13 @@ class Permission: ObservableObject {
     init(
         title: String,
         details: [String],
+        settingsURL: URL?,
         check: @escaping () -> Bool,
         request: @escaping () -> Void
     ) {
         self.title = title
         self.details = details
+        self.settingsURL = settingsURL
         self.check = check
         self.request = request
         self.hasPermission = check()
@@ -38,6 +41,27 @@ class Permission: ObservableObject {
 
     deinit {
         stopCheck()
+    }
+
+    /// Performs the request and opens the settings app to the appropriate settings pane
+    /// if the request does not do so.
+    func performRequestAndOpenSettingsPaneIfNeeded() {
+        request()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // Workaround for a bug where the request fails to automatically open the settings pane.
+            // Check for the panel that prompts the user to open System Settings, and try to open the
+            // settings pane manually if it doesn't exist.
+            if WindowInfo.getAllWindows().first?.owningApplication?.bundleIdentifier != "com.apple.accessibility.universalAccessAuthWarn" {
+                if let settingsApp = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "com.apple.systempreferences" }) {
+                    // If the System Settings app is already running, it could open the settings pane
+                    // without activating, so we need to do that manually.
+                    settingsApp.activate(from: .current)
+                }
+                if let settingsURL = self.settingsURL {
+                    NSWorkspace.shared.open(settingsURL)
+                }
+            }
+        }
     }
 
     /// Runs the permission check. If the user has not granted permission, performs
@@ -48,7 +72,7 @@ class Permission: ObservableObject {
             hasPermission = true
         } else {
             hasPermission = false
-            request()
+            performRequestAndOpenSettingsPaneIfNeeded()
             timerCancellable = Timer.publish(every: 1, on: .main, in: .default)
                 .autoconnect()
                 .sink { [weak self] _ in
@@ -97,6 +121,7 @@ final class AccessibilityPermission: Permission {
                 "Get real-time information about the menu bar.",
                 "Move individual menu bar items.",
             ],
+            settingsURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"),
             check: {
                 checkIsProcessTrusted()
             },
@@ -117,6 +142,7 @@ final class ScreenRecordingPermission: Permission {
                 "Edit the menu bar's appearance.",
                 "Display images of individual menu bar items.",
             ],
+            settingsURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"),
             check: {
                 ScreenCapture.checkPermissions()
             },

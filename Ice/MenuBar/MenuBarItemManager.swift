@@ -116,8 +116,22 @@ final class MenuBarItemManager: ObservableObject {
     /// The last time an item was moved.
     private(set) var lastItemMoveStartDate: Date?
 
+    /// A Boolean value that indicates whether a mouse button is down.
+    private var isMouseButtonDown = false
+
     /// Counter for mouse movement.
     private var mouseMovedCount = 0
+
+    /// Event type mask for tracking mouse events.
+    private let mouseTrackingMask: NSEvent.EventTypeMask = [
+        .mouseMoved,
+        .leftMouseDown,
+        .rightMouseDown,
+        .otherMouseDown,
+        .leftMouseUp,
+        .rightMouseUp,
+        .otherMouseUp,
+    ]
 
     /// Creates a manager with the given app state.
     init(appState: AppState) {
@@ -147,17 +161,26 @@ final class MenuBarItemManager: ObservableObject {
             .store(in: &c)
 
         Publishers.Merge(
-            UniversalEventMonitor.publisher(for: .mouseMoved),
-            RunLoopLocalEventMonitor.publisher(for: .mouseMoved, mode: .eventTracking)
+            UniversalEventMonitor.publisher(for: mouseTrackingMask),
+            RunLoopLocalEventMonitor.publisher(for: mouseTrackingMask, mode: .eventTracking)
         )
         .removeDuplicates()
-        .sink { [weak self] _ in
+        .sink { [weak self] event in
             guard let self else {
                 return
             }
-            mouseMovedCount += 1
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                self.mouseMovedCount = max(self.mouseMovedCount - 1, 0)
+            switch event.type {
+            case .mouseMoved:
+                mouseMovedCount += 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    self.mouseMovedCount = max(self.mouseMovedCount - 1, 0)
+                }
+            case .leftMouseDown, .rightMouseDown, .otherMouseDown:
+                isMouseButtonDown = true
+            case .leftMouseUp, .rightMouseUp, .otherMouseUp:
+                isMouseButtonDown = false
+            default:
+                break
             }
         }
         .store(in: &c)
@@ -1251,27 +1274,22 @@ extension MenuBarItemManager {
 
     /// Rehides all temporarily shown items.
     ///
-    /// If an item is currently showing its menu, this method waits for the menu
-    /// to close before hiding the items.
+    /// If an item is currently showing its interface, this method waits for the
+    /// interface to close before hiding the items.
     func rehideTempShownItems() async {
         guard !tempShownItemContexts.isEmpty else {
             return
         }
 
-        let interfaceCheckTask = Task(timeout: .seconds(1)) {
-            while await self.tempShownItemContexts.contains(where: { $0.isShowingInterface }) {
-                try Task.checkCancellation()
-                try await Task.sleep(for: .milliseconds(100))
-            }
-        }
-        do {
-            try await interfaceCheckTask.value
-        } catch is TaskTimeoutError {
-            Logger.itemManager.debug("Menu check task timed out, switching to timer")
+        guard !isMouseButtonDown else {
+            Logger.itemManager.debug("Mouse button is down, so waiting to rehide")
             runTempShownItemTimer(for: 3)
             return
-        } catch {
-            Logger.itemManager.error("ERROR: \(error)")
+        }
+        guard !tempShownItemContexts.contains(where: { $0.isShowingInterface }) else {
+            Logger.itemManager.debug("Menu bar item interface is shown, so waiting to rehide")
+            runTempShownItemTimer(for: 3)
+            return
         }
 
         Logger.itemManager.info("Rehiding temporarily shown items")
@@ -1297,6 +1315,7 @@ extension MenuBarItemManager {
             tempShownItemsTimer = nil
         } else {
             tempShownItemContexts = failedContexts
+            Logger.itemManager.warning("Some items failed to rehide")
             runTempShownItemTimer(for: 3)
         }
     }
@@ -1324,12 +1343,9 @@ extension MenuBarItemManager {
         hiddenControlItem: MenuBarItem,
         alwaysHiddenControlItem: MenuBarItem
     ) async throws {
-        switch NSApp.currentEvent?.type {
-        case .leftMouseDown, .rightMouseDown, .otherMouseDown:
+        guard !isMouseButtonDown else {
             Logger.itemManager.debug("Mouse button is down, so will not enforce control item order")
             return
-        default:
-            break
         }
         guard mouseMovedCount <= 0 else {
             Logger.itemManager.debug("Mouse has recently moved, so will not enforce control item order")

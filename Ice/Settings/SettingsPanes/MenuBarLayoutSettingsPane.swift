@@ -60,9 +60,10 @@ struct MenuBarLayoutSettingsPane: View {
             let section = appState.menuBarManager.section(withName: section),
             section.isEnabled
         {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(section.name.menuString + " Section")
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(section.name.displayString) Section")
                     .font(.system(size: 14))
+                    .padding(.leading, 2)
 
                 LayoutBar(section: section)
                     .environmentObject(appState.imageCache)

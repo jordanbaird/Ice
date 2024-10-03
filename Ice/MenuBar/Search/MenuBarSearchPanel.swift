@@ -248,13 +248,13 @@ private struct MenuBarSearchContentView: View {
     private func updateDisplayedItems() {
         let searchItems: [(listItem: ListItem, title: String)] = MenuBarSection.Name.allCases.reduce(into: []) { items, section in
             let headerItem = ListItem.header(id: .header(section)) {
-                Text(section.menuString)
+                Text(section.displayString)
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 10)
             }
-            items.append((headerItem, section.menuString))
+            items.append((headerItem, section.displayString))
 
             for item in itemManager.itemCache.managedItems(for: section).reversed() {
                 let listItem = ListItem.item(id: .item(item.info)) {

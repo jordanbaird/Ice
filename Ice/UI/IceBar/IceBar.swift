@@ -273,7 +273,7 @@ private struct IceBarContentView: View {
         if configuration.hasRoundedShape {
             AnyInsettableShape(Capsule())
         } else {
-            AnyInsettableShape(RoundedRectangle(cornerRadius: frame.height / 5, style: .continuous))
+            AnyInsettableShape(RoundedRectangle(cornerRadius: frame.height / 4, style: .continuous))
         }
     }
 

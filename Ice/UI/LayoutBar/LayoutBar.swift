@@ -59,6 +59,6 @@ struct LayoutBar: View {
 
     @ViewBuilder
     private var roundedRectangle: some Shape {
-        RoundedRectangle(cornerRadius: 9, style: .circular)
+        RoundedRectangle(cornerRadius: 11, style: .continuous)
     }
 }

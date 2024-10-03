@@ -83,13 +83,13 @@ Ice uses a number of system APIs that are available starting in macOS 14. As suc
 
 ## Gallery
 
-#### Arrange menu bar items in settings
-
-![Menu Bar Layout](https://github.com/user-attachments/assets/a33a1922-c703-46f5-83db-91489b8e4fb6)
-
 #### Show hidden menu bar items below the menu bar
 
 ![Ice Bar](https://github.com/user-attachments/assets/f1429589-6186-4e1b-8aef-592219d49b9b)
+
+#### Drag-and-drop interface to arrange menu bar items
+
+![Menu Bar Layout](https://github.com/user-attachments/assets/6a65d9aa-5d17-46ea-8d88-5ebff981d82a)
 
 #### Customize the menu bar's appearance
 

@@ -1210,17 +1210,19 @@ extension MenuBarItemManager {
         // Remove all offscreen items.
         items.trimPrefix { !$0.isOnScreen }
 
-        if let rightArea = screen.auxiliaryTopRightArea {
-            // Remove items to the right of the notch until we have enough room to show this item.
-            items.trimPrefix { $0.frame.minX - item.frame.width <= rightArea.minX + 20 }
+        let maxX = if let rightArea = screen.auxiliaryTopRightArea {
+            max(rightArea.minX + 20, applicationMenuFrame.maxX)
         } else {
-            // Remove items to the right of the application menu frame until we have enough room
-            // to show this item.
-            items.trimPrefix { $0.frame.minX - item.frame.width <= applicationMenuFrame.maxX }
+            applicationMenuFrame.maxX
         }
 
+        // Remove items until we have enough room to show this item.
+        items.trimPrefix { $0.frame.minX - item.frame.width <= maxX }
+
         guard let targetItem = items.first else {
-            Logger.itemManager.warning("Not enough room to show \(item.logString)")
+            let alert = NSAlert()
+            alert.messageText = "Not enough room to show \"\(item.displayName)\""
+            alert.runModal()
             return
         }
 

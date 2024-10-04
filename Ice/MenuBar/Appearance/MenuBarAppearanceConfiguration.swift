@@ -11,6 +11,7 @@ struct MenuBarAppearanceConfiguration: Hashable {
     var hasShadow: Bool
     var hasBorder: Bool
     var isInset: Bool
+    var useLegacyShapeInset: Bool
     var borderColor: CGColor
     var borderWidth: Double
     var shapeKind: MenuBarShapeKind
@@ -99,6 +100,7 @@ extension MenuBarAppearanceConfiguration {
         hasShadow: false,
         hasBorder: false,
         isInset: true,
+        useLegacyShapeInset: false,
         borderColor: .black,
         borderWidth: 1,
         shapeKind: .none,
@@ -116,6 +118,7 @@ extension MenuBarAppearanceConfiguration: Codable {
         case hasShadow
         case hasBorder
         case isInset
+        case useLegacyShapeInset
         case borderColor
         case borderWidth
         case shapeKind
@@ -132,6 +135,7 @@ extension MenuBarAppearanceConfiguration: Codable {
             hasShadow: container.decodeIfPresent(Bool.self, forKey: .hasShadow) ?? Self.defaultConfiguration.hasShadow,
             hasBorder: container.decodeIfPresent(Bool.self, forKey: .hasBorder) ?? Self.defaultConfiguration.hasBorder,
             isInset: container.decodeIfPresent(Bool.self, forKey: .isInset) ?? Self.defaultConfiguration.isInset,
+            useLegacyShapeInset: container.decodeIfPresent(Bool.self, forKey: .useLegacyShapeInset) ?? Self.defaultConfiguration.useLegacyShapeInset,
             borderColor: container.decodeIfPresent(CodableColor.self, forKey: .borderColor)?.cgColor ?? Self.defaultConfiguration.borderColor,
             borderWidth: container.decodeIfPresent(Double.self, forKey: .borderWidth) ?? Self.defaultConfiguration.borderWidth,
             shapeKind: container.decodeIfPresent(MenuBarShapeKind.self, forKey: .shapeKind) ?? Self.defaultConfiguration.shapeKind,
@@ -148,6 +152,7 @@ extension MenuBarAppearanceConfiguration: Codable {
         try container.encode(hasShadow, forKey: .hasShadow)
         try container.encode(hasBorder, forKey: .hasBorder)
         try container.encode(isInset, forKey: .isInset)
+        try container.encode(useLegacyShapeInset, forKey: .useLegacyShapeInset)
         try container.encode(CodableColor(cgColor: borderColor), forKey: .borderColor)
         try container.encode(borderWidth, forKey: .borderWidth)
         try container.encode(shapeKind, forKey: .shapeKind)

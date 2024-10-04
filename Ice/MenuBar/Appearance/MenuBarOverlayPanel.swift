@@ -449,15 +449,19 @@ private final class MenuBarOverlayPanelContentView: NSView {
     /// Returns a path in the given rectangle, with the given end caps,
     /// and inset by the given amounts.
     private func shapePath(in rect: CGRect, leadingEndCap: MenuBarEndCap, trailingEndCap: MenuBarEndCap) -> NSBezierPath {
-        let insetRect: CGRect = switch (leadingEndCap, trailingEndCap) {
-        case (.square, .square):
-            CGRect(x: rect.origin.x, y: rect.origin.y + 1, width: rect.width, height: rect.height - 2)
-        case (.square, .round):
-            CGRect(x: rect.origin.x, y: rect.origin.y + 1, width: rect.width - 1, height: rect.height - 2)
-        case (.round, .square):
-            CGRect(x: rect.origin.x + 1, y: rect.origin.y + 1, width: rect.width - 1, height: rect.height - 2)
-        case (.round, .round):
-            CGRect(x: rect.origin.x + 1, y: rect.origin.y + 1, width: rect.width - 2, height: rect.height - 2)
+        let insetRect: CGRect = if configuration.useLegacyShapeInset {
+            switch (leadingEndCap, trailingEndCap) {
+            case (.square, .square):
+                CGRect(x: rect.origin.x, y: rect.origin.y + 1, width: rect.width, height: rect.height - 2)
+            case (.square, .round):
+                CGRect(x: rect.origin.x, y: rect.origin.y + 1, width: rect.width - 1, height: rect.height - 2)
+            case (.round, .square):
+                CGRect(x: rect.origin.x + 1, y: rect.origin.y + 1, width: rect.width - 1, height: rect.height - 2)
+            case (.round, .round):
+                CGRect(x: rect.origin.x + 1, y: rect.origin.y + 1, width: rect.width - 2, height: rect.height - 2)
+            }
+        } else {
+            rect
         }
 
         let shapeBounds = CGRect(

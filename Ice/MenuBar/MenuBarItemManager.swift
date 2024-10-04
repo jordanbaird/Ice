@@ -1080,33 +1080,13 @@ extension MenuBarItemManager {
         }
     }
 
-    /// Clicks the given menu bar item with the left mouse button.
-    func leftClick(item: MenuBarItem) async throws {
-        Logger.itemManager.info("Left clicking \(item.logString)")
+    /// Clicks the given menu bar item with the given mouse button.
+    func click(item: MenuBarItem, with mouseButton: CGMouseButton) async throws {
+        Logger.itemManager.info("Clicking \(item.logString) with \(mouseButton.logString)")
         try await click(
             item: item,
-            mouseDownButtonState: .leftMouseDown,
-            mouseUpButtonState: .leftMouseUp
-        )
-    }
-
-    /// Clicks the given menu bar item with the right mouse button.
-    func rightClick(item: MenuBarItem) async throws {
-        Logger.itemManager.info("Right clicking \(item.logString)")
-        try await click(
-            item: item,
-            mouseDownButtonState: .rightMouseDown,
-            mouseUpButtonState: .rightMouseUp
-        )
-    }
-
-    /// Clicks the given menu bar item with the center mouse button.
-    func centerClick(item: MenuBarItem) async throws {
-        Logger.itemManager.info("Center clicking \(item.logString)")
-        try await click(
-            item: item,
-            mouseDownButtonState: .otherMouseDown,
-            mouseUpButtonState: .otherMouseUp
+            mouseDownButtonState: mouseButton.downState,
+            mouseUpButtonState: mouseButton.upState
         )
     }
 }
@@ -1164,19 +1144,10 @@ extension MenuBarItemManager {
             let latest = MenuBarItem(windowID: item.windowID),
             latest.isOnScreen
         {
-            Task {
-                if clickWhenFinished {
+            if clickWhenFinished {
+                Task {
                     do {
-                        switch mouseButton {
-                        case .left:
-                            try await leftClick(item: latest)
-                        case .right:
-                            try await rightClick(item: latest)
-                        case .center:
-                            try await centerClick(item: latest)
-                        @unknown default:
-                            assertionFailure("Unknown mouse button \(mouseButton)")
-                        }
+                        try await click(item: latest, with: mouseButton)
                     } catch {
                         Logger.itemManager.error("ERROR: \(error)")
                     }
@@ -1232,16 +1203,7 @@ extension MenuBarItemManager {
             if clickWhenFinished {
                 do {
                     try await slowMove(item: item, to: .leftOfItem(targetItem))
-                    switch mouseButton {
-                    case .left:
-                        try await leftClick(item: item)
-                    case .right:
-                        try await rightClick(item: item)
-                    case .center:
-                        try await centerClick(item: item)
-                    @unknown default:
-                        assertionFailure("Unknown mouse button \(mouseButton)")
-                    }
+                    try await click(item: item, with: mouseButton)
                 } catch {
                     Logger.itemManager.error("ERROR: \(error)")
                 }
@@ -1482,6 +1444,48 @@ private extension CGEventType {
         case .tapDisabledByTimeout: "tapDisabledByTimeout event"
         case .tapDisabledByUserInput: "tapDisabledByUserInput event"
         @unknown default: "unknown event"
+        }
+    }
+}
+
+// MARK: - CGMouseButton Helpers
+
+private extension CGMouseButton {
+    /// A string to use for logging purposes.
+    var logString: String {
+        switch self {
+        case .left: "left mouse button"
+        case .right: "right mouse button"
+        case .center: "center mouse button"
+        @unknown default: "unknown mouse button"
+        }
+    }
+
+    /// The menu bar item event state for when this mouse button is down.
+    var downState: CGEvent.MenuBarItemEventButtonState {
+        switch self {
+        case .left:
+            return .leftMouseDown
+        case .right:
+            return .rightMouseDown
+        case .center:
+            return .otherMouseDown
+        @unknown default:
+            fatalError("Unknown mouse button \(rawValue)")
+        }
+    }
+
+    /// The menu bar item event state for when this mouse button is up.
+    var upState: CGEvent.MenuBarItemEventButtonState {
+        switch self {
+        case .left:
+            return .leftMouseUp
+        case .right:
+            return .rightMouseUp
+        case .center:
+            return .otherMouseUp
+        @unknown default:
+            fatalError("Unknown mouse button \(rawValue)")
         }
     }
 }

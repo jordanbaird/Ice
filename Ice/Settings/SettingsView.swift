@@ -7,6 +7,16 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var navigationState: AppNavigationState
+    @Environment(\.sidebarRowSize) var sidebarRowSize
+
+    private var sidebarWidth: CGFloat {
+        switch sidebarRowSize {
+        case .small: 206
+        case .medium: 210
+        case .large: 214
+        @unknown default: 210
+        }
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -40,7 +50,7 @@ struct SettingsView: View {
         }
         .scrollDisabled(true)
         .removeSidebarToggle()
-        .navigationSplitViewColumnWidth(210)
+        .navigationSplitViewColumnWidth(sidebarWidth)
     }
 
     @ViewBuilder

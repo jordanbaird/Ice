@@ -7,6 +7,24 @@ import CoreGraphics
 
 /// A namespace for mouse cursor operations.
 enum MouseCursor {
+    /// The location of the mouse pointer in the coordinate system used by the
+    /// `CoreGraphics` framework.
+    ///
+    /// The coordinate system of the returned location is relative to the top
+    /// left corner of the screen.
+    static var coreGraphicsLocation: CGPoint? {
+        CGEvent(source: nil)?.location
+    }
+
+    /// The location of the mouse pointer in the coordinate system used by the
+    /// `AppKit` framework.
+    ///
+    /// The coordinate system of the returned location is relative to the bottom
+    /// left corner of the screen.
+    static var appKitLocation: CGPoint? {
+        CGEvent(source: nil)?.unflippedLocation
+    }
+
     /// Hides the mouse cursor and increments the hide cursor count.
     static func hide() {
         let result = CGDisplayHideCursor(CGMainDisplayID())
@@ -30,24 +48,6 @@ enum MouseCursor {
         let result = CGWarpMouseCursorPosition(point)
         if result != .success {
             Logger.mouseCursor.error("CGWarpMouseCursorPosition failed with error \(result.logString)")
-        }
-    }
-
-    /// Returns the location of the mouse pointer.
-    ///
-    /// If `flipped` is `true`, the coordinate system of the returned location
-    /// is relative to the top left corner of the screen, and is compatible with
-    /// the coordinate system used by the `CoreGraphics` framework. Otherwise,
-    /// the coordinate system of the returned location is relative to the bottom
-    /// left corner of the screen, and is compatible with coordinate system used
-    /// by the `AppKit` framework.
-    static func location(flipped: Bool) -> CGPoint? {
-        CGEvent(source: nil).map { event in
-            if flipped {
-                event.location
-            } else {
-                event.unflippedLocation
-            }
         }
     }
 }

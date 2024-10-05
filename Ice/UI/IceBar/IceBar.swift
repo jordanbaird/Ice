@@ -117,7 +117,7 @@ final class IceBarPanel: NSPanel {
                 }
                 return getOrigin(for: .iceIcon)
             case .mousePointer:
-                guard let location = MouseCursor.location(flipped: false) else {
+                guard let location = MouseCursor.appKitLocation else {
                     return getOrigin(for: .iceIcon)
                 }
 

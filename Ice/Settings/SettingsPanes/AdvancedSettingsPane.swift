@@ -31,6 +31,7 @@ struct AdvancedSettingsPane: View {
             IceSection {
                 hideApplicationMenus
                 showSectionDividers
+                showAllSectionsOnUserDrag
             }
             IceSection {
                 enableAlwaysHiddenSection
@@ -127,6 +128,11 @@ struct AdvancedSettingsPane: View {
                 }
         }
         .annotation("The amount of time to wait before hiding temporarily shown menu bar items")
+    }
+
+    @ViewBuilder
+    private var showAllSectionsOnUserDrag: some View {
+        Toggle("Show all sections when Command + dragging menu bar items", isOn: manager.bindings.showAllSectionsOnUserDrag)
     }
 }
 

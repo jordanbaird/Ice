@@ -314,6 +314,11 @@ extension EventManager {
         // Notify each overlay panel that a menu bar item is being dragged.
         appState.menuBarManager.appearanceManager.setIsDraggingMenuBarItem(true)
 
+        // Don't continue if the setting to show the sections is disabled.
+        guard appState.settingsManager.advancedSettingsManager.showAllSectionsOnUserDrag else {
+            return
+        }
+
         // Show all items, including section dividers.
         for section in appState.menuBarManager.sections {
             section.controlItem.state = .showItems

@@ -30,6 +30,10 @@ final class AdvancedSettingsManager: ObservableObject {
     /// Time interval to temporarily show items for.
     @Published var tempShowInterval: TimeInterval = 15
 
+    /// A Boolean value that indicates whether to show all sections when
+    /// the user is dragging items in the menu bar.
+    @Published var showAllSectionsOnUserDrag = true
+
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
@@ -52,6 +56,7 @@ final class AdvancedSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .canToggleAlwaysHiddenSection, assign: &canToggleAlwaysHiddenSection)
         Defaults.ifPresent(key: .showOnHoverDelay, assign: &showOnHoverDelay)
         Defaults.ifPresent(key: .tempShowInterval, assign: &tempShowInterval)
+        Defaults.ifPresent(key: .showAllSectionsOnUserDrag, assign: &showAllSectionsOnUserDrag)
     }
 
     private func configureCancellables() {
@@ -96,6 +101,13 @@ final class AdvancedSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { interval in
                 Defaults.set(interval, forKey: .tempShowInterval)
+            }
+            .store(in: &c)
+
+        $showAllSectionsOnUserDrag
+            .receive(on: DispatchQueue.main)
+            .sink { showAll in
+                Defaults.set(showAll, forKey: .showAllSectionsOnUserDrag)
             }
             .store(in: &c)
 

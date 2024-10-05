@@ -215,7 +215,7 @@ extension EventManager {
                     let mouseLocation = MouseCursor.coreGraphicsLocation,
                     let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
                         .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
-                        .first(where: { $0.frame.contains(mouseLocation) }),
+                        .first(where: { $0.frame.contains(mouseLocation) && $0.title?.isEmpty == false }),
                     let owningApplication = windowUnderMouse.owningApplication
                 else {
                     return

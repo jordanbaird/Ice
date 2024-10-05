@@ -78,6 +78,7 @@ final class AppState: ObservableObject {
         set { Bridging.setConnectionProperty(newValue, forKey: "SetsCursorInBackground") }
     }
 
+    /// Configures the internal observers for the app state.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -171,6 +172,7 @@ final class AppState: ObservableObject {
         cancellables = c
     }
 
+    /// Sets up the app state.
     func performSetup() {
         configureCancellables()
         permissionsManager.stopAllChecks()
@@ -296,5 +298,6 @@ extension AppState: BindingExposable { }
 
 // MARK: - Logger
 private extension Logger {
+    /// The logger to use for the app state.
     static let appState = Logger(category: "AppState")
 }

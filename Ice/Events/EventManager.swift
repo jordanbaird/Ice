@@ -9,12 +9,15 @@ import Combine
 /// Manager for the various event monitors maintained by the app.
 @MainActor
 final class EventManager {
+    /// The shared app state.
     private weak var appState: AppState?
 
+    /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: Monitors
 
+    /// Monitor for mouse down events.
     private(set) lazy var mouseDownMonitor = UniversalEventMonitor(
         mask: [.leftMouseDown, .rightMouseDown]
     ) { [weak self] event in
@@ -34,6 +37,7 @@ final class EventManager {
         return event
     }
 
+    /// Monitor for mouse up events.
     private(set) lazy var mouseUpMonitor = UniversalEventMonitor(
         mask: .leftMouseUp
     ) { [weak self] event in
@@ -41,6 +45,7 @@ final class EventManager {
         return event
     }
 
+    /// Monitor for mouse dragged events.
     private(set) lazy var mouseDraggedMonitor = UniversalEventMonitor(
         mask: .leftMouseDragged
     ) { [weak self] event in
@@ -48,6 +53,7 @@ final class EventManager {
         return event
     }
 
+    /// Monitor for mouse moved events.
     private(set) lazy var mouseMovedMonitor = UniversalEventMonitor(
         mask: .mouseMoved
     ) { [weak self] event in
@@ -55,6 +61,7 @@ final class EventManager {
         return event
     }
 
+    /// Monitor for scroll wheel events.
     private(set) lazy var scrollWheelMonitor = UniversalEventMonitor(
         mask: .scrollWheel
     ) { [weak self] event in
@@ -64,6 +71,7 @@ final class EventManager {
 
     // MARK: All Monitors
 
+    /// All monitors maintained by the app.
     private lazy var allMonitors = [
         mouseDownMonitor,
         mouseUpMonitor,
@@ -74,24 +82,26 @@ final class EventManager {
 
     // MARK: Initializers
 
+    /// Creates an event manager with the given app state.
     init(appState: AppState) {
         self.appState = appState
     }
 
+    /// Sets up the manager.
     func performSetup() {
         startAll()
         configureCancellables()
     }
 
+    /// Configures the internal observers for the manager.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
         if let appState {
             if let hiddenSection = appState.menuBarManager.section(withName: .hidden) {
-                // In fullscreen mode, the menu bar slides down from the top on hover.
-                // Observe the frame of the hidden section's control item, which we know
-                // will always be in the menu bar, and run the show-on-hover check when
-                // it changes.
+                // In fullscreen mode, the menu bar slides down from the top on hover. Observe
+                // the frame of the hidden section's control item, which we know will always be
+                // in the menu bar, and run the show-on-hover check when it changes.
                 Publishers.CombineLatest(
                     hiddenSection.controlItem.$windowFrame,
                     appState.$isActiveSpaceFullscreen
@@ -146,7 +156,7 @@ extension EventManager {
 
         Task {
             // Short delay helps the toggle action feel more natural.
-            try await Task.sleep(for: .milliseconds(50))
+            try? await Task.sleep(for: .milliseconds(50))
 
             if NSEvent.modifierFlags == .control {
                 handleShowRightClickMenu()
@@ -198,46 +208,42 @@ extension EventManager {
         }
 
         Task {
-            do {
-                let initialSpaceID = Bridging.activeSpaceID
+            let initialSpaceID = Bridging.activeSpaceID
 
-                // Sleep for a bit to give the window under the mouse a chance to focus.
-                try await Task.sleep(for: .seconds(0.25))
+            // Sleep for a bit to give the window under the mouse a chance to focus.
+            try? await Task.sleep(for: .seconds(0.25))
 
-                // If clicking caused a space change, don't bother with the window check.
-                if Bridging.activeSpaceID != initialSpaceID {
-                    shownSection.hide()
-                    return
-                }
+            // If clicking caused a space change, don't bother with the window check.
+            if Bridging.activeSpaceID != initialSpaceID {
+                shownSection.hide()
+                return
+            }
 
-                // Get the window that the user has clicked into.
+            // Get the window that the user has clicked into.
+            guard
+                let mouseLocation = MouseCursor.coreGraphicsLocation,
+                let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
+                    .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
+                    .first(where: { $0.frame.contains(mouseLocation) && $0.title?.isEmpty == false }),
+                let owningApplication = windowUnderMouse.owningApplication
+            else {
+                return
+            }
+
+            // The dock is an exception to the following check.
+            if owningApplication.bundleIdentifier != "com.apple.dock" {
+                // Only continue if the user has clicked into an active window with
+                // a regular activation policy.
                 guard
-                    let mouseLocation = MouseCursor.coreGraphicsLocation,
-                    let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
-                        .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
-                        .first(where: { $0.frame.contains(mouseLocation) && $0.title?.isEmpty == false }),
-                    let owningApplication = windowUnderMouse.owningApplication
+                    owningApplication.isActive,
+                    owningApplication.activationPolicy == .regular
                 else {
                     return
                 }
-
-                // The dock is an exception to the following check.
-                if owningApplication.bundleIdentifier != "com.apple.dock" {
-                    // Only continue if the user has clicked into an active window with
-                    // a regular activation policy.
-                    guard
-                        owningApplication.isActive,
-                        owningApplication.activationPolicy == .regular
-                    else {
-                        return
-                    }
-                }
-
-                // If all the above checks have passed, hide.
-                shownSection.hide()
-            } catch {
-                Logger.eventManager.error("ERROR: \(error)")
             }
+
+            // If all the above checks have passed, hide.
+            shownSection.hide()
         }
     }
 
@@ -355,36 +361,32 @@ extension EventManager {
         let delay = appState.settingsManager.advancedSettingsManager.showOnHoverDelay
 
         Task {
-            do {
-                if hiddenSection.isHidden {
-                    guard self.isMouseInsideEmptyMenuBarSpace else {
-                        return
-                    }
-                    try await Task.sleep(for: .seconds(delay))
-                    // Make sure the mouse is still inside.
-                    guard self.isMouseInsideEmptyMenuBarSpace else {
-                        return
-                    }
-                    hiddenSection.show()
-                } else {
-                    guard
-                        !self.isMouseInsideMenuBar,
-                        !self.isMouseInsideIceBar
-                    else {
-                        return
-                    }
-                    try await Task.sleep(for: .seconds(delay))
-                    // Make sure the mouse is still outside.
-                    guard
-                        !self.isMouseInsideMenuBar,
-                        !self.isMouseInsideIceBar
-                    else {
-                        return
-                    }
-                    hiddenSection.hide()
+            if hiddenSection.isHidden {
+                guard self.isMouseInsideEmptyMenuBarSpace else {
+                    return
                 }
-            } catch {
-                Logger.eventManager.error("ERROR: \(error)")
+                try? await Task.sleep(for: .seconds(delay))
+                // Make sure the mouse is still inside.
+                guard self.isMouseInsideEmptyMenuBarSpace else {
+                    return
+                }
+                hiddenSection.show()
+            } else {
+                guard
+                    !self.isMouseInsideMenuBar,
+                    !self.isMouseInsideIceBar
+                else {
+                    return
+                }
+                try? await Task.sleep(for: .seconds(delay))
+                // Make sure the mouse is still outside.
+                guard
+                    !self.isMouseInsideMenuBar,
+                    !self.isMouseInsideIceBar
+                else {
+                    return
+                }
+                hiddenSection.hide()
             }
         }
     }

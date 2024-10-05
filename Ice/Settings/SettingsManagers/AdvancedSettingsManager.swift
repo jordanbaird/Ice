@@ -30,10 +30,6 @@ final class AdvancedSettingsManager: ObservableObject {
     /// Time interval to temporarily show items for.
     @Published var tempShowInterval: TimeInterval = 15
 
-    /// A Boolean value that indicates whether to show the advanced settings
-    /// in the menu bar appearance pane.
-    @Published var showAdvancedAppearanceSettings = false
-
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
@@ -56,7 +52,6 @@ final class AdvancedSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .canToggleAlwaysHiddenSection, assign: &canToggleAlwaysHiddenSection)
         Defaults.ifPresent(key: .showOnHoverDelay, assign: &showOnHoverDelay)
         Defaults.ifPresent(key: .tempShowInterval, assign: &tempShowInterval)
-        Defaults.ifPresent(key: .showAdvancedAppearanceSettings, assign: &showAdvancedAppearanceSettings)
     }
 
     private func configureCancellables() {
@@ -101,13 +96,6 @@ final class AdvancedSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { interval in
                 Defaults.set(interval, forKey: .tempShowInterval)
-            }
-            .store(in: &c)
-
-        $showAdvancedAppearanceSettings
-            .receive(on: DispatchQueue.main)
-            .sink { shouldShow in
-                Defaults.set(shouldShow, forKey: .showAdvancedAppearanceSettings)
             }
             .store(in: &c)
 

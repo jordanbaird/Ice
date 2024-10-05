@@ -448,8 +448,8 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
     /// Returns a path in the given rectangle, with the given end caps,
     /// and inset by the given amounts.
-    private func shapePath(in rect: CGRect, leadingEndCap: MenuBarEndCap, trailingEndCap: MenuBarEndCap) -> NSBezierPath {
-        let insetRect: CGRect = if configuration.useLegacyShapeInset {
+    private func shapePath(in rect: CGRect, leadingEndCap: MenuBarEndCap, trailingEndCap: MenuBarEndCap, screen: NSScreen) -> NSBezierPath {
+        let insetRect: CGRect = if !screen.hasNotch {
             switch (leadingEndCap, trailingEndCap) {
             case (.square, .square):
                 CGRect(x: rect.origin.x, y: rect.origin.y + 1, width: rect.width, height: rect.height - 2)
@@ -518,7 +518,8 @@ private final class MenuBarOverlayPanelContentView: NSView {
         return shapePath(
             in: rect,
             leadingEndCap: info.leadingEndCap,
-            trailingEndCap: info.trailingEndCap
+            trailingEndCap: info.trailingEndCap,
+            screen: screen
         )
     }
 
@@ -580,18 +581,21 @@ private final class MenuBarOverlayPanelContentView: NSView {
             return shapePath(
                 in: rect,
                 leadingEndCap: info.leading.leadingEndCap,
-                trailingEndCap: info.trailing.trailingEndCap
+                trailingEndCap: info.trailing.trailingEndCap,
+                screen: screen
             )
         } else {
             let leadingPath = shapePath(
                 in: leadingPathBounds,
                 leadingEndCap: info.leading.leadingEndCap,
-                trailingEndCap: info.leading.trailingEndCap
+                trailingEndCap: info.leading.trailingEndCap,
+                screen: screen
             )
             let trailingPath = shapePath(
                 in: trailingPathBounds,
                 leadingEndCap: info.trailing.leadingEndCap,
-                trailingEndCap: info.trailing.trailingEndCap
+                trailingEndCap: info.trailing.trailingEndCap,
+                screen: screen
             )
             let path = NSBezierPath()
             path.append(leadingPath)

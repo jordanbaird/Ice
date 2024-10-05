@@ -31,7 +31,6 @@ struct AdvancedSettingsPane: View {
             IceSection {
                 hideApplicationMenus
                 showSectionDividers
-                showAdvancedAppearanceSettings
             }
             IceSection {
                 enableAlwaysHiddenSection
@@ -69,12 +68,6 @@ struct AdvancedSettingsPane: View {
                     Text("between sections")
                 }
             }
-    }
-
-    @ViewBuilder
-    private var showAdvancedAppearanceSettings: some View {
-        Toggle("Show advanced appearance settings", isOn: manager.bindings.showAdvancedAppearanceSettings)
-            .annotation("Show advanced settings in the Menu Bar Appearance editor")
     }
 
     @ViewBuilder

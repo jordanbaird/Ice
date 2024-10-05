@@ -89,11 +89,6 @@ struct MenuBarAppearanceEditor: View {
                 shapePicker
                 isInset
             }
-            if appState.settingsManager.advancedSettingsManager.showAdvancedAppearanceSettings {
-                IceSection("Advanced") {
-                    useLegacyShapeInset
-                }
-            }
             if case .settings = location {
                 IceGroupBox {
                     AnnotationView(
@@ -202,14 +197,5 @@ struct MenuBarAppearanceEditor: View {
                 isOn: appearanceManager.bindings.configuration.isInset
             )
         }
-    }
-
-    @ViewBuilder
-    private var useLegacyShapeInset: some View {
-        Toggle(
-            "Use legacy shape inset",
-            isOn: appearanceManager.bindings.configuration.useLegacyShapeInset
-        )
-        .annotation("Apply a 1px inset to the menu bar shape")
     }
 }

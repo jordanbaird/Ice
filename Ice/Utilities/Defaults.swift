@@ -164,7 +164,6 @@ extension Defaults {
         case canToggleAlwaysHiddenSection = "CanToggleAlwaysHiddenSection"
         case showOnHoverDelay = "ShowOnHoverDelay"
         case tempShowInterval = "TempShowInterval"
-        case showAdvancedAppearanceSettings = "ShowAdvancedAppearanceSettings"
 
         // MARK: Menu Bar Appearance Settings
 

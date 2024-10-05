@@ -17,6 +17,7 @@ struct SettingsWindow: Scene {
                     }
                     appState.assignSettingsWindow(window)
                 }
+                .frame(minWidth: 825, minHeight: 500)
         }
         .commandsRemoved()
         .windowResizability(.contentSize)

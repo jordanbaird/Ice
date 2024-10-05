@@ -31,6 +31,7 @@ struct AdvancedSettingsPane: View {
             IceSection {
                 hideApplicationMenus
                 showSectionDividers
+                showAdvancedAppearanceSettings
             }
             IceSection {
                 enableAlwaysHiddenSection
@@ -39,9 +40,6 @@ struct AdvancedSettingsPane: View {
             IceSection {
                 showOnHoverDelaySlider
                 tempShowIntervalSlider
-            }
-            IceSection {
-                showAdvancedAppearanceSettings
             }
         }
     }
@@ -71,6 +69,12 @@ struct AdvancedSettingsPane: View {
                     Text("between sections")
                 }
             }
+    }
+
+    @ViewBuilder
+    private var showAdvancedAppearanceSettings: some View {
+        Toggle("Show advanced appearance settings", isOn: manager.bindings.showAdvancedAppearanceSettings)
+            .annotation("Show advanced settings in the Menu Bar Appearance editor")
     }
 
     @ViewBuilder
@@ -130,12 +134,6 @@ struct AdvancedSettingsPane: View {
                 }
         }
         .annotation("The amount of time to wait before hiding temporarily shown menu bar items")
-    }
-
-    @ViewBuilder
-    private var showAdvancedAppearanceSettings: some View {
-        Toggle("Show advanced appearance settings", isOn: manager.bindings.showAdvancedAppearanceSettings)
-            .annotation("Show advanced settings in the Menu Bar Appearance editor")
     }
 }
 

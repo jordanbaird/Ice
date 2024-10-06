@@ -180,7 +180,6 @@ final class MenuBarManager: ObservableObject {
 
         // Hide application menus when a section is shown (if applicable).
         Publishers.MergeMany(sections.map { $0.controlItem.$state })
-            .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 guard
@@ -216,21 +215,33 @@ final class MenuBarManager: ObservableObject {
                         return
                     }
 
-                    let items = MenuBarItem.getMenuBarItems(on: displayID, using: .coreGraphics, onScreenOnly: true, sortingBy: .orderInMenuBar)
+                    // Get all items.
+                    var items = MenuBarItem.getMenuBarItems(on: displayID, using: .bridging, onScreenOnly: false, sortingBy: .orderInMenuBar)
 
-                    // Get the leftmost item on the screen. The application menu should
-                    // be hidden if the item's minX is close to the maxX of the menu.
+                    // Filter the items down according to the currently enabled/shown sections.
+                    if
+                        let alwaysHiddenSection = section(withName: .alwaysHidden),
+                        alwaysHiddenSection.isEnabled
+                    {
+                        if alwaysHiddenSection.controlItem.state == .hideItems {
+                            if let alwaysHiddenControlItem = items.firstIndex(of: .alwaysHiddenControlItem).map({ items.remove(at: $0) }) {
+                                items.trimPrefix { $0.frame.maxX <= alwaysHiddenControlItem.frame.minX }
+                            }
+                        }
+                    } else {
+                        if let hiddenControlItem = items.firstIndex(of: .hiddenControlItem).map({ items.remove(at: $0) }) {
+                            items.trimPrefix { $0.frame.maxX <= hiddenControlItem.frame.minX }
+                        }
+                    }
+
+                    // Get the leftmost item on the screen.
                     guard let leftmostItem = items.min(by: { $0.frame.minX < $1.frame.minX }) else {
                         return
                     }
 
-                    // Offset the leftmost item's minX by its width to give ourselves
-                    // a little wiggle room.
-                    let offsetMinX = leftmostItem.frame.minX - leftmostItem.frame.width
-
-                    // If the offset value is less than or equal to the maxX of the
+                    // If the minX of the item is less than or equal to the maxX of the
                     // application menu frame, activate the app to hide the menu.
-                    if offsetMinX <= applicationMenuFrame.maxX + 15 {
+                    if leftmostItem.frame.minX <= applicationMenuFrame.maxX {
                         hideApplicationMenus()
                     }
                 } else if isHidingApplicationMenus {

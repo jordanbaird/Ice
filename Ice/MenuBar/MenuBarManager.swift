@@ -216,7 +216,7 @@ final class MenuBarManager: ObservableObject {
                     }
 
                     // Get all items.
-                    var items = MenuBarItem.getMenuBarItems(on: displayID, using: .bridging, onScreenOnly: false, sortingBy: .orderInMenuBar)
+                    var items = MenuBarItem.getMenuBarItems(on: displayID, onScreenOnly: false, activeSpaceOnly: true)
 
                     // Filter the items down according to the currently enabled/shown sections.
                     if

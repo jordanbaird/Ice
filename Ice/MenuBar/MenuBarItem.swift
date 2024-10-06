@@ -162,104 +162,40 @@ struct MenuBarItem {
 
 // MARK: MenuBarItem Getters
 extension MenuBarItem {
-    /// The method to use to get the menu bar items.
-    enum GetterMethod {
-        case coreGraphics
-        case bridging
-    }
-
-    /// The method to use to sort the menu bar items.
-    enum SortingMethod {
-        case orderInMenuBar
-        case custom((MenuBarItem, MenuBarItem) -> Bool)
-    }
-
-    private static func getMenuBarItems_CoreGraphics(on display: CGDirectDisplayID, onScreenOnly: Bool) -> [MenuBarItem] {
-        let windows = if onScreenOnly {
-            WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
-        } else {
-            WindowInfo.getAllWindows(excludeDesktopWindows: true)
-        }
-        guard let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display) else {
-            return []
-        }
-        return windows.compactMap { window in
-            guard
-                window.isMenuBarItem,
-                window.title != "",
-                window.frame.minY == menuBarWindow.frame.minY,
-                window.frame.maxY == menuBarWindow.frame.maxY
-            else {
-                return nil
-            }
-            return MenuBarItem(uncheckedItemWindow: window)
-        }
-    }
-
-    private static func getMenuBarItems_Bridging(on display: CGDirectDisplayID, onScreenOnly: Bool) -> [MenuBarItem] {
-        var option: Bridging.WindowListOption = [.menuBarItems]
-        if onScreenOnly {
-            option.insert(.onScreen)
-        }
-        let displayBounds = CGDisplayBounds(display)
-        return Bridging.getWindowList(option: option).compactMap { windowID in
-            guard
-                let windowFrame = Bridging.getWindowFrame(for: windowID),
-                displayBounds.intersects(windowFrame)
-            else {
-                return nil
-            }
-            return MenuBarItem(windowID: windowID)
-        }
-    }
-
-    /// Returns an array of the current menu bar items in the menu bar on
-    /// the given display.
+    /// Returns an array of the current menu bar items in the menu bar on the given display.
     ///
     /// - Parameters:
-    ///   - display: The display to retrieve the menu bar items on.
-    ///   - method: The method to use to get the items.
-    ///   - onScreenOnly: A Boolean value that indicates whether only the
-    ///     items that are on screen should be returned.
-    static func getMenuBarItems(
-        on display: CGDirectDisplayID,
-        using getterMethod: GetterMethod,
-        onScreenOnly: Bool,
-        sortingBy sortingMethod: SortingMethod?
-    ) -> [MenuBarItem] {
-        let items = switch getterMethod {
-        case .coreGraphics: getMenuBarItems_CoreGraphics(on: display, onScreenOnly: onScreenOnly)
-        case .bridging: getMenuBarItems_Bridging(on: display, onScreenOnly: onScreenOnly)
-        }
-        return switch sortingMethod {
-        case .orderInMenuBar:
-            items.sortedByOrderInMenuBar()
-        case .custom(let areInIncreasingOrder):
-            items.sorted(by: areInIncreasingOrder)
-        case nil:
-            items
-        }
-    }
-
-    /// Returns an array of menu bar items using a private API to retrieve
-    /// the windows.
-    ///
-    /// - Parameters:
-    ///   - onScreenOnly: A Boolean value that indicates whether only the
-    ///     items that are on screen should be returned.
-    ///   - activeSpaceOnly: A Boolean value that indicates whether only the
-    ///     items that are on the active space should be returned.
-    static func getMenuBarItemsPrivateAPI(onScreenOnly: Bool, activeSpaceOnly: Bool) -> [MenuBarItem] {
+    ///   - display: The display to retrieve the menu bar items on. Pass `nil` to return the
+    ///     menu bar items across all displays.
+    ///   - onScreenOnly: A Boolean value that indicates whether only the menu bar items that
+    ///     are on screen should be returned.
+    ///   - activeSpaceOnly: A Boolean value that indicates whether only the menu bar items
+    ///     that are on the active space should be returned.
+    static func getMenuBarItems(on display: CGDirectDisplayID? = nil, onScreenOnly: Bool, activeSpaceOnly: Bool) -> [MenuBarItem] {
         var option: Bridging.WindowListOption = [.menuBarItems]
-        if onScreenOnly {
-            option.insert(.onScreen)
-        }
+
         var titlePredicate: (MenuBarItem) -> Bool = { _ in true }
+        var boundsPredicate: (CGWindowID) -> Bool = { _ in true }
+
+        if onScreenOnly {
+            option.insert(.onScreen)
+        }
         if activeSpaceOnly {
             option.insert(.activeSpace)
             titlePredicate = { $0.title != "" }
         }
+        if let display {
+            let displayBounds = CGDisplayBounds(display)
+            boundsPredicate = { windowID in
+                guard let windowFrame = Bridging.getWindowFrame(for: windowID) else {
+                    return false
+                }
+                return displayBounds.intersects(windowFrame)
+            }
+        }
+
         return Bridging.getWindowList(option: option).lazy
+            .filter(boundsPredicate)
             .compactMap { windowID in
                 MenuBarItem(windowID: windowID)
             }

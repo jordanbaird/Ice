@@ -198,7 +198,7 @@ extension EventManager {
         }
 
         // Only continue if a section is currently visible.
-        guard let shownSection = appState.menuBarManager.shownSection else {
+        guard appState.menuBarManager.sections.contains(where: { !$0.isHidden }) else {
             return
         }
 
@@ -215,7 +215,9 @@ extension EventManager {
 
             // If clicking caused a space change, don't bother with the window check.
             if Bridging.activeSpaceID != initialSpaceID {
-                shownSection.hide()
+                for section in appState.menuBarManager.sections {
+                    section.hide()
+                }
                 return
             }
 
@@ -242,8 +244,10 @@ extension EventManager {
                 }
             }
 
-            // If all the above checks have passed, hide.
-            shownSection.hide()
+            // If all the above checks have passed, hide all sections.
+            for section in appState.menuBarManager.sections {
+                section.hide()
+            }
         }
     }
 

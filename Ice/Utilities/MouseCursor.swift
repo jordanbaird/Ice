@@ -7,22 +7,17 @@ import CoreGraphics
 
 /// A namespace for mouse cursor operations.
 enum MouseCursor {
-    /// The location of the mouse pointer in the coordinate system used by the
-    /// `CoreGraphics` framework.
-    ///
-    /// The coordinate system of the returned location is relative to the top
-    /// left corner of the screen.
-    static var coreGraphicsLocation: CGPoint? {
-        CGEvent(source: nil)?.location
-    }
+    /// A coordinate space for mouse cursor operations.
+    enum CoordinateSpace {
+        /// The coordinate space used by the `AppKit` framework.
+        ///
+        /// The origin of this coordinate space is at the bottom left corner of the screen.
+        case appKit
 
-    /// The location of the mouse pointer in the coordinate system used by the
-    /// `AppKit` framework.
-    ///
-    /// The coordinate system of the returned location is relative to the bottom
-    /// left corner of the screen.
-    static var appKitLocation: CGPoint? {
-        CGEvent(source: nil)?.unflippedLocation
+        /// The coordinate space used by the `CoreGraphics` framework.
+        ///
+        /// The origin of this coordinate space is at the top left corner of the screen.
+        case coreGraphics
     }
 
     /// Hides the mouse cursor and increments the hide cursor count.
@@ -48,6 +43,21 @@ enum MouseCursor {
         let result = CGWarpMouseCursorPosition(point)
         if result != .success {
             Logger.mouseCursor.error("CGWarpMouseCursorPosition failed with error \(result.logString)")
+        }
+    }
+
+    /// Returns the location of the mouse pointer.
+    ///
+    /// - Parameter coordinateSpace: The coordinate space of the returned location. See
+    ///   the constants defined in ``MouseCursor/CoordinateSpace`` for more information.
+    static func location(in coordinateSpace: CoordinateSpace) -> CGPoint? {
+        CGEvent(source: nil).map { event in
+            switch coordinateSpace {
+            case .appKit:
+                event.unflippedLocation
+            case .coreGraphics:
+                event.location
+            }
         }
     }
 }

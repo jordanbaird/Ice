@@ -915,7 +915,7 @@ extension MenuBarItemManager {
         guard let appState else {
             throw EventError(code: .invalidAppState, item: item)
         }
-        guard let cursorLocation = MouseCursor.coreGraphicsLocation else {
+        guard let cursorLocation = MouseCursor.location(in: .coreGraphics) else {
             throw EventError(code: .invalidCursorLocation, item: item)
         }
         guard let initialFrame = getCurrentFrame(for: item) else {
@@ -994,7 +994,7 @@ extension MenuBarItemManager {
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .invalidEventSource, item: item)
         }
-        guard let cursorLocation = MouseCursor.coreGraphicsLocation else {
+        guard let cursorLocation = MouseCursor.location(in: .coreGraphics) else {
             throw EventError(code: .invalidCursorLocation, item: item)
         }
         guard let currentFrame = getCurrentFrame(for: item) else {

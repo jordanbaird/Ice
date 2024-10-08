@@ -192,72 +192,45 @@ final class MenuBarItemManager: ObservableObject {
 // MARK: - Cache Items
 
 extension MenuBarItemManager {
-    /// Caches the given menu bar items, without checking whether the control items are in the correct order.
+    /// Logs a warning that the given menu bar item was not added to the cache.
+    private func logNotCachedWarning(for item: MenuBarItem) {
+        Logger.itemManager.warning("\(item.logString) was not cached")
+    }
+
+    /// Caches the given menu bar items, without checking whether the control
+    /// items are in the correct order.
     private func uncheckedCacheItems(
         hiddenControlItem: MenuBarItem,
         alwaysHiddenControlItem: MenuBarItem?,
         otherItems: [MenuBarItem]
     ) {
-        func logNotAddedWarning(for item: MenuBarItem) {
-            Logger.itemManager.warning("\(item.logString) doesn't seem to be in a section, so it wasn't cached")
-        }
-
         Logger.itemManager.debug("Caching menu bar items")
 
-        update(&itemCache) { cache in
-            cache.clear()
+        let predicates = Predicates.sectionPredicates(
+            hiddenControlItem: hiddenControlItem,
+            alwaysHiddenControlItem: alwaysHiddenControlItem
+        )
 
-            if let alwaysHiddenControlItem {
-                for item in otherItems {
-                    if item.frame.minX >= hiddenControlItem.frame.maxX {
-                        cache.appendItem(item, to: .visible)
-                    } else if
-                        item.frame.maxX <= hiddenControlItem.frame.minX,
-                        item.frame.minX >= alwaysHiddenControlItem.frame.maxX
-                    {
-                        cache.appendItem(item, to: .hidden)
-                    } else if item.frame.maxX <= alwaysHiddenControlItem.frame.minX {
-                        cache.appendItem(item, to: .alwaysHidden)
-                    } else {
-                        logNotAddedWarning(for: item)
-                    }
-                }
+        var cache = ItemCache()
+
+        for item in otherItems {
+            if predicates.isInVisibleSection(item) {
+                cache.appendItem(item, to: .visible)
+            } else if predicates.isInHiddenSection(item) {
+                cache.appendItem(item, to: .hidden)
+            } else if predicates.isInAlwaysHiddenSection(item) {
+                cache.appendItem(item, to: .alwaysHidden)
             } else {
-                for item in otherItems {
-                    if item.frame.minX >= hiddenControlItem.frame.maxX {
-                        cache.appendItem(item, to: .visible)
-                    } else if item.frame.maxX <= hiddenControlItem.frame.minX {
-                        cache.appendItem(item, to: .hidden)
-                    } else {
-                        logNotAddedWarning(for: item)
-                    }
-                }
+                logNotCachedWarning(for: item)
             }
         }
+
+        itemCache = cache
     }
 
-    /// Caches the current menu bar items if needed, ensuring that the control items are in the correct order.
-    private func cacheItemsIfNeeded() async {
-        guard tempShownItemContexts.isEmpty else {
-            Logger.itemManager.debug("Skipping item cache as items are temporarily shown")
-            return
-        }
-
-        if let lastItemMoveStartDate {
-            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
-                Logger.itemManager.debug("Skipping item cache as an item was recently moved")
-                return
-            }
-        }
-
-        let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
-        if cachedItemWindowIDs == itemWindowIDs {
-            Logger.itemManager.debug("Skipping item cache as item windows have not changed")
-            return
-        } else {
-            cachedItemWindowIDs = itemWindowIDs
-        }
-
+    /// Caches the current menu bar items, ensuring that the control items are
+    /// in the correct order.
+    private func cacheItems() async {
         var items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
 
         let hiddenControlItem = items.firstIndex(of: .hiddenControlItem).map { items.remove(at: $0) }
@@ -287,6 +260,32 @@ extension MenuBarItemManager {
             Logger.itemManager.debug("Clearing item cache")
             itemCache.clear()
         }
+    }
+
+    /// Caches the current menu bar items if needed, ensuring that the control
+    /// items are in the correct order.
+    private func cacheItemsIfNeeded() async {
+        guard tempShownItemContexts.isEmpty else {
+            Logger.itemManager.debug("Skipping item cache as items are temporarily shown")
+            return
+        }
+
+        if let lastItemMoveStartDate {
+            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
+                Logger.itemManager.debug("Skipping item cache as an item was recently moved")
+                return
+            }
+        }
+
+        let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
+        if cachedItemWindowIDs == itemWindowIDs {
+            Logger.itemManager.debug("Skipping item cache as item windows have not changed")
+            return
+        } else {
+            cachedItemWindowIDs = itemWindowIDs
+        }
+
+        await cacheItems()
     }
 }
 

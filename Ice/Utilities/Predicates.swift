@@ -22,6 +22,16 @@ enum Predicates<Input> {
     static func predicate(_ body: @escaping (Input) -> Bool) -> NonThrowingPredicate {
         return body
     }
+
+    /// Creates a throwing predicate that doesn't take an input and returns a Boolean value.
+    static func predicate(_ body: @escaping () throws -> Bool) -> ThrowingPredicate {
+        predicate { _ in try body() }
+    }
+
+    /// Creates a predicate that doesn't take an input and returns a Boolean value.
+    static func predicate(_ body: @escaping () -> Bool) -> NonThrowingPredicate {
+        predicate { _ in body() }
+    }
 }
 
 // MARK: - Window Predicates
@@ -49,6 +59,61 @@ extension Predicates where Input == WindowInfo {
             window.title == "Menubar" &&
             CGDisplayBounds(display).contains(window.frame)
         }
+    }
+}
+
+// MARK: - Menu Bar Item Predicates
+
+extension Predicates where Input == MenuBarItem {
+    /// A group of predicates that separates menu bar items into sections.
+    typealias SectionPredicates = (
+        isInVisibleSection: NonThrowingPredicate,
+        isInHiddenSection: NonThrowingPredicate,
+        isInAlwaysHiddenSection: NonThrowingPredicate
+    )
+
+    /// Creates a predicate that returns whether a menu bar item is in the visible section
+    /// using the control item for the hidden section as a delimiter.
+    static func isInVisibleSection(hiddenControlItem: MenuBarItem) -> NonThrowingPredicate {
+        predicate { item in
+            item.frame.minX >= hiddenControlItem.frame.maxX
+        }
+    }
+
+    /// Creates a predicate that returns whether a menu bar item is in the hidden section
+    /// using the control items for the hidden and always hidden sections as delimiters.
+    static func isInHiddenSection(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem?) -> NonThrowingPredicate {
+        if let alwaysHiddenControlItem {
+            predicate { item in
+                item.frame.maxX <= hiddenControlItem.frame.minX &&
+                item.frame.minX >= alwaysHiddenControlItem.frame.maxX
+            }
+        } else {
+            predicate { item in
+                item.frame.maxX <= hiddenControlItem.frame.minX
+            }
+        }
+    }
+
+    /// Creates a predicate that returns whether a menu bar item is in the always-hidden
+    /// section using the control item for the always hidden section as a delimiter.
+    static func isInAlwaysHiddenSection(alwaysHiddenControlItem: MenuBarItem?) -> NonThrowingPredicate {
+        if let alwaysHiddenControlItem {
+            predicate { item in
+                item.frame.maxX <= alwaysHiddenControlItem.frame.minX
+            }
+        } else {
+            predicate { false }
+        }
+    }
+
+    /// Creates a group of predicates that separates menu bar items into sections.
+    static func sectionPredicates(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem?) -> SectionPredicates {
+        SectionPredicates(
+            isInVisibleSection: isInVisibleSection(hiddenControlItem: hiddenControlItem),
+            isInHiddenSection: isInHiddenSection(hiddenControlItem: hiddenControlItem, alwaysHiddenControlItem: alwaysHiddenControlItem),
+            isInAlwaysHiddenSection: isInAlwaysHiddenSection(alwaysHiddenControlItem: alwaysHiddenControlItem)
+        )
     }
 }
 

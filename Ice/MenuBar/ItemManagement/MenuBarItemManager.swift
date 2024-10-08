@@ -159,6 +159,18 @@ final class MenuBarItemManager: ObservableObject {
             }
             .store(in: &c)
 
+        NSWorkspace.shared.publisher(for: \.runningApplications)
+            .delay(for: 0.25, scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                Task {
+                    await self.cacheItemsIfNeeded()
+                }
+            }
+            .store(in: &c)
+
         Publishers.Merge(
             UniversalEventMonitor.publisher(for: mouseTrackingMask),
             RunLoopLocalEventMonitor.publisher(for: mouseTrackingMask, mode: .eventTracking)

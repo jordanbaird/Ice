@@ -49,8 +49,9 @@ brew install jordanbaird-ice
 - [x] Drag and drop interface to arrange individual menu bar items
 - [x] Display hidden menu bar items in a separate bar (e.g. for MacBooks with the notch)
 - [x] Search menu bar items
-- [x] Custom menu bar item spacing
+- [x] Menu bar item spacing (BETA)
 - [ ] Profiles for menu bar layout
+- [ ] Individual spacer items
 - [ ] Menu bar item groups
 - [ ] Show menu bar items when trigger conditions are met
 
@@ -62,14 +63,17 @@ brew install jordanbaird-ice
 - [x] Custom menu bar shapes (rounded and/or split)
 - [ ] Remove background behind menu bar
 - [ ] Rounded screen corners
+- [ ] Different settings for light/dark mode
 
 ### Hotkeys
 
 - [x] Toggle individual menu bar sections
-- [x] Toggle application menus
+- [x] Show the search panel
+- [x] Enable/disable the Ice Bar
 - [x] Show/hide section divider icons
-- [ ] Temporarily show individual menu bar items
+- [x] Toggle application menus
 - [ ] Enable/disable auto rehide
+- [ ] Temporarily show individual menu bar items
 
 ### Other
 
@@ -89,7 +93,7 @@ Ice uses a number of system APIs that are available starting in macOS 14. As suc
 
 #### Drag-and-drop interface to arrange menu bar items
 
-![Menu Bar Layout](https://github.com/user-attachments/assets/6a65d9aa-5d17-46ea-8d88-5ebff981d82a)
+![Menu Bar Layout](https://github.com/user-attachments/assets/095442ba-f2d0-4bb4-9632-91e26ef8d45b)
 
 #### Customize the menu bar's appearance
 
@@ -97,7 +101,7 @@ Ice uses a number of system APIs that are available starting in macOS 14. As suc
 
 #### Menu bar item search
 
-![Menu Bar Item Search](https://github.com/user-attachments/assets/ceca6fc6-4695-4a5c-ad64-3d92ce0dc234)
+![Menu Bar Item Search](https://github.com/user-attachments/assets/d1a7df3a-4989-4077-a0b1-8e7d5a1ba5b8)
 
 #### Custom menu bar item spacing
 

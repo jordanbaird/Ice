@@ -76,7 +76,7 @@ final class MenuBarItemImageCache: ObservableObject {
     /// the given section.
     @MainActor
     func cacheFailed(for section: MenuBarSection.Name) -> Bool {
-        let items = appState?.itemManager.itemCache.allItems(for: section) ?? []
+        let items = appState?.itemManager.itemCache[section] ?? []
         guard !items.isEmpty else {
             return false
         }
@@ -94,7 +94,7 @@ final class MenuBarItemImageCache: ObservableObject {
             return [:]
         }
 
-        let items = await appState.itemManager.itemCache.allItems(for: section)
+        let items = await appState.itemManager.itemCache[section]
 
         var images = [MenuBarItemInfo: CGImage]()
         let backingScaleFactor = screen.backingScaleFactor
@@ -199,7 +199,7 @@ final class MenuBarItemImageCache: ObservableObject {
         let context = Context()
 
         for section in sections {
-            guard await !appState.itemManager.itemCache.allItems(for: section).isEmpty else {
+            guard await !appState.itemManager.itemCache[section].isEmpty else {
                 continue
             }
             let sectionImages = await createImages(for: section, screen: screen)

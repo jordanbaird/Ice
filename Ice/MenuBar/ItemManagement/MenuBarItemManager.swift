@@ -17,7 +17,7 @@ final class MenuBarItemManager: ObservableObject {
         /// All cached menu bar items.
         var allItems: [MenuBarItem] {
             MenuBarSection.Name.allCases.reduce(into: []) { result, section in
-                result.append(contentsOf: allItems(for: section))
+                result.append(contentsOf: self[section])
             }
         }
 
@@ -28,29 +28,14 @@ final class MenuBarItemManager: ObservableObject {
             }
         }
 
-        /// Appends the given item to the given section.
-        mutating func appendItem(_ item: MenuBarItem, to section: MenuBarSection.Name) {
-            items[section, default: []].append(item)
-        }
-
-        /// Clears the cached items for the given section.
-        mutating func clearItems(for section: MenuBarSection.Name) {
-            items[section, default: []].removeAll()
-        }
-
         /// Clears the cache.
         mutating func clear() {
             items.removeAll()
         }
 
-        /// Returns the cached menu bar items for the given section.
-        func allItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
-            items[section, default: []]
-        }
-
         /// Returns the cached menu bar items managed by Ice for the given section.
         func managedItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
-            allItems(for: section).filter { item in
+            self[section].filter { item in
                 // Filter out items that can't be hidden.
                 guard item.canBeHidden else {
                     return false
@@ -65,6 +50,20 @@ final class MenuBarItemManager: ObservableObject {
 
                 return true
             }
+        }
+
+        /// Returns the name of the section for the given menu bar item.
+        func section(for item: MenuBarItem) -> MenuBarSection.Name? {
+            for (section, items) in self.items where items.contains(where: { $0.info == item.info }) {
+                return section
+            }
+            return nil
+        }
+
+        /// Accesses the items in the given section.
+        subscript(section: MenuBarSection.Name) -> [MenuBarItem] {
+            get { items[section, default: []] }
+            set { items[section] = newValue }
         }
     }
 
@@ -212,25 +211,82 @@ extension MenuBarItemManager {
         )
 
         var cache = ItemCache()
+        var tempShownItems = [(MenuBarItem, MoveDestination)]()
 
         for item in otherItems {
-            if predicates.isInVisibleSection(item) {
-                cache.appendItem(item, to: .visible)
+            if let context = tempShownItemContexts.first(where: { $0.info == item.info }) {
+                // Keep track of temporarily shown items and their return destinations separately.
+                // We want to cache them as if they were in their original locations. Once all other
+                // items are cached, use the return destinations to insert the items into the cache
+                // at the correct position.
+                tempShownItems.append((item, context.returnDestination))
+            } else if predicates.isInVisibleSection(item) {
+                cache[.visible].append(item)
             } else if predicates.isInHiddenSection(item) {
-                cache.appendItem(item, to: .hidden)
+                cache[.hidden].append(item)
             } else if predicates.isInAlwaysHiddenSection(item) {
-                cache.appendItem(item, to: .alwaysHidden)
+                cache[.alwaysHidden].append(item)
             } else {
                 logNotCachedWarning(for: item)
+            }
+        }
+
+        for (item, destination) in tempShownItems {
+            switch destination {
+            case .leftOfItem(let targetItem):
+                switch targetItem.info {
+                case .hiddenControlItem:
+                    cache[.hidden].append(item)
+                case .alwaysHiddenControlItem:
+                    cache[.alwaysHidden].append(item)
+                default:
+                    if
+                        let section = cache.section(for: targetItem),
+                        let index = cache[section].firstIndex(of: targetItem.info)
+                    {
+                        let clampedIndex = index.clamped(to: cache[section].startIndex...cache[section].endIndex)
+                        cache[section].insert(item, at: clampedIndex)
+                    }
+                }
+            case .rightOfItem(let targetItem):
+                switch targetItem.info {
+                case .hiddenControlItem:
+                    cache[.visible].insert(item, at: 0)
+                case .alwaysHiddenControlItem:
+                    cache[.hidden].insert(item, at: 0)
+                default:
+                    if
+                        let section = cache.section(for: targetItem),
+                        let index = cache[section].firstIndex(of: targetItem.info)
+                    {
+                        let clampedIndex = (index - 1).clamped(to: cache[section].startIndex...cache[section].endIndex)
+                        cache[section].insert(item, at: clampedIndex)
+                    }
+                }
             }
         }
 
         itemCache = cache
     }
 
-    /// Caches the current menu bar items, ensuring that the control items are
-    /// in the correct order.
-    private func cacheItems() async {
+    /// Caches the current menu bar items if needed, ensuring that the control
+    /// items are in the correct order.
+    private func cacheItemsIfNeeded() async {
+        if let lastItemMoveStartDate {
+            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
+                Logger.itemManager.debug("Skipping item cache as an item was recently moved")
+                return
+            }
+        }
+
+        let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
+        if cachedItemWindowIDs == itemWindowIDs {
+            Logger.itemManager.debug("Skipping item cache as item windows have not changed")
+            return
+        } else {
+            cachedItemWindowIDs = itemWindowIDs
+        }
+
         var items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
 
         let hiddenControlItem = items.firstIndex(of: .hiddenControlItem).map { items.remove(at: $0) }
@@ -260,32 +316,6 @@ extension MenuBarItemManager {
             Logger.itemManager.debug("Clearing item cache")
             itemCache.clear()
         }
-    }
-
-    /// Caches the current menu bar items if needed, ensuring that the control
-    /// items are in the correct order.
-    private func cacheItemsIfNeeded() async {
-        guard tempShownItemContexts.isEmpty else {
-            Logger.itemManager.debug("Skipping item cache as items are temporarily shown")
-            return
-        }
-
-        if let lastItemMoveStartDate {
-            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
-                Logger.itemManager.debug("Skipping item cache as an item was recently moved")
-                return
-            }
-        }
-
-        let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
-        if cachedItemWindowIDs == itemWindowIDs {
-            Logger.itemManager.debug("Skipping item cache as item windows have not changed")
-            return
-        } else {
-            cachedItemWindowIDs = itemWindowIDs
-        }
-
-        await cacheItems()
     }
 }
 

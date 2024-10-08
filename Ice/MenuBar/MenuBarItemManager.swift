@@ -244,7 +244,7 @@ extension MenuBarItemManager {
         }
 
         if let lastItemMoveStartDate {
-            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 3 else {
+            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
                 Logger.itemManager.debug("Skipping item cache as an item was recently moved")
                 return
             }

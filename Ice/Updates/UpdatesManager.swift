@@ -85,6 +85,7 @@ final class UpdatesManager: NSObject, ObservableObject {
         }
         // Activate the app in case an alert needs to be displayed.
         appState.activate(withPolicy: .regular)
+        appState.openSettingsWindow()
         updater.checkForUpdates()
         #endif
     }

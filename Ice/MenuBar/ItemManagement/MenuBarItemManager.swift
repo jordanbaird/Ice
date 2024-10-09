@@ -115,6 +115,10 @@ final class MenuBarItemManager: ObservableObject {
     /// The last time an item was moved.
     private(set) var lastItemMoveStartDate: Date?
 
+    /// Counter to determine if a menu bar item, or group of menu bar
+    /// items is being moved.
+    private var itemMoveCount = 0
+
     /// A Boolean value that indicates whether a mouse button is down.
     private var isMouseButtonDown = false
 
@@ -131,6 +135,10 @@ final class MenuBarItemManager: ObservableObject {
         .rightMouseUp,
         .otherMouseUp,
     ]
+
+    /// A Boolean value that indicates whether a menu bar item, or group
+    /// of menu bar items is being moved.
+    var isMovingItem: Bool { itemMoveCount > 0 }
 
     /// Creates a manager with the given app state.
     init(appState: AppState) {
@@ -208,6 +216,11 @@ extension MenuBarItemManager {
         Logger.itemManager.warning("\(item.logString) was not cached")
     }
 
+    /// Logs a reason for skipping the cache.
+    private func logSkippingCache(reason: String) {
+        Logger.itemManager.debug("Skipping menu bar item cache as \(reason)")
+    }
+
     /// Caches the given menu bar items, without checking whether the control
     /// items are in the correct order.
     private func uncheckedCacheItems(
@@ -283,17 +296,24 @@ extension MenuBarItemManager {
 
     /// Caches the current menu bar items if needed, ensuring that the control
     /// items are in the correct order.
-    private func cacheItemsIfNeeded() async {
-        if let lastItemMoveStartDate {
-            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
-                Logger.itemManager.debug("Skipping item cache as an item was recently moved")
-                return
+    func cacheItemsIfNeeded() async {
+        do {
+            try await waitForItemsToStopMoving(timeout: .seconds(1))
+        } catch is TaskTimeoutError {
+            logSkippingCache(reason: "an item is currently being moved")
+            return
+        } catch {
+            if let lastItemMoveStartDate {
+                guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
+                    logSkippingCache(reason: "an item was recently moved")
+                    return
+                }
             }
         }
 
         let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
         if cachedItemWindowIDs == itemWindowIDs {
-            Logger.itemManager.debug("Skipping item cache as item windows have not changed")
+            logSkippingCache(reason: "item windows have not changed")
             return
         } else {
             cachedItemWindowIDs = itemWindowIDs
@@ -306,7 +326,7 @@ extension MenuBarItemManager {
 
         guard let hiddenControlItem else {
             Logger.itemManager.warning("Missing control item for hidden section")
-            Logger.itemManager.debug("Clearing item cache")
+            Logger.itemManager.debug("Clearing menu bar item cache")
             itemCache.clear()
             return
         }
@@ -325,7 +345,7 @@ extension MenuBarItemManager {
             )
         } catch {
             Logger.itemManager.error("Error enforcing control item order: \(error)")
-            Logger.itemManager.debug("Clearing item cache")
+            Logger.itemManager.debug("Clearing menu bar item cache")
             itemCache.clear()
         }
     }
@@ -861,6 +881,11 @@ extension MenuBarItemManager {
         _ item: MenuBarItem,
         to destination: MoveDestination
     ) async throws {
+        itemMoveCount += 1
+        defer {
+            itemMoveCount -= 1
+        }
+
         guard item.isMovable else {
             throw EventError(code: .notMovable, item: item)
         }
@@ -1006,6 +1031,10 @@ extension MenuBarItemManager {
     ///   - destination: A destination to move the menu bar item.
     ///   - timeout: Amount of time to wait before throwing an error.
     func slowMove(item: MenuBarItem, to destination: MoveDestination, timeout: Duration = .seconds(1)) async throws {
+        itemMoveCount += 1
+        defer {
+            itemMoveCount -= 1
+        }
         try await move(item: item, to: destination)
         let waitTask = Task(timeout: timeout) {
             while true {
@@ -1020,6 +1049,19 @@ extension MenuBarItemManager {
         } catch is TaskTimeoutError {
             throw EventError(code: .otherTimeout, item: item)
         }
+    }
+
+    /// Waits asynchronously for all menu bar items to stop moving.
+    ///
+    /// - Parameter timeout: Amount of time to wait before throwing an error.
+    func waitForItemsToStopMoving(timeout: Duration) async throws {
+        let isMovingItemCheckTask = Task(timeout: timeout) {
+            while await self.isMovingItem {
+                try Task.checkCancellation()
+                try await Task.sleep(for: .milliseconds(10))
+            }
+        }
+        try await isMovingItemCheckTask.value
     }
 }
 
@@ -1275,6 +1317,11 @@ extension MenuBarItemManager {
     /// If an item is currently showing its interface, this method waits for the
     /// interface to close before hiding the items.
     func rehideTempShownItems() async {
+        itemMoveCount += 1
+        defer {
+            itemMoveCount -= 1
+        }
+
         guard !tempShownItemContexts.isEmpty else {
             return
         }

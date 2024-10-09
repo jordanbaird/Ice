@@ -86,12 +86,9 @@ final class MenuBarSearchPanel: NSPanel {
             else {
                 return event
             }
-            if let lastItemMoveStartDate = appState.itemManager.lastItemMoveStartDate {
-                guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
-                    return event
-                }
+            if !appState.itemManager.isMovingItem {
+                close()
             }
-            close()
             return event
         }
         keyDownMonitor = UniversalEventMonitor(mask: .keyDown) { [weak self] event in

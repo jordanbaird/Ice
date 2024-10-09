@@ -72,6 +72,11 @@ final class MenuBarItemImageCache: ObservableObject {
         cancellables = c
     }
 
+    /// Logs a reason for skipping the cache.
+    private func logSkippingCache(reason: String) {
+        Logger.imageCache.debug("Skipping menu bar item image cache as \(reason)")
+    }
+
     /// Returns a Boolean value that indicates whether caching menu bar items failed for
     /// the given section.
     @MainActor
@@ -231,22 +236,27 @@ final class MenuBarItemImageCache: ObservableObject {
 
         if !isIceBarPresented && !isSearchPresented {
             guard await appState.navigationState.isAppFrontmost else {
-                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, app not frontmost")
+                logSkippingCache(reason: "Ice Bar not visible, app not frontmost")
                 return
             }
             guard await appState.navigationState.isSettingsPresented else {
-                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings not visible")
+                logSkippingCache(reason: "Ice Bar not visible, Settings not visible")
                 return
             }
             guard case .menuBarLayout = await appState.navigationState.settingsNavigationIdentifier else {
-                Logger.imageCache.debug("Skipping image cache as Ice Bar not visible, Settings visible but not on Menu Bar Layout pane")
+                logSkippingCache(reason: "Ice Bar not visible, Settings visible but not on Menu Bar Layout")
                 return
             }
         }
 
+        guard await !appState.itemManager.isMovingItem else {
+            logSkippingCache(reason: "an item is currently being moved")
+            return
+        }
+
         if let lastItemMoveStartDate = await appState.itemManager.lastItemMoveStartDate {
-            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 3 else {
-                Logger.imageCache.debug("Skipping image cache as an item was recently moved")
+            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
+                logSkippingCache(reason: "an item was recently moved")
                 return
             }
         }

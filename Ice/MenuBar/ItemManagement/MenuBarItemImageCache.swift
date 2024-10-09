@@ -42,19 +42,19 @@ final class MenuBarItemImageCache: ObservableObject {
         if let appState {
             Publishers.Merge3(
                 // Update every 3 seconds at minimum.
-                Timer.publish(every: 3, on: .main, in: .default).autoconnect().replace(with: ()),
+                Timer.publish(every: 3, on: .main, in: .default).autoconnect().mapToVoid(),
 
                 // Update when the active space or screen parameters change.
                 Publishers.Merge(
                     NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
                     NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
                 )
-                .replace(with: ()),
+                .mapToVoid(),
 
                 // Update when the average menu bar color or cached items change.
                 Publishers.Merge(
-                    appState.menuBarManager.$averageColorInfo.removeDuplicates().replace(with: ()),
-                    appState.itemManager.$itemCache.removeDuplicates().replace(with: ())
+                    appState.menuBarManager.$averageColorInfo.removeDuplicates().mapToVoid(),
+                    appState.itemManager.$itemCache.removeDuplicates().mapToVoid()
                 )
             )
             .throttle(for: 0.5, scheduler: DispatchQueue.main, latest: false)

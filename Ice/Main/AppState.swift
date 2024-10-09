@@ -85,17 +85,17 @@ final class AppState: ObservableObject {
         Publishers.Merge3(
             NSWorkspace.shared.notificationCenter
                 .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-                .replace(with: ()),
+                .mapToVoid(),
             // Frontmost application change can indicate a space change from one display to
             // another, which gets ignored by NSWorkspace.activeSpaceDidChangeNotification.
             NSWorkspace.shared
                 .publisher(for: \.frontmostApplication)
-                .replace(with: ()),
+                .mapToVoid(),
             // Clicking into a fullscreen space from another space is also ignored.
             UniversalEventMonitor
                 .publisher(for: .leftMouseDown)
                 .delay(for: 0.1, scheduler: DispatchQueue.main)
-                .replace(with: ())
+                .mapToVoid()
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in

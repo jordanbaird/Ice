@@ -22,9 +22,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Allow the app to set the cursor in the background.
         appState.setsCursorInBackground = true
-
-        // Set up the shared screen state manager.
-        ScreenStateManager.setUpSharedManager()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

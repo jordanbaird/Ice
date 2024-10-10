@@ -14,18 +14,20 @@ struct MigrationManager {
 
 extension MigrationManager {
     /// Performs all migrations.
-    func migrateAll() {
+    static func migrateAll(appState: AppState) {
+        let manager = MigrationManager(appState: appState)
+
         do {
             try performAll(blocks: [
-                migrate0_8_0,
-                migrate0_10_0,
+                manager.migrate0_8_0,
+                manager.migrate0_10_0,
             ])
         } catch {
             logError(error)
         }
 
         let results = [
-            migrate0_10_1(),
+            manager.migrate0_10_1(),
         ]
 
         for result in results {
@@ -40,7 +42,7 @@ extension MigrationManager {
         }
     }
 
-    private func logError(_ error: any Error) {
+    private static func logError(_ error: any Error) {
         Logger.migration.error("Migration failed with error: \(error)")
     }
 }
@@ -54,7 +56,7 @@ extension MigrationManager {
         guard !Defaults.bool(forKey: .hasMigrated0_8_0) else {
             return
         }
-        try performAll(blocks: [
+        try MigrationManager.performAll(blocks: [
             migrateHotkeys0_8_0,
             migrateControlItems0_8_0,
             migrateSections0_8_0,
@@ -149,7 +151,7 @@ extension MigrationManager {
 
             // migrate the old autosave name to the new autosave name in UserDefaults
             StatusItemDefaults.migrate(key: .preferredPosition, from: autosaveName, to: identifier)
-            StatusItemDefaults.migrate(key: .isVisible, from: autosaveName, to: identifier)
+            StatusItemDefaults.migrate(key: .visible, from: autosaveName, to: identifier)
 
             // replace the old "controlItem" dictionary with the new one
             sectionDict["controlItem"] = controlItemDict
@@ -181,7 +183,7 @@ extension MigrationManager {
         guard !Defaults.bool(forKey: .hasMigrated0_10_0) else {
             return
         }
-        try performAll(blocks: [
+        try MigrationManager.performAll(blocks: [
             migrateControlItems0_10_0,
         ])
         Defaults.set(true, forKey: .hasMigrated0_10_0)
@@ -223,12 +225,12 @@ extension MigrationManager {
 
         for identifier in ControlItem.Identifier.allCases {
             if
-                StatusItemDefaults[.isVisible, identifier.rawValue] == false,
+                StatusItemDefaults[.visible, identifier.rawValue] == false,
                 StatusItemDefaults[.preferredPosition, identifier.rawValue] == nil
             {
                 needsResetPreferredPositions = true
             }
-            StatusItemDefaults[.isVisible, identifier.rawValue] = nil
+            StatusItemDefaults[.visible, identifier.rawValue] = nil
         }
 
         if needsResetPreferredPositions {
@@ -252,7 +254,7 @@ extension MigrationManager {
 extension MigrationManager {
     /// Performs every block in the given array, catching any thrown
     /// errors and rethrowing them as a combined error.
-    private func performAll(blocks: [() throws -> Void]) throws {
+    private static func performAll(blocks: [() throws -> Void]) throws {
         let results = blocks.map { block in
             Result(catching: block)
         }

@@ -22,12 +22,16 @@ final class MenuBarManager: ObservableObject {
     /// according to a value stored in UserDefaults.
     @Published private(set) var isMenuBarHiddenBySystemUserDefaults = false
 
+    /// The shared app state.
     private(set) weak var appState: AppState?
 
+    /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
+    /// The panel that contains the Ice Bar interface.
     let iceBarPanel: IceBarPanel
 
+    /// The panel that contains the menu bar search interface.
     let searchPanel: MenuBarSearchPanel
 
     private let encoder = JSONEncoder()
@@ -39,18 +43,6 @@ final class MenuBarManager: ObservableObject {
     private var canUpdateAverageColor = false
 
     private(set) var sections = [MenuBarSection]()
-
-    /// The currently shown section.
-    var shownSection: MenuBarSection? {
-        // Filter out the visible section. If multiple sections are shown, return the last one.
-        sections.lazy
-            .filter { section in
-                section.name != .visible
-            }
-            .last { section in
-                !section.isHidden
-            }
-    }
 
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
@@ -373,6 +365,7 @@ final class MenuBarManager: ObservableObject {
         menu.popUp(positioning: nil, at: point, in: nil)
     }
 
+    /// Hides the application menus.
     func hideApplicationMenus() {
         guard let appState else {
             Logger.menuBarManager.error("Error hiding application menus: Missing app state")
@@ -383,6 +376,7 @@ final class MenuBarManager: ObservableObject {
         isHidingApplicationMenus = true
     }
 
+    /// Shows the application menus.
     func showApplicationMenus() {
         guard let appState else {
             Logger.menuBarManager.error("Error showing application menus: Missing app state")
@@ -393,6 +387,7 @@ final class MenuBarManager: ObservableObject {
         isHidingApplicationMenus = false
     }
 
+    /// Toggles the visibility of the application menus.
     func toggleApplicationMenus() {
         if isHidingApplicationMenus {
             showApplicationMenus()

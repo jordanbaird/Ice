@@ -207,14 +207,13 @@ private struct MenuBarSearchContentView: View {
 
                 Spacer()
 
-                ShowItemButton {
-                    guard
-                        let selection,
-                        let item = menuBarItem(for: selection)
-                    else {
-                        return
+                if
+                    let selection,
+                    let item = menuBarItem(for: selection)
+                {
+                    ShowItemButton(item: item) {
+                        performAction(for: item)
                     }
-                    performAction(for: item)
                 }
             }
             .padding(5)
@@ -293,7 +292,9 @@ private struct MenuBarSearchContentView: View {
 }
 
 private struct BottomBarButton<Content: View>: View {
+    @State private var frame = CGRect.zero
     @State private var isHovering = false
+    @State private var isPressed = false
 
     let content: Content
     let action: () -> Void
@@ -309,15 +310,25 @@ private struct BottomBarButton<Content: View>: View {
             .background {
                 VisualEffectView(material: .selection, blendingMode: .withinWindow)
                     .clipShape(RoundedRectangle(cornerRadius: 5, style: .circular))
-                    .opacity(isHovering ? 0.25 : 0)
+                    .opacity(isPressed ? 0.5 : isHovering ? 0.25 : 0)
             }
             .contentShape(Rectangle())
             .onHover { hovering in
                 isHovering = hovering
             }
-            .onTapGesture {
-                action()
-            }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        isPressed = frame.contains(value.location)
+                    }
+                    .onEnded { value in
+                        isPressed = false
+                        if frame.contains(value.location) {
+                            action()
+                        }
+                    }
+            )
+            .onFrameChange(update: $frame)
     }
 }
 
@@ -337,14 +348,13 @@ private struct SettingsButton: View {
 }
 
 private struct ShowItemButton: View {
-    @State private var isHovering = false
-
+    let item: MenuBarItem
     let action: () -> Void
 
     var body: some View {
         BottomBarButton(action: action) {
             HStack {
-                Text("Show item")
+                Text(item.isOnScreen ? "Click item" : "Show item")
                     .padding(.horizontal, 5)
 
                 Image(systemName: "return")

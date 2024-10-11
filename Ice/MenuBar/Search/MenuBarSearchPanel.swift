@@ -7,21 +7,29 @@ import Combine
 import Ifrit
 import SwiftUI
 
+/// A panel that contains the menu bar search interface.
 final class MenuBarSearchPanel: NSPanel {
+    /// The default screen to show the panel on.
     static var defaultScreen: NSScreen? {
         NSScreen.screenWithMouse ?? NSScreen.main
     }
 
+    /// The shared app state.
     private weak var appState: AppState?
 
+    /// Monitor for mouse down events.
     private var mouseDownMonitor: UniversalEventMonitor?
 
+    /// Monitor for key down events.
     private var keyDownMonitor: UniversalEventMonitor?
 
+    /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
+    /// Overridden to always be `true`.
     override var canBecomeKey: Bool { true }
 
+    /// Creates a menu bar search panel with the given app state.
     init(appState: AppState) {
         super.init(
             contentRect: .zero,
@@ -37,6 +45,7 @@ final class MenuBarSearchPanel: NSPanel {
         configureCancellables()
     }
 
+    /// Configures the internal observers for the panel.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -46,8 +55,7 @@ final class MenuBarSearchPanel: NSPanel {
             }
             .store(in: &c)
 
-        // close the panel when the active space changes, or when the
-        // screen parameters change
+        // Close the panel when the active space changes, or when the screen parameters change.
         Publishers.Merge(
             NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
             NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
@@ -60,16 +68,17 @@ final class MenuBarSearchPanel: NSPanel {
         cancellables = c
     }
 
+    /// Shows the panel on the given screen.
     func show(on screen: NSScreen) async {
         guard let appState else {
             return
         }
 
-        // Set the desired frame size for the panel before positioning
+        // Set the desired frame size for the panel before positioning.
         let panelSize = CGSize(width: 600, height: 400)
         setFrame(NSRect(origin: .zero, size: panelSize), display: false)
 
-        // Important that we set the navigation before updating the cache
+        // Important that we set the navigation before updating the cache.
         appState.navigationState.isSearchPresented = true
 
         await appState.imageCache.updateCache()
@@ -102,7 +111,7 @@ final class MenuBarSearchPanel: NSPanel {
         mouseDownMonitor?.start()
         keyDownMonitor?.start()
 
-        // Calculate the top-left position
+        // Calculate the top left position.
         let topLeft = CGPoint(
             x: screen.frame.midX - frame.width / 2,
             y: screen.frame.midY + (frame.height / 2) + (screen.frame.height / 8)
@@ -112,6 +121,7 @@ final class MenuBarSearchPanel: NSPanel {
         makeKeyAndOrderFront(nil)
     }
 
+    /// Toggles the panel's visibility.
     func toggle() async {
         if isVisible {
             close()
@@ -120,6 +130,7 @@ final class MenuBarSearchPanel: NSPanel {
         }
     }
 
+    /// Dismisses the panel and disables its event monitors.
     override func close() {
         super.close()
         contentView = nil

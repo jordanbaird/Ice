@@ -33,23 +33,34 @@ final class MenuBarSection {
         }
     }
 
+    /// The name of the section.
     let name: Name
 
+    /// The control item that manages the section.
     let controlItem: ControlItem
 
+    /// The shared app state.
+    private weak var appState: AppState?
+
+    /// A timer that manages rehiding the section.
     private var rehideTimer: Timer?
 
+    /// An event monitor that handles starting the rehide timer when the mouse
+    /// is outside of the menu bar.
     private var rehideMonitor: UniversalEventMonitor?
 
+    /// A Boolean value that indicates whether the Ice Bar should be used.
     private var useIceBar: Bool {
         appState?.settingsManager.generalSettingsManager.useIceBar ?? false
     }
 
-    private var iceBarPanel: IceBarPanel? {
+    /// A weak reference to the menu bar manager's Ice Bar panel.
+    private weak var iceBarPanel: IceBarPanel? {
         appState?.menuBarManager.iceBarPanel
     }
 
-    private var screenForIceBar: NSScreen? {
+    /// The best screen to show the Ice Bar on.
+    private weak var screenForIceBar: NSScreen? {
         guard let appState else {
             return nil
         }
@@ -58,19 +69,6 @@ final class MenuBarSection {
         } else {
             return NSScreen.main
         }
-    }
-
-    private(set) weak var appState: AppState? {
-        didSet {
-            guard let appState else {
-                return
-            }
-            controlItem.assignAppState(appState)
-        }
-    }
-
-    weak var menuBarManager: MenuBarManager? {
-        appState?.menuBarManager
     }
 
     /// A Boolean value that indicates whether the section is hidden.
@@ -109,41 +107,37 @@ final class MenuBarSection {
         return controlItem.isAddedToMenuBar
     }
 
-    /// Creates a section with the given name and control item.
-    init(name: Name, controlItem: ControlItem) {
+    /// Creates a section with the given name, control item, and app state.
+    init(name: Name, controlItem: ControlItem, appState: AppState) {
         self.name = name
         self.controlItem = controlItem
-    }
-
-    /// Creates a section with the given name.
-    convenience init(name: Name) {
-        let identifier: ControlItem.Identifier = switch name {
-        case .visible: .iceIcon
-        case .hidden: .hidden
-        case .alwaysHidden: .alwaysHidden
-        }
-        self.init(name: name, controlItem: ControlItem(identifier: identifier))
-    }
-
-    /// Assigns the section's app state.
-    func assignAppState(_ appState: AppState) {
-        guard self.appState == nil else {
-            Logger.menuBarSection.warning("Multiple attempts made to assign app state")
-            return
-        }
         self.appState = appState
+    }
+
+    /// Creates a section with the given name and app state.
+    convenience init(name: Name, appState: AppState) {
+        let controlItem = switch name {
+        case .visible:
+            ControlItem(identifier: .iceIcon, appState: appState)
+        case .hidden:
+            ControlItem(identifier: .hidden, appState: appState)
+        case .alwaysHidden:
+            ControlItem(identifier: .alwaysHidden, appState: appState)
+        }
+        self.init(name: name, controlItem: controlItem, appState: appState)
     }
 
     /// Shows the section.
     func show() {
         guard
-            let menuBarManager,
+            let appState,
             isHidden
         else {
             return
         }
         guard controlItem.isAddedToMenuBar else {
             // The section is disabled.
+            // TODO: Can we use isEnabled for this check?
             return
         }
         switch name {
@@ -152,7 +146,7 @@ final class MenuBarSection {
                 if let screenForIceBar {
                     await iceBarPanel?.show(section: .hidden, on: screenForIceBar)
                 }
-                for section in menuBarManager.sections {
+                for section in appState.menuBarManager.sections {
                     section.controlItem.state = .hideItems
                 }
             }
@@ -161,20 +155,20 @@ final class MenuBarSection {
                 if let screenForIceBar {
                     await iceBarPanel?.show(section: .alwaysHidden, on: screenForIceBar)
                 }
-                for section in menuBarManager.sections {
+                for section in appState.menuBarManager.sections {
                     section.controlItem.state = .hideItems
                 }
             }
         case .visible:
             iceBarPanel?.close()
-            guard let hiddenSection = menuBarManager.section(withName: .hidden) else {
+            guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
                 return
             }
             controlItem.state = .showItems
             hiddenSection.controlItem.state = .showItems
         case .hidden:
             iceBarPanel?.close()
-            guard let visibleSection = menuBarManager.section(withName: .visible) else {
+            guard let visibleSection = appState.menuBarManager.section(withName: .visible) else {
                 return
             }
             controlItem.state = .showItems
@@ -182,8 +176,8 @@ final class MenuBarSection {
         case .alwaysHidden:
             iceBarPanel?.close()
             guard
-                let hiddenSection = menuBarManager.section(withName: .hidden),
-                let visibleSection = menuBarManager.section(withName: .visible)
+                let hiddenSection = appState.menuBarManager.section(withName: .hidden),
+                let visibleSection = appState.menuBarManager.section(withName: .visible)
             else {
                 return
             }
@@ -198,7 +192,6 @@ final class MenuBarSection {
     func hide() {
         guard
             let appState,
-            let menuBarManager,
             !isHidden
         else {
             return
@@ -206,13 +199,13 @@ final class MenuBarSection {
         iceBarPanel?.close()
         switch name {
         case _ where useIceBar:
-            for section in menuBarManager.sections {
+            for section in appState.menuBarManager.sections {
                 section.controlItem.state = .hideItems
             }
         case .visible:
             guard
-                let hiddenSection = menuBarManager.section(withName: .hidden),
-                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
+                let hiddenSection = appState.menuBarManager.section(withName: .hidden),
+                let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden)
             else {
                 return
             }
@@ -221,8 +214,8 @@ final class MenuBarSection {
             alwaysHiddenSection.controlItem.state = .hideItems
         case .hidden:
             guard
-                let visibleSection = menuBarManager.section(withName: .visible),
-                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
+                let visibleSection = appState.menuBarManager.section(withName: .visible),
+                let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden)
             else {
                 return
             }
@@ -245,12 +238,13 @@ final class MenuBarSection {
         }
     }
 
+    /// Starts running checks to determine when to rehide the section.
     private func startRehideChecks() {
         rehideTimer?.invalidate()
         rehideMonitor?.stop()
 
         guard
-            let appState = menuBarManager?.appState,
+            let appState,
             appState.settingsManager.generalSettingsManager.autoRehide,
             case .timed = appState.settingsManager.generalSettingsManager.rehideStrategy
         else {
@@ -297,6 +291,7 @@ final class MenuBarSection {
         rehideMonitor?.start()
     }
 
+    /// Stops running checks to determine when to rehide the section.
     private func stopRehideChecks() {
         rehideTimer?.invalidate()
         rehideMonitor?.stop()

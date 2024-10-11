@@ -38,10 +38,14 @@ final class MenuBarManager: ObservableObject {
 
     private let decoder = JSONDecoder()
 
+    /// A Boolean value that indicates whether the application menus are hidden.
     private var isHidingApplicationMenus = false
 
-    private var canUpdateAverageColor = false
+    /// A Boolean value that indicates whether the manager can update its stored
+    /// information for the menu bar's average color.
+    private var canUpdateAverageColorInfo = false
 
+    /// The managed sections in the menu bar.
     private(set) var sections = [MenuBarSection]()
 
     /// Initializes a new menu bar manager instance.
@@ -51,14 +55,14 @@ final class MenuBarManager: ObservableObject {
         self.appState = appState
     }
 
-    /// Performs the initial setup of the menu bar.
+    /// Performs the initial setup of the menu bar manager.
     func performSetup() {
         initializeSections()
         configureCancellables()
         iceBarPanel.performSetup()
     }
 
-    /// Performs the initial setup of the menu bar's section list.
+    /// Performs the initial setup of the menu bar manager's sections.
     private func initializeSections() {
         // Make sure initialization can only happen once.
         guard sections.isEmpty else {
@@ -66,18 +70,16 @@ final class MenuBarManager: ObservableObject {
             return
         }
 
-        sections = [
-            MenuBarSection(name: .visible),
-            MenuBarSection(name: .hidden),
-            MenuBarSection(name: .alwaysHidden),
-        ]
-
-        // Assign the global app state to each section.
-        if let appState {
-            for section in sections {
-                section.assignAppState(appState)
-            }
+        guard let appState else {
+            Logger.menuBarManager.error("Error initializing menu bar sections: Missing app state")
+            return
         }
+
+        sections = [
+            MenuBarSection(name: .visible, appState: appState),
+            MenuBarSection(name: .hidden, appState: appState),
+            MenuBarSection(name: .alwaysHidden, appState: appState),
+        ]
     }
 
     private func configureCancellables() {
@@ -133,27 +135,21 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        if
-            let appState,
-            let settingsWindow = appState.settingsWindow
-        {
-            Publishers.CombineLatest(
-                settingsWindow.publisher(for: \.isVisible),
-                iceBarPanel.publisher(for: \.isVisible)
-            )
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] settingsIsVisible, iceBarIsVisible in
-                guard let self else {
-                    return
+        if let settingsWindow = appState?.settingsWindow {
+            settingsWindow.publisher(for: \.isVisible)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] isVisible in
+                    guard let self else {
+                        return
+                    }
+                    if isVisible {
+                        canUpdateAverageColorInfo = true
+                        updateAverageColorInfo()
+                    } else {
+                        canUpdateAverageColorInfo = false
+                    }
                 }
-                if settingsIsVisible || iceBarIsVisible {
-                    canUpdateAverageColor = true
-                    updateAverageColor()
-                } else {
-                    canUpdateAverageColor = false
-                }
-            }
-            .store(in: &c)
+                .store(in: &c)
         }
 
         Timer.publish(every: 5, on: .main, in: .default)
@@ -162,7 +158,7 @@ final class MenuBarManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                updateAverageColor()
+                updateAverageColorInfo()
             }
             .store(in: &c)
 
@@ -241,9 +237,9 @@ final class MenuBarManager: ObservableObject {
         cancellables = c
     }
 
-    func updateAverageColor() {
+    func updateAverageColorInfo() {
         guard
-            canUpdateAverageColor,
+            canUpdateAverageColorInfo,
             let screen = appState?.settingsWindow?.screen
         else {
             return

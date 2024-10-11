@@ -81,8 +81,8 @@ final class ControlItem {
         statusItem.isVisible
     }
 
-    /// Creates a control item with the given identifier.
-    init(identifier: Identifier) {
+    /// Creates a control item with the given identifier and app state.
+    init(identifier: Identifier, appState: AppState) {
         let autosaveName = identifier.rawValue
 
         // If the status item doesn't have a preferred position, set it
@@ -101,6 +101,7 @@ final class ControlItem {
         self.statusItem = NSStatusBar.system.statusItem(withLength: 0)
         self.statusItem.autosaveName = autosaveName
         self.identifier = identifier
+        self.appState = appState
 
         // This could break in a new macOS release, but we need this constraint in order to be
         // able to hide the control item when the `ShowSectionDividers` setting is disabled. A
@@ -537,17 +538,6 @@ final class ControlItem {
             return
         }
         appState.updatesManager.checkForUpdates()
-    }
-
-    /// Assigns the app state to the control item.
-    func assignAppState(_ appState: AppState) {
-        guard self.appState == nil else {
-            Logger.controlItem.warning("Multiple attempts made to assign app state")
-            return
-        }
-        self.appState = appState
-        configureCancellables()
-        updateStatusItem(with: state)
     }
 
     /// Adds the control item to the menu bar.

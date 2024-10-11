@@ -26,8 +26,6 @@ final class MenuBarManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    let appearanceManager: MenuBarAppearanceManager
-
     let iceBarPanel: IceBarPanel
 
     let searchPanel: MenuBarSearchPanel
@@ -56,7 +54,6 @@ final class MenuBarManager: ObservableObject {
 
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
-        self.appearanceManager = MenuBarAppearanceManager(appState: appState)
         self.iceBarPanel = IceBarPanel(appState: appState)
         self.searchPanel = MenuBarSearchPanel(appState: appState)
         self.appState = appState
@@ -66,7 +63,6 @@ final class MenuBarManager: ObservableObject {
     func performSetup() {
         initializeSections()
         configureCancellables()
-        appearanceManager.performSetup()
         iceBarPanel.performSetup()
     }
 

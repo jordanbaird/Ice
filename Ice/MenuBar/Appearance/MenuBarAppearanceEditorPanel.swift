@@ -95,7 +95,7 @@ private final class MenuBarAppearanceEditorPopover: NSPopover {
                 })
             )
             .environmentObject(appState)
-            .environmentObject(appState.menuBarManager.appearanceManager)
+            .environmentObject(appState.appearanceManager)
         }
     }
 

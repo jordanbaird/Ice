@@ -244,7 +244,7 @@ private struct IceBarContentView: View {
     }
 
     private var configuration: MenuBarAppearanceConfiguration {
-        menuBarManager.appearanceManager.configuration
+        appState.appearanceManager.configuration
     }
 
     private var horizontalPadding: CGFloat {
@@ -265,7 +265,7 @@ private struct IceBarContentView: View {
             return nil
         }
         if configuration.shapeKind != .none && configuration.isInset && imageCache.screen?.hasNotch == true {
-            return menuBarHeight - menuBarManager.appearanceManager.menuBarInsetAmount * 2
+            return menuBarHeight - appState.appearanceManager.menuBarInsetAmount * 2
         }
         return menuBarHeight
     }

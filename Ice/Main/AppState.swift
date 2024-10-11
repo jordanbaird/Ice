@@ -12,6 +12,9 @@ final class AppState: ObservableObject {
     /// A Boolean value that indicates whether the active space is fullscreen.
     @Published private(set) var isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
 
+    /// Manager for the menu bar's appearance.
+    private(set) lazy var appearanceManager = MenuBarAppearanceManager(appState: self)
+
     /// Manager for events received by the app.
     private(set) lazy var eventManager = EventManager(appState: self)
 
@@ -177,6 +180,7 @@ final class AppState: ObservableObject {
         configureCancellables()
         permissionsManager.stopAllChecks()
         menuBarManager.performSetup()
+        appearanceManager.performSetup()
         eventManager.performSetup()
         settingsManager.performSetup()
         itemManager.performSetup()

@@ -38,15 +38,15 @@ extension View {
         }
         .overlay {
             if !appState.isActiveSpaceFullscreen {
-                switch appState.menuBarManager.appearanceManager.configuration.tintKind {
+                switch appState.appearanceManager.configuration.tintKind {
                 case .none:
                     EmptyView()
                 case .solid:
-                    Color(cgColor: appState.menuBarManager.appearanceManager.configuration.tintColor)
+                    Color(cgColor: appState.appearanceManager.configuration.tintColor)
                         .opacity(0.2)
                         .allowsHitTesting(false)
                 case .gradient:
-                    appState.menuBarManager.appearanceManager.configuration.tintGradient
+                    appState.appearanceManager.configuration.tintGradient
                         .opacity(0.2)
                         .allowsHitTesting(false)
                 }

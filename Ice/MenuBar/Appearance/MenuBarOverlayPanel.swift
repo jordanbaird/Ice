@@ -323,7 +323,7 @@ final class MenuBarOverlayPanel: NSPanel {
             return
         }
 
-        guard appState.menuBarManager.appearanceManager.overlayPanels.contains(self) else {
+        guard appState.appearanceManager.overlayPanels.contains(self) else {
             Logger.overlayPanel.warning("Overlay panel \(self) not retained")
             return
         }
@@ -377,7 +377,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
         if let overlayPanel {
             if let appState = overlayPanel.appState {
-                appState.menuBarManager.appearanceManager.$configuration
+                appState.appearanceManager.$configuration
                     .removeDuplicates()
                     .assign(to: &$configuration)
 
@@ -500,7 +500,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
     /// Returns a path for the ``MenuBarShapeKind/full`` shape kind.
     private func pathForFullShape(in rect: CGRect, info: MenuBarFullShapeInfo, isInset: Bool, screen: NSScreen) -> NSBezierPath {
-        guard let appearanceManager = overlayPanel?.appState?.menuBarManager.appearanceManager else {
+        guard let appearanceManager = overlayPanel?.appState?.appearanceManager else {
             return NSBezierPath()
         }
         var rect = rect
@@ -525,7 +525,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
     /// Returns a path for the ``MenuBarShapeKind/split`` shape kind.
     private func pathForSplitShape(in rect: CGRect, info: MenuBarSplitShapeInfo, isInset: Bool, screen: NSScreen) -> NSBezierPath {
-        guard let appearanceManager = overlayPanel?.appState?.menuBarManager.appearanceManager else {
+        guard let appearanceManager = overlayPanel?.appState?.appearanceManager else {
             return NSBezierPath()
         }
         var rect = rect

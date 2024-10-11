@@ -10,7 +10,7 @@ struct MenuBarAppearanceSettingsPane: View {
 
     var body: some View {
         MenuBarAppearanceEditor(location: .settings)
-            .environmentObject(appState.menuBarManager.appearanceManager)
+            .environmentObject(appState.appearanceManager)
     }
 }
 

@@ -43,7 +43,9 @@ final class MenuBarManager: ObservableObject {
 
     /// A Boolean value that indicates whether the manager can update its stored
     /// information for the menu bar's average color.
-    private var canUpdateAverageColorInfo = false
+    private var canUpdateAverageColorInfo: Bool {
+        appState?.settingsWindow?.isVisible == true
+    }
 
     /// The managed sections in the menu bar.
     private(set) var sections = [MenuBarSection]()
@@ -135,30 +137,17 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        if let settingsWindow = appState?.settingsWindow {
-            settingsWindow.publisher(for: \.isVisible)
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] isVisible in
-                    guard let self else {
-                        return
-                    }
-                    if isVisible {
-                        canUpdateAverageColorInfo = true
-                        updateAverageColorInfo()
-                    } else {
-                        canUpdateAverageColorInfo = false
-                    }
-                }
-                .store(in: &c)
-        }
+        appState?.settingsWindow?.publisher(for: \.isVisible)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateAverageColorInfo()
+            }
+            .store(in: &c)
 
         Timer.publish(every: 5, on: .main, in: .default)
             .autoconnect()
             .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                updateAverageColorInfo()
+                self?.updateAverageColorInfo()
             }
             .store(in: &c)
 

@@ -101,7 +101,7 @@ final class MenuBarOverlayPanel: NSPanel {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // show the panel on the active space
+        // Show the panel on the active space.
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .debounce(for: 0.1, scheduler: DispatchQueue.main)
@@ -110,7 +110,7 @@ final class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
-        // update when light/dark mode changes
+        // Update when light/dark mode changes.
         DistributedNotificationCenter.default()
             .publisher(for: DistributedNotificationCenter.interfaceThemeChangedNotification)
             .debounce(for: 0.1, scheduler: DispatchQueue.main)
@@ -128,7 +128,7 @@ final class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
-        // update application menu frame when the menu bar owning or frontmost app changes
+        // Update application menu frame when the menu bar owning or frontmost app changes.
         Publishers.Merge(
             NSWorkspace.shared.publisher(for: \.menuBarOwningApplication, options: .old)
                 .combineLatest(NSWorkspace.shared.publisher(for: \.menuBarOwningApplication, options: .new))
@@ -174,7 +174,7 @@ final class MenuBarOverlayPanel: NSPanel {
         }
         .store(in: &c)
 
-        // special cases for when the user drags an app onto or clicks into another space
+        // Special cases for when the user drags an app onto or clicks into another space.
         Publishers.Merge(
             publisher(for: \.isOnActiveSpace)
                 .receive(on: DispatchQueue.main)
@@ -189,8 +189,8 @@ final class MenuBarOverlayPanel: NSPanel {
         }
         .store(in: &c)
 
-        // continually update the desktop wallpaper; ideally, we would set up an observer
-        // for a wallpaper change notification, but macOS doesn't post one anymore
+        // Continually update the desktop wallpaper. Ideally, we would set up an observer
+        // for a wallpaper change notification, but macOS doesn't post one anymore.
         Timer.publish(every: 5, on: .main, in: .default)
             .autoconnect()
             .sink { [weak self] _ in
@@ -224,7 +224,7 @@ final class MenuBarOverlayPanel: NSPanel {
                     return
                 }
                 Task {
-                    // must be run async, or this will not remove the flags
+                    // Must be run async, or this will not remove the flags.
                     self.updateFlags.removeAll()
                 }
                 let windows = WindowInfo.getOnScreenWindows()
@@ -358,7 +358,7 @@ final class MenuBarOverlayPanel: NSPanel {
 // MARK: - Content View
 
 private final class MenuBarOverlayPanelContentView: NSView {
-    @Published private var configuration: MenuBarAppearanceConfiguration = .defaultConfiguration
+    @Published private var fullConfiguration: MenuBarAppearanceConfigurationV2 = .defaultConfiguration
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -379,10 +379,10 @@ private final class MenuBarOverlayPanelContentView: NSView {
             if let appState = overlayPanel.appState {
                 appState.appearanceManager.$configuration
                     .removeDuplicates()
-                    .assign(to: &$configuration)
+                    .assign(to: &$fullConfiguration)
 
                 for section in appState.menuBarManager.sections {
-                    // redraw whenever the window frame of a control item changes
+                    // Redraw whenever the window frame of a control item changes.
                     //
                     // - NOTE: A previous attempt was made to redraw the view when the
                     //   section's `isHidden` property was changed. This would be semantically
@@ -397,7 +397,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                         }
                         .store(in: &c)
 
-                    // redraw whenever the visibility of a control item changes
+                    // Redraw whenever the visibility of a control item changes.
                     //
                     // - NOTE: If the "ShowSectionDividers" setting is disabled, the window
                     //   frame does not update when the section is hidden or shown, but the
@@ -411,7 +411,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 }
             }
 
-            // fade out whenever a menu bar item is being dragged
+            // Fade out whenever a menu bar item is being dragged.
             overlayPanel.$isDraggingMenuBarItem
                 .removeDuplicates()
                 .sink { [weak self] isDragging in
@@ -422,13 +422,13 @@ private final class MenuBarOverlayPanelContentView: NSView {
                     }
                 }
                 .store(in: &c)
-            // redraw whenever the application menu frame changes
+            // Redraw whenever the application menu frame changes.
             overlayPanel.$applicationMenuFrame
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
                 }
                 .store(in: &c)
-            // redraw whenever the desktop wallpaper changes
+            // Redraw whenever the desktop wallpaper changes.
             overlayPanel.$desktopWallpaper
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
@@ -436,8 +436,8 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 .store(in: &c)
         }
 
-        // redraw whenever the configuration changes
-        $configuration
+        // Redraw whenever the full configuration changes.
+        $fullConfiguration
             .sink { [weak self] _ in
                 self?.needsDisplay = true
             }
@@ -616,6 +616,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
     /// Draws the tint defined by the given configuration in the given rectangle.
     private func drawTint(in rect: CGRect) {
+        let configuration = fullConfiguration.current
         switch configuration.tintKind {
         case .none:
             break
@@ -640,29 +641,30 @@ private final class MenuBarOverlayPanelContentView: NSView {
         }
 
         let drawableBounds = getDrawableBounds()
+        let configuration = fullConfiguration.current
 
-        let shapePath = switch configuration.shapeKind {
+        let shapePath = switch fullConfiguration.shapeKind {
         case .none:
             NSBezierPath(rect: drawableBounds)
         case .full:
             pathForFullShape(
                 in: drawableBounds,
-                info: configuration.fullShapeInfo,
-                isInset: configuration.isInset,
+                info: fullConfiguration.fullShapeInfo,
+                isInset: fullConfiguration.isInset,
                 screen: overlayPanel.owningScreen
             )
         case .split:
             pathForSplitShape(
                 in: drawableBounds,
-                info: configuration.splitShapeInfo,
-                isInset: configuration.isInset,
+                info: fullConfiguration.splitShapeInfo,
+                isInset: fullConfiguration.isInset,
                 screen: overlayPanel.owningScreen
             )
         }
 
         var hasBorder = false
 
-        switch configuration.shapeKind {
+        switch fullConfiguration.shapeKind {
         case .none:
             if configuration.hasShadow {
                 let gradient = NSGradient(
@@ -743,28 +745,28 @@ private final class MenuBarOverlayPanelContentView: NSView {
                     context.restoreGraphicsState()
                 }
 
-                let borderPath = switch configuration.shapeKind {
+                let borderPath = switch fullConfiguration.shapeKind {
                 case .none:
                     NSBezierPath(rect: drawableBounds)
                 case .full:
                     pathForFullShape(
                         in: drawableBounds,
-                        info: configuration.fullShapeInfo,
-                        isInset: configuration.isInset,
+                        info: fullConfiguration.fullShapeInfo,
+                        isInset: fullConfiguration.isInset,
                         screen: overlayPanel.owningScreen
                     )
                 case .split:
                     pathForSplitShape(
                         in: drawableBounds,
-                        info: configuration.splitShapeInfo,
-                        isInset: configuration.isInset,
+                        info: fullConfiguration.splitShapeInfo,
+                        isInset: fullConfiguration.isInset,
                         screen: overlayPanel.owningScreen
                     )
                 }
 
-                // HACK: insetting a path to get an "inside" stroke is surprisingly
-                // difficult; we can fake the correct line width by doubling it, as
-                // anything outside the shape path will be clipped
+                // HACK: Insetting a path to get an "inside" stroke is surprisingly
+                // difficult. We can fake the correct line width by doubling it, as
+                // anything outside the shape path will be clipped.
                 borderPath.lineWidth = configuration.borderWidth * 2
                 borderPath.setClip()
 

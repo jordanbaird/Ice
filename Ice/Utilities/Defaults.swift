@@ -168,7 +168,7 @@ extension Defaults {
 
         // MARK: Menu Bar Appearance Settings
 
-        case menuBarAppearanceConfiguration = "MenuBarAppearanceConfiguration"
+        case menuBarAppearanceConfigurationV2 = "MenuBarAppearanceConfigurationV2"
 
         // MARK: Ice Bar Settings
 
@@ -180,6 +180,7 @@ extension Defaults {
         case hasMigrated0_8_0 = "hasMigrated0_8_0"
         case hasMigrated0_10_0 = "hasMigrated0_10_0"
         case hasMigrated0_10_1 = "hasMigrated0_10_1"
+        case hasMigrated0_11_10 = "hasMigrated0_11_10"
 
         // MARK: Deprecated
 
@@ -194,5 +195,6 @@ extension Defaults {
         case menuBarShapeKind = "MenuBarShapeKind"
         case menuBarFullShapeInfo = "MenuBarFullShapeInfo"
         case menuBarSplitShapeInfo = "MenuBarSplitShapeInfo"
+        case menuBarAppearanceConfiguration = "MenuBarAppearanceConfiguration"
     }
 }

@@ -1,5 +1,5 @@
 //
-//  MenuBarAppearanceConfiguration.swift
+//  MenuBarAppearanceConfigurationV1.swift
 //  Ice
 //
 
@@ -7,7 +7,7 @@ import CoreGraphics
 import Foundation
 
 /// Configuration for the menu bar's appearance.
-struct MenuBarAppearanceConfiguration: Hashable {
+struct MenuBarAppearanceConfigurationV1: Hashable {
     var hasShadow: Bool
     var hasBorder: Bool
     var isInset: Bool
@@ -28,12 +28,12 @@ struct MenuBarAppearanceConfiguration: Hashable {
         }
     }
 
-    /// Creates a configuration by migrating from the deprecated
-    /// appearance-related keys stored in `UserDefaults`, storing
-    /// the new configuration and deleting the deprecated keys.
+    /// Creates a configuration by migrating from the deprecated appearance-related
+    /// keys stored in `UserDefaults`, storing the new configuration and deleting
+    /// the deprecated keys.
     static func migrate(encoder: JSONEncoder, decoder: JSONDecoder) throws -> Self {
-        // try to load an already-migrated configuration first;
-        // otherwise, load each value from the deprecated keys
+        // Try to load an already migrated configuration first. Otherwise, load each
+        // value from the deprecated keys.
         if let data = Defaults.data(forKey: .menuBarAppearanceConfiguration) {
             return try decoder.decode(Self.self, from: data)
         } else {
@@ -67,11 +67,11 @@ struct MenuBarAppearanceConfiguration: Hashable {
                 configuration.splitShapeInfo = try decoder.decode(MenuBarSplitShapeInfo.self, from: splitShapeData)
             }
 
-            // store the configuration to complete the migration
+            // Store the configuration to complete the migration.
             let configurationData = try encoder.encode(configuration)
             Defaults.set(configurationData, forKey: .menuBarAppearanceConfiguration)
 
-            // remove the deprecated keys
+            // Remove the deprecated keys.
             let keys: [Defaults.Key] = [
                 .menuBarHasShadow,
                 .menuBarHasBorder,
@@ -94,8 +94,8 @@ struct MenuBarAppearanceConfiguration: Hashable {
 }
 
 // MARK: Default Configuration
-extension MenuBarAppearanceConfiguration {
-    static let defaultConfiguration = MenuBarAppearanceConfiguration(
+extension MenuBarAppearanceConfigurationV1 {
+    static let defaultConfiguration = MenuBarAppearanceConfigurationV1(
         hasShadow: false,
         hasBorder: false,
         isInset: true,
@@ -110,8 +110,8 @@ extension MenuBarAppearanceConfiguration {
     )
 }
 
-// MARK: MenuBarAppearanceConfiguration: Codable
-extension MenuBarAppearanceConfiguration: Codable {
+// MARK: MenuBarAppearanceConfigurationV1: Codable
+extension MenuBarAppearanceConfigurationV1: Codable {
     private enum CodingKeys: CodingKey {
         case hasShadow
         case hasBorder

@@ -243,7 +243,7 @@ private struct IceBarContentView: View {
         itemManager.itemCache.managedItems(for: section)
     }
 
-    private var configuration: MenuBarAppearanceConfiguration {
+    private var configuration: MenuBarAppearanceConfigurationV2 {
         appState.appearanceManager.configuration
     }
 
@@ -287,13 +287,13 @@ private struct IceBarContentView: View {
                 .layoutBarStyle(appState: appState, averageColorInfo: colorManager.colorInfo)
                 .foregroundStyle(colorManager.colorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
                 .clipShape(clipShape)
-                .shadow(color: .black.opacity(configuration.hasShadow ? 0.5 : 0), radius: 2.5)
+                .shadow(color: .black.opacity(configuration.current.hasShadow ? 0.5 : 0), radius: 2.5)
 
-            if configuration.hasBorder {
+            if configuration.current.hasBorder {
                 clipShape
-                    .inset(by: configuration.borderWidth / 2)
-                    .stroke(lineWidth: configuration.borderWidth)
-                    .foregroundStyle(Color(cgColor: configuration.borderColor))
+                    .inset(by: configuration.current.borderWidth / 2)
+                    .stroke(lineWidth: configuration.current.borderWidth)
+                    .foregroundStyle(Color(cgColor: configuration.current.borderColor))
             }
         }
         .padding(5)

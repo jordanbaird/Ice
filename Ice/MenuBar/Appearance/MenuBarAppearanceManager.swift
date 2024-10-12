@@ -9,7 +9,7 @@ import Combine
 /// A manager for the appearance of the menu bar.
 @MainActor
 final class MenuBarAppearanceManager: ObservableObject {
-    @Published var configuration: MenuBarAppearanceConfiguration = .defaultConfiguration
+    @Published var configuration: MenuBarAppearanceConfigurationV2 = .defaultConfiguration
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -40,7 +40,9 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     private func loadInitialState() {
         do {
-            configuration = try .migrate(encoder: encoder, decoder: decoder)
+            if let data = Defaults.data(forKey: .menuBarAppearanceConfigurationV2) {
+                configuration = try decoder.decode(MenuBarAppearanceConfigurationV2.self, from: data)
+            }
         } catch {
             Logger.appearanceManager.error("Error decoding configuration: \(error)")
         }
@@ -73,7 +75,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                     Logger.appearanceManager.error("Error encoding configuration: \(error)")
                 }
             } receiveValue: { data in
-                Defaults.set(data, forKey: .menuBarAppearanceConfiguration)
+                Defaults.set(data, forKey: .menuBarAppearanceConfigurationV2)
             }
             .store(in: &c)
 
@@ -96,24 +98,25 @@ final class MenuBarAppearanceManager: ObservableObject {
 
     /// Returns a Boolean value that indicates whether a set of overlay panels
     /// is needed for the given configuration.
-    private func needsOverlayPanels(for configuration: MenuBarAppearanceConfiguration) -> Bool {
-        if configuration.hasShadow {
+    private func needsOverlayPanels(for configuration: MenuBarAppearanceConfigurationV2) -> Bool {
+        let current = configuration.current
+        if current.hasShadow {
             return true
         }
-        if configuration.hasBorder {
+        if current.hasBorder {
             return true
         }
         if configuration.shapeKind != .none {
             return true
         }
-        if configuration.tintKind != .none {
+        if current.tintKind != .none {
             return true
         }
         return false
     }
 
     /// Configures the manager's overlay panels, if required by the given configuration.
-    private func configureOverlayPanels(with configuration: MenuBarAppearanceConfiguration) {
+    private func configureOverlayPanels(with configuration: MenuBarAppearanceConfigurationV2) {
         guard
             let appState,
             needsOverlayPanels(for: configuration)

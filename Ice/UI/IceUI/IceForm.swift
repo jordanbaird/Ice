@@ -9,13 +9,13 @@ struct IceForm<Content: View>: View {
     @State private var contentFrame = CGRect.zero
 
     private let alignment: HorizontalAlignment
-    private let padding: CGFloat
+    private let padding: EdgeInsets
     private let spacing: CGFloat
     private let content: Content
 
     init(
         alignment: HorizontalAlignment = .center,
-        padding: CGFloat = 20,
+        padding: EdgeInsets,
         spacing: CGFloat = 10,
         @ViewBuilder content: () -> Content
     ) {
@@ -23,6 +23,21 @@ struct IceForm<Content: View>: View {
         self.padding = padding
         self.spacing = spacing
         self.content = content()
+    }
+
+    init(
+        alignment: HorizontalAlignment = .center,
+        padding: CGFloat = 20,
+        spacing: CGFloat = 10,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.init(
+            alignment: alignment,
+            padding: EdgeInsets(top: padding, leading: padding, bottom: padding, trailing: padding),
+            spacing: spacing
+        ) {
+            content()
+        }
     }
 
     var body: some View {

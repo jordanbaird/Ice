@@ -16,31 +16,34 @@ struct MenuBarAppearanceEditor: View {
 
     let location: Location
 
-    private var footerPadding: CGFloat? {
-        if !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults {
-            return nil
+    private var mainFormPadding: EdgeInsets {
+        switch location {
+        case .settings:
+            EdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20)
+        case .popover:
+            EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20)
         }
-        if case .popover = location {
-            return nil
-        }
-        return 0
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             stackHeader
             stackBody
-            stackFooter
         }
     }
 
     @ViewBuilder
     private var stackHeader: some View {
-        if case .popover = location {
-            Text("Menu Bar Appearance")
-                .font(.title2)
-                .padding(.top)
-                .frame(maxWidth: .infinity, alignment: .center)
+        if case .popover(let closePopover) = location {
+            ZStack {
+                Text("Menu Bar Appearance")
+                    .font(.title2)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Button("Done", action: closePopover)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+            .padding(20)
         }
     }
 
@@ -54,28 +57,8 @@ struct MenuBarAppearanceEditor: View {
     }
 
     @ViewBuilder
-    private var stackFooter: some View {
-        HStack {
-            if
-                !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
-                appearanceManager.configuration != .defaultConfiguration
-            {
-                Button("Reset") {
-                    appearanceManager.configuration = .defaultConfiguration
-                }
-            }
-            if case .popover(let closePopover) = location {
-                Spacer()
-                Button("Done", action: closePopover)
-            }
-        }
-        .padding(.all, footerPadding)
-        .controlSize(.large)
-    }
-
-    @ViewBuilder
     private var mainForm: some View {
-        IceForm {
+        IceForm(padding: mainFormPadding) {
             IceSection {
                 isDynamicToggle
             }
@@ -110,6 +93,16 @@ struct MenuBarAppearanceEditor: View {
                         }
                     }
                 }
+            }
+            if
+                !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
+                appearanceManager.configuration != .defaultConfiguration
+            {
+                Button("Reset") {
+                    appearanceManager.configuration = .defaultConfiguration
+                }
+                .controlSize(.large)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             }
         }
     }

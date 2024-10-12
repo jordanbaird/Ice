@@ -103,7 +103,7 @@ private final class MenuBarAppearanceEditorPopover: NSPopover {
         super.init()
         self.appState = appState
         self.contentViewController = NSHostingController(rootView: contentView)
-        self.contentSize = CGSize(width: 500, height: 550)
+        self.contentSize = CGSize(width: 550, height: 600)
         self.behavior = .applicationDefined
         self.mouseDownMonitor.start()
     }

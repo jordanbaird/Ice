@@ -467,6 +467,62 @@ extension MenuBarItemManager {
     }
 }
 
+// MARK: - Async Waiters
+
+extension MenuBarItemManager {
+    /// Waits asynchronously for all menu bar items to stop moving.
+    ///
+    /// - Parameter timeout: Amount of time to wait before throwing an error.
+    func waitForItemsToStopMoving(timeout: Duration? = nil) async throws {
+        let taskBody: @Sendable () async throws -> Void = {
+            while await self.isMovingItem {
+                try Task.checkCancellation()
+                try await Task.sleep(for: .milliseconds(10))
+            }
+        }
+        let checkTask = if let timeout {
+            Task(timeout: timeout) {
+                try await taskBody()
+            }
+        } else {
+            Task {
+                try await taskBody()
+            }
+        }
+        try await checkTask.value
+    }
+
+    /// Waits asynchronously for the mouse to stop moving.
+    ///
+    /// - Parameters:
+    ///   - threshold: A threshold to use to determine whether the mouse has stopped moving.
+    ///   - timeout: Amount of time to wait before throwing an error.
+    func waitForMouseToStopMoving(threshold: TimeInterval = 0.1, timeout: Duration? = nil) async throws {
+        let taskBody: @Sendable () async throws -> Void = {
+            while true {
+                try Task.checkCancellation()
+                guard let date = await self.lastMouseMoveStartDate else {
+                    break
+                }
+                if Date.now.timeIntervalSince(date) > threshold {
+                    break
+                }
+                try await Task.sleep(for: .milliseconds(10))
+            }
+        }
+        let checkTask = if let timeout {
+            Task(timeout: timeout) {
+                try await taskBody()
+            }
+        } else {
+            Task {
+                try await taskBody()
+            }
+        }
+        try await checkTask.value
+    }
+}
+
 // MARK: - Move Items
 
 extension MenuBarItemManager {
@@ -990,6 +1046,12 @@ extension MenuBarItemManager {
             return
         }
 
+        do {
+            try await waitForMouseToStopMoving()
+        } catch {
+            throw EventError(code: .couldNotComplete, item: item)
+        }
+
         Logger.itemManager.info("Moving \(item.logString) to \(destination.logString)")
 
         guard let appState else {
@@ -1063,19 +1125,6 @@ extension MenuBarItemManager {
         } catch is TaskTimeoutError {
             throw EventError(code: .otherTimeout, item: item)
         }
-    }
-
-    /// Waits asynchronously for all menu bar items to stop moving.
-    ///
-    /// - Parameter timeout: Amount of time to wait before throwing an error.
-    func waitForItemsToStopMoving(timeout: Duration) async throws {
-        let isMovingItemCheckTask = Task(timeout: timeout) {
-            while await self.isMovingItem {
-                try Task.checkCancellation()
-                try await Task.sleep(for: .milliseconds(10))
-            }
-        }
-        try await isMovingItemCheckTask.value
     }
 }
 

@@ -254,11 +254,9 @@ final class MenuBarItemImageCache: ObservableObject {
             return
         }
 
-        if let lastItemMoveStartDate = await appState.itemManager.lastItemMoveStartDate {
-            guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
-                logSkippingCache(reason: "an item was recently moved")
-                return
-            }
+        guard await !appState.itemManager.itemHasRecentlyMoved else {
+            logSkippingCache(reason: "an item was recently moved")
+            return
         }
 
         await updateCacheWithoutChecks(sections: sections)

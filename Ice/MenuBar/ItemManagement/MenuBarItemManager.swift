@@ -112,15 +112,15 @@ final class MenuBarItemManager: ObservableObject {
     /// A timer that determines when to rehide the temporarily shown items.
     private var tempShownItemsTimer: Timer?
 
-    /// The last time an item was moved.
-    private(set) var lastItemMoveStartDate: Date?
+    /// The last time a menu bar item was moved.
+    private var lastItemMoveStartDate: Date?
+
+    /// The last time the mouse was moved.
+    private var lastMouseMoveStartDate: Date?
 
     /// Counter to determine if a menu bar item, or group of menu bar
     /// items is being moved.
     private var itemMoveCount = 0
-
-    /// Counter for mouse movement.
-    private var mouseMoveCount = 0
 
     /// A Boolean value that indicates whether a mouse button is down.
     private var isMouseButtonDown = false
@@ -140,6 +140,23 @@ final class MenuBarItemManager: ObservableObject {
     /// group of menu bar items is being moved.
     var isMovingItem: Bool {
         itemMoveCount > 0
+    }
+
+    /// A Boolean value that indicates whether a menu bar item has
+    /// recently moved.
+    var itemHasRecentlyMoved: Bool {
+        guard let lastItemMoveStartDate else {
+            return false
+        }
+        return Date.now.timeIntervalSince(lastItemMoveStartDate) <= 1
+    }
+
+    /// A Boolean value that indicates whether the mouse has recently moved.
+    var mouseHasRecentlyMoved: Bool {
+        guard let lastMouseMoveStartDate else {
+            return false
+        }
+        return Date.now.timeIntervalSince(lastMouseMoveStartDate) <= 1
     }
 
     /// Creates a manager with the given app state.
@@ -192,10 +209,7 @@ final class MenuBarItemManager: ObservableObject {
             }
             switch event.type {
             case .mouseMoved:
-                mouseMoveCount += 1
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    self.mouseMoveCount = max(self.mouseMoveCount - 1, 0)
-                }
+                lastMouseMoveStartDate = .now
             case .leftMouseDown, .rightMouseDown, .otherMouseDown:
                 isMouseButtonDown = true
             case .leftMouseUp, .rightMouseUp, .otherMouseUp:
@@ -305,11 +319,9 @@ extension MenuBarItemManager {
             logSkippingCache(reason: "an item is currently being moved")
             return
         } catch {
-            if let lastItemMoveStartDate {
-                guard Date.now.timeIntervalSince(lastItemMoveStartDate) > 1 else {
-                    logSkippingCache(reason: "an item was recently moved")
-                    return
-                }
+            guard !itemHasRecentlyMoved else {
+                logSkippingCache(reason: "an item was recently moved")
+                return
             }
         }
 
@@ -1394,7 +1406,7 @@ extension MenuBarItemManager {
             Logger.itemManager.debug("Mouse button is down, so will not enforce control item order")
             return
         }
-        guard mouseMoveCount <= 0 else {
+        guard !mouseHasRecentlyMoved else {
             Logger.itemManager.debug("Mouse has recently moved, so will not enforce control item order")
             return
         }

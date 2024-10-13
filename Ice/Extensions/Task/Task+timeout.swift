@@ -3,6 +3,8 @@
 //  Ice
 //
 
+import Foundation
+
 extension Task where Failure == any Error {
     /// Runs the given throwing operation asynchronously as part of a new top-level task
     /// on behalf of the current actor.
@@ -22,7 +24,12 @@ extension Task where Failure == any Error {
         operation: @escaping @Sendable () async throws -> Success
     ) {
         self.init(priority: priority) {
-            try await Task.run(operation: operation, withTimeout: timeout, tolerance: tolerance, clock: clock)
+            try await Task.run(
+                operation: operation,
+                withTimeout: timeout,
+                tolerance: tolerance,
+                clock: clock
+            )
         }
     }
 
@@ -45,7 +52,12 @@ extension Task where Failure == any Error {
         operation: @escaping @Sendable () async throws -> Success
     ) -> Task {
         Task.detached(priority: priority) {
-            try await Task.run(operation: operation, withTimeout: timeout, tolerance: tolerance, clock: clock)
+            try await Task.run(
+                operation: operation,
+                withTimeout: timeout,
+                tolerance: tolerance,
+                clock: clock
+            )
         }
     }
 
@@ -70,7 +82,14 @@ extension Task where Failure == any Error {
     }
 }
 
+// MARK: - TaskTimeoutError
+
 /// An error that indicates that a task timed out.
 struct TaskTimeoutError: Error, CustomStringConvertible {
     let description = "Task timed out before completion"
+}
+
+// MARK: TaskTimeoutError: LocalizedError
+extension TaskTimeoutError: LocalizedError {
+    var errorDescription: String? { description }
 }

@@ -17,11 +17,11 @@ struct MenuBarAppearanceEditor: View {
     let location: Location
 
     private var mainFormPadding: EdgeInsets {
-        switch location {
-        case .settings:
-            EdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20)
-        case .popover:
-            EdgeInsets(top: 0, leading: 20, bottom: 20, trailing: 20)
+        with(EdgeInsets(all: 20)) { insets in
+            switch location {
+            case .settings: break
+            case .popover: insets.top = 0
+            }
         }
     }
 

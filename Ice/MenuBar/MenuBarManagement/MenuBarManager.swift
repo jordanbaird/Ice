@@ -23,10 +23,16 @@ final class MenuBarManager: ObservableObject {
     @Published private(set) var isMenuBarHiddenBySystemUserDefaults = false
 
     /// The shared app state.
-    private(set) weak var appState: AppState?
+    private weak var appState: AppState?
 
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
+
+    /// A Boolean value that indicates whether the application menus are hidden.
+    private var isHidingApplicationMenus = false
+
+    /// The managed sections in the menu bar.
+    private(set) var sections = [MenuBarSection]()
 
     /// The panel that contains the Ice Bar interface.
     let iceBarPanel: IceBarPanel
@@ -34,21 +40,11 @@ final class MenuBarManager: ObservableObject {
     /// The panel that contains the menu bar search interface.
     let searchPanel: MenuBarSearchPanel
 
-    private let encoder = JSONEncoder()
-
-    private let decoder = JSONDecoder()
-
-    /// A Boolean value that indicates whether the application menus are hidden.
-    private var isHidingApplicationMenus = false
-
     /// A Boolean value that indicates whether the manager can update its stored
     /// information for the menu bar's average color.
     private var canUpdateAverageColorInfo: Bool {
         appState?.settingsWindow?.isVisible == true
     }
-
-    /// The managed sections in the menu bar.
-    private(set) var sections = [MenuBarSection]()
 
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
@@ -84,6 +80,7 @@ final class MenuBarManager: ObservableObject {
         ]
     }
 
+    /// Configures the internal observers for the manager.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -226,6 +223,8 @@ final class MenuBarManager: ObservableObject {
         cancellables = c
     }
 
+    /// Updates the ``averageColorInfo`` property with the current average color
+    /// of the menu bar.
     func updateAverageColorInfo() {
         guard
             canUpdateAverageColorInfo,
@@ -403,5 +402,6 @@ extension MenuBarManager: BindingExposable { }
 
 // MARK: - Logger
 private extension Logger {
+    /// Logger to use for the menu bar manager.
     static let menuBarManager = Logger(category: "MenuBarManager")
 }

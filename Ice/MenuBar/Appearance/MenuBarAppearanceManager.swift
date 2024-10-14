@@ -9,35 +9,39 @@ import Combine
 /// A manager for the appearance of the menu bar.
 @MainActor
 final class MenuBarAppearanceManager: ObservableObject {
+    /// The current menu bar appearance configuration.
     @Published var configuration: MenuBarAppearanceConfigurationV2 = .defaultConfiguration
 
-    private var cancellables = Set<AnyCancellable>()
+    /// The shared app state.
+    private weak var appState: AppState?
 
+    /// Encoder for UserDefaults values.
     private let encoder = JSONEncoder()
 
+    /// Decoder for UserDefaults values.
     private let decoder = JSONDecoder()
 
-    private let defaults = UserDefaults.standard
+    /// Storage for internal observers.
+    private var cancellables = Set<AnyCancellable>()
 
-    private(set) weak var appState: AppState?
-
+    /// The currently managed menu bar overlay panels.
     private(set) var overlayPanels = Set<MenuBarOverlayPanel>()
 
+    /// The amount to inset the menu bar if called for by the configuration.
     let menuBarInsetAmount: CGFloat = 5
 
-    weak var menuBarManager: MenuBarManager? {
-        appState?.menuBarManager
-    }
-
+    /// Creates a manager with the given app state.
     init(appState: AppState) {
         self.appState = appState
     }
 
+    /// Performs initial setup of the manager.
     func performSetup() {
         loadInitialState()
         configureCancellables()
     }
 
+    /// Loads the initial values for the configuration.
     private func loadInitialState() {
         do {
             if let data = Defaults.data(forKey: .menuBarAppearanceConfigurationV2) {
@@ -48,6 +52,7 @@ final class MenuBarAppearanceManager: ObservableObject {
         }
     }
 
+    /// Configures the internal observers for the manager.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -85,8 +90,8 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                // overlay panels may not have been configured yet; since some of the
-                // properties on the manager might call for them, try to configure now
+                // The overlay panels may not have been configured yet. Since some of the
+                // properties on the manager might call for them, try to configure now.
                 if overlayPanels.isEmpty {
                     configureOverlayPanels(with: configuration)
                 }
@@ -151,5 +156,6 @@ extension MenuBarAppearanceManager: BindingExposable { }
 
 // MARK: - Logger
 private extension Logger {
+    /// The logger to use for the menu bar appearance manager.
     static let appearanceManager = Logger(category: "MenuBarAppearanceManager")
 }

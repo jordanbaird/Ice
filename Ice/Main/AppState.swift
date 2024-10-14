@@ -251,7 +251,7 @@ final class AppState: ObservableObject {
         // Store whether the app has previously activated inside an internal
         // context to keep it isolated.
         enum Context {
-            static let hasActivated = ObjectAssociation<Bool>()
+            static let hasActivated = ObjectStorage<Bool>()
         }
 
         func activate() {
@@ -263,10 +263,10 @@ final class AppState: ObservableObject {
             NSApp.setActivationPolicy(policy)
         }
 
-        if Context.hasActivated[self] == true {
+        if Context.hasActivated.value(for: self) == true {
             activate()
         } else {
-            Context.hasActivated[self] = true
+            Context.hasActivated.set(true, for: self)
             Logger.appState.debug("First time activating app, so going through Dock")
             // Hack to make sure the app properly activates for the first time.
             NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.activate()

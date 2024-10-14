@@ -467,7 +467,7 @@ final class ControlItem {
                 keyEquivalent: ""
             )
             item.target = self
-            Self.sectionStorage[item] = section
+            Self.sectionStorage.weakSet(section, for: item)
             switch name {
             case .visible:
                 break
@@ -516,7 +516,7 @@ final class ControlItem {
 
     /// Toggles the menu bar section associated with the given menu item.
     @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
-        Self.sectionStorage[menuItem]?.toggle()
+        Self.sectionStorage.value(for: menuItem)?.toggle()
     }
 
     /// Opens the menu bar search panel.
@@ -567,7 +567,7 @@ private extension ControlItem {
     ///
     /// When one of these menu items is created, its section is stored here.
     /// When its action is invoked, the section is retrieved from storage.
-    static let sectionStorage = ObjectAssociation<MenuBarSection>()
+    static let sectionStorage = ObjectStorage<MenuBarSection>()
 }
 
 // MARK: - Logger

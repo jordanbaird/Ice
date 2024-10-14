@@ -360,11 +360,18 @@ final class MenuBarOverlayPanel: NSPanel {
 private final class MenuBarOverlayPanelContentView: NSView {
     @Published private var fullConfiguration: MenuBarAppearanceConfigurationV2 = .defaultConfiguration
 
+    @Published private var previewConfiguration: MenuBarAppearancePartialConfiguration?
+
     private var cancellables = Set<AnyCancellable>()
 
     /// The overlay panel that contains the content view.
     private var overlayPanel: MenuBarOverlayPanel? {
         window as? MenuBarOverlayPanel
+    }
+
+    /// The currently displayed configuration.
+    private var configuration: MenuBarAppearancePartialConfiguration {
+        previewConfiguration ?? fullConfiguration.current
     }
 
     override func viewDidMoveToWindow() {
@@ -380,6 +387,10 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 appState.appearanceManager.$configuration
                     .removeDuplicates()
                     .assign(to: &$fullConfiguration)
+
+                appState.appearanceManager.$previewConfiguration
+                    .removeDuplicates()
+                    .assign(to: &$previewConfiguration)
 
                 for section in appState.menuBarManager.sections {
                     // Redraw whenever the window frame of a control item changes.
@@ -436,8 +447,9 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 .store(in: &c)
         }
 
-        // Redraw whenever the full configuration changes.
-        $fullConfiguration
+        // Redraw whenever the configurations change.
+        $fullConfiguration.mapToVoid()
+            .merge(with: $previewConfiguration.mapToVoid())
             .sink { [weak self] _ in
                 self?.needsDisplay = true
             }
@@ -616,7 +628,6 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
     /// Draws the tint defined by the given configuration in the given rectangle.
     private func drawTint(in rect: CGRect) {
-        let configuration = fullConfiguration.current
         switch configuration.tintKind {
         case .none:
             break
@@ -641,7 +652,6 @@ private final class MenuBarOverlayPanelContentView: NSView {
         }
 
         let drawableBounds = getDrawableBounds()
-        let configuration = fullConfiguration.current
 
         let shapePath = switch fullConfiguration.shapeKind {
         case .none:

@@ -12,6 +12,9 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// The current menu bar appearance configuration.
     @Published var configuration: MenuBarAppearanceConfigurationV2 = .defaultConfiguration
 
+    /// The currently previewed partial configuration.
+    @Published var previewConfiguration: MenuBarAppearancePartialConfiguration?
+
     /// The shared app state.
     private weak var appState: AppState?
 

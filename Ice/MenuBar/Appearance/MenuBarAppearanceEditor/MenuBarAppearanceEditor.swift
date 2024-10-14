@@ -64,13 +64,25 @@ struct MenuBarAppearanceEditor: View {
             }
             if appearanceManager.configuration.isDynamic {
                 VStack(alignment: .leading) {
-                    Text("Light Appearance")
-                        .font(.headline)
+                    HStack {
+                        Text("Light Appearance")
+                            .font(.headline)
+                        if case .dark = SystemAppearance.current {
+                            PreviewButton(configuration: appearanceManager.configuration.lightModeConfiguration)
+                        }
+                    }
+                    .frame(height: 16)
                     MenuBarPartialAppearanceEditor(configuration: appearanceManager.bindings.configuration.lightModeConfiguration)
                 }
                 VStack(alignment: .leading) {
-                    Text("Dark Appearance")
-                        .font(.headline)
+                    HStack {
+                        Text("Dark Appearance")
+                            .font(.headline)
+                        if case .light = SystemAppearance.current {
+                            PreviewButton(configuration: appearanceManager.configuration.darkModeConfiguration)
+                        }
+                    }
+                    .frame(height: 16)
                     MenuBarPartialAppearanceEditor(configuration: appearanceManager.bindings.configuration.darkModeConfiguration)
                 }
             } else {
@@ -137,7 +149,7 @@ struct MenuBarAppearanceEditor: View {
     }
 }
 
-struct MenuBarPartialAppearanceEditor: View {
+private struct MenuBarPartialAppearanceEditor: View {
     @Binding var configuration: MenuBarAppearancePartialConfiguration
 
     var body: some View {
@@ -220,5 +232,53 @@ struct MenuBarPartialAppearanceEditor: View {
                 Text("3").icePickerID(3.0)
             }
         }
+    }
+}
+
+private struct PreviewButton: View {
+    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
+
+    @State private var frame = CGRect.zero
+    @State private var isPressed = false
+
+    let configuration: MenuBarAppearancePartialConfiguration
+
+    var body: some View {
+        ZStack {
+            DummyButton(isPressed: $isPressed)
+                .allowsHitTesting(false)
+            Text("Hold to Preview")
+                .baselineOffset(1.5)
+                .padding(.horizontal, 10)
+                .contentShape(Rectangle())
+        }
+        .fixedSize()
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    isPressed = frame.contains(value.location)
+                }
+                .onEnded { _ in
+                    isPressed = false
+                }
+        )
+        .onChange(of: isPressed) { _, newValue in
+            appearanceManager.previewConfiguration = newValue ? configuration : nil
+        }
+        .onFrameChange(update: $frame)
+    }
+}
+
+private struct DummyButton: NSViewRepresentable {
+    @Binding var isPressed: Bool
+
+    func makeNSView(context: Context) -> NSButton {
+        let button = NSButton()
+        button.title = ""
+        return button
+    }
+
+    func updateNSView(_ nsView: NSButton, context: Context) {
+        nsView.isHighlighted = isPressed
     }
 }

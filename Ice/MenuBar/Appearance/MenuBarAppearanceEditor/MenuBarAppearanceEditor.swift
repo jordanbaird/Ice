@@ -63,30 +63,10 @@ struct MenuBarAppearanceEditor: View {
                 isDynamicToggle
             }
             if appearanceManager.configuration.isDynamic {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("Light Appearance")
-                            .font(.headline)
-                        if case .dark = SystemAppearance.current {
-                            PreviewButton(configuration: appearanceManager.configuration.lightModeConfiguration)
-                        }
-                    }
-                    .frame(height: 16)
-                    MenuBarPartialAppearanceEditor(configuration: appearanceManager.bindings.configuration.lightModeConfiguration)
-                }
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("Dark Appearance")
-                            .font(.headline)
-                        if case .light = SystemAppearance.current {
-                            PreviewButton(configuration: appearanceManager.configuration.darkModeConfiguration)
-                        }
-                    }
-                    .frame(height: 16)
-                    MenuBarPartialAppearanceEditor(configuration: appearanceManager.bindings.configuration.darkModeConfiguration)
-                }
+                LabeledPartialEditor(appearance: .light)
+                LabeledPartialEditor(appearance: .dark)
             } else {
-                MenuBarPartialAppearanceEditor(configuration: appearanceManager.bindings.configuration.staticConfiguration)
+                StaticPartialEditor()
             }
             IceSection("Menu Bar Shape") {
                 shapePicker
@@ -149,7 +129,7 @@ struct MenuBarAppearanceEditor: View {
     }
 }
 
-private struct MenuBarPartialAppearanceEditor: View {
+private struct UnlabeledPartialEditor: View {
     @Binding var configuration: MenuBarAppearancePartialConfiguration
 
     var body: some View {
@@ -235,7 +215,85 @@ private struct MenuBarPartialAppearanceEditor: View {
     }
 }
 
+private struct LabeledPartialEditor: View {
+    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
+    @State private var currentAppearance = SystemAppearance.current
+    @State private var textFrame = CGRect.zero
+
+    let appearance: SystemAppearance
+
+    var body: some View {
+        IceSection {
+            labelStack
+        } content: {
+            partialEditor
+        }
+        .bordered(false)
+        .dividers(false)
+        .onReceive(NSApp.publisher(for: \.effectiveAppearance)) { _ in
+            currentAppearance = .current
+        }
+    }
+
+    @ViewBuilder
+    private var labelStack: some View {
+        HStack {
+            Text(appearance.titleKey)
+                .font(.headline)
+                .onFrameChange(update: $textFrame)
+
+            if currentAppearance != appearance {
+                previewButton
+            }
+        }
+        .frame(height: textFrame.height)
+    }
+
+    @ViewBuilder
+    private var previewButton: some View {
+        switch appearance {
+        case .light:
+            PreviewButton(configuration: appearanceManager.configuration.lightModeConfiguration)
+        case .dark:
+            PreviewButton(configuration: appearanceManager.configuration.darkModeConfiguration)
+        }
+    }
+
+    @ViewBuilder
+    private var partialEditor: some View {
+        switch appearance {
+        case .light:
+            UnlabeledPartialEditor(configuration: appearanceManager.bindings.configuration.lightModeConfiguration)
+        case .dark:
+            UnlabeledPartialEditor(configuration: appearanceManager.bindings.configuration.darkModeConfiguration)
+        }
+    }
+}
+
+private struct StaticPartialEditor: View {
+    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
+
+    var body: some View {
+        UnlabeledPartialEditor(configuration: appearanceManager.bindings.configuration.staticConfiguration)
+    }
+}
+
 private struct PreviewButton: View {
+    private struct DummyButton: NSViewRepresentable {
+        @Binding var isPressed: Bool
+
+        func makeNSView(context: Context) -> NSButton {
+            let button = NSButton()
+            button.title = ""
+            button.bezelStyle = .accessoryBarAction
+            return button
+        }
+
+        func updateNSView(_ nsView: NSButton, context: Context) {
+            nsView.isHighlighted = isPressed
+        }
+    }
+
     @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
 
     @State private var frame = CGRect.zero
@@ -266,19 +324,5 @@ private struct PreviewButton: View {
             appearanceManager.previewConfiguration = newValue ? configuration : nil
         }
         .onFrameChange(update: $frame)
-    }
-}
-
-private struct DummyButton: NSViewRepresentable {
-    @Binding var isPressed: Bool
-
-    func makeNSView(context: Context) -> NSButton {
-        let button = NSButton()
-        button.title = ""
-        return button
-    }
-
-    func updateNSView(_ nsView: NSButton, context: Context) {
-        nsView.isHighlighted = isPressed
     }
 }

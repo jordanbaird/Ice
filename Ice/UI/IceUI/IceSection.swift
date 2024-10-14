@@ -10,6 +10,8 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
     private let content: Content
     private let footer: Footer
     private let spacing: CGFloat = 10
+    private var isBordered = true
+    private var hasDividers = true
 
     init(
         @ViewBuilder header: () -> Header,
@@ -72,15 +74,47 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
     }
 
     var body: some View {
-        IceGroupBox(padding: spacing) {
-            header
-        } content: {
+        if isBordered {
+            IceGroupBox(padding: spacing) {
+                header
+            } content: {
+                dividedContent
+            } footer: {
+                footer
+            }
+        } else {
+            VStack(alignment: .leading) {
+                header
+                dividedContent
+                footer
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var dividedContent: some View {
+        if hasDividers {
             _VariadicView.Tree(IceSectionLayout(spacing: spacing)) {
                 content
                     .frame(maxWidth: .infinity)
             }
-        } footer: {
-            footer
+        } else {
+            content
+                .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+extension IceSection {
+    func bordered(_ isBordered: Bool = true) -> IceSection {
+        with(self) { copy in
+            copy.isBordered = isBordered
+        }
+    }
+
+    func dividers(_ hasDividers: Bool = true) -> IceSection {
+        with(self) { copy in
+            copy.hasDividers = hasDividers
         }
     }
 }

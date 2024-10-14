@@ -3,7 +3,7 @@
 //  Ice
 //
 
-import Cocoa
+import SwiftUI
 
 /// A value corresponding to a light or dark appearance.
 enum SystemAppearance {
@@ -71,5 +71,13 @@ enum SystemAppearance {
     /// The current system appearance.
     static var current: SystemAppearance {
         systemAppearance(for: NSApp.effectiveAppearance)
+    }
+
+    /// The title key to display in the interface.
+    var titleKey: LocalizedStringKey {
+        switch self {
+        case .light: "Light Appearance"
+        case .dark: "Dark Appearance"
+        }
     }
 }

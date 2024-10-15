@@ -115,6 +115,49 @@ extension Predicates where Input == MenuBarItem {
             isInAlwaysHiddenSection: isInAlwaysHiddenSection(alwaysHiddenControlItem: alwaysHiddenControlItem)
         )
     }
+
+    /// Creates a predicate that returns whether a menu bar item can be
+    /// managed by Ice.
+    static func menuBarItemsThatCanBeManaged() -> NonThrowingPredicate {
+        predicate { item in
+            // Static items cannot be managed.
+            guard item.isMovable else {
+                return false
+            }
+
+            // Audio-video module cannot be hidden.
+            guard item.info != .audioVideoModule else {
+                return false
+            }
+
+            return true
+        }
+    }
+
+    /// Creates a predicate that returns whether a menu bar item should
+    /// be included in an item configuration.
+    static func menuBarItemsForConfiguration() -> NonThrowingPredicate {
+        let menuBarItemCanBeManaged = menuBarItemsThatCanBeManaged()
+        return predicate { item in
+            guard menuBarItemCanBeManaged(item) else {
+                return false
+            }
+
+            if item.owningApplication == .current {
+                // The Ice icon is the only item owned by Ice that should be included.
+                guard item.title == ControlItem.Identifier.iceIcon.rawValue else {
+                    return false
+                }
+            }
+
+            // Only items currently in the menu bar should be included.
+            guard item.isCurrentlyInMenuBar else {
+                return false
+            }
+
+            return true
+        }
+    }
 }
 
 // MARK: - Control Item Predicates

@@ -31,15 +31,18 @@ final class MenuBarProfile: ObservableObject {
 
         Timer.publish(every: 5, on: .main, in: .default)
             .autoconnect()
+            .merge(with: Just(.now))
             .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                configuration.validate()
+                self?.validate()
             }
             .store(in: &c)
 
         cancellables = c
+    }
+
+    /// Validates the profile's configuration.
+    func validate() {
+        configuration.validate()
     }
 }
 

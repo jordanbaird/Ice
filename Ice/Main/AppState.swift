@@ -39,6 +39,9 @@ final class AppState: ObservableObject {
     /// Global cache for menu bar item images.
     private(set) lazy var imageCache = MenuBarItemImageCache(appState: self)
 
+    /// Manager for menu bar profiles.
+    let profileManager = MenuBarProfileManager()
+
     /// Manager for menu bar item spacing.
     let spacingManager = MenuBarItemSpacingManager()
 
@@ -187,6 +190,7 @@ final class AppState: ObservableObject {
         imageCache.performSetup()
         updatesManager.performSetup()
         userNotificationManager.performSetup()
+        profileManager.performSetup()
     }
 
     /// Assigns the app delegate to the app state.

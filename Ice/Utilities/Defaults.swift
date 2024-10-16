@@ -170,6 +170,11 @@ extension Defaults {
 
         case menuBarAppearanceConfigurationV2 = "MenuBarAppearanceConfigurationV2"
 
+        // MARK: Menu Bar Profiles
+
+        case profiles = "Profiles"
+        case activeProfileName = "ActiveProfileName"
+
         // MARK: Ice Bar Settings
 
         case iceBarLocation = "IceBarLocation"

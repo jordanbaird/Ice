@@ -7,16 +7,23 @@ struct MenuBarItemConfiguration: Hashable {
     /// The items in the configuration, grouped by section name.
     private var groupedItems: [MenuBarSection.Name: [MenuBarItemInfo]]
 
-    /// All the items in the configuration, ordered by section.
-    var allItems: [MenuBarItemInfo] {
+    /// Returns the items for the section with the given name.
+    ///
+    /// - Parameter name: The name of the section of items to return.
+    func getItems(for name: MenuBarSection.Name) -> [MenuBarItemInfo] {
+        groupedItems[name, default: []]
+    }
+
+    /// Returns all items in the configuration, ordered by section.
+    func getAllItems() -> [MenuBarItemInfo] {
         MenuBarSection.Name.allCases.reduce(into: []) { items, name in
             items.append(contentsOf: getItems(for: name))
         }
     }
 
-    /// All the items in the configuration, ordered by section and delimited
+    /// Returns all items in the configuration, ordered by section and delimited
     /// by the control items for the hidden and always-hidden sections.
-    var delimitedItems: [MenuBarItemInfo] {
+    func getDelimitedItems() -> [MenuBarItemInfo] {
         MenuBarSection.Name.allCases.reduce(into: []) { items, name in
             items.append(contentsOf: getItems(for: name))
             switch name {
@@ -30,22 +37,15 @@ struct MenuBarItemConfiguration: Hashable {
         }
     }
 
-    /// All the non-special items in the configuration, ordered by section.
-    var allStandardItems: [MenuBarItemInfo] {
-        allItems.filter { !$0.isSpecial }
+    /// Returns all non-special items in the configuration, ordered by section.
+    func getAllStandardItems() -> [MenuBarItemInfo] {
+        getAllItems().filter { !$0.isSpecial }
     }
 
-    /// All the non-special items in the configuration, ordered by section and
+    /// Returns all non-special items in the configuration, ordered by section and
     /// delimited by the control items for the hidden and always-hidden sections.
-    var delimitedStandardItems: [MenuBarItemInfo] {
-        delimitedItems.filter { !$0.isSpecial }
-    }
-
-    /// Returns the items for the section with the given name.
-    ///
-    /// - Parameter name: The name of the section of items to return.
-    func getItems(for name: MenuBarSection.Name) -> [MenuBarItemInfo] {
-        groupedItems[name, default: []]
+    func getDelimitedStandardItems() -> [MenuBarItemInfo] {
+        getDelimitedItems().filter { !$0.isSpecial }
     }
 
     /// Sets the items for the section with the given name.
@@ -64,7 +64,7 @@ struct MenuBarItemConfiguration: Hashable {
         guard !MenuBarItemInfo.nonHideableItems.contains(item) else {
             return
         }
-        guard !Set(allItems).contains(item) else {
+        guard !Set(getAllItems()).contains(item) else {
             return
         }
         for name in MenuBarSection.Name.allCases {
@@ -123,23 +123,20 @@ extension MenuBarItemConfiguration {
     static func current() -> MenuBarItemConfiguration {
         var allItems = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
 
-        guard
-            let hiddenControlItem = allItems.firstIndex(of: .hiddenControlItem).map({ allItems.remove(at: $0) }),
-            let alwaysHiddenControlItem = allItems.firstIndex(of: .alwaysHiddenControlItem).map({ allItems.remove(at: $0) })
-        else {
+        guard let hiddenControlItem = allItems.firstIndex(of: .hiddenControlItem).map({ allItems.remove(at: $0) }) else {
+            Logger.configuration.warning("Missing hidden control item, so returning empty configuration")
             return .empty
         }
+
+        let alwaysHiddenControlItem = allItems.firstIndex(of: .alwaysHiddenControlItem).map({ allItems.remove(at: $0) })
+        let predicates = Predicates.sectionPredicates(hiddenControlItem: hiddenControlItem, alwaysHiddenControlItem: alwaysHiddenControlItem)
 
         let isValidForConfiguration = Predicates.menuBarItemsForConfiguration()
         var groupedItems = [MenuBarSection.Name: [MenuBarItemInfo]]()
 
-        let predicates = Predicates.sectionPredicates(
-            hiddenControlItem: hiddenControlItem,
-            alwaysHiddenControlItem: alwaysHiddenControlItem
-        )
-
         for item in allItems.reversed() {
             guard isValidForConfiguration(item) else {
+                Logger.configuration.debug("\(item.logString) not valid for configuration, so skipping")
                 continue
             }
             if predicates.isInVisibleSection(item) {
@@ -149,7 +146,7 @@ extension MenuBarItemConfiguration {
             } else if predicates.isInAlwaysHiddenSection(item) {
                 groupedItems[.alwaysHidden, default: []].append(item.info)
             } else {
-                Logger.configuration.warning("\(item.logString) not added to any section")
+                Logger.configuration.warning("\(item.logString) not added to configuration")
             }
         }
 

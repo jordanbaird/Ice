@@ -45,16 +45,16 @@ final class LayoutBarPaddingView: NSView {
 
         self.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            // center the container along the y axis
+            // Center the container along the y axis.
             container.centerYAnchor.constraint(equalTo: centerYAnchor),
 
-            // give the container a few points of trailing space
+            // Give the container a few points of trailing space.
             trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: 7.5),
 
-            // allow variable spacing between leading anchors to let the view stretch
-            // to fit whatever size is required; container should remain aligned toward
-            // the trailing edge; this view is itself nested in a scroll view, so if it
-            // has to expand to a larger size, it can be clipped
+            // Allow variable spacing between leading anchors to let the view stretch
+            // to fit whatever size is required. The container should remain aligned
+            // toward the trailing edge. This view is itself nested in a scroll view,
+            // so if it has to expand to a larger size, it can be clipped.
             leadingAnchor.constraint(lessThanOrEqualTo: container.leadingAnchor, constant: -7.5),
         ])
 
@@ -93,18 +93,18 @@ final class LayoutBarPaddingView: NSView {
 
         guard
             sender.draggingSourceOperationMask == .move,
-            let draggingSource = sender.draggingSource as? LayoutBarItemView
+            let draggingSource = sender.draggingSource as? StandardLayoutBarItemView
         else {
             return false
         }
 
         if let index = arrangedViews.firstIndex(of: draggingSource) {
             if arrangedViews.count == 1 {
-                // dragging source is the only view in the layout bar, so we
-                // need to find a target item
+                // The dragging source is the only view in the layout bar, so we
+                // need to find a target item.
                 let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
                 let targetItem: MenuBarItem? = switch section.name {
-                case .visible: nil // visible section always has more than 1 item
+                case .visible: nil // Visible section always has more than 1 item.
                 case .hidden: items.first { $0.info == .hiddenControlItem }
                 case .alwaysHidden: items.first { $0.info == .alwaysHiddenControlItem }
                 }
@@ -114,13 +114,15 @@ final class LayoutBarPaddingView: NSView {
                     Logger.layoutBar.error("No target item for layout bar drag")
                 }
             } else if arrangedViews.indices.contains(index + 1) {
-                // we have a view to the right of the dragging source
-                let targetItem = arrangedViews[index + 1].item
-                move(item: draggingSource.item, to: .leftOfItem(targetItem))
+                // We have a view to the right of the dragging source.
+                if let targetItem = (arrangedViews[index + 1] as? StandardLayoutBarItemView)?.item {
+                    move(item: draggingSource.item, to: .leftOfItem(targetItem))
+                }
             } else if arrangedViews.indices.contains(index - 1) {
-                // we have a view to the left of the dragging source
-                let targetItem = arrangedViews[index - 1].item
-                move(item: draggingSource.item, to: .rightOfItem(targetItem))
+                // We have a view to the left of the dragging source.
+                if let targetItem = (arrangedViews[index - 1] as? StandardLayoutBarItemView)?.item {
+                    move(item: draggingSource.item, to: .rightOfItem(targetItem))
+                }
             }
         }
 

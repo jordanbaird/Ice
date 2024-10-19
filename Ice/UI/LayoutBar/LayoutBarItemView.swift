@@ -9,13 +9,15 @@ import Combine
 // MARK: - LayoutBarItemView
 
 /// A view that displays an image in a menu bar layout view.
-final class LayoutBarItemView: NSView {
-    private weak var appState: AppState?
+class LayoutBarItemView: NSView {
+    /// The shared app state.
+    private(set) weak var appState: AppState?
 
-    private var cancellables = Set<AnyCancellable>()
+    /// The menu bar item info that the view represents.
+    let info: MenuBarItemInfo
 
-    /// The item that the view represents.
-    let item: MenuBarItem
+    /// The image displayed inside the view.
+    var image: NSImage?
 
     /// Temporary information that the item view retains when it is moved outside
     /// of a layout view.
@@ -30,25 +32,6 @@ final class LayoutBarItemView: NSView {
 
     /// A Boolean value that indicates whether the item view is currently inside a container.
     var hasContainer = false
-
-    /// The image displayed inside the view.
-    private var image: NSImage? {
-        didSet {
-            if
-                let image,
-                let screen = appState?.imageCache.screen
-            {
-                let size = CGSize(
-                    width: image.size.width / screen.backingScaleFactor,
-                    height: image.size.height / screen.backingScaleFactor
-                )
-                setFrameSize(size)
-            } else {
-                setFrameSize(.zero)
-            }
-            needsDisplay = true
-        }
-    }
 
     /// A Boolean value that indicates whether the item view is a dragging placeholder.
     ///
@@ -66,19 +49,15 @@ final class LayoutBarItemView: NSView {
         }
     }
 
-    /// Creates a view that displays the given menu bar item.
-    init(appState: AppState, item: MenuBarItem) {
-        self.item = item
+    /// A Boolean value that indicates whether the view's item is unresponsive.
+    var isUnresponsive: Bool { false }
+
+    /// Creates a view that displays the given menu bar item info.
+    init(frame: CGRect, appState: AppState, info: MenuBarItemInfo) {
         self.appState = appState
-
-        // set the frame to the full item frame size; the image will be centered when displayed
-        super.init(frame: CGRect(origin: .zero, size: item.frame.size))
+        self.info = info
+        super.init(frame: frame)
         unregisterDraggedTypes()
-
-        self.toolTip = item.displayName
-        self.isEnabled = item.isMovable
-
-        configureCancellables()
     }
 
     @available(*, unavailable)
@@ -86,46 +65,23 @@ final class LayoutBarItemView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private func configureCancellables() {
-        var c = Set<AnyCancellable>()
-
-        if let appState {
-            appState.imageCache.$images
-                .sink { [weak self] images in
-                    guard
-                        let self,
-                        let cgImage = images[item.info]
-                    else {
-                        return
-                    }
-                    image = NSImage(cgImage: cgImage, size: CGSize(width: cgImage.width, height: cgImage.height))
-                }
-                .store(in: &c)
-        }
-
-        cancellables = c
-    }
-
     /// Provides an alert to display when the item view is disabled.
     func provideAlertForDisabledItem() -> NSAlert {
         let alert = NSAlert()
         alert.messageText = "Menu bar item is not movable."
-        alert.informativeText = "macOS prohibits \"\(item.displayName)\" from being moved."
         return alert
     }
 
     /// Provides an alert to display when a menu bar item is unresponsive.
     func provideAlertForUnresponsiveItem() -> NSAlert {
-        let alert = provideAlertForDisabledItem()
-        alert.informativeText = "\(item.displayName) is unresponsive. Until it is restarted, it cannot be moved. Movement of other menu bar items may also be affected until this is resolved."
-        return alert
+        return provideAlertForDisabledItem()
     }
 
     /// Provides an alert to display when the user is pressing a key while
     /// moving a menu bar item.
     func provideAlertForKeyDown() -> NSAlert {
         let alert = NSAlert()
-        alert.messageText = "Do not press keys while moving menu bar items."
+        alert.messageText = "Cannot move menu bar items while keys are pressed."
         return alert
     }
 
@@ -137,7 +93,7 @@ final class LayoutBarItemView: NSView {
                 operation: .sourceOver,
                 fraction: isEnabled ? 1.0 : 0.67
             )
-            if Bridging.responsivity(for: item.ownerPID) == .unresponsive {
+            if isUnresponsive {
                 let warningImage = NSImage.warning
                 let width: CGFloat = 15
                 let scale = width / warningImage.size.width
@@ -172,16 +128,16 @@ final class LayoutBarItemView: NSView {
             return
         }
 
-        guard Bridging.responsivity(for: item.ownerPID) != .unresponsive else {
+        guard !isUnresponsive else {
             let alert = provideAlertForUnresponsiveItem()
             alert.runModal()
             return
         }
 
         let pasteboardItem = NSPasteboardItem()
-        // contents of the pasteboard item don't matter here, as all needed information
-        // is available directly from the dragging session; what matters is that the type
-        // is set to `layoutBarItem`, as that is what the layout bar registers for
+        // Contents of the pasteboard item don't matter here, as all needed information
+        // is available directly from the dragging session. What matters is that the type
+        // is set to `layoutBarItem`, as that is what the layout bar registers for.
         pasteboardItem.setData(Data(), forType: .layoutBarItem)
 
         let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
@@ -239,6 +195,134 @@ extension LayoutBarItemView: NSDraggingSource {
 }
 
 extension LayoutBarItemView: NSAccessibilityLayoutItem { }
+
+// MARK: - StandardLayoutBarItemView
+
+final class StandardLayoutBarItemView: LayoutBarItemView {
+    /// The item that this view represents.
+    let item: MenuBarItem
+
+    /// Storage for internal observers.
+    private var cancellables = Set<AnyCancellable>()
+
+    override var isUnresponsive: Bool {
+        Bridging.responsivity(for: item.ownerPID) == .unresponsive
+    }
+
+    override var image: NSImage? {
+        didSet {
+            if
+                let image,
+                let screen = appState?.imageCache.screen
+            {
+                let size = CGSize(
+                    width: image.size.width / screen.backingScaleFactor,
+                    height: image.size.height / screen.backingScaleFactor
+                )
+                setFrameSize(size)
+            } else {
+                setFrameSize(.zero)
+            }
+            needsDisplay = true
+        }
+    }
+
+    /// Creates a view that displays the given menu bar item.
+    init(appState: AppState, item: MenuBarItem) {
+        self.item = item
+        super.init(
+            frame: CGRect(origin: .zero, size: item.frame.size),
+            appState: appState,
+            info: item.info
+        )
+        self.toolTip = item.displayName
+        self.isEnabled = item.isMovable
+        configureCancellables()
+    }
+
+    private func configureCancellables() {
+        var c = Set<AnyCancellable>()
+
+        if let appState {
+            appState.imageCache.$images
+                .sink { [weak self] images in
+                    guard
+                        let self,
+                        let cgImage = images[item.info]
+                    else {
+                        return
+                    }
+                    image = NSImage(cgImage: cgImage, size: CGSize(width: cgImage.width, height: cgImage.height))
+                }
+                .store(in: &c)
+        }
+
+        cancellables = c
+    }
+
+    override func provideAlertForDisabledItem() -> NSAlert {
+        let alert = super.provideAlertForDisabledItem()
+        alert.informativeText = "macOS prohibits \"\(item.displayName)\" from being moved."
+        return alert
+    }
+
+    override func provideAlertForUnresponsiveItem() -> NSAlert {
+        let alert = super.provideAlertForUnresponsiveItem()
+        alert.informativeText = "\(item.displayName) is unresponsive. Until it is restarted, it cannot be moved. Movement of other menu bar items may also be affected until this is resolved."
+        return alert
+    }
+}
+
+// MARK: - SpecialLayoutBarItemView
+
+final class SpecialLayoutBarItemView: LayoutBarItemView {
+    enum Kind: NSString {
+        case newItems = "New items appear here →"
+
+        var color: NSColor {
+            switch self {
+            case .newItems: NSColor.controlAccentColor.withAlphaComponent(0.75)
+            }
+        }
+
+        var info: MenuBarItemInfo {
+            switch self {
+            case .newItems: .newItems
+            }
+        }
+    }
+
+    let kind: Kind
+
+    init(kind: Kind, appState: AppState) {
+        self.kind = kind
+
+        let labelAttributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: NSFont.systemFontSize),
+            .foregroundColor: NSColor.white,
+        ]
+        let labelSize = kind.rawValue.size(withAttributes: labelAttributes)
+
+        super.init(
+            frame: CGRect(x: 0, y: 0, width: labelSize.width + 10, height: 22),
+            appState: appState,
+            info: kind.info
+        )
+
+        self.image = NSImage(size: bounds.size, flipped: false) { rect in
+            kind.color.setFill()
+            NSBezierPath(roundedRect: rect, xRadius: 5, yRadius: 5).fill()
+            let centeredRect = CGRect(
+                x: rect.midX - labelSize.width / 2,
+                y: rect.midY - labelSize.height / 2,
+                width: labelSize.width,
+                height: labelSize.height
+            )
+            kind.rawValue.draw(in: centeredRect, withAttributes: labelAttributes)
+            return true
+        }
+    }
+}
 
 // MARK: Layout Bar Item Pasteboard Type
 extension NSPasteboard.PasteboardType {

@@ -28,7 +28,7 @@ class LayoutBarItemView: NSView {
     /// new layout view, these values are removed. If the item is dropped outside of
     /// a layout view, these values are used to reinsert the item view in its original
     /// layout view.
-    var oldContainerInfo: (container: LayoutBarContainer, index: Int)?
+    var oldContainerInfo: (container: LayoutBarContainerView, index: Int)?
 
     /// A Boolean value that indicates whether the item view is currently inside a container.
     var hasContainer = false
@@ -156,7 +156,7 @@ extension LayoutBarItemView: NSDraggingSource {
     func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
         // Make sure the container doesn't update its arranged views and that items
         // aren't arranged during a dragging session.
-        if let container = superview as? LayoutBarContainer {
+        if let container = superview as? LayoutBarContainerView {
             container.canSetArrangedViews = false
         }
 

@@ -11,11 +11,11 @@ struct LayoutBar: View {
         let section: MenuBarSection
         let spacing: CGFloat
 
-        func makeNSView(context: Context) -> LayoutBarScrollView {
-            LayoutBarScrollView(appState: appState, section: section, spacing: spacing)
+        func makeNSView(context: Context) -> LayoutBarScrollableCocoaView {
+            LayoutBarScrollableCocoaView(appState: appState, section: section, spacing: spacing)
         }
 
-        func updateNSView(_ nsView: LayoutBarScrollView, context: Context) {
+        func updateNSView(_ nsView: LayoutBarScrollableCocoaView, context: Context) {
             nsView.spacing = spacing
         }
     }

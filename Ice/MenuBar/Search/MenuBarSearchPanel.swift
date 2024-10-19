@@ -17,14 +17,36 @@ final class MenuBarSearchPanel: NSPanel {
     /// The shared app state.
     private weak var appState: AppState?
 
-    /// Monitor for mouse down events.
-    private var mouseDownMonitor: UniversalEventMonitor?
-
-    /// Monitor for key down events.
-    private var keyDownMonitor: UniversalEventMonitor?
-
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
+
+    /// Monitor for mouse down events.
+    private lazy var mouseDownMonitor = UniversalEventMonitor(
+        mask: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+    ) { [weak self, weak appState] event in
+        guard
+            let self,
+            let appState,
+            event.window !== self
+        else {
+            return event
+        }
+        if !appState.itemManager.isMovingItem {
+            close()
+        }
+        return event
+    }
+
+    /// Monitor for key down events.
+    private lazy var keyDownMonitor = UniversalEventMonitor(
+        mask: [.keyDown]
+    ) { [weak self] event in
+        if KeyCode(rawValue: Int(event.keyCode)) == .escape {
+            self?.close()
+            return nil
+        }
+        return event
+    }
 
     /// Overridden to always be `true`.
     override var canBecomeKey: Bool { true }
@@ -33,7 +55,7 @@ final class MenuBarSearchPanel: NSPanel {
     init(appState: AppState) {
         super.init(
             contentRect: .zero,
-            styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel, .hudWindow],
+            styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel, .utilityWindow, .hudWindow],
             backing: .buffered,
             defer: false
         )
@@ -41,7 +63,9 @@ final class MenuBarSearchPanel: NSPanel {
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = false
         self.animationBehavior = .none
+        self.isFloatingPanel = true
         self.level = .floating
+        self.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle, .moveToActiveSpace]
         configureCancellables()
     }
 
@@ -68,48 +92,22 @@ final class MenuBarSearchPanel: NSPanel {
         cancellables = c
     }
 
-    /// Shows the panel on the given screen.
+    /// Shows the search panel on the given screen.
     func show(on screen: NSScreen) async {
         guard let appState else {
             return
         }
 
-        // Set the desired frame size for the panel before positioning.
-        let panelSize = CGSize(width: 600, height: 400)
-        setFrame(NSRect(origin: .zero, size: panelSize), display: false)
-
-        // Important that we set the navigation before updating the cache.
+        // Important that we set the navigation state before updating the cache.
         appState.navigationState.isSearchPresented = true
 
         await appState.imageCache.updateCache()
 
-        contentView = MenuBarSearchHostingView(appState: appState, closePanel: { [weak self] in
-            self?.close()
-        })
+        let hostingView = MenuBarSearchHostingView(appState: appState, panel: self)
+        hostingView.setFrameSize(hostingView.intrinsicContentSize)
+        setFrame(hostingView.frame, display: true)
 
-        mouseDownMonitor = UniversalEventMonitor(mask: [.leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self, weak appState] event in
-            guard
-                let self,
-                let appState,
-                event.window !== self
-            else {
-                return event
-            }
-            if !appState.itemManager.isMovingItem {
-                close()
-            }
-            return event
-        }
-        keyDownMonitor = UniversalEventMonitor(mask: .keyDown) { [weak self] event in
-            if KeyCode(rawValue: Int(event.keyCode)) == .escape {
-                self?.close()
-                return nil
-            }
-            return event
-        }
-
-        mouseDownMonitor?.start()
-        keyDownMonitor?.start()
+        contentView = hostingView
 
         // Calculate the top left position.
         let topLeft = CGPoint(
@@ -119,6 +117,9 @@ final class MenuBarSearchPanel: NSPanel {
 
         cascadeTopLeft(from: topLeft)
         makeKeyAndOrderFront(nil)
+
+        mouseDownMonitor.start()
+        keyDownMonitor.start()
     }
 
     /// Toggles the panel's visibility.
@@ -130,14 +131,12 @@ final class MenuBarSearchPanel: NSPanel {
         }
     }
 
-    /// Dismisses the panel and disables its event monitors.
+    /// Dismisses the search panel.
     override func close() {
         super.close()
         contentView = nil
-        mouseDownMonitor?.stop()
-        keyDownMonitor?.stop()
-        mouseDownMonitor = nil
-        keyDownMonitor = nil
+        mouseDownMonitor.stop()
+        keyDownMonitor.stop()
         appState?.navigationState.isSearchPresented = false
     }
 }
@@ -149,10 +148,10 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
 
     init(
         appState: AppState,
-        closePanel: @escaping () -> Void
+        panel: MenuBarSearchPanel
     ) {
         super.init(
-            rootView: MenuBarSearchContentView(closePanel: closePanel)
+            rootView: MenuBarSearchContentView(closePanel: { [weak panel] in panel?.close() })
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.imageCache)
                 .erasedToAnyView()

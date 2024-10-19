@@ -60,7 +60,6 @@ final class MenuBarSearchPanel: NSPanel {
             defer: false
         )
         self.appState = appState
-        self.title = "Menu Bar Search Panel"
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = false
         self.animationBehavior = .none

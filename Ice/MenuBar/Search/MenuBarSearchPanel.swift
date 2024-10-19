@@ -33,7 +33,7 @@ final class MenuBarSearchPanel: NSPanel {
     init(appState: AppState) {
         super.init(
             contentRect: .zero,
-            styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel, .hudWindow],
+            styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel, .utilityWindow, .hudWindow],
             backing: .buffered,
             defer: false
         )

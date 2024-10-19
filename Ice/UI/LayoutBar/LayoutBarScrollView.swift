@@ -49,16 +49,16 @@ final class LayoutBarScrollView: NSScrollView {
 
         self.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            // constrain the padding view's height to the content view's height
+            // Constrain the padding view's height to the content view's height.
             paddingView.heightAnchor.constraint(equalTo: contentView.heightAnchor),
 
-            // constrain the padding view's width to greater than or equal to the content
-            // view's width
+            // Constrain the padding view's width to greater than or equal to the content
+            // view's width.
             paddingView.widthAnchor.constraint(greaterThanOrEqualTo: contentView.widthAnchor),
 
-            // constrain the padding view's trailing anchor to the content view's trailing
-            // anchor; this, in combination with the above width constraint, aligns the
-            // items in the layout bar to the trailing edge
+            // Constrain the padding view's trailing anchor to the content view's trailing
+            // anchor. This, in combination with the above width constraint, aligns the
+            // items in the layout bar to the trailing edge.
             paddingView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         ])
     }
@@ -76,7 +76,7 @@ extension LayoutBarScrollView {
 }
 
 extension LayoutBarScrollView {
-    /// A custom scroller that overrides its knob slot to be transparent.
+    /// A custom scroller for a layout bar.
     final class HorizontalScroller: NSScroller {
         override static var isCompatibleWithOverlayScrollers: Bool { true }
 

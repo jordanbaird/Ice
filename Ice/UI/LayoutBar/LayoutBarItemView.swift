@@ -154,16 +154,16 @@ extension LayoutBarItemView: NSDraggingSource {
     }
 
     func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
-        // make sure the container doesn't update its arranged views and that items
-        // aren't arranged during a dragging session
+        // Make sure the container doesn't update its arranged views and that items
+        // aren't arranged during a dragging session.
         if let container = superview as? LayoutBarContainer {
             container.canSetArrangedViews = false
         }
 
-        // prevent the dragging image from animating back to its original location
+        // Prevent the dragging image from animating back to its original location.
         session.animatesToStartingPositionsOnCancelOrFail = false
 
-        // async to prevent the view from disappearing before the dragging image appears
+        // Async to prevent the view from disappearing before the dragging image appears.
         DispatchQueue.main.async {
             self.isDraggingPlaceholder = true
         }
@@ -171,19 +171,19 @@ extension LayoutBarItemView: NSDraggingSource {
 
     func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
         defer {
-            // always remove container info at the end of a session
+            // Always remove container info at the end of a session.
             oldContainerInfo = nil
         }
 
-        // since the session's `animatesToStartingPositionsOnCancelOrFail` property was
+        // Since the session's `animatesToStartingPositionsOnCancelOrFail` property was
         // set to false when the session began (above), there is no delay between the user
-        // releasing the dragging item and this method being called; thus, `isDraggingPlaceholder`
-        // only needs to be updated here; if we ever decide we want animation, it may also
-        // need to be updated inside `performDragOperation(_:)` on `LayoutBarPaddingView`
+        // releasing the dragging item and this method being called. Thus, `isDraggingPlaceholder`
+        // only needs to be updated here. If we ever decide we want animation, it may also
+        // need to be updated inside `performDragOperation(_:)` on `LayoutBarPaddingView`.
         isDraggingPlaceholder = false
 
-        // if the drop occurs outside of a container, reinsert the view into its original
-        // container at its original index
+        // If the drop occurs outside of a container, reinsert the view into its original
+        // container at its original index.
         if !hasContainer {
             guard let (container, index) = oldContainerInfo else {
                 return

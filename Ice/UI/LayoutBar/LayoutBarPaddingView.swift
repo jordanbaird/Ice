@@ -100,8 +100,7 @@ final class LayoutBarPaddingView: NSView {
 
         if let index = arrangedViews.firstIndex(of: draggingSource) {
             if arrangedViews.count == 1 {
-                // The dragging source is the only view in the layout bar, so we
-                // need to find a target item.
+                // The dragging source is the only view in the layout bar, so we need to find a target item.
                 let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
                 let targetItem: MenuBarItem? = switch section.name {
                 case .visible: nil // Visible section always has more than 1 item.

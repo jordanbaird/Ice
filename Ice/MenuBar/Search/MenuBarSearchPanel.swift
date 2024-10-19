@@ -41,7 +41,9 @@ final class MenuBarSearchPanel: NSPanel {
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = false
         self.animationBehavior = .none
+        self.isFloatingPanel = true
         self.level = .floating
+        self.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle, .moveToActiveSpace]
         configureCancellables()
     }
 

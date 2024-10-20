@@ -7,6 +7,7 @@ import Cocoa
 
 /// A type that receives system events from various locations within the
 /// event stream.
+@MainActor
 final class EventTap {
     /// Constants that specify the possible tapping locations for events.
     enum Location {
@@ -40,6 +41,7 @@ final class EventTap {
     /// Event tap proxies are passed to an event tap's callback, and can be
     /// used to post additional events to the tap before the callback returns
     /// or to disable the tap from within the callback.
+    @MainActor
     struct Proxy {
         private let tap: EventTap
         private let pointer: CGEventTapProxy
@@ -50,7 +52,6 @@ final class EventTap {
         }
 
         /// A Boolean value that indicates whether the event tap is enabled.
-        @MainActor
         var isEnabled: Bool {
             tap.isEnabled
         }
@@ -66,19 +67,16 @@ final class EventTap {
         }
 
         /// Enables the event tap.
-        @MainActor
         func enable() {
             tap.enable()
         }
 
         /// Enables the event tap with the given timeout.
-        @MainActor
         func enable(timeout: Duration, onTimeout: @escaping () -> Void) {
             tap.enable(timeout: timeout, onTimeout: onTimeout)
         }
 
         /// Disables the event tap.
-        @MainActor
         func disable() {
             tap.disable()
         }
@@ -86,7 +84,7 @@ final class EventTap {
 
     private let runLoop = CFRunLoopGetCurrent()
     private let mode: CFRunLoopMode = .commonModes
-    private let callback: (EventTap, CGEventTapProxy, CGEventType, CGEvent) -> Unmanaged<CGEvent>?
+    private nonisolated let callback: (EventTap, CGEventTapProxy, CGEventType, CGEvent) -> Unmanaged<CGEvent>?
 
     private var machPort: CFMachPort?
     private var source: CFRunLoopSource?
@@ -95,7 +93,6 @@ final class EventTap {
     let label: String
 
     /// A Boolean value that indicates whether the event tap is enabled.
-    @MainActor
     var isEnabled: Bool {
         guard let machPort else {
             return false
@@ -118,10 +115,10 @@ final class EventTap {
         location: Location,
         place: CGEventTapPlacement,
         types: [CGEventType],
-        callback: @escaping (_ proxy: Proxy, _ type: CGEventType, _ event: CGEvent) -> CGEvent?
+        callback: @MainActor @escaping (_ proxy: Proxy, _ type: CGEventType, _ event: CGEvent) -> CGEvent?
     ) {
         self.label = label
-        self.callback = { tap, pointer, type, event in
+        self.callback = { @MainActor tap, pointer, type, event in
             callback(Proxy(tap: tap, pointer: pointer), type, event).map(Unmanaged.passUnretained)
         }
         guard let machPort = Self.createTapMachPort(
@@ -152,7 +149,7 @@ final class EventTap {
         CFMachPortInvalidate(machPort)
     }
 
-    fileprivate static func performCallback(
+    fileprivate nonisolated static func performCallback(
         for eventTap: EventTap,
         proxy: CGEventTapProxy,
         type: CGEventType,
@@ -202,7 +199,6 @@ final class EventTap {
         )
     }
 
-    @MainActor
     private func withUnwrappedComponents(body: @MainActor (CFRunLoop, CFRunLoopSource, CFMachPort) -> Void) {
         guard let runLoop else {
             Logger.eventTap.error("Missing run loop for event tap \"\(self.label)\"")
@@ -220,7 +216,6 @@ final class EventTap {
     }
 
     /// Enables the event tap.
-    @MainActor
     func enable() {
         withUnwrappedComponents { runLoop, source, machPort in
             CFRunLoopAddSource(runLoop, source, mode)
@@ -229,7 +224,6 @@ final class EventTap {
     }
 
     /// Enables the event tap with the given timeout.
-    @MainActor
     func enable(timeout: Duration, onTimeout: @escaping () -> Void) {
         enable()
         Task { [weak self] in
@@ -241,7 +235,6 @@ final class EventTap {
     }
 
     /// Disables the event tap.
-    @MainActor
     func disable() {
         withUnwrappedComponents { runLoop, source, machPort in
             CFRunLoopRemoveSource(runLoop, source, mode)

@@ -101,7 +101,7 @@ final class MenuBarSearchPanel: NSPanel {
         // Important that we set the navigation state before updating the cache.
         appState.navigationState.isSearchPresented = true
 
-        if(ScreenCapture.cachedCheckPermissions()) {
+        if ScreenCapture.cachedCheckPermissions() {
             await appState.imageCache.updateCache()
         }
 

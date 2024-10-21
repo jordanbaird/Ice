@@ -36,8 +36,8 @@ struct MenuBarLayoutSettingsPane: View {
                 }
             }
         }
-        
-        if(!ScreenCapture.cachedCheckPermissions()) {
+
+        if !ScreenCapture.cachedCheckPermissions() {
             IceGroupBox {
                 AnnotationView(
                     alignment: .center,

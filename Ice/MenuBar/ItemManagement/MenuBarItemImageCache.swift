@@ -63,7 +63,7 @@ final class MenuBarItemImageCache: ObservableObject {
                     return
                 }
                 Task.detached {
-                    if (ScreenCapture.cachedCheckPermissions()) {
+                    if ScreenCapture.cachedCheckPermissions() {
                         await self.updateCache()
                     }
                 }

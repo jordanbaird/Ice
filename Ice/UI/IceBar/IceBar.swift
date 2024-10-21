@@ -161,8 +161,8 @@ final class IceBarPanel: NSPanel {
         currentSection = section
 
         await appState.itemManager.cacheItemsIfNeeded()
-        
-        if(ScreenCapture.cachedCheckPermissions()) {
+
+        if ScreenCapture.cachedCheckPermissions() {
             await appState.imageCache.updateCache()
         }
 

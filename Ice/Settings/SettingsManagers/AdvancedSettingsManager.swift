@@ -33,11 +33,11 @@ final class AdvancedSettingsManager: ObservableObject {
     /// A Boolean value that indicates whether to show all sections when
     /// the user is dragging items in the menu bar.
     @Published var showAllSectionsOnUserDrag = true
-    
+
     /// A Boolean value that indicates whether to show all sections when
     /// the screen width is greater than showHiddenSectionWhenWidthGreaterThan
     @Published var showHiddenSectionWhenWidthGreaterThanEnabled = false
-    
+
     /// The minimum screen size showAllSectionOnScreenSize reacts to
     @Published var showHiddenSectionWhenWidthGreaterThan: CGFloat = 3000
 
@@ -119,14 +119,14 @@ final class AdvancedSettingsManager: ObservableObject {
                 Defaults.set(showAll, forKey: .showAllSectionsOnUserDrag)
             }
             .store(in: &c)
-        
+
         $showHiddenSectionWhenWidthGreaterThanEnabled
             .receive(on: DispatchQueue.main)
             .sink { showAll in
                 Defaults.set(showAll, forKey: .showHiddenSectionWhenWidthGreaterThanEnabled)
             }
             .store(in: &c)
-        
+
         $showHiddenSectionWhenWidthGreaterThan
             .receive(on: DispatchQueue.main)
             .sink { width in

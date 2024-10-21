@@ -25,7 +25,7 @@ struct AdvancedSettingsPane: View {
             LocalizedStringKey(formatted + " seconds")
         }
     }
-    
+
     private func formattedToPx(_ px: CGFloat) -> LocalizedStringKey {
         let formatted = px.formatted()
         return LocalizedStringKey(formatted + " px")
@@ -143,12 +143,12 @@ struct AdvancedSettingsPane: View {
     private var showAllSectionsOnUserDrag: some View {
         Toggle("Show all sections when Command + dragging menu bar items", isOn: manager.bindings.showAllSectionsOnUserDrag)
     }
-    
+
     @ViewBuilder
     private var activeScreenWidthToggle: some View {
         Toggle("Automatically unhide when active screen width is higher than the value below", isOn: manager.bindings.showHiddenSectionWhenWidthGreaterThanEnabled)
     }
-    
+
     @ViewBuilder
     private var activeScreenWidthSlider: some View {
         if manager.showHiddenSectionWhenWidthGreaterThanEnabled {

@@ -38,7 +38,7 @@ final class AppState: ObservableObject {
 
     /// Global cache for menu bar item images.
     private(set) lazy var imageCache = MenuBarItemImageCache(appState: self)
-    
+
     /// Global observer for auto expanding the bar based on the screens width
     private(set) lazy var autoExpander = MenuBarAutoExpander(appState: self)
 

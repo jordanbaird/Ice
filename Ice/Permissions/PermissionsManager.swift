@@ -30,7 +30,7 @@ final class PermissionsManager: ObservableObject {
         accessibilityPermission.$hasPermission
             .combineLatest(screenRecordingPermission.$hasPermission)
             .sink { [weak self] hasPermission1, hasPermission2 in
-                self?.hasAllPermissions = hasPermission1 && hasPermission2
+                self?.hasAllPermissions = (hasPermission1 || self?.accessibilityPermission.required == false) && (hasPermission2 || self?.screenRecordingPermission.required == false)
             }
             .store(in: &c)
 

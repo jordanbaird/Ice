@@ -161,7 +161,10 @@ final class IceBarPanel: NSPanel {
         currentSection = section
 
         await appState.itemManager.cacheItemsIfNeeded()
-        await appState.imageCache.updateCache()
+        
+        if(ScreenCapture.cachedCheckPermissions()) {
+            await appState.imageCache.updateCache()
+        }
 
         contentView = IceBarHostingView(appState: appState, colorManager: colorManager, section: section) { [weak self] in
             self?.close()

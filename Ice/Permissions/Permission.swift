@@ -21,6 +21,8 @@ class Permission: ObservableObject {
     let title: String
     /// Descriptive details for the permission.
     let details: [String]
+    /// Can Ice work without this?
+    let required: Bool
 
     /// The URL of the settings pane to open.
     private let settingsURL: URL?
@@ -39,18 +41,21 @@ class Permission: ObservableObject {
     /// - Parameters:
     ///   - title: The title of the permission.
     ///   - details: Descriptive details for the permission.
+    ///   - required: Defines wether this permission is required for Ice to work.
     ///   - settingsURL: The URL of the settings pane to open.
     ///   - check: A function that checks permissions.
     ///   - request: A function that requests permissions.
     init(
         title: String,
         details: [String],
+        required: Bool,
         settingsURL: URL?,
         check: @escaping () -> Bool,
         request: @escaping () -> Void
     ) {
         self.title = title
         self.details = details
+        self.required = required
         self.settingsURL = settingsURL
         self.check = check
         self.request = request
@@ -117,6 +122,7 @@ final class AccessibilityPermission: Permission {
                 "Get real-time information about the menu bar.",
                 "Arrange menu bar items.",
             ],
+            required: true,
             settingsURL: nil,
             check: {
                 checkIsProcessTrusted()
@@ -138,6 +144,7 @@ final class ScreenRecordingPermission: Permission {
                 "Edit the menu bar's appearance.",
                 "Display images of individual menu bar items.",
             ],
+            required: false,
             settingsURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"),
             check: {
                 ScreenCapture.checkPermissions()

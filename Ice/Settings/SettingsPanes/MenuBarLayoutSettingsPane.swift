@@ -36,6 +36,21 @@ struct MenuBarLayoutSettingsPane: View {
                 }
             }
         }
+        
+        if(!ScreenCapture.cachedCheckPermissions()) {
+            IceGroupBox {
+                AnnotationView(
+                    alignment: .center,
+                    font: .callout.bold()
+                ) {
+                    Label {
+                        Text("This pane requires the screen recording permission to work.")
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle")
+                    }
+                }
+            }
+        }
     }
 
     @ViewBuilder

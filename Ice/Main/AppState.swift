@@ -146,7 +146,9 @@ final class AppState: ObservableObject {
                 return
             }
             Task.detached {
-                await self.imageCache.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
+                if ScreenCapture.cachedCheckPermissions(reset: true) {
+                    await self.imageCache.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
+                }
             }
         }
         .store(in: &c)

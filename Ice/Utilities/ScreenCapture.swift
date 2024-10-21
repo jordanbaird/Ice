@@ -8,6 +8,22 @@ import ScreenCaptureKit
 
 /// A namespace for screen capture operations.
 enum ScreenCapture {
+    private static var lastCheckResult: Bool?
+    static func cachedCheckPermissions(reset: Bool = false) -> Bool {
+        // Now that we can work without this permission, this call gets called way more often.
+        // According to the energy meter, this has some minor impact on energy consumption
+        // Let's cache the result until we are asked not to (e.g. the settings window is visible)
+        if !reset && lastCheckResult != nil {
+            return lastCheckResult!
+        }
+
+        let realResult = checkPermissions()
+        
+        lastCheckResult = realResult
+        
+        return realResult
+    }
+    
     /// Returns a Boolean value that indicates whether the app has been granted screen capture permissions.
     static func checkPermissions() -> Bool {
         for item in MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true) {

@@ -165,6 +165,8 @@ extension Defaults {
         case showOnHoverDelay = "ShowOnHoverDelay"
         case tempShowInterval = "TempShowInterval"
         case showAllSectionsOnUserDrag = "ShowAllSectionsOnUserDrag"
+        case showHiddenSectionWhenWidthGreaterThanEnabled = "ShowHiddenSectionWhenWidthGreaterThanEnabled"
+        case showHiddenSectionWhenWidthGreaterThan = "ShowHiddenSectionWhenWidthGreaterThan"
 
         // MARK: Menu Bar Appearance Settings
 

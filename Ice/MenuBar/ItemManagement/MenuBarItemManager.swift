@@ -181,9 +181,7 @@ final class MenuBarItemManager: ObservableObject {
                     return
                 }
                 Task {
-                    if(ScreenCapture.cachedCheckPermissions()) {
-                        await self.cacheItemsIfNeeded()
-                    }
+                    await self.cacheItemsIfNeeded()
                 }
             }
             .store(in: &c)
@@ -195,9 +193,7 @@ final class MenuBarItemManager: ObservableObject {
                     return
                 }
                 Task {
-                    if(ScreenCapture.cachedCheckPermissions()) {
-                        await self.cacheItemsIfNeeded()
-                    }
+                    await self.cacheItemsIfNeeded()
                 }
             }
             .store(in: &c)
@@ -317,11 +313,6 @@ extension MenuBarItemManager {
     /// Caches the current menu bar items if needed, ensuring that the control
     /// items are in the correct order.
     func cacheItemsIfNeeded() async {
-        guard ScreenCapture.cachedCheckPermissions() else {
-            logSkippingCache(reason: "Ice not having screen recording permission")
-            return
-        }
-        
         do {
             try await waitForItemsToStopMoving(timeout: .seconds(1))
         } catch is TaskTimeoutError {

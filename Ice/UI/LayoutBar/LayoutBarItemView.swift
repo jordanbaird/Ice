@@ -121,11 +121,11 @@ final class LayoutBarItemView: NSView {
         return alert
     }
 
-    /// Provides an alert to display when the user is pressing a key while
-    /// moving a menu bar item.
-    func provideAlertForKeyDown() -> NSAlert {
+    /// Provides an alert to display when the user is pressing the Command key
+    /// while moving a menu bar item.
+    func provideAlertForCommandKeyDown() -> NSAlert {
         let alert = NSAlert()
-        alert.messageText = "Do not press keys while moving menu bar items."
+        alert.messageText = "Do not hold the Command key while moving a menu bar item."
         return alert
     }
 
@@ -160,8 +160,8 @@ final class LayoutBarItemView: NSView {
     override func mouseDragged(with event: NSEvent) {
         super.mouseDragged(with: event)
 
-        guard event.modifierFlags.isEmpty else {
-            let alert = provideAlertForKeyDown()
+        guard !event.modifierFlags.contains(.command) else {
+            let alert = provideAlertForCommandKeyDown()
             alert.runModal()
             return
         }

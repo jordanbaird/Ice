@@ -26,6 +26,11 @@ struct AdvancedSettingsPane: View {
         }
     }
 
+    private func formattedToPx(_ px: CGFloat) -> LocalizedStringKey {
+        let formatted = px.formatted()
+        return LocalizedStringKey(formatted + " px")
+    }
+
     var body: some View {
         IceForm {
             IceSection {
@@ -40,6 +45,10 @@ struct AdvancedSettingsPane: View {
             IceSection {
                 showOnHoverDelaySlider
                 tempShowIntervalSlider
+            }
+            IceSection {
+                activeScreenWidthToggle
+                activeScreenWidthSlider
             }
         }
     }
@@ -133,6 +142,33 @@ struct AdvancedSettingsPane: View {
     @ViewBuilder
     private var showAllSectionsOnUserDrag: some View {
         Toggle("Show all sections when Command + dragging menu bar items", isOn: manager.bindings.showAllSectionsOnUserDrag)
+    }
+
+    @ViewBuilder
+    private var activeScreenWidthToggle: some View {
+        Toggle("Automatically unhide when active screen width is higher than the value below", isOn: manager.bindings.showHiddenSectionWhenWidthGreaterThanEnabled)
+    }
+
+    @ViewBuilder
+    private var activeScreenWidthSlider: some View {
+        if manager.showHiddenSectionWhenWidthGreaterThanEnabled {
+            IceLabeledContent {
+                IceSlider(
+                    formattedToPx(manager.showHiddenSectionWhenWidthGreaterThan),
+                    value: manager.bindings.showHiddenSectionWhenWidthGreaterThan,
+                    in: 1000...6000,
+                    step: 10
+                )
+            } label: {
+                Text("Active screen width in pixels")
+                    .frame(minHeight: .compactSliderMinHeight)
+                    .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
+                    .onFrameChange { frame in
+                        maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
+                    }
+            }
+            .annotation("You may want to disable automatically rehide in General.")
+        }
     }
 }
 

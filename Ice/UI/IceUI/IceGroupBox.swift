@@ -80,16 +80,18 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
     var body: some View {
         VStack(alignment: .leading) {
             header
-            content
-                .padding(padding)
-                .background {
-                    backgroundShape
-                        .fill(.quinary)
-                        .overlay {
-                            backgroundShape
-                                .stroke(.quaternary)
-                        }
-                }
+            VStack {
+                content
+            }
+            .padding(padding)
+            .background {
+                backgroundShape
+                    .fill(.quinary)
+                    .overlay {
+                        backgroundShape
+                            .stroke(.quaternary)
+                    }
+            }
             footer
         }
     }

@@ -34,6 +34,13 @@ final class AdvancedSettingsManager: ObservableObject {
     /// the user is dragging items in the menu bar.
     @Published var showAllSectionsOnUserDrag = true
 
+    /// A Boolean value that indicates whether to show all sections when
+    /// the screen width is greater than showHiddenSectionWhenWidthGreaterThan
+    @Published var showHiddenSectionWhenWidthGreaterThanEnabled = false
+
+    /// The minimum screen size showAllSectionOnScreenSize reacts to
+    @Published var showHiddenSectionWhenWidthGreaterThan: CGFloat = 3000
+
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
@@ -57,6 +64,8 @@ final class AdvancedSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .showOnHoverDelay, assign: &showOnHoverDelay)
         Defaults.ifPresent(key: .tempShowInterval, assign: &tempShowInterval)
         Defaults.ifPresent(key: .showAllSectionsOnUserDrag, assign: &showAllSectionsOnUserDrag)
+        Defaults.ifPresent(key: .showHiddenSectionWhenWidthGreaterThanEnabled, assign: &showHiddenSectionWhenWidthGreaterThanEnabled)
+        Defaults.ifPresent(key: .showHiddenSectionWhenWidthGreaterThan, assign: &showHiddenSectionWhenWidthGreaterThan)
     }
 
     private func configureCancellables() {
@@ -108,6 +117,20 @@ final class AdvancedSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { showAll in
                 Defaults.set(showAll, forKey: .showAllSectionsOnUserDrag)
+            }
+            .store(in: &c)
+
+        $showHiddenSectionWhenWidthGreaterThanEnabled
+            .receive(on: DispatchQueue.main)
+            .sink { showAll in
+                Defaults.set(showAll, forKey: .showHiddenSectionWhenWidthGreaterThanEnabled)
+            }
+            .store(in: &c)
+
+        $showHiddenSectionWhenWidthGreaterThan
+            .receive(on: DispatchQueue.main)
+            .sink { width in
+                Defaults.set(width, forKey: .showHiddenSectionWhenWidthGreaterThan)
             }
             .store(in: &c)
 

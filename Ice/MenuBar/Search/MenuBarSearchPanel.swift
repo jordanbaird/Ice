@@ -101,7 +101,9 @@ final class MenuBarSearchPanel: NSPanel {
         // Important that we set the navigation state before updating the cache.
         appState.navigationState.isSearchPresented = true
 
-        await appState.imageCache.updateCache()
+        if ScreenCapture.cachedCheckPermissions() {
+            await appState.imageCache.updateCache()
+        }
 
         let hostingView = MenuBarSearchHostingView(appState: appState, panel: self)
         hostingView.setFrameSize(hostingView.intrinsicContentSize)

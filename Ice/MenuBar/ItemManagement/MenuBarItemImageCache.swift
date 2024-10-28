@@ -63,7 +63,9 @@ final class MenuBarItemImageCache: ObservableObject {
                     return
                 }
                 Task.detached {
-                    await self.updateCache()
+                    if ScreenCapture.cachedCheckPermissions() {
+                        await self.updateCache()
+                    }
                 }
             }
             .store(in: &c)
@@ -81,6 +83,9 @@ final class MenuBarItemImageCache: ObservableObject {
     /// the given section.
     @MainActor
     func cacheFailed(for section: MenuBarSection.Name) -> Bool {
+        guard ScreenCapture.cachedCheckPermissions() else {
+            return true
+        }
         let items = appState?.itemManager.itemCache[section] ?? []
         guard !items.isEmpty else {
             return false

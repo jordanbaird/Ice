@@ -13,7 +13,7 @@ import ScreenCaptureKit
 /// An object that encapsulates the behavior of checking for and requesting
 /// a specific permission for the app.
 @MainActor
-class Permission: ObservableObject {
+class Permission: ObservableObject, Identifiable {
     /// A Boolean value that indicates whether the app has this permission.
     @Published private(set) var hasPermission = false
 
@@ -21,6 +21,8 @@ class Permission: ObservableObject {
     let title: String
     /// Descriptive details for the permission.
     let details: [String]
+    /// A Boolean value that indicates if the app can work without this permission.
+    let isRequired: Bool
 
     /// The URL of the settings pane to open.
     private let settingsURL: URL?
@@ -39,18 +41,21 @@ class Permission: ObservableObject {
     /// - Parameters:
     ///   - title: The title of the permission.
     ///   - details: Descriptive details for the permission.
+    ///   - isRequired: A Boolean value that indicates if the app can work without this permission.
     ///   - settingsURL: The URL of the settings pane to open.
     ///   - check: A function that checks permissions.
     ///   - request: A function that requests permissions.
     init(
         title: String,
         details: [String],
+        isRequired: Bool,
         settingsURL: URL?,
         check: @escaping () -> Bool,
         request: @escaping () -> Void
     ) {
         self.title = title
         self.details = details
+        self.isRequired = isRequired
         self.settingsURL = settingsURL
         self.check = check
         self.request = request
@@ -81,6 +86,7 @@ class Permission: ObservableObject {
 
     /// Asynchronously waits for the app to be granted this permission.
     func waitForPermission() async {
+        configureCancellables()
         guard !hasPermission else {
             return
         }
@@ -117,6 +123,7 @@ final class AccessibilityPermission: Permission {
                 "Get real-time information about the menu bar.",
                 "Arrange menu bar items.",
             ],
+            isRequired: true,
             settingsURL: nil,
             check: {
                 checkIsProcessTrusted()
@@ -138,6 +145,7 @@ final class ScreenRecordingPermission: Permission {
                 "Edit the menu bar's appearance.",
                 "Display images of individual menu bar items.",
             ],
+            isRequired: false,
             settingsURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"),
             check: {
                 ScreenCapture.checkPermissions()

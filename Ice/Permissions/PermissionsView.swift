@@ -9,6 +9,22 @@ struct PermissionsView: View {
     @EnvironmentObject var permissionsManager: PermissionsManager
     @Environment(\.openWindow) private var openWindow
 
+    private var continueButtonText: LocalizedStringKey {
+        if case .hasRequiredPermissions = permissionsManager.permissionsState {
+            "Continue in Limited Mode"
+        } else {
+            "Continue"
+        }
+    }
+
+    private var continueButtonForegroundStyle: some ShapeStyle {
+        if case .hasRequiredPermissions = permissionsManager.permissionsState {
+            AnyShapeStyle(.yellow)
+        } else {
+            AnyShapeStyle(.primary)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             headerView
@@ -72,8 +88,9 @@ struct PermissionsView: View {
     @ViewBuilder
     private var permissionsGroupStack: some View {
         VStack(spacing: 7.5) {
-            permissionBox(permissionsManager.accessibilityPermission)
-            permissionBox(permissionsManager.screenRecordingPermission)
+            ForEach(permissionsManager.allPermissions) { permission in
+                permissionBox(permission)
+            }
         }
     }
 
@@ -106,10 +123,11 @@ struct PermissionsView: View {
             appState.permissionsWindow?.close()
             appState.appDelegate?.openSettingsWindow()
         } label: {
-            Text("Continue")
+            Text(continueButtonText)
                 .frame(maxWidth: .infinity)
+                .foregroundStyle(continueButtonForegroundStyle)
         }
-        .disabled(!permissionsManager.hasAllPermissions)
+        .disabled(permissionsManager.permissionsState == .missingPermissions)
     }
 
     @ViewBuilder
@@ -154,6 +172,22 @@ struct PermissionsView: View {
                     }
                 }
                 .allowsHitTesting(!permission.hasPermission)
+
+                if !permission.isRequired {
+                    IceGroupBox {
+                        AnnotationView(
+                            alignment: .center,
+                            font: .callout.bold()
+                        ) {
+                            Label {
+                                Text("Ice can work in a limited mode without this permission.")
+                            } icon: {
+                                Image(systemName: "checkmark.shield")
+                                    .foregroundStyle(.green)
+                            }
+                        }
+                    }
+                }
             }
             .padding(10)
             .frame(maxWidth: .infinity)

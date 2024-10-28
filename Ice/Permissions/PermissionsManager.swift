@@ -4,42 +4,75 @@
 //
 
 import Combine
+import Foundation
 
 /// A type that manages the permissions of the app.
 @MainActor
 final class PermissionsManager: ObservableObject {
-    /// A Boolean value that indicates whether the app has been granted all permissions.
-    @Published var hasAllPermissions: Bool = false
+    /// The state of the granted permissions for the app.
+    enum PermissionsState {
+        case missingPermissions
+        case hasAllPermissions
+        case hasRequiredPermissions
+    }
 
-    let accessibilityPermission = AccessibilityPermission()
+    /// The state of the granted permissions for the app.
+    @Published var permissionsState = PermissionsState.missingPermissions
 
-    let screenRecordingPermission = ScreenRecordingPermission()
+    let accessibilityPermission: AccessibilityPermission
+
+    let screenRecordingPermission: ScreenRecordingPermission
+
+    let allPermissions: [Permission]
 
     private(set) weak var appState: AppState?
 
     private var cancellables = Set<AnyCancellable>()
 
+    var requiredPermissions: [Permission] {
+        allPermissions.filter { $0.isRequired }
+    }
+
     init(appState: AppState) {
         self.appState = appState
+        self.accessibilityPermission = AccessibilityPermission()
+        self.screenRecordingPermission = ScreenRecordingPermission()
+        self.allPermissions = [
+            accessibilityPermission,
+            screenRecordingPermission,
+        ]
         configureCancellables()
     }
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        accessibilityPermission.$hasPermission
-            .combineLatest(screenRecordingPermission.$hasPermission)
-            .sink { [weak self] hasPermission1, hasPermission2 in
-                self?.hasAllPermissions = hasPermission1 && hasPermission2
+        Publishers.Merge(
+            accessibilityPermission.$hasPermission.mapToVoid(),
+            screenRecordingPermission.$hasPermission.mapToVoid()
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] in
+            guard let self else {
+                return
             }
-            .store(in: &c)
+            if allPermissions.allSatisfy({ $0.hasPermission }) {
+                permissionsState = .hasAllPermissions
+            } else if requiredPermissions.allSatisfy({ $0.hasPermission }) {
+                permissionsState = .hasRequiredPermissions
+            } else {
+                permissionsState = .missingPermissions
+            }
+        }
+        .store(in: &c)
 
         cancellables = c
     }
 
     /// Stops running all permissions checks.
     func stopAllChecks() {
-        accessibilityPermission.stopCheck()
-        screenRecordingPermission.stopCheck()
+        for permission in allPermissions {
+            permission.stopCheck()
+        }
     }
 }

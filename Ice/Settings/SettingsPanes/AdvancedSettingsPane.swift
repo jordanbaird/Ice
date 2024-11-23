@@ -147,6 +147,7 @@ struct AdvancedSettingsPane: View {
     @ViewBuilder
     private var activeScreenWidthToggle: some View {
         Toggle("Automatically unhide when active screen width is higher than the value below", isOn: manager.bindings.showHiddenSectionWhenWidthGreaterThanEnabled)
+            .annotation("This will always show the items in the menu bar (ignoring the \"Use Ice Bar\" setting.")
     }
 
     @ViewBuilder
@@ -167,7 +168,6 @@ struct AdvancedSettingsPane: View {
                         maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
                     }
             }
-            .annotation("You may want to disable automatically rehide in General.")
         }
     }
 }

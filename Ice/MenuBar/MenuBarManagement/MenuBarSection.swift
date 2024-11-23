@@ -127,6 +127,23 @@ final class MenuBarSection {
         self.init(name: name, controlItem: controlItem, appState: appState)
     }
 
+    func forceShowDueToWideScreen() -> Bool {
+        // TODO: deduplicate with `MenuBarAutoExpander`.
+        guard
+            let appState
+        else {
+            return false
+        }
+        let advancedSettingsManager = appState.settingsManager.advancedSettingsManager;
+        guard let mainScreen = NSScreen.main else {
+            return false
+        }
+
+        let mainScreenWidth = mainScreen.frame.width;
+        let setting = advancedSettingsManager.showHiddenSectionWhenWidthGreaterThan;
+        return mainScreenWidth >= setting;
+    }
+
     /// Shows the section.
     func show() {
         guard
@@ -140,8 +157,9 @@ final class MenuBarSection {
             // TODO: Can we use isEnabled for this check?
             return
         }
+        let useIceBarExceptOnWideScreen = useIceBar && !self.forceShowDueToWideScreen();
         switch name {
-        case .visible where useIceBar, .hidden where useIceBar:
+        case .visible where useIceBarExceptOnWideScreen, .hidden where useIceBarExceptOnWideScreen:
             Task {
                 if let screenForIceBar {
                     await iceBarPanel?.show(section: .hidden, on: screenForIceBar)
@@ -195,6 +213,9 @@ final class MenuBarSection {
             !isHidden
         else {
             return
+        }
+        if self.forceShowDueToWideScreen() {
+            return;
         }
         iceBarPanel?.close()
         switch name {

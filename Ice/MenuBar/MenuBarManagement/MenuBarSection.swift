@@ -134,14 +134,14 @@ final class MenuBarSection {
         else {
             return false
         }
-        let advancedSettingsManager = appState.settingsManager.advancedSettingsManager;
+        let advancedSettingsManager = appState.settingsManager.advancedSettingsManager
         guard let mainScreen = NSScreen.main else {
             return false
         }
 
-        let mainScreenWidth = mainScreen.frame.width;
-        let setting = advancedSettingsManager.showHiddenSectionWhenWidthGreaterThan;
-        return mainScreenWidth >= setting;
+        let mainScreenWidth = mainScreen.frame.width
+        let setting = advancedSettingsManager.showHiddenSectionWhenWidthGreaterThan
+        return mainScreenWidth >= setting
     }
 
     /// Shows the section.
@@ -157,7 +157,7 @@ final class MenuBarSection {
             // TODO: Can we use isEnabled for this check?
             return
         }
-        let useIceBarExceptOnWideScreen = useIceBar && !self.forceShowDueToWideScreen();
+        let useIceBarExceptOnWideScreen = useIceBar && !self.forceShowDueToWideScreen()
         switch name {
         case .visible where useIceBarExceptOnWideScreen, .hidden where useIceBarExceptOnWideScreen:
             Task {
@@ -215,7 +215,7 @@ final class MenuBarSection {
             return
         }
         if self.forceShowDueToWideScreen() {
-            return;
+            return
         }
         iceBarPanel?.close()
         switch name {

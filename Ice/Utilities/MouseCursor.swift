@@ -7,17 +7,16 @@ import CoreGraphics
 
 /// A namespace for mouse cursor operations.
 enum MouseCursor {
-    /// A coordinate space for mouse cursor operations.
-    enum CoordinateSpace {
-        /// The coordinate space used by the `AppKit` framework.
-        ///
-        /// The origin of this coordinate space is at the bottom left corner of the screen.
-        case appKit
+    /// Returns the location of the mouse cursor in the coordinate space used by
+    /// the `AppKit` framework, with the origin at the bottom left of the screen.
+    static var locationAppKit: CGPoint? {
+        CGEvent(source: nil)?.unflippedLocation
+    }
 
-        /// The coordinate space used by the `CoreGraphics` framework.
-        ///
-        /// The origin of this coordinate space is at the top left corner of the screen.
-        case coreGraphics
+    /// Returns the location of the mouse cursor in the coordinate space used by
+    /// the `CoreGraphics` framework, with the origin at the top left of the screen.
+    static var locationCoreGraphics: CGPoint? {
+        CGEvent(source: nil)?.location
     }
 
     /// Hides the mouse cursor and increments the hide cursor count.
@@ -43,21 +42,6 @@ enum MouseCursor {
         let result = CGWarpMouseCursorPosition(point)
         if result != .success {
             Logger.mouseCursor.error("CGWarpMouseCursorPosition failed with error \(result.logString)")
-        }
-    }
-
-    /// Returns the location of the mouse pointer.
-    ///
-    /// - Parameter coordinateSpace: The coordinate space of the returned location. See
-    ///   the constants defined in ``MouseCursor/CoordinateSpace`` for more information.
-    static func location(in coordinateSpace: CoordinateSpace) -> CGPoint? {
-        CGEvent(source: nil).map { event in
-            switch coordinateSpace {
-            case .appKit:
-                event.unflippedLocation
-            case .coreGraphics:
-                event.location
-            }
         }
     }
 }

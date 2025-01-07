@@ -223,7 +223,7 @@ extension EventManager {
 
             // Get the window that the user has clicked into.
             guard
-                let mouseLocation = MouseCursor.location(in: .coreGraphics),
+                let mouseLocation = MouseCursor.locationCoreGraphics,
                 let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
                     .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
                     .first(where: { $0.frame.contains(mouseLocation) && $0.title?.isEmpty == false }),
@@ -257,7 +257,7 @@ extension EventManager {
         guard
             let appState,
             isMouseInsideEmptyMenuBarSpace,
-            let mouseLocation = MouseCursor.location(in: .appKit)
+            let mouseLocation = MouseCursor.locationAppKit
         else {
             return
         }
@@ -453,12 +453,12 @@ extension EventManager {
         }
         if appState.menuBarManager.isMenuBarHiddenBySystem || appState.isActiveSpaceFullscreen {
             if
-                let mouseLocation = MouseCursor.location(in: .coreGraphics),
+                let mouseLocation = MouseCursor.locationCoreGraphics,
                 let menuBarWindow = WindowInfo.getMenuBarWindow(for: screen.displayID)
             {
                 return menuBarWindow.frame.contains(mouseLocation)
             }
-        } else if let mouseLocation = MouseCursor.location(in: .appKit) {
+        } else if let mouseLocation = MouseCursor.locationAppKit {
             return mouseLocation.y > screen.visibleFrame.maxY && mouseLocation.y <= screen.frame.maxY
         }
         return false
@@ -468,7 +468,7 @@ extension EventManager {
     /// the bounds of the current application menu.
     var isMouseInsideApplicationMenu: Bool {
         guard
-            let mouseLocation = MouseCursor.location(in: .coreGraphics),
+            let mouseLocation = MouseCursor.locationCoreGraphics,
             let screen = bestScreen,
             let appState,
             var applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
@@ -485,7 +485,7 @@ extension EventManager {
     var isMouseInsideMenuBarItem: Bool {
         guard
             let screen = bestScreen,
-            let mouseLocation = MouseCursor.location(in: .coreGraphics)
+            let mouseLocation = MouseCursor.locationCoreGraphics
         else {
             return false
         }
@@ -501,7 +501,7 @@ extension EventManager {
     var isMouseInsideNotch: Bool {
         guard
             let screen = bestScreen,
-            let mouseLocation = MouseCursor.location(in: .appKit),
+            let mouseLocation = MouseCursor.locationAppKit,
             let frameOfNotch = screen.frameOfNotch
         else {
             return false
@@ -523,7 +523,7 @@ extension EventManager {
     var isMouseInsideIceBar: Bool {
         guard
             let appState,
-            let mouseLocation = MouseCursor.location(in: .appKit)
+            let mouseLocation = MouseCursor.locationAppKit
         else {
             return false
         }
@@ -541,7 +541,7 @@ extension EventManager {
             let appState,
             let visibleSection = appState.menuBarManager.section(withName: .visible),
             let iceIconFrame = visibleSection.controlItem.windowFrame,
-            let mouseLocation = MouseCursor.location(in: .appKit)
+            let mouseLocation = MouseCursor.locationAppKit
         else {
             return false
         }

@@ -727,16 +727,16 @@ extension MenuBarItemManager {
         to secondLocation: EventTap.Location,
         item: MenuBarItem
     ) async throws {
+        // Create a null event and assign it unique user data.
         guard let nullEvent = CGEvent(source: nil) else {
             throw EventError(code: .eventCreationFailure, item: item)
         }
-        let userData: Int64 = 0x1CE
-        nullEvent.setIntegerValueField(.eventSourceUserData, value: userData)
+        let nullUserData = Int64(truncatingIfNeeded: Int(bitPattern: ObjectIdentifier(nullEvent)))
+        nullEvent.setIntegerValueField(.eventSourceUserData, value: nullUserData)
 
         return try await withCheckedThrowingContinuation { continuation in
-            // Create an event tap for the null event at the first location that throws away
-            // all events it receives. Once the null event is received, post the real event
-            // to the second location.
+            // Create an event tap for the null event at the first location.
+            // This tap throws away all events it receives.
             let eventTap1 = EventTap(
                 label: "EventTap 1",
                 options: .defaultTap,
@@ -755,20 +755,20 @@ extension MenuBarItemManager {
                     return nil
                 }
 
-                // Verify that the received event was the sent event.
-                guard rEvent.getIntegerValueField(.eventSourceUserData) == userData else {
+                // Verify that this is the null event.
+                guard rEvent.getIntegerValueField(.eventSourceUserData) == nullUserData else {
                     return nil
                 }
 
+                // Disable the tap and post the real event to the second location.
                 proxy.disable()
                 postEvent(event, to: secondLocation)
 
                 return nil
             }
 
-            // Create an event tap for the real event at the second location that can listen
-            // for events but not alter or discard them. Once the event is received, post it
-            // to the first location.
+            // Create an event tap for the real event at the second location.
+            // This tap can listen for events, but cannot alter or discard them.
             let eventTap2 = EventTap(
                 label: "EventTap 2",
                 options: .listenOnly,
@@ -798,6 +798,8 @@ extension MenuBarItemManager {
                     return nil
                 }
 
+                // Disable the tap, post the event to the first location, and resume
+                // the continuation.
                 proxy.disable()
                 postEvent(event, to: firstLocation)
                 continuation.resume()
@@ -850,11 +852,7 @@ extension MenuBarItemManager {
     ///   - item: The item whose frame should be observed.
     ///   - initialFrame: An initial frame to compare the item's frame against.
     ///   - timeout: The amount of time to wait before throwing a timeout error.
-    private func waitForFrameChange(
-        of item: MenuBarItem,
-        initialFrame: CGRect,
-        timeout: Duration
-    ) async throws {
+    private func waitForFrameChange(of item: MenuBarItem, initialFrame: CGRect, timeout: Duration) async throws {
         struct FrameCheckCancellationError: Error { }
 
         let frameCheckTask = Task(timeout: timeout) {
@@ -947,10 +945,7 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - item: A menu bar item to move.
     ///   - destination: A destination to move the menu bar item.
-    private func moveItemWithoutRestoringMouseLocation(
-        _ item: MenuBarItem,
-        to destination: MoveDestination
-    ) async throws {
+    private func moveItemWithoutRestoringMouseLocation(_ item: MenuBarItem, to destination: MoveDestination) async throws {
         itemMoveCount += 1
         defer {
             itemMoveCount -= 1
@@ -1131,12 +1126,8 @@ extension MenuBarItemManager {
 // MARK: - Click Items
 
 extension MenuBarItemManager {
-    /// Clicks the given menu bar item with the given button states.
-    private func click(
-        item: MenuBarItem,
-        mouseDownButtonState: CGEvent.MenuBarItemEventButtonState,
-        mouseUpButtonState: CGEvent.MenuBarItemEventButtonState
-    ) async throws {
+    /// Clicks the given menu bar item with the given mouse button.
+    func click(item: MenuBarItem, with mouseButton: CGMouseButton) async throws {
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .invalidEventSource, item: item)
         }
@@ -1147,25 +1138,26 @@ extension MenuBarItemManager {
             throw EventError(code: .invalidItem, item: item)
         }
 
+        let buttonStates = mouseButton.buttonStates
         let clickPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
 
         guard
             let mouseDownEvent = CGEvent.menuBarItemEvent(
-                type: .click(mouseDownButtonState),
+                type: .click(buttonStates.down),
                 location: clickPoint,
                 item: item,
                 pid: item.ownerPID,
                 source: source
             ),
             let mouseUpEvent = CGEvent.menuBarItemEvent(
-                type: .click(mouseUpButtonState),
+                type: .click(buttonStates.up),
                 location: clickPoint,
                 item: item,
                 pid: item.ownerPID,
                 source: source
             ),
             let fallbackEvent = CGEvent.menuBarItemEvent(
-                type: .click(mouseUpButtonState),
+                type: .click(buttonStates.up),
                 location: clickPoint,
                 item: item,
                 pid: item.ownerPID,
@@ -1193,6 +1185,7 @@ extension MenuBarItemManager {
         }
 
         do {
+            Logger.itemManager.info("Clicking \(item.logString) with \(mouseButton.logString)")
             try await postEventAndWaitToReceive(
                 mouseDownEvent,
                 to: .sessionEventTap,
@@ -1217,16 +1210,6 @@ extension MenuBarItemManager {
             }
             throw error
         }
-    }
-
-    /// Clicks the given menu bar item with the given mouse button.
-    func click(item: MenuBarItem, with mouseButton: CGMouseButton) async throws {
-        Logger.itemManager.info("Clicking \(item.logString) with \(mouseButton.logString)")
-        try await click(
-            item: item,
-            mouseDownButtonState: mouseButton.downState,
-            mouseUpButtonState: mouseButton.upState
-        )
     }
 }
 
@@ -1265,20 +1248,16 @@ extension MenuBarItemManager {
 
     /// Temporarily shows the given item.
     ///
-    /// The item is cached alongside a destination that it will be automatically
-    /// returned to. If `true` is passed to the `clickWhenFinished` parameter, the
-    /// item is clicked once movement is finished.
+    /// The item is cached alongside a destination that it will be automatically returned
+    /// to. If `true` is passed to the `clickWhenFinished` parameter, the item is clicked
+    /// once movement is finished.
     ///
     /// - Parameters:
     ///   - item: An item to show.
-    ///   - clickWhenFinished: A Boolean value that indicates whether the item should
-    ///     be clicked once movement has finished.
+    ///   - clickWhenFinished: A Boolean value that indicates whether the item should be
+    ///     clicked once movement is finished.
     ///   - mouseButton: The mouse button of the click.
-    func tempShowItem(
-        _ item: MenuBarItem,
-        clickWhenFinished: Bool,
-        mouseButton: CGMouseButton
-    ) {
+    func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
         if
             let latest = MenuBarItem(windowID: item.windowID),
             latest.isOnScreen
@@ -1443,14 +1422,11 @@ extension MenuBarItemManager {
     /// control item stays to the left of the hidden control item.
     ///
     /// - Parameters:
-    ///   - hiddenControlItem: A menu bar item that represents the control item for
-    ///     the hidden section.
+    ///   - hiddenControlItem: A menu bar item that represents the control item for the
+    ///     hidden section.
     ///   - alwaysHiddenControlItem: A menu bar item that represents the control item
     ///     for the always-hidden section.
-    func enforceControlItemOrder(
-        hiddenControlItem: MenuBarItem,
-        alwaysHiddenControlItem: MenuBarItem
-    ) async throws {
+    func enforceControlItemOrder(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem) async throws {
         guard !isMouseButtonDown else {
             Logger.itemManager.debug("Mouse button is down, so will not enforce control item order")
             return
@@ -1466,72 +1442,58 @@ extension MenuBarItemManager {
     }
 }
 
-// MARK: - CGEvent Helpers
+// MARK: - Menu Bar Item Event Helper Types
 
-private extension CGEvent {
-    /// Button states for menu bar item events.
-    enum MenuBarItemEventButtonState {
-        case leftMouseDown
-        case leftMouseUp
-        case rightMouseDown
-        case rightMouseUp
-        case otherMouseDown
-        case otherMouseUp
-    }
+/// Button states for menu bar item events.
+private enum MenuBarItemEventButtonState {
+    case leftMouseDown
+    case leftMouseUp
+    case rightMouseDown
+    case rightMouseUp
+    case otherMouseDown
+    case otherMouseUp
+}
 
-    /// Event types for menu bar item events.
-    enum MenuBarItemEventType {
-        /// The event type for moving a menu bar item.
-        case move(MenuBarItemEventButtonState)
-        /// The event type for clicking a menu bar item.
-        case click(MenuBarItemEventButtonState)
+/// Event types for menu bar item events.
+private enum MenuBarItemEventType {
+    /// The event type for moving a menu bar item.
+    case move(MenuBarItemEventButtonState)
+    /// The event type for clicking a menu bar item.
+    case click(MenuBarItemEventButtonState)
 
-        /// The button state of this event type.
-        var buttonState: MenuBarItemEventButtonState {
-            switch self {
-            case .move(let state), .click(let state): state
-            }
-        }
-
-        /// This event type's equivalent CGEventType.
-        var cgEventType: CGEventType {
-            switch buttonState {
-            case .leftMouseDown: .leftMouseDown
-            case .leftMouseUp: .leftMouseUp
-            case .rightMouseDown: .rightMouseDown
-            case .rightMouseUp: .rightMouseUp
-            case .otherMouseDown: .otherMouseDown
-            case .otherMouseUp: .otherMouseUp
-            }
-        }
-
-        /// The event flags for this event type.
-        var cgEventFlags: CGEventFlags {
-            switch self {
-            case .move(.leftMouseDown): .maskCommand
-            case .move, .click: []
-            }
-        }
-
-        /// The mouse button for this event type.
-        var mouseButton: CGMouseButton {
-            switch buttonState {
-            case .leftMouseDown, .leftMouseUp: .left
-            case .rightMouseDown, .rightMouseUp: .right
-            case .otherMouseDown, .otherMouseUp: .center
-            }
+    /// The button state of this event type.
+    var buttonState: MenuBarItemEventButtonState {
+        switch self {
+        case .move(let state), .click(let state): state
         }
     }
 
-    /// A context that manages the user data for menu bar item events.
-    enum MenuBarItemEventUserDataContext {
-        /// The internal state of the context.
-        private static var state: Int64 = 0x1CE
+    /// This event type's equivalent CGEventType.
+    var cgEventType: CGEventType {
+        switch buttonState {
+        case .leftMouseDown: .leftMouseDown
+        case .leftMouseUp: .leftMouseUp
+        case .rightMouseDown: .rightMouseDown
+        case .rightMouseUp: .rightMouseUp
+        case .otherMouseDown: .otherMouseDown
+        case .otherMouseUp: .otherMouseUp
+        }
+    }
 
-        /// Returns the current user data and increments the internal state.
-        static func next() -> Int64 {
-            defer { state += 1 }
-            return state
+    /// The event flags for this event type.
+    var cgEventFlags: CGEventFlags {
+        switch self {
+        case .move(.leftMouseDown): .maskCommand
+        case .move, .click: []
+        }
+    }
+
+    /// The mouse button for this event type.
+    var mouseButton: CGMouseButton {
+        switch buttonState {
+        case .leftMouseDown, .leftMouseUp: .left
+        case .rightMouseDown, .rightMouseUp: .right
+        case .otherMouseDown, .otherMouseUp: .center
         }
     }
 }
@@ -1539,15 +1501,15 @@ private extension CGEvent {
 // MARK: - CGEventField Helpers
 
 private extension CGEventField {
-    /// Key to access a field that contains the window number of the event.
-    static let windowNumber = CGEventField(rawValue: 0x33)! // swiftlint:disable:this force_unwrapping
+    /// Key to access a field that contains the event's window identifier.
+    static let windowID = CGEventField(rawValue: 0x33)! // swiftlint:disable:this force_unwrapping
 
-    /// An array of integer event fields that can be used to compare two menu bar item events.
+    /// An array of integer event fields that can be used to compare menu bar item events.
     static let menuBarItemEventFields: [CGEventField] = [
         .eventSourceUserData,
         .mouseEventWindowUnderMousePointer,
         .mouseEventWindowUnderMousePointerThatCanHandleThisEvent,
-        .windowNumber,
+        .windowID,
     ]
 }
 
@@ -1605,31 +1567,12 @@ private extension CGMouseButton {
         }
     }
 
-    /// The menu bar item event state for when this mouse button is down.
-    var downState: CGEvent.MenuBarItemEventButtonState {
+    /// The equivalent down and up button states for menu bar item click events.
+    var buttonStates: (down: MenuBarItemEventButtonState, up: MenuBarItemEventButtonState) {
         switch self {
-        case .left:
-            return .leftMouseDown
-        case .right:
-            return .rightMouseDown
-        case .center:
-            return .otherMouseDown
-        @unknown default:
-            fatalError("Unknown mouse button \(rawValue)")
-        }
-    }
-
-    /// The menu bar item event state for when this mouse button is up.
-    var upState: CGEvent.MenuBarItemEventButtonState {
-        switch self {
-        case .left:
-            return .leftMouseUp
-        case .right:
-            return .rightMouseUp
-        case .center:
-            return .otherMouseUp
-        @unknown default:
-            fatalError("Unknown mouse button \(rawValue)")
+        case .left: (.leftMouseDown, .leftMouseUp)
+        case .right: (.rightMouseDown, .rightMouseUp)
+        default: (.otherMouseDown, .otherMouseUp)
         }
     }
 }
@@ -1645,36 +1588,25 @@ private extension CGEvent {
     ///   - item: The target item of the event.
     ///   - pid: The target process identifier of the event. Does not need to be the item's `ownerPID`.
     ///   - source: The source of the event.
-    class func menuBarItemEvent(
-        type: MenuBarItemEventType,
-        location: CGPoint,
-        item: MenuBarItem,
-        pid: pid_t,
-        source: CGEventSource
-    ) -> CGEvent? {
+    class func menuBarItemEvent(type: MenuBarItemEventType, location: CGPoint, item: MenuBarItem, pid: pid_t, source: CGEventSource) -> CGEvent? {
         let mouseType = type.cgEventType
         let mouseButton = type.mouseButton
 
-        guard let event = CGEvent(
-            mouseEventSource: source,
-            mouseType: mouseType,
-            mouseCursorPosition: location,
-            mouseButton: mouseButton
-        ) else {
+        guard let event = CGEvent(mouseEventSource: source, mouseType: mouseType, mouseCursorPosition: location, mouseButton: mouseButton) else {
             return nil
         }
 
         event.flags = type.cgEventFlags
 
         let targetPID = Int64(pid)
-        let userData = MenuBarItemEventUserDataContext.next()
-        let windowNumber = Int64(item.windowID)
+        let userData = Int64(truncatingIfNeeded: Int(bitPattern: ObjectIdentifier(event)))
+        let windowID = Int64(item.windowID)
 
         event.setIntegerValueField(.eventTargetUnixProcessID, value: targetPID)
         event.setIntegerValueField(.eventSourceUserData, value: userData)
-        event.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: windowNumber)
-        event.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: windowNumber)
-        event.setIntegerValueField(.windowNumber, value: windowNumber)
+        event.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: windowID)
+        event.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: windowID)
+        event.setIntegerValueField(.windowID, value: windowID)
 
         if case .click = type {
             event.setIntegerValueField(.mouseEventClickState, value: 1)
@@ -1685,6 +1617,7 @@ private extension CGEvent {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     /// The logger to use for the menu bar item manager.
     static let itemManager = Logger(category: "MenuBarItemManager")

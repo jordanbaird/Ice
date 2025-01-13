@@ -8,27 +8,6 @@ import ScreenCaptureKit
 
 /// A namespace for screen capture operations.
 enum ScreenCapture {
-    static func cachedCheckPermissions(reset: Bool = false) -> Bool {
-        enum Context {
-            static var lastCheckResult: Bool?
-        }
-
-        // Now that we can work without this permission, this call gets called way more often.
-        // According to the energy meter, this has some minor impact on energy consumption
-        // Let's cache the result until we are asked not to (e.g. the settings window is visible)
-        if !reset {
-            if let lastCheckResult = Context.lastCheckResult {
-                return lastCheckResult
-            }
-        }
-
-        let realResult = checkPermissions()
-
-        Context.lastCheckResult = realResult
-
-        return realResult
-    }
-
     /// Returns a Boolean value that indicates whether the app has been granted screen capture permissions.
     static func checkPermissions() -> Bool {
         for item in MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true) {
@@ -41,6 +20,27 @@ enum ScreenCapture {
         // CGPreflightScreenCaptureAccess() only returns an initial value for whether the app
         // has permissions, but we can use it as a fallback.
         return CGPreflightScreenCaptureAccess()
+    }
+
+    /// Returns a Boolean value that indicates whether the app has been granted screen capture permissions.
+    ///
+    /// The first time this function is called, the permissions state is computed, cached, and returned.
+    /// Subsequent calls either return the cached value, or recompute the permissions state before caching
+    /// and returning it.
+    static func cachedCheckPermissions(reset: Bool = false) -> Bool {
+        enum Context {
+            static var lastCheckResult: Bool?
+        }
+
+        if !reset {
+            if let lastCheckResult = Context.lastCheckResult {
+                return lastCheckResult
+            }
+        }
+
+        let realResult = checkPermissions()
+        Context.lastCheckResult = realResult
+        return realResult
     }
 
     /// Requests screen capture permissions.
@@ -68,9 +68,7 @@ enum ScreenCapture {
         guard let windowArray = CFArrayCreate(kCFAllocatorDefault, pointer, windowIDs.count, nil) else {
             return nil
         }
-        // ScreenCaptureKit doesn't support capturing composite images of offscreen menu bar items,
-        // but this should be replaced once it does.
-        return CGImage(windowListFromArrayScreenBounds: screenBounds ?? .null, windowArray: windowArray, imageOption: option)
+        return .windowListImage(from: screenBounds ?? .null, windowArray: windowArray, imageOption: option)
     }
 
     /// Captures an image of a window.
@@ -83,3 +81,19 @@ enum ScreenCapture {
         captureWindows([windowID], screenBounds: screenBounds, option: option)
     }
 }
+
+/// A protocol used to suppress deprecation warnings for the `CGWindowList` screen capture APIs.
+///
+/// ScreenCaptureKit doesn't support capturing composite images of offscreen menu bar items, but
+/// this should be replaced once it does.
+private protocol WindowListImage {
+    init?(windowListFromArrayScreenBounds: CGRect, windowArray: CFArray, imageOption: CGWindowImageOption)
+}
+
+private extension WindowListImage {
+    static func windowListImage(from screenBounds: CGRect, windowArray: CFArray, imageOption: CGWindowImageOption) -> Self? {
+        Self(windowListFromArrayScreenBounds: screenBounds, windowArray: windowArray, imageOption: imageOption)
+    }
+}
+
+extension CGImage: WindowListImage { }

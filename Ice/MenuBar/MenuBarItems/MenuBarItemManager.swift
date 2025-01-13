@@ -374,22 +374,31 @@ extension MenuBarItemManager {
         enum ErrorCode: Int, CustomStringConvertible {
             /// An operation could not be completed.
             case couldNotComplete
+
             /// The creation of a menu bar item event failed.
             case eventCreationFailure
+
             /// The shared app state is invalid or could not be found.
             case invalidAppState
+
             /// An event source could not be created or is otherwise invalid.
             case invalidEventSource
+
             /// The location of the mouse cursor is invalid or could not be found.
             case invalidCursorLocation
+
             /// A menu bar item is invalid.
             case invalidItem
+
             /// A menu bar item cannot be moved.
             case notMovable
+
             /// A menu bar item event operation timed out.
             case eventOperationTimeout
+
             /// A menu bar item frame check timed out.
             case frameCheckTimeout
+
             /// An operation timed out.
             case otherTimeout
 
@@ -537,10 +546,8 @@ extension MenuBarItemManager {
         /// A string to use for logging purposes.
         var logString: String {
             switch self {
-            case .leftOfItem(let item):
-                "left of \(item.logString)"
-            case .rightOfItem(let item):
-                "right of \(item.logString)"
+            case .leftOfItem(let item): "left of \(item.logString)"
+            case .rightOfItem(let item): "right of \(item.logString)"
             }
         }
     }
@@ -698,6 +705,7 @@ extension MenuBarItemManager {
 
                 Logger.itemManager.debug("Received \(type.logString) at \(location.logString) (item: \(item.logString))")
 
+                // Disable the tap and resume the continuation.
                 proxy.disable()
                 continuation.resume()
 
@@ -710,6 +718,7 @@ extension MenuBarItemManager {
                 continuation.resume(throwing: EventError(code: .eventOperationTimeout, item: item))
             }
 
+            // Post the event to the location.
             postEvent(event, to: location)
         }
     }
@@ -1458,6 +1467,7 @@ private enum MenuBarItemEventButtonState {
 private enum MenuBarItemEventType {
     /// The event type for moving a menu bar item.
     case move(MenuBarItemEventButtonState)
+
     /// The event type for clicking a menu bar item.
     case click(MenuBarItemEventButtonState)
 

@@ -255,6 +255,10 @@ private struct MenuBarSearchContentView: View {
 
     private func updateDisplayedItems() {
         let searchItems: [(listItem: ListItem, title: String)] = MenuBarSection.Name.allCases.reduce(into: []) { items, section in
+            if itemManager.appState?.menuBarManager.section(withName: section)?.isEnabled == false {
+                return
+            }
+
             let headerItem = ListItem.header(id: .header(section)) {
                 Text(section.displayString)
                     .fontWeight(.semibold)
@@ -323,8 +327,9 @@ private struct BottomBarButton<Content: View>: View {
         content
             .padding(3)
             .background {
-                VisualEffectView(material: .selection, blendingMode: .withinWindow)
-                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .circular))
+                RoundedRectangle(cornerRadius: 5, style: .circular)
+                    .fill(.regularMaterial)
+                    .brightness(0.25)
                     .opacity(isPressed ? 0.5 : isHovering ? 0.25 : 0)
             }
             .contentShape(Rectangle())
@@ -380,8 +385,9 @@ private struct ShowItemButton: View {
                     .padding(.horizontal, 7)
                     .padding(.vertical, 5)
                     .background {
-                        VisualEffectView(material: .selection, blendingMode: .withinWindow)
-                            .clipShape(RoundedRectangle(cornerRadius: 3, style: .circular))
+                        RoundedRectangle(cornerRadius: 3, style: .circular)
+                            .fill(.regularMaterial)
+                            .brightness(0.25)
                             .opacity(0.5)
                     }
             }
@@ -403,7 +409,7 @@ private struct MenuBarSearchItemView: View {
 
     private var image: NSImage? {
         guard
-            let image = imageCache.images[item.info],
+            let image = imageCache.images[item.info]?.trimmingTransparentPixels(around: [.minXEdge, .maxXEdge]),
             let screen = imageCache.screen
         else {
             return nil
@@ -442,10 +448,9 @@ private struct MenuBarSearchItemView: View {
     private var imageViewWithBackground: some View {
         if let image {
             ZStack {
-                VisualEffectView(material: .selection, blendingMode: .behindWindow)
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 5, style: .circular)
-                    )
+                RoundedRectangle(cornerRadius: 5, style: .circular)
+                    .fill(.regularMaterial)
+                    .brightness(0.25)
                     .opacity(0.75)
                     .frame(width: item.frame.width)
                     .overlay {

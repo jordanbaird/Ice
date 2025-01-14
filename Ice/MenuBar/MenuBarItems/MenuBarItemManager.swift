@@ -1394,6 +1394,12 @@ extension MenuBarItemManager {
 
         let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
 
+        MouseCursor.hide()
+
+        defer {
+            MouseCursor.show()
+        }
+
         while let context = tempShownItemContexts.popLast() {
             guard let item = items.first(where: { $0.info == context.info }) else {
                 continue

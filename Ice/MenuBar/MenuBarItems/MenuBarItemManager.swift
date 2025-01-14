@@ -592,6 +592,15 @@ extension MenuBarItemManager {
         return CGPoint(x: currentFrame.midX, y: currentFrame.midY)
     }
 
+    /// Returns the target item for the given destination.
+    ///
+    /// - Parameter destination: The destination to get the target item from.
+    private func getTargetItem(for destination: MoveDestination) -> MenuBarItem {
+        switch destination {
+        case .leftOfItem(let targetItem), .rightOfItem(let targetItem): targetItem
+        }
+    }
+
     /// Returns a Boolean value that indicates whether the given item is in the
     /// correct position for the given destination.
     ///
@@ -911,12 +920,14 @@ extension MenuBarItemManager {
                 type: .move(.leftMouseDown),
                 location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
                 item: item,
+                pid: item.ownerPID,
                 source: source
             ),
             let mouseUpEvent = CGEvent.menuBarItemEvent(
                 type: .move(.leftMouseUp),
                 location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
                 item: item,
+                pid: item.ownerPID,
                 source: source
             )
         else {
@@ -959,24 +970,28 @@ extension MenuBarItemManager {
         let startPoint = CGPoint(x: 20_000, y: 20_000)
         let endPoint = try getEndPoint(for: destination)
         let fallbackPoint = try getFallbackPoint(for: item)
+        let targetItem = getTargetItem(for: destination)
 
         guard
             let mouseDownEvent = CGEvent.menuBarItemEvent(
                 type: .move(.leftMouseDown),
                 location: startPoint,
                 item: item,
+                pid: item.ownerPID,
                 source: source
             ),
             let mouseUpEvent = CGEvent.menuBarItemEvent(
                 type: .move(.leftMouseUp),
                 location: endPoint,
-                item: nil,
+                item: targetItem,
+                pid: item.ownerPID,
                 source: source
             ),
             let fallbackEvent = CGEvent.menuBarItemEvent(
                 type: .move(.leftMouseUp),
                 location: fallbackPoint,
-                item: nil,
+                item: item,
+                pid: item.ownerPID,
                 source: source
             )
         else {
@@ -1140,18 +1155,21 @@ extension MenuBarItemManager {
                 type: .click(buttonStates.down),
                 location: clickPoint,
                 item: item,
+                pid: item.ownerPID,
                 source: source
             ),
             let mouseUpEvent = CGEvent.menuBarItemEvent(
                 type: .click(buttonStates.up),
                 location: clickPoint,
                 item: item,
+                pid: item.ownerPID,
                 source: source
             ),
             let fallbackEvent = CGEvent.menuBarItemEvent(
                 type: .click(buttonStates.up),
                 location: clickPoint,
                 item: item,
+                pid: item.ownerPID,
                 source: source
             )
         else {
@@ -1577,9 +1595,10 @@ private extension CGEvent {
     /// - Parameters:
     ///   - type: The type of the event.
     ///   - location: The location of the event. Does not need to be within the bounds of the item.
-    ///   - item: The target item of the event, used to set the event's window. Can be `nil`.
-    ///   - source: The event source.
-    class func menuBarItemEvent(type: MenuBarItemEventType, location: CGPoint, item: MenuBarItem?, source: CGEventSource) -> CGEvent? {
+    ///   - item: The target item of the event.
+    ///   - pid: The target process identifier of the event. Does not need to be the item's `ownerPID`.
+    ///   - source: The source of the event.
+    class func menuBarItemEvent(type: MenuBarItemEventType, location: CGPoint, item: MenuBarItem, pid: pid_t, source: CGEventSource) -> CGEvent? {
         let mouseType = type.cgEventType
         let mouseButton = type.mouseButton
 
@@ -1589,10 +1608,14 @@ private extension CGEvent {
 
         event.flags = type.cgEventFlags
 
+        let targetPID = Int64(pid)
         let userData = Int64(truncatingIfNeeded: Int(bitPattern: ObjectIdentifier(event)))
-        let windowID = Int64(item?.windowID ?? kCGNullWindowID)
+        let windowID = Int64(item.windowID)
 
+        event.setIntegerValueField(.eventTargetUnixProcessID, value: targetPID)
         event.setIntegerValueField(.eventSourceUserData, value: userData)
+        event.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: windowID)
+        event.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: windowID)
         event.setIntegerValueField(.windowID, value: windowID)
 
         if case .click = type {

@@ -91,10 +91,7 @@ final class LayoutBarPaddingView: NSView {
             }
         }
 
-        guard
-            sender.draggingSourceOperationMask == .move,
-            let draggingSource = sender.draggingSource as? LayoutBarItemView
-        else {
+        guard let draggingSource = sender.draggingSource as? LayoutBarItemView else {
             return false
         }
 

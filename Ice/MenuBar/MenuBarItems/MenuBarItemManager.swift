@@ -479,26 +479,33 @@ extension MenuBarItemManager {
 // MARK: - Async Waiters
 
 extension MenuBarItemManager {
+    /// Waits asynchronously for the given operation to complete.
+    /// 
+    /// - Parameters:
+    ///   - timeout: Amount of time to wait before throwing an error.
+    ///   - operation: The operation to perform.
+    private func waitWithTask(timeout: Duration?, operation: @escaping @Sendable () async throws -> Void) async throws {
+        let task = if let timeout {
+            Task(timeout: timeout, operation: operation)
+        } else {
+            Task(operation: operation)
+        }
+        try await task.value
+    }
+
     /// Waits asynchronously for all menu bar items to stop moving.
     ///
     /// - Parameter timeout: Amount of time to wait before throwing an error.
     func waitForItemsToStopMoving(timeout: Duration? = nil) async throws {
-        let taskBody: @Sendable () async throws -> Void = {
-            while await self.isMovingItem {
+        try await waitWithTask(timeout: timeout) { [weak self] in
+            guard let self else {
+                return
+            }
+            while await isMovingItem {
                 try Task.checkCancellation()
                 try await Task.sleep(for: .milliseconds(10))
             }
         }
-        let checkTask = if let timeout {
-            Task(timeout: timeout) {
-                try await taskBody()
-            }
-        } else {
-            Task {
-                try await taskBody()
-            }
-        }
-        try await checkTask.value
     }
 
     /// Waits asynchronously for the mouse to stop moving.
@@ -507,10 +514,13 @@ extension MenuBarItemManager {
     ///   - threshold: A threshold to use to determine whether the mouse has stopped moving.
     ///   - timeout: Amount of time to wait before throwing an error.
     func waitForMouseToStopMoving(threshold: TimeInterval = 0.1, timeout: Duration? = nil) async throws {
-        let taskBody: @Sendable () async throws -> Void = {
+        try await waitWithTask(timeout: timeout) { [weak self] in
+            guard let self else {
+                return
+            }
             while true {
                 try Task.checkCancellation()
-                guard let date = await self.lastMouseMoveStartDate else {
+                guard let date = await lastMouseMoveStartDate else {
                     break
                 }
                 if Date.now.timeIntervalSince(date) > threshold {
@@ -519,16 +529,34 @@ extension MenuBarItemManager {
                 try await Task.sleep(for: .milliseconds(10))
             }
         }
-        let checkTask = if let timeout {
-            Task(timeout: timeout) {
-                try await taskBody()
+    }
+
+    /// Waits asynchronously until no modifier keys are pressed.
+    ///
+    /// - Parameter timeout: Amount of time to wait before throwing an error.
+    func waitForNoModifiersPressed(timeout: Duration? = nil) async throws {
+        try await waitWithTask(timeout: timeout) {
+            // Return early if no flags are pressed.
+            if NSEvent.modifierFlags.isEmpty {
+                return
             }
-        } else {
-            Task {
-                try await taskBody()
+
+            var cancellable: AnyCancellable?
+
+            await withCheckedContinuation { continuation in
+                cancellable = Publishers.Merge(
+                    UniversalEventMonitor.publisher(for: .flagsChanged),
+                    RunLoopLocalEventMonitor.publisher(for: .flagsChanged, mode: .eventTracking)
+                )
+                .removeDuplicates()
+                .sink { _ in
+                    if NSEvent.modifierFlags.isEmpty {
+                        cancellable?.cancel()
+                        continuation.resume()
+                    }
+                }
             }
         }
-        try await checkTask.value
     }
 }
 
@@ -1051,6 +1079,9 @@ extension MenuBarItemManager {
         }
 
         do {
+            // Order of these waiters matters, as the modifiers could be released
+            // while the mouse is still moving.
+            try await waitForNoModifiersPressed()
             try await waitForMouseToStopMoving()
         } catch {
             throw EventError(code: .couldNotComplete, item: item)

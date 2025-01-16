@@ -400,6 +400,19 @@ final class MenuBarManager: ObservableObject {
 // MARK: MenuBarManager: BindingExposable
 extension MenuBarManager: BindingExposable { }
 
+// MARK: - MenuBarAverageColorInfo
+
+/// Information for the menu bar's average color.
+struct MenuBarAverageColorInfo: Hashable {
+    enum Source: Hashable {
+        case menuBarWindow
+        case desktopWallpaper
+    }
+
+    var color: CGColor
+    var source: Source
+}
+
 // MARK: - Logger
 private extension Logger {
     /// Logger to use for the menu bar manager.

@@ -1,5 +1,5 @@
 //
-//  Task+timeout.swift
+//  TaskTimeout.swift
 //  Ice
 //
 
@@ -24,12 +24,7 @@ extension Task where Failure == any Error {
         operation: @escaping @Sendable () async throws -> Success
     ) {
         self.init(priority: priority) {
-            try await Task.run(
-                operation: operation,
-                withTimeout: timeout,
-                tolerance: tolerance,
-                clock: clock
-            )
+            try await Task.run(operation: operation, withTimeout: timeout, tolerance: tolerance, clock: clock)
         }
     }
 
@@ -51,13 +46,8 @@ extension Task where Failure == any Error {
         clock: C = ContinuousClock(),
         operation: @escaping @Sendable () async throws -> Success
     ) -> Task {
-        Task.detached(priority: priority) {
-            try await Task.run(
-                operation: operation,
-                withTimeout: timeout,
-                tolerance: tolerance,
-                clock: clock
-            )
+        detached(priority: priority) {
+            try await run(operation: operation, withTimeout: timeout, tolerance: tolerance, clock: clock)
         }
     }
 

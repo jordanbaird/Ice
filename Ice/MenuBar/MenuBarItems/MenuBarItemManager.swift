@@ -283,7 +283,7 @@ extension MenuBarItemManager {
                 default:
                     if
                         let section = cache.section(for: targetItem),
-                        let index = cache[section].firstIndex(of: targetItem.info)
+                        let index = cache[section].firstIndex(matching: targetItem.info)
                     {
                         let clampedIndex = index.clamped(to: cache[section].startIndex...cache[section].endIndex)
                         cache[section].insert(item, at: clampedIndex)
@@ -298,7 +298,7 @@ extension MenuBarItemManager {
                 default:
                     if
                         let section = cache.section(for: targetItem),
-                        let index = cache[section].firstIndex(of: targetItem.info)
+                        let index = cache[section].firstIndex(matching: targetItem.info)
                     {
                         let clampedIndex = (index - 1).clamped(to: cache[section].startIndex...cache[section].endIndex)
                         cache[section].insert(item, at: clampedIndex)
@@ -335,8 +335,8 @@ extension MenuBarItemManager {
 
         var items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
 
-        let hiddenControlItem = items.firstIndex(of: .hiddenControlItem).map { items.remove(at: $0) }
-        let alwaysHiddenControlItem = items.firstIndex(of: .alwaysHiddenControlItem).map { items.remove(at: $0) }
+        let hiddenControlItem = items.firstIndex(matching: .hiddenControlItem).map { items.remove(at: $0) }
+        let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map { items.remove(at: $0) }
 
         guard let hiddenControlItem else {
             Logger.itemManager.warning("Missing control item for hidden section")

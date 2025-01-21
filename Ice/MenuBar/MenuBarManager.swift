@@ -194,12 +194,12 @@ final class MenuBarManager: ObservableObject {
                         alwaysHiddenSection.isEnabled
                     {
                         if alwaysHiddenSection.controlItem.state == .hideItems {
-                            if let alwaysHiddenControlItem = items.firstIndex(of: .alwaysHiddenControlItem).map({ items.remove(at: $0) }) {
+                            if let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map({ items.remove(at: $0) }) {
                                 items.trimPrefix { $0.frame.maxX <= alwaysHiddenControlItem.frame.minX }
                             }
                         }
                     } else {
-                        if let hiddenControlItem = items.firstIndex(of: .hiddenControlItem).map({ items.remove(at: $0) }) {
+                        if let hiddenControlItem = items.firstIndex(matching: .hiddenControlItem).map({ items.remove(at: $0) }) {
                             items.trimPrefix { $0.frame.maxX <= hiddenControlItem.frame.minX }
                         }
                     }

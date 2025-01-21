@@ -191,14 +191,6 @@ final class MenuBarItemImageCache: ObservableObject {
 
     /// Updates the cache for the given sections, without checking whether caching is necessary.
     func updateCacheWithoutChecks(sections: [MenuBarSection.Name]) async {
-        actor Context {
-            var images = [MenuBarItemInfo: CGImage]()
-
-            func merge(_ other: [MenuBarItemInfo: CGImage]) {
-                images.merge(other) { (_, new) in new }
-            }
-        }
-
         guard
             let appState,
             let screen = NSScreen.main
@@ -206,7 +198,7 @@ final class MenuBarItemImageCache: ObservableObject {
             return
         }
 
-        let context = Context()
+        var newImages = [MenuBarItemInfo: CGImage]()
 
         for section in sections {
             guard await !appState.itemManager.itemCache[section].isEmpty else {
@@ -217,14 +209,12 @@ final class MenuBarItemImageCache: ObservableObject {
                 Logger.imageCache.warning("Update image cache failed for \(section.logString)")
                 continue
             }
-            await context.merge(sectionImages)
+            newImages.merge(sectionImages) { (_, new) in new }
         }
 
-        let task = Task { @MainActor in
-            let images = await context.images
-            self.images.merge(images) { (_, new) in new }
+        await MainActor.run { [newImages] in
+            images.merge(newImages) { (_, new) in new }
         }
-        await task.value
 
         self.screen = screen
         self.menuBarHeight = screen.getMenuBarHeight()
@@ -292,6 +282,7 @@ final class MenuBarItemImageCache: ObservableObject {
 }
 
 // MARK: - Logger
+
 private extension Logger {
     static let imageCache = Logger(category: "MenuBarItemImageCache")
 }

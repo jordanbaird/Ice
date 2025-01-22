@@ -260,7 +260,7 @@ private struct IceBarContentView: View {
         screen.hasNotch ? 0 : 2
     }
 
-    var contentHeight: CGFloat? {
+    private var contentHeight: CGFloat? {
         guard let menuBarHeight = imageCache.menuBarHeight ?? screen.getMenuBarHeight() else {
             return nil
         }
@@ -278,6 +278,10 @@ private struct IceBarContentView: View {
         }
     }
 
+    private var shadowOpacity: CGFloat {
+        configuration.current.hasShadow ? 0.5 : 0.33
+    }
+
     var body: some View {
         ZStack {
             content
@@ -287,7 +291,7 @@ private struct IceBarContentView: View {
                 .layoutBarStyle(appState: appState, averageColorInfo: colorManager.colorInfo)
                 .foregroundStyle(colorManager.colorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
                 .clipShape(clipShape)
-                .shadow(color: .black.opacity(configuration.current.hasShadow ? 0.5 : 0), radius: 2.5)
+                .shadow(color: .black.opacity(shadowOpacity), radius: 2.5)
 
             if configuration.current.hasBorder {
                 clipShape

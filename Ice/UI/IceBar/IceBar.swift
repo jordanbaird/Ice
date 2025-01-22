@@ -55,8 +55,7 @@ final class IceBarPanel: NSPanel {
         .store(in: &c)
 
         if
-            let appState,
-            let section = appState.menuBarManager.section(withName: .hidden),
+            let section = appState?.menuBarManager.section(withName: .hidden),
             let window = section.controlItem.window
         {
             window.publisher(for: \.frame)
@@ -64,6 +63,7 @@ final class IceBarPanel: NSPanel {
                 .sink { [weak self, weak window] _ in
                     guard
                         let self,
+                        let appState,
                         // Only continue if the menu bar is automatically hidden, as Ice
                         // can't currently display its menu bar items.
                         appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,

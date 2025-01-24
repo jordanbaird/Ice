@@ -70,156 +70,86 @@ extension CGError {
 // MARK: - CGImage
 
 extension CGImage {
-    /// Constants that determine the resolution of a color averaging algorithm.
-    enum ColorAverageResolution {
-        /// Low resolution, reducing accuracy, but increasing performance.
-        case low
-        /// Medium resolution, with nominal accuracy and performance.
-        case medium
-        /// High resolution, increasing accuracy, but reducing performance.
-        case high
-    }
 
-    /// Options that affect the output of a color averaging algorithm.
-    struct ColorAverageOptions: OptionSet {
-        let rawValue: Int
-
-        /// The alpha component of the result is ignored and replaced with a value of `1`.
-        static let ignoreAlpha = ColorAverageOptions(rawValue: 1 << 0)
-    }
-
-    /// A color component in the ARGB color space.
-    private enum ARGBComponent: UInt32 {
-        case alpha = 0x18
-        case red   = 0x10
-        case green = 0x08
-        case blue  = 0x00
-    }
+    // MARK: Average Color
 
     /// Computes and returns the average color of the image.
     ///
     /// - Parameters:
-    ///   - resolution: The resolution of the algorithm.
-    ///   - options: Options that further specify how the average should be computed.
-    ///   - alphaThreshold: An alpha value below which pixels should be ignored. Pixels
-    ///     whose alpha component is less than this value are not used in the computation.
-    func averageColor(
-        resolution: ColorAverageResolution = .medium,
-        options: ColorAverageOptions = [],
-        alphaThreshold: CGFloat = 0.5
-    ) -> CGColor? {
-        // Resize the image based on the resolution. Smaller images remove more pixels,
-        // decreasing accuracy, but increasing performance.
-        let size = switch resolution {
-        case .low:
-            CGSize(width: min(width, 10), height: min(height, 10))
-        case .medium:
-            CGSize(width: min(width, 50), height: min(height, 50))
-        case .high:
-            CGSize(width: min(width, 100), height: min(height, 100))
+    ///   - alphaThreshold: An alpha value below which pixels should be ignored. Pixels with
+    ///     an alpha component greater than or equal to this value contribute to the average.
+    ///   - makeOpaque: A Boolean value that indicates whether the resulting color should be
+    ///     made opaque, regardless of the alpha content of the image.
+    func averageColor(alphaThreshold: CGFloat = 0.5, makeOpaque: Bool = false) -> CGColor? {
+        func createPixelData(width: Int, height: Int) -> [UInt32]? {
+            var data = [UInt32](repeating: 0, count: width * height)
+            guard let context = CGContext(
+                data: &data,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageByteOrderInfo.order32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
+            ) else {
+                return nil
+            }
+            context.draw(self, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return data
         }
 
-        guard
-            let context = createContext(size: size),
-            let data = createImageData(context: context)
-        else {
+        func computeComponent(shift: UInt32, pixel: UInt32) -> Int {
+            return Int((pixel >> shift) & 255)
+        }
+
+        // Resize the image for better performance.
+        let width = min(width, 10)
+        let height = min(height, 10)
+
+        guard let pixelData = createPixelData(width: width, height: height) else {
             return nil
         }
 
-        let width = Int(size.width)
-        let height = Int(size.height)
+        // Convert the alpha threshold to a valid component for comparison.
+        let alphaThreshold = Int((alphaThreshold.clamped(to: 0...1) * 255).rounded(.toNearestOrAwayFromZero))
 
-        // Convert the alpha threshold to an integer, multiplied by 255. Pixels with
-        // an alpha component below this value are excluded from the average.
-        let alphaThreshold = Int(alphaThreshold * 255)
-
-        // Start with a full pixel count. If any pixels are skipped, the count is
-        // decremented accordingly.
-        var pixelCount = width * height
-
-        // Start with the totals zeroed out.
-        var totalRed = 0
-        var totalGreen = 0
-        var totalBlue = 0
-        var totalAlpha = 0
+        var includedPixelCount = width * height
+        var totals = (red: 0, green: 0, blue: 0, alpha: 0)
 
         for column in 0..<width {
             for row in 0..<height {
-                let pixel = data[(row * width) + column]
+                let pixel = pixelData[(row * width) + column]
 
                 // Check alpha before computing other components.
-                let alphaComponent = computeComponentValue(.alpha, for: pixel)
+                let alphaComponent = computeComponent(shift: 24, pixel: pixel)
 
                 guard alphaComponent >= alphaThreshold else {
-                    pixelCount -= 1 // Don't include this pixel.
+                    includedPixelCount -= 1 // Don't include this pixel.
                     continue
                 }
 
-                let redComponent = computeComponentValue(.red, for: pixel)
-                let greenComponent = computeComponentValue(.green, for: pixel)
-                let blueComponent = computeComponentValue(.blue, for: pixel)
-
-                // Sum the red, green, blue, and alpha components.
-                totalRed += redComponent
-                totalGreen += greenComponent
-                totalBlue += blueComponent
-                totalAlpha += alphaComponent
+                // Add the components to the totals.
+                totals.red += computeComponent(shift: 16, pixel: pixel)
+                totals.green += computeComponent(shift: 8, pixel: pixel)
+                totals.blue += computeComponent(shift: 0, pixel: pixel)
+                totals.alpha += alphaComponent
             }
         }
 
-        // Compute the averages of the summed components.
-        let averageRed = CGFloat(totalRed) / CGFloat(pixelCount)
-        let averageGreen = CGFloat(totalGreen) / CGFloat(pixelCount)
-        let averageBlue = CGFloat(totalBlue) / CGFloat(pixelCount)
-        let averageAlpha = CGFloat(totalAlpha) / CGFloat(pixelCount)
+        // Multiply the included pixel count by 255 to convert the components
+        // to their corresponding floating point values.
+        let adjustedPixelCount = CGFloat(includedPixelCount * 255)
 
-        // Divide each component by 255 to convert to floating point.
-        let red = averageRed / 255
-        let green = averageGreen / 255
-        let blue = averageBlue / 255
-        let alpha = options.contains(.ignoreAlpha) ? 1 : averageAlpha / 255
-
-        return CGColor(red: red, green: green, blue: blue, alpha: alpha)
-    }
-
-    /// Creates a bitmap context for resizing the image to the given size.
-    private func createContext(size: CGSize) -> CGContext? {
-        let width = Int(size.width)
-        let height = Int(size.height)
-        let bytesPerRow = width * 4
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let byteOrder = CGImageByteOrderInfo.order32Little.rawValue
-        let alphaInfo = CGImageAlphaInfo.premultipliedFirst.rawValue
-        return CGContext(
-            data: nil,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: colorSpace,
-            bitmapInfo: byteOrder | alphaInfo
+        return CGColor(
+            red: CGFloat(totals.red) / adjustedPixelCount,
+            green: CGFloat(totals.green) / adjustedPixelCount,
+            blue: CGFloat(totals.blue) / adjustedPixelCount,
+            alpha: makeOpaque ? 1 : CGFloat(totals.alpha) / adjustedPixelCount
         )
     }
 
-    /// Draws the image into the given context and returns the raw data.
-    private func createImageData(context: CGContext) -> UnsafeMutablePointer<UInt32>? {
-        let rect = CGRect(x: 0, y: 0, width: context.width, height: context.height)
-        context.draw(self, in: rect)
-        guard let rawData = context.data else {
-            return nil
-        }
-        return rawData.bindMemory(to: UInt32.self, capacity: context.width * context.height)
-    }
+    // MARK: Trim Transparent Pixels
 
-    /// Computes the value of a color component for the given pixel value.
-    private func computeComponentValue(_ component: ARGBComponent, for pixel: UInt32) -> Int {
-        return Int((pixel >> component.rawValue) & 255)
-    }
-}
-
-// MARK: - CGImage
-
-extension CGImage {
     /// A context for handling transparency data in an image.
     private final class TransparencyContext {
         private let image: CGImage

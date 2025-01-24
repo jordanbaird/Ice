@@ -261,7 +261,7 @@ final class MenuBarManager: ObservableObject {
 
         guard
             let image,
-            let color = image.averageColor(resolution: .low, options: .ignoreAlpha)
+            let color = image.averageColor(makeOpaque: true)
         else {
             return
         }

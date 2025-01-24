@@ -118,7 +118,7 @@ final class IceBarColorManager: ObservableObject {
 
         guard
             let croppedImage = windowImage.cropping(to: cropRect),
-            let averageColor = croppedImage.averageColor(resolution: .low)
+            let averageColor = croppedImage.averageColor()
         else {
             colorInfo = nil
             return

@@ -151,7 +151,7 @@ extension CGImage {
     // MARK: Trim Transparent Pixels
 
     /// A context for handling transparency data in an image.
-    private final class TransparencyContext {
+    private struct TransparencyContext: ~Copyable {
         private let image: CGImage
         private let maxAlpha: UInt8
         private let cgContext: CGContext
@@ -243,7 +243,7 @@ extension CGImage {
             }
         }
 
-        private func isPixelOpaque(column: Int, row: Int) -> Bool {
+        private func isPixelOpaque(row: Int, column: Int) -> Bool {
             guard let bitmapData = cgContext.data else {
                 return false
             }
@@ -261,10 +261,9 @@ extension CGImage {
                 if memcmp(rowByteBlock, zeroByteBlock, image.width) == 0 {
                     return true
                 }
-                // We found a non-zero row. Check each pixel's alpha until we find one
-                // that is "opaque".
+                // We found a non-zero row. Check each pixel until we find one that is opaque.
                 return columnRange.contains { column in
-                    isPixelOpaque(column: column, row: row)
+                    isPixelOpaque(row: row, column: column)
                 }
             }
         }
@@ -272,7 +271,7 @@ extension CGImage {
         private func firstOpaqueColumn<S: Sequence>(in columnRange: S) -> Int? where S.Element == Int {
             columnRange.first { column in
                 rowRange.contains { row in
-                    isPixelOpaque(column: column, row: row)
+                    isPixelOpaque(row: row, column: column)
                 }
             }
         }
@@ -289,7 +288,7 @@ extension CGImage {
         around edges: Set<CGRectEdge> = [.minXEdge, .maxXEdge, .minYEdge, .maxYEdge],
         maxAlpha: CGFloat = 0
     ) -> CGImage? {
-        let maxAlpha = min(UInt8(maxAlpha * 255), 255)
+        let maxAlpha = UInt8(maxAlpha.clamped(to: 0...1) * 255)
         let context = TransparencyContext(image: self, maxAlpha: maxAlpha)
         return context?.trim(edges: edges)
     }

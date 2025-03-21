@@ -32,6 +32,7 @@ struct AdvancedSettingsPane: View {
                 hideApplicationMenus
                 showSectionDividers
                 showAllSectionsOnUserDrag
+                showContextMenuOnRightClick
             }
             IceSection {
                 enableAlwaysHiddenSection
@@ -136,6 +137,11 @@ struct AdvancedSettingsPane: View {
     @ViewBuilder
     private var showAllSectionsOnUserDrag: some View {
         Toggle("Show all sections when Command + dragging menu bar items", isOn: manager.bindings.showAllSectionsOnUserDrag)
+    }
+
+    @ViewBuilder
+    private var showContextMenuOnRightClick: some View {
+        Toggle("Show context menu on right click", isOn: manager.bindings.showContextMenuOnRightClick)
     }
 
     @ViewBuilder

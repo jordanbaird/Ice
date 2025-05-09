@@ -8,7 +8,7 @@ import Combine
 
 /// A manager for the appearance of the menu bar.
 @MainActor
-final class MenuBarAppearanceManager: ObservableObject {
+final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
     /// The current menu bar appearance configuration.
     @Published var configuration: MenuBarAppearanceConfigurationV2 = .defaultConfiguration
 
@@ -153,9 +153,6 @@ final class MenuBarAppearanceManager: ObservableObject {
         }
     }
 }
-
-// MARK: MenuBarAppearanceManager: BindingExposable
-extension MenuBarAppearanceManager: BindingExposable { }
 
 // MARK: - Logger
 private extension Logger {

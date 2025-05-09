@@ -9,6 +9,8 @@ import SwiftUI
 /// The model for app-wide state.
 @MainActor
 final class AppState: ObservableObject {
+    static let shared = AppState()
+    
     /// A Boolean value that indicates whether the active space is fullscreen.
     @Published private(set) var isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
 

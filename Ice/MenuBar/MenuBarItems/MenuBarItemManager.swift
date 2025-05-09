@@ -234,7 +234,7 @@ extension MenuBarItemManager {
 
     /// Logs a reason for skipping the cache.
     private func logSkippingCache(reason: String) {
-        Logger.itemManager.debug("Skipping menu bar item cache as \(reason)")
+//        Logger.itemManager.debug("Skipping menu bar item cache as \(reason)")
     }
 
     /// Caches the given menu bar items, without checking whether the control

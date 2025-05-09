@@ -76,7 +76,7 @@ final class MenuBarItemImageCache: ObservableObject {
 
     /// Logs a reason for skipping the cache.
     private func logSkippingCache(reason: String) {
-        Logger.imageCache.debug("Skipping menu bar item image cache as \(reason)")
+//        Logger.imageCache.debug("Skipping menu bar item image cache as \(reason)")
     }
 
     /// Returns a Boolean value that indicates whether caching menu bar items failed for

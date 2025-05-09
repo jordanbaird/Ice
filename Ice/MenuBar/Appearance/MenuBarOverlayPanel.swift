@@ -272,7 +272,7 @@ final class MenuBarOverlayPanel: NSPanel {
         }
         let owningDisplay = owningScreen.displayID
         guard appState.menuBarManager.hasValidMenuBar(in: windows, for: owningDisplay) else {
-            Logger.overlayPanel.debug("No valid menu bar found. \(actionMessage)")
+//            Logger.overlayPanel.debug("No valid menu bar found. \(actionMessage)")
             return nil
         }
         return owningDisplay

@@ -130,16 +130,7 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
     /// is needed for the given configuration.
     private func needsOverlayPanels(for configuration: MenuBarAppearanceConfigurationV2) -> Bool {
         let current = configuration.current
-        if current.hasShadow {
-            return true
-        }
-        if current.hasBorder {
-            return true
-        }
-        if configuration.shapeKind != .none {
-            return true
-        }
-        if current.tintKind != .none {
+        if current.hasShadow || current.hasBorder || configuration.shapeKind != .none || current.tintKind != .none {
             return true
         }
         return false
@@ -147,13 +138,9 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
 
     /// Configures the manager's overlay panels, if required by the given configuration.
     private func configureOverlayPanels(with configuration: MenuBarAppearanceConfigurationV2) {
-        guard
-            let appState,
-            needsOverlayPanels(for: configuration)
+        guard let appState, needsOverlayPanels(for: configuration)
         else {
-            while let panel = overlayPanels.popFirst() {
-                panel.close()
-            }
+            while let panel = overlayPanels.popFirst() { panel.close() }
             return
         }
 
@@ -167,7 +154,7 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
         self.overlayPanels = overlayPanels
     }
 
-    /// Sets the value of ``MenuBarOverlayPanel/isDraggingMenuBarItem`` for each
+    /// Sets the value of ``MenuBarOverlayPanel.isDraggingMenuBarItem`` for each
     /// of the manager's overlay panels.
     func setIsDraggingMenuBarItem(_ isDragging: Bool) {
         for panel in overlayPanels {

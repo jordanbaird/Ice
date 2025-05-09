@@ -14,6 +14,9 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
 
     /// The currently previewed partial configuration.
     @Published var previewConfiguration: MenuBarAppearancePartialConfiguration?
+    
+    /// Detects if mission control is open, useful for deciding when to hide and show.
+    @Published var missionControlActive: Bool = false
 
     /// The shared app state.
     private weak var appState: AppState?
@@ -74,6 +77,25 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
                 }
             }
             .store(in: &c)
+
+        // Props to Yabai
+        let customPort = Port()
+        RunLoop.current.add(customPort, forMode: .default)
+        let thread = Thread {
+            let dockPid = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")[0].processIdentifier
+            var observer: AXObserver?
+            let element: AXUIElement = AXUIElementCreateApplication(dockPid)
+            AXObserverCreate(dockPid, updateExposeStatus, &observer)
+            if let observer = observer {
+                AXObserverAddNotification(observer, element, .kAXExposeExit, nil)
+                AXObserverAddNotification(observer, element, .kAXExposeShowDesktop, nil)
+                AXObserverAddNotification(observer, element, .kAXExposeShowAllWindows, nil)
+                AXObserverAddNotification(observer, element, .kAXExposeShowFrontWindows, nil)
+                CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .defaultMode)
+                RunLoop.current.run()
+            }
+        }
+        thread.start()
 
         $configuration
             .encode(encoder: encoder)
@@ -158,4 +180,24 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
 private extension Logger {
     /// The logger to use for the menu bar appearance manager.
     static let appearanceManager = Logger(category: "MenuBarAppearanceManager")
+}
+
+// MARK: C-compatible way to capture the AX Notificaiton and redirect it back to regular swift
+func updateExposeStatus(_ observer: AXObserver, _ element: AXUIElement, _ notification: CFString, _ refcon: UnsafeMutableRawPointer?) {
+    Task {
+        print(notification)
+        if notification == CFString.kAXExposeExit {
+            await AppState.shared.appearanceManager.setIsDraggingMenuBarItem(false)
+        } else {
+            await AppState.shared.appearanceManager.setIsDraggingMenuBarItem(true)
+        }
+    }
+}
+
+// Props to Yabai
+extension CFString {
+    static var kAXExposeShowAllWindows = "AXExposeShowAllWindows" as CFString
+    static var kAXExposeShowFrontWindows = "AXExposeShowFrontWindows" as CFString
+    static var kAXExposeShowDesktop = "AXExposeShowDesktop" as CFString
+    static var kAXExposeExit = "AXExposeExit" as CFString
 }

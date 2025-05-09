@@ -93,7 +93,7 @@ final class MenuBarOverlayPanel: NSPanel {
         self.backgroundColor = .clear
         self.hasShadow = false
         self.ignoresMouseEvents = true
-        self.collectionBehavior = [.fullScreenNone, .ignoresCycle, .moveToActiveSpace]
+        self.collectionBehavior = [.fullScreenNone, .ignoresCycle, .stationary]
         self.contentView = MenuBarOverlayPanelContentView()
         configureCancellables()
     }
@@ -422,14 +422,14 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 }
             }
 
-            // Fade out whenever a menu bar item is being dragged.
+            // Cut out whenever a menu bar item is being dragged or mission control is active.
             overlayPanel.$isDraggingMenuBarItem
                 .removeDuplicates()
                 .sink { [weak self] isDragging in
                     if isDragging {
-                        self?.animator().alphaValue = 0
+                        self?.alphaValue = 0
                     } else {
-                        self?.animator().alphaValue = 1
+                        self?.alphaValue = 1
                     }
                 }
                 .store(in: &c)

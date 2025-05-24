@@ -10,7 +10,7 @@ import SwiftUI
 @MainActor
 final class AppState: ObservableObject {
     static let shared = AppState()
-    
+
     /// A Boolean value that indicates whether the active space is fullscreen.
     @Published private(set) var isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
 
@@ -68,11 +68,11 @@ final class AppState: ObservableObject {
     /// A Boolean value that indicates whether the app is running as a SwiftUI preview.
     let isPreview: Bool = {
         #if DEBUG
-        let environment = ProcessInfo.processInfo.environment
-        let key = "XCODE_RUNNING_FOR_PREVIEWS"
-        return environment[key] != nil
+            let environment = ProcessInfo.processInfo.environment
+            let key = "XCODE_RUNNING_FOR_PREVIEWS"
+            return environment[key] != nil
         #else
-        return false
+            return false
         #endif
     }()
 
@@ -302,10 +302,10 @@ final class AppState: ObservableObject {
 }
 
 // MARK: AppState: BindingExposable
-extension AppState: BindingExposable { }
+extension AppState: BindingExposable {}
 
 // MARK: - Logger
-private extension Logger {
+extension Logger {
     /// The logger to use for the app state.
-    static let appState = Logger(category: "AppState")
+    fileprivate static let appState = Logger(category: "AppState")
 }

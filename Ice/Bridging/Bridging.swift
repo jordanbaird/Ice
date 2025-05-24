@@ -6,7 +6,7 @@
 import Cocoa
 
 /// A namespace for bridged functionality.
-enum Bridging { }
+enum Bridging {}
 
 // MARK: - CGSConnection
 
@@ -176,17 +176,18 @@ extension Bridging {
     ///
     /// - Parameter option: Options that filter the returned list.
     static func getWindowList(option: WindowListOption = []) -> [CGWindowID] {
-        let list = if option.contains(.menuBarItems) {
-            if option.contains(.onScreen) {
-                getOnScreenMenuBarWindowList()
+        let list =
+            if option.contains(.menuBarItems) {
+                if option.contains(.onScreen) {
+                    getOnScreenMenuBarWindowList()
+                } else {
+                    getMenuBarWindowList()
+                }
+            } else if option.contains(.onScreen) {
+                getOnScreenWindowList()
             } else {
-                getMenuBarWindowList()
+                getWindowList()
             }
-        } else if option.contains(.onScreen) {
-            getOnScreenWindowList()
-        } else {
-            getWindowList()
-        }
         return if option.contains(.activeSpace) {
             list.filter(isWindowOnActiveSpace)
         } else {
@@ -213,10 +214,11 @@ extension Bridging {
     ///
     /// - Parameter windowID: An identifier for a window.
     static func getSpaceList(for windowID: CGWindowID, option: SpaceListOption) -> [CGSSpaceID] {
-        let mask: CGSSpaceMask = switch option {
-        case .allSpaces: .allSpaces
-        case .visibleSpaces: .allVisibleSpaces
-        }
+        let mask: CGSSpaceMask =
+            switch option {
+            case .allSpaces: .allSpaces
+            case .visibleSpaces: .allVisibleSpaces
+            }
         guard let spaces = CGSCopySpacesForWindows(CGSMainConnectionID(), mask, [windowID] as CFArray) else {
             Logger.bridging.error("CGSCopySpacesForWindows failed")
             return []
@@ -243,6 +245,52 @@ extension Bridging {
     static func isSpaceFullscreen(_ spaceID: CGSSpaceID) -> Bool {
         let type = CGSSpaceGetType(CGSMainConnectionID(), spaceID)
         return type == .fullscreen
+    }
+
+    /// Uses SkyLight to get the current space
+    /// Note: The returned value is a Int only meant for identification. It may not represent the current display or index of spaces
+    static func getCurrentSpace(for displayIndex: Int = 0) -> Int {
+        guard let foundationArray = SLSCopyManagedDisplaySpaces(CGSMainConnectionID()) else {
+            return 0
+        }
+
+        let array = foundationArray.takeUnretainedValue() as? [[String: Any]]
+        guard displayIndex < (array?.count ?? 0),
+            let currentSpace = array?[displayIndex]["Current Space"] as? [String: Any],
+            let spaceID = currentSpace["ManagedSpaceID"] as? Int
+        else { return 0 }
+
+        return spaceID
+    }
+
+    static func getCurrentSpaces() -> [Int] {
+        guard let foundationArray = SLSCopyManagedDisplaySpaces(CGSMainConnectionID()) else {
+            return []
+        }
+
+        guard let array = foundationArray.takeUnretainedValue() as? [[String: Any]],
+            let currentSpaces = array.map({ $0["Current Space"] }) as? [[String: Any]],
+            let spaceIDs = currentSpaces.map({ $0["ManagedSpaceID"] }) as? [Int]
+        else { return [] }
+
+        return spaceIDs
+    }
+
+    static func getAllSpaces() -> [Int] {
+        guard let foundationArray = SLSCopyManagedDisplaySpaces(CGSMainConnectionID()) else {
+            return []
+        }
+
+        guard let array = foundationArray.takeUnretainedValue() as? [[String: Any]],
+            let spaces = array.map({ $0["Spaces"] }) as? [[[String: Any]]]
+        else { return [] }
+
+        var spaceIDs: [Int] = []
+        for space in spaces {
+            spaceIDs += (space.map { $0["ManagedSpaceID"] } as? [Int])!
+        }
+
+        return spaceIDs
     }
 }
 

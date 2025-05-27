@@ -32,7 +32,7 @@ Download the "Ice.zip" file from the [latest release](https://github.com/jordanb
 Install Ice using the following command:
 
 ```sh
-brew install jordanbaird-ice
+brew install --cask jordanbaird-ice
 ```
 
 ## Features/Roadmap

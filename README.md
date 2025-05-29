@@ -11,7 +11,9 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 - Creating a MenuBarOverlayPanel for each space to skip the required fade in.
 - That's about it for now other than a lot of code refactors.
 
-### Planned
+
+## I'm probably only going to use this until macOS 16 because of design update rumors
+### Planned (means probably never happening)
 - More shapes for menu bar including notch-shape
 
 ![Banner](https://github.com/user-attachments/assets/4423085c-4e4b-4f3d-ad0f-90a217c03470)

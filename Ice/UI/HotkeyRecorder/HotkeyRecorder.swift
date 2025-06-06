@@ -21,7 +21,7 @@ struct HotkeyRecorder<Label: View>: View {
                 leadingSegment
                 trailingSegment
             }
-            .frame(width: 130, height: 22)
+            .frame(width: 132, height: 24)
             .alignmentGuide(.firstTextBaseline) { dimension in
                 dimension[VerticalAlignment.center]
             }
@@ -108,7 +108,7 @@ struct HotkeyRecorder<Label: View>: View {
         Image(systemName: symbolString)
             .resizable()
             .aspectRatio(contentMode: .fill)
-            .padding(1)
+            .padding(2)
     }
 }
 

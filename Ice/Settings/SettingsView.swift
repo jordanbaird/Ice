@@ -78,8 +78,6 @@ struct SettingsView: View {
             HotkeysSettingsPane()
         case .advanced:
             AdvancedSettingsPane()
-        case .updates:
-            UpdatesSettingsPane()
         case .about:
             AboutSettingsPane()
         }
@@ -104,7 +102,6 @@ struct SettingsView: View {
         case .menuBarAppearance: .systemSymbol("swatchpalette")
         case .hotkeys: .systemSymbol("keyboard")
         case .advanced: .systemSymbol("gearshape.2")
-        case .updates: .systemSymbol("arrow.triangle.2.circlepath.circle")
         case .about: .assetCatalog(.iceCubeStroke)
         }
     }

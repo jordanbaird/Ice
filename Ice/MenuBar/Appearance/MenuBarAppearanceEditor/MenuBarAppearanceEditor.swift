@@ -223,13 +223,11 @@ private struct LabeledPartialEditor: View {
     let appearance: SystemAppearance
 
     var body: some View {
-        IceSection {
+        IceSection(options: .plain) {
             labelStack
         } content: {
             partialEditor
         }
-        .bordered(false)
-        .dividers(false)
         .onReceive(NSApp.publisher(for: \.effectiveAppearance)) { _ in
             currentAppearance = .current
         }

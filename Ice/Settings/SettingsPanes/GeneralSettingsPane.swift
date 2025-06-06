@@ -107,9 +107,6 @@ struct GeneralSettingsPane: View {
                 }
             }
         }
-        .iceMenuItemAction {
-            manager.iceIcon = imageSet
-        }
     }
 
     @ViewBuilder
@@ -122,17 +119,32 @@ struct GeneralSettingsPane: View {
             }
         if manager.showIceIcon {
             IceMenu("Ice icon") {
-                ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
-                    menuItem(for: imageSet)
-                }
-                if let lastCustomIceIcon = manager.lastCustomIceIcon {
-                    menuItem(for: lastCustomIceIcon)
-                }
-                Divider()
-                Text("Choose image…")
-                    .iceMenuItemAction {
-                        isImportingCustomIceIcon = true
+                Picker("Ice icon", selection: manager.bindings.iceIcon) {
+                    ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
+                        Button {
+                            manager.iceIcon = imageSet
+                        } label: {
+                            menuItem(for: imageSet)
+                        }
+                        .tag(imageSet)
                     }
+                    if let lastCustomIceIcon = manager.lastCustomIceIcon {
+                        Button {
+                            manager.iceIcon = lastCustomIceIcon
+                        } label: {
+                            menuItem(for: lastCustomIceIcon)
+                        }
+                        .tag(lastCustomIceIcon)
+                    }
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+
+                Divider()
+
+                Button("Choose image…") {
+                    isImportingCustomIceIcon = true
+                }
             } title: {
                 menuItem(for: manager.iceIcon)
             }
@@ -179,7 +191,7 @@ struct GeneralSettingsPane: View {
     private var iceBarLocationPicker: some View {
         IcePicker("Location", selection: manager.bindings.iceBarLocation) {
             ForEach(IceBarLocation.allCases) { location in
-                Text(location.localized).icePickerID(location)
+                Text(location.localized).tag(location)
             }
         }
         .annotation {
@@ -275,7 +287,7 @@ struct GeneralSettingsPane: View {
     private var rehideStrategyPicker: some View {
         IcePicker("Strategy", selection: manager.bindings.rehideStrategy) {
             ForEach(RehideStrategy.allCases) { strategy in
-                Text(strategy.localized).icePickerID(strategy)
+                Text(strategy.localized).tag(strategy)
             }
         }
         .annotation {
@@ -331,10 +343,4 @@ struct GeneralSettingsPane: View {
         manager.itemSpacingOffset = tempItemSpacingOffset
         applyOffset()
     }
-}
-
-#Preview {
-    GeneralSettingsPane()
-        .fixedSize()
-        .environmentObject(AppState())
 }

@@ -20,11 +20,11 @@ struct MenuBarShapePicker: View {
             ForEach(MenuBarShapeKind.allCases, id: \.self) { shape in
                 switch shape {
                 case .none:
-                    Text("None").icePickerID(shape)
+                    Text("None").tag(shape)
                 case .full:
-                    Text("Full").icePickerID(shape)
+                    Text("Full").tag(shape)
                 case .split:
-                    Text("Split").icePickerID(shape)
+                    Text("Split").tag(shape)
                 }
             }
         }

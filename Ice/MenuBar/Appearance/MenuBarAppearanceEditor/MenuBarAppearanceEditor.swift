@@ -150,7 +150,7 @@ private struct UnlabeledPartialEditor: View {
             HStack {
                 IcePicker("Tint", selection: $configuration.tintKind) {
                     ForEach(MenuBarTintKind.allCases) { tintKind in
-                        Text(tintKind.localized).icePickerID(tintKind)
+                        Text(tintKind.localized).tag(tintKind)
                     }
                 }
                 .labelsHidden()
@@ -207,9 +207,9 @@ private struct UnlabeledPartialEditor: View {
                 "Border Width",
                 selection: $configuration.borderWidth
             ) {
-                Text("1").icePickerID(1.0)
-                Text("2").icePickerID(2.0)
-                Text("3").icePickerID(3.0)
+                Text("1").tag(1.0)
+                Text("2").tag(2.0)
+                Text("3").tag(3.0)
             }
         }
     }

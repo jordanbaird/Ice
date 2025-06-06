@@ -34,6 +34,8 @@ final class AdvancedSettingsManager: ObservableObject {
     /// the user is dragging items in the menu bar.
     @Published var showAllSectionsOnUserDrag = true
 
+    @Published var showContextMenuOnRightClick = true
+
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
@@ -57,6 +59,7 @@ final class AdvancedSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .showOnHoverDelay, assign: &showOnHoverDelay)
         Defaults.ifPresent(key: .tempShowInterval, assign: &tempShowInterval)
         Defaults.ifPresent(key: .showAllSectionsOnUserDrag, assign: &showAllSectionsOnUserDrag)
+        Defaults.ifPresent(key: .showContextMenuOnRightClick, assign: &showContextMenuOnRightClick)
     }
 
     private func configureCancellables() {
@@ -108,6 +111,13 @@ final class AdvancedSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { showAll in
                 Defaults.set(showAll, forKey: .showAllSectionsOnUserDrag)
+            }
+            .store(in: &c)
+
+        $showContextMenuOnRightClick
+            .receive(on: DispatchQueue.main)
+            .sink { showAll in
+                Defaults.set(showAll, forKey: .showContextMenuOnRightClick)
             }
             .store(in: &c)
 

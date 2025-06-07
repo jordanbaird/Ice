@@ -20,11 +20,19 @@ extension Bundle {
 
     /// The bundle's version string.
     ///
-    /// This accessor looks for an associated value for either "CFBundleShortVersionString"
-    /// or "CFBundleVersion" in the bundle's Info.plist. If a string value cannot be found
-    /// for one of these keys, this accessor returns `nil`.
+    /// This accessor looks for an associated value for the "CFBundleShortVersionString"
+    /// key in the bundle's Info.plist. If a string value cannot be found for this key,
+    /// this accessor returns `nil`.
     var versionString: String? {
-        object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ??
+        object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+    }
+
+    /// The bundle's build string.
+    ///
+    /// This accessor looks for an associated value for the "CFBundleVersion" key in
+    /// the bundle's Info.plist. If a string value cannot be found for this key, this
+    /// accessor returns `nil`.
+    var buildString: String? {
         object(forInfoDictionaryKey: "CFBundleVersion") as? String
     }
 }

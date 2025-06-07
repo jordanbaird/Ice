@@ -30,6 +30,10 @@ struct LayoutBar: View {
         appState.menuBarManager
     }
 
+    private var backgroundShape: some InsettableShape {
+        RoundedRectangle(cornerRadius: 9, style: .circular)
+    }
+
     init(section: MenuBarSection, spacing: CGFloat = 0) {
         self.section = section
         self.spacing = spacing
@@ -40,9 +44,9 @@ struct LayoutBar: View {
             .frame(height: 50)
             .frame(maxWidth: .infinity)
             .layoutBarStyle(appState: appState, averageColorInfo: menuBarManager.averageColorInfo)
-            .clipShape(roundedRectangle)
+            .clipShape(backgroundShape)
             .overlay {
-                roundedRectangle
+                backgroundShape
                     .stroke(.quaternary)
             }
     }
@@ -55,10 +59,5 @@ struct LayoutBar: View {
         } else {
             Representable(appState: appState, section: section, spacing: spacing)
         }
-    }
-
-    @ViewBuilder
-    private var roundedRectangle: some Shape {
-        RoundedRectangle(cornerRadius: 11, style: .continuous)
     }
 }

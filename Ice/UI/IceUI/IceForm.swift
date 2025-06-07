@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct IceForm<Content: View>: View {
+    @Environment(\.isScrollEnabled) private var isScrollEnabled
     @State private var contentFrame = CGRect.zero
 
     private let alignment: HorizontalAlignment
@@ -41,15 +42,19 @@ struct IceForm<Content: View>: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            if contentFrame.height > geometry.size.height {
-                ScrollView {
+        if isScrollEnabled {
+            GeometryReader { geometry in
+                if contentFrame.height > geometry.size.height {
+                    ScrollView {
+                        contentStack
+                    }
+                    .scrollContentBackground(.hidden)
+                } else {
                     contentStack
                 }
-                .scrollContentBackground(.hidden)
-            } else {
-                contentStack
             }
+        } else {
+            contentStack
         }
     }
 

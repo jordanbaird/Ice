@@ -244,7 +244,7 @@ extension MenuBarItemManager {
         alwaysHiddenControlItem: MenuBarItem?,
         otherItems: [MenuBarItem]
     ) {
-        Logger.itemManager.debug("Caching menu bar items")
+//        Logger.itemManager.debug("Caching menu bar items")
 
         let predicates = Predicates.sectionPredicates(
             hiddenControlItem: hiddenControlItem,

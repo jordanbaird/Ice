@@ -40,10 +40,11 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
     private var cancellables = Set<AnyCancellable>()
 
     /// The currently managed menu bar overlay panels.
-    private(set) var overlayPanels: [Int: MenuBarOverlayPanel] = [:]
+    private(set) var overlayPanels: [String: MenuBarOverlayPanel] = [:]
 
     /// The pid of Dock
-    @Published var dockPid = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")[0].processIdentifier
+    @Published var dockPid = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")[0]
+        .processIdentifier
 
     /// The amount to inset the menu bar if called for by the configuration.
     let menuBarInsetAmount: CGFloat = 5
@@ -79,6 +80,7 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
             .sink { [weak self] _ in
                 guard let self else { return }
                 configureOverlayPanels(with: configuration)
+                Bridging.getCurrentSpaces().forEach { self.overlayPanels[$0]?.insertUpdateFlag(.applicationMenuFrame) }
             }
             .store(in: &c)
 
@@ -110,6 +112,7 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
                 }
             }
             .store(in: &c)
+        
 
         // Update application menu frame when the menu bar owning or frontmost app changes.
         Publishers.Merge(
@@ -123,21 +126,24 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
         .removeDuplicates()
         .sink { [weak self] _ in
             guard let self, let appState else { return }
-            Bridging.getCurrentSpaces().forEach {
-                guard let currentPanel = self.overlayPanels[$0] else { return }
+            Bridging.getCurrentSpaces().forEach { spaceID in
+                
+                guard let currentPanel = self.overlayPanels[spaceID] else { return }
                 let displayID = currentPanel.owningScreen.displayID
-                currentPanel.updateTaskContext.setTask(for: .applicationMenuFrame, timeout: .seconds(10)) {
+                currentPanel.updateTaskContext.setTask(for: .applicationMenuFrame, timeout: .seconds(5)) {
                     var hasDoneInitialUpdate = false
                     while true {
                         try Task.checkCancellation()
                         guard
-                            let latestFrame = appState.menuBarManager.getApplicationMenuFrame(for: displayID),
-                            latestFrame != currentPanel.applicationMenuFrame
+                            appState.menuBarManager.getApplicationMenuFrame(for: displayID)
+                                != currentPanel.applicationMenuFrame
                         else {
-                            try await Task.sleep(for: hasDoneInitialUpdate ? .seconds(1) : .milliseconds(1))
+                            try await Task.sleep(for: .milliseconds(50))
                             continue
                         }
-                        currentPanel.insertUpdateFlag(.applicationMenuFrame)
+                        if Bridging.getCurrentSpaces().contains(spaceID) {
+                            currentPanel.insertUpdateFlag(.applicationMenuFrame)
+                        }
                         hasDoneInitialUpdate = true
                     }
                 }
@@ -156,17 +162,19 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
         $dockPid
             .removeDuplicates()
             .sink { pid in
+                sleep(1)
                 let customPort = Port()
                 RunLoop.current.add(customPort, forMode: .default)
                 let thread = Thread {
-                    var observer: AXObserver?
+                    var observer: AXObserver!
                     let element: AXUIElement = AXUIElementCreateApplication(pid)
                     AXObserverCreate(pid, updateExposeStatus, &observer)
-                    guard let observer = observer else { return }
-                    AXObserverAddNotification(observer, element, .kAXExposeExit, nil)
-                    //            AXObserverAddNotification(observer, element, .kAXExposeShowDesktop, nil)
-                    AXObserverAddNotification(observer, element, .kAXExposeShowAllWindows, nil)
-                    AXObserverAddNotification(observer, element, .kAXExposeShowFrontWindows, nil)
+                    [
+                        CFString.kAXExposeExit, .kAXExposeShowAllWindows, .kAXExposeShowFrontWindows,
+                        .kAXExposeShowDesktop,
+                    ].forEach { notification in
+                        AXObserverAddNotification(observer, element, notification, nil)
+                    }
                     CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .defaultMode)
                     RunLoop.current.run()
                 }
@@ -181,7 +189,7 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
             .store(in: &c)
 
         // Random stuff to make sure everything updates if detection fails
-        Timer.publish(every: 5, on: .main, in: .default)
+        Timer.publish(every: 3, on: .main, in: .default)
             .autoconnect()
             .sink { [weak self] _ in
                 guard let self else { return }
@@ -194,7 +202,9 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
                     self.overlayPanels.removeValue(forKey: $0)
                     print("Removing overlay for removed space")
                 }
-                self.dockPid = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")[0].processIdentifier
+                self.dockPid =
+                    NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")[0]
+                    .processIdentifier
             }
             .store(in: &c)
 
@@ -237,21 +247,13 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
 
     /// Configures the manager's overlay panels, if required by the given configuration.
     private func configureOverlayPanels(with configuration: MenuBarAppearanceConfigurationV2, reset: Bool = false) {
-        guard let appState, needsOverlayPanels(for: configuration)
+        guard let appState, needsOverlayPanels(for: configuration), !reset
         else {
             for key in overlayPanels.keys {
                 overlayPanels[key]?.close()
                 overlayPanels.removeValue(forKey: key)
             }
             return
-        }
-
-        // This sucks rn find a way to combine it with the prev one later
-        if reset {
-            for key in overlayPanels.keys {
-                overlayPanels[key]?.close()
-                overlayPanels.removeValue(forKey: key)
-            }
         }
 
         for index in 0..<NSScreen.screens.count {
@@ -267,7 +269,6 @@ final class MenuBarAppearanceManager: ObservableObject, BindingExposable {
     func setMissionControl(_ value: CFString) {
         missionControl = value
     }
-
 }
 
 // MARK: - Logger

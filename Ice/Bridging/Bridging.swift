@@ -249,34 +249,34 @@ extension Bridging {
 
     /// Uses SkyLight to get the current space
     /// Note: The returned value is a Int only meant for identification. It may not represent the current display or index of spaces
-    static func getCurrentSpace(for displayIndex: Int = 0) -> Int {
+    static func getCurrentSpace(for displayIndex: Int = 0) -> String {
         guard let foundationArray = SLSCopyManagedDisplaySpaces(CGSMainConnectionID()) else {
-            return 0
+            return "a"
         }
 
         let array = foundationArray.takeUnretainedValue() as? [[String: Any]]
         guard displayIndex < (array?.count ?? 0),
             let currentSpace = array?[displayIndex]["Current Space"] as? [String: Any],
-            let spaceID = currentSpace["ManagedSpaceID"] as? Int
-        else { return 0 }
+            let spaceID = currentSpace["uuid"] as? String
+        else { return "a" }
 
         return spaceID
     }
 
-    static func getCurrentSpaces() -> [Int] {
+    static func getCurrentSpaces() -> [String] {
         guard let foundationArray = SLSCopyManagedDisplaySpaces(CGSMainConnectionID()) else {
             return []
         }
 
         guard let array = foundationArray.takeUnretainedValue() as? [[String: Any]],
             let currentSpaces = array.map({ $0["Current Space"] }) as? [[String: Any]],
-            let spaceIDs = currentSpaces.map({ $0["ManagedSpaceID"] }) as? [Int]
+            let spaceIDs = currentSpaces.map({ $0["uuid"] }) as? [String]
         else { return [] }
 
         return spaceIDs
     }
 
-    static func getAllSpaces() -> [Int] {
+    static func getAllSpaces() -> [String] {
         guard let foundationArray = SLSCopyManagedDisplaySpaces(CGSMainConnectionID()) else {
             return []
         }
@@ -285,9 +285,9 @@ extension Bridging {
             let spaces = array.map({ $0["Spaces"] }) as? [[[String: Any]]]
         else { return [] }
 
-        var spaceIDs: [Int] = []
+        var spaceIDs: [String] = []
         for space in spaces {
-            spaceIDs += (space.map { $0["ManagedSpaceID"] } as? [Int])!
+            spaceIDs += (space.filter { $0["type"] as? Int == 0 }.map { $0["uuid"] } as? [String])!
         }
 
         return spaceIDs
@@ -320,6 +320,6 @@ extension Bridging {
 }
 
 // MARK: - Logger
-private extension Logger {
-    static let bridging = Logger(category: "Bridging")
+extension Logger {
+    fileprivate static let bridging = Logger(category: "Bridging")
 }

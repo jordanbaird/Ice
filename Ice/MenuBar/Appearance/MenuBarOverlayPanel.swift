@@ -64,7 +64,7 @@ final class MenuBarOverlayPanel: NSPanel {
     @Published private(set) var desktopWallpaper: CGImage?
 
     /// The space that the panel is present on.
-    var space: Int
+    var space: String
 
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
@@ -79,7 +79,7 @@ final class MenuBarOverlayPanel: NSPanel {
     let owningScreen: NSScreen
 
     /// Creates an overlay panel with the given app state and owning screen.
-    init(appState: AppState, owningScreen: NSScreen, onSpace space: Int) {
+    init(appState: AppState, owningScreen: NSScreen, onSpace space: String) {
         self.appState = appState
         self.owningScreen = owningScreen
         self.space = space

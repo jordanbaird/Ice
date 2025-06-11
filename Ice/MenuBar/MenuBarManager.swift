@@ -239,24 +239,38 @@ final class MenuBarManager: ObservableObject {
         let windows = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
         let displayID = screen.displayID
 
-        if let window = WindowInfo.getMenuBarWindow(from: windows, for: displayID) {
-            var bounds = window.frame
-            bounds.size.height = 1
-            bounds.origin.x = bounds.maxX - (bounds.width / 4)
-            bounds.size.width /= 4
+        if #available(macOS 26.0, *) {
+            if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
+                var bounds = window.frame
+                bounds.size.height = 1
+                bounds.origin.x = bounds.midX
+                bounds.size.width /= 2
 
-            image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
-            source = .menuBarWindow
-        } else if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
-            var bounds = window.frame
-            bounds.size.height = 1
-            bounds.origin.x = bounds.midX
-            bounds.size.width /= 2
-
-            image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
-            source = .desktopWallpaper
+                image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
+                source = .desktopWallpaper
+            } else {
+                return
+            }
         } else {
-            return
+            if let window = WindowInfo.getMenuBarWindow(from: windows, for: displayID) {
+                var bounds = window.frame
+                bounds.size.height = 1
+                bounds.origin.x = bounds.maxX - (bounds.width / 4)
+                bounds.size.width /= 4
+
+                image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
+                source = .menuBarWindow
+            } else if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
+                var bounds = window.frame
+                bounds.size.height = 1
+                bounds.origin.x = bounds.midX
+                bounds.size.width /= 2
+
+                image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
+                source = .desktopWallpaper
+            } else {
+                return
+            }
         }
 
         guard

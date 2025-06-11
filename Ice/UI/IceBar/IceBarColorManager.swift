@@ -7,11 +7,16 @@ import Cocoa
 import Combine
 
 final class IceBarColorManager: ObservableObject {
+    private struct WindowImageInfo {
+        let image: CGImage
+        let source: MenuBarAverageColorInfo.Source
+    }
+
     @Published private(set) var colorInfo: MenuBarAverageColorInfo?
 
     private weak var iceBarPanel: IceBarPanel?
 
-    private var windowImage: CGImage?
+    private var windowImageInfo: WindowImageInfo?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -34,7 +39,7 @@ final class IceBarColorManager: ObservableObject {
                     else {
                         return
                     }
-                    updateWindowImage(for: screen)
+                    updateWindowImageInfo(for: screen)
                 }
                 .store(in: &c)
 
@@ -80,7 +85,7 @@ final class IceBarColorManager: ObservableObject {
                 else {
                     return
                 }
-                updateWindowImage(for: screen)
+                updateWindowImageInfo(for: screen)
                 if iceBarPanel.isVisible {
                     updateColorInfo(with: iceBarPanel.frame, screen: screen)
                 }
@@ -91,44 +96,60 @@ final class IceBarColorManager: ObservableObject {
         cancellables = c
     }
 
-    private func updateWindowImage(for screen: NSScreen) {
+    private func updateWindowImageInfo(for screen: NSScreen) {
+        let windows = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
         let displayID = screen.displayID
-        if
-            let window = WindowInfo.getMenuBarWindow(for: displayID),
-            let image = ScreenCapture.captureWindow(window.windowID, option: .nominalResolution)
-        {
-            windowImage = image
+
+        if #available(macOS 26.0, *) {
+            if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
+                let bounds = with(window.frame) { $0.size.height = 1 }
+                if let image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution) {
+                    windowImageInfo = WindowImageInfo(image: image, source: .desktopWallpaper)
+                } else {
+                    windowImageInfo = nil
+                }
+            }
         } else {
-            windowImage = nil
+            if
+                let window = WindowInfo.getMenuBarWindow(from: windows, for: displayID),
+                let image = ScreenCapture.captureWindow(window.windowID, option: .nominalResolution)
+            {
+                windowImageInfo = WindowImageInfo(image: image, source: .menuBarWindow)
+            } else {
+                windowImageInfo = nil
+            }
         }
     }
 
     private func updateColorInfo(with frame: CGRect, screen: NSScreen) {
-        guard let windowImage else {
+        guard let windowImageInfo else {
             colorInfo = nil
             return
         }
 
-        let imageBounds = CGRect(x: 0, y: 0, width: windowImage.width, height: windowImage.height)
+        let image = windowImageInfo.image
+        let imageBounds = CGRect(x: 0, y: 0, width: image.width, height: image.height)
+
         let insetScreenFrame = screen.frame.insetBy(dx: frame.width / 2, dy: 0)
         let percentage = ((frame.midX - insetScreenFrame.minX) / insetScreenFrame.width).clamped(to: 0...1)
+
         let cropRect = CGRect(x: imageBounds.width * percentage, y: 0, width: 0, height: 1)
             .insetBy(dx: -50, dy: 0)
             .intersection(imageBounds)
 
         guard
-            let croppedImage = windowImage.cropping(to: cropRect),
+            let croppedImage = image.cropping(to: cropRect),
             let averageColor = croppedImage.averageColor()
         else {
             colorInfo = nil
             return
         }
 
-        colorInfo = MenuBarAverageColorInfo(color: averageColor, source: .menuBarWindow)
+        colorInfo = MenuBarAverageColorInfo(color: averageColor, source: windowImageInfo.source)
     }
 
     func updateAllProperties(with frame: CGRect, screen: NSScreen) {
-        updateWindowImage(for: screen)
+        updateWindowImageInfo(for: screen)
         updateColorInfo(with: frame, screen: screen)
     }
 }

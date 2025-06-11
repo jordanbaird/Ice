@@ -10,7 +10,7 @@ import SwiftUI
 @MainActor
 final class AppState: ObservableObject {
     /// A Boolean value that indicates whether the active space is fullscreen.
-    @Published private(set) var isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
+    @Published private(set) var isActiveSpaceFullscreen = Bridging.isActiveSpaceFullscreen()
 
     /// Manager for the menu bar's appearance.
     private(set) lazy var appearanceManager = MenuBarAppearanceManager(appState: self)
@@ -105,7 +105,7 @@ final class AppState: ObservableObject {
             guard let self else {
                 return
             }
-            isActiveSpaceFullscreen = Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
+            isActiveSpaceFullscreen = Bridging.isActiveSpaceFullscreen()
         }
         .store(in: &c)
 

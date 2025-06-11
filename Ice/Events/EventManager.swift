@@ -208,13 +208,13 @@ extension EventManager {
         }
 
         Task {
-            let initialSpaceID = Bridging.activeSpaceID
+            let initialSpaceID = Bridging.getActiveSpaceID()
 
             // Sleep for a bit to give the window under the mouse a chance to focus.
             try? await Task.sleep(for: .seconds(0.25))
 
             // If clicking caused a space change, don't bother with the window check.
-            if Bridging.activeSpaceID != initialSpaceID {
+            if Bridging.getActiveSpaceID() != initialSpaceID {
                 for section in appState.menuBarManager.sections {
                     section.hide()
                 }

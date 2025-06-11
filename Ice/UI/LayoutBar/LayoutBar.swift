@@ -43,7 +43,8 @@ struct LayoutBar: View {
         conditionalBody
             .frame(height: 50)
             .frame(maxWidth: .infinity)
-            .layoutBarStyle(appState: appState, averageColorInfo: menuBarManager.averageColorInfo)
+            .background(Color(white: 0.25))
+//            .layoutBarStyle(appState: appState, averageColorInfo: menuBarManager.averageColorInfo)
             .clipShape(backgroundShape)
             .overlay {
                 backgroundShape

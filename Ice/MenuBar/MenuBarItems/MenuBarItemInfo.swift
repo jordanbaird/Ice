@@ -11,95 +11,112 @@ struct MenuBarItemInfo: Hashable, CustomStringConvertible {
     /// The title of the item.
     let title: String
 
-    /// A Boolean value that indicates whether the item is within the
-    /// "Special" namespace.
-    var isSpecial: Bool {
-        namespace == .special
+    /// A Boolean value that indicates whether the item can be moved.
+    var isMovable: Bool {
+        !MenuBarItemInfo.immovableItems.contains(self)
     }
 
+    /// A Boolean value that indicates whether the item can be hidden.
+    var canBeHidden: Bool {
+        !MenuBarItemInfo.nonHideableItems.contains(self)
+    }
+
+    /// A string representation of the item.
+    var stringValue: String {
+        var result = namespace.rawValue
+        if !title.isEmpty {
+            result.append(":\(title)")
+        }
+        return result
+    }
+
+    /// A textual representation of the item.
     var description: String {
-        namespace.rawValue + ":" + title
+        stringValue
     }
 
-    /// Creates a simplified item with the given namespace and title.
+    /// Creates an item with the given namespace and title.
     init(namespace: Namespace, title: String) {
         self.namespace = namespace
         self.title = title
     }
+
+    /// Creates an item for the control item with the given identifier.
+    private init(controlItem identifier: ControlItem.Identifier) {
+        if #available(macOS 26.0, *) {
+            self.init(namespace: .controlCenter, title: identifier.rawValue)
+        } else {
+            self.init(namespace: .ice, title: identifier.rawValue)
+        }
+    }
 }
 
 // MARK: MenuBarItemInfo Constants
+
 extension MenuBarItemInfo {
+
+    // MARK: Special Item Lists
+
     /// An array of items whose movement is prevented by macOS.
     static let immovableItems = [clock, siri, controlCenter]
 
+    // FIXME: At some point, Apple made the "MusicRecognition" item hideable.
+    // We need to determine which version of macOS first had this change, and
+    // conditionally exclude the item from this list based on that.
+    //
     /// An array of items that can be moved, but cannot be hidden.
-    static let nonHideableItems = [audioVideoModule, faceTime, musicRecognition]
+    static let nonHideableItems = [audioVideoModule, faceTime, musicRecognition, screenCaptureUI]
 
-    /// Information for an item that represents the Ice icon, a.k.a. the
-    /// control item for the visible section.
-    static let iceIcon = MenuBarItemInfo(
-        namespace: .ice,
-        title: ControlItem.Identifier.iceIcon.rawValue
-    )
+    /// An array of items representing the control items for all sections.
+    static let controlItems = MenuBarSection.Name.allCases.map { $0.controlItemInfo }
 
-    /// Information for an item that represents the control item for the
-    /// hidden section.
-    static let hiddenControlItem = MenuBarItemInfo(
-        namespace: .ice,
-        title: ControlItem.Identifier.hidden.rawValue
-    )
+    // MARK: Control Items
 
-    /// Information for an item that represents the control item for the
-    /// always-hidden section.
-    static let alwaysHiddenControlItem = MenuBarItemInfo(
-        namespace: .ice,
-        title: ControlItem.Identifier.alwaysHidden.rawValue
-    )
+    /// The control item for the visible section.
+    static let iceIcon = MenuBarItemInfo(controlItem: .iceIcon)
 
-    /// Information for the "Clock" item.
-    static let clock = MenuBarItemInfo(
-        namespace: .controlCenter,
-        title: "Clock"
-    )
+    /// The control item for the hidden section.
+    static let hiddenControlItem = MenuBarItemInfo(controlItem: .hidden)
 
-    /// Information for the "Siri" item.
-    static let siri = MenuBarItemInfo(
-        namespace: .systemUIServer,
-        title: "Siri"
-    )
+    /// The control item for the always-hidden section.
+    static let alwaysHiddenControlItem = MenuBarItemInfo(controlItem: .alwaysHidden)
 
-    /// Information for the "BentoBox" (a.k.a. "Control Center") item.
-    static let controlCenter = MenuBarItemInfo(
-        namespace: .controlCenter,
-        title: "BentoBox"
-    )
+    // MARK: Other Items
 
-    /// Information for the item that appears in the menu bar while the
-    /// screen or system audio is being recorded.
-    static let audioVideoModule = MenuBarItemInfo(
-        namespace: .controlCenter,
-        title: "AudioVideoModule"
-    )
+    /// The "Clock" item.
+    static let clock = MenuBarItemInfo(namespace: .controlCenter, title: "Clock")
 
-    /// Information for the "FaceTime" item.
-    static let faceTime = MenuBarItemInfo(
-        namespace: .controlCenter,
-        title: "FaceTime"
-    )
+    /// The "Siri" item.
+    static let siri: MenuBarItemInfo = {
+        if #available(macOS 26.0, *) {
+            MenuBarItemInfo(namespace: .controlCenter, title: "Siri")
+        } else {
+            MenuBarItemInfo(namespace: .systemUIServer, title: "Siri")
+        }
+    }()
 
-    /// Information for the "MusicRecognition" (a.k.a. "Shazam") item.
-    static let musicRecognition = MenuBarItemInfo(
-        namespace: .controlCenter,
-        title: "MusicRecognition"
-    )
+    /// The "Control Center" item.
+    static let controlCenter: MenuBarItemInfo = {
+        if #available(macOS 26.0, *) {
+            MenuBarItemInfo(namespace: .controlCenter, title: "BentoBox-0")
+        } else {
+            MenuBarItemInfo(namespace: .controlCenter, title: "BentoBox")
+        }
+    }()
 
-    /// Information for a special item that indicates the location where
-    /// new menu bar items should appear.
-    static let newItems = MenuBarItemInfo(
-        namespace: .special,
-        title: "NewItems"
-    )
+    /// The item that appears in the menu bar while the screen or system
+    /// audio is being recorded.
+    static let audioVideoModule = MenuBarItemInfo(namespace: .controlCenter, title: "AudioVideoModule")
+
+    /// The "FaceTime" item.
+    static let faceTime = MenuBarItemInfo(namespace: .controlCenter, title: "FaceTime")
+
+    /// The "MusicRecognition" (a.k.a. "Shazam") item.
+    static let musicRecognition = MenuBarItemInfo(namespace: .controlCenter, title: "MusicRecognition")
+
+    /// The "stop recording" item that appears in the menu bar during screen
+    /// recordings started by the macOS "Screenshot" tool.
+    static let screenCaptureUI = MenuBarItemInfo(namespace: .screenCaptureUI, title: "Item-0")
 }
 
 // MARK: MenuBarItemInfo: Codable
@@ -130,7 +147,7 @@ extension MenuBarItemInfo: Codable {
 
     func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode([namespace.rawValue, title].joined(separator: ":"))
+        try container.encode(stringValue)
     }
 }
 
@@ -206,14 +223,21 @@ extension MenuBarItemInfo.Namespace {
     /// The namespace for menu bar items owned by Ice.
     static let ice = Self(Constants.bundleIdentifier)
 
-    /// The namespace for menu bar items owned by Control Center.
+    /// The namespace for menu bar items owned by "Control Center".
     static let controlCenter = Self("com.apple.controlcenter")
 
-    /// The namespace for menu bar items owned by the System UI Server.
+    /// The namespace for menu bar items owned by "System UI Server".
     static let systemUIServer = Self("com.apple.systemuiserver")
 
-    /// The namespace for special items.
-    static let special = Self("Special")
+    /// The namespace for the "stop recording" menu bar item that appears
+    /// during screen recordings started by the macOS "Screenshot" tool.
+    static let screenCaptureUI = Self("com.apple.screencaptureui")
+
+    /// The namespace for the "Passwords" menu bar item.
+    static let passwords = Self("com.apple.Passwords.MenuBarExtra")
+
+    /// The namespace for the "Weather" menu bar item.
+    static let weather = Self("com.apple.weather.menu")
 
     /// The null namespace.
     static let null = Self(kind: .null)

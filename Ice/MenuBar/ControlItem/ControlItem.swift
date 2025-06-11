@@ -61,13 +61,13 @@ final class ControlItem {
         statusItem.button?.window
     }
 
-    /// The identifier of the control item's window.
-    var windowID: CGWindowID? {
-        guard let window else {
-            return nil
-        }
-        return CGWindowID(window.windowNumber)
-    }
+//    /// The identifier of the control item's window.
+//    var windowID: CGWindowID? {
+//        guard let window else {
+//            return nil
+//        }
+//        return CGWindowID(window.windowNumber)
+//    }
 
     /// A Boolean value that indicates whether the control item serves as
     /// a divider between sections.

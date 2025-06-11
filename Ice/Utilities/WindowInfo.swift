@@ -56,21 +56,10 @@ struct WindowInfo {
         NSRunningApplication(processIdentifier: ownerPID)
     }
 
-    /// A Boolean value that indicates whether the window represents a
-    /// menu bar item.
-    var isMenuBarItem: Bool {
-        layer == kCGStatusWindowLevel
-    }
-
     /// A Boolean value that indicates whether the window belongs to the
     /// window server.
     var isWindowServerWindow: Bool {
         ownerName == "Window Server"
-    }
-
-    /// A Boolean value that indicates whether the window is on the active space.
-    var isOnActiveSpace: Bool {
-        Bridging.isWindowOnActiveSpace(windowID)
     }
 
     /// Creates a window with the given dictionary.

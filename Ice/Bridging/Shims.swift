@@ -1,14 +1,15 @@
 //
-//  Private.swift
+//  Shims.swift
 //  Ice
 //
 
+import ApplicationServices
 import CoreGraphics
 
 // MARK: - Bridged Types
 
 typealias CGSConnectionID = Int32
-typealias CGSSpaceID = size_t
+typealias CGSSpaceID = Int
 
 enum CGSSpaceType: UInt32 {
     case user = 0
@@ -72,6 +73,12 @@ func CGSCopySpacesForWindows(
     _ windowIDs: CFArray
 ) -> Unmanaged<CFArray>?
 
+@_silgen_name("CGSManagedDisplayGetCurrentSpace")
+func CGSManagedDisplayGetCurrentSpace(
+    _ cid: CGSConnectionID,
+    _ displayUUID: CFString
+) -> CGSSpaceID
+
 @_silgen_name("CGSSpaceGetType")
 func CGSSpaceGetType(
     _ cid: CGSConnectionID,
@@ -127,3 +134,18 @@ func CGSGetScreenRectForWindow(
     _ wid: CGWindowID,
     _ outRect: inout CGRect
 ) -> CGError
+
+@_silgen_name("CGSGetWindowLevel")
+func CGSGetWindowLevel(
+    _ cid: CGSConnectionID,
+    _ wid: CGWindowID,
+    _ outLevel: inout CGWindowLevel
+) -> CGError
+
+// MARK: - PSN/PID Functions
+
+@_silgen_name("GetProcessForPID")
+func GetProcessForPID(
+    _ pid: pid_t,
+    _ psn: inout ProcessSerialNumber
+) -> OSStatus

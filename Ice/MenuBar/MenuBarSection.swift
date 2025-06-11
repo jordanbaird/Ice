@@ -31,6 +31,15 @@ final class MenuBarSection {
             case .alwaysHidden: "always-hidden section"
             }
         }
+
+        /// Information for the section's corresponding control item.
+        var controlItemInfo: MenuBarItemInfo {
+            switch self {
+            case .visible: .iceIcon
+            case .hidden: .hiddenControlItem
+            case .alwaysHidden: .alwaysHiddenControlItem
+            }
+        }
     }
 
     /// The name of the section.

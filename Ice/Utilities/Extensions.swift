@@ -492,4 +492,9 @@ extension Sequence where Element == MenuBarItem {
             lhs.frame.maxX < rhs.frame.maxX
         }
     }
+
+    /// Returns the first menu bar item that matches the specified info.
+    func first(matching info: MenuBarItemInfo) -> MenuBarItem? {
+        first { $0.info == info }
+    }
 }

@@ -135,11 +135,10 @@ final class IceBarPanel: NSPanel {
 
                 guard
                     lowerBound <= upperBound,
-                    let section = appState.menuBarManager.section(withName: .visible),
-                    let windowID = section.controlItem.windowID,
+                    let iceIcon = appState.itemManager.itemCache.allItems.first(matching: .iceIcon),
                     // Bridging.getWindowFrame is more reliable than ControlItem.windowFrame,
                     // i.e. if the control item is offscreen.
-                    let itemFrame = Bridging.getWindowFrame(for: windowID)
+                    let itemFrame = Bridging.getWindowFrame(for: iceIcon.windowID)
                 else {
                     return originForRightOfScreen
                 }

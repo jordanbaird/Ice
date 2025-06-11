@@ -1299,7 +1299,7 @@ extension MenuBarItemManager {
     ///   - mouseButton: The mouse button of the click.
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
         if
-            let latest = MenuBarItem(windowID: item.windowID),
+            let latest = item.latest,
             latest.isOnScreen
         {
             if clickWhenFinished {

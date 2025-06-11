@@ -37,14 +37,12 @@ struct MenuBarItem {
 
     /// A Boolean value that indicates whether the item can be moved.
     var isMovable: Bool {
-        let immovableItems = Set(MenuBarItemInfo.immovableItems)
-        return !immovableItems.contains(info)
+        info.isMovable
     }
 
     /// A Boolean value that indicates whether the item can be hidden.
     var canBeHidden: Bool {
-        let nonHideableItems = Set(MenuBarItemInfo.nonHideableItems)
-        return !nonHideableItems.contains(info)
+        info.canBeHidden
     }
 
     /// The process identifier of the application that owns the item.
@@ -65,44 +63,63 @@ struct MenuBarItem {
         window.owningApplication
     }
 
-    /// A name associated with the item that is suited for display to
-    /// the user.
+    /// A name associated with the item that is suited for display.
     var displayName: String {
-        var fallback: String { "Unknown" }
-        guard let owningApplication else {
-            return ownerName ?? title ?? fallback
+        /// Converts "UpperCamelCase" to "Title Case".
+        func toTitleCase<S: StringProtocol>(_ s: S) -> String {
+            String(s).replacing(/([a-z])([A-Z])/) { $0.output.1 + " " + $0.output.2 }
         }
+
         var bestName: String {
-            owningApplication.localizedName ??
-            ownerName ??
-            owningApplication.bundleIdentifier ??
-            fallback
+            var fallback: String { "Unknown" }
+            return if #available(macOS 26.0, *) {
+                title ?? ownerName ?? fallback
+            } else if let owningApplication {
+                owningApplication.localizedName ??
+                ownerName ??
+                owningApplication.bundleIdentifier ??
+                title ??
+                fallback
+            } else {
+                ownerName ?? title ?? fallback
+            }
         }
-        guard let title else {
+
+        guard #unavailable(macOS 26.0), let title else {
             return bestName
         }
-        // by default, use the application name, but handle a few special cases
-        return switch MenuBarItemInfo.Namespace(owningApplication.bundleIdentifier) {
-        case .controlCenter:
-            switch title {
-            case "AccessibilityShortcuts": "Accessibility Shortcuts"
-            case "BentoBox": bestName // Control Center
-            case "FocusModes": "Focus"
-            case "KeyboardBrightness": "Keyboard Brightness"
-            case "MusicRecognition": "Music Recognition"
-            case "NowPlaying": "Now Playing"
-            case "ScreenMirroring": "Screen Mirroring"
-            case "StageManager": "Stage Manager"
-            case "UserSwitcher": "Fast User Switching"
-            case "WiFi": "Wi-Fi"
-            default: title
-            }
-        case .systemUIServer:
-            switch title {
-            case "TimeMachine.TMMenuExtraHost"/*Sonoma*/, "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/: "Time Machine"
-            default: title
-            }
-        case MenuBarItemInfo.Namespace("com.apple.Passwords.MenuBarExtra"): "Passwords"
+
+        // Most items will use their computed "best name", but we need
+        // to handle a few special cases.
+        return switch info.namespace {
+        case .passwords, .weather:
+            // These need more searchable names.
+            //
+            //   "PasswordsMenuBarExtra" -> "Passwords"
+            //   "WeatherMenu" -> "Weather"
+            //
+            // Convert to "Title Case" and take the first word.
+            String(toTitleCase(bestName).prefix { !$0.isWhitespace })
+        case .controlCenter where title == "BentoBox":
+            bestName // "BentoBox" -> "Control Center"
+        case .controlCenter where title == "WiFi":
+            title // Keep "UpperCamelCase".
+        case .controlCenter where title.hasPrefix("Hearing"):
+            // Title of this item was changed to "Hearing_GlowE" in macOS 15.4.
+            String(toTitleCase(title).prefix { $0.isLetter || $0.isNumber })
+        case .systemUIServer where title.contains("TimeMachine"):
+            // Title of this item depends on the macOS version.
+            //
+            //   Sonoma:  "TimeMachine.TMMenuExtraHost"
+            //   Sequoia: "TimeMachineMenuExtra.TMMenuExtraHost"
+            //
+            // Keep things consistent and replace it.
+            "Time Machine"
+        case .controlCenter, .systemUIServer:
+            // Most system items are owned by the same couple of apps, so use the
+            // title instead of the app name. Some are "UpperCamelCase", some are
+            // dot-separated. Prefix to the first dot and convert to "Title Case".
+            toTitleCase(title.prefix { $0 != "." })
         default:
             bestName
         }
@@ -120,6 +137,15 @@ struct MenuBarItem {
         String(describing: info)
     }
 
+    /// The latest version of the menu bar item, or `nil` if the item
+    /// no longer exists.
+    var latest: MenuBarItem? {
+        guard let window = WindowInfo(windowID: windowID) else {
+            return nil
+        }
+        return MenuBarItem(uncheckedItemWindow: window)
+    }
+
     /// Creates a menu bar item from the given window.
     ///
     /// This initializer does not perform any checks on the window to ensure that
@@ -130,33 +156,9 @@ struct MenuBarItem {
         self.info = MenuBarItemInfo(uncheckedItemWindow: itemWindow)
     }
 
-    /// Creates a menu bar item.
-    ///
-    /// The parameters passed into this initializer are verified during the menu
-    /// bar item's creation. If `itemWindow` does not represent a menu bar item,
-    /// the initializer will fail.
-    ///
-    /// - Parameter itemWindow: A window that contains information about the item.
-    init?(itemWindow: WindowInfo) {
-        guard itemWindow.isMenuBarItem else {
-            return nil
-        }
-        self.init(uncheckedItemWindow: itemWindow)
-    }
-
-    /// Creates a menu bar item with the given window identifier.
-    ///
-    /// The parameters passed into this initializer are verified during the menu
-    /// bar item's creation. If `windowID` does not represent a menu bar item,
-    /// the initializer will fail.
-    ///
-    /// - Parameter windowID: An identifier for a window that contains information
-    ///   about the item.
-    init?(windowID: CGWindowID) {
-        guard let window = WindowInfo(windowID: windowID) else {
-            return nil
-        }
-        self.init(itemWindow: window)
+    /// Returns the current frame for the item.
+    func getCurrentFrame() -> CGRect? {
+        return Bridging.getWindowFrame(for: windowID)
     }
 }
 
@@ -174,32 +176,41 @@ extension MenuBarItem {
     static func getMenuBarItems(on display: CGDirectDisplayID? = nil, onScreenOnly: Bool, activeSpaceOnly: Bool) -> [MenuBarItem] {
         var option: Bridging.WindowListOption = [.menuBarItems]
 
-        var titlePredicate: (MenuBarItem) -> Bool = { _ in true }
         var boundsPredicate: (CGWindowID) -> Bool = { _ in true }
+        var spacePredicate: (CGWindowID) -> Bool = { _ in true }
 
         if onScreenOnly {
             option.insert(.onScreen)
+            if let display {
+                let displayBounds = CGDisplayBounds(display)
+                boundsPredicate = { windowID in
+                    if let frame = Bridging.getWindowFrame(for: windowID) {
+                        return displayBounds.intersects(frame)
+                    }
+                    return false
+                }
+            }
         }
         if activeSpaceOnly {
             option.insert(.activeSpace)
-            titlePredicate = { $0.title != "" }
-        }
-        if let display {
-            let displayBounds = CGDisplayBounds(display)
-            boundsPredicate = { windowID in
-                guard let windowFrame = Bridging.getWindowFrame(for: windowID) else {
-                    return false
+            if let spaceID = display.flatMap(Bridging.getCurrentSpaceID) {
+                spacePredicate = { windowID in
+                    Bridging.isWindowOnSpace(windowID, spaceID)
                 }
-                return displayBounds.intersects(windowFrame)
             }
         }
 
         return Bridging.getWindowList(option: option).lazy
-            .filter(boundsPredicate)
             .compactMap { windowID in
-                MenuBarItem(windowID: windowID)
+                guard
+                    boundsPredicate(windowID),
+                    spacePredicate(windowID),
+                    let window = WindowInfo(windowID: windowID)
+                else {
+                    return nil
+                }
+                return MenuBarItem(uncheckedItemWindow: window)
             }
-            .filter(titlePredicate)
             .sortedByOrderInMenuBar()
     }
 }
@@ -218,7 +229,8 @@ extension MenuBarItem: Hashable {
     }
 }
 
-// MARK: MenuBarItemInfo Unchecked Item Window Initializer
+// MARK: - MenuBarItemInfo Unchecked Item Window Initializer
+
 private extension MenuBarItemInfo {
     /// Creates a simplified item from the given window.
     ///
@@ -226,15 +238,31 @@ private extension MenuBarItemInfo {
     /// it is a valid menu bar item window. Only call this initializer if you are
     /// certain that the window is valid.
     init(uncheckedItemWindow itemWindow: WindowInfo) {
-        if let bundleIdentifier = itemWindow.owningApplication?.bundleIdentifier {
-            self.namespace = Namespace(bundleIdentifier)
+        self.namespace = Namespace(uncheckedItemWindow: itemWindow)
+        self.title = itemWindow.title ?? ""
+    }
+}
+
+// MARK: - MenuBarItemInfo.Namespace Unchecked Item Window Initializer
+
+private extension MenuBarItemInfo.Namespace {
+    /// Creates a namespace from the given window.
+    ///
+    /// This initializer does not perform any checks on the window to ensure that
+    /// it is a valid menu bar item window. Only call this initializer if you are
+    /// certain that the window is valid.
+    init(uncheckedItemWindow itemWindow: WindowInfo) {
+        // Most apps have a bundle ID, but we should be able to handle apps
+        // that don't. We should also be able to handle daemons and helpers,
+        // which are more likely not to have a bundle ID.
+        //
+        // Use the name of the owning process as a fallback. The non-localized
+        // name seems less likely to change, so let's prefer it as a (somewhat)
+        // stable identifier.
+        if let app = itemWindow.owningApplication {
+            self.init(app.bundleIdentifier ?? itemWindow.ownerName ?? app.localizedName)
         } else {
-            self.namespace = .null
-        }
-        if let title = itemWindow.title {
-            self.title = title
-        } else {
-            self.title = ""
+            self.init(itemWindow.ownerName)
         }
     }
 }

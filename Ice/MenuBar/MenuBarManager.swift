@@ -22,6 +22,9 @@ final class MenuBarManager: ObservableObject {
     /// according to a value stored in UserDefaults.
     @Published private(set) var isMenuBarHiddenBySystemUserDefaults = false
 
+    /// A Boolean value that indicates whether the "ShowOnHover" feature is allowed.
+    @Published var showOnHoverAllowed = true
+
     /// The shared app state.
     private weak var appState: AppState?
 
@@ -44,6 +47,12 @@ final class MenuBarManager: ObservableObject {
     /// information for the menu bar's average color.
     private var canUpdateAverageColorInfo: Bool {
         appState?.settingsWindow?.isVisible == true
+    }
+
+    /// A Boolean value that indicates whether at least one of the manager's
+    /// sections is visible.
+    var hasVisibleSection: Bool {
+        sections.contains { !$0.isHidden }
     }
 
     /// Initializes a new menu bar manager instance.
@@ -124,7 +133,8 @@ final class MenuBarManager: ObservableObject {
                     let appState,
                     case .focusedApp = appState.settingsManager.generalSettingsManager.rehideStrategy,
                     let hiddenSection = section(withName: .hidden),
-                    !appState.eventManager.isMouseInsideMenuBar
+                    let screen = appState.eventManager.bestScreen(appState: appState),
+                    !appState.eventManager.isMouseInsideMenuBar(appState: appState, screen: screen)
                 {
                     Task {
                         try await Task.sleep(for: .seconds(0.1))
@@ -408,6 +418,11 @@ final class MenuBarManager: ObservableObject {
     /// Returns the menu bar section with the given name.
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
+    }
+
+    /// Returns the control item for the menu bar section with the given name.
+    func controlItem(withName name: MenuBarSection.Name) -> ControlItem? {
+        section(withName: name)?.controlItem
     }
 }
 

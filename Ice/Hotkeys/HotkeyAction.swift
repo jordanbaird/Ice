@@ -23,19 +23,19 @@ enum HotkeyAction: String, Codable, CaseIterable {
             guard let section = appState.menuBarManager.section(withName: .hidden) else {
                 return
             }
-            section.toggle()
+            await section.toggle()
             // Prevent the section from automatically rehiding after mouse movement.
             if !section.isHidden {
-                appState.preventShowOnHover()
+                appState.menuBarManager.showOnHoverAllowed = false
             }
         case .toggleAlwaysHiddenSection:
             guard let section = appState.menuBarManager.section(withName: .alwaysHidden) else {
                 return
             }
-            section.toggle()
+            await section.toggle()
             // Prevent the section from automatically rehiding after mouse movement.
             if !section.isHidden {
-                appState.preventShowOnHover()
+                appState.menuBarManager.showOnHoverAllowed = false
             }
         case .searchMenuBarItems:
             await appState.menuBarManager.searchPanel.toggle()

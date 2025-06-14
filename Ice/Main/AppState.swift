@@ -57,9 +57,6 @@ final class AppState: ObservableObject {
     /// The window that contains the permissions interface.
     private(set) weak var permissionsWindow: NSWindow?
 
-    /// A Boolean value that indicates whether the "ShowOnHover" feature is prevented.
-    private(set) var isShowOnHoverPrevented = false
-
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
@@ -220,82 +217,78 @@ final class AppState: ObservableObject {
         configureCancellables()
     }
 
+    /// Opens the window with the given identifier.
+    func openWindow(id: String) {
+        // Defer to the next run loop to prevent conflicts with SwiftUI.
+        DispatchQueue.main.async {
+            Logger.appState.debug("Opening window with id: \(id)")
+            EnvironmentValues().openWindow(id: id)
+        }
+    }
+
+    /// Dismisses the window with the given identifier.
+    func dismissWindow(id: String) {
+        // Defer to the next run loop to prevent conflicts with SwiftUI.
+        DispatchQueue.main.async {
+            Logger.appState.debug("Dismissing window with id: \(id)")
+            EnvironmentValues().dismissWindow(id: id)
+        }
+    }
+
     /// Opens the settings window.
     func openSettingsWindow() {
-        with(EnvironmentValues()) { environment in
-            environment.openWindow(id: Constants.settingsWindowID)
-        }
+        openWindow(id: Constants.settingsWindowID)
     }
 
     /// Dismisses the settings window.
     func dismissSettingsWindow() {
-        with(EnvironmentValues()) { environment in
-            environment.dismissWindow(id: Constants.settingsWindowID)
-        }
+        dismissWindow(id: Constants.settingsWindowID)
     }
 
     /// Opens the permissions window.
     func openPermissionsWindow() {
-        with(EnvironmentValues()) { environment in
-            environment.openWindow(id: Constants.permissionsWindowID)
-        }
+        openWindow(id: Constants.permissionsWindowID)
     }
 
     /// Dismisses the permissions window.
     func dismissPermissionsWindow() {
-        with(EnvironmentValues()) { environment in
-            environment.dismissWindow(id: Constants.permissionsWindowID)
-        }
+        dismissWindow(id: Constants.permissionsWindowID)
     }
 
     /// Activates the app and sets its activation policy to the given value.
     func activate(withPolicy policy: NSApplication.ActivationPolicy) {
-        // Store whether the app has previously activated inside an internal
-        // context to keep it isolated.
-        enum Context {
-            static let hasActivated = ObjectStorage<Bool>()
+
+        // What follows is NOT at all straightforward, but this seems to
+        // be about the only way to make app activation (mostly) reliable
+        // after activation changes made in macOS 14.
+
+        let current = NSRunningApplication.current
+        let workspace = NSWorkspace.shared
+
+        NSApp.setActivationPolicy(policy)
+        NSApp.yieldActivation(to: current)
+
+        guard var frontmost = workspace.frontmostApplication else {
+            current.activate()
+            return
         }
 
-        func activate() {
-            if let frontApp = NSWorkspace.shared.frontmostApplication {
-                NSRunningApplication.current.activate(from: frontApp)
-            } else {
-                NSApp.activate()
-            }
-            NSApp.setActivationPolicy(policy)
+        if
+            current.isActive,
+            let next = workspace.menuBarOwningApplication,
+            !next.isActive
+        {
+            next.activate(from: frontmost)
+            frontmost = next
         }
 
-        if Context.hasActivated.value(for: self) == true {
-            activate()
-        } else {
-            Context.hasActivated.set(true, for: self)
-            Logger.appState.debug("First time activating app, so going through Dock")
-            // Hack to make sure the app properly activates for the first time.
-            NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?.activate()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                activate()
-            }
-        }
+        current.activate(from: frontmost)
     }
 
     /// Deactivates the app and sets its activation policy to the given value.
     func deactivate(withPolicy policy: NSApplication.ActivationPolicy) {
-        if let nextApp = NSWorkspace.shared.runningApplications.first(where: { $0 != .current }) {
-            NSApp.yieldActivation(to: nextApp)
-        } else {
-            NSApp.deactivate()
-        }
+        NSApp.deactivate()
         NSApp.setActivationPolicy(policy)
-    }
-
-    /// Prevents the "ShowOnHover" feature.
-    func preventShowOnHover() {
-        isShowOnHoverPrevented = true
-    }
-
-    /// Allows the "ShowOnHover" feature.
-    func allowShowOnHover() {
-        isShowOnHoverPrevented = false
     }
 }
 

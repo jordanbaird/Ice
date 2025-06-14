@@ -403,10 +403,14 @@ final class ControlItem {
                 appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
             {
                 if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
-                    alwaysHiddenSection.toggle()
+                    Task {
+                        await alwaysHiddenSection.toggle()
+                    }
                 }
             } else {
-                section?.toggle()
+                Task {
+                    await section?.toggle()
+                }
             }
         case .rightMouseUp:
             statusItem.showMenu(createMenu(with: appState))
@@ -467,7 +471,7 @@ final class ControlItem {
                 keyEquivalent: ""
             )
             item.target = self
-            Self.sectionStorage.weakSet(section, for: item)
+            item.representedObject = section
             switch name {
             case .visible:
                 break
@@ -516,7 +520,12 @@ final class ControlItem {
 
     /// Toggles the menu bar section associated with the given menu item.
     @objc private func toggleMenuBarSection(for menuItem: NSMenuItem) {
-        Self.sectionStorage.value(for: menuItem)?.toggle()
+        guard let section = menuItem.representedObject as? MenuBarSection else {
+            return
+        }
+        Task {
+            await section.toggle()
+        }
     }
 
     /// Opens the menu bar search panel.
@@ -560,14 +569,6 @@ final class ControlItem {
         statusItem.isVisible = false
         StatusItemDefaults[.preferredPosition, autosaveName] = cached
     }
-}
-
-private extension ControlItem {
-    /// Storage for menu items that toggle a menu bar section.
-    ///
-    /// When one of these menu items is created, its section is stored here.
-    /// When its action is invoked, the section is retrieved from storage.
-    static let sectionStorage = ObjectStorage<MenuBarSection>()
 }
 
 // MARK: - Logger

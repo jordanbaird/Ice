@@ -115,26 +115,9 @@ final class MenuBarItemManager: ObservableObject {
     /// The last time a menu bar item was moved.
     private var lastItemMoveStartDate: Date?
 
-    /// The last time the mouse was moved.
-    private var lastMouseMoveStartDate: Date?
-
     /// Counter to determine if a menu bar item, or group of menu bar
     /// items is being moved.
     private var itemMoveCount = 0
-
-    /// A Boolean value that indicates whether a mouse button is down.
-    private var isMouseButtonDown = false
-
-    /// Event type mask for tracking mouse events.
-    private let mouseTrackingMask: NSEvent.EventTypeMask = [
-        .mouseMoved,
-        .leftMouseDown,
-        .rightMouseDown,
-        .otherMouseDown,
-        .leftMouseUp,
-        .rightMouseUp,
-        .otherMouseUp,
-    ]
 
     /// A Boolean value that indicates whether a menu bar item, or
     /// group of menu bar items is being moved.
@@ -149,14 +132,6 @@ final class MenuBarItemManager: ObservableObject {
             return false
         }
         return Date.now.timeIntervalSince(lastItemMoveStartDate) <= 1
-    }
-
-    /// A Boolean value that indicates whether the mouse has recently moved.
-    var mouseHasRecentlyMoved: Bool {
-        guard let lastMouseMoveStartDate else {
-            return false
-        }
-        return Date.now.timeIntervalSince(lastMouseMoveStartDate) <= 1
     }
 
     /// Creates a manager with the given app state.
@@ -197,28 +172,6 @@ final class MenuBarItemManager: ObservableObject {
                 }
             }
             .store(in: &c)
-
-        Publishers.Merge(
-            UniversalEventMonitor.publisher(for: mouseTrackingMask),
-            RunLoopLocalEventMonitor.publisher(for: mouseTrackingMask, mode: .eventTracking)
-        )
-        .removeDuplicates()
-        .sink { [weak self] event in
-            guard let self else {
-                return
-            }
-            switch event.type {
-            case .mouseMoved:
-                lastMouseMoveStartDate = .now
-            case .leftMouseDown, .rightMouseDown, .otherMouseDown:
-                isMouseButtonDown = true
-            case .leftMouseUp, .rightMouseUp, .otherMouseUp:
-                isMouseButtonDown = false
-            default:
-                break
-            }
-        }
-        .store(in: &c)
 
         cancellables = c
     }
@@ -480,7 +433,7 @@ extension MenuBarItemManager {
 
 extension MenuBarItemManager {
     /// Waits asynchronously for the given operation to complete.
-    /// 
+    ///
     /// - Parameters:
     ///   - timeout: Amount of time to wait before throwing an error.
     ///   - operation: The operation to perform.
@@ -510,51 +463,73 @@ extension MenuBarItemManager {
 
     /// Waits asynchronously for the mouse to stop moving.
     ///
-    /// - Parameters:
-    ///   - threshold: A threshold to use to determine whether the mouse has stopped moving.
-    ///   - timeout: Amount of time to wait before throwing an error.
-    func waitForMouseToStopMoving(threshold: TimeInterval = 0.1, timeout: Duration? = nil) async throws {
-        try await waitWithTask(timeout: timeout) { [weak self] in
-            guard let self else {
-                return
-            }
+    /// - Parameter timeout: Amount of time to wait before throwing an error.
+    private func waitForMouseToStopMoving(timeout: Duration? = nil) async throws {
+        let duration = Duration.milliseconds(100)
+        guard MouseEvents.lastMovementOccurred(within: duration) else {
+            return
+        }
+        try await waitWithTask(timeout: timeout) {
             while true {
                 try Task.checkCancellation()
-                guard let date = await lastMouseMoveStartDate else {
+                if !MouseEvents.lastMovementOccurred(within: duration) {
                     break
                 }
-                if Date.now.timeIntervalSince(date) > threshold {
-                    break
-                }
-                try await Task.sleep(for: .milliseconds(10))
+                try await Task.sleep(for: duration)
             }
         }
     }
 
-    /// Waits asynchronously until no modifier keys are pressed.
+    /// Waits asynchronously until all mouse buttons are up.
     ///
     /// - Parameter timeout: Amount of time to wait before throwing an error.
-    func waitForNoModifiersPressed(timeout: Duration? = nil) async throws {
+    private func waitForAllMouseButtonsUp(timeout: Duration? = nil) async throws {
+        guard MouseEvents.isButtonPressed() else {
+            return
+        }
         try await waitWithTask(timeout: timeout) {
-            // Return early if no flags are pressed.
-            if NSEvent.modifierFlags.isEmpty {
-                return
-            }
-
             var cancellable: AnyCancellable?
 
             await withCheckedContinuation { continuation in
-                cancellable = Publishers.Merge(
-                    UniversalEventMonitor.publisher(for: .flagsChanged),
-                    RunLoopLocalEventMonitor.publisher(for: .flagsChanged, mode: .eventTracking)
-                )
-                .removeDuplicates()
-                .sink { _ in
-                    if NSEvent.modifierFlags.isEmpty {
+                let mask: NSEvent.EventTypeMask = [.leftMouseUp, .rightMouseUp, .otherMouseUp]
+                cancellable = RunLoopLocalEventMonitor.publisher(for: mask, mode: .eventTracking)
+                    .merge(with: UniversalEventMonitor.publisher(for: mask))
+                    .removeDuplicates()
+                    .combineLatest(Timer.publish(every: 0.5, on: .main, in: .common).autoconnect())
+                    .sink { _ in
+                        if MouseEvents.isButtonPressed() {
+                            return
+                        }
                         cancellable?.cancel()
                         continuation.resume()
                     }
-                }
+            }
+        }
+    }
+
+    /// Waits asynchronously until all modifier keys are up.
+    ///
+    /// - Parameter timeout: Amount of time to wait before throwing an error.
+    private func waitForAllModifierKeysUp(timeout: Duration? = nil) async throws {
+        if NSEvent.modifierFlags.isEmpty {
+            return
+        }
+        try await waitWithTask(timeout: timeout) {
+            var cancellable: AnyCancellable?
+
+            await withCheckedContinuation { continuation in
+                let mask: NSEvent.EventTypeMask = .flagsChanged
+                cancellable = RunLoopLocalEventMonitor.publisher(for: mask, mode: .eventTracking)
+                    .merge(with: UniversalEventMonitor.publisher(for: mask))
+                    .removeDuplicates()
+                    .combineLatest(Timer.publish(every: 0.5, on: .main, in: .common).autoconnect())
+                    .sink { _ in
+                        guard NSEvent.modifierFlags.isEmpty else {
+                            return
+                        }
+                        cancellable?.cancel()
+                        continuation.resume()
+                    }
             }
         }
     }
@@ -1079,10 +1054,18 @@ extension MenuBarItemManager {
         }
 
         do {
-            // Order of these waiters matters, as the modifiers could be released
-            // while the mouse is still moving.
-            try await waitForNoModifiersPressed()
+            // FIXME: Running these checks sequentially like this is prone to error.
+            //
+            // For example, say the user is holding down a modifier key while moving
+            // their mouse - they release the modifier, continue moving their mouse,
+            // then press the modifier again. We would completely miss this, as the
+            // modifier check would already be finished. We'd have the same problem
+            // running the checks concurrently.
+            //
+            // We need a way to cooperatively restart each check as needed.
+            try await waitForAllModifierKeysUp()
             try await waitForMouseToStopMoving()
+            try await waitForAllMouseButtonsUp()
         } catch {
             throw EventError(code: .couldNotComplete, item: item)
         }
@@ -1408,7 +1391,7 @@ extension MenuBarItemManager {
             return
         }
 
-        guard !isMouseButtonDown else {
+        guard !MouseEvents.isButtonPressed() else {
             Logger.itemManager.debug("Mouse button is down, so waiting to rehide")
             runTempShownItemTimer(for: 3)
             return
@@ -1473,11 +1456,11 @@ extension MenuBarItemManager {
     ///   - alwaysHiddenControlItem: A menu bar item that represents the control item
     ///     for the always-hidden section.
     func enforceControlItemOrder(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem) async throws {
-        guard !isMouseButtonDown else {
+        guard !MouseEvents.isButtonPressed() else {
             Logger.itemManager.debug("Mouse button is down, so will not enforce control item order")
             return
         }
-        guard !mouseHasRecentlyMoved else {
+        guard !MouseEvents.lastMovementOccurred(within: .seconds(1)) else {
             Logger.itemManager.debug("Mouse has recently moved, so will not enforce control item order")
             return
         }

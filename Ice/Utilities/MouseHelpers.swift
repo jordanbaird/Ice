@@ -1,5 +1,5 @@
 //
-//  MouseCursor.swift
+//  MouseHelpers.swift
 //  Ice
 //
 
@@ -43,6 +43,44 @@ enum MouseCursor {
         if result != .success {
             Logger.mouseCursor.error("CGWarpMouseCursorPosition failed with error \(result.logString)")
         }
+    }
+}
+
+// MARK: - MouseEvents
+
+/// A namespace for mouse event operations.
+enum MouseEvents {
+    /// Returns a Boolean value that indicates whether a mouse button
+    /// is pressed.
+    ///
+    /// - Parameter button: The mouse button to check. Pass `nil` to
+    ///   check all available mouse buttons (Quartz supports up to 32).
+    static func isButtonPressed(_ button: CGMouseButton? = nil) -> Bool {
+        let stateID = CGEventSourceStateID.combinedSessionState
+        if let button {
+            return CGEventSource.buttonState(stateID, button: button)
+        }
+        for n: UInt32 in 0...31 {
+            guard
+                let button = CGMouseButton(rawValue: n),
+                CGEventSource.buttonState(stateID, button: button)
+            else {
+                continue
+            }
+            return true
+        }
+        return false
+    }
+
+    /// Returns a Boolean value that indicates whether the last mouse
+    /// movement event occurred within the given duration.
+    ///
+    /// - Parameter interval: The duration within which the last mouse
+    ///   movement event must have occurred in order to return `true`.
+    static func lastMovementOccurred(within duration: Duration) -> Bool {
+        let stateID = CGEventSourceStateID.combinedSessionState
+        let seconds = CGEventSource.secondsSinceLastEventType(stateID, eventType: .mouseMoved)
+        return .seconds(seconds) <= duration
     }
 }
 

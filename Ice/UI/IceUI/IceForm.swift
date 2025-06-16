@@ -16,8 +16,8 @@ struct IceForm<Content: View>: View {
 
     init(
         alignment: HorizontalAlignment = .center,
-        padding: EdgeInsets,
-        spacing: CGFloat = 10,
+        padding: EdgeInsets = .iceFormDefaultPadding,
+        spacing: CGFloat = .iceFormDefaultSpacing,
         @ViewBuilder content: () -> Content
     ) {
         self.alignment = alignment
@@ -28,13 +28,13 @@ struct IceForm<Content: View>: View {
 
     init(
         alignment: HorizontalAlignment = .center,
-        padding: CGFloat = 20,
-        spacing: CGFloat = 10,
+        padding: CGFloat,
+        spacing: CGFloat = .iceFormDefaultSpacing,
         @ViewBuilder content: () -> Content
     ) {
         self.init(
             alignment: alignment,
-            padding: EdgeInsets(top: padding, leading: padding, bottom: padding, trailing: padding),
+            padding: EdgeInsets(all: padding),
             spacing: spacing
         ) {
             content()
@@ -82,4 +82,20 @@ private struct IceFormToggleStyle: ToggleStyle {
             configuration.label
         }
     }
+}
+
+extension EdgeInsets {
+    /// The default padding for an ``IceForm``.
+    static let iceFormDefaultPadding: EdgeInsets = {
+        var insets = EdgeInsets(all: 20)
+        if #available(macOS 26.0, *) {
+            insets.top = 0
+        }
+        return insets
+    }()
+}
+
+extension CGFloat {
+    /// The default spacing for an ``IceForm``.
+    static let iceFormDefaultSpacing: CGFloat = 10
 }

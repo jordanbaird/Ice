@@ -10,7 +10,7 @@ struct SettingsWindow: Scene {
 
     var body: some Scene {
         Window(Constants.settingsWindowTitle, id: Constants.settingsWindowID) {
-            SettingsView()
+            settingsView
                 .readWindow { window in
                     guard let window else {
                         return
@@ -24,5 +24,15 @@ struct SettingsWindow: Scene {
         .defaultSize(width: 900, height: 625)
         .environmentObject(appState)
         .environmentObject(appState.navigationState)
+    }
+
+    @ViewBuilder
+    private var settingsView: some View {
+        if #available(macOS 26.0, *) {
+            SettingsView()
+                .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        } else {
+            SettingsView()
+        }
     }
 }

@@ -17,7 +17,7 @@ struct MenuBarAppearanceEditor: View {
     let location: Location
 
     private var mainFormPadding: EdgeInsets {
-        with(EdgeInsets(all: 20)) { insets in
+        with(EdgeInsets.iceFormDefaultPadding) { insets in
             switch location {
             case .settings: break
             case .popover: insets.top = 0

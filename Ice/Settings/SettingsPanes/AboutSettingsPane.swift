@@ -43,10 +43,10 @@ struct AboutSettingsPane: View {
     var body: some View {
         VStack(spacing: 0) {
             mainForm
-            Spacer(minLength: 20)
+            Spacer(minLength: 10)
             bottomBar
         }
-        .padding(30)
+        .padding(.iceFormDefaultPadding)
     }
 
     @ViewBuilder

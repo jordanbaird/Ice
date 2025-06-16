@@ -5,9 +5,12 @@
 
 import SwiftUI
 
-/// A type that represents an identifier used for navigation in a user interface.
+/// A type that represents an identifier for a navigation destination.
 protocol NavigationIdentifier: CaseIterable, Hashable, Identifiable, RawRepresentable {
-    /// A localized description of the identifier that can be presented to the user.
+    /// An icon for the identifier's navigation destination.
+    var iconResource: IconResource { get }
+
+    /// A localized description for the identifier's navigation destination.
     var localized: LocalizedStringKey { get }
 }
 

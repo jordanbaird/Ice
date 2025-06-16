@@ -10,11 +10,20 @@ struct SettingsView: View {
     @Environment(\.sidebarRowSize) var sidebarRowSize
 
     private var sidebarWidth: CGFloat {
-        switch sidebarRowSize {
-        case .small: 190
-        case .medium: 210
-        case .large: 230
-        @unknown default: 210
+        if #available(macOS 26.0, *) {
+            switch sidebarRowSize {
+            case .small: 200
+            case .medium: 220
+            case .large: 240
+            @unknown default: 220
+            }
+        } else {
+            switch sidebarRowSize {
+            case .small: 190
+            case .medium: 210
+            case .large: 230
+            @unknown default: 210
+            }
         }
     }
 
@@ -36,13 +45,17 @@ struct SettingsView: View {
         }
     }
 
+    private var navigationTitle: LocalizedStringKey {
+        navigationState.settingsNavigationIdentifier.localized
+    }
+
     var body: some View {
         NavigationSplitView {
             sidebar
         } detail: {
             detailView
         }
-        .navigationTitle(navigationState.settingsNavigationIdentifier.localized)
+        .navigationTitle(navigationTitle)
     }
 
     @ViewBuilder
@@ -56,7 +69,7 @@ struct SettingsView: View {
                 Text("Ice")
                     .font(.system(size: 36, weight: .medium))
                     .foregroundStyle(.primary)
-                    .padding(.vertical, 5)
+                    .padding(.bottom, 10)
             }
             .collapsible(false)
         }
@@ -67,6 +80,16 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var detailView: some View {
+        if #available(macOS 26.0, *) {
+            settingsPane
+                .scrollEdgeEffectStyle(.hard, for: .top)
+        } else {
+            settingsPane
+        }
+    }
+
+    @ViewBuilder
+    private var settingsPane: some View {
         switch navigationState.settingsNavigationIdentifier {
         case .general:
             GeneralSettingsPane()
@@ -90,19 +113,18 @@ struct SettingsView: View {
                 .font(.system(size: sidebarItemFontSize))
                 .padding(.leading, 2)
         } icon: {
-            icon(for: identifier).view
+            icon(for: identifier)
         }
         .frame(height: sidebarItemHeight)
+        .padding(.leading, 1)
     }
 
-    private func icon(for identifier: SettingsNavigationIdentifier) -> IconResource {
-        switch identifier {
-        case .general: .systemSymbol("gearshape")
-        case .menuBarLayout: .systemSymbol("rectangle.topthird.inset.filled")
-        case .menuBarAppearance: .systemSymbol("swatchpalette")
-        case .hotkeys: .systemSymbol("keyboard")
-        case .advanced: .systemSymbol("gearshape.2")
-        case .about: .assetCatalog(.iceCubeStroke)
+    @ViewBuilder
+    private func icon(for identifier: SettingsNavigationIdentifier) -> some View {
+        if #available(macOS 26.0, *) {
+            identifier.iconResource.view.padding(3)
+        } else {
+            identifier.iconResource.view
         }
     }
 }

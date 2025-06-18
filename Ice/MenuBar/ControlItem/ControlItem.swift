@@ -103,26 +103,35 @@ final class ControlItem {
         self.identifier = identifier
         self.appState = appState
 
-        // This could break in a new macOS release, but we need this constraint in order to be
-        // able to hide the control item when the `ShowSectionDividers` setting is disabled. A
-        // previous implementation used the status item's `isVisible` property, which was more
-        // robust, but would completely remove the control item. With the current set of
-        // features, we need to be able to accurately retrieve the items for each section, so
-        // we need the control item to always be present to act as a delimiter. The new solution
-        // is to remove the constraint that prevents status items from having a length of zero,
-        // then resize the content view. FIXME: Find a replacement for this.
-        if
-            let button = statusItem.button,
-            let constraints = button.window?.contentView?.constraintsAffectingLayout(for: .horizontal),
-            let constraint = constraints.first(where: Predicates.controlItemConstraint(button: button))
-        {
-            assert(constraints.filter(Predicates.controlItemConstraint(button: button)).count == 1)
-            self.constraint = constraint
+        if let button = statusItem.button {
+            // This could break in a new macOS release, but we need this constraint in order to be
+            // able to hide the control item when the `ShowSectionDividers` setting is disabled. A
+            // previous implementation used the status item's `isVisible` property, which was more
+            // robust, but would completely remove the control item. With the current set of
+            // features, we need to be able to accurately retrieve the items for each section, so
+            // we need the control item to always be present to act as a delimiter. The new solution
+            // is to remove the constraint that prevents status items from having a length of zero,
+            // then resize the content view. FIXME: Find a replacement for this.
+            if
+                let constraints = button.window?.contentView?.constraintsAffectingLayout(for: .horizontal),
+                let constraint = constraints.first(where: Predicates.controlItemConstraint(button: button))
+            {
+                assert(constraints.filter(Predicates.controlItemConstraint(button: button)).count == 1)
+                self.constraint = constraint
+            } else {
+                self.constraint = nil
+            }
+
+            button.target = self
+            button.action = #selector(performAction)
         } else {
             self.constraint = nil
         }
 
-        configureStatusItem()
+        updateStatusItem(with: state)
+        Task {
+            configureCancellables()
+        }
     }
 
     /// Removes the status item without clearing its stored position.
@@ -227,43 +236,6 @@ final class ControlItem {
             .store(in: &c)
 
         if let appState {
-            appState.settingsManager.generalSettingsManager.$showIceIcon
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] showIceIcon in
-                    guard
-                        let self,
-                        !isSectionDivider
-                    else {
-                        return
-                    }
-                    if showIceIcon {
-                        addToMenuBar()
-                    } else {
-                        removeFromMenuBar()
-                    }
-                }
-                .store(in: &c)
-
-            appState.settingsManager.generalSettingsManager.$iceIcon
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in
-                    guard let self else {
-                        return
-                    }
-                    updateStatusItem(with: state)
-                }
-                .store(in: &c)
-
-            appState.settingsManager.generalSettingsManager.$customIceIconIsTemplate
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] _ in
-                    guard let self else {
-                        return
-                    }
-                    updateStatusItem(with: state)
-                }
-                .store(in: &c)
-
             appState.settingsManager.generalSettingsManager.$useIceBar
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] useIceBar in
@@ -281,52 +253,78 @@ final class ControlItem {
                 }
                 .store(in: &c)
 
-            appState.settingsManager.advancedSettingsManager.$showSectionDividers
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] shouldShow in
-                    guard
-                        let self,
-                        isSectionDivider,
-                        state == .showItems
-                    else {
-                        return
+            if identifier == .iceIcon {
+                appState.settingsManager.generalSettingsManager.$showIceIcon
+                    .combineLatest(statusItem.publisher(for: \.isVisible))
+                    .removeDuplicates { $0 == $1 }
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] shouldShow, _ in
+                        guard let self else {
+                            return
+                        }
+                        if shouldShow {
+                            addToMenuBar()
+                        } else {
+                            removeFromMenuBar()
+                        }
                     }
-                    isVisible = shouldShow
-                }
-                .store(in: &c)
+                    .store(in: &c)
 
-            appState.settingsManager.advancedSettingsManager.$enableAlwaysHiddenSection
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] enable in
-                    guard
-                        let self,
-                        identifier == .alwaysHidden
-                    else {
-                        return
+                appState.settingsManager.generalSettingsManager.$iceIcon
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] _ in
+                        guard let self else {
+                            return
+                        }
+                        updateStatusItem(with: state)
                     }
-                    if enable {
-                        addToMenuBar()
-                    } else {
-                        removeFromMenuBar()
+                    .store(in: &c)
+
+                appState.settingsManager.generalSettingsManager.$customIceIconIsTemplate
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] _ in
+                        guard let self else {
+                            return
+                        }
+                        updateStatusItem(with: state)
                     }
-                }
-                .store(in: &c)
+                    .store(in: &c)
+            }
+
+            if identifier == .alwaysHidden {
+                appState.settingsManager.advancedSettingsManager.$enableAlwaysHiddenSection
+                    .combineLatest(statusItem.publisher(for: \.isVisible))
+                    .removeDuplicates { $0 == $1 }
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] shouldEnable, _ in
+                        guard let self else {
+                            return
+                        }
+                        if shouldEnable {
+                            addToMenuBar()
+                        } else {
+                            removeFromMenuBar()
+                        }
+                    }
+                    .store(in: &c)
+            }
+
+            if isSectionDivider {
+                appState.settingsManager.advancedSettingsManager.$showSectionDividers
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] shouldShow in
+                        guard let self else {
+                            return
+                        }
+                        if case .showItems = state {
+                            isVisible = shouldShow
+                        }
+                    }
+                    .store(in: &c)
+            }
         }
 
         cancellables = c
-    }
-
-    /// Sets the initial configuration for the status item.
-    private func configureStatusItem() {
-        defer {
-            configureCancellables()
-            updateStatusItem(with: state)
-        }
-        guard let button = statusItem.button else {
-            return
-        }
-        button.target = self
-        button.action = #selector(performAction)
     }
 
     /// Updates the appearance of the status item using the given hiding state.

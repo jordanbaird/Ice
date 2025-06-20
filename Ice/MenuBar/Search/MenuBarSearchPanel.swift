@@ -105,7 +105,7 @@ final class MenuBarSearchPanel: NSPanel {
             await appState.imageCache.updateCache()
         }
 
-        let hostingView = MenuBarSearchHostingView(appState: appState, panel: self)
+        let hostingView = MenuBarSearchHostingView(appState: appState, displayID: screen.displayID, panel: self)
         hostingView.setFrameSize(hostingView.intrinsicContentSize)
         setFrame(hostingView.frame, display: true)
 
@@ -150,13 +150,17 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
 
     init(
         appState: AppState,
+        displayID: CGDirectDisplayID,
         panel: MenuBarSearchPanel
     ) {
         super.init(
-            rootView: MenuBarSearchContentView(closePanel: { [weak panel] in panel?.close() })
-                .environmentObject(appState.itemManager)
-                .environmentObject(appState.imageCache)
-                .erasedToAnyView()
+            rootView: MenuBarSearchContentView(
+                displayID: displayID,
+                closePanel: { [weak panel] in panel?.close() }
+            )
+            .environmentObject(appState.itemManager)
+            .environmentObject(appState.imageCache)
+            .erasedToAnyView()
         )
     }
 
@@ -187,6 +191,7 @@ private struct MenuBarSearchContentView: View {
 
     private let fuse = Fuse(threshold: 0.5)
 
+    let displayID: CGDirectDisplayID
     let closePanel: () -> Void
 
     var body: some View {
@@ -223,7 +228,7 @@ private struct MenuBarSearchContentView: View {
                     let selection,
                     let item = menuBarItem(for: selection)
                 {
-                    ShowItemButton(item: item) {
+                    ShowItemButton(item: item, displayID: displayID) {
                         performAction(for: item)
                     }
                 }
@@ -369,12 +374,17 @@ private struct SettingsButton: View {
 
 private struct ShowItemButton: View {
     let item: MenuBarItem
+    let displayID: CGDirectDisplayID
     let action: () -> Void
+
+    private var isOnDisplay: Bool {
+        Bridging.isWindowOnDisplay(item.windowID, displayID)
+    }
 
     var body: some View {
         BottomBarButton(action: action) {
             HStack {
-                Text(item.isOnScreen ? "Click item" : "Show item")
+                Text(isOnDisplay ? "Click item" : "Show item")
                     .padding(.horizontal, 5)
 
                 Image(systemName: "return")
@@ -422,7 +432,7 @@ private struct MenuBarSearchItemView: View {
     }
 
     private var appIcon: NSImage? {
-        if item.info.namespace == .systemUIServer {
+        if item.legacyInfo.namespace == .systemUIServer {
             controlCenterIcon
         } else {
             item.owningApplication?.icon

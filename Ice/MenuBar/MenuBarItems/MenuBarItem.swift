@@ -12,6 +12,9 @@ struct MenuBarItem {
     /// The item's window.
     let window: WindowInfo
 
+    /// The legacy menu bar item info associated with this item.
+    let legacyInfo: MenuBarItemLegacyInfo
+
     /// The menu bar item info associated with this item.
     let info: MenuBarItemInfo
 
@@ -37,12 +40,12 @@ struct MenuBarItem {
 
     /// A Boolean value that indicates whether the item can be moved.
     var isMovable: Bool {
-        info.isMovable
+        legacyInfo.isMovable
     }
 
     /// A Boolean value that indicates whether the item can be hidden.
     var canBeHidden: Bool {
-        info.canBeHidden
+        legacyInfo.canBeHidden
     }
 
     /// The process identifier of the application that owns the item.
@@ -89,36 +92,28 @@ struct MenuBarItem {
             return bestName
         }
 
-        // Most items will use their computed "best name", but we need
-        // to handle a few special cases.
-        return switch info.namespace {
+        // Most items will use their computed "best name", but we need to
+        // handle a few special cases for system items.
+        return switch legacyInfo.namespace {
         case .passwords, .weather:
-            // These need more searchable names.
-            //
-            //   "PasswordsMenuBarExtra" -> "Passwords"
-            //   "WeatherMenu" -> "Weather"
-            //
-            // Convert to "Title Case" and take the first word.
+            // "PasswordsMenuBarExtra" -> "Passwords"
+            // "WeatherMenu" -> "Weather"
             String(toTitleCase(bestName).prefix { !$0.isWhitespace })
-        case .controlCenter where title == "BentoBox":
-            bestName // "BentoBox" -> "Control Center"
+        case .controlCenter where title.hasPrefix("BentoBox"):
+            bestName
         case .controlCenter where title == "WiFi":
-            title // Keep "UpperCamelCase".
+            title
         case .controlCenter where title.hasPrefix("Hearing"):
             // Title of this item was changed to "Hearing_GlowE" in macOS 15.4.
             String(toTitleCase(title).prefix { $0.isLetter || $0.isNumber })
         case .systemUIServer where title.contains("TimeMachine"):
-            // Title of this item depends on the macOS version.
-            //
-            //   Sonoma:  "TimeMachine.TMMenuExtraHost"
-            //   Sequoia: "TimeMachineMenuExtra.TMMenuExtraHost"
-            //
-            // Keep things consistent and replace it.
+            // Sonoma:  "TimeMachine.TMMenuExtraHost"
+            // Sequoia: "TimeMachineMenuExtra.TMMenuExtraHost"
             "Time Machine"
         case .controlCenter, .systemUIServer:
-            // Most system items are owned by the same couple of apps, so use the
-            // title instead of the app name. Some are "UpperCamelCase", some are
-            // dot-separated. Prefix to the first dot and convert to "Title Case".
+            // Most system items are hosted by one of these two apps. They
+            // usually have descriptive, but unformatted titles, so we'll do
+            // some basic formatting ourselves.
             toTitleCase(title.prefix { $0 != "." })
         default:
             bestName
@@ -134,7 +129,7 @@ struct MenuBarItem {
 
     /// A string to use for logging purposes.
     var logString: String {
-        String(describing: info)
+        "<\(legacyInfo) (windowID: \(windowID))>"
     }
 
     /// The latest version of the menu bar item, or `nil` if the item
@@ -153,12 +148,8 @@ struct MenuBarItem {
     /// certain that the window is valid.
     private init(uncheckedItemWindow itemWindow: WindowInfo) {
         self.window = itemWindow
-        self.info = MenuBarItemInfo(uncheckedItemWindow: itemWindow)
-    }
-
-    /// Returns the current frame for the item.
-    func getCurrentFrame() -> CGRect? {
-        return Bridging.getWindowFrame(for: windowID)
+        self.legacyInfo = MenuBarItemLegacyInfo(uncheckedItemWindow: itemWindow)
+        self.info = MenuBarItemInfo(windowID: itemWindow.windowID)
     }
 }
 
@@ -184,8 +175,8 @@ extension MenuBarItem {
             if let display {
                 let displayBounds = CGDisplayBounds(display)
                 boundsPredicate = { windowID in
-                    if let frame = Bridging.getWindowFrame(for: windowID) {
-                        return displayBounds.intersects(frame)
+                    if let bounds = Bridging.getWindowBounds(for: windowID) {
+                        return displayBounds.intersects(bounds)
                     }
                     return false
                 }
@@ -229,9 +220,9 @@ extension MenuBarItem: Hashable {
     }
 }
 
-// MARK: - MenuBarItemInfo Unchecked Item Window Initializer
+// MARK: - MenuBarItemLegacyInfo Unchecked Item Window Initializer
 
-private extension MenuBarItemInfo {
+private extension MenuBarItemLegacyInfo {
     /// Creates a simplified item from the given window.
     ///
     /// This initializer does not perform any checks on the window to ensure that
@@ -243,9 +234,9 @@ private extension MenuBarItemInfo {
     }
 }
 
-// MARK: - MenuBarItemInfo.Namespace Unchecked Item Window Initializer
+// MARK: - MenuBarItemLegacyInfo.Namespace Unchecked Item Window Initializer
 
-private extension MenuBarItemInfo.Namespace {
+private extension MenuBarItemLegacyInfo.Namespace {
     /// Creates a namespace from the given window.
     ///
     /// This initializer does not perform any checks on the window to ensure that

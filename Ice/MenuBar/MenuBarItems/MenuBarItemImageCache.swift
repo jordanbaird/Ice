@@ -112,43 +112,43 @@ final class MenuBarItemImageCache: ObservableObject {
         let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
         let defaultItemThickness = NSStatusBar.system.thickness * backingScaleFactor
 
-        var itemInfos = [CGWindowID: MenuBarItemInfo]()
-        var itemFrames = [CGWindowID: CGRect]()
+        var itemInfosDict = [CGWindowID: MenuBarItemInfo]()
+        var itemBoundsDict = [CGWindowID: CGRect]()
         var windowIDs = [CGWindowID]()
-        var frame = CGRect.null
+        var allBounds = CGRect.null
 
         for item in items {
             let windowID = item.windowID
             guard
-                // Use the most up-to-date window frame.
-                let itemFrame = Bridging.getWindowFrame(for: windowID),
-                itemFrame.minY == displayBounds.minY
+                // Use the most up-to-date window bounds.
+                let itemBounds = Bridging.getWindowBounds(for: windowID),
+                itemBounds.minY == displayBounds.minY
             else {
                 continue
             }
-            itemInfos[windowID] = item.info
-            itemFrames[windowID] = itemFrame
+            itemInfosDict[windowID] = item.info
+            itemBoundsDict[windowID] = itemBounds
             windowIDs.append(windowID)
-            frame = frame.union(itemFrame)
+            allBounds = allBounds.union(itemBounds)
         }
 
         if
             let compositeImage = ScreenCapture.captureWindows(windowIDs, option: option),
-            CGFloat(compositeImage.width) == frame.width * backingScaleFactor
+            CGFloat(compositeImage.width) == allBounds.width * backingScaleFactor
         {
             for windowID in windowIDs {
                 guard
-                    let itemInfo = itemInfos[windowID],
-                    let itemFrame = itemFrames[windowID]
+                    let itemInfo = itemInfosDict[windowID],
+                    let itemBounds = itemBoundsDict[windowID]
                 else {
                     continue
                 }
 
                 let frame = CGRect(
-                    x: (itemFrame.origin.x - frame.origin.x) * backingScaleFactor,
-                    y: (itemFrame.origin.y - frame.origin.y) * backingScaleFactor,
-                    width: itemFrame.width * backingScaleFactor,
-                    height: itemFrame.height * backingScaleFactor
+                    x: (itemBounds.origin.x - allBounds.origin.x) * backingScaleFactor,
+                    y: (itemBounds.origin.y - allBounds.origin.y) * backingScaleFactor,
+                    width: itemBounds.width * backingScaleFactor,
+                    height: itemBounds.height * backingScaleFactor
                 )
 
                 guard let itemImage = compositeImage.cropping(to: frame) else {
@@ -162,16 +162,16 @@ final class MenuBarItemImageCache: ObservableObject {
 
             for windowID in windowIDs {
                 guard
-                    let itemInfo = itemInfos[windowID],
-                    let itemFrame = itemFrames[windowID]
+                    let itemInfo = itemInfosDict[windowID],
+                    let itemBounds = itemBoundsDict[windowID]
                 else {
                     continue
                 }
 
                 let frame = CGRect(
                     x: 0,
-                    y: ((itemFrame.height * backingScaleFactor) / 2) - (defaultItemThickness / 2),
-                    width: itemFrame.width * backingScaleFactor,
+                    y: ((itemBounds.height * backingScaleFactor) / 2) - (defaultItemThickness / 2),
+                    width: itemBounds.width * backingScaleFactor,
                     height: defaultItemThickness
                 )
 

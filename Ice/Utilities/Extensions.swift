@@ -319,6 +319,12 @@ extension Collection where Element == MenuBarItem {
     func firstIndex(matching info: MenuBarItemInfo) -> Index? {
         firstIndex { $0.info == info }
     }
+
+    /// Returns the first index where the menu bar item matching the specified
+    /// legacy info appears in the collection.
+    func firstIndex(matching info: MenuBarItemLegacyInfo) -> Index? {
+        firstIndex { $0.legacyInfo == info }
+    }
 }
 
 // MARK: - Comparable
@@ -496,5 +502,10 @@ extension Sequence where Element == MenuBarItem {
     /// Returns the first menu bar item that matches the specified info.
     func first(matching info: MenuBarItemInfo) -> MenuBarItem? {
         first { $0.info == info }
+    }
+
+    /// Returns the first menu bar item that matches the specified legacy info.
+    func first(matching info: MenuBarItemLegacyInfo) -> MenuBarItem? {
+        first { $0.legacyInfo == info }
     }
 }

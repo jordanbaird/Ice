@@ -136,14 +136,14 @@ final class IceBarPanel: NSPanel {
                 guard
                     lowerBound <= upperBound,
                     let iceIcon = appState.itemManager.itemCache.allItems.first(matching: .iceIcon),
-                    // Bridging.getWindowFrame is more reliable than ControlItem.windowFrame,
+                    // Bridging.getWindowBounds is more reliable than ControlItem.windowFrame,
                     // i.e. if the control item is offscreen.
-                    let itemFrame = Bridging.getWindowFrame(for: iceIcon.windowID)
+                    let itemBounds = Bridging.getWindowBounds(for: iceIcon.windowID)
                 else {
                     return originForRightOfScreen
                 }
 
-                return CGPoint(x: (itemFrame.midX - frame.width / 2).clamped(to: lowerBound...upperBound), y: originY)
+                return CGPoint(x: (itemBounds.midX - frame.width / 2).clamped(to: lowerBound...upperBound), y: originY)
             }
         }
 
@@ -165,9 +165,7 @@ final class IceBarPanel: NSPanel {
             await appState.imageCache.updateCache()
         }
 
-        contentView = IceBarHostingView(appState: appState, colorManager: colorManager, screen: screen, section: section) { [weak self] in
-            self?.close()
-        }
+        contentView = IceBarHostingView(appState: appState, colorManager: colorManager, screen: screen, section: section)
 
         updateOrigin(for: screen)
 
@@ -199,11 +197,10 @@ private final class IceBarHostingView: NSHostingView<AnyView> {
         appState: AppState,
         colorManager: IceBarColorManager,
         screen: NSScreen,
-        section: MenuBarSection.Name,
-        closePanel: @escaping () -> Void
+        section: MenuBarSection.Name
     ) {
         super.init(
-            rootView: IceBarContentView(screen: screen, section: section, closePanel: closePanel)
+            rootView: IceBarContentView(screen: screen, section: section)
                 .environmentObject(appState)
                 .environmentObject(appState.imageCache)
                 .environmentObject(appState.itemManager)
@@ -241,7 +238,6 @@ private struct IceBarContentView: View {
 
     let screen: NSScreen
     let section: MenuBarSection.Name
-    let closePanel: () -> Void
 
     private var items: [MenuBarItem] {
         itemManager.itemCache.managedItems(for: section)
@@ -312,7 +308,7 @@ private struct IceBarContentView: View {
                 Text("The Ice Bar requires screen recording permissions.")
 
                 Button {
-                    closePanel()
+                    menuBarManager.section(withName: section)?.hide()
                     appState.navigationState.settingsNavigationIdentifier = .advanced
                     appState.appDelegate?.openSettingsWindow()
                 } label: {
@@ -332,7 +328,7 @@ private struct IceBarContentView: View {
             ScrollView(.horizontal) {
                 HStack(spacing: 0) {
                     ForEach(items, id: \.windowID) { item in
-                        IceBarItemView(item: item, closePanel: closePanel)
+                        IceBarItemView(item: item, section: section)
                     }
                 }
             }
@@ -351,16 +347,17 @@ private struct IceBarContentView: View {
 private struct IceBarItemView: View {
     @EnvironmentObject var imageCache: MenuBarItemImageCache
     @EnvironmentObject var itemManager: MenuBarItemManager
+    @EnvironmentObject var menuBarManager: MenuBarManager
 
     let item: MenuBarItem
-    let closePanel: () -> Void
+    let section: MenuBarSection.Name
 
     private var leftClickAction: () -> Void {
         return { [weak itemManager] in
             guard let itemManager else {
                 return
             }
-            closePanel()
+            menuBarManager.section(withName: section)?.hide()
             Task {
                 try await Task.sleep(for: .milliseconds(25))
                 itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .left)
@@ -373,7 +370,7 @@ private struct IceBarItemView: View {
             guard let itemManager else {
                 return
             }
-            closePanel()
+            menuBarManager.section(withName: section)?.hide()
             Task {
                 try await Task.sleep(for: .milliseconds(25))
                 itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .right)

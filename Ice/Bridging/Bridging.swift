@@ -56,18 +56,25 @@ extension Bridging {
 // MARK: - CGSWindow
 
 extension Bridging {
-    /// Returns the frame, specified in screen coordinates, for the
-    /// window with the specified identifier.
+    /// Returns the bounds for the window with the specified identifier.
     ///
     /// - Parameter windowID: An identifier for a window.
-    static func getWindowFrame(for windowID: CGWindowID) -> CGRect? {
-        var rect = CGRect.zero
-        let result = CGSGetScreenRectForWindow(mainConnectionID, windowID, &rect)
-        guard result == .success else {
-            logger.error("CGSGetScreenRectForWindow failed with error \(result.logString)")
-            return nil
+    static func getWindowBounds(for windowID: CGWindowID) -> CGRect? {
+        var bounds = CGRect.zero
+        if #available(macOS 26.0, *) {
+            let result = CGSGetWindowBounds(mainConnectionID, windowID, &bounds)
+            guard result == .success else {
+                logger.error("CGSGetWindowBounds failed with error \(result.logString)")
+                return nil
+            }
+        } else {
+            let result = CGSGetScreenRectForWindow(mainConnectionID, windowID, &bounds)
+            guard result == .success else {
+                logger.error("CGSGetScreenRectForWindow failed with error \(result.logString)")
+                return nil
+            }
         }
-        return rect
+        return bounds
     }
 
     /// Returns the level for the window with the specified identifier.
@@ -81,6 +88,40 @@ extension Bridging {
             return nil
         }
         return level
+    }
+
+    /// Returns a Boolean value that indicates whether the window
+    /// with the given identifier is on the specified space.
+    ///
+    /// - Parameters:
+    ///   - windowID: An identifier for a window.
+    ///   - spaceID: An identifier for a space.
+    static func isWindowOnSpace(_ windowID: CGWindowID, _ spaceID: CGSSpaceID) -> Bool {
+        let list = getSpaceList(for: windowID, option: .allSpaces)
+        return list.contains(spaceID)
+    }
+
+    /// Returns a Boolean value that indicates whether the window
+    /// with the given identifier is on the current active space.
+    ///
+    /// - Parameter windowID: An identifier for a window.
+    static func isWindowOnActiveSpace(_ windowID: CGWindowID) -> Bool {
+        let spaceID = getActiveSpaceID()
+        return isWindowOnSpace(windowID, spaceID)
+    }
+
+    /// Returns a Boolean value that indicates whether the window
+    /// with the given identifier is on the specified display.
+    ///
+    /// - Parameters:
+    ///   - windowID: An identifier for a window.
+    ///   - displayID: An identifier for a display.
+    static func isWindowOnDisplay(_ windowID: CGWindowID, _ displayID: CGDirectDisplayID) -> Bool {
+        if let windowBounds = getWindowBounds(for: windowID) {
+            let displayBounds = CGDisplayBounds(displayID)
+            return displayBounds.intersects(windowBounds)
+        }
+        return false
     }
 }
 
@@ -259,26 +300,6 @@ extension Bridging {
             return []
         }
         return list
-    }
-
-    /// Returns a Boolean value that indicates whether the window
-    /// with the given identifier is on the specified space.
-    ///
-    /// - Parameters:
-    ///   - windowID: An identifier for a window.
-    ///   - spaceID: An identifier for a space.
-    static func isWindowOnSpace(_ windowID: CGWindowID, _ spaceID: CGSSpaceID) -> Bool {
-        let list = getSpaceList(for: windowID, option: .allSpaces)
-        return list.contains(spaceID)
-    }
-
-    /// Returns a Boolean value that indicates whether the window
-    /// with the given identifier is on the current active space.
-    ///
-    /// - Parameter windowID: An identifier for a window.
-    static func isWindowOnActiveSpace(_ windowID: CGWindowID) -> Bool {
-        let spaceID = getActiveSpaceID()
-        return isWindowOnSpace(windowID, spaceID)
     }
 
     /// Returns a Boolean value that indicates whether the space

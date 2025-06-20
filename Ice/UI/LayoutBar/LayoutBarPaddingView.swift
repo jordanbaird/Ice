@@ -102,8 +102,8 @@ final class LayoutBarPaddingView: NSView {
                 let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
                 let targetItem: MenuBarItem? = switch section.name {
                 case .visible: nil // visible section always has more than 1 item
-                case .hidden: items.first { $0.info == .hiddenControlItem }
-                case .alwaysHidden: items.first { $0.info == .alwaysHiddenControlItem }
+                case .hidden: items.first(matching: .hiddenControlItem)
+                case .alwaysHidden: items.first(matching: .alwaysHiddenControlItem)
                 }
                 if let targetItem {
                     move(item: draggingSource.item, to: .leftOfItem(targetItem))

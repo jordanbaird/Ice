@@ -228,7 +228,7 @@ extension MenuBarItemManager {
         for (item, destination) in tempShownItems {
             switch destination {
             case .leftOfItem(let targetItem):
-                switch targetItem.info {
+                switch targetItem.legacyInfo {
                 case .hiddenControlItem:
                     cache[.hidden].append(item)
                 case .alwaysHiddenControlItem:
@@ -243,7 +243,7 @@ extension MenuBarItemManager {
                     }
                 }
             case .rightOfItem(let targetItem):
-                switch targetItem.info {
+                switch targetItem.legacyInfo {
                 case .hiddenControlItem:
                     cache[.visible].insert(item, at: 0)
                 case .alwaysHiddenControlItem:
@@ -349,8 +349,8 @@ extension MenuBarItemManager {
             /// A menu bar item event operation timed out.
             case eventOperationTimeout
 
-            /// A menu bar item frame check timed out.
-            case frameCheckTimeout
+            /// A menu bar item bounds check timed out.
+            case boundsCheckTimeout
 
             /// An operation timed out.
             case otherTimeout
@@ -366,7 +366,7 @@ extension MenuBarItemManager {
                 case .invalidItem: "invalidItem"
                 case .notMovable: "notMovable"
                 case .eventOperationTimeout: "eventOperationTimeout"
-                case .frameCheckTimeout: "frameCheckTimeout"
+                case .boundsCheckTimeout: "boundsCheckTimeout"
                 case .otherTimeout: "otherTimeout"
                 }
             }
@@ -402,8 +402,8 @@ extension MenuBarItemManager {
                 "\"\(item.displayName)\" is not movable"
             case .eventOperationTimeout:
                 "Event operation timed out for \"\(item.displayName)\""
-            case .frameCheckTimeout:
-                "Frame check timed out for \"\(item.displayName)\""
+            case .boundsCheckTimeout:
+                "Bounds check timed out for \"\(item.displayName)\""
             case .otherTimeout:
                 "Operation timed out for \"\(item.displayName)\""
             }
@@ -432,6 +432,13 @@ extension MenuBarItemManager {
 // MARK: - Async Waiters
 
 extension MenuBarItemManager {
+    /// Use this to pad out event operations, if needed.
+    ///
+    /// - Parameter duration: The duration to wait. Defaults to 20ms.
+    private func eventSleep(for duration: Duration = .milliseconds(20)) async {
+        try? await Task.sleep(for: duration)
+    }
+
     /// Waits asynchronously for the given operation to complete.
     ///
     /// - Parameters:
@@ -555,15 +562,15 @@ extension MenuBarItemManager {
         }
     }
 
-    /// Returns the current frame for the given item.
+    /// Returns the current bounds for the given item.
     ///
-    /// - Parameter item: The item to return the current frame for.
-    private func getCurrentFrame(for item: MenuBarItem) -> CGRect? {
-        guard let frame = Bridging.getWindowFrame(for: item.window.windowID) else {
-            Logger.itemManager.error("Couldn't get current frame for \(item.logString)")
+    /// - Parameter item: The item to return the current bounds for.
+    private func getCurrentBounds(for item: MenuBarItem) -> CGRect? {
+        guard let bounds = Bridging.getWindowBounds(for: item.windowID) else {
+            Logger.itemManager.error("Couldn't get current bounds for \(item.logString)")
             return nil
         }
-        return frame
+        return bounds
     }
 
     /// Returns the end point for moving an item to the given destination.
@@ -572,15 +579,15 @@ extension MenuBarItemManager {
     private func getEndPoint(for destination: MoveDestination) throws -> CGPoint {
         switch destination {
         case .leftOfItem(let targetItem):
-            guard let currentFrame = getCurrentFrame(for: targetItem) else {
+            guard let currentBounds = getCurrentBounds(for: targetItem) else {
                 throw EventError(code: .invalidItem, item: targetItem)
             }
-            return CGPoint(x: currentFrame.minX, y: currentFrame.midY)
+            return CGPoint(x: currentBounds.minX, y: currentBounds.midY)
         case .rightOfItem(let targetItem):
-            guard let currentFrame = getCurrentFrame(for: targetItem) else {
+            guard let currentBounds = getCurrentBounds(for: targetItem) else {
                 throw EventError(code: .invalidItem, item: targetItem)
             }
-            return CGPoint(x: currentFrame.maxX, y: currentFrame.midY)
+            return CGPoint(x: currentBounds.maxX, y: currentBounds.midY)
         }
     }
 
@@ -589,10 +596,10 @@ extension MenuBarItemManager {
     ///
     /// - Parameter item: The item to return the fallback point for.
     private func getFallbackPoint(for item: MenuBarItem) throws -> CGPoint {
-        guard let currentFrame = getCurrentFrame(for: item) else {
+        guard let currentBounds = getCurrentBounds(for: item) else {
             throw EventError(code: .invalidItem, item: item)
         }
-        return CGPoint(x: currentFrame.midX, y: currentFrame.midY)
+        return CGPoint(x: currentBounds.midX, y: currentBounds.midY)
     }
 
     /// Returns the target item for the given destination.
@@ -611,20 +618,20 @@ extension MenuBarItemManager {
     ///   - item: The item to check the position of.
     ///   - destination: The destination to compare the item's position against.
     private func itemHasCorrectPosition(item: MenuBarItem, for destination: MoveDestination) throws -> Bool {
-        guard let currentFrame = getCurrentFrame(for: item) else {
+        guard let currentBounds = getCurrentBounds(for: item) else {
             throw EventError(code: .invalidItem, item: item)
         }
         switch destination {
         case .leftOfItem(let targetItem):
-            guard let currentTargetFrame = getCurrentFrame(for: targetItem) else {
+            guard let currentTargetBounds = getCurrentBounds(for: targetItem) else {
                 throw EventError(code: .invalidItem, item: targetItem)
             }
-            return currentFrame.maxX == currentTargetFrame.minX
+            return currentBounds.maxX == currentTargetBounds.minX
         case .rightOfItem(let targetItem):
-            guard let currentTargetFrame = getCurrentFrame(for: targetItem) else {
+            guard let currentTargetBounds = getCurrentBounds(for: targetItem) else {
                 throw EventError(code: .invalidItem, item: targetItem)
             }
-            return currentFrame.minX == currentTargetFrame.maxX
+            return currentBounds.minX == currentTargetBounds.maxX
         }
     }
 
@@ -834,59 +841,59 @@ extension MenuBarItemManager {
     }
 
     /// Does a lot of weird magic to make a menu bar item receive an event, then
-    /// waits for the frame of the given menu bar item to change before returning.
+    /// waits for the bounds of the given menu bar item to change before returning.
     ///
     /// - Parameters:
     ///   - event: The event to send.
     ///   - firstLocation: The first location to send the event to.
     ///   - secondLocation: The second location to send the event to.
-    ///   - item: The item whose frame should be observed.
+    ///   - item: The item whose bounds should be observed.
     private func scrombleEvent(
         _ event: CGEvent,
         from firstLocation: EventTap.Location,
         to secondLocation: EventTap.Location,
-        waitingForFrameChangeOf item: MenuBarItem
+        waitingForBoundsChangeOf item: MenuBarItem
     ) async throws {
-        guard let currentFrame = getCurrentFrame(for: item) else {
+        guard let currentBounds = getCurrentBounds(for: item) else {
             try await scrombleEvent(event, from: firstLocation, to: secondLocation, item: item)
-            Logger.itemManager.warning("Couldn't get menu bar item frame for \(item.logString), so using fixed delay")
+            Logger.itemManager.warning("Couldn't get menu bar item bounds for \(item.logString), so using fixed delay")
             // This will be slow, but subsequent events will have a better chance of succeeding.
-            try await Task.sleep(for: .milliseconds(50))
+            try await Task.sleep(for: .milliseconds(100))
             return
         }
         try await scrombleEvent(event, from: firstLocation, to: secondLocation, item: item)
-        try await waitForFrameChange(of: item, initialFrame: currentFrame, timeout: .milliseconds(50))
+        try await waitForBoundsChange(of: item, initialBounds: currentBounds, timeout: .milliseconds(100))
     }
 
-    /// Waits for a menu bar item's frame to change from an initial frame.
+    /// Waits for a menu bar item's bounds to change from an initial value.
     ///
     /// - Parameters:
-    ///   - item: The item whose frame should be observed.
-    ///   - initialFrame: An initial frame to compare the item's frame against.
+    ///   - item: The item whose bounds should be observed.
+    ///   - initialBounds: An initial value to compare the item's bounds against.
     ///   - timeout: The amount of time to wait before throwing a timeout error.
-    private func waitForFrameChange(of item: MenuBarItem, initialFrame: CGRect, timeout: Duration) async throws {
-        struct FrameCheckCancellationError: Error { }
+    private func waitForBoundsChange(of item: MenuBarItem, initialBounds: CGRect, timeout: Duration) async throws {
+        struct BoundsCheckCancellationError: Error { }
 
-        let frameCheckTask = Task(timeout: timeout) {
+        let boundsCheckTask = Task(timeout: timeout) {
             while true {
                 try Task.checkCancellation()
-                guard let currentFrame = await self.getCurrentFrame(for: item) else {
-                    throw FrameCheckCancellationError()
+                guard let currentBounds = await self.getCurrentBounds(for: item) else {
+                    throw BoundsCheckCancellationError()
                 }
-                if currentFrame != initialFrame {
-                    Logger.itemManager.debug("Menu bar item frame for \(item.logString) has changed to \(NSStringFromRect(currentFrame))")
+                if currentBounds != initialBounds {
+                    Logger.itemManager.debug("Menu bar item bounds for \(item.logString) changed to \(NSStringFromRect(currentBounds))")
                     return
                 }
             }
         }
         do {
-            try await frameCheckTask.value
-        } catch is FrameCheckCancellationError {
-            Logger.itemManager.warning("Menu bar item frame check for \(item.logString) was cancelled, so using fixed delay")
+            try await boundsCheckTask.value
+        } catch is BoundsCheckCancellationError {
+            Logger.itemManager.warning("Menu bar item bounds check for \(item.logString) was cancelled, so using fixed delay")
             // This will be slow, but subsequent events will have a better chance of succeeding.
-            try await Task.sleep(for: .milliseconds(50))
+            try await Task.sleep(for: .milliseconds(100))
         } catch is TaskTimeoutError {
-            throw EventError(code: .frameCheckTimeout, item: item)
+            throw EventError(code: .boundsCheckTimeout, item: item)
         }
     }
 
@@ -914,21 +921,23 @@ extension MenuBarItemManager {
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw EventError(code: .invalidEventSource, item: item)
         }
-        guard let currentFrame = getCurrentFrame(for: item) else {
+        guard let currentBounds = getCurrentBounds(for: item) else {
             throw EventError(code: .invalidItem, item: item)
         }
+
+        let wakePoint = CGPoint(x: currentBounds.midX, y: currentBounds.midY)
 
         guard
             let mouseDownEvent = CGEvent.menuBarItemEvent(
                 type: .move(.leftMouseDown),
-                location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
+                location: wakePoint,
                 item: item,
                 pid: item.ownerPID,
                 source: source
             ),
             let mouseUpEvent = CGEvent.menuBarItemEvent(
                 type: .move(.leftMouseUp),
-                location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
+                location: wakePoint,
                 item: item,
                 pid: item.ownerPID,
                 source: source
@@ -937,18 +946,23 @@ extension MenuBarItemManager {
             throw EventError(code: .eventCreationFailure, item: item)
         }
 
-        try await scrombleEvent(
-            mouseDownEvent,
-            from: .pid(item.ownerPID),
-            to: .sessionEventTap,
-            item: item
-        )
-        try await scrombleEvent(
-            mouseUpEvent,
-            from: .pid(item.ownerPID),
-            to: .sessionEventTap,
-            item: item
-        )
+        let eventTask = Task {
+            try await scrombleEvent(
+                mouseDownEvent,
+                from: .pid(item.ownerPID),
+                to: .sessionEventTap,
+                item: item
+            )
+            try await scrombleEvent(
+                mouseUpEvent,
+                from: .pid(item.ownerPID),
+                to: .sessionEventTap,
+                item: item
+            )
+        }
+        let result = await eventTask.result
+        await eventSleep()
+        try result.get()
     }
 
     /// Moves a menu bar item to the given destination, without restoring the mouse
@@ -1018,23 +1032,28 @@ extension MenuBarItemManager {
                 mouseDownEvent,
                 from: .pid(item.ownerPID),
                 to: .sessionEventTap,
-                waitingForFrameChangeOf: item
+                waitingForBoundsChangeOf: item
             )
             try await scrombleEvent(
                 mouseUpEvent,
                 from: .pid(item.ownerPID),
                 to: .sessionEventTap,
-                waitingForFrameChangeOf: item
+                waitingForBoundsChangeOf: item
             )
         } catch {
             do {
-                Logger.itemManager.debug("Posting fallback event for moving \(item.logString)")
+                let eventTask = Task {
+                    Logger.itemManager.debug("Posting fallback event for moving \(item.logString)")
+                    try await postEventAndWaitToReceive(
+                        fallbackEvent,
+                        to: .sessionEventTap,
+                        item: item
+                    )
+                }
+                let result = await eventTask.result
+                await eventSleep()
                 // Catch this, as we still want to throw the existing error if the fallback fails.
-                try await postEventAndWaitToReceive(
-                    fallbackEvent,
-                    to: .sessionEventTap,
-                    item: item
-                )
+                try result.get()
             } catch {
                 Logger.itemManager.error("Failed to post fallback event for moving \(item.logString)")
             }
@@ -1078,7 +1097,7 @@ extension MenuBarItemManager {
         guard let cursorLocation = MouseCursor.locationCoreGraphics else {
             throw EventError(code: .invalidCursorLocation, item: item)
         }
-        guard let initialFrame = getCurrentFrame(for: item) else {
+        guard let initialBounds = getCurrentBounds(for: item) else {
             throw EventError(code: .invalidItem, item: item)
         }
 
@@ -1099,10 +1118,10 @@ extension MenuBarItemManager {
         for n in 1...5 {
             do {
                 try await moveItemWithoutRestoringMouseLocation(item, to: destination)
-                guard let newFrame = getCurrentFrame(for: item) else {
+                guard let newBounds = getCurrentBounds(for: item) else {
                     throw EventError(code: .invalidItem, item: item)
                 }
-                if newFrame != initialFrame {
+                if newBounds != initialBounds {
                     Logger.itemManager.info("Successfully moved \(item.logString)")
                     break
                 } else {
@@ -1129,7 +1148,14 @@ extension MenuBarItemManager {
         defer {
             itemMoveCount -= 1
         }
-        try await move(item: item, to: destination)
+
+        do {
+            try await move(item: item, to: destination)
+        } catch {
+            await eventSleep()
+            throw error
+        }
+
         let waitTask = Task(timeout: timeout) {
             while true {
                 try Task.checkCancellation()
@@ -1138,6 +1164,7 @@ extension MenuBarItemManager {
                 }
             }
         }
+
         do {
             try await waitTask.value
         } catch is TaskTimeoutError {
@@ -1157,34 +1184,35 @@ extension MenuBarItemManager {
         guard let cursorLocation = MouseCursor.locationCoreGraphics else {
             throw EventError(code: .invalidCursorLocation, item: item)
         }
-        guard let currentFrame = getCurrentFrame(for: item) else {
+        guard let currentBounds = getCurrentBounds(for: item) else {
             throw EventError(code: .invalidItem, item: item)
         }
 
-        let buttonStates = mouseButton.buttonStates
-        let clickPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
+        let clickPoint = CGPoint(x: currentBounds.midX, y: currentBounds.midY)
+        let mouseTypes: (down: CGEventType, up: CGEventType) = switch mouseButton {
+        case .left: (.leftMouseDown, .leftMouseUp)
+        case .right: (.rightMouseDown, .rightMouseUp)
+        default: (.otherMouseDown, .otherMouseUp)
+        }
 
         guard
-            let mouseDownEvent = CGEvent.menuBarItemEvent(
-                type: .click(buttonStates.down),
-                location: clickPoint,
-                item: item,
-                pid: item.ownerPID,
-                source: source
+            let mouseDownEvent = CGEvent(
+                mouseEventSource: source,
+                mouseType: mouseTypes.down,
+                mouseCursorPosition: clickPoint,
+                mouseButton: mouseButton
             ),
-            let mouseUpEvent = CGEvent.menuBarItemEvent(
-                type: .click(buttonStates.up),
-                location: clickPoint,
-                item: item,
-                pid: item.ownerPID,
-                source: source
+            let mouseUpEvent = CGEvent(
+                mouseEventSource: source,
+                mouseType: mouseTypes.up,
+                mouseCursorPosition: clickPoint,
+                mouseButton: mouseButton
             ),
-            let fallbackEvent = CGEvent.menuBarItemEvent(
-                type: .click(buttonStates.up),
-                location: clickPoint,
-                item: item,
-                pid: item.ownerPID,
-                source: source
+            let fallbackEvent = CGEvent(
+                mouseEventSource: source,
+                mouseType: mouseTypes.up,
+                mouseCursorPosition: clickPoint,
+                mouseButton: mouseButton
             )
         else {
             throw EventError(code: .eventCreationFailure, item: item)
@@ -1221,13 +1249,18 @@ extension MenuBarItemManager {
             )
         } catch {
             do {
-                Logger.itemManager.debug("Posting fallback event for clicking \(item.logString)")
+                let eventTask = Task {
+                    Logger.itemManager.debug("Posting fallback event for clicking \(item.logString)")
+                    try await postEventAndWaitToReceive(
+                        fallbackEvent,
+                        to: .sessionEventTap,
+                        item: item
+                    )
+                }
+                let result = await eventTask.result
+                await eventSleep()
                 // Catch this, as we still want to throw the existing error if the fallback fails.
-                try await postEventAndWaitToReceive(
-                    fallbackEvent,
-                    to: .sessionEventTap,
-                    item: item
-                )
+                try result.get()
             } catch {
                 Logger.itemManager.error("Failed to post fallback event for clicking \(item.logString)")
             }
@@ -1281,14 +1314,17 @@ extension MenuBarItemManager {
     ///     clicked once movement is finished.
     ///   - mouseButton: The mouse button of the click.
     func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
-        if
-            let latest = item.latest,
-            latest.isOnScreen
-        {
+        guard let screen = NSScreen.main else {
+            return
+        }
+
+        let displayID = screen.displayID
+
+        if Bridging.isWindowOnDisplay(item.windowID, displayID) {
             if clickWhenFinished {
                 Task {
                     do {
-                        try await click(item: latest, with: mouseButton)
+                        try await click(item: item, with: mouseButton)
                     } catch {
                         Logger.itemManager.error("ERROR: \(error)")
                     }
@@ -1299,8 +1335,7 @@ extension MenuBarItemManager {
 
         guard
             let appState,
-            let screen = NSScreen.main,
-            let applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
+            let applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: displayID)
         else {
             Logger.itemManager.warning("No application menu frame, so not showing \(item.logString)")
             return
@@ -1316,11 +1351,17 @@ extension MenuBarItemManager {
         }
 
         // Remove all items up to the hidden control item.
-        items.trimPrefix { $0.info != .hiddenControlItem }
+        items.trimPrefix { $0.legacyInfo != .hiddenControlItem }
         // Remove the hidden control item.
         items.removeFirst()
+
         // Remove all offscreen items.
-        items.trimPrefix { !$0.isOnScreen }
+        if #available(macOS 26.0, *) {
+            // TODO: isOnScreen doesn't work properly as of macOS 26 Developer Beta 1. Remove this if/when it works again.
+            items.trimPrefix { !Bridging.isWindowOnDisplay($0.windowID, displayID) }
+        } else {
+            items.trimPrefix { !$0.isOnScreen }
+        }
 
         let maxX = if let rightArea = screen.auxiliaryTopRightArea {
             max(rightArea.minX + 20, applicationMenuFrame.maxX)
@@ -1338,42 +1379,65 @@ extension MenuBarItemManager {
             return
         }
 
-        let initialWindows = WindowInfo.getOnScreenWindows()
+        let contextTask = Task {
+            try await slowMove(item: item, to: .leftOfItem(targetItem))
+            await eventSleep()
+
+            let context: TempShownItemContext
+
+            if #available(macOS 26.0, *) {
+                await eventSleep()
+                try await click(item: item, with: mouseButton)
+                await eventSleep()
+
+                // FIXME: Shown interface check is broken on macOS 26 (at least as of Developer Beta 1). Probably needs a significant rework.
+                context = TempShownItemContext(
+                    info: item.info,
+                    returnDestination: destination,
+                    shownInterfaceWindow: nil
+                )
+            } else {
+                if clickWhenFinished {
+                    let beforeWindows = WindowInfo.getOnScreenWindows()
+
+                    await eventSleep()
+                    try await click(item: item, with: mouseButton)
+                    await eventSleep(for: .milliseconds(100))
+
+                    let afterWindows = WindowInfo.getOnScreenWindows()
+
+                    let shownInterfaceWindow = afterWindows.first { afterWindow in
+                        afterWindow.ownerPID == item.ownerPID &&
+                        !beforeWindows.contains { beforeWindow in
+                            afterWindow.windowID == beforeWindow.windowID
+                        }
+                    }
+
+                    context = TempShownItemContext(
+                        info: item.info,
+                        returnDestination: destination,
+                        shownInterfaceWindow: shownInterfaceWindow
+                    )
+                } else {
+                    context = TempShownItemContext(
+                        info: item.info,
+                        returnDestination: destination,
+                        shownInterfaceWindow: nil
+                    )
+                }
+            }
+
+            return context
+        }
 
         Task {
-            if clickWhenFinished {
-                do {
-                    try await slowMove(item: item, to: .leftOfItem(targetItem))
-                    try await click(item: item, with: mouseButton)
-                } catch {
-                    Logger.itemManager.error("ERROR: \(error)")
-                }
-            } else {
-                do {
-                    try await move(item: item, to: .leftOfItem(targetItem))
-                } catch {
-                    Logger.itemManager.error("ERROR: \(error)")
-                }
+            do {
+                let context = try await contextTask.value
+                tempShownItemContexts.append(context)
+                runTempShownItemTimer(for: appState.settingsManager.advancedSettingsManager.tempShowInterval)
+            } catch {
+                Logger.itemManager.error("ERROR: \(error)")
             }
-
-            try? await Task.sleep(for: .milliseconds(100))
-
-            let currentWindows = WindowInfo.getOnScreenWindows()
-
-            let shownInterfaceWindow = currentWindows.first { currentWindow in
-                currentWindow.ownerPID == item.ownerPID &&
-                !initialWindows.contains { initialWindow in
-                    currentWindow.windowID == initialWindow.windowID
-                }
-            }
-
-            let context = TempShownItemContext(
-                info: item.info,
-                returnDestination: destination,
-                shownInterfaceWindow: shownInterfaceWindow
-            )
-            tempShownItemContexts.append(context)
-            runTempShownItemTimer(for: appState.settingsManager.advancedSettingsManager.tempShowInterval)
         }
     }
 
@@ -1408,22 +1472,17 @@ extension MenuBarItemManager {
 
         let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
 
-        MouseCursor.hide()
-
-        defer {
-            MouseCursor.show()
-        }
-
         while let context = tempShownItemContexts.popLast() {
             guard let item = items.first(where: { $0.info == context.info }) else {
                 continue
             }
             do {
-                try await move(item: item, to: context.returnDestination)
+                try await slowMove(item: item, to: context.returnDestination)
             } catch {
                 Logger.itemManager.error("Failed to rehide \(item.logString) (error: \(error))")
                 failedContexts.append(context)
             }
+            await eventSleep()
         }
 
         if failedContexts.isEmpty {

@@ -113,6 +113,8 @@ struct CustomColorPicker: NSViewRepresentable {
         context: Context
     ) -> CGSize? {
         switch nsView.controlSize {
+        case .extraLarge:
+            CGSize(width: 64, height: 34)
         case .large:
             CGSize(width: 55, height: 30)
         case .regular:

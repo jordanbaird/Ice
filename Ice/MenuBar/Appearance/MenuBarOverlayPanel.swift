@@ -405,7 +405,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                     //   are actually updated on-screen. Since the view's drawing process relies
                     //   on getting an accurate position of each menu bar item, we need to use
                     //   something that publishes its changes only after the items are updated.
-                    section.controlItem.$windowFrame
+                    section.controlItem.$onScreenFrame
                         .receive(on: DispatchQueue.main)
                         .sink { [weak self] _ in
                             self?.needsDisplay = true

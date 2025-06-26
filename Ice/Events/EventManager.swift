@@ -110,7 +110,7 @@ final class EventManager {
             // frame of the hidden section's control item, which we know will always be in the
             // menu bar, and run the show-on-hover check when it changes.
             Publishers.CombineLatest3(
-                hiddenSection.controlItem.$windowFrame,
+                hiddenSection.controlItem.$frame,
                 appState.$isActiveSpaceFullscreen,
                 appState.menuBarManager.$isMenuBarHiddenBySystem
             )
@@ -190,8 +190,9 @@ extension EventManager {
             return
         }
 
-        if let visibleSection = appState.menuBarManager.section(withName: .visible) {
-            guard event.window !== visibleSection.controlItem.window else {
+        // Make sure clicking the Ice icon doesn't trigger rehide.
+        if let iceIcon = appState.menuBarManager.controlItem(withName: .visible) {
+            guard event.window !== iceIcon.window else {
                 return
             }
         }
@@ -448,7 +449,7 @@ extension EventManager {
         // that the menu bar is hidden and the mouse is not inside.
         guard
             let iceIcon = appState.menuBarManager.controlItem(withName: .visible),
-            let iceIconFrame = iceIcon.windowFrame,
+            let iceIconFrame = iceIcon.frame,
             iceIconFrame.maxY <= screen.frame.maxY,
             let mouseLocation = MouseCursor.locationAppKit
         else {
@@ -533,7 +534,7 @@ extension EventManager {
     func isMouseInsideIceIcon(appState: AppState) -> Bool {
         guard
             let visibleSection = appState.menuBarManager.section(withName: .visible),
-            let iceIconFrame = visibleSection.controlItem.windowFrame,
+            let iceIconFrame = visibleSection.controlItem.frame,
             let mouseLocation = MouseCursor.locationAppKit
         else {
             return false

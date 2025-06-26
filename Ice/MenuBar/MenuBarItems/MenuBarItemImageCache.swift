@@ -5,9 +5,13 @@
 
 import Cocoa
 import Combine
+import OSLog
 
 /// Cache for menu bar item images.
 final class MenuBarItemImageCache: ObservableObject {
+    /// Logger for the menu bar item image cache.
+    private static let logger = Logger(category: "MenuBarItemImageCache")
+
     /// The cached item images.
     @Published private(set) var images = [MenuBarItemInfo: CGImage]()
 
@@ -75,8 +79,8 @@ final class MenuBarItemImageCache: ObservableObject {
     }
 
     /// Logs a reason for skipping the cache.
-    private func logSkippingCache(reason: String) {
-        Logger.imageCache.debug("Skipping menu bar item image cache as \(reason)")
+    private func logSkippingCache(reason: @escaping @autoclosure () -> String) {
+        MenuBarItemImageCache.logger.debug("Skipping menu bar item image cache as \(reason(), privacy: .public)")
     }
 
     /// Returns a Boolean value that indicates whether caching menu bar items failed for
@@ -158,7 +162,12 @@ final class MenuBarItemImageCache: ObservableObject {
                 images[itemInfo] = itemImage
             }
         } else {
-            Logger.imageCache.warning("Composite image capture failed. Attempting to capturing items individually.")
+            MenuBarItemImageCache.logger.warning(
+                """
+                Composite capture failed for \(section.logString, privacy: .public). \
+                Attempting to capture each item individually.
+                """
+            )
 
             for windowID in windowIDs {
                 guard
@@ -206,7 +215,12 @@ final class MenuBarItemImageCache: ObservableObject {
             }
             let sectionImages = await createImages(for: section, screen: screen)
             guard !sectionImages.isEmpty else {
-                Logger.imageCache.warning("Update image cache failed for \(section.logString)")
+                MenuBarItemImageCache.logger.warning(
+                    """
+                    Failed to update cached menu bar item images for \
+                    \(section.logString, privacy: .public)
+                    """
+                )
                 continue
             }
             newImages.merge(sectionImages) { (_, new) in new }
@@ -279,10 +293,4 @@ final class MenuBarItemImageCache: ObservableObject {
 
         await updateCache(sections: sectionsNeedingDisplay)
     }
-}
-
-// MARK: - Logger
-
-private extension Logger {
-    static let imageCache = Logger(category: "MenuBarItemImageCache")
 }

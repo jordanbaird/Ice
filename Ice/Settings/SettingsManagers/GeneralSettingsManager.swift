@@ -5,6 +5,7 @@
 
 import Combine
 import Foundation
+import OSLog
 
 @MainActor
 final class GeneralSettingsManager: ObservableObject {
@@ -106,7 +107,7 @@ final class GeneralSettingsManager: ObservableObject {
             do {
                 iceIcon = try decoder.decode(ControlItemImageSet.self, from: data)
             } catch {
-                Logger.generalSettingsManager.error("Error decoding Ice icon: \(error)")
+                Logger.serialization.error("Error decoding Ice icon: \(error, privacy: .public)")
             }
             if case .custom = iceIcon.name {
                 lastCustomIceIcon = iceIcon
@@ -137,7 +138,7 @@ final class GeneralSettingsManager: ObservableObject {
                     let data = try encoder.encode(iceIcon)
                     Defaults.set(data, forKey: .iceIcon)
                 } catch {
-                    Logger.generalSettingsManager.error("Error encoding Ice icon: \(error)")
+                    Logger.serialization.error("Error encoding Ice icon: \(error, privacy: .public)")
                 }
             }
             .store(in: &c)
@@ -219,8 +220,3 @@ final class GeneralSettingsManager: ObservableObject {
 
 // MARK: GeneralSettingsManager: BindingExposable
 extension GeneralSettingsManager: BindingExposable { }
-
-// MARK: - Logger
-private extension Logger {
-    static let generalSettingsManager = Logger(category: "GeneralSettingsManager")
-}

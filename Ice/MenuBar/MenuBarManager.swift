@@ -6,6 +6,7 @@
 import AXSwift
 import Combine
 import SwiftUI
+import OSLog
 
 /// Manager for the state of the menu bar.
 @MainActor
@@ -24,6 +25,9 @@ final class MenuBarManager: ObservableObject {
 
     /// A Boolean value that indicates whether the "ShowOnHover" feature is allowed.
     @Published var showOnHoverAllowed = true
+
+    /// Logger for the menu bar manager.
+    private let logger = Logger(category: "MenuBarManager")
 
     /// The shared app state.
     private weak var appState: AppState?
@@ -73,12 +77,12 @@ final class MenuBarManager: ObservableObject {
     private func initializeSections() {
         // Make sure initialization can only happen once.
         guard sections.isEmpty else {
-            Logger.menuBarManager.warning("Sections already initialized")
+            logger.warning("Sections already initialized")
             return
         }
 
         guard let appState else {
-            Logger.menuBarManager.error("Error initializing menu bar sections: Missing app state")
+            logger.error("Error initializing menu bar sections: Missing app state")
             return
         }
 
@@ -196,7 +200,7 @@ final class MenuBarManager: ObservableObject {
                     }
 
                     // Get all items.
-                    var items = MenuBarItem.getMenuBarItems(on: displayID, onScreenOnly: false, activeSpaceOnly: true)
+                    var items = MenuBarItem.getMenuBarItems(on: displayID, option: .activeSpace)
 
                     // Filter the items down according to the currently enabled/shown sections.
                     if
@@ -376,10 +380,10 @@ final class MenuBarManager: ObservableObject {
     /// Hides the application menus.
     func hideApplicationMenus() {
         guard let appState else {
-            Logger.menuBarManager.error("Error hiding application menus: Missing app state")
+            logger.error("Error hiding application menus: Missing app state")
             return
         }
-        Logger.menuBarManager.info("Hiding application menus")
+        logger.info("Hiding application menus")
         appState.activate(withPolicy: .regular)
         isHidingApplicationMenus = true
     }
@@ -387,10 +391,10 @@ final class MenuBarManager: ObservableObject {
     /// Shows the application menus.
     func showApplicationMenus() {
         guard let appState else {
-            Logger.menuBarManager.error("Error showing application menus: Missing app state")
+            logger.error("Error showing application menus: Missing app state")
             return
         }
-        Logger.menuBarManager.info("Showing application menus")
+        logger.info("Showing application menus")
         appState.deactivate(withPolicy: .accessory)
         isHidingApplicationMenus = false
     }
@@ -407,7 +411,7 @@ final class MenuBarManager: ObservableObject {
     /// Shows the appearance editor popover, centered under the menu bar.
     @objc private func showAppearanceEditorPopover() {
         guard let appState else {
-            Logger.menuBarManager.error("Error showing appearance editor popover: Missing app state")
+            logger.error("Error showing appearance editor popover: Missing app state")
             return
         }
         let panel = MenuBarAppearanceEditorPanel(appState: appState)
@@ -440,10 +444,4 @@ struct MenuBarAverageColorInfo: Hashable {
 
     var color: CGColor
     var source: Source
-}
-
-// MARK: - Logger
-private extension Logger {
-    /// Logger to use for the menu bar manager.
-    static let menuBarManager = Logger(category: "MenuBarManager")
 }

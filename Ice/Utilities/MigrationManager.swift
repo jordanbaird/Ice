@@ -4,9 +4,14 @@
 //
 
 import Cocoa
+import OSLog
 
+// FIXME: Migration has gotten extremely messy. It should really just be completely redone at this point.
+// TODO: Decide what needs to stay in the new implementation, and what has been around long enough that it can be removed.
 @MainActor
 struct MigrationManager {
+    private let logger = Logger(category: "Migration")
+
     let appState: AppState
     let encoder = JSONEncoder()
     let decoder = JSONDecoder()
@@ -16,37 +21,35 @@ struct MigrationManager {
 
 extension MigrationManager {
     /// Performs all migrations.
-    static func migrateAll(appState: AppState) {
-        let manager = MigrationManager(appState: appState)
+    func migrateAll() {
+        var results = [MigrationResult]()
 
         do {
             try performAll(blocks: [
-                manager.migrate0_8_0,
-                manager.migrate0_10_0,
+                migrate0_8_0,
+                migrate0_10_0,
             ])
+        } catch let error as MigrationError {
+            results.append(.failureAndLogError(error))
         } catch {
-            logError(error)
+            logger.error("Migration failed with unknown error \(error)")
         }
 
-        let results = [
-            manager.migrate0_10_1(),
-            manager.migrate0_11_10(),
+        results += [
+            migrate0_10_1(),
+            migrate0_11_10(),
         ]
 
         for result in results {
             switch result {
             case .success:
-                break
+                continue
             case .successButShowAlert(let alert):
                 alert.runModal()
             case .failureAndLogError(let error):
-                logError(error)
+                logger.error("Migration failed with error \(error, privacy: .public)")
             }
         }
-    }
-
-    private static func logError(_ error: any Error) {
-        Logger.migration.error("Migration failed with error: \(error)")
     }
 }
 
@@ -59,13 +62,13 @@ extension MigrationManager {
         guard !Defaults.bool(forKey: .hasMigrated0_8_0) else {
             return
         }
-        try MigrationManager.performAll(blocks: [
+        try performAll(blocks: [
             migrateHotkeys0_8_0,
             migrateControlItems0_8_0,
             migrateSections0_8_0,
         ])
         Defaults.set(true, forKey: .hasMigrated0_8_0)
-        Logger.migration.info("Successfully migrated to 0.8.0 settings")
+        logger.info("Successfully migrated to 0.8.0 settings")
     }
 
     // MARK: Migrate Hotkeys
@@ -186,11 +189,11 @@ extension MigrationManager {
         guard !Defaults.bool(forKey: .hasMigrated0_10_0) else {
             return
         }
-        try MigrationManager.performAll(blocks: [
+        try performAll(blocks: [
             migrateControlItems0_10_0,
         ])
         Defaults.set(true, forKey: .hasMigrated0_10_0)
-        Logger.migration.info("Successfully migrated to 0.10.0 settings")
+        logger.info("Successfully migrated to 0.10.0 settings")
     }
 
     private func migrateControlItems0_10_0() throws {
@@ -216,7 +219,7 @@ extension MigrationManager {
         switch result {
         case .success, .successButShowAlert:
             Defaults.set(true, forKey: .hasMigrated0_10_1)
-            Logger.migration.info("Successfully migrated to 0.10.1 settings")
+            logger.info("Successfully migrated to 0.10.1 settings")
         case .failureAndLogError:
             break
         }
@@ -242,8 +245,10 @@ extension MigrationManager {
             }
 
             let alert = NSAlert()
-            alert.messageText = "Due to a bug in the 0.10.0 release, the data for Ice's menu bar items was corrupted and their positions had to be reset."
-            alert.informativeText = "Our sincerest apologies for the inconvenience."
+            alert.messageText = """
+                Due to a bug in a previous version of the app, the data for \
+                Ice’s menu bar sections was corrupted and had to be reset.
+                """
 
             return .successButShowAlert(alert)
         }
@@ -255,6 +260,7 @@ extension MigrationManager {
 // MARK: - Migrate 0.11.10
 
 extension MigrationManager {
+    /// Performs all migrations for the `0.11.10` release.
     private func migrate0_11_10() -> MigrationResult {
         guard !Defaults.bool(forKey: .hasMigrated0_11_10) else {
             return .success
@@ -263,7 +269,7 @@ extension MigrationManager {
         switch result {
         case .success, .successButShowAlert:
             Defaults.set(true, forKey: .hasMigrated0_11_10)
-            Logger.migration.info("Successfully migrated to 0.11.10 settings")
+            logger.info("Successfully migrated to 0.11.10 settings")
         case .failureAndLogError:
             break
         }
@@ -272,7 +278,12 @@ extension MigrationManager {
 
     private func migrateAppearanceConfiguration0_11_10() -> MigrationResult {
         guard let oldData = Defaults.data(forKey: .menuBarAppearanceConfiguration) else {
-            return .failureAndLogError(.appearanceConfigurationMigrationError(.missingConfiguration))
+            if Defaults.object(forKey: .menuBarAppearanceConfiguration) != nil {
+                logger.warning("Previous menu bar appearance data is corrupted.")
+            }
+            // This is either the first launch, or the data is malformed.
+            // Either way, not much to do here.
+            return .success
         }
         do {
             let oldConfiguration = try decoder.decode(MenuBarAppearanceConfigurationV1.self, from: oldData)
@@ -297,7 +308,7 @@ extension MigrationManager {
             let newData = try encoder.encode(newConfiguration)
             Defaults.set(newData, forKey: .menuBarAppearanceConfigurationV2)
         } catch {
-            return .failureAndLogError(.appearanceConfigurationMigrationError(.otherError(error)))
+            return .failureAndLogError(.appearanceConfigurationMigrationError(error))
         }
         return .success
     }
@@ -308,7 +319,7 @@ extension MigrationManager {
 extension MigrationManager {
     /// Performs every block in the given array, catching any thrown
     /// errors and rethrowing them as a combined error.
-    private static func performAll(blocks: [() throws -> Void]) throws {
+    private func performAll(blocks: [() throws -> Void]) throws {
         let results = blocks.map { block in
             Result(catching: block)
         }
@@ -347,14 +358,14 @@ extension MigrationManager {
     }
 }
 
-// MARK: - Errors
+// MARK: - MigrationError
 
 extension MigrationManager {
     enum MigrationError: Error, CustomStringConvertible {
         case invalidMenuBarSectionsJSONObject(Any)
         case hotkeyMigrationError(any Error)
         case controlItemMigrationError(any Error)
-        case appearanceConfigurationMigrationError(AppearanceConfigurationMigrationError)
+        case appearanceConfigurationMigrationError(any Error)
         case combinedError([any Error])
 
         var description: String {
@@ -369,20 +380,6 @@ extension MigrationManager {
                 "Error migrating menu bar appearance configuration: \(error)"
             case .combinedError(let errors):
                 "The following errors occurred: \(errors)"
-            }
-        }
-    }
-
-    enum AppearanceConfigurationMigrationError: Error, CustomStringConvertible {
-        case otherError(any Error)
-        case missingConfiguration
-
-        var description: String {
-            switch self {
-            case .otherError(let error):
-                error.localizedDescription
-            case .missingConfiguration:
-                "Missing menu bar appearance configuration"
             }
         }
     }
@@ -410,9 +407,4 @@ private extension MenuBarSection.Name {
         case .alwaysHidden: "Always Hidden"
         }
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let migration = Logger(category: "Migration")
 }

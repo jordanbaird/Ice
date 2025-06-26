@@ -5,6 +5,7 @@
 
 import Combine
 import Foundation
+import OSLog
 
 @MainActor
 final class HotkeySettingsManager: ObservableObject {
@@ -41,7 +42,7 @@ final class HotkeySettingsManager: ObservableObject {
                     do {
                         hotkey.keyCombination = try decoder.decode(KeyCombination?.self, from: data)
                     } catch {
-                        Logger.hotkeySettingsManager.error("Error decoding hotkey: \(error)")
+                        Logger.serialization.error("Error decoding hotkey: \(error, privacy: .public)")
                     }
                 }
             }
@@ -66,7 +67,7 @@ final class HotkeySettingsManager: ObservableObject {
                     do {
                         dict[hotkey.action.rawValue] = try self.encoder.encode(hotkey.keyCombination)
                     } catch {
-                        Logger.hotkeySettingsManager.error("Error encoding hotkey: \(error)")
+                        Logger.serialization.error("Error encoding hotkey: \(error, privacy: .public)")
                     }
                 }
                 Defaults.set(dict, forKey: .hotkeys)
@@ -79,9 +80,4 @@ final class HotkeySettingsManager: ObservableObject {
     func hotkey(withAction action: HotkeyAction) -> Hotkey? {
         hotkeys.first { $0.action == action }
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let hotkeySettingsManager = Logger(category: "HotkeySettingsManager")
 }

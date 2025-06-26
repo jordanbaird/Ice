@@ -5,6 +5,7 @@
 
 import Cocoa
 import Combine
+import OSLog
 
 // MARK: - Overlay Panel
 
@@ -50,6 +51,9 @@ final class MenuBarOverlayPanel: NSPanel {
             tasks.removeValue(forKey: flag)?.cancel()
         }
     }
+
+    /// Shared logger for overlay panels.
+    private static let logger = Logger(category: "MenuBarOverlayPanel")
 
     /// A Boolean value that indicates whether the panel needs to be shown.
     @Published var needsShow = false
@@ -259,20 +263,20 @@ final class MenuBarOverlayPanel: NSPanel {
         case .updates: "Preventing overlay panel from updating."
         }
         guard let appState else {
-            Logger.overlayPanel.debug("No app state. \(actionMessage)")
+            MenuBarOverlayPanel.logger.debug("No app state. \(actionMessage, privacy: .public)")
             return nil
         }
         guard !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults else {
-            Logger.overlayPanel.debug("Menu bar is hidden by system. \(actionMessage)")
+            MenuBarOverlayPanel.logger.debug("Menu bar is hidden by system. \(actionMessage, privacy: .public)")
             return nil
         }
         guard !appState.isActiveSpaceFullscreen else {
-            Logger.overlayPanel.debug("Active space is fullscreen. \(actionMessage)")
+            MenuBarOverlayPanel.logger.debug("Active space is fullscreen. \(actionMessage, privacy: .public)")
             return nil
         }
         let owningDisplay = owningScreen.displayID
         guard appState.menuBarManager.hasValidMenuBar(in: windows, for: owningDisplay) else {
-            Logger.overlayPanel.debug("No valid menu bar found. \(actionMessage)")
+            MenuBarOverlayPanel.logger.debug("No valid menu bar found. \(actionMessage, privacy: .public)")
             return nil
         }
         return owningDisplay
@@ -324,7 +328,7 @@ final class MenuBarOverlayPanel: NSPanel {
         }
 
         guard appState.appearanceManager.overlayPanels.contains(self) else {
-            Logger.overlayPanel.warning("Overlay panel \(self) not retained")
+            MenuBarOverlayPanel.logger.warning("Overlay panel \(self) not retained")
             return
         }
 
@@ -570,7 +574,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
             return CGRect(x: rect.minX, y: rect.minY, width: maxX, height: rect.height)
         }()
         let trailingPathBounds: CGRect = {
-            let items = MenuBarItem.getMenuBarItems(on: screen.displayID, onScreenOnly: true, activeSpaceOnly: false)
+            let items = MenuBarItem.getMenuBarItems(on: screen.displayID, option: .onScreen)
             guard !items.isEmpty else {
                 return .zero
             }
@@ -785,9 +789,4 @@ private final class MenuBarOverlayPanelContentView: NSView {
             }
         }
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let overlayPanel = Logger(category: "MenuBarOverlayPanel")
 }

@@ -4,6 +4,7 @@
 //
 
 import Combine
+import OSLog
 
 /// A combination of a key and modifiers that can be used to
 /// trigger actions on system-wide key-up or key-down events.
@@ -90,7 +91,7 @@ extension Hotkey {
                 return
             }
             guard let appState else {
-                Logger.hotkey.error("Error invalidating hotkey: Missing AppState")
+                Logger.default.error("Error invalidating hotkey: Missing app state")
                 return
             }
             defer {
@@ -139,9 +140,4 @@ extension Hotkey: Hashable {
         hasher.combine(keyCombination)
         hasher.combine(action)
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let hotkey = Logger(category: "Hotkey")
 }

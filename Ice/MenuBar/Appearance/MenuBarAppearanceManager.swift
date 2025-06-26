@@ -5,6 +5,7 @@
 
 import Cocoa
 import Combine
+import OSLog
 
 /// A manager for the appearance of the menu bar.
 @MainActor
@@ -51,7 +52,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 configuration = try decoder.decode(MenuBarAppearanceConfigurationV2.self, from: data)
             }
         } catch {
-            Logger.appearanceManager.error("Error decoding configuration: \(error)")
+            Logger.serialization.error("Error decoding menu bar appearance configuration: \(error)")
         }
     }
 
@@ -80,7 +81,7 @@ final class MenuBarAppearanceManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { completion in
                 if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding configuration: \(error)")
+                    Logger.serialization.error("Error encoding menu bar appearance configuration: \(error)")
                 }
             } receiveValue: { data in
                 Defaults.set(data, forKey: .menuBarAppearanceConfigurationV2)
@@ -156,9 +157,3 @@ final class MenuBarAppearanceManager: ObservableObject {
 
 // MARK: MenuBarAppearanceManager: BindingExposable
 extension MenuBarAppearanceManager: BindingExposable { }
-
-// MARK: - Logger
-private extension Logger {
-    /// The logger to use for the menu bar appearance manager.
-    static let appearanceManager = Logger(category: "MenuBarAppearanceManager")
-}

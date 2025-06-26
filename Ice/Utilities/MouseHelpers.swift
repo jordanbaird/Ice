@@ -4,6 +4,7 @@
 //
 
 import CoreGraphics
+import OSLog
 
 /// A namespace for mouse cursor operations.
 enum MouseCursor {
@@ -23,7 +24,7 @@ enum MouseCursor {
     static func hide() {
         let result = CGDisplayHideCursor(CGMainDisplayID())
         if result != .success {
-            Logger.mouseCursor.error("CGDisplayHideCursor failed with error \(result.logString)")
+            Logger.default.error("CGDisplayHideCursor failed with error \(result.logString, privacy: .public)")
         }
     }
 
@@ -31,7 +32,7 @@ enum MouseCursor {
     static func show() {
         let result = CGDisplayShowCursor(CGMainDisplayID())
         if result != .success {
-            Logger.mouseCursor.error("CGDisplayShowCursor failed with error \(result.logString)")
+            Logger.default.error("CGDisplayShowCursor failed with error \(result.logString, privacy: .public)")
         }
     }
 
@@ -41,7 +42,7 @@ enum MouseCursor {
     static func warp(to point: CGPoint) {
         let result = CGWarpMouseCursorPosition(point)
         if result != .success {
-            Logger.mouseCursor.error("CGWarpMouseCursorPosition failed with error \(result.logString)")
+            Logger.default.error("CGWarpMouseCursorPosition failed with error \(result.logString, privacy: .public)")
         }
     }
 }
@@ -82,9 +83,4 @@ enum MouseEvents {
         let seconds = CGEventSource.secondsSinceLastEventType(stateID, eventType: .mouseMoved)
         return .seconds(seconds) <= duration
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let mouseCursor = Logger(category: "MouseCursor")
 }

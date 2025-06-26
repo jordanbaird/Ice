@@ -4,6 +4,7 @@
 //
 
 import Cocoa
+import OSLog
 
 /// A namespace for bridged functionality.
 enum Bridging {
@@ -29,7 +30,7 @@ extension Bridging {
             value as CFTypeRef
         )
         if result != .success {
-            logger.error("CGSSetConnectionProperty failed with error \(result.logString)")
+            logger.error("CGSSetConnectionProperty failed with error \(result.logString, privacy: .public)")
         }
     }
 
@@ -47,7 +48,7 @@ extension Bridging {
             &value
         )
         if result != .success {
-            logger.error("CGSCopyConnectionProperty failed with error \(result.logString)")
+            logger.error("CGSCopyConnectionProperty failed with error \(result.logString, privacy: .public)")
         }
         return value?.takeRetainedValue()
     }
@@ -64,13 +65,13 @@ extension Bridging {
         if #available(macOS 26.0, *) {
             let result = CGSGetWindowBounds(mainConnectionID, windowID, &bounds)
             guard result == .success else {
-                logger.error("CGSGetWindowBounds failed with error \(result.logString)")
+                logger.error("CGSGetWindowBounds failed with error \(result.logString, privacy: .public)")
                 return nil
             }
         } else {
             let result = CGSGetScreenRectForWindow(mainConnectionID, windowID, &bounds)
             guard result == .success else {
-                logger.error("CGSGetScreenRectForWindow failed with error \(result.logString)")
+                logger.error("CGSGetScreenRectForWindow failed with error \(result.logString, privacy: .public)")
                 return nil
             }
         }
@@ -84,7 +85,7 @@ extension Bridging {
         var level: CGWindowLevel = 0
         let result = CGSGetWindowLevel(mainConnectionID, windowID, &level)
         guard result == .success else {
-            logger.error("CGSGetWindowLevel failed with error \(result.logString)")
+            logger.error("CGSGetWindowLevel failed with error \(result.logString, privacy: .public)")
             return nil
         }
         return level
@@ -131,7 +132,7 @@ extension Bridging {
         var count: Int32 = 0
         let result = CGSGetWindowCount(mainConnectionID, 0, &count)
         if result != .success {
-            logger.error("CGSGetWindowCount failed with error \(result.logString)")
+            logger.error("CGSGetWindowCount failed with error \(result.logString, privacy: .public)")
         }
         return Int(count)
     }
@@ -140,7 +141,7 @@ extension Bridging {
         var count: Int32 = 0
         let result = CGSGetOnScreenWindowCount(mainConnectionID, 0, &count)
         if result != .success {
-            logger.error("CGSGetOnScreenWindowCount failed with error \(result.logString)")
+            logger.error("CGSGetOnScreenWindowCount failed with error \(result.logString, privacy: .public)")
         }
         return Int(count)
     }
@@ -157,7 +158,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            logger.error("CGSGetWindowList failed with error \(result.logString)")
+            logger.error("CGSGetWindowList failed with error \(result.logString, privacy: .public)")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -175,7 +176,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            logger.error("CGSGetOnScreenWindowList failed with error \(result.logString)")
+            logger.error("CGSGetOnScreenWindowList failed with error \(result.logString, privacy: .public)")
             return []
         }
         return [CGWindowID](list[..<Int(realCount)])
@@ -193,7 +194,7 @@ extension Bridging {
             &realCount
         )
         guard result == .success else {
-            logger.error("CGSGetProcessMenuBarWindowList failed with error \(result.logString)")
+            logger.error("CGSGetProcessMenuBarWindowList failed with error \(result.logString, privacy: .public)")
             return []
         }
         return list[..<Int(realCount)].filter { windowID in
@@ -341,7 +342,7 @@ extension Bridging {
         var psn = ProcessSerialNumber()
         let result = GetProcessForPID(pid, &psn)
         guard result == noErr else {
-            logger.error("GetProcessForPID failed with error \(result)")
+            logger.error("GetProcessForPID failed with error \(result, privacy: .public)")
             return .unknown
         }
         if CGSEventIsAppUnresponsive(mainConnectionID, &psn) {

@@ -5,6 +5,7 @@
 
 import Combine
 import SwiftUI
+import OSLog
 
 /// The model for app-wide state.
 @MainActor
@@ -59,6 +60,9 @@ final class AppState: ObservableObject {
 
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
+
+    /// Logger for the app state.
+    private let logger = Logger(category: "AppState")
 
     /// A Boolean value that indicates whether the app is running as a SwiftUI preview.
     let isPreview: Bool = {
@@ -127,7 +131,7 @@ final class AppState: ObservableObject {
                 }
                 .store(in: &c)
         } else {
-            Logger.appState.warning("No settings window!")
+            logger.warning("No settings window!")
         }
 
         Publishers.Merge(
@@ -191,7 +195,7 @@ final class AppState: ObservableObject {
     /// Assigns the app delegate to the app state.
     func assignAppDelegate(_ appDelegate: AppDelegate) {
         guard self.appDelegate == nil else {
-            Logger.appState.warning("Multiple attempts made to assign app delegate")
+            logger.warning("Multiple attempts made to assign app delegate")
             return
         }
         self.appDelegate = appDelegate
@@ -200,7 +204,7 @@ final class AppState: ObservableObject {
     /// Assigns the settings window to the app state.
     func assignSettingsWindow(_ window: NSWindow) {
         guard window.identifier?.rawValue == Constants.settingsWindowID else {
-            Logger.appState.warning("Window \(window.identifier?.rawValue ?? "<NIL>") is not the settings window!")
+            logger.warning("Window \(window.identifier?.rawValue ?? "<NIL>", privacy: .public) is not the settings window!")
             return
         }
         settingsWindow = window
@@ -210,7 +214,7 @@ final class AppState: ObservableObject {
     /// Assigns the permissions window to the app state.
     func assignPermissionsWindow(_ window: NSWindow) {
         guard window.identifier?.rawValue == Constants.permissionsWindowID else {
-            Logger.appState.warning("Window \(window.identifier?.rawValue ?? "<NIL>") is not the permissions window!")
+            logger.warning("Window \(window.identifier?.rawValue ?? "<NIL>", privacy: .public) is not the permissions window!")
             return
         }
         permissionsWindow = window
@@ -221,7 +225,7 @@ final class AppState: ObservableObject {
     func openWindow(id: String) {
         // Defer to the next run loop to prevent conflicts with SwiftUI.
         DispatchQueue.main.async {
-            Logger.appState.debug("Opening window with id: \(id)")
+            self.logger.debug("Opening window with id: \(id, privacy: .public)")
             EnvironmentValues().openWindow(id: id)
         }
     }
@@ -230,7 +234,7 @@ final class AppState: ObservableObject {
     func dismissWindow(id: String) {
         // Defer to the next run loop to prevent conflicts with SwiftUI.
         DispatchQueue.main.async {
-            Logger.appState.debug("Dismissing window with id: \(id)")
+            self.logger.debug("Dismissing window with id: \(id, privacy: .public)")
             EnvironmentValues().dismissWindow(id: id)
         }
     }
@@ -294,9 +298,3 @@ final class AppState: ObservableObject {
 
 // MARK: AppState: BindingExposable
 extension AppState: BindingExposable { }
-
-// MARK: - Logger
-private extension Logger {
-    /// The logger to use for the app state.
-    static let appState = Logger(category: "AppState")
-}

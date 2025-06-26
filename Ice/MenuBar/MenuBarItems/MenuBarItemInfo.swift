@@ -89,14 +89,30 @@ extension MenuBarItemLegacyInfo {
     // MARK: Special Item Lists
 
     /// An array of infos for items whose movement is prevented by macOS.
-    static let immovableItems = [clock, siri, controlCenter]
+    static let immovableItems: [MenuBarItemLegacyInfo] = {
+        var items = [clock, controlCenter]
+        if #unavailable(macOS 26.0) {
+            items.append(siri)
+        }
+        return items
+    }()
 
-    // FIXME: At some point, Apple made the "MusicRecognition" item hideable.
+    // TODO: MusicRecognition became hideable in what macOS version?
+    //
+    // At some point, it became possible to hide the "MusicRecognition" item.
     // We need to determine which version of macOS first had this change, and
-    // conditionally exclude the item from this list based on that.
+    // and conditionally exclude the item from this list.
+    //
+    // We're using macOS 15.3.2 for now, but it could be earlier.
     //
     /// An array of infos for items that can be moved, but cannot be hidden.
-    static let nonHideableItems = [audioVideoModule, faceTime, musicRecognition, screenCaptureUI]
+    static let nonHideableItems: [MenuBarItemLegacyInfo] = {
+        var items = [audioVideoModule, faceTime, screenCaptureUI]
+        if #unavailable(macOS 15.3.2) {
+            items.append(musicRecognition)
+        }
+        return items
+    }()
 
     /// An array of infos for items representing Ice's control items.
     static let controlItems = ControlItem.Identifier.allCases.map { $0.legacyInfo }
@@ -112,7 +128,7 @@ extension MenuBarItemLegacyInfo {
     /// Info for the control item for the always-hidden section.
     static let alwaysHiddenControlItem = MenuBarItemLegacyInfo(controlItem: .alwaysHidden)
 
-    // MARK: Other Items
+    // MARK: Other System Items
 
     /// Info for the "Clock" item.
     static let clock = MenuBarItemLegacyInfo(namespace: .controlCenter, title: "Clock")
@@ -145,7 +161,7 @@ extension MenuBarItemLegacyInfo {
     /// Info for the "MusicRecognition" (a.k.a. "Shazam") item.
     static let musicRecognition = MenuBarItemLegacyInfo(namespace: .controlCenter, title: "MusicRecognition")
 
-    // FIXME: How do we reference this item in macOS 26?
+    // TODO: How do we reference this item in macOS 26?
     /// Info for the "stop recording" item that appears in the menu bar during screen
     /// recordings started by the macOS "Screenshot" tool.
     static let screenCaptureUI = MenuBarItemLegacyInfo(namespace: .screenCaptureUI, title: "Item-0")

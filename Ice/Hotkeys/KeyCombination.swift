@@ -5,6 +5,7 @@
 
 import Carbon.HIToolbox
 import Cocoa
+import OSLog
 
 struct KeyCombination: Hashable {
     let key: KeyCode
@@ -31,11 +32,11 @@ private func getSystemReservedKeyCombinations() -> [KeyCombination] {
     let status = CopySymbolicHotKeys(&symbolicHotkeys)
 
     guard status == noErr else {
-        Logger.keyCombination.error("CopySymbolicHotKeys returned invalid status: \(status)")
+        Logger.serialization.error("CopySymbolicHotKeys returned invalid status: \(status, privacy: .public)")
         return []
     }
     guard let reservedHotkeys = symbolicHotkeys?.takeRetainedValue() as? [[String: Any]] else {
-        Logger.keyCombination.error("Failed to serialize symbolic hotkeys")
+        Logger.serialization.error("Failed to serialize symbolic hotkeys")
         return []
     }
 
@@ -82,9 +83,4 @@ extension KeyCombination: Codable {
         try container.encode(key.rawValue)
         try container.encode(modifiers.rawValue)
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let keyCombination = Logger(category: "KeyCombination")
 }

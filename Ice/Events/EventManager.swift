@@ -484,8 +484,7 @@ extension EventManager {
         }
         let menuBarItems = MenuBarItem.getMenuBarItems(
             on: screen.displayID,
-            onScreenOnly: true,
-            activeSpaceOnly: true
+            option: [.onScreen, .activeSpace]
         )
         return menuBarItems.contains { item in
             item.frame.contains(mouseLocation)

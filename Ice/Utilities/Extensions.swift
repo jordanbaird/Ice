@@ -492,13 +492,6 @@ extension Publisher {
 // MARK: - Sequence where Element == MenuBarItem
 
 extension Sequence where Element == MenuBarItem {
-    /// Returns the menu bar items, sorted by their order in the menu bar.
-    func sortedByOrderInMenuBar() -> [MenuBarItem] {
-        sorted { lhs, rhs in
-            lhs.frame.maxX < rhs.frame.maxX
-        }
-    }
-
     /// Returns the first menu bar item that matches the specified info.
     func first(matching info: MenuBarItemInfo) -> MenuBarItem? {
         first { $0.info == info }

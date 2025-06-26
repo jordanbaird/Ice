@@ -577,9 +577,3 @@ final class ControlItem {
         StatusItemDefaults[.preferredPosition, autosaveName] = cached
     }
 }
-
-// MARK: - Logger
-private extension Logger {
-    /// The logger to use for control items.
-    static let controlItem = Logger(category: "ControlItem")
-}

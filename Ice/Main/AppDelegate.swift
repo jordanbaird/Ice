@@ -4,16 +4,19 @@
 //
 
 import SwiftUI
+import OSLog
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private weak var appState: AppState?
 
+    private let logger = Logger(category: "AppDelegate")
+
     // MARK: NSApplicationDelegate Methods
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         guard let appState else {
-            Logger.appDelegate.warning("Missing app state in applicationWillFinishLaunching")
+            logger.warning("Missing app state in applicationWillFinishLaunching")
             return
         }
 
@@ -26,7 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard let appState else {
-            Logger.appDelegate.warning("Missing app state in applicationDidFinishLaunching")
+            logger.warning("Missing app state in applicationDidFinishLaunching")
             return
         }
 
@@ -74,7 +77,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Assigns the app state to the delegate.
     func assignAppState(_ appState: AppState) {
         guard self.appState == nil else {
-            Logger.appDelegate.warning("Multiple attempts made to assign app state")
+            logger.warning("Multiple attempts made to assign app state")
             return
         }
         self.appState = appState
@@ -83,7 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Opens the settings window and activates the app.
     @objc func openSettingsWindow() {
         guard let appState else {
-            Logger.appDelegate.error("Failed to open settings window")
+            logger.error("Failed to open settings window")
             return
         }
         // Small delay makes this more reliable.
@@ -92,9 +95,4 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appState.openSettingsWindow()
         }
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let appDelegate = Logger(category: "AppDelegate")
 }

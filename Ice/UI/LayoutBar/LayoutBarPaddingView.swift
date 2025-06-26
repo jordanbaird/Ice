@@ -5,6 +5,7 @@
 
 import Cocoa
 import Combine
+import OSLog
 
 /// A Cocoa view that manages the menu bar layout interface.
 final class LayoutBarPaddingView: NSView {
@@ -99,7 +100,7 @@ final class LayoutBarPaddingView: NSView {
             if arrangedViews.count == 1 {
                 // dragging source is the only view in the layout bar, so we
                 // need to find a target item
-                let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
+                let items = MenuBarItem.getMenuBarItems(option: .activeSpace)
                 let targetItem: MenuBarItem? = switch section.name {
                 case .visible: nil // visible section always has more than 1 item
                 case .hidden: items.first(matching: .hiddenControlItem)
@@ -108,7 +109,7 @@ final class LayoutBarPaddingView: NSView {
                 if let targetItem {
                     move(item: draggingSource.item, to: .leftOfItem(targetItem))
                 } else {
-                    Logger.layoutBar.error("No target item for layout bar drag")
+                    Logger.default.error("No target item for layout bar drag")
                 }
             } else if arrangedViews.indices.contains(index + 1) {
                 // we have a view to the right of the dragging source
@@ -134,15 +135,10 @@ final class LayoutBarPaddingView: NSView {
                 try await appState.itemManager.slowMove(item: item, to: destination)
                 appState.itemManager.removeTempShownItemFromCache(with: item.info)
             } catch {
-                Logger.layoutBar.error("Error moving menu bar item: \(error)")
+                Logger.default.error("Error moving menu bar item: \(error, privacy: .public)")
                 let alert = NSAlert(error: error)
                 alert.runModal()
             }
         }
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let layoutBar = Logger(category: "LayoutBar")
 }

@@ -4,6 +4,7 @@
 //
 
 import Cocoa
+import OSLog
 
 /// A type that receives system events from various locations within the
 /// event stream.
@@ -82,6 +83,9 @@ final class EventTap {
         }
     }
 
+    /// Shared logger for event taps.
+    private static let logger = Logger(category: "EventTap")
+
     private let runLoop = CFRunLoopGetCurrent()
     private let mode: CFRunLoopMode = .commonModes
     private nonisolated let callback: (EventTap, CGEventTapProxy, CGEventType, CGEvent) -> Unmanaged<CGEvent>?
@@ -129,11 +133,11 @@ final class EventTap {
             callback: handleEvent,
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            Logger.eventTap.error("Error creating mach port for event tap \"\(self.label)\"")
+            EventTap.logger.error("Error creating mach port for event tap \"\(self.label, privacy: .public)\"")
             return
         }
         guard let source = CFMachPortCreateRunLoopSource(nil, machPort, 0) else {
-            Logger.eventTap.error("Error creating run loop source for event tap \"\(self.label)\"")
+            EventTap.logger.error("Error creating run loop source for event tap \"\(self.label, privacy: .public)\"")
             return
         }
         self.machPort = machPort
@@ -201,15 +205,15 @@ final class EventTap {
 
     private func withUnwrappedComponents(body: @MainActor (CFRunLoop, CFRunLoopSource, CFMachPort) -> Void) {
         guard let runLoop else {
-            Logger.eventTap.error("Missing run loop for event tap \"\(self.label)\"")
+            EventTap.logger.error("Missing run loop for event tap \"\(self.label, privacy: .public)\"")
             return
         }
         guard let source else {
-            Logger.eventTap.error("Missing run loop source for event tap \"\(self.label)\"")
+            EventTap.logger.error("Missing run loop source for event tap \"\(self.label, privacy: .public)\"")
             return
         }
         guard let machPort else {
-            Logger.eventTap.error("Missing mach port for event tap \"\(self.label)\"")
+            EventTap.logger.error("Missing mach port for event tap \"\(self.label, privacy: .public)\"")
             return
         }
         body(runLoop, source, machPort)
@@ -255,9 +259,4 @@ private func handleEvent(
     }
     let eventTap = Unmanaged<EventTap>.fromOpaque(refcon).takeUnretainedValue()
     return EventTap.performCallback(for: eventTap, proxy: proxy, type: type, event: event)
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let eventTap = Logger(category: "EventTap")
 }

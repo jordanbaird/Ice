@@ -42,8 +42,20 @@ final class ControlItem {
     /// A Boolean value that indicates whether the control item is visible (`@Published`).
     @Published var isVisible = true
 
-    /// The frame of the control item's window (`@Published`).
-    @Published private(set) var windowFrame: CGRect?
+    /// The control item's window (`@Published`).
+    @Published private(set) var window: NSWindow?
+
+    /// The control item's frame (`@Published`).
+    @Published private(set) var frame: CGRect?
+
+    /// The control item's screen (`@Published`).
+    @Published private(set) var screen: NSScreen?
+
+    /// The control item's frame, if it is onscreen (`@Published`).
+    @Published private(set) var onScreenFrame: CGRect?
+
+    /// The control item's identifier.
+    let identifier: Identifier
 
     /// The shared app state.
     private weak var appState: AppState?
@@ -54,20 +66,12 @@ final class ControlItem {
     /// A horizontal constraint for the control item's content view.
     private let constraint: NSLayoutConstraint?
 
-    /// The control item's identifier.
-    private let identifier: Identifier
-
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
     /// The menu bar section associated with the control item.
     private weak var section: MenuBarSection? {
         appState?.menuBarManager.sections.first { $0.controlItem === self }
-    }
-
-    /// The control item's window.
-    var window: NSWindow? {
-        statusItem.button?.window
     }
 
 //    /// The identifier of the control item's window.
@@ -231,18 +235,48 @@ final class ControlItem {
             }
             .store(in: &c)
 
-        window?.publisher(for: \.frame)
-            .sink { [weak self] frame in
-                guard
-                    let self,
-                    let screen = window?.screen,
-                    screen.frame.intersects(frame)
-                else {
-                    return
-                }
-                windowFrame = frame
+        statusItem.publisher(for: \.button)
+            .compactMap { $0 }
+            .flatMap { $0.publisher(for: \.window) }
+            .sink { [weak self] window in
+                self?.window = window
             }
             .store(in: &c)
+
+        $window
+            .compactMap { $0 }
+            .flatMap { $0.publisher(for: \.frame) }
+            .sink { [weak self] frame in
+                self?.frame = frame
+            }
+            .store(in: &c)
+
+        $window
+            .compactMap { $0 }
+            .flatMap { $0.publisher(for: \.screen) }
+            .sink { [weak self] screen in
+                self?.screen = screen
+            }
+            .store(in: &c)
+
+        Publishers.CombineLatest(
+            $frame
+                .compactMap { $0 },
+            $screen
+                .compactMap { $0 }
+                .flatMap { $0.publisher(for: \.frame) }
+        )
+        .sink { [weak self] frame, screenFrame in
+            guard let self else {
+                return
+            }
+            if screenFrame.intersects(frame) {
+                onScreenFrame = frame
+            } else {
+                onScreenFrame = nil
+            }
+        }
+        .store(in: &c)
 
         if let appState {
             appState.settingsManager.generalSettingsManager.$useIceBar

@@ -44,55 +44,51 @@ final class IceBarPanel: NSPanel {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // Close the panel when the active space changes, or when the screen parameters change.
+        // Hide the panel when the active space or screen parameters change.
         Publishers.Merge(
             NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
             NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
         )
         .sink { [weak self] _ in
-            self?.close()
+            self?.hide()
         }
         .store(in: &c)
 
-        if
-            let section = appState?.menuBarManager.section(withName: .hidden),
-            let window = section.controlItem.window
-        {
-            window.publisher(for: \.frame)
-                .debounce(for: 0.1, scheduler: DispatchQueue.main)
-                .sink { [weak self, weak window] _ in
-                    guard
-                        let self,
-                        let appState,
-                        // Only continue if the menu bar is automatically hidden, as Ice
-                        // can't currently display its menu bar items.
-                        appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
-                        let info = window.flatMap({ WindowInfo(windowID: CGWindowID($0.windowNumber)) }),
-                        // Window being offscreen means the menu bar is currently hidden.
-                        // Close the bar, as things will start to look weird if we don't.
-                        !info.isOnScreen
-                    else {
-                        return
-                    }
-                    close()
-                }
-                .store(in: &c)
-        }
-
         // Update the panel's origin whenever its size changes.
-        publisher(for: \.frame)
-            .map(\.size)
+        publisher(for: \.frame).map(\.size)
             .removeDuplicates()
             .sink { [weak self] _ in
-                guard
-                    let self,
-                    let screen
-                else {
+                guard let self, let screen else {
                     return
                 }
                 updateOrigin(for: screen)
             }
             .store(in: &c)
+
+        if let controlItem = appState?.menuBarManager.controlItem(withName: .hidden) {
+            // Use the hidden control item's frame to determine if the menu bar
+            // is hidden. Hide the panel if so.
+            controlItem.$frame
+                .combineLatest(controlItem.$screen)
+                .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
+                .sink { [weak self] (frame, screen) in
+                    guard let self else {
+                        return
+                    }
+
+                    guard let frame, let screen else {
+                        hide()
+                        return
+                    }
+
+                    // Icon is not vertically visible. We can infer that the
+                    // menu bar is hidden.
+                    if frame.maxY > screen.frame.maxY {
+                        hide()
+                    }
+                }
+                .store(in: &c)
+        }
 
         cancellables = c
     }
@@ -176,6 +172,16 @@ final class IceBarPanel: NSPanel {
         colorManager.updateAllProperties(with: frame, screen: screen)
 
         orderFrontRegardless()
+    }
+
+    func hide() {
+        if
+            let name = currentSection,
+            let section = appState?.menuBarManager.section(withName: name)
+        {
+            section.hide()
+        }
+        close()
     }
 
     override func close() {

@@ -5,8 +5,8 @@
 
 import AXSwift
 import Combine
-import SwiftUI
 import OSLog
+import SwiftUI
 
 /// Manager for the state of the menu bar.
 @MainActor
@@ -25,6 +25,9 @@ final class MenuBarManager: ObservableObject {
 
     /// A Boolean value that indicates whether the "ShowOnHover" feature is allowed.
     @Published var showOnHoverAllowed = true
+
+    /// Reference to the settings window.
+    @Published private var settingsWindow: NSWindow?
 
     /// Logger for the menu bar manager.
     private let logger = Logger(category: "MenuBarManager")
@@ -50,7 +53,7 @@ final class MenuBarManager: ObservableObject {
     /// A Boolean value that indicates whether the manager can update its stored
     /// information for the menu bar's average color.
     private var canUpdateAverageColorInfo: Bool {
-        appState?.settingsWindow?.isVisible == true
+        settingsWindow?.isVisible == true
     }
 
     /// A Boolean value that indicates whether at least one of the manager's
@@ -148,7 +151,15 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
-        appState?.settingsWindow?.publisher(for: \.isVisible)
+        appState?.publisherForWindow(.settings)
+            .sink { [weak self] window in
+                self?.settingsWindow = window
+            }
+            .store(in: &c)
+
+        $settingsWindow
+            .flatMap { $0.publisher } // Short circuit if nil.
+            .flatMap { $0.publisher(for: \.isVisible) }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.updateAverageColorInfo()
@@ -182,7 +193,7 @@ final class MenuBarManager: ObservableObject {
                     appState.settingsManager.advancedSettingsManager.hideApplicationMenus,
                     !isMenuBarHiddenBySystem,
                     !appState.isActiveSpaceFullscreen,
-                    appState.settingsWindow?.isVisible == false
+                    !appState.navigationState.isSettingsPresented
                 else {
                     return
                 }
@@ -242,7 +253,7 @@ final class MenuBarManager: ObservableObject {
     func updateAverageColorInfo() {
         guard
             canUpdateAverageColorInfo,
-            let screen = appState?.settingsWindow?.screen
+            let screen = settingsWindow?.screen
         else {
             return
         }

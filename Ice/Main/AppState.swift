@@ -4,8 +4,8 @@
 //
 
 import Combine
-import SwiftUI
 import OSLog
+import SwiftUI
 
 /// The model for app-wide state.
 @MainActor
@@ -49,37 +49,42 @@ final class AppState: ObservableObject {
     /// The app's hotkey registry.
     nonisolated let hotkeyRegistry = HotkeyRegistry()
 
-    /// The app's delegate.
-    private(set) weak var appDelegate: AppDelegate?
-
-    /// The window that contains the settings interface.
-    private(set) weak var settingsWindow: NSWindow?
-
-    /// The window that contains the permissions interface.
-    private(set) weak var permissionsWindow: NSWindow?
-
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
     /// Logger for the app state.
     private let logger = Logger(category: "AppState")
 
-    /// A Boolean value that indicates whether the app is running as a SwiftUI preview.
-    let isPreview: Bool = {
-        #if DEBUG
-        let environment = ProcessInfo.processInfo.environment
-        let key = "XCODE_RUNNING_FOR_PREVIEWS"
-        return environment[key] != nil
-        #else
-        return false
-        #endif
+    /// Setup actions, run once on first access.
+    private lazy var setupActions: () = {
+        logger.info("Running setup actions")
+        configureCancellables()
+        permissionsManager.stopAllChecks()
+        menuBarManager.performSetup()
+        appearanceManager.performSetup()
+        eventManager.performSetup()
+        settingsManager.performSetup()
+        itemManager.performSetup()
+        imageCache.performSetup()
+        updatesManager.performSetup()
+        userNotificationManager.performSetup()
     }()
 
-    /// A Boolean value that indicates whether the application can set the cursor
-    /// in the background.
-    var setsCursorInBackground: Bool {
-        get { Bridging.getConnectionProperty(forKey: "SetsCursorInBackground") as? Bool ?? false }
-        set { Bridging.setConnectionProperty(newValue, forKey: "SetsCursorInBackground") }
+    /// Performs app state setup.
+    ///
+    /// - Parameter hasPermissions: If `true`, continues with setup normally.
+    ///   If `false`, prompts the user to grant permissions.
+    func performSetup(hasPermissions: Bool) {
+        if hasPermissions {
+            _ = setupActions
+        } else {
+            Task {
+                // Delay to prevent conflicts with the app delegate.
+                try await Task.sleep(for: .milliseconds(100))
+                activate(withPolicy: .regular)
+                openWindow(.permissions)
+            }
+        }
     }
 
     /// Configures the internal observers for the app state.
@@ -89,17 +94,17 @@ final class AppState: ObservableObject {
         Publishers.Merge3(
             NSWorkspace.shared.notificationCenter
                 .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-                .mapToVoid(),
+                .replace(with: ()),
             // Frontmost application change can indicate a space change from one display to
             // another, which gets ignored by NSWorkspace.activeSpaceDidChangeNotification.
             NSWorkspace.shared
                 .publisher(for: \.frontmostApplication)
-                .mapToVoid(),
+                .replace(with: ()),
             // Clicking into a fullscreen space from another space is also ignored.
             UniversalEventMonitor
                 .publisher(for: .leftMouseDown)
                 .delay(for: 0.1, scheduler: DispatchQueue.main)
-                .mapToVoid()
+                .replace(with: ())
         )
         .receive(on: DispatchQueue.main)
         .sink { [weak self] _ in
@@ -120,30 +125,27 @@ final class AppState: ObservableObject {
             }
             .store(in: &c)
 
-        if let settingsWindow {
-            settingsWindow.publisher(for: \.isVisible)
-                .debounce(for: 0.05, scheduler: DispatchQueue.main)
-                .sink { [weak self] isVisible in
-                    guard let self else {
-                        return
-                    }
-                    navigationState.isSettingsPresented = isVisible
+        publisherForWindow(.settings)
+            .flatMap { $0.publisher } // Short circuit if nil.
+            .flatMap { $0.publisher(for: \.isVisible) }
+            .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
+            .sink { [weak self] isVisible in
+                guard let self else {
+                    return
                 }
-                .store(in: &c)
-        } else {
-            logger.warning("No settings window!")
-        }
+                navigationState.isSettingsPresented = isVisible
+            }
+            .store(in: &c)
 
-        Publishers.Merge(
+        Publishers.CombineLatest(
             navigationState.$isAppFrontmost,
             navigationState.$isSettingsPresented
         )
-        .debounce(for: 0.1, scheduler: DispatchQueue.main)
+        .map { $0 && $1 }
+        .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
+        .merge(with: Just(true).delay(for: 1, scheduler: DispatchQueue.main))
         .sink { [weak self] shouldUpdate in
-            guard
-                let self,
-                shouldUpdate
-            else {
+            guard let self, shouldUpdate else {
                 return
             }
             Task.detached {
@@ -178,51 +180,23 @@ final class AppState: ObservableObject {
         cancellables = c
     }
 
-    /// Sets up the app state.
-    func performSetup() {
-        configureCancellables()
-        permissionsManager.stopAllChecks()
-        menuBarManager.performSetup()
-        appearanceManager.performSetup()
-        eventManager.performSetup()
-        settingsManager.performSetup()
-        itemManager.performSetup()
-        imageCache.performSetup()
-        updatesManager.performSetup()
-        userNotificationManager.performSetup()
-    }
-
-    /// Assigns the app delegate to the app state.
-    func assignAppDelegate(_ appDelegate: AppDelegate) {
-        guard self.appDelegate == nil else {
-            logger.warning("Multiple attempts made to assign app delegate")
-            return
+    /// Returns a publisher for the window with the given identifier.
+    func publisherForWindow(_ id: IceWindowIdentifier) -> some Publisher<NSWindow?, Never> {
+        return NSApp.publisher(for: \.windows).mergeMap { window in
+            window.publisher(for: \.identifier)
+                .map { [weak window] identifier in
+                    guard identifier?.rawValue == id.rawValue else {
+                        return nil
+                    }
+                    return window
+                }
+                .first { $0 != nil }
+                .replaceEmpty(with: nil)
         }
-        self.appDelegate = appDelegate
-    }
-
-    /// Assigns the settings window to the app state.
-    func assignSettingsWindow(_ window: NSWindow) {
-        guard window.identifier?.rawValue == Constants.settingsWindowID else {
-            logger.warning("Window \(window.identifier?.rawValue ?? "<NIL>", privacy: .public) is not the settings window!")
-            return
-        }
-        settingsWindow = window
-        configureCancellables()
-    }
-
-    /// Assigns the permissions window to the app state.
-    func assignPermissionsWindow(_ window: NSWindow) {
-        guard window.identifier?.rawValue == Constants.permissionsWindowID else {
-            logger.warning("Window \(window.identifier?.rawValue ?? "<NIL>", privacy: .public) is not the permissions window!")
-            return
-        }
-        permissionsWindow = window
-        configureCancellables()
     }
 
     /// Opens the window with the given identifier.
-    func openWindow(id: String) {
+    func openWindow(_ id: IceWindowIdentifier) {
         // Defer to the next run loop to prevent conflicts with SwiftUI.
         DispatchQueue.main.async {
             self.logger.debug("Opening window with id: \(id, privacy: .public)")
@@ -231,7 +205,7 @@ final class AppState: ObservableObject {
     }
 
     /// Dismisses the window with the given identifier.
-    func dismissWindow(id: String) {
+    func dismissWindow(_ id: IceWindowIdentifier) {
         // Defer to the next run loop to prevent conflicts with SwiftUI.
         DispatchQueue.main.async {
             self.logger.debug("Dismissing window with id: \(id, privacy: .public)")
@@ -239,32 +213,12 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Opens the settings window.
-    func openSettingsWindow() {
-        openWindow(id: Constants.settingsWindowID)
-    }
-
-    /// Dismisses the settings window.
-    func dismissSettingsWindow() {
-        dismissWindow(id: Constants.settingsWindowID)
-    }
-
-    /// Opens the permissions window.
-    func openPermissionsWindow() {
-        openWindow(id: Constants.permissionsWindowID)
-    }
-
-    /// Dismisses the permissions window.
-    func dismissPermissionsWindow() {
-        dismissWindow(id: Constants.permissionsWindowID)
-    }
-
-    /// Activates the app and sets its activation policy to the given value.
+    /// Activates the app and sets its activation policy.
     func activate(withPolicy policy: NSApplication.ActivationPolicy) {
 
-        // What follows is NOT at all straightforward, but this seems to
-        // be about the only way to make app activation (mostly) reliable
-        // after activation changes made in macOS 14.
+        // What follows is NOT at all straightforward, but it seems to
+        // make app activation (mostly) reliable after changes made in
+        // macOS 14.
 
         let current = NSRunningApplication.current
         let workspace = NSWorkspace.shared
@@ -289,7 +243,7 @@ final class AppState: ObservableObject {
         current.activate(from: frontmost)
     }
 
-    /// Deactivates the app and sets its activation policy to the given value.
+    /// Deactivates the app and sets its activation policy.
     func deactivate(withPolicy policy: NSApplication.ActivationPolicy) {
         NSApp.deactivate()
         NSApp.setActivationPolicy(policy)

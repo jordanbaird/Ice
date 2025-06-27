@@ -182,10 +182,10 @@ final class MenuBarOverlayPanel: NSPanel {
         Publishers.Merge(
             publisher(for: \.isOnActiveSpace)
                 .receive(on: DispatchQueue.main)
-                .mapToVoid(),
+                .replace(with: ()),
             UniversalEventMonitor.publisher(for: .leftMouseUp)
                 .filter { [weak self] _ in self?.isOnActiveSpace ?? false }
-                .mapToVoid()
+                .replace(with: ())
         )
         .debounce(for: 0.05, scheduler: DispatchQueue.main)
         .sink { [weak self] in
@@ -320,10 +320,7 @@ final class MenuBarOverlayPanel: NSPanel {
 
     /// Shows the panel.
     private func show() {
-        guard
-            let appState,
-            !appState.isPreview
-        else {
+        guard let appState else {
             return
         }
 
@@ -452,8 +449,8 @@ private final class MenuBarOverlayPanelContentView: NSView {
         }
 
         // Redraw whenever the configurations change.
-        $fullConfiguration.mapToVoid()
-            .merge(with: $previewConfiguration.mapToVoid())
+        $fullConfiguration.replace(with: ())
+            .merge(with: $previewConfiguration.replace(with: ()))
             .sink { [weak self] _ in
                 self?.needsDisplay = true
             }

@@ -186,6 +186,14 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
 
     let item: SectionedListItem<ItemID>
 
+    private var backgroundShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .circular)
+        }
+    }
+
     var body: some View {
         ZStack {
             if item.isSelectable {
@@ -217,7 +225,12 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
 
     @ViewBuilder
     private var itemBackground: some View {
-        VisualEffectView(material: .selection, blendingMode: .withinWindow)
-            .clipShape(RoundedRectangle(cornerRadius: 5, style: .circular))
+        if #available(macOS 26.0, *) {
+            backgroundShape
+                .fill(.tint)
+        } else {
+            VisualEffectView(material: .selection, blendingMode: .withinWindow)
+                .clipShape(backgroundShape)
+        }
     }
 }

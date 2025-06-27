@@ -194,6 +194,14 @@ private struct MenuBarSearchContentView: View {
     let displayID: CGDirectDisplayID
     let closePanel: () -> Void
 
+    private var bottomBarPadding: CGFloat {
+        if #available(macOS 26.0, *) {
+            return 7
+        } else {
+            return 5
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             TextField(text: $searchText, prompt: Text("Search menu bar items…")) {
@@ -208,9 +216,18 @@ private struct MenuBarSearchContentView: View {
 
             Divider()
 
-            SectionedList(selection: $selection, items: $displayedItems)
-                .contentPadding(8)
-                .scrollContentBackground(.hidden)
+            if #available(macOS 26.0, *) {
+                GlassEffectContainer(spacing: 0) {
+                    SectionedList(selection: $selection, items: $displayedItems)
+                        .contentPadding(8)
+                        .scrollContentBackground(.hidden)
+                }
+                .clipped()
+            } else {
+                SectionedList(selection: $selection, items: $displayedItems)
+                    .contentPadding(8)
+                    .scrollContentBackground(.hidden)
+            }
 
             Divider()
                 .offset(y: 1)
@@ -234,7 +251,7 @@ private struct MenuBarSearchContentView: View {
                     }
                 }
             }
-            .padding(5)
+            .padding(bottomBarPadding)
             .background(.thinMaterial)
         }
         .background {
@@ -324,6 +341,14 @@ private struct BottomBarButton<Content: View>: View {
     let content: Content
     let action: () -> Void
 
+    private var backgroundShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .circular)
+        }
+    }
+
     init(action: @escaping () -> Void, @ViewBuilder content: () -> Content) {
         self.action = action
         self.content = content()
@@ -333,7 +358,7 @@ private struct BottomBarButton<Content: View>: View {
         content
             .padding(3)
             .background {
-                RoundedRectangle(cornerRadius: 5, style: .circular)
+                backgroundShape
                     .fill(.regularMaterial)
                     .brightness(0.25)
                     .opacity(isPressed ? 0.5 : isHovering ? 0.25 : 0)
@@ -378,6 +403,14 @@ private struct ShowItemButton: View {
     let displayID: CGDirectDisplayID
     let action: () -> Void
 
+    private var backgroundShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 3, style: .circular)
+        }
+    }
+
     private var isOnDisplay: Bool {
         Bridging.isWindowOnDisplay(item.windowID, displayID)
     }
@@ -385,18 +418,19 @@ private struct ShowItemButton: View {
     var body: some View {
         BottomBarButton(action: action) {
             HStack {
-                Text(isOnDisplay ? "Click item" : "Show item")
-                    .padding(.horizontal, 5)
+                Text("\(isOnDisplay ? "Click" : "Show") item")
+                    .padding(.leading, 5)
 
                 Image(systemName: "return")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 11, height: 11)
                     .foregroundStyle(.secondary)
+                    .fontWeight(.bold)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 5)
                     .background {
-                        RoundedRectangle(cornerRadius: 3, style: .circular)
+                        backgroundShape
                             .fill(.regularMaterial)
                             .brightness(0.25)
                             .opacity(0.5)
@@ -418,12 +452,12 @@ private struct MenuBarSearchItemView: View {
 
     let item: MenuBarItem
 
-    private var image: NSImage? {
+    private var image: NSImage {
         guard
             let image = imageCache.images[item.info]?.trimmingTransparentPixels(around: [.minXEdge, .maxXEdge]),
             let screen = imageCache.screen
         else {
-            return nil
+            return NSImage()
         }
         let size = CGSize(
             width: CGFloat(image.width) / screen.backingScaleFactor,
@@ -432,49 +466,74 @@ private struct MenuBarSearchItemView: View {
         return NSImage(cgImage: image, size: size)
     }
 
-    private var appIcon: NSImage? {
+    private var appIcon: NSImage {
         if item.legacyInfo.namespace == .systemUIServer {
-            controlCenterIcon
+            controlCenterIcon ?? NSImage()
         } else {
-            item.owningApplication?.icon
+            item.owningApplication?.icon ?? NSImage()
+        }
+    }
+
+    private var backgroundShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .circular)
+        }
+    }
+
+    private var size: CGFloat {
+        if #available(macOS 26.0, *) {
+            return 26
+        } else {
+            return 24
+        }
+    }
+
+    private var padding: CGFloat {
+        if #available(macOS 26.0, *) {
+            return 6
+        } else {
+            return 8
         }
     }
 
     var body: some View {
         HStack {
-            if let appIcon {
-                Image(nsImage: appIcon)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 24, height: 24)
-            }
+            Image(nsImage: appIcon)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
             Text(item.displayName)
             Spacer()
             imageViewWithBackground
         }
-        .padding(8)
+        .padding(padding)
     }
 
     @ViewBuilder
     private var imageViewWithBackground: some View {
-        if let image {
-            ZStack {
-                RoundedRectangle(cornerRadius: 5, style: .circular)
-                    .fill(.regularMaterial)
+        if #available(macOS 26.0, *) {
+            imageView.glassEffect(
+                Glass.regular.tint(.secondary.opacity(0.33)),
+                in: backgroundShape
+            )
+        } else {
+            imageView.background {
+                backgroundShape
+                    .fill(.regularMaterial.opacity(0.75))
                     .brightness(0.25)
-                    .opacity(0.75)
-                    .frame(width: item.frame.width)
                     .overlay {
-                        RoundedRectangle(cornerRadius: 5, style: .circular)
-                            .inset(by: 0.5)
-                            .stroke(lineWidth: 1)
-                            .foregroundStyle(.white)
-                            .opacity(0.15)
+                        backgroundShape
+                            .strokeBorder(.white.opacity(0.15))
                     }
-
-                Image(nsImage: image)
-                    .frame(height: 24)
             }
         }
+    }
+
+    @ViewBuilder
+    private var imageView: some View {
+        Image(nsImage: image)
+            .frame(width: item.frame.width, height: size)
     }
 }

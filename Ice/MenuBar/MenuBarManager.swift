@@ -186,11 +186,13 @@ final class MenuBarManager: ObservableObject {
 
                 // Don't continue if:
                 //   * The "HideApplicationMenus" setting isn't enabled.
+                //   * Using the Ice Bar.
                 //   * The menu bar is hidden by the system.
                 //   * The active space is fullscreen.
                 //   * The settings window is visible.
                 guard
                     appState.settingsManager.advancedSettingsManager.hideApplicationMenus,
+                    !appState.settingsManager.generalSettingsManager.useIceBar,
                     !isMenuBarHiddenBySystem,
                     !appState.isActiveSpaceFullscreen,
                     !appState.navigationState.isSettingsPresented

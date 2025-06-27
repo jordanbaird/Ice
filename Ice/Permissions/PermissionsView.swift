@@ -6,11 +6,10 @@
 import SwiftUI
 
 struct PermissionsView: View {
-    @EnvironmentObject var permissionsManager: PermissionsManager
-    @Environment(\.openWindow) private var openWindow
+    @EnvironmentObject private var manager: PermissionsManager
 
     private var continueButtonText: LocalizedStringKey {
-        if case .hasRequiredPermissions = permissionsManager.permissionsState {
+        if case .hasRequired = manager.permissionsState {
             "Continue in Limited Mode"
         } else {
             "Continue"
@@ -18,10 +17,13 @@ struct PermissionsView: View {
     }
 
     private var continueButtonForegroundStyle: some ShapeStyle {
-        if case .hasRequiredPermissions = permissionsManager.permissionsState {
-            AnyShapeStyle(.yellow)
-        } else {
+        switch manager.permissionsState {
+        case .missing:
+            AnyShapeStyle(.secondary)
+        case .hasAll:
             AnyShapeStyle(.primary)
+        case .hasRequired:
+            AnyShapeStyle(.yellow)
         }
     }
 
@@ -38,21 +40,6 @@ struct PermissionsView: View {
         }
         .padding(.horizontal)
         .fixedSize()
-        .readWindow { window in
-            guard let window else {
-                return
-            }
-            window.styleMask.remove([.closable, .miniaturizable])
-            if let contentView = window.contentView {
-                with(contentView.safeAreaInsets) { insets in
-                    insets.bottom = -insets.bottom
-                    insets.left = -insets.left
-                    insets.right = -insets.right
-                    insets.top = -insets.top
-                    contentView.additionalSafeAreaInsets = insets
-                }
-            }
-        }
     }
 
     @ViewBuilder
@@ -88,7 +75,7 @@ struct PermissionsView: View {
     @ViewBuilder
     private var permissionsGroupStack: some View {
         VStack(spacing: 7.5) {
-            ForEach(permissionsManager.allPermissions) { permission in
+            ForEach(manager.allPermissions) { permission in
                 permissionBox(permission)
             }
         }
@@ -116,18 +103,29 @@ struct PermissionsView: View {
     @ViewBuilder
     private var continueButton: some View {
         Button {
-            guard let appState = permissionsManager.appState else {
+            guard let appState = manager.appState else {
                 return
             }
-            appState.performSetup()
-            appState.permissionsWindow?.close()
-            appState.appDelegate?.openSettingsWindow()
+
+            appState.dismissWindow(.permissions)
+
+            guard manager.permissionsState != .missing else {
+                appState.performSetup(hasPermissions: false)
+                return
+            }
+
+            appState.performSetup(hasPermissions: true)
+
+            Task {
+                appState.activate(withPolicy: .regular)
+                appState.openWindow(.settings)
+            }
         } label: {
             Text(continueButtonText)
                 .frame(maxWidth: .infinity)
                 .foregroundStyle(continueButtonForegroundStyle)
         }
-        .disabled(permissionsManager.permissionsState == .missingPermissions)
+        .disabled(manager.permissionsState == .missing)
     }
 
     @ViewBuilder
@@ -154,14 +152,14 @@ struct PermissionsView: View {
                 }
 
                 Button {
-                    guard let appState = permissionsManager.appState else {
+                    guard let appState = manager.appState else {
                         return
                     }
                     permission.performRequest()
                     Task {
                         await permission.waitForPermission()
                         appState.activate(withPolicy: .regular)
-                        openWindow(id: Constants.permissionsWindowID)
+                        appState.openWindow(.permissions)
                     }
                 } label: {
                     if permission.hasPermission {
@@ -174,18 +172,9 @@ struct PermissionsView: View {
                 .allowsHitTesting(!permission.hasPermission)
 
                 if !permission.isRequired {
-                    IceGroupBox {
-                        AnnotationView(
-                            alignment: .center,
-                            font: .callout.bold()
-                        ) {
-                            Label {
-                                Text("Ice can work in a limited mode without this permission.")
-                            } icon: {
-                                Image(systemName: "checkmark.shield")
-                                    .foregroundStyle(.green)
-                            }
-                        }
+                    CalloutBox("Ice can work in a limited mode without this permission.") {
+                        Image(systemName: "checkmark.shield")
+                            .foregroundStyle(.green)
                     }
                 }
             }

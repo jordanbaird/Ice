@@ -60,7 +60,7 @@ struct CustomGradientPicker: View {
             .onChange(of: gradient) { _, newValue in
                 gradientChanged(to: newValue)
             }
-            .readWindow(window: $window)
+            .onWindowChange(update: $window)
     }
 
     @ViewBuilder

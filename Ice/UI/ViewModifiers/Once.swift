@@ -5,17 +5,30 @@
 
 import SwiftUI
 
-private struct OnceModifier: ViewModifier {
-    @State private var hasAppeared = false
+private struct OnceAction {
+    private var action: (() -> Void)?
 
-    let onAppear: () -> Void
+    init(action: @escaping () -> Void) {
+        self.action = action
+    }
+
+    mutating func callAsFunction() {
+        if let action = action.take() {
+            action()
+        }
+    }
+}
+
+private struct OnceModifier: ViewModifier {
+    @State private var action: OnceAction
+
+    init(action: @escaping () -> Void) {
+        self.action = OnceAction(action: action)
+    }
 
     func body(content: Content) -> some View {
         content.onAppear {
-            if !hasAppeared {
-                onAppear()
-                hasAppeared = true
-            }
+            action()
         }
     }
 }
@@ -26,6 +39,32 @@ extension View {
     ///
     /// - Parameter action: The action to perform.
     func once(perform action: @escaping () -> Void) -> some View {
-        modifier(OnceModifier(onAppear: action))
+        modifier(OnceModifier(action: action))
+    }
+}
+
+private struct OnceScene<Content: Scene>: Scene {
+    @State private var action: OnceAction
+
+    let content: Content
+
+    init(content: Content, action: @escaping () -> Void) {
+        self.action = OnceAction(action: action)
+        self.content = content
+    }
+
+    var body: some Scene {
+        content.onChange(of: 0, initial: true) {
+            action()
+        }
+    }
+}
+
+extension Scene {
+    /// Adds an action to perform exactly once, when the scene appears.
+    ///
+    /// - Parameter action: The action to perform.
+    func once(perform action: @escaping () -> Void) -> some Scene {
+        OnceScene(content: self, action: action)
     }
 }

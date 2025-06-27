@@ -483,9 +483,48 @@ extension NSStatusItem {
 // MARK: - Publisher
 
 extension Publisher {
-    /// Transforms all elements from the upstream publisher into `Void` values.
-    func mapToVoid() -> some Publisher<Void, Failure> {
-        map { _ in () }
+    /// Replaces all elements from the upstream publisher using the
+    /// provided closure.
+    ///
+    /// - Parameter transform: A closure that returns an element to
+    ///   publish in place of the upstream element.
+    func replace<T>(_ transform: @escaping () -> T) -> Publishers.Map<Self, T> {
+        map { _ in transform() }
+    }
+
+    /// Replaces all elements from the upstream publisher with the
+    /// provided element.
+    ///
+    /// - Parameter output: An element to publish in place of the
+    ///   upstream element.
+    func replace<T>(with output: T) -> Publishers.Map<Self, T> {
+        replace { output }
+    }
+
+    func mergeReplace<P: Publisher, T>(_ other: P, with output: T) -> Publishers.Merge<Publishers.Map<Self, T>, Publishers.Map<P, T>> {
+        replace(with: output).merge(with: other.replace(with: output))
+    }
+
+    func mergeReplace<P: Publisher, T>(_ other: P, transform: @escaping () -> T) -> Publishers.Merge<Publishers.Map<Self, T>, Publishers.Map<P, T>> {
+        replace(transform).merge(with: other.replace(transform))
+    }
+}
+
+// MARK: - Publisher where Output: Sequence, Failure == Never
+
+extension Publisher where Output: Sequence, Failure == Never {
+    /// Transforms the elements of the upstream sequence into publishers and
+    /// merges the results.
+    ///
+    /// - Parameter transform: A closure that takes an element of the upstream
+    ///   sequence as a parameter and returns a publisher.
+    ///
+    /// - Returns: A publisher that emits an event when any upstream publisher
+    ///   emits an event.
+    func mergeMap<P: Publisher>(_ transform: @escaping (Output.Element) -> P) -> some Publisher<P.Output, P.Failure> {
+        flatMap { sequence in
+            Publishers.MergeMany(sequence.map(transform))
+        }
     }
 }
 

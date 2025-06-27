@@ -3,40 +3,27 @@
 //  Ice
 //
 
-import SwiftUI
 import OSLog
+import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private weak var appState: AppState?
+    /// The shared app state.
+    let appState = AppState()
 
+    /// Logger for the delegate.
     private let logger = Logger(category: "AppDelegate")
 
     // MARK: NSApplicationDelegate Methods
 
     func applicationWillFinishLaunching(_ notification: Notification) {
-        guard let appState else {
-            logger.warning("Missing app state in applicationWillFinishLaunching")
-            return
-        }
-
-        // Assign the delegate to the shared app state.
-        appState.assignAppDelegate(self)
-
-        // Allow the app to set the cursor in the background.
-        appState.setsCursorInBackground = true
+        // Initial chore work.
+        NSSplitViewItem.swizzle()
+        MigrationManager(appState: appState).migrateAll()
+        Bridging.setConnectionProperty(true, forKey: "SetsCursorInBackground")
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        guard let appState else {
-            logger.warning("Missing app state in applicationDidFinishLaunching")
-            return
-        }
-
-        // Dismiss the windows.
-        appState.dismissSettingsWindow()
-        appState.dismissPermissionsWindow()
-
         // Hide the main menu to make more space in the menu bar.
         if let mainMenu = NSApp.mainMenu {
             for item in mainMenu.items {
@@ -44,27 +31,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Perform setup after a small delay to ensure that the settings window
-        // has been assigned.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            guard !appState.isPreview else {
-                return
-            }
-            // If we have the required permissions, set up the shared app state.
-            // Otherwise, open the permissions window.
-            switch appState.permissionsManager.permissionsState {
-            case .hasAllPermissions, .hasRequiredPermissions:
-                appState.performSetup()
-            case .missingPermissions:
-                appState.activate(withPolicy: .regular)
-                appState.openPermissionsWindow()
-            }
+        #if DEBUG
+        // Stop here if running as a preview.
+        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+            return
+        }
+        #endif
+
+        // Depending on the permissions state, either perform setup
+        // or prompt to grant permissions.
+        switch appState.permissionsManager.permissionsState {
+        case .hasAll:
+            appState.permissionsManager.logger.info("Passed all permissions checks")
+            appState.performSetup(hasPermissions: true)
+        case .hasRequired:
+            appState.permissionsManager.logger.info("Passed required permissions checks")
+            appState.performSetup(hasPermissions: true)
+        case .missing:
+            appState.permissionsManager.logger.info("Failed required permissions checks")
+            appState.performSetup(hasPermissions: false)
         }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        // Deactivate and set the policy to accessory when all windows are closed.
-        appState?.deactivate(withPolicy: .accessory)
+        if
+            sender.isActive,
+            sender.activationPolicy() != .accessory,
+            appState.navigationState.isAppFrontmost
+        {
+            logger.debug("All windows closed - deactivating")
+            appState.deactivate(withPolicy: .accessory)
+        }
         return false
     }
 
@@ -74,25 +71,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: Other Methods
 
-    /// Assigns the app state to the delegate.
-    func assignAppState(_ appState: AppState) {
-        guard self.appState == nil else {
-            logger.warning("Multiple attempts made to assign app state")
-            return
-        }
-        self.appState = appState
-    }
-
     /// Opens the settings window and activates the app.
     @objc func openSettingsWindow() {
-        guard let appState else {
-            logger.error("Failed to open settings window")
-            return
-        }
         // Small delay makes this more reliable.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            appState.activate(withPolicy: .regular)
-            appState.openSettingsWindow()
+            self.appState.activate(withPolicy: .regular)
+            self.appState.openWindow(.settings)
         }
     }
 }

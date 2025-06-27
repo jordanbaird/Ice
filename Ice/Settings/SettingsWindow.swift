@@ -9,14 +9,8 @@ struct SettingsWindow: Scene {
     @ObservedObject var appState: AppState
 
     var body: some Scene {
-        Window(Constants.settingsWindowTitle, id: Constants.settingsWindowID) {
+        IceWindow(id: .settings) {
             settingsView
-                .readWindow { window in
-                    guard let window else {
-                        return
-                    }
-                    appState.assignSettingsWindow(window)
-                }
                 .frame(minWidth: 825, minHeight: 500)
         }
         .commandsRemoved()

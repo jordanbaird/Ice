@@ -57,10 +57,13 @@ final class EventManager {
         return event
     }
 
-    /// Monitor for mouse moved events.
-    private(set) lazy var mouseMovedMonitor = UniversalEventMonitor(
-        mask: .mouseMoved
-    ) { [weak self] event in
+    /// Tap for mouse moved events.
+    private(set) lazy var mouseMovedTap = EventTap(
+        options: .listenOnly,
+        location: .hidEventTap,
+        place: .tailAppendEventTap,
+        types: [.mouseMoved]
+    ) { [weak self] _, _, event in
         if let self, let appState, let screen = bestScreen(appState: appState) {
             handleShowOnHover(appState: appState, screen: screen)
         }
@@ -79,12 +82,12 @@ final class EventManager {
 
     // MARK: All Monitors
 
-    /// All monitors maintained by the app.
-    private lazy var allMonitors = [
+    /// All monitors maintained by the manager.
+    private lazy var allMonitors: [any EventMonitorProtocol] = [
         mouseDownMonitor,
         mouseUpMonitor,
         mouseDraggedMonitor,
-        mouseMovedMonitor,
+        mouseMovedTap,
         scrollWheelMonitor,
     ]
 
@@ -146,7 +149,7 @@ final class EventManager {
     }
 }
 
-// MARK: - Handlers
+// MARK: - Handler Methods
 
 extension EventManager {
 
@@ -428,7 +431,7 @@ extension EventManager {
     }
 }
 
-// MARK: - Helpers
+// MARK: - Helper Methods
 
 extension EventManager {
     /// Returns the best screen to use for event manager calculations.
@@ -540,5 +543,27 @@ extension EventManager {
             return false
         }
         return iceIconFrame.contains(mouseLocation)
+    }
+}
+
+// MARK: - EventMonitor Helpers
+
+/// Helper protocol to enable group operations across event
+/// monitoring types.
+@MainActor
+private protocol EventMonitorProtocol {
+    func start()
+    func stop()
+}
+
+extension UniversalEventMonitor: EventMonitorProtocol { }
+
+extension EventTap: EventMonitorProtocol {
+    fileprivate func start() {
+        enable()
+    }
+
+    fileprivate func stop() {
+        disable()
     }
 }

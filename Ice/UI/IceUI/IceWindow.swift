@@ -35,10 +35,7 @@ struct IceWindow<Content: View>: Scene {
 
         Window(id.titleKey, id: id.rawValue) {
             content.onWindowChange { window in
-                guard let window else {
-                    return
-                }
-                window.collectionBehavior.insert(.moveToActiveSpace)
+                window?.collectionBehavior.insert(.moveToActiveSpace)
             }
         }
     }

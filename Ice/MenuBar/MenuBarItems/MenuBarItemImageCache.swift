@@ -9,11 +9,14 @@ import OSLog
 
 /// Cache for menu bar item images.
 final class MenuBarItemImageCache: ObservableObject {
-    /// Logger for the menu bar item image cache.
-    private static let logger = Logger(category: "MenuBarItemImageCache")
-
     /// The cached item images.
     @Published private(set) var images = [MenuBarItemInfo: CGImage]()
+
+    /// Logger for the menu bar item image cache.
+    private let logger = Logger(category: "MenuBarItemImageCache")
+
+    /// Queue to run cache operations.
+    private let queue = DispatchQueue(label: "MenuBarItemImageCache", qos: .background)
 
     /// The screen of the cached item images.
     private(set) var screen: NSScreen?
@@ -27,14 +30,10 @@ final class MenuBarItemImageCache: ObservableObject {
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
-    /// Creates a cache with the given app state.
-    init(appState: AppState) {
-        self.appState = appState
-    }
-
     /// Sets up the cache.
     @MainActor
-    func performSetup() {
+    func performSetup(with appState: AppState) {
+        self.appState = appState
         configureCancellables()
     }
 
@@ -80,7 +79,7 @@ final class MenuBarItemImageCache: ObservableObject {
 
     /// Logs a reason for skipping the cache.
     private func logSkippingCache(reason: @escaping @autoclosure () -> String) {
-        MenuBarItemImageCache.logger.debug("Skipping menu bar item image cache as \(reason(), privacy: .public)")
+        logger.debug("Skipping menu bar item image cache as \(reason(), privacy: .public)")
     }
 
     /// Returns a Boolean value that indicates whether caching menu bar items failed for
@@ -162,7 +161,7 @@ final class MenuBarItemImageCache: ObservableObject {
                 images[itemInfo] = itemImage
             }
         } else {
-            MenuBarItemImageCache.logger.warning(
+            logger.warning(
                 """
                 Composite capture failed for \(section.logString, privacy: .public). \
                 Attempting to capture each item individually.
@@ -215,7 +214,7 @@ final class MenuBarItemImageCache: ObservableObject {
             }
             let sectionImages = await createImages(for: section, screen: screen)
             guard !sectionImages.isEmpty else {
-                MenuBarItemImageCache.logger.warning(
+                logger.warning(
                     """
                     Failed to update cached menu bar item images for \
                     \(section.logString, privacy: .public)

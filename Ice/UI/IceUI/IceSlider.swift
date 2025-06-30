@@ -44,16 +44,28 @@ struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View, ValueLabelSelecta
         }
     }
 
+    private var borderShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .circular)
+        }
+    }
+
     var body: some View {
         CompactSlider(
             value: value,
             in: bounds,
             step: step,
-            handleVisibility: .hovering(width: 1)
+            handleVisibility: .hovering(width: 1),
+            minHeight: 0
         ) {
             valueLabel
                 .textSelection(valueLabelSelectability)
+                .frame(height: 22)
         }
         .compactSliderDisabledHapticFeedback(true)
+        .clipShape(borderShape)
+        .contentShape([.interaction, .focusEffect], borderShape)
     }
 }

@@ -1,5 +1,5 @@
 //
-//  NSSplitViewItem+swizzledCanCollapse.swift
+//  Swizzling.swift
 //  Ice
 //
 
@@ -23,7 +23,7 @@ extension NSSplitViewItem {
     @objc private var swizzledCanCollapse: Bool {
         if
             let window = viewController.view.window,
-            window.identifier?.rawValue == Constants.settingsWindowID
+            window.identifier?.rawValue == IceWindowIdentifier.settings.rawValue
         {
             return false
         }

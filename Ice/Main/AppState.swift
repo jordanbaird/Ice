@@ -13,41 +13,44 @@ final class AppState: ObservableObject {
     /// A Boolean value that indicates whether the active space is fullscreen.
     @Published private(set) var isActiveSpaceFullscreen = Bridging.isActiveSpaceFullscreen()
 
-    /// Manager for the menu bar's appearance.
-    private(set) lazy var appearanceManager = MenuBarAppearanceManager(appState: self)
-
-    /// Manager for events received by the app.
-    private(set) lazy var eventManager = EventManager(appState: self)
-
-    /// Manager for menu bar items.
-    private(set) lazy var itemManager = MenuBarItemManager(appState: self)
-
-    /// Manager for the state of the menu bar.
-    private(set) lazy var menuBarManager = MenuBarManager(appState: self)
-
-    /// Manager for app permissions.
-    private(set) lazy var permissionsManager = PermissionsManager(appState: self)
+    /// A Boolean value that indicates whether the user is dragging a menu bar item.
+    @Published private(set) var isDraggingMenuBarItem = false
 
     /// Manager for the app's settings.
-    private(set) lazy var settingsManager = SettingsManager(appState: self)
-
-    /// Manager for app updates.
-    private(set) lazy var updatesManager = UpdatesManager(appState: self)
-
-    /// Manager for user notifications.
-    private(set) lazy var userNotificationManager = UserNotificationManager(appState: self)
-
-    /// Global cache for menu bar item images.
-    private(set) lazy var imageCache = MenuBarItemImageCache(appState: self)
-
-    /// Manager for menu bar item spacing.
-    let spacingManager = MenuBarItemSpacingManager()
+    let settingsManager = SettingsManager()
 
     /// Model for app-wide navigation.
     let navigationState = AppNavigationState()
 
+    /// Manager for the state of the menu bar.
+    let menuBarManager = MenuBarManager()
+
+    /// Manager for the menu bar's appearance.
+    let appearanceManager = MenuBarAppearanceManager()
+
+    /// Manager for menu bar item spacing.
+    let spacingManager = MenuBarItemSpacingManager()
+
+    /// Manager for menu bar items.
+    let itemManager = MenuBarItemManager()
+
+    /// Global cache for menu bar item images.
+    let imageCache = MenuBarItemImageCache()
+
+    /// Manager for events received by the app.
+    let eventManager = EventManager()
+
+    /// Manager for app permissions.
+    let permissionsManager = PermissionsManager()
+
+    /// Manager for app updates.
+    let updatesManager = UpdatesManager()
+
+    /// Manager for user notifications.
+    let userNotificationManager = UserNotificationManager()
+
     /// The app's hotkey registry.
-    nonisolated let hotkeyRegistry = HotkeyRegistry()
+    let hotkeyRegistry = HotkeyRegistry()
 
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
@@ -60,14 +63,14 @@ final class AppState: ObservableObject {
         logger.info("Running setup actions")
         configureCancellables()
         permissionsManager.stopAllChecks()
-        menuBarManager.performSetup()
-        appearanceManager.performSetup()
-        eventManager.performSetup()
-        settingsManager.performSetup()
-        itemManager.performSetup()
-        imageCache.performSetup()
-        updatesManager.performSetup()
-        userNotificationManager.performSetup()
+        menuBarManager.performSetup(with: self)
+        appearanceManager.performSetup(with: self)
+        eventManager.performSetup(with: self)
+        settingsManager.performSetup(with: self)
+        itemManager.performSetup(with: self)
+        imageCache.performSetup(with: self)
+        updatesManager.performSetup(with: self)
+        userNotificationManager.performSetup(with: self)
     }()
 
     /// Performs app state setup.
@@ -107,35 +110,28 @@ final class AppState: ObservableObject {
                 .replace(with: ())
         )
         .receive(on: DispatchQueue.main)
-        .sink { [weak self] _ in
-            guard let self else {
-                return
-            }
-            isActiveSpaceFullscreen = Bridging.isActiveSpaceFullscreen()
+        .replace {
+            Bridging.isActiveSpaceFullscreen()
         }
-        .store(in: &c)
+        .removeDuplicates()
+        .assign(to: &$isActiveSpaceFullscreen)
 
         NSWorkspace.shared.publisher(for: \.frontmostApplication)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] frontmostApplication in
-                guard let self else {
-                    return
-                }
-                navigationState.isAppFrontmost = frontmostApplication == .current
-            }
-            .store(in: &c)
+            .map { $0 == .current }
+            .removeDuplicates()
+            .assign(to: &navigationState.$isAppFrontmost)
 
         publisherForWindow(.settings)
             .flatMap { $0.publisher } // Short circuit if nil.
             .flatMap { $0.publisher(for: \.isVisible) }
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
-            .sink { [weak self] isVisible in
-                guard let self else {
-                    return
-                }
-                navigationState.isSettingsPresented = isVisible
-            }
-            .store(in: &c)
+            .removeDuplicates()
+            .assign(to: &navigationState.$isSettingsPresented)
+
+        eventManager.$isDraggingMenuBarItem
+            .removeDuplicates()
+            .assign(to: &$isDraggingMenuBarItem)
 
         Publishers.CombineLatest(
             navigationState.$isAppFrontmost,

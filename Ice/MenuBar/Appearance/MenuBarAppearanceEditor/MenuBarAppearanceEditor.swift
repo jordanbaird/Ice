@@ -59,6 +59,15 @@ struct MenuBarAppearanceEditor: View {
     @ViewBuilder
     private var mainForm: some View {
         IceForm(padding: mainFormPadding) {
+            if
+                case .settings = location,
+                appState.settingsManager.advancedSettingsManager.showContextMenuOnRightClick
+            {
+                CalloutBox(
+                    "Tip: You can also edit these settings by right-clicking in an empty area of the menu bar.",
+                    systemImage: "lightbulb"
+                )
+            }
             IceSection {
                 isDynamicToggle
             }
@@ -71,20 +80,6 @@ struct MenuBarAppearanceEditor: View {
             IceSection("Menu Bar Shape") {
                 shapePicker
                 isInset
-            }
-            if case .settings = location {
-                IceGroupBox {
-                    AnnotationView(
-                        alignment: .center,
-                        font: .callout.bold()
-                    ) {
-                        Label {
-                            Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
-                        } icon: {
-                            Image(systemName: "lightbulb")
-                        }
-                    }
-                }
             }
             if
                 !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
@@ -102,12 +97,12 @@ struct MenuBarAppearanceEditor: View {
     @ViewBuilder
     private var isDynamicToggle: some View {
         Toggle("Use dynamic appearance", isOn: appearanceManager.bindings.configuration.isDynamic)
-            .annotation("Apply different settings based on the current system appearance")
+            .annotation("Apply different settings based on the current system appearance.")
     }
 
     @ViewBuilder
     private var cannotEdit: some View {
-        Text("Ice cannot edit the appearance of automatically hidden menu bars")
+        Text("Ice cannot edit the appearance of automatically hidden menu bars.")
             .font(.title3)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }

@@ -15,14 +15,9 @@ final class UserNotificationManager: NSObject {
     /// The current notification center.
     var notificationCenter: UNUserNotificationCenter { .current() }
 
-    /// Creates a user notification manager with the given app state.
-    init(appState: AppState) {
+    /// Performs the initial setup of the manager.
+    func performSetup(with appState: AppState) {
         self.appState = appState
-        super.init()
-    }
-
-    /// Sets up the manager.
-    func performSetup() {
         notificationCenter.delegate = self
     }
 
@@ -32,7 +27,7 @@ final class UserNotificationManager: NSObject {
             do {
                 try await notificationCenter.requestAuthorization(options: [.badge, .alert, .sound])
             } catch {
-                Logger.default.error("Failed to request notification authorization: \(error)")
+                Logger.general.error("Failed to request notification authorization: \(error)")
             }
         }
     }

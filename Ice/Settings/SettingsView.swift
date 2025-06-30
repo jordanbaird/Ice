@@ -7,6 +7,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var navigationState: AppNavigationState
+    @Environment(\.appearsActive) var appearsActive
     @Environment(\.sidebarRowSize) var sidebarRowSize
 
     private var sidebarWidth: CGFloat {
@@ -20,9 +21,9 @@ struct SettingsView: View {
         } else {
             switch sidebarRowSize {
             case .small: 190
-            case .medium: 210
+            case .medium: 215
             case .large: 230
-            @unknown default: 210
+            @unknown default: 215
             }
         }
     }
@@ -67,8 +68,8 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("Ice")
-                    .font(.system(size: 36, weight: .medium))
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 40, weight: .medium))
+                    .foregroundStyle(appearsActive ? .primary : .tertiary)
                     .padding(.bottom, 10)
             }
             .collapsible(false)

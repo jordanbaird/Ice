@@ -8,32 +8,22 @@ import Combine
 @MainActor
 final class SettingsManager: ObservableObject {
     /// The manager for general settings.
-    let generalSettingsManager: GeneralSettingsManager
+    let generalSettingsManager = GeneralSettingsManager()
 
     /// The manager for advanced settings.
-    let advancedSettingsManager: AdvancedSettingsManager
+    let advancedSettingsManager = AdvancedSettingsManager()
 
     /// The manager for hotkey settings.
-    let hotkeySettingsManager: HotkeySettingsManager
+    let hotkeySettingsManager = HotkeySettingsManager()
 
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
-    /// The shared app state.
-    private(set) weak var appState: AppState?
-
-    init(appState: AppState) {
-        self.generalSettingsManager = GeneralSettingsManager(appState: appState)
-        self.advancedSettingsManager = AdvancedSettingsManager(appState: appState)
-        self.hotkeySettingsManager = HotkeySettingsManager(appState: appState)
-        self.appState = appState
-    }
-
-    func performSetup() {
+    func performSetup(with appState: AppState) {
         configureCancellables()
-        generalSettingsManager.performSetup()
-        advancedSettingsManager.performSetup()
-        hotkeySettingsManager.performSetup()
+        generalSettingsManager.performSetup(with: appState)
+        advancedSettingsManager.performSetup(with: appState)
+        hotkeySettingsManager.performSetup(with: appState)
     }
 
     private func configureCancellables() {

@@ -52,14 +52,9 @@ final class UpdatesManager: NSObject, ObservableObject {
         }
     }
 
-    /// Creates an updates manager with the given app state.
-    init(appState: AppState) {
+    /// Performs the initial setup of the manager.
+    func performSetup(with appState: AppState) {
         self.appState = appState
-        super.init()
-    }
-
-    /// Sets up the manager.
-    func performSetup() {
         _ = updaterController
         configureCancellables()
     }

@@ -8,7 +8,10 @@ import Combine
 
 /// Manager for the various event monitors maintained by the app.
 @MainActor
-final class EventManager {
+final class EventManager: ObservableObject {
+    /// A Boolean value that indicates whether the user is dragging a menu bar item.
+    @Published private(set) var isDraggingMenuBarItem = false
+
     /// The shared app state.
     private weak var appState: AppState?
 
@@ -41,9 +44,7 @@ final class EventManager {
     private(set) lazy var mouseUpMonitor = UniversalEventMonitor(
         mask: .leftMouseUp
     ) { [weak self] event in
-        if let self, let appState {
-            handleLeftMouseUp(appState: appState)
-        }
+        self?.handleLeftMouseUp()
         return event
     }
 
@@ -91,15 +92,11 @@ final class EventManager {
         scrollWheelMonitor,
     ]
 
-    // MARK: Initializers
-
-    /// Creates an event manager with the given app state.
-    init(appState: AppState) {
-        self.appState = appState
-    }
+    // MARK: Setup
 
     /// Sets up the manager.
-    func performSetup() {
+    func performSetup(with appState: AppState) {
+        self.appState = appState
         startAll()
         configureCancellables()
     }
@@ -166,20 +163,30 @@ extension EventManager {
         Task {
             // Short delay helps the toggle action feel more natural.
             try await Task.sleep(for: .milliseconds(50))
+
             if NSEvent.modifierFlags == .control {
                 handleShowRightClickMenu(appState: appState, screen: screen)
-            } else if
-                NSEvent.modifierFlags == .option,
-                appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
-            {
-                if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
-                    await alwaysHiddenSection.toggle()
-                }
-            } else {
-                if let hiddenSection = appState.menuBarManager.section(withName: .hidden) {
-                    await hiddenSection.toggle()
-                }
+                return
             }
+
+            let targetSection: MenuBarSection
+
+            if
+                NSEvent.modifierFlags == .option,
+                let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden),
+                alwaysHiddenSection.isEnabled
+            {
+                targetSection = alwaysHiddenSection
+            } else if
+                let hiddenSection = appState.menuBarManager.section(withName: .hidden),
+                hiddenSection.isEnabled
+            {
+                targetSection = hiddenSection
+            } else {
+                return
+            }
+
+            await targetSection.toggle()
         }
     }
 
@@ -315,8 +322,8 @@ extension EventManager {
 
     // MARK: Handle Left Mouse Up
 
-    private func handleLeftMouseUp(appState: AppState) {
-        appState.appearanceManager.setIsDraggingMenuBarItem(false)
+    private func handleLeftMouseUp() {
+        isDraggingMenuBarItem = false
     }
 
     // MARK: Handle Left Mouse Dragged
@@ -329,24 +336,12 @@ extension EventManager {
             return
         }
 
-        // Notify each overlay panel that a menu bar item is being dragged.
-        appState.appearanceManager.setIsDraggingMenuBarItem(true)
+        isDraggingMenuBarItem = true
 
-        // Don't continue if the setting to show the sections is disabled.
-        guard appState.settingsManager.advancedSettingsManager.showAllSectionsOnUserDrag else {
-            return
-        }
-
-        // Show all items, including section dividers.
-        for section in appState.menuBarManager.sections {
-            section.controlItem.state = .showItems
-            guard
-                section.controlItem.isSectionDivider,
-                !section.controlItem.isVisible
-            else {
-                continue
+        if appState.settingsManager.advancedSettingsManager.showAllSectionsOnUserDrag {
+            for section in appState.menuBarManager.sections {
+                section.controlItem.state = .showItems
             }
-            section.controlItem.isVisible = true
         }
     }
 

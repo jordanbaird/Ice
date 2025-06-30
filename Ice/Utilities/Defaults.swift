@@ -159,13 +159,12 @@ extension Defaults {
         // MARK: Advanced Settings
 
         case hideApplicationMenus = "HideApplicationMenus"
-        case showSectionDividers = "ShowSectionDividers"
         case enableAlwaysHiddenSection = "EnableAlwaysHiddenSection"
-        case canToggleAlwaysHiddenSection = "CanToggleAlwaysHiddenSection"
         case showOnHoverDelay = "ShowOnHoverDelay"
         case tempShowInterval = "TempShowInterval"
         case showAllSectionsOnUserDrag = "ShowAllSectionsOnUserDrag"
         case showContextMenuOnRightClick = "ShowContextMenuOnRightClick"
+        case sectionDividerStyle = "SectionDividerStyle"
 
         // MARK: Menu Bar Appearance Settings
 
@@ -182,10 +181,9 @@ extension Defaults {
         case hasMigrated0_10_0 = "hasMigrated0_10_0"
         case hasMigrated0_10_1 = "hasMigrated0_10_1"
         case hasMigrated0_11_10 = "hasMigrated0_11_10"
+        case hasMigrated0_11_13 = "hasMigrated0_11_13"
 
-        // MARK: Deprecated
-
-        case sections = "Sections"
+        // MARK: Deprecated (Menu Bar Appearance)
         case menuBarHasBorder = "MenuBarHasBorder"
         case menuBarBorderColor = "MenuBarBorderColor"
         case menuBarBorderWidth = "MenuBarBorderWidth"
@@ -197,5 +195,13 @@ extension Defaults {
         case menuBarFullShapeInfo = "MenuBarFullShapeInfo"
         case menuBarSplitShapeInfo = "MenuBarSplitShapeInfo"
         case menuBarAppearanceConfiguration = "MenuBarAppearanceConfiguration"
+
+        // MARK: Deprecated (Advanced)
+        case showSectionDividers = "ShowSectionDividers"
+        case canToggleAlwaysHiddenSection = "CanToggleAlwaysHiddenSection"
+
+        // MARK: Deprecated (Other)
+
+        case sections = "Sections"
     }
 }

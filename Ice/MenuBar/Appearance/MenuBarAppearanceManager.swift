@@ -34,13 +34,9 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// The amount to inset the menu bar if called for by the configuration.
     let menuBarInsetAmount: CGFloat = 5
 
-    /// Creates a manager with the given app state.
-    init(appState: AppState) {
-        self.appState = appState
-    }
-
     /// Performs initial setup of the manager.
-    func performSetup() {
+    func performSetup(with appState: AppState) {
+        self.appState = appState
         loadInitialState()
         configureCancellables()
     }
@@ -144,14 +140,6 @@ final class MenuBarAppearanceManager: ObservableObject {
         }
 
         self.overlayPanels = overlayPanels
-    }
-
-    /// Sets the value of ``MenuBarOverlayPanel/isDraggingMenuBarItem`` for each
-    /// of the manager's overlay panels.
-    func setIsDraggingMenuBarItem(_ isDragging: Bool) {
-        for panel in overlayPanels {
-            panel.isDraggingMenuBarItem = isDragging
-        }
     }
 }
 

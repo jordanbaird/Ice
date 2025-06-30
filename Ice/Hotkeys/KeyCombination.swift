@@ -11,8 +11,16 @@ struct KeyCombination: Hashable {
     let key: KeyCode
     let modifiers: Modifiers
 
-    var stringValue: String {
-        modifiers.symbolicValue + key.stringValue
+    /// A string representation for the key combination suitable
+    /// for display.
+    var displayValue: String {
+        modifiers.symbolicValue + " " + key.stringValue.capitalized
+    }
+
+    /// Returns a Boolean value that indicates whether this key
+    /// combination is reserved for system use.
+    var isSystemReserved: Bool {
+        getSystemReservedKeyCombinations().contains(self)
     }
 
     init(key: KeyCode, modifiers: Modifiers) {
@@ -32,11 +40,11 @@ private func getSystemReservedKeyCombinations() -> [KeyCombination] {
     let status = CopySymbolicHotKeys(&symbolicHotkeys)
 
     guard status == noErr else {
-        Logger.serialization.error("CopySymbolicHotKeys returned invalid status: \(status, privacy: .public)")
+        Logger.hotkeys.error("CopySymbolicHotKeys returned invalid status: \(status, privacy: .public)")
         return []
     }
     guard let reservedHotkeys = symbolicHotkeys?.takeRetainedValue() as? [[String: Any]] else {
-        Logger.serialization.error("Failed to serialize symbolic hotkeys")
+        Logger.hotkeys.error("Failed to retrieve symbolic hotkeys")
         return []
     }
 
@@ -55,24 +63,13 @@ private func getSystemReservedKeyCombinations() -> [KeyCombination] {
     }
 }
 
-extension KeyCombination {
-    /// Returns a Boolean value that indicates whether this key
-    /// combination is reserved for system use.
-    var isReservedBySystem: Bool {
-        getSystemReservedKeyCombinations().contains(self)
-    }
-}
-
+// MARK: KeyCombination: Codable
 extension KeyCombination: Codable {
     init(from decoder: any Decoder) throws {
         var container = try decoder.unkeyedContainer()
         guard container.count == 2 else {
-            throw DecodingError.dataCorrupted(
-                DecodingError.Context(
-                    codingPath: decoder.codingPath,
-                    debugDescription: "Expected 2 encoded values, found \(container.count ?? 0)"
-                )
-            )
+            let description = "Expected 2 encoded values, found \(container.count ?? 0)"
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: description)
         }
         self.key = try KeyCode(rawValue: container.decode(Int.self))
         self.modifiers = try Modifiers(rawValue: container.decode(Int.self))

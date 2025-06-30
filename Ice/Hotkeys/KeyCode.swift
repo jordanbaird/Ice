@@ -267,7 +267,7 @@ private let customStringMappings = [
 
 // MARK: String Value
 extension KeyCode {
-    /// Custom string representation.
+    /// A custom string representation for the key.
     var stringValue: String {
         customStringMappings[self, default: keyEquivalent]
     }

@@ -41,14 +41,18 @@ final class MenuBarManager: ObservableObject {
     /// A Boolean value that indicates whether the application menus are hidden.
     private var isHidingApplicationMenus = false
 
-    /// The managed sections in the menu bar.
-    private(set) var sections = [MenuBarSection]()
-
     /// The panel that contains the Ice Bar interface.
-    let iceBarPanel: IceBarPanel
+    let iceBarPanel = IceBarPanel()
 
     /// The panel that contains the menu bar search interface.
-    let searchPanel: MenuBarSearchPanel
+    let searchPanel = MenuBarSearchPanel()
+
+    /// The managed sections in the menu bar.
+    let sections = [
+        MenuBarSection(name: .visible),
+        MenuBarSection(name: .hidden),
+        MenuBarSection(name: .alwaysHidden),
+    ]
 
     /// A Boolean value that indicates whether the manager can update its stored
     /// information for the menu bar's average color.
@@ -62,38 +66,15 @@ final class MenuBarManager: ObservableObject {
         sections.contains { !$0.isHidden }
     }
 
-    /// Initializes a new menu bar manager instance.
-    init(appState: AppState) {
-        self.iceBarPanel = IceBarPanel(appState: appState)
-        self.searchPanel = MenuBarSearchPanel(appState: appState)
-        self.appState = appState
-    }
-
     /// Performs the initial setup of the menu bar manager.
-    func performSetup() {
-        initializeSections()
+    func performSetup(with appState: AppState) {
+        self.appState = appState
         configureCancellables()
-        iceBarPanel.performSetup()
-    }
-
-    /// Performs the initial setup of the menu bar manager's sections.
-    private func initializeSections() {
-        // Make sure initialization can only happen once.
-        guard sections.isEmpty else {
-            logger.warning("Sections already initialized")
-            return
+        iceBarPanel.performSetup(with: appState)
+        searchPanel.performSetup(with: appState)
+        for section in sections {
+            section.performSetup(with: appState)
         }
-
-        guard let appState else {
-            logger.error("Error initializing menu bar sections: Missing app state")
-            return
-        }
-
-        sections = [
-            MenuBarSection(name: .visible, appState: appState),
-            MenuBarSection(name: .hidden, appState: appState),
-            MenuBarSection(name: .alwaysHidden, appState: appState),
-        ]
     }
 
     /// Configures the internal observers for the manager.
@@ -177,10 +158,7 @@ final class MenuBarManager: ObservableObject {
         Publishers.MergeMany(sections.map { $0.controlItem.$state })
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard
-                    let self,
-                    let appState
-                else {
+                guard let self, let appState else {
                     return
                 }
 

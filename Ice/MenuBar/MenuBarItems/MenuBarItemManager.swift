@@ -138,13 +138,9 @@ final class MenuBarItemManager: ObservableObject {
         return Date.now.timeIntervalSince(lastItemMoveStartDate) <= 1
     }
 
-    /// Creates a manager with the given app state.
-    init(appState: AppState) {
-        self.appState = appState
-    }
-
     /// Sets up the manager.
-    func performSetup() {
+    func performSetup(with appState: AppState) {
+        self.appState = appState
         configureCancellables()
     }
 

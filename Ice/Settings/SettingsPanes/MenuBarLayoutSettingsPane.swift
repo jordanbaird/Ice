@@ -26,18 +26,10 @@ struct MenuBarLayoutSettingsPane: View {
         Text("Drag to arrange your menu bar items")
             .font(.title2)
 
-        IceGroupBox {
-            AnnotationView(
-                alignment: .center,
-                font: .callout.bold()
-            ) {
-                Label {
-                    Text("Tip: you can also arrange menu bar items by Command + dragging them in the menu bar")
-                } icon: {
-                    Image(systemName: "lightbulb")
-                }
-            }
-        }
+        CalloutBox(
+            "Tip: You can also arrange menu bar items by Command + dragging them in the menu bar.",
+            systemImage: "lightbulb"
+        )
     }
 
     @ViewBuilder

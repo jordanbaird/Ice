@@ -26,11 +26,8 @@ final class HotkeySettingsManager: ObservableObject {
     /// The shared app state.
     private(set) weak var appState: AppState?
 
-    init(appState: AppState) {
+    func performSetup(with appState: AppState) {
         self.appState = appState
-    }
-
-    func performSetup() {
         loadInitialState()
         configureCancellables()
     }
@@ -63,7 +60,7 @@ final class HotkeySettingsManager: ObservableObject {
                 }
                 var dict = [String: Data]()
                 for hotkey in hotkeys {
-                    hotkey.assignAppState(appState)
+                    hotkey.performSetup(with: appState)
                     do {
                         dict[hotkey.action.rawValue] = try self.encoder.encode(hotkey.keyCombination)
                     } catch {

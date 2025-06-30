@@ -107,24 +107,29 @@ final class MenuBarSection {
         return controlItem.isAddedToMenuBar
     }
 
-    /// Creates a section with the given name, control item, and app state.
-    init(name: Name, controlItem: ControlItem, appState: AppState) {
+    /// Creates a section with the given name and control item.
+    init(name: Name, controlItem: ControlItem) {
         self.name = name
         self.controlItem = controlItem
-        self.appState = appState
     }
 
-    /// Creates a section with the given name and app state.
-    convenience init(name: Name, appState: AppState) {
+    /// Creates a section with the given name.
+    convenience init(name: Name) {
         let controlItem = switch name {
         case .visible:
-            ControlItem(identifier: .iceIcon, appState: appState)
+            ControlItem(identifier: .iceIcon)
         case .hidden:
-            ControlItem(identifier: .hidden, appState: appState)
+            ControlItem(identifier: .hidden)
         case .alwaysHidden:
-            ControlItem(identifier: .alwaysHidden, appState: appState)
+            ControlItem(identifier: .alwaysHidden)
         }
-        self.init(name: name, controlItem: controlItem, appState: appState)
+        self.init(name: name, controlItem: controlItem)
+    }
+
+    /// Performs the initial setup of the section.
+    func performSetup(with appState: AppState) {
+        self.appState = appState
+        controlItem.performSetup(with: appState)
     }
 
     /// Shows the section.

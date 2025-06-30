@@ -4,7 +4,9 @@
 //
 
 import Combine
-import Foundation
+import SwiftUI
+
+// MARK: - AdvancedSettingsManager
 
 @MainActor
 final class AdvancedSettingsManager: ObservableObject {
@@ -12,17 +14,20 @@ final class AdvancedSettingsManager: ObservableObject {
     /// should be hidden if needed to show all menu bar items.
     @Published var hideApplicationMenus = true
 
-    /// A Boolean value that indicates whether section divider control
-    /// items should be shown.
-    @Published var showSectionDividers = false
+    /// A Boolean value that indicates whether to show a context menu
+    /// when the user right-clicks the menu bar.
+    @Published var showContextMenuOnRightClick = true
 
     /// A Boolean value that indicates whether the always-hidden section
     /// is enabled.
     @Published var enableAlwaysHiddenSection = false
 
-    /// A Boolean value that indicates whether the always-hidden section
-    /// can be toggled by holding down the Option key.
-    @Published var canToggleAlwaysHiddenSection = true
+    /// A Boolean value that indicates whether to show all sections when
+    /// the user is dragging items in the menu bar.
+    @Published var showAllSectionsOnUserDrag = true
+
+    /// The display style for section divider control items.
+    @Published var sectionDividerStyle: SectionDividerStyle = .noDivider
 
     /// The delay before showing on hover.
     @Published var showOnHoverDelay: TimeInterval = 0.2
@@ -30,36 +35,31 @@ final class AdvancedSettingsManager: ObservableObject {
     /// Time interval to temporarily show items for.
     @Published var tempShowInterval: TimeInterval = 15
 
-    /// A Boolean value that indicates whether to show all sections when
-    /// the user is dragging items in the menu bar.
-    @Published var showAllSectionsOnUserDrag = true
-
-    @Published var showContextMenuOnRightClick = true
-
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
     /// The shared app state.
     private(set) weak var appState: AppState?
 
-    init(appState: AppState) {
+    func performSetup(with appState: AppState) {
         self.appState = appState
-    }
-
-    func performSetup() {
         loadInitialState()
         configureCancellables()
     }
 
     private func loadInitialState() {
         Defaults.ifPresent(key: .hideApplicationMenus, assign: &hideApplicationMenus)
-        Defaults.ifPresent(key: .showSectionDividers, assign: &showSectionDividers)
+        Defaults.ifPresent(key: .showContextMenuOnRightClick, assign: &showContextMenuOnRightClick)
         Defaults.ifPresent(key: .enableAlwaysHiddenSection, assign: &enableAlwaysHiddenSection)
-        Defaults.ifPresent(key: .canToggleAlwaysHiddenSection, assign: &canToggleAlwaysHiddenSection)
+        Defaults.ifPresent(key: .showAllSectionsOnUserDrag, assign: &showAllSectionsOnUserDrag)
         Defaults.ifPresent(key: .showOnHoverDelay, assign: &showOnHoverDelay)
         Defaults.ifPresent(key: .tempShowInterval, assign: &tempShowInterval)
-        Defaults.ifPresent(key: .showAllSectionsOnUserDrag, assign: &showAllSectionsOnUserDrag)
-        Defaults.ifPresent(key: .showContextMenuOnRightClick, assign: &showContextMenuOnRightClick)
+
+        Defaults.ifPresent(key: .sectionDividerStyle) { rawValue in
+            if let style = SectionDividerStyle(rawValue: rawValue) {
+                sectionDividerStyle = style
+            }
+        }
     }
 
     private func configureCancellables() {
@@ -72,10 +72,10 @@ final class AdvancedSettingsManager: ObservableObject {
             }
             .store(in: &c)
 
-        $showSectionDividers
+        $showContextMenuOnRightClick
             .receive(on: DispatchQueue.main)
-            .sink { shouldShow in
-                Defaults.set(shouldShow, forKey: .showSectionDividers)
+            .sink { showAll in
+                Defaults.set(showAll, forKey: .showContextMenuOnRightClick)
             }
             .store(in: &c)
 
@@ -86,10 +86,17 @@ final class AdvancedSettingsManager: ObservableObject {
             }
             .store(in: &c)
 
-        $canToggleAlwaysHiddenSection
+        $showAllSectionsOnUserDrag
             .receive(on: DispatchQueue.main)
-            .sink { canToggle in
-                Defaults.set(canToggle, forKey: .canToggleAlwaysHiddenSection)
+            .sink { showAll in
+                Defaults.set(showAll, forKey: .showAllSectionsOnUserDrag)
+            }
+            .store(in: &c)
+
+        $sectionDividerStyle
+            .receive(on: DispatchQueue.main)
+            .sink { style in
+                Defaults.set(style.rawValue, forKey: .sectionDividerStyle)
             }
             .store(in: &c)
 
@@ -107,23 +114,26 @@ final class AdvancedSettingsManager: ObservableObject {
             }
             .store(in: &c)
 
-        $showAllSectionsOnUserDrag
-            .receive(on: DispatchQueue.main)
-            .sink { showAll in
-                Defaults.set(showAll, forKey: .showAllSectionsOnUserDrag)
-            }
-            .store(in: &c)
-
-        $showContextMenuOnRightClick
-            .receive(on: DispatchQueue.main)
-            .sink { showAll in
-                Defaults.set(showAll, forKey: .showContextMenuOnRightClick)
-            }
-            .store(in: &c)
-
         cancellables = c
     }
 }
 
 // MARK: AdvancedSettingsManager: BindingExposable
 extension AdvancedSettingsManager: BindingExposable { }
+
+// MARK: - SectionDividerStyle
+
+enum SectionDividerStyle: Int, CaseIterable, Identifiable {
+    case noDivider = 0
+    case chevron = 1
+
+    var id: Int { rawValue }
+
+    /// Localized string key representation.
+    var localized: LocalizedStringKey {
+        switch self {
+        case .noDivider: "None"
+        case .chevron: "Chevron"
+        }
+    }
+}

@@ -51,21 +51,25 @@ final class MenuBarSearchPanel: NSPanel {
     /// Overridden to always be `true`.
     override var canBecomeKey: Bool { true }
 
-    /// Creates a menu bar search panel with the given app state.
-    init(appState: AppState) {
+    /// Creates a menu bar search panel.
+    init() {
         super.init(
             contentRect: .zero,
             styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel, .utilityWindow, .hudWindow],
             backing: .buffered,
             defer: false
         )
-        self.appState = appState
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = false
         self.animationBehavior = .none
         self.isFloatingPanel = true
         self.level = .floating
         self.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle, .moveToActiveSpace]
+    }
+
+    /// Performs the initial setup of the panel.
+    func performSetup(with appState: AppState) {
+        self.appState = appState
         configureCancellables()
     }
 

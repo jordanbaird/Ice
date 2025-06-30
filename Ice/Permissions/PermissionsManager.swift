@@ -20,34 +20,30 @@ final class PermissionsManager: ObservableObject {
     /// The manager's logger.
     let logger = Logger(category: "Permissions")
 
-    /// The permission for "Accessibility" features.
+    /// The permission for Accessibility features.
     let accessibilityPermission = AccessibilityPermission()
 
-    /// The permission for "Screen Recording" features.
+    /// The permission for Screen Recording features.
     let screenRecordingPermission = ScreenRecordingPermission()
 
     /// The state of the app's granted permissions.
     @Published private(set) var permissionsState: PermissionsState = .missing
 
-    /// The shared app state.
-    private(set) weak var appState: AppState?
-
     /// Storage for internal observers.
     private var cancellable: AnyCancellable?
 
-    /// All permissions the app asks for.
+    /// The permissions required for full app functionality.
     var allPermissions: [Permission] {
         [accessibilityPermission, screenRecordingPermission]
     }
 
-    /// The required permissions for basic app functionality.
+    /// The permissions required for basic app functionality.
     var requiredPermissions: [Permission] {
         allPermissions.filter { $0.isRequired }
     }
 
     /// Creates a new permissions manager.
-    init(appState: AppState) {
-        self.appState = appState
+    init() {
         self.updatePermissionsState()
         self.cancellable = Publishers.MergeMany(allPermissions.map { $0.$hasPermission })
             .receive(on: DispatchQueue.main)

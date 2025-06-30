@@ -38,6 +38,7 @@ extension MigrationManager {
         results += [
             migrate0_10_1(),
             migrate0_11_10(),
+            migrate0_11_13(),
         ]
 
         for result in results {
@@ -183,20 +184,19 @@ extension MigrationManager {
 // MARK: - Migrate 0.10.0
 
 extension MigrationManager {
-    /// Performs all migrations for the `0.10.0` release, catching any thrown
-    /// errors and rethrowing them as a combined error.
-    private func migrate0_10_0() throws {
+    /// Performs all migrations for the `0.10.0` release.
+    private func migrate0_10_0() {
         guard !Defaults.bool(forKey: .hasMigrated0_10_0) else {
             return
         }
-        try performAll(blocks: [
-            migrateControlItems0_10_0,
-        ])
+
+        migrateControlItems0_10_0()
+
         Defaults.set(true, forKey: .hasMigrated0_10_0)
         logger.info("Successfully migrated to 0.10.0 settings")
     }
 
-    private func migrateControlItems0_10_0() throws {
+    private func migrateControlItems0_10_0() {
         for identifier in ControlItem.Identifier.allCases {
             StatusItemDefaults.migrate(
                 key: .preferredPosition,
@@ -279,7 +279,7 @@ extension MigrationManager {
     private func migrateAppearanceConfiguration0_11_10() -> MigrationResult {
         guard let oldData = Defaults.data(forKey: .menuBarAppearanceConfiguration) else {
             if Defaults.object(forKey: .menuBarAppearanceConfiguration) != nil {
-                logger.warning("Previous menu bar appearance data is corrupted.")
+                logger.warning("Previous menu bar appearance data is corrupted")
             }
             // This is either the first launch, or the data is malformed.
             // Either way, not much to do here.
@@ -311,6 +311,39 @@ extension MigrationManager {
             return .failureAndLogError(.appearanceConfigurationMigrationError(error))
         }
         return .success
+    }
+}
+
+// MARK: - Migrate 0.11.13
+
+extension MigrationManager {
+    /// Performs all migrations for the `0.11.13` release.
+    private func migrate0_11_13() -> MigrationResult {
+        guard !Defaults.bool(forKey: .hasMigrated0_11_13) else {
+            return .success
+        }
+
+        migrateAppearanceConfiguration0_11_13()
+        migrateSectionDividers0_11_13()
+
+        Defaults.set(true, forKey: .hasMigrated0_11_13)
+        logger.info("Successfully migrated to 0.11.13 settings")
+
+        return .success
+    }
+
+    private func migrateAppearanceConfiguration0_11_13() {
+        Defaults.removeObject(forKey: .menuBarAppearanceConfiguration)
+    }
+
+    private func migrateSectionDividers0_11_13() {
+        let style = if Defaults.bool(forKey: .showSectionDividers) {
+            SectionDividerStyle.chevron
+        } else {
+            SectionDividerStyle.noDivider
+        }
+        Defaults.set(style.rawValue, forKey: .sectionDividerStyle)
+        Defaults.removeObject(forKey: .showSectionDividers)
     }
 }
 

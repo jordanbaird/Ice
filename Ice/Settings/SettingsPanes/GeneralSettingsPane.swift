@@ -12,7 +12,7 @@ struct GeneralSettingsPane: View {
     @State private var isPresentingError = false
     @State private var presentedError: LocalizedErrorWrapper?
     @State private var isApplyingOffset = false
-    @State private var tempItemSpacingOffset: CGFloat = 0 // Temporary state for the slider
+    @State private var tempItemSpacingOffset: CGFloat = 0
 
     private var manager: GeneralSettingsManager {
         appState.settingsManager.generalSettingsManager
@@ -113,8 +113,8 @@ struct GeneralSettingsPane: View {
     private var iceIconOptions: some View {
         Toggle("Show Ice icon", isOn: manager.bindings.showIceIcon)
             .annotation {
-                if !manager.showIceIcon {
-                    Text("You can still access Ice's settings by right-clicking an empty area in the menu bar")
+                if !manager.showIceIcon, appState.settingsManager.advancedSettingsManager.showContextMenuOnRightClick {
+                    Text("You can still access Ice's settings by right-clicking in an empty area of the menu bar.")
                 }
             }
         if manager.showIceIcon {
@@ -148,7 +148,7 @@ struct GeneralSettingsPane: View {
             } title: {
                 menuItem(for: manager.iceIcon)
             }
-            .annotation("Choose a custom icon to show in the menu bar")
+            .annotation("Choose a custom icon to show in the menu bar.")
             .fileImporter(
                 isPresented: $isImportingCustomIceIcon,
                 allowedContentTypes: [.image]
@@ -168,7 +168,7 @@ struct GeneralSettingsPane: View {
 
             if case .custom = manager.iceIcon.name {
                 Toggle("Apply system theme to icon", isOn: manager.bindings.customIceIconIsTemplate)
-                    .annotation("Display the icon as a monochrome image matching the system appearance")
+                    .annotation("Display the icon as a monochrome image matching the system appearance.")
             }
         }
     }
@@ -184,7 +184,7 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private var useIceBar: some View {
         Toggle("Use Ice Bar", isOn: manager.bindings.useIceBar)
-            .annotation("Show hidden menu bar items in a separate bar below the menu bar")
+            .annotation("Show hidden menu bar items in a separate bar below the menu bar.")
     }
 
     @ViewBuilder
@@ -197,11 +197,11 @@ struct GeneralSettingsPane: View {
         .annotation {
             switch manager.iceBarLocation {
             case .dynamic:
-                Text("The Ice Bar's location changes based on context")
+                Text("The Ice Bar's location changes based on context.")
             case .mousePointer:
-                Text("The Ice Bar is centered below the mouse pointer")
+                Text("The Ice Bar is centered below the mouse pointer.")
             case .iceIcon:
-                Text("The Ice Bar is centered below the Ice icon")
+                Text("The Ice Bar is centered below the Ice icon.")
             }
         }
     }
@@ -209,19 +209,19 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private var showOnClick: some View {
         Toggle("Show on click", isOn: manager.bindings.showOnClick)
-            .annotation("Click inside an empty area of the menu bar to show hidden menu bar items")
+            .annotation("Click inside an empty area of the menu bar to show hidden menu bar items.")
     }
 
     @ViewBuilder
     private var showOnHover: some View {
         Toggle("Show on hover", isOn: manager.bindings.showOnHover)
-            .annotation("Hover over an empty area of the menu bar to show hidden menu bar items")
+            .annotation("Hover over an empty area of the menu bar to show hidden menu bar items.")
     }
 
     @ViewBuilder
     private var showOnScroll: some View {
         Toggle("Show on scroll", isOn: manager.bindings.showOnScroll)
-            .annotation("Scroll or swipe in the menu bar to toggle hidden menu bar items")
+            .annotation("Scroll or swipe in the menu bar to toggle hidden menu bar items.")
     }
 
     @ViewBuilder
@@ -268,15 +268,11 @@ struct GeneralSettingsPane: View {
             "Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.",
             spacing: 2
         )
-        .annotation(spacing: 10, font: .callout.bold()) {
-            IceGroupBox {
-                Label {
-                    Text("Note: You may need to log out and back in for this setting to apply properly.")
-                } icon: {
-                    Image(systemName: "exclamationmark.circle")
-                }
-                .frame(maxWidth: .infinity)
-            }
+        .annotation(spacing: 10) {
+            CalloutBox(
+                "Note: You may need to log out and back in for this setting to apply properly.",
+                systemImage: "exclamationmark.circle"
+            )
         }
         .onAppear {
             tempItemSpacingOffset = manager.itemSpacingOffset
@@ -293,11 +289,11 @@ struct GeneralSettingsPane: View {
         .annotation {
             switch manager.rehideStrategy {
             case .smart:
-                Text("Menu bar items are rehidden using a smart algorithm")
+                Text("Menu bar items are rehidden using a smart algorithm.")
             case .timed:
-                Text("Menu bar items are rehidden after a fixed amount of time")
+                Text("Menu bar items are rehidden after a fixed amount of time.")
             case .focusedApp:
-                Text("Menu bar items are rehidden when the focused app changes")
+                Text("Menu bar items are rehidden when the focused app changes.")
             }
         }
     }

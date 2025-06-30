@@ -157,25 +157,26 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
     var body: some View {
         VStack(alignment: .leading) {
             header
+                .padding(.leading, padding.leading)
+
             VStack {
                 content
             }
             .padding(padding)
             .background {
                 backgroundShape
-                    .fill(.quinary)
+                    .fill(.quinary.opacity(0.67))
                     .strokeBorder(.quaternary)
             }
             .containerShape(backgroundShape)
+
             footer
+                .padding(.leading, padding.leading)
         }
     }
 }
 
 extension EdgeInsets {
     /// The default padding for an ``IceGroupBox``.
-    static let iceGroupBoxDefaultPadding: EdgeInsets = {
-        let padding: CGFloat = if #available(macOS 26.0, *) { 12 } else { 10 }
-        return EdgeInsets(all: padding)
-    }()
+    static let iceGroupBoxDefaultPadding = EdgeInsets(all: 12)
 }

@@ -13,8 +13,3 @@ struct MenuBarAppearanceSettingsPane: View {
             .environmentObject(appState.appearanceManager)
     }
 }
-
-#Preview {
-    MenuBarAppearanceSettingsPane()
-        .environmentObject(AppState())
-}

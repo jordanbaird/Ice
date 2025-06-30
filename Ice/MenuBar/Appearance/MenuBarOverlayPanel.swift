@@ -58,9 +58,6 @@ final class MenuBarOverlayPanel: NSPanel {
     /// A Boolean value that indicates whether the panel needs to be shown.
     @Published var needsShow = false
 
-    /// A Boolean value that indicates whether the user is dragging a menu bar item.
-    @Published var isDraggingMenuBarItem = false
-
     /// Flags representing the components of the panel currently in need of an update.
     @Published private(set) var updateFlags = Set<UpdateFlag>()
 
@@ -393,6 +390,18 @@ private final class MenuBarOverlayPanelContentView: NSView {
                     .removeDuplicates()
                     .assign(to: &$previewConfiguration)
 
+                // Fade out whenever a menu bar item is being dragged.
+                appState.$isDraggingMenuBarItem
+                    .removeDuplicates()
+                    .sink { [weak self] isDragging in
+                        if isDragging {
+                            self?.animator().alphaValue = 0
+                        } else {
+                            self?.animator().alphaValue = 1
+                        }
+                    }
+                    .store(in: &c)
+
                 for section in appState.menuBarManager.sections {
                     // Redraw whenever the window frame of a control item changes.
                     //
@@ -408,32 +417,9 @@ private final class MenuBarOverlayPanelContentView: NSView {
                             self?.needsDisplay = true
                         }
                         .store(in: &c)
-
-                    // Redraw whenever the visibility of a control item changes.
-                    //
-                    // - NOTE: If the "ShowSectionDividers" setting is disabled, the window
-                    //   frame does not update when the section is hidden or shown, but the
-                    //   visibility does. We observe both to ensure the update occurs.
-                    section.controlItem.$isVisible
-                        .receive(on: DispatchQueue.main)
-                        .sink { [weak self] _ in
-                            self?.needsDisplay = true
-                        }
-                        .store(in: &c)
                 }
             }
 
-            // Fade out whenever a menu bar item is being dragged.
-            overlayPanel.$isDraggingMenuBarItem
-                .removeDuplicates()
-                .sink { [weak self] isDragging in
-                    if isDragging {
-                        self?.animator().alphaValue = 0
-                    } else {
-                        self?.animator().alphaValue = 1
-                    }
-                }
-                .store(in: &c)
             // Redraw whenever the application menu frame changes.
             overlayPanel.$applicationMenuFrame
                 .sink { [weak self] _ in

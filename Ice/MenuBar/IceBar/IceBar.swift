@@ -9,22 +9,26 @@ import SwiftUI
 // MARK: - IceBarPanel
 
 final class IceBarPanel: NSPanel {
+    /// The shared app state.
     private weak var appState: AppState?
 
+    /// Manager for the Ice Bar's color.
+    private let colorManager = IceBarColorManager()
+
+    /// The currently displayed section.
     private(set) var currentSection: MenuBarSection.Name?
 
-    private lazy var colorManager = IceBarColorManager(iceBarPanel: self)
-
+    /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
-    init(appState: AppState) {
+    /// Creates a new Ice Bar panel.
+    init() {
         super.init(
             contentRect: .zero,
             styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
             backing: .buffered,
             defer: false
         )
-        self.appState = appState
         self.title = "Ice Bar"
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = true
@@ -37,10 +41,14 @@ final class IceBarPanel: NSPanel {
         self.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle, .moveToActiveSpace]
     }
 
-    func performSetup() {
+    /// Sets up the panel.
+    func performSetup(with appState: AppState) {
+        self.appState = appState
         configureCancellables()
+        colorManager.performSetup(with: self)
     }
 
+    /// Configures the internal observers.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -93,6 +101,7 @@ final class IceBarPanel: NSPanel {
         cancellables = c
     }
 
+    /// Updates the panel's frame origin for display on the given screen.
     private func updateOrigin(for screen: NSScreen) {
         guard let appState else {
             return
@@ -132,8 +141,8 @@ final class IceBarPanel: NSPanel {
                 guard
                     lowerBound <= upperBound,
                     let iceIcon = appState.itemManager.itemCache.allItems.first(matching: .iceIcon),
-                    // Bridging.getWindowBounds is more reliable than ControlItem.windowFrame,
-                    // i.e. if the control item is offscreen.
+                    // Bridging API is more reliable than ControlItem.frame
+                    // in some cases (like if the control item is offscreen).
                     let itemBounds = Bridging.getWindowBounds(for: iceIcon.windowID)
                 else {
                     return originForRightOfScreen
@@ -146,12 +155,15 @@ final class IceBarPanel: NSPanel {
         setFrameOrigin(getOrigin(for: appState.settingsManager.generalSettingsManager.iceBarLocation))
     }
 
+    /// Shows the panel on the given screen, displaying the given
+    /// menu bar section.
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {
         guard let appState else {
             return
         }
 
-        // Important that we set the navigation state and current section before updating the cache.
+        // IMPORTANT: We must set the navigation state and current section
+        // before updating the cache.
         appState.navigationState.isIceBarPresented = true
         currentSection = section
 
@@ -161,19 +173,27 @@ final class IceBarPanel: NSPanel {
             await appState.imageCache.updateCache()
         }
 
-        contentView = IceBarHostingView(appState: appState, colorManager: colorManager, screen: screen, section: section)
+        contentView = IceBarContentHostingView(
+            appState: appState,
+            colorManager: colorManager,
+            screen: screen,
+            section: section
+        )
 
         updateOrigin(for: screen)
 
-        // Color manager must be updated after updating the panel's origin, but before it is shown.
+        // Color manager must be updated after updating the panel's origin,
+        // but before it is shown.
         //
-        // Color manager handles frame changes automatically, but does so on the main queue, so we
-        // need to update manually once before showing the panel to prevent the color from flashing.
+        // Color manager handles frame changes automatically, but does so on
+        // the main queue, so we need to update manually once before showing
+        // the panel to prevent the color from flashing.
         colorManager.updateAllProperties(with: frame, screen: screen)
 
         orderFrontRegardless()
     }
 
+    /// Hides the panel.
     func hide() {
         if
             let name = currentSection,
@@ -192,9 +212,9 @@ final class IceBarPanel: NSPanel {
     }
 }
 
-// MARK: - IceBarHostingView
+// MARK: - IceBarContentHostingView
 
-private final class IceBarHostingView: NSHostingView<AnyView> {
+private final class IceBarContentHostingView: NSHostingView<IceBarContentView> {
     override var safeAreaInsets: NSEdgeInsets {
         NSEdgeInsets()
     }
@@ -205,15 +225,16 @@ private final class IceBarHostingView: NSHostingView<AnyView> {
         screen: NSScreen,
         section: MenuBarSection.Name
     ) {
-        super.init(
-            rootView: IceBarContentView(screen: screen, section: section)
-                .environmentObject(appState)
-                .environmentObject(appState.imageCache)
-                .environmentObject(appState.itemManager)
-                .environmentObject(appState.menuBarManager)
-                .environmentObject(colorManager)
-                .erasedToAnyView()
+        let rootView = IceBarContentView(
+            appState: appState,
+            colorManager: colorManager,
+            itemManager: appState.itemManager,
+            imageCache: appState.imageCache,
+            menuBarManager: appState.menuBarManager,
+            screen: screen,
+            section: section
         )
+        super.init(rootView: rootView)
     }
 
     @available(*, unavailable)
@@ -222,7 +243,7 @@ private final class IceBarHostingView: NSHostingView<AnyView> {
     }
 
     @available(*, unavailable)
-    required init(rootView: AnyView) {
+    required init(rootView: IceBarContentView) {
         fatalError("init(rootView:) has not been implemented")
     }
 
@@ -234,11 +255,11 @@ private final class IceBarHostingView: NSHostingView<AnyView> {
 // MARK: - IceBarContentView
 
 private struct IceBarContentView: View {
-    @EnvironmentObject var appState: AppState
-    @EnvironmentObject var colorManager: IceBarColorManager
-    @EnvironmentObject var itemManager: MenuBarItemManager
-    @EnvironmentObject var imageCache: MenuBarItemImageCache
-    @EnvironmentObject var menuBarManager: MenuBarManager
+    @ObservedObject var appState: AppState
+    @ObservedObject var colorManager: IceBarColorManager
+    @ObservedObject var itemManager: MenuBarItemManager
+    @ObservedObject var imageCache: MenuBarItemImageCache
+    @ObservedObject var menuBarManager: MenuBarManager
     @State private var frame = CGRect.zero
     @State private var scrollIndicatorsFlashTrigger = 0
 
@@ -335,7 +356,13 @@ private struct IceBarContentView: View {
             ScrollView(.horizontal) {
                 HStack(spacing: 0) {
                     ForEach(items, id: \.windowID) { item in
-                        IceBarItemView(item: item, section: section)
+                        IceBarItemView(
+                            imageCache: imageCache,
+                            itemManager: itemManager,
+                            menuBarManager: menuBarManager,
+                            item: item,
+                            section: section
+                        )
                     }
                 }
             }
@@ -352,9 +379,9 @@ private struct IceBarContentView: View {
 // MARK: - IceBarItemView
 
 private struct IceBarItemView: View {
-    @EnvironmentObject var imageCache: MenuBarItemImageCache
-    @EnvironmentObject var itemManager: MenuBarItemManager
-    @EnvironmentObject var menuBarManager: MenuBarManager
+    @ObservedObject var imageCache: MenuBarItemImageCache
+    @ObservedObject var itemManager: MenuBarItemManager
+    @ObservedObject var menuBarManager: MenuBarManager
 
     let item: MenuBarItem
     let section: MenuBarSection.Name

@@ -28,17 +28,14 @@ struct AdvancedSettingsPane: View {
 
     var body: some View {
         IceForm {
-            IceSection {
-                hideApplicationMenus
-                showSectionDividers
-                showAllSectionsOnUserDrag
-                showContextMenuOnRightClick
-            }
-            IceSection {
+            IceSection("Menu Bar Sections") {
                 enableAlwaysHiddenSection
-                canToggleAlwaysHiddenSection
+                showAllSectionsOnUserDrag
+                sectionDividerStyle
             }
-            IceSection {
+            IceSection("Other") {
+                hideApplicationMenus
+                showContextMenuOnRightClick
                 showOnHoverDelaySlider
                 tempShowIntervalSlider
             }
@@ -50,47 +47,62 @@ struct AdvancedSettingsPane: View {
 
     @ViewBuilder
     private var hideApplicationMenus: some View {
-        Toggle("Hide application menus when showing menu bar items", isOn: manager.bindings.hideApplicationMenus)
-            .annotation("Make more room in the menu bar by hiding the left application menus if needed")
+        Toggle(
+            "Hide application menus when showing menu bar items",
+            isOn: manager.bindings.hideApplicationMenus
+        )
+        .annotation {
+            Text(
+                """
+                Make more room in the menu bar by hiding the current app menus if \
+                needed. macOS requires Ice to become visible in the Dock while this \
+                setting is in effect.
+                """
+            )
+            .padding(.trailing, 75)
+        }
     }
 
     @ViewBuilder
-    private var showSectionDividers: some View {
-        Toggle("Show section dividers", isOn: manager.bindings.showSectionDividers)
-            .annotation {
-                HStack(spacing: 2) {
-                    Text("Insert divider items")
-                    if let nsImage = ControlItemImage.builtin(.chevronLarge).nsImage(for: appState) {
-                        HStack(spacing: 0) {
-                            Text("(")
-                                .font(.body.monospaced().bold())
-                            Image(nsImage: nsImage)
-                                .padding(.horizontal, -2)
-                            Text(")")
-                                .font(.body.monospaced().bold())
-                        }
-                    }
-                    Text("between sections")
-                }
-            }
+    private var showContextMenuOnRightClick: some View {
+        Toggle(
+            "Enable secondary context menu",
+            isOn: manager.bindings.showContextMenuOnRightClick
+        )
+        .annotation {
+            Text(
+                """
+                Right-clicking in an empty area of the menu bar displays a minimal \
+                version of Ice's menu. Disable this setting if you're experiencing \
+                conflicts with other apps.
+                """
+            )
+            .padding(.trailing, 75)
+        }
     }
 
     @ViewBuilder
     private var enableAlwaysHiddenSection: some View {
-        Toggle("Enable always-hidden section", isOn: manager.bindings.enableAlwaysHiddenSection)
+        Toggle(
+            "Enable always-hidden section",
+            isOn: manager.bindings.enableAlwaysHiddenSection
+        )
     }
 
     @ViewBuilder
-    private var canToggleAlwaysHiddenSection: some View {
-        if manager.enableAlwaysHiddenSection {
-            Toggle("Always-hidden section can be shown", isOn: manager.bindings.canToggleAlwaysHiddenSection)
-                .annotation {
-                    if appState.settingsManager.generalSettingsManager.showOnClick {
-                        Text("Option + click one of Ice's menu bar items, or inside an empty area of the menu bar to show the section")
-                    } else {
-                        Text("Option + click one of Ice's menu bar items to show the section")
-                    }
-                }
+    private var showAllSectionsOnUserDrag: some View {
+        Toggle(
+            "Show all sections when Command + dragging menu bar items",
+            isOn: manager.bindings.showAllSectionsOnUserDrag
+        )
+    }
+
+    @ViewBuilder
+    private var sectionDividerStyle: some View {
+        IcePicker("Section divider style", selection: manager.bindings.sectionDividerStyle) {
+            ForEach(SectionDividerStyle.allCases) { style in
+                Text(style.localized).tag(style)
+            }
         }
     }
 
@@ -105,13 +117,12 @@ struct AdvancedSettingsPane: View {
             )
         } label: {
             Text("Show on hover delay")
-                .frame(minHeight: .compactSliderMinHeight)
                 .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
                 .onFrameChange { frame in
                     maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
                 }
         }
-        .annotation("The amount of time to wait before showing on hover")
+        .annotation("The amount of time to wait before showing on hover.")
     }
 
     @ViewBuilder
@@ -125,23 +136,12 @@ struct AdvancedSettingsPane: View {
             )
         } label: {
             Text("Temporarily shown item delay")
-                .frame(minHeight: .compactSliderMinHeight)
                 .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
                 .onFrameChange { frame in
                     maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
                 }
         }
-        .annotation("The amount of time to wait before hiding temporarily shown menu bar items")
-    }
-
-    @ViewBuilder
-    private var showAllSectionsOnUserDrag: some View {
-        Toggle("Show all sections when Command + dragging menu bar items", isOn: manager.bindings.showAllSectionsOnUserDrag)
-    }
-
-    @ViewBuilder
-    private var showContextMenuOnRightClick: some View {
-        Toggle("Show context menu on right click", isOn: manager.bindings.showContextMenuOnRightClick)
+        .annotation("The amount of time to wait before hiding temporarily shown menu bar items.")
     }
 
     @ViewBuilder
@@ -166,10 +166,4 @@ struct AdvancedSettingsPane: View {
             .frame(height: 22)
         }
     }
-}
-
-#Preview {
-    AdvancedSettingsPane()
-        .fixedSize()
-        .environmentObject(AppState())
 }

@@ -20,7 +20,7 @@ final class IceBarColorManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(iceBarPanel: IceBarPanel) {
+    func performSetup(with iceBarPanel: IceBarPanel) {
         self.iceBarPanel = iceBarPanel
         configureCancellables()
     }

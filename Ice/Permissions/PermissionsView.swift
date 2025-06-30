@@ -6,7 +6,8 @@
 import SwiftUI
 
 struct PermissionsView: View {
-    @EnvironmentObject private var manager: PermissionsManager
+    @EnvironmentObject var appState: AppState
+    @EnvironmentObject var manager: PermissionsManager
 
     private var continueButtonText: LocalizedStringKey {
         if case .hasRequired = manager.permissionsState {
@@ -103,10 +104,6 @@ struct PermissionsView: View {
     @ViewBuilder
     private var continueButton: some View {
         Button {
-            guard let appState = manager.appState else {
-                return
-            }
-
             appState.dismissWindow(.permissions)
 
             guard manager.permissionsState != .missing else {
@@ -152,9 +149,6 @@ struct PermissionsView: View {
                 }
 
                 Button {
-                    guard let appState = manager.appState else {
-                        return
-                    }
                     permission.performRequest()
                     Task {
                         await permission.waitForPermission()

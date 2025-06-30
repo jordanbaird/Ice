@@ -39,31 +39,6 @@ extension Modifiers {
         return result
     }
 
-    /// A string representation of the modifiers that is
-    /// suitable for display in a label.
-    var labelValue: String {
-        var result = [String]()
-        if contains(.control) {
-            result.append("Control")
-        }
-        if contains(.option) {
-            result.append("Option")
-        }
-        if contains(.shift) {
-            result.append("Shift")
-        }
-        if contains(.command) {
-            result.append("Command")
-        }
-        return result.joined(separator: " + ")
-    }
-
-    /// A combined string representation of the modifiers
-    /// that is suitable for display.
-    var combinedValue: String {
-        "\(labelValue) (\(symbolicValue))"
-    }
-
     /// Cocoa flags.
     var nsEventFlags: NSEvent.ModifierFlags {
         var result: NSEvent.ModifierFlags = []

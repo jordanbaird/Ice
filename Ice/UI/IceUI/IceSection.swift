@@ -148,7 +148,5 @@ private struct IceSectionLayout: _VariadicView_UnaryViewRoot {
 
 extension CGFloat {
     /// The default spacing for an ``IceSection``.
-    static let iceSectionDefaultSpacing: CGFloat = {
-        if #available(macOS 26.0, *) { 11 } else { 10 }
-    }()
+    static let iceSectionDefaultSpacing: CGFloat = if #available(macOS 26.0, *) { 11 } else { 10 }
 }

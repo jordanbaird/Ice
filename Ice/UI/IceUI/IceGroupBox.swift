@@ -157,7 +157,6 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
     var body: some View {
         VStack(alignment: .leading) {
             header
-                .padding(.leading, padding.leading)
 
             VStack {
                 content
@@ -171,7 +170,6 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
             .containerShape(backgroundShape)
 
             footer
-                .padding(.leading, padding.leading)
         }
     }
 }

@@ -104,6 +104,10 @@ final class ControlItem {
             }
         }
 
+        if StatusItemDefaults[.visible, autosaveName] == nil {
+            StatusItemDefaults[.visible, autosaveName] = true
+        }
+
         self.statusItem = NSStatusBar.system.statusItem(withLength: 0)
         self.statusItem.autosaveName = autosaveName
         self.identifier = identifier

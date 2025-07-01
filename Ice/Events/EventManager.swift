@@ -32,7 +32,7 @@ final class EventManager: ObservableObject {
             handleShowOnClick(appState: appState, screen: screen)
             handleSmartRehide(with: event, appState: appState, screen: screen)
         case .rightMouseDown:
-            handleShowRightClickMenu(appState: appState, screen: screen)
+            handleShowSecondaryContextMenu(appState: appState, screen: screen)
         default:
             return event
         }
@@ -165,7 +165,7 @@ extension EventManager {
             try await Task.sleep(for: .milliseconds(50))
 
             if NSEvent.modifierFlags == .control {
-                handleShowRightClickMenu(appState: appState, screen: screen)
+                handleShowSecondaryContextMenu(appState: appState, screen: screen)
                 return
             }
 
@@ -266,17 +266,17 @@ extension EventManager {
         }
     }
 
-    // MARK: Handle Show Right Click Menu
+    // MARK: Handle Show Secondary Context Menu
 
-    private func handleShowRightClickMenu(appState: AppState, screen: NSScreen) {
+    private func handleShowSecondaryContextMenu(appState: AppState, screen: NSScreen) {
         guard
-            appState.settingsManager.advancedSettingsManager.showContextMenuOnRightClick,
+            appState.settingsManager.advancedSettingsManager.enableSecondaryContextMenu,
             isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen),
             let mouseLocation = MouseCursor.locationAppKit
         else {
             return
         }
-        appState.menuBarManager.showRightClickMenu(at: mouseLocation)
+        appState.menuBarManager.showSecondaryContextMenu(at: mouseLocation)
     }
 
     // MARK: Handle Prevent Show On Hover

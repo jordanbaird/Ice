@@ -112,11 +112,8 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private var iceIconOptions: some View {
         Toggle("Show Ice icon", isOn: manager.bindings.showIceIcon)
-            .annotation {
-                if !manager.showIceIcon, appState.settingsManager.advancedSettingsManager.showContextMenuOnRightClick {
-                    Text("You can still access Ice's settings by right-clicking in an empty area of the menu bar.")
-                }
-            }
+            .annotation("Click to show hidden menu bar items. Right-click to access Ice's settings.")
+
         if manager.showIceIcon {
             IceMenu("Ice icon") {
                 Picker("Ice icon", selection: manager.bindings.iceIcon) {

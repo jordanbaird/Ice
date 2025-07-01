@@ -10,14 +10,6 @@ import SwiftUI
 
 @MainActor
 final class AdvancedSettingsManager: ObservableObject {
-    /// A Boolean value that indicates whether the application menus
-    /// should be hidden if needed to show all menu bar items.
-    @Published var hideApplicationMenus = true
-
-    /// A Boolean value that indicates whether to show a context menu
-    /// when the user right-clicks the menu bar.
-    @Published var showContextMenuOnRightClick = true
-
     /// A Boolean value that indicates whether the always-hidden section
     /// is enabled.
     @Published var enableAlwaysHiddenSection = false
@@ -28,6 +20,14 @@ final class AdvancedSettingsManager: ObservableObject {
 
     /// The display style for section divider control items.
     @Published var sectionDividerStyle: SectionDividerStyle = .noDivider
+
+    /// A Boolean value that indicates whether the application menus
+    /// should be hidden if needed to show all menu bar items.
+    @Published var hideApplicationMenus = true
+
+    /// A Boolean value that indicates whether to show a context menu
+    /// when the user right-clicks the menu bar.
+    @Published var enableSecondaryContextMenu = true
 
     /// The delay before showing on hover.
     @Published var showOnHoverDelay: TimeInterval = 0.2
@@ -48,10 +48,10 @@ final class AdvancedSettingsManager: ObservableObject {
     }
 
     private func loadInitialState() {
-        Defaults.ifPresent(key: .hideApplicationMenus, assign: &hideApplicationMenus)
-        Defaults.ifPresent(key: .showContextMenuOnRightClick, assign: &showContextMenuOnRightClick)
         Defaults.ifPresent(key: .enableAlwaysHiddenSection, assign: &enableAlwaysHiddenSection)
         Defaults.ifPresent(key: .showAllSectionsOnUserDrag, assign: &showAllSectionsOnUserDrag)
+        Defaults.ifPresent(key: .hideApplicationMenus, assign: &hideApplicationMenus)
+        Defaults.ifPresent(key: .enableSecondaryContextMenu, assign: &enableSecondaryContextMenu)
         Defaults.ifPresent(key: .showOnHoverDelay, assign: &showOnHoverDelay)
         Defaults.ifPresent(key: .tempShowInterval, assign: &tempShowInterval)
 
@@ -64,20 +64,6 @@ final class AdvancedSettingsManager: ObservableObject {
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
-
-        $hideApplicationMenus
-            .receive(on: DispatchQueue.main)
-            .sink { shouldHide in
-                Defaults.set(shouldHide, forKey: .hideApplicationMenus)
-            }
-            .store(in: &c)
-
-        $showContextMenuOnRightClick
-            .receive(on: DispatchQueue.main)
-            .sink { showAll in
-                Defaults.set(showAll, forKey: .showContextMenuOnRightClick)
-            }
-            .store(in: &c)
 
         $enableAlwaysHiddenSection
             .receive(on: DispatchQueue.main)
@@ -97,6 +83,20 @@ final class AdvancedSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { style in
                 Defaults.set(style.rawValue, forKey: .sectionDividerStyle)
+            }
+            .store(in: &c)
+
+        $hideApplicationMenus
+            .receive(on: DispatchQueue.main)
+            .sink { shouldHide in
+                Defaults.set(shouldHide, forKey: .hideApplicationMenus)
+            }
+            .store(in: &c)
+
+        $enableSecondaryContextMenu
+            .receive(on: DispatchQueue.main)
+            .sink { enable in
+                Defaults.set(enable, forKey: .enableSecondaryContextMenu)
             }
             .store(in: &c)
 

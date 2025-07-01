@@ -344,8 +344,8 @@ final class MenuBarManager: ObservableObject {
         return applicationMenuFrame
     }
 
-    /// Shows the right-click menu.
-    func showRightClickMenu(at point: CGPoint) {
+    /// Shows the secondary context menu.
+    func showSecondaryContextMenu(at point: CGPoint) {
         let menu = NSMenu(title: "Ice")
 
         let editItem = NSMenuItem(

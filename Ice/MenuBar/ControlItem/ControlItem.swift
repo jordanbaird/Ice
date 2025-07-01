@@ -36,6 +36,79 @@ final class ControlItem {
         static let expanded: CGFloat = 10_000
     }
 
+    /// Storage for a control item's underlying status item.
+    private final class StatusItemStorage {
+        let statusItem: NSStatusItem
+        let constraint: NSLayoutConstraint?
+
+        /// Creates a new storage instance.
+        @MainActor
+        init(controlItem: ControlItem) {
+            let autosaveName = controlItem.identifier.rawValue
+
+            if StatusItemDefaults[.preferredPosition, autosaveName] == nil {
+                // Ice icon and hidden control item should be added before
+                // existing items in the status bar.
+                switch controlItem.identifier {
+                case .iceIcon:
+                    StatusItemDefaults[.preferredPosition, autosaveName] = 0
+                case .hidden:
+                    StatusItemDefaults[.preferredPosition, autosaveName] = 1
+                case .alwaysHidden:
+                    break
+                }
+            }
+
+            if StatusItemDefaults[.visible, autosaveName] == nil {
+                // The status item should be visible by default. We change
+                // this after finishing setup, if needed.
+                StatusItemDefaults[.visible, autosaveName] = true
+            }
+
+            self.statusItem = NSStatusBar.system.statusItem(withLength: 0)
+            self.statusItem.autosaveName = autosaveName
+
+            if let button = statusItem.button {
+                // This could break in a new macOS release, but we need this constraint in order to be
+                // able to hide the control item when the `ShowSectionDividers` setting is disabled. A
+                // previous implementation used the status item's `isVisible` property, which was more
+                // robust, but would completely remove the control item. With the current set of
+                // features, we need to be able to accurately retrieve the items for each section, so
+                // we need the control item to always be present to act as a delimiter. The new solution
+                // is to remove the constraint that prevents status items from having a length of zero,
+                // then resize the content view. FIXME: Find a replacement for this.
+                if
+                    let constraints = button.window?.contentView?.constraintsAffectingLayout(for: .horizontal),
+                    let constraint = constraints.first(where: Predicates.controlItemConstraint(button: button))
+                {
+                    assert(constraints.filter(Predicates.controlItemConstraint(button: button)).count == 1)
+                    self.constraint = constraint
+                } else {
+                    self.constraint = nil
+                }
+
+                button.target = controlItem
+                button.action = #selector(controlItem.performAction)
+            } else {
+                self.constraint = nil
+            }
+        }
+
+        deinit {
+            removeStatusItem()
+        }
+
+        /// Removes the status item from the status bar.
+        private func removeStatusItem() {
+            // Removing the status item has the unwanted side effect of
+            // deleting the preferred position. Cache and restore it.
+            let autosaveName = statusItem.autosaveName as String
+            let cached = StatusItemDefaults[.preferredPosition, autosaveName]
+            NSStatusBar.system.removeStatusItem(statusItem)
+            StatusItemDefaults[.preferredPosition, autosaveName] = cached
+        }
+    }
+
     /// The control item's hiding state (`@Published`).
     @Published var state = HidingState.hideItems
 
@@ -54,17 +127,24 @@ final class ControlItem {
     /// The control item's identifier.
     let identifier: Identifier
 
+    /// Storage for the control item's underlying status item.
+    private lazy var storage = StatusItemStorage(controlItem: self)
+
     /// The shared app state.
     private weak var appState: AppState?
 
-    /// The control item's underlying status item.
-    private let statusItem: NSStatusItem
-
-    /// A horizontal constraint for the control item's content view.
-    private let constraint: NSLayoutConstraint?
-
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
+
+    /// The control item's underlying status item.
+    private var statusItem: NSStatusItem {
+        storage.statusItem
+    }
+
+    /// A horizontal constraint for the control item's content view.
+    private var constraint: NSLayoutConstraint? {
+        storage.constraint
+    }
 
     /// A Boolean value that indicates whether the control item serves as
     /// a divider between sections.
@@ -89,59 +169,7 @@ final class ControlItem {
 
     /// Creates a control item with the given identifier.
     init(identifier: Identifier) {
-        let autosaveName = identifier.rawValue
-
-        // If the status item doesn't have a preferred position, set it
-        // according to the identifier.
-        if StatusItemDefaults[.preferredPosition, autosaveName] == nil {
-            switch identifier {
-            case .iceIcon:
-                StatusItemDefaults[.preferredPosition, autosaveName] = 0
-            case .hidden:
-                StatusItemDefaults[.preferredPosition, autosaveName] = 1
-            case .alwaysHidden:
-                break
-            }
-        }
-
-        self.statusItem = NSStatusBar.system.statusItem(withLength: 0)
-        self.statusItem.autosaveName = autosaveName
         self.identifier = identifier
-
-        if let button = statusItem.button {
-            // This could break in a new macOS release, but we need this constraint in order to be
-            // able to hide the control item when the `ShowSectionDividers` setting is disabled. A
-            // previous implementation used the status item's `isVisible` property, which was more
-            // robust, but would completely remove the control item. With the current set of
-            // features, we need to be able to accurately retrieve the items for each section, so
-            // we need the control item to always be present to act as a delimiter. The new solution
-            // is to remove the constraint that prevents status items from having a length of zero,
-            // then resize the content view. FIXME: Find a replacement for this.
-            if
-                let constraints = button.window?.contentView?.constraintsAffectingLayout(for: .horizontal),
-                let constraint = constraints.first(where: Predicates.controlItemConstraint(button: button))
-            {
-                assert(constraints.filter(Predicates.controlItemConstraint(button: button)).count == 1)
-                self.constraint = constraint
-            } else {
-                self.constraint = nil
-            }
-
-            button.target = self
-            button.action = #selector(performAction)
-        } else {
-            self.constraint = nil
-        }
-    }
-
-    /// Removes the status item without clearing its stored position.
-    deinit {
-        // Removing the status item has the unwanted side effect of deleting
-        // the preferredPosition. Cache and restore it.
-        let autosaveName = statusItem.autosaveName as String
-        let cached = StatusItemDefaults[.preferredPosition, autosaveName]
-        NSStatusBar.system.removeStatusItem(statusItem)
-        StatusItemDefaults[.preferredPosition, autosaveName] = cached
     }
 
     /// Performs the initial setup of the control item.
@@ -455,7 +483,7 @@ final class ControlItem {
             return
         }
         // Setting `statusItem.isVisible` to `false` has the unwanted side
-        // effect of deleting the preferredPosition. Cache and restore it.
+        // effect of deleting the preferred position. Cache and restore it.
         let autosaveName = statusItem.autosaveName as String
         let cached = StatusItemDefaults[.preferredPosition, autosaveName]
         statusItem.isVisible = false

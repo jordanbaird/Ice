@@ -27,7 +27,7 @@ struct MenuBarLayoutSettingsPane: View {
             .font(.title2)
 
         CalloutBox(
-            "Tip: You can also arrange menu bar items by Command + dragging them in the menu bar.",
+            "Tip: You can also arrange menu bar items by ⌘ Command + dragging them in the menu bar.",
             systemImage: "lightbulb"
         )
     }

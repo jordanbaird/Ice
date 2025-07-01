@@ -35,9 +35,9 @@ struct AdvancedSettingsPane: View {
             }
             IceSection("Other") {
                 hideApplicationMenus
-                showContextMenuOnRightClick
-                showOnHoverDelaySlider
-                tempShowIntervalSlider
+                enableSecondaryContextMenu
+                showOnHoverDelay
+                tempShowInterval
             }
             IceSection("Permissions") {
                 allPermissions
@@ -48,15 +48,15 @@ struct AdvancedSettingsPane: View {
     @ViewBuilder
     private var hideApplicationMenus: some View {
         Toggle(
-            "Hide application menus when showing menu bar items",
+            "Hide app menus when showing menu bar items",
             isOn: manager.bindings.hideApplicationMenus
         )
         .annotation {
             Text(
                 """
                 Make more room in the menu bar by hiding the current app menus if \
-                needed. macOS requires Ice to become visible in the Dock while this \
-                setting is in effect.
+                needed. macOS requires Ice to be visible in the Dock while this setting \
+                is in effect.
                 """
             )
             .padding(.trailing, 75)
@@ -64,17 +64,17 @@ struct AdvancedSettingsPane: View {
     }
 
     @ViewBuilder
-    private var showContextMenuOnRightClick: some View {
+    private var enableSecondaryContextMenu: some View {
         Toggle(
             "Enable secondary context menu",
-            isOn: manager.bindings.showContextMenuOnRightClick
+            isOn: manager.bindings.enableSecondaryContextMenu
         )
         .annotation {
             Text(
                 """
-                Right-clicking in an empty area of the menu bar displays a minimal \
-                version of Ice's menu. Disable this setting if you're experiencing \
-                conflicts with other apps.
+                Right-click in an empty area of the menu bar to display a minimal \
+                version of Ice's menu. Disable this if you experience conflicts with \
+                other apps.
                 """
             )
             .padding(.trailing, 75)
@@ -84,7 +84,7 @@ struct AdvancedSettingsPane: View {
     @ViewBuilder
     private var enableAlwaysHiddenSection: some View {
         Toggle(
-            "Enable always-hidden section",
+            "Enable the \(MenuBarSection.Name.alwaysHidden.displayString) Section",
             isOn: manager.bindings.enableAlwaysHiddenSection
         )
     }
@@ -92,7 +92,7 @@ struct AdvancedSettingsPane: View {
     @ViewBuilder
     private var showAllSectionsOnUserDrag: some View {
         Toggle(
-            "Show all sections when Command + dragging menu bar items",
+            "Show all sections when ⌘ Command + dragging menu bar items",
             isOn: manager.bindings.showAllSectionsOnUserDrag
         )
     }
@@ -107,7 +107,7 @@ struct AdvancedSettingsPane: View {
     }
 
     @ViewBuilder
-    private var showOnHoverDelaySlider: some View {
+    private var showOnHoverDelay: some View {
         IceLabeledContent {
             IceSlider(
                 formattedToSeconds(manager.showOnHoverDelay),
@@ -126,12 +126,12 @@ struct AdvancedSettingsPane: View {
     }
 
     @ViewBuilder
-    private var tempShowIntervalSlider: some View {
+    private var tempShowInterval: some View {
         IceLabeledContent {
             IceSlider(
                 formattedToSeconds(manager.tempShowInterval),
                 value: manager.bindings.tempShowInterval,
-                in: 0...30,
+                in: 0...60,
                 step: 1
             )
         } label: {

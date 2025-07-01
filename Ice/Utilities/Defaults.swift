@@ -158,13 +158,13 @@ extension Defaults {
 
         // MARK: Advanced Settings
 
-        case hideApplicationMenus = "HideApplicationMenus"
         case enableAlwaysHiddenSection = "EnableAlwaysHiddenSection"
+        case showAllSectionsOnUserDrag = "ShowAllSectionsOnUserDrag"
+        case sectionDividerStyle = "SectionDividerStyle"
+        case hideApplicationMenus = "HideApplicationMenus"
+        case enableSecondaryContextMenu = "EnableSecondaryContextMenu"
         case showOnHoverDelay = "ShowOnHoverDelay"
         case tempShowInterval = "TempShowInterval"
-        case showAllSectionsOnUserDrag = "ShowAllSectionsOnUserDrag"
-        case showContextMenuOnRightClick = "ShowContextMenuOnRightClick"
-        case sectionDividerStyle = "SectionDividerStyle"
 
         // MARK: Menu Bar Appearance Settings
 

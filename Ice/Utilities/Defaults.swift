@@ -165,6 +165,7 @@ extension Defaults {
         case showOnHoverDelay = "ShowOnHoverDelay"
         case tempShowInterval = "TempShowInterval"
         case showAllSectionsOnUserDrag = "ShowAllSectionsOnUserDrag"
+        case showContextMenuOnRightClick = "ShowContextMenuOnRightClick"
 
         // MARK: Menu Bar Appearance Settings
 

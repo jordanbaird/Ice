@@ -256,6 +256,7 @@ extension EventManager {
     private func handleShowRightClickMenu() {
         guard
             let appState,
+            appState.settingsManager.advancedSettingsManager.showContextMenuOnRightClick,
             isMouseInsideEmptyMenuBarSpace,
             let mouseLocation = MouseCursor.locationAppKit
         else {

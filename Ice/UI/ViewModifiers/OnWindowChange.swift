@@ -5,35 +5,30 @@
 
 import SwiftUI
 
-private nonisolated struct WindowReaderView: NSViewRepresentable {
-    final class Represented: NSView {
-        let action: (NSWindow?) -> Void
-
-        init(action: @escaping (NSWindow?) -> Void) {
-            self.action = action
-            super.init(frame: .zero)
-        }
-
-        @available(*, unavailable)
-        required init?(coder: NSCoder) {
-            fatalError("init(coder:) has not been implemented")
-        }
+private struct WindowReaderView: NSViewRepresentable {
+    private final class Represented: NSView {
+        var action: ((NSWindow?) -> Void)?
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            Task {
-                action(window)
+            if let action {
+                // Wrap the action in a Task to prevent SwiftUI update conflicts.
+                Task {
+                    action(window)
+                }
             }
         }
     }
 
-    let action: (NSWindow?) -> Void
+    var action: (NSWindow?) -> Void
 
-    func makeNSView(context: Context) -> Represented {
-        return Represented(action: action)
+    func makeNSView(context: Context) -> NSView {
+        let view = Represented()
+        view.action = action
+        return view
     }
 
-    func updateNSView(_ nsView: Represented, context: Context) { }
+    func updateNSView(_: NSView, context: Context) { }
 }
 
 extension View {
@@ -42,7 +37,7 @@ extension View {
     /// - Parameter action: The action to perform when the view's window
     ///   changes. The closure passes the new window as a parameter. The
     ///   new window can be `nil`.
-    nonisolated func onWindowChange(perform action: @escaping (_ window: NSWindow?) -> Void) -> some View {
+    func onWindowChange(perform action: @escaping (_ window: NSWindow?) -> Void) -> some View {
         background {
             WindowReaderView(action: action)
         }
@@ -52,7 +47,7 @@ extension View {
     ///
     /// - Parameter binding: The binding to update when the view's window
     ///   changes. The new window can be `nil`.
-    nonisolated func onWindowChange(update binding: Binding<NSWindow?>) -> some View {
+    func onWindowChange(update binding: Binding<NSWindow?>) -> some View {
         onWindowChange { window in
             binding.wrappedValue = window
         }

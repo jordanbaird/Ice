@@ -27,7 +27,7 @@ final class AdvancedSettingsManager: ObservableObject {
 
     /// A Boolean value that indicates whether to show a context menu
     /// when the user right-clicks the menu bar.
-    @Published var enableSecondaryContextMenu = false
+    @Published var enableSecondaryContextMenu = true
 
     /// The delay before showing on hover.
     @Published var showOnHoverDelay: TimeInterval = 0.2

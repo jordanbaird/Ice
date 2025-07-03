@@ -41,7 +41,6 @@ final class LayoutBarScrollView: NSScrollView {
         self.autohidesScrollers = true
 
         self.verticalScrollElasticity = .none
-        self.horizontalScrollElasticity = .none
 
         self.drawsBackground = false
 

@@ -74,9 +74,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Opens the settings window and activates the app.
     @objc func openSettingsWindow() {
         // Small delay makes this more reliable.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.appState.activate(withPolicy: .regular)
-            self.appState.openWindow(.settings)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [appState] in
+            appState.activate(withPolicy: .regular)
+            appState.openWindow(.settings)
         }
     }
 }

@@ -292,11 +292,13 @@ private struct IceBarContentView: View {
         return menuBarHeight
     }
 
-    private var clipShape: AnyInsettableShape {
+    private var clipShape: some InsettableShape {
         if configuration.hasRoundedShape {
-            AnyInsettableShape(Capsule())
+            RoundedRectangle(cornerRadius: frame.height / 2, style: .circular)
+        } else if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: frame.height / 4, style: .continuous)
         } else {
-            AnyInsettableShape(RoundedRectangle(cornerRadius: frame.height / 5, style: .continuous))
+            RoundedRectangle(cornerRadius: frame.height / 5, style: .continuous)
         }
     }
 

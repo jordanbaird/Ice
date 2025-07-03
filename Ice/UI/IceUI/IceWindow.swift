@@ -29,20 +29,50 @@ struct IceWindow<Content: View>: Scene {
     }
 
     var body: some Scene {
-        MenuBarExtra("", isInserted: .constant(false)) { }.once {
-            initializeWindow()
-        }
-
-        Window(id.titleKey, id: id.rawValue) {
-            content.onWindowChange { window in
-                window?.collectionBehavior.insert(.moveToActiveSpace)
-            }
+        windowScene.once {
+            // SwiftUI waits to create the underlying NSWindow until the scene
+            // is first presented. We may need a valid window reference before
+            // that point, so we open the window and immediately dismiss it.
+            //
+            // - Note: Both actions are called during the same run loop cycle,
+            //   so the window isn't actually opened.
+            openWindow(id: id)
+            dismissWindow(id: id)
         }
     }
 
-    private func initializeWindow() {
-        openWindow(id: id)
-        dismissWindow(id: id)
+    @ViewBuilder
+    private var windowContentView: some View {
+        content.onWindowChange { window in
+            window?.collectionBehavior.insert(.moveToActiveSpace)
+        }
+    }
+
+    private var windowScene: some Scene {
+        if #available(macOS 15.0, *) {
+            return windowSceneModern
+        } else {
+            return windowSceneLegacy
+        }
+    }
+
+    @available(macOS 15.0, *)
+    private var windowSceneModern: some Scene {
+        Window(id.titleKey, id: id.rawValue) {
+            windowContentView
+        }
+        .defaultLaunchBehavior(.suppressed)
+    }
+
+    private var windowSceneLegacy: some Scene {
+        Window(id.titleKey, id: id.rawValue) {
+            windowContentView.once {
+                // On launch, SwiftUI tries to show the first scene provided
+                // to the app. Override this behavior and dismiss the window
+                // the first time it is shown.
+                dismissWindow(id: id)
+            }
+        }
     }
 }
 

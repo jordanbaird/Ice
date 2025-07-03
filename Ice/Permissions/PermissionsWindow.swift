@@ -15,7 +15,9 @@ struct PermissionsWindow: Scene {
                     guard let window else {
                         return
                     }
-                    window.styleMask.remove([.closable, .miniaturizable])
+                    window.standardWindowButton(.closeButton)?.isHidden = true
+                    window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+                    window.standardWindowButton(.zoomButton)?.isHidden = true
                     if let contentView = window.contentView {
                         with(contentView.safeAreaInsets) { insets in
                             insets.bottom = -insets.bottom

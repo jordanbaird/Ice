@@ -33,13 +33,13 @@ struct PermissionsView: View {
             headerView
                 .padding(.vertical)
 
-            explanationView
-            permissionsGroupStack
+            permissionsStack
 
             footerView
                 .padding(.vertical)
         }
         .padding(.horizontal)
+        .frame(width: 550)
         .fixedSize()
     }
 
@@ -47,35 +47,36 @@ struct PermissionsView: View {
     private var headerView: some View {
         Label {
             Text("Permissions")
-                .font(.system(size: 36))
+                .font(.system(size: 40, weight: .medium))
         } icon: {
             if let nsImage = NSImage(named: NSImage.applicationIconName) {
                 Image(nsImage: nsImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 75, height: 75)
+                    .frame(width: 85, height: 85)
             }
         }
     }
 
     @ViewBuilder
-    private var explanationView: some View {
+    private var explanationBox: some View {
         IceSection {
             VStack {
-                Text("Ice needs permission to manage the menu bar.")
+                Text("Ice needs your permission to manage the menu bar.")
+                    .fontWeight(.medium)
                 Text("Absolutely no personal information is collected or stored.")
                     .bold()
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color(red: 0.5, green: 0.75, blue: 1))
             }
             .padding()
         }
         .font(.title3)
-        .padding(.bottom, 10)
     }
 
     @ViewBuilder
-    private var permissionsGroupStack: some View {
-        VStack(spacing: 7.5) {
+    private var permissionsStack: some View {
+        VStack {
+            explanationBox
             ForEach(manager.allPermissions) { permission in
                 permissionBox(permission)
             }
@@ -128,12 +129,12 @@ struct PermissionsView: View {
     @ViewBuilder
     private func permissionBox(_ permission: Permission) -> some View {
         IceSection {
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 Text(permission.title)
-                    .font(.title)
+                    .font(.title.weight(.medium))
                     .underline()
 
-                VStack(spacing: 0) {
+                VStack(spacing: 2) {
                     Text("Ice needs this to:")
                         .font(.title3)
                         .bold()
@@ -142,7 +143,7 @@ struct PermissionsView: View {
                         ForEach(permission.details, id: \.self) { detail in
                             HStack {
                                 Text("•").bold()
-                                Text(detail)
+                                Text(detail).fontWeight(.medium)
                             }
                         }
                     }

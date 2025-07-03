@@ -85,6 +85,7 @@ final class AppState: ObservableObject {
                 // Delay to prevent conflicts with the app delegate.
                 try await Task.sleep(for: .milliseconds(100))
                 activate(withPolicy: .regular)
+                dismissWindow(.settings) // Shouldn't be open anyway.
                 openWindow(.permissions)
             }
         }

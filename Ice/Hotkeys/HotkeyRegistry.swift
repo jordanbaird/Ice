@@ -120,6 +120,7 @@ final class HotkeyRegistry {
     ///     the event kind specified by `eventKind`.
     ///
     /// - Returns: The registration's identifier on success, `nil` on failure.
+    @MainActor
     func register(hotkey: Hotkey, eventKind: EventKind, handler: @escaping () -> Void) -> UInt32? {
         enum Context {
             static var currentID: UInt32 = 0

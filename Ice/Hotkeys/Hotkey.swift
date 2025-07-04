@@ -10,9 +10,14 @@ import OSLog
 
 /// A combination of a key and modifiers that can be used to
 /// trigger actions on system-wide key-up or key-down events.
+@MainActor
 final class Hotkey: ObservableObject {
     /// The hotkey's key combination.
-    @Published var keyCombination: KeyCombination?
+    @Published var keyCombination: KeyCombination? {
+        didSet {
+            enable()
+        }
+    }
 
     /// The hotkey's action.
     let action: HotkeyAction
@@ -23,9 +28,6 @@ final class Hotkey: ObservableObject {
     /// Manages the lifetime of the hotkey observation.
     private var listener: Listener?
 
-    /// Internal observer storage.
-    private var cancellable: AnyCancellable?
-
     /// A Boolean value that indicates whether the hotkey is enabled.
     var isEnabled: Bool { listener != nil }
 
@@ -33,29 +35,21 @@ final class Hotkey: ObservableObject {
     init(keyCombination: KeyCombination?, action: HotkeyAction) {
         self.keyCombination = keyCombination
         self.action = action
-        self.cancellable = $keyCombination.sink { [weak self] _ in
-            Task {
-                await self?.enable()
-            }
-        }
     }
 
     /// Performs the initial setup of the hotkey.
-    @MainActor
     func performSetup(with appState: AppState) {
         self.appState = appState
         enable()
     }
 
     /// Enables the hotkey.
-    @MainActor
     func enable() {
         disable()
         listener = Listener(hotkey: self, eventKind: .keyDown)
     }
 
     /// Disables the hotkey.
-    @MainActor
     func disable() {
         listener?.invalidate()
         listener = nil
@@ -115,7 +109,7 @@ extension Hotkey {
 }
 
 // MARK: Hotkey: Equatable
-extension Hotkey: Equatable {
+extension Hotkey: @MainActor Equatable {
     static func == (lhs: Hotkey, rhs: Hotkey) -> Bool {
         lhs.keyCombination == rhs.keyCombination &&
         lhs.action == rhs.action
@@ -123,7 +117,7 @@ extension Hotkey: Equatable {
 }
 
 // MARK: Hotkey: Hashable
-extension Hotkey: Hashable {
+extension Hotkey: @MainActor Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(keyCombination)
         hasher.combine(action)

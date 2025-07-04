@@ -13,6 +13,14 @@ struct HotkeyRecorder<Label: View>: View {
 
     private let label: Label
 
+    private var size: CGSize {
+        if #available(macOS 26.0, *) {
+            CGSize(width: 140, height: 24)
+        } else {
+            CGSize(width: 132, height: 24)
+        }
+    }
+
     init(hotkey: Hotkey, @ViewBuilder label: () -> Label) {
         self._model = StateObject(wrappedValue: HotkeyRecorderModel(hotkey: hotkey))
         self.label = label()
@@ -20,11 +28,7 @@ struct HotkeyRecorder<Label: View>: View {
 
     var body: some View {
         IceLabeledContent {
-            HStack(spacing: 1) {
-                leadingSegment
-                trailingSegment
-            }
-            .frame(width: 132, height: 24)
+            segmentStack
         } label: {
             label
         }
@@ -36,6 +40,15 @@ struct HotkeyRecorder<Label: View>: View {
                 model.isPresentingSystemReservedError = false
             }
         }
+    }
+
+    @ViewBuilder
+    private var segmentStack: some View {
+        HStack(spacing: 1) {
+            leadingSegment
+            trailingSegment
+        }
+        .frame(width: size.width, height: size.height)
     }
 
     @ViewBuilder
@@ -92,19 +105,17 @@ struct HotkeyRecorder<Label: View>: View {
 
     @ViewBuilder
     private var trailingSegmentLabel: some View {
-        let (name, label, padding, weight) = if model.isRecording {
-            ("escape", "Cancel", 5.5, Font.Weight.regular)
+        let (name, label, padding) = if model.isRecording {
+            ("escape", "Cancel", 6.0)
         } else if model.hotkey.isEnabled {
-            ("xmark", "Clear", 7.5, Font.Weight.medium)
+            ("xmark", "Clear", 7.5)
         } else {
-            ("record.circle", "Record", 5.5, Font.Weight.regular)
+            ("record.circle", "Record", 5.5)
         }
         Image(systemName: name)
             .resizable()
             .aspectRatio(1, contentMode: .fit)
             .padding(padding)
-            .foregroundStyle(.secondary)
-            .fontWeight(weight)
             .accessibilityLabel(label)
     }
 }
@@ -217,8 +228,10 @@ private struct HotkeyRecorderButtonStyle: ButtonStyle {
     }
 
     func makeBody(configuration: Configuration) -> some View {
+        let isProminent = isHighlighted || configuration.isPressed
         borderShape
-            .fill(isHighlighted || configuration.isPressed ? .tertiary : .quaternary)
+            .fill(isProminent ? .tertiary : .quaternary)
+            .opacity(isProminent ? 0.5 : 0.75)
             .overlay {
                 configuration.label
                     .lineLimit(1)

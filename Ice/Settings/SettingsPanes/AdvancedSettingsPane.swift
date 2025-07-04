@@ -46,6 +46,31 @@ struct AdvancedSettingsPane: View {
     }
 
     @ViewBuilder
+    private var enableAlwaysHiddenSection: some View {
+        Toggle(
+            "Enable the always-hidden section",
+            isOn: manager.bindings.enableAlwaysHiddenSection
+        )
+    }
+
+    @ViewBuilder
+    private var showAllSectionsOnUserDrag: some View {
+        Toggle(
+            "Show all sections when ⌘ Command + dragging menu bar items",
+            isOn: manager.bindings.showAllSectionsOnUserDrag
+        )
+    }
+
+    @ViewBuilder
+    private var sectionDividerStyle: some View {
+        IcePicker("Section divider style", selection: manager.bindings.sectionDividerStyle) {
+            ForEach(SectionDividerStyle.allCases) { style in
+                Text(style.localized).tag(style)
+            }
+        }
+    }
+
+    @ViewBuilder
     private var hideApplicationMenus: some View {
         Toggle(
             "Hide app menus when showing menu bar items",
@@ -78,31 +103,6 @@ struct AdvancedSettingsPane: View {
                 """
             )
             .padding(.trailing, 75)
-        }
-    }
-
-    @ViewBuilder
-    private var enableAlwaysHiddenSection: some View {
-        Toggle(
-            "Enable the \(MenuBarSection.Name.alwaysHidden.displayString) Section",
-            isOn: manager.bindings.enableAlwaysHiddenSection
-        )
-    }
-
-    @ViewBuilder
-    private var showAllSectionsOnUserDrag: some View {
-        Toggle(
-            "Show all sections when ⌘ Command + dragging menu bar items",
-            isOn: manager.bindings.showAllSectionsOnUserDrag
-        )
-    }
-
-    @ViewBuilder
-    private var sectionDividerStyle: some View {
-        IcePicker("Section divider style", selection: manager.bindings.sectionDividerStyle) {
-            ForEach(SectionDividerStyle.allCases) { style in
-                Text(style.localized).tag(style)
-            }
         }
     }
 

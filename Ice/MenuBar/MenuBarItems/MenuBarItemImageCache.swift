@@ -113,18 +113,16 @@ final class MenuBarItemImageCache: ObservableObject {
         let backingScaleFactor = screen.backingScaleFactor
         let displayBounds = CGDisplayBounds(screen.displayID)
         let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
-        let defaultItemThickness = NSStatusBar.system.thickness * backingScaleFactor
 
         var itemInfosDict = [CGWindowID: MenuBarItemInfo]()
         var itemBoundsDict = [CGWindowID: CGRect]()
         var windowIDs = [CGWindowID]()
-        var allBounds = CGRect.null
+        var combinedBounds = CGRect.null
 
         for item in items {
             let windowID = item.windowID
             guard
-                // Use the most up-to-date window bounds.
-                let itemBounds = Bridging.getWindowBounds(for: windowID),
+                let itemBounds = Bridging.getWindowBounds(for: windowID), // Get latest bounds.
                 itemBounds.minY == displayBounds.minY
             else {
                 continue
@@ -132,12 +130,12 @@ final class MenuBarItemImageCache: ObservableObject {
             itemInfosDict[windowID] = item.info
             itemBoundsDict[windowID] = itemBounds
             windowIDs.append(windowID)
-            allBounds = allBounds.union(itemBounds)
+            combinedBounds = combinedBounds.union(itemBounds)
         }
 
         if
             let compositeImage = ScreenCapture.captureWindows(windowIDs, option: option),
-            CGFloat(compositeImage.width) == allBounds.width * backingScaleFactor
+            CGFloat(compositeImage.width) == combinedBounds.width * backingScaleFactor
         {
             for windowID in windowIDs {
                 guard
@@ -148,8 +146,8 @@ final class MenuBarItemImageCache: ObservableObject {
                 }
 
                 let frame = CGRect(
-                    x: (itemBounds.origin.x - allBounds.origin.x) * backingScaleFactor,
-                    y: (itemBounds.origin.y - allBounds.origin.y) * backingScaleFactor,
+                    x: (itemBounds.origin.x - combinedBounds.origin.x) * backingScaleFactor,
+                    y: (itemBounds.origin.y - combinedBounds.origin.y) * backingScaleFactor,
                     width: itemBounds.width * backingScaleFactor,
                     height: itemBounds.height * backingScaleFactor
                 )
@@ -164,33 +162,18 @@ final class MenuBarItemImageCache: ObservableObject {
             logger.warning(
                 """
                 Composite capture failed for \(section.logString, privacy: .public). \
-                Attempting to capture each item individually.
+                Attempting to capture items individually.
                 """
             )
 
             for windowID in windowIDs {
                 guard
                     let itemInfo = itemInfosDict[windowID],
-                    let itemBounds = itemBoundsDict[windowID]
+                    let itemImage = ScreenCapture.captureWindow(windowID, option: option)
                 else {
                     continue
                 }
-
-                let frame = CGRect(
-                    x: 0,
-                    y: ((itemBounds.height * backingScaleFactor) / 2) - (defaultItemThickness / 2),
-                    width: itemBounds.width * backingScaleFactor,
-                    height: defaultItemThickness
-                )
-
-                guard
-                    let itemImage = ScreenCapture.captureWindow(windowID, option: option),
-                    let croppedImage = itemImage.cropping(to: frame)
-                else {
-                    continue
-                }
-
-                images[itemInfo] = croppedImage
+                images[itemInfo] = itemImage
             }
         }
 

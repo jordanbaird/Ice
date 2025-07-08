@@ -3,8 +3,8 @@
 //  Ice
 //
 
-import Cocoa
 import Combine
+import SwiftUI
 
 final class IceBarColorManager: ObservableObject {
     private struct WindowImageInfo {
@@ -43,23 +43,39 @@ final class IceBarColorManager: ObservableObject {
                 }
                 .store(in: &c)
 
-            Publishers.CombineLatest(
-                iceBarPanel.publisher(for: \.frame),
-                iceBarPanel.publisher(for: \.isVisible)
-            )
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] frame, isVisible in
-                guard
-                    let self,
-                    let screen = iceBarPanel.screen,
-                    isVisible,
-                    screen == .main
-                else {
-                    return
+            iceBarPanel.publisher(for: \.isVisible)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self, weak iceBarPanel] isVisible in
+                    guard
+                        let self,
+                        let iceBarPanel,
+                        let screen = iceBarPanel.screen,
+                        isVisible,
+                        screen == .main
+                    else {
+                        return
+                    }
+                    updateColorInfo(with: iceBarPanel.frame, screen: screen)
                 }
-                updateColorInfo(with: frame, screen: screen)
-            }
-            .store(in: &c)
+                .store(in: &c)
+
+            iceBarPanel.publisher(for: \.frame)
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self, weak iceBarPanel] frame in
+                    guard
+                        let self,
+                        let iceBarPanel,
+                        let screen = iceBarPanel.screen,
+                        iceBarPanel.isVisible,
+                        screen == .main
+                    else {
+                        return
+                    }
+                    withAnimation(.interactiveSpring) {
+                        self.updateColorInfo(with: frame, screen: screen)
+                    }
+                }
+                .store(in: &c)
 
             Publishers.Merge4(
                 NSWorkspace.shared.notificationCenter
@@ -87,7 +103,9 @@ final class IceBarColorManager: ObservableObject {
                 }
                 updateWindowImageInfo(for: screen)
                 if iceBarPanel.isVisible {
-                    updateColorInfo(with: iceBarPanel.frame, screen: screen)
+                    withAnimation(.interactiveSpring) {
+                        self.updateColorInfo(with: iceBarPanel.frame, screen: screen)
+                    }
                 }
             }
             .store(in: &c)
@@ -101,10 +119,16 @@ final class IceBarColorManager: ObservableObject {
         let displayID = screen.displayID
 
         if #available(macOS 26.0, *) {
-            if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
-                let bounds = with(window.frame) { $0.size.height = 1 }
-                if let image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution) {
-                    windowImageInfo = WindowImageInfo(image: image, source: .desktopWallpaper)
+            if
+                let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: displayID),
+                let wallpaperWindow = WindowInfo.getWallpaperWindow(from: windows, for: displayID)
+            {
+                let bounds = with(wallpaperWindow.frame) { $0.size.height = 1 }
+                let windowIDs = [menuBarWindow.windowID, wallpaperWindow.windowID]
+                if let image = ScreenCapture.captureWindows(windowIDs, screenBounds: bounds, option: .nominalResolution) {
+                    // Just use `menuBarWindow` as the source for now, regardless
+                    // of whether it contributes to the capture.
+                    windowImageInfo = WindowImageInfo(image: image, source: .menuBarWindow)
                 } else {
                     windowImageInfo = nil
                 }
@@ -123,7 +147,6 @@ final class IceBarColorManager: ObservableObject {
 
     private func updateColorInfo(with frame: CGRect, screen: NSScreen) {
         guard let windowImageInfo else {
-            colorInfo = nil
             return
         }
 
@@ -141,7 +164,6 @@ final class IceBarColorManager: ObservableObject {
             let croppedImage = image.cropping(to: cropRect),
             let averageColor = croppedImage.averageColor()
         else {
-            colorInfo = nil
             return
         }
 

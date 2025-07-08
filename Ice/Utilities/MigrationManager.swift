@@ -104,13 +104,13 @@ extension MigrationManager {
                 key: KeyCode(rawValue: key),
                 modifiers: Modifiers(rawValue: modifiers)
             )
-            let hotkeySettingsManager = appState.settingsManager.hotkeySettingsManager
+            let hotkeysSettings = appState.settings.hotkeys
             if case .hidden = name {
-                if let hotkey = hotkeySettingsManager.hotkey(withAction: .toggleHiddenSection) {
+                if let hotkey = hotkeysSettings.hotkey(withAction: .toggleHiddenSection) {
                     hotkey.keyCombination = keyCombination
                 }
             } else if case .alwaysHidden = name {
-                if let hotkey = hotkeySettingsManager.hotkey(withAction: .toggleAlwaysHiddenSection) {
+                if let hotkey = hotkeysSettings.hotkey(withAction: .toggleAlwaysHiddenSection) {
                     hotkey.keyCombination = keyCombination
                 }
             }

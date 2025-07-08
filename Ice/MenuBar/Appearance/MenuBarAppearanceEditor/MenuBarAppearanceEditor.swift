@@ -61,7 +61,7 @@ struct MenuBarAppearanceEditor: View {
         IceForm(padding: mainFormPadding) {
             if
                 case .settings = location,
-                appState.settingsManager.advancedSettingsManager.enableSecondaryContextMenu
+                appState.settings.advanced.enableSecondaryContextMenu
             {
                 CalloutBox(
                     "Tip: You can also edit these settings by right-clicking in an empty area of the menu bar.",

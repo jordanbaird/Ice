@@ -19,22 +19,24 @@ final class Hotkey: ObservableObject {
         }
     }
 
-    /// The hotkey's action.
-    let action: HotkeyAction
-
     /// The shared app state.
     private weak var appState: AppState?
 
     /// Manages the lifetime of the hotkey observation.
     private var listener: Listener?
 
-    /// A Boolean value that indicates whether the hotkey is enabled.
-    var isEnabled: Bool { listener != nil }
+    /// The hotkey's action.
+    let action: HotkeyAction
 
-    /// Creates a hotkey with the given key combination and action.
-    init(keyCombination: KeyCombination?, action: HotkeyAction) {
-        self.keyCombination = keyCombination
+    /// A Boolean value that indicates whether the hotkey is enabled.
+    var isEnabled: Bool {
+        listener != nil
+    }
+
+    /// Creates a hotkey with the given action and key combination.
+    init(action: HotkeyAction, keyCombination: KeyCombination? = nil) {
         self.action = action
+        self.keyCombination = keyCombination
     }
 
     /// Performs the initial setup of the hotkey.
@@ -72,7 +74,7 @@ extension Hotkey {
             else {
                 return nil
             }
-            let registry = appState.hotkeyRegistry
+            let registry = appState.settings.hotkeys.registry
             let id = registry.register(hotkey: hotkey, eventKind: eventKind) { [weak appState] in
                 guard let appState else {
                     return

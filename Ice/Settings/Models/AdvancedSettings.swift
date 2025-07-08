@@ -1,15 +1,16 @@
 //
-//  AdvancedSettingsManager.swift
+//  AdvancedSettings.swift
 //  Ice
 //
 
 import Combine
 import SwiftUI
 
-// MARK: - AdvancedSettingsManager
+// MARK: - AdvancedSettings
 
+/// Model for the app's Advanced settings.
 @MainActor
-final class AdvancedSettingsManager: ObservableObject {
+final class AdvancedSettings: ObservableObject {
     /// A Boolean value that indicates whether the always-hidden section
     /// is enabled.
     @Published var enableAlwaysHiddenSection = false
@@ -41,12 +42,14 @@ final class AdvancedSettingsManager: ObservableObject {
     /// The shared app state.
     private(set) weak var appState: AppState?
 
+    /// Performs the initial setup of the model.
     func performSetup(with appState: AppState) {
         self.appState = appState
         loadInitialState()
         configureCancellables()
     }
 
+    /// Loads the model's initial state.
     private func loadInitialState() {
         Defaults.ifPresent(key: .enableAlwaysHiddenSection, assign: &enableAlwaysHiddenSection)
         Defaults.ifPresent(key: .showAllSectionsOnUserDrag, assign: &showAllSectionsOnUserDrag)
@@ -62,6 +65,7 @@ final class AdvancedSettingsManager: ObservableObject {
         }
     }
 
+    /// Configures the internal observers for the model.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -117,9 +121,6 @@ final class AdvancedSettingsManager: ObservableObject {
         cancellables = c
     }
 }
-
-// MARK: AdvancedSettingsManager: BindingExposable
-extension AdvancedSettingsManager: BindingExposable { }
 
 // MARK: - SectionDividerStyle
 

@@ -1452,7 +1452,7 @@ extension MenuBarItemManager {
             do {
                 let context = try await contextTask.value
                 tempShownItemContexts.append(context)
-                runTempShownItemTimer(for: appState.settingsManager.advancedSettingsManager.tempShowInterval)
+                runTempShownItemTimer(for: appState.settings.advanced.tempShowInterval)
             } catch {
                 logger.error("ERROR: \(error, privacy: .public)")
             }

@@ -7,10 +7,7 @@ import SwiftUI
 
 struct HotkeysSettingsPane: View {
     @EnvironmentObject var appState: AppState
-
-    private var manager: HotkeySettingsManager {
-        appState.settingsManager.hotkeySettingsManager
-    }
+    @ObservedObject var settings: HotkeysSettings
 
     var body: some View {
         IceForm {
@@ -30,7 +27,7 @@ struct HotkeysSettingsPane: View {
 
     @ViewBuilder
     private func hotkeyRecorder(forAction action: HotkeyAction) -> some View {
-        if let hotkey = manager.hotkey(withAction: action) {
+        if let hotkey = settings.hotkey(withAction: action) {
             HotkeyRecorder(hotkey: hotkey) {
                 switch action {
                 case .toggleHiddenSection:

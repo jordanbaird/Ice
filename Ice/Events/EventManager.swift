@@ -154,7 +154,7 @@ extension EventManager {
 
     private func handleShowOnClick(appState: AppState, screen: NSScreen) {
         guard
-            appState.settingsManager.generalSettingsManager.showOnClick,
+            appState.settings.general.showOnClick,
             isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen)
         else {
             return
@@ -194,8 +194,8 @@ extension EventManager {
 
     private func handleSmartRehide(with event: NSEvent, appState: AppState, screen: NSScreen) {
         guard
-            appState.settingsManager.generalSettingsManager.autoRehide,
-            case .smart = appState.settingsManager.generalSettingsManager.rehideStrategy
+            appState.settings.general.autoRehide,
+            case .smart = appState.settings.general.rehideStrategy
         else {
             return
         }
@@ -270,7 +270,7 @@ extension EventManager {
 
     private func handleShowSecondaryContextMenu(appState: AppState, screen: NSScreen) {
         guard
-            appState.settingsManager.advancedSettingsManager.enableSecondaryContextMenu,
+            appState.settings.advanced.enableSecondaryContextMenu,
             isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen),
             let mouseLocation = MouseCursor.locationAppKit
         else {
@@ -283,8 +283,8 @@ extension EventManager {
 
     private func handlePreventShowOnHover(with event: NSEvent, appState: AppState, screen: NSScreen) {
         guard
-            appState.settingsManager.generalSettingsManager.showOnHover,
-            !appState.settingsManager.generalSettingsManager.useIceBar
+            appState.settings.general.showOnHover,
+            !appState.settings.general.useIceBar
         else {
             return
         }
@@ -338,7 +338,7 @@ extension EventManager {
 
         isDraggingMenuBarItem = true
 
-        if appState.settingsManager.advancedSettingsManager.showAllSectionsOnUserDrag {
+        if appState.settings.advanced.showAllSectionsOnUserDrag {
             for section in appState.menuBarManager.sections {
                 section.controlItem.state = .showItems
             }
@@ -350,7 +350,7 @@ extension EventManager {
     private func handleShowOnHover(appState: AppState, screen: NSScreen) {
         // Make sure the "ShowOnHover" feature is enabled and allowed.
         guard
-            appState.settingsManager.generalSettingsManager.showOnHover,
+            appState.settings.general.showOnHover,
             appState.menuBarManager.showOnHoverAllowed
         else {
             return
@@ -361,7 +361,7 @@ extension EventManager {
             return
         }
 
-        let delay = appState.settingsManager.advancedSettingsManager.showOnHoverDelay
+        let delay = appState.settings.advanced.showOnHoverDelay
 
         if hiddenSection.isHidden {
             guard isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen) else {
@@ -400,7 +400,7 @@ extension EventManager {
 
     private func handleShowOnScroll(with event: NSEvent, appState: AppState, screen: NSScreen) {
         // Make sure the "ShowOnScroll" feature is enabled.
-        guard appState.settingsManager.generalSettingsManager.showOnScroll else {
+        guard appState.settings.general.showOnScroll else {
             return
         }
 

@@ -119,7 +119,7 @@ final class MenuBarManager: ObservableObject {
                 if
                     let self,
                     let appState,
-                    case .focusedApp = appState.settingsManager.generalSettingsManager.rehideStrategy,
+                    case .focusedApp = appState.settings.general.rehideStrategy,
                     let hiddenSection = section(withName: .hidden),
                     let screen = appState.eventManager.bestScreen(appState: appState),
                     !appState.eventManager.isMouseInsideMenuBar(appState: appState, screen: screen)
@@ -169,8 +169,8 @@ final class MenuBarManager: ObservableObject {
                 //   * The active space is fullscreen.
                 //   * The settings window is visible.
                 guard
-                    appState.settingsManager.advancedSettingsManager.hideApplicationMenus,
-                    !appState.settingsManager.generalSettingsManager.useIceBar,
+                    appState.settings.advanced.hideApplicationMenus,
+                    !appState.settings.general.useIceBar,
                     !isMenuBarHiddenBySystem,
                     !appState.isActiveSpaceFullscreen,
                     !appState.navigationState.isSettingsPresented

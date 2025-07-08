@@ -200,12 +200,12 @@ final class ControlItem {
                     return
                 }
 
-                let manager = appState.settingsManager.hotkeySettingsManager
+                let hotkeysSettings = appState.settings.hotkeys
 
                 let hotkey: Hotkey? = switch identifier {
                 case .iceIcon: nil
-                case .hidden: manager.hotkey(withAction: .toggleHiddenSection)
-                case .alwaysHidden: manager.hotkey(withAction: .toggleAlwaysHiddenSection)
+                case .hidden: hotkeysSettings.hotkey(withAction: .toggleHiddenSection)
+                case .alwaysHidden: hotkeysSettings.hotkey(withAction: .toggleAlwaysHiddenSection)
                 }
 
                 guard let hotkey else {
@@ -276,7 +276,7 @@ final class ControlItem {
                 }
                 .store(in: &c)
 
-            appState.settingsManager.generalSettingsManager.$useIceBar
+            appState.settings.general.$useIceBar
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] useIceBar in
                     guard
@@ -294,7 +294,7 @@ final class ControlItem {
                 .store(in: &c)
 
             if identifier == .iceIcon {
-                appState.settingsManager.generalSettingsManager.$showIceIcon
+                appState.settings.general.$showIceIcon
                     .combineLatest(statusItem.publisher(for: \.isVisible))
                     .removeDuplicates { $0 == $1 }
                     .receive(on: DispatchQueue.main)
@@ -310,7 +310,7 @@ final class ControlItem {
                     }
                     .store(in: &c)
 
-                appState.settingsManager.generalSettingsManager.$iceIcon
+                appState.settings.general.$iceIcon
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
                         guard let self else {
@@ -320,7 +320,7 @@ final class ControlItem {
                     }
                     .store(in: &c)
 
-                appState.settingsManager.generalSettingsManager.$customIceIconIsTemplate
+                appState.settings.general.$customIceIconIsTemplate
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
                         guard let self else {
@@ -332,7 +332,7 @@ final class ControlItem {
             }
 
             if identifier == .alwaysHidden {
-                appState.settingsManager.advancedSettingsManager.$enableAlwaysHiddenSection
+                appState.settings.advanced.$enableAlwaysHiddenSection
                     .combineLatest(statusItem.publisher(for: \.isVisible))
                     .removeDuplicates { $0 == $1 }
                     .receive(on: DispatchQueue.main)
@@ -350,7 +350,7 @@ final class ControlItem {
             }
 
             if isSectionDivider {
-                appState.settingsManager.advancedSettingsManager.$sectionDividerStyle
+                appState.settings.advanced.$sectionDividerStyle
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
                         guard let self else {
@@ -383,7 +383,7 @@ final class ControlItem {
             updateStatusItemVisibility(true, state: state)
             updateButtonEnabledState(true) // Make sure button is enabled.
 
-            let icon = appState.settingsManager.generalSettingsManager.iceIcon
+            let icon = appState.settings.general.iceIcon
 
             // We can usually just create the image directly from the icon.
             var image = switch state {
@@ -410,12 +410,12 @@ final class ControlItem {
                 updateStatusItemVisibility(true, state: state)
                 updateButtonEnabledState(false) // Keep button from highlighting.
             case .showItems:
-                switch appState.settingsManager.advancedSettingsManager.sectionDividerStyle {
+                switch appState.settings.advanced.sectionDividerStyle {
                 case .noDivider:
                     updateStatusItemVisibility(false, state: state)
                     updateButtonEnabledState(false) // Keep button from highlighting.
 
-                    if appState.isDraggingMenuBarItem && appState.settingsManager.advancedSettingsManager.showAllSectionsOnUserDrag {
+                    if appState.isDraggingMenuBarItem && appState.settings.advanced.showAllSectionsOnUserDrag {
                         // We still want a subtle marker between sections.
                         button.title = "|"
                     }
@@ -458,7 +458,7 @@ final class ControlItem {
             }
             constraint?.isActive = true
         } else {
-            let wider = appState.isDraggingMenuBarItem && appState.settingsManager.advancedSettingsManager.showAllSectionsOnUserDrag
+            let wider = appState.isDraggingMenuBarItem && appState.settings.advanced.showAllSectionsOnUserDrag
             statusItem.length = wider ? 3 : 0
             constraint?.isActive = false
             if let window {
@@ -549,8 +549,7 @@ final class ControlItem {
     /// Creates a menu to show under the control item.
     private func createMenu(with appState: AppState) -> NSMenu {
         func hotkey(withAction action: HotkeyAction) -> Hotkey? {
-            let hotkeySettingsManager = appState.settingsManager.hotkeySettingsManager
-            return hotkeySettingsManager.hotkey(withAction: action)
+            appState.settings.hotkeys.hotkey(withAction: action)
         }
 
         let menu = NSMenu(title: "Ice")

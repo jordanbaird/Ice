@@ -51,7 +51,7 @@ final class MenuBarSection {
 
     /// A Boolean value that indicates whether the Ice Bar should be used.
     private var useIceBar: Bool {
-        appState?.settingsManager.generalSettingsManager.useIceBar ?? false
+        appState?.settings.general.useIceBar ?? false
     }
 
     /// A weak reference to the menu bar manager.
@@ -249,8 +249,8 @@ final class MenuBarSection {
 
         guard
             let appState,
-            appState.settingsManager.generalSettingsManager.autoRehide,
-            case .timed = appState.settingsManager.generalSettingsManager.rehideStrategy
+            appState.settings.general.autoRehide,
+            case .timed = appState.settings.general.rehideStrategy
         else {
             return
         }
@@ -265,7 +265,7 @@ final class MenuBarSection {
             if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
                 if rehideTimer == nil {
                     rehideTimer = .scheduledTimer(
-                        withTimeInterval: appState.settingsManager.generalSettingsManager.rehideInterval,
+                        withTimeInterval: appState.settings.general.rehideInterval,
                         repeats: false
                     ) { [weak self] _ in
                         guard

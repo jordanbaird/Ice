@@ -16,8 +16,8 @@ final class AppState: ObservableObject {
     /// A Boolean value that indicates whether the user is dragging a menu bar item.
     @Published private(set) var isDraggingMenuBarItem = false
 
-    /// Manager for the app's settings.
-    let settingsManager = SettingsManager()
+    /// Model for the app's settings.
+    let settings = AppSettings()
 
     /// Model for app-wide navigation.
     let navigationState = AppNavigationState()
@@ -49,9 +49,6 @@ final class AppState: ObservableObject {
     /// Manager for user notifications.
     let userNotificationManager = UserNotificationManager()
 
-    /// The app's hotkey registry.
-    let hotkeyRegistry = HotkeyRegistry()
-
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
@@ -66,7 +63,7 @@ final class AppState: ObservableObject {
         menuBarManager.performSetup(with: self)
         appearanceManager.performSetup(with: self)
         eventManager.performSetup(with: self)
-        settingsManager.performSetup(with: self)
+        settings.performSetup(with: self)
         itemManager.performSetup(with: self)
         imageCache.performSetup(with: self)
         updatesManager.performSetup(with: self)
@@ -163,7 +160,7 @@ final class AppState: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &c)
-        settingsManager.objectWillChange
+        settings.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }

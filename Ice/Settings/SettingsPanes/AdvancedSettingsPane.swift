@@ -7,14 +7,11 @@ import SwiftUI
 
 struct AdvancedSettingsPane: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject var settings: AdvancedSettings
     @State private var maxSliderLabelWidth: CGFloat = 0
 
     private var menuBarManager: MenuBarManager {
         appState.menuBarManager
-    }
-
-    private var manager: AdvancedSettingsManager {
-        appState.settingsManager.advancedSettingsManager
     }
 
     private func formattedToSeconds(_ interval: TimeInterval) -> LocalizedStringKey {
@@ -49,7 +46,7 @@ struct AdvancedSettingsPane: View {
     private var enableAlwaysHiddenSection: some View {
         Toggle(
             "Enable the always-hidden section",
-            isOn: manager.bindings.enableAlwaysHiddenSection
+            isOn: $settings.enableAlwaysHiddenSection
         )
     }
 
@@ -57,13 +54,13 @@ struct AdvancedSettingsPane: View {
     private var showAllSectionsOnUserDrag: some View {
         Toggle(
             "Show all sections when ⌘ Command + dragging menu bar items",
-            isOn: manager.bindings.showAllSectionsOnUserDrag
+            isOn: $settings.showAllSectionsOnUserDrag
         )
     }
 
     @ViewBuilder
     private var sectionDividerStyle: some View {
-        IcePicker("Section divider style", selection: manager.bindings.sectionDividerStyle) {
+        IcePicker("Section divider style", selection: $settings.sectionDividerStyle) {
             ForEach(SectionDividerStyle.allCases) { style in
                 Text(style.localized).tag(style)
             }
@@ -74,7 +71,7 @@ struct AdvancedSettingsPane: View {
     private var hideApplicationMenus: some View {
         Toggle(
             "Hide app menus when showing menu bar items",
-            isOn: manager.bindings.hideApplicationMenus
+            isOn: $settings.hideApplicationMenus
         )
         .annotation {
             Text(
@@ -92,7 +89,7 @@ struct AdvancedSettingsPane: View {
     private var enableSecondaryContextMenu: some View {
         Toggle(
             "Enable secondary context menu",
-            isOn: manager.bindings.enableSecondaryContextMenu
+            isOn: $settings.enableSecondaryContextMenu
         )
         .annotation {
             Text(
@@ -110,8 +107,8 @@ struct AdvancedSettingsPane: View {
     private var showOnHoverDelay: some View {
         IceLabeledContent {
             IceSlider(
-                formattedToSeconds(manager.showOnHoverDelay),
-                value: manager.bindings.showOnHoverDelay,
+                formattedToSeconds(settings.showOnHoverDelay),
+                value: $settings.showOnHoverDelay,
                 in: 0...1,
                 step: 0.1
             )
@@ -129,8 +126,8 @@ struct AdvancedSettingsPane: View {
     private var tempShowInterval: some View {
         IceLabeledContent {
             IceSlider(
-                formattedToSeconds(manager.tempShowInterval),
-                value: manager.bindings.tempShowInterval,
+                formattedToSeconds(settings.tempShowInterval),
+                value: $settings.tempShowInterval,
                 in: 0...60,
                 step: 1
             )

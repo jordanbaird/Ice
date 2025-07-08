@@ -1,5 +1,5 @@
 //
-//  GeneralSettingsManager.swift
+//  GeneralSettings.swift
 //  Ice
 //
 
@@ -7,10 +7,11 @@ import Combine
 import OSLog
 import SwiftUI
 
-// MARK: - GeneralSettingsManager
+// MARK: - GeneralSettings
 
+/// Model for the app's General settings.
 @MainActor
-final class GeneralSettingsManager: ObservableObject {
+final class GeneralSettings: ObservableObject {
     /// A Boolean value that indicates whether the Ice icon
     /// should be shown.
     @Published var showIceIcon = true
@@ -74,12 +75,14 @@ final class GeneralSettingsManager: ObservableObject {
     /// The shared app state.
     private(set) weak var appState: AppState?
 
+    /// Performs the initial setup of the model.
     func performSetup(with appState: AppState) {
         self.appState = appState
         loadInitialState()
         configureCancellables()
     }
 
+    /// Loads the model's initial state.
     private func loadInitialState() {
         Defaults.ifPresent(key: .showIceIcon, assign: &showIceIcon)
         Defaults.ifPresent(key: .customIceIconIsTemplate, assign: &customIceIconIsTemplate)
@@ -114,6 +117,7 @@ final class GeneralSettingsManager: ObservableObject {
         }
     }
 
+    /// Configures the internal observers for the model.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -216,9 +220,6 @@ final class GeneralSettingsManager: ObservableObject {
         cancellables = c
     }
 }
-
-// MARK: GeneralSettingsManager: BindingExposable
-extension GeneralSettingsManager: BindingExposable { }
 
 // MARK: - RehideStrategy
 

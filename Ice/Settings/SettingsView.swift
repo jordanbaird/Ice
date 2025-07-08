@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var navigationState: AppNavigationState
     @Environment(\.appearsActive) var appearsActive
     @Environment(\.sidebarRowSize) var sidebarRowSize
@@ -93,15 +94,15 @@ struct SettingsView: View {
     private var settingsPane: some View {
         switch navigationState.settingsNavigationIdentifier {
         case .general:
-            GeneralSettingsPane()
+            GeneralSettingsPane(settings: appState.settings.general)
         case .menuBarLayout:
             MenuBarLayoutSettingsPane()
         case .menuBarAppearance:
             MenuBarAppearanceSettingsPane()
         case .hotkeys:
-            HotkeysSettingsPane()
+            HotkeysSettingsPane(settings: appState.settings.hotkeys)
         case .advanced:
-            AdvancedSettingsPane()
+            AdvancedSettingsPane(settings: appState.settings.advanced)
         case .about:
             AboutSettingsPane()
         }

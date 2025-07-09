@@ -23,9 +23,9 @@ struct MenuBarItem {
         window.windowID
     }
 
-    /// The frame of the item's window.
-    var frame: CGRect {
-        window.frame
+    /// The bounds of the item's window.
+    var bounds: CGRect {
+        window.bounds
     }
 
     /// The title of the item's window.
@@ -193,7 +193,7 @@ extension MenuBarItem {
         }
 
         return Bridging.getWindowList(option: bridgingOption)
-            .compactMap { windowID in
+            .reversed().compactMap { windowID in
                 guard
                     onScreenPredicate(windowID),
                     activeSpacePredicate(windowID),
@@ -202,9 +202,6 @@ extension MenuBarItem {
                     return nil
                 }
                 return window
-            }
-            .sorted { lhs, rhs in
-                lhs.frame.maxX < rhs.frame.maxX
             }
     }
 

@@ -247,6 +247,32 @@ extension Bridging {
             list
         }
     }
+
+    /// Creates a `CFArray` containing the bit patterns of the given
+    /// list of window identifiers.
+    ///
+    /// Pass the returned array into one of the `CGWindowList` APIs
+    /// from `CoreGraphics`.
+    ///
+    /// - Parameter windowIDs: A list of window identifiers. If the
+    ///   list is empty, or if none of its elements can represent a
+    ///   valid bit pattern, this function returns `nil`.
+    ///
+    /// - Returns: A `CFArray` where each element is a memory address
+    ///   with a bit pattern that matches an element from `windowIDs`,
+    ///   or `nil` if the array cannot be created.
+    static func createCGWindowArray(with windowIDs: [CGWindowID]) -> CFArray? {
+        var pointers: [UnsafeRawPointer?] = windowIDs.compactMap { windowID in
+            UnsafeRawPointer(bitPattern: UInt(windowID))
+        }
+        guard
+            !pointers.isEmpty,
+            let array = CFArrayCreate(nil, &pointers, pointers.count, nil)
+        else {
+            return nil
+        }
+        return array
+    }
 }
 
 // MARK: - CGSSpace

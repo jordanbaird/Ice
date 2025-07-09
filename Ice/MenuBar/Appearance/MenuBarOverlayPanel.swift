@@ -228,7 +228,7 @@ final class MenuBarOverlayPanel: NSPanel {
                     // Must be run async, or this will not remove the flags.
                     self.updateFlags.removeAll()
                 }
-                let windows = WindowInfo.getOnScreenWindows()
+                let windows = WindowInfo.getWindows(option: .onScreen)
                 guard let owningDisplay = self.validate(for: .updates, with: windows) else {
                     return
                 }
@@ -299,7 +299,7 @@ final class MenuBarOverlayPanel: NSPanel {
         else {
             return
         }
-        let wallpaper = ScreenCapture.captureWindow(wallpaperWindow.windowID, screenBounds: menuBarWindow.frame)
+        let wallpaper = ScreenCapture.captureWindow(wallpaperWindow.windowID, screenBounds: menuBarWindow.bounds)
         if desktopWallpaper?.dataProvider?.data != wallpaper?.dataProvider?.data {
             desktopWallpaper = wallpaper
         }
@@ -562,7 +562,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 return .zero
             }
             let totalWidth = items.reduce(into: 0) { width, item in
-                width += item.frame.width
+                width += item.bounds.width
             }
             var position = rect.maxX - totalWidth
             if shouldInset {

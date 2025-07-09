@@ -240,11 +240,6 @@ final class MenuBarItemImageCache: ObservableObject {
             }
         }
 
-        guard await !appState.itemManager.isMovingItem else {
-            logSkippingCache(reason: "an item is currently being moved")
-            return
-        }
-
         guard await !appState.itemManager.itemHasRecentlyMoved else {
             logSkippingCache(reason: "an item was recently moved")
             return

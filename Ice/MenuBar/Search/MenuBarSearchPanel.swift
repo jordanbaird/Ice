@@ -23,17 +23,15 @@ final class MenuBarSearchPanel: NSPanel {
     /// Monitor for mouse down events.
     private lazy var mouseDownMonitor = UniversalEventMonitor(
         mask: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
-    ) { [weak self, weak appState] event in
+    ) { [weak self] event in
         guard
             let self,
-            let appState,
-            event.window !== self
+            event.window !== self,
+            Bridging.getWindowLevel(for: CGWindowID(event.windowNumber)) != kCGStatusWindowLevel
         else {
             return event
         }
-        if !appState.itemManager.isMovingItem {
-            close()
-        }
+        close()
         return event
     }
 
@@ -538,6 +536,6 @@ private struct MenuBarSearchItemView: View {
     @ViewBuilder
     private var imageView: some View {
         Image(nsImage: image)
-            .frame(width: item.frame.width, height: size)
+            .frame(width: item.bounds.width, height: size)
     }
 }

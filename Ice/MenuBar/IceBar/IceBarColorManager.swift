@@ -115,7 +115,7 @@ final class IceBarColorManager: ObservableObject {
     }
 
     private func updateWindowImageInfo(for screen: NSScreen) {
-        let windows = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
+        let windows = WindowInfo.getWindows(option: .onScreen)
         let displayID = screen.displayID
 
         if #available(macOS 26.0, *) {
@@ -123,7 +123,7 @@ final class IceBarColorManager: ObservableObject {
                 let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: displayID),
                 let wallpaperWindow = WindowInfo.getWallpaperWindow(from: windows, for: displayID)
             {
-                let bounds = with(wallpaperWindow.frame) { $0.size.height = 1 }
+                let bounds = with(wallpaperWindow.bounds) { $0.size.height = 1 }
                 let windowIDs = [menuBarWindow.windowID, wallpaperWindow.windowID]
                 if let image = ScreenCapture.captureWindows(windowIDs, screenBounds: bounds, option: .nominalResolution) {
                     // Just use `menuBarWindow` as the source for now, regardless

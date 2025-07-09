@@ -462,7 +462,7 @@ extension NSScreen {
     /// Returns the height of the menu bar on this screen.
     func getMenuBarHeight() -> CGFloat? {
         let menuBarWindow = WindowInfo.getMenuBarWindow(for: displayID)
-        return menuBarWindow?.frame.height
+        return menuBarWindow?.bounds.height
     }
 }
 
@@ -525,6 +525,28 @@ extension Publisher where Output: Sequence, Failure == Never {
         flatMap { sequence in
             Publishers.MergeMany(sequence.map(transform))
         }
+    }
+}
+
+// MARK: - RangeReplaceableCollection where Element == MenuBarItem
+
+extension RangeReplaceableCollection where Element == MenuBarItem {
+    /// Removes and returns the first menu bar item that matches the
+    /// specified info.
+    mutating func removeFirst(matching info: MenuBarItemInfo) -> MenuBarItem? {
+        guard let index = firstIndex(matching: info) else {
+            return nil
+        }
+        return remove(at: index)
+    }
+
+    /// Removes and returns the first menu bar item that matches the
+    /// specified legacy info.
+    mutating func removeFirst(matching info: MenuBarItemLegacyInfo) -> MenuBarItem? {
+        guard let index = firstIndex(matching: info) else {
+            return nil
+        }
+        return remove(at: index)
     }
 }
 

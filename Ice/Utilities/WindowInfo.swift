@@ -7,7 +7,7 @@ import Cocoa
 
 /// Information for a window.
 struct WindowInfo {
-    /// The identifier associated with the window.
+    /// The window's identifier.
     let windowID: CGWindowID
 
     /// The identifier of the process that owns the window.
@@ -22,10 +22,10 @@ struct WindowInfo {
     /// The window's title.
     let title: String?
 
-    /// The name of the application that owns the window.
+    /// The name of the process that owns the window.
     ///
-    /// This may have a value when ``owningApplication`` does not have a
-    /// localized name.
+    /// This may have a value when ``owningApplication`` does not have
+    /// a localized name.
     let ownerName: String?
 
     /// A Boolean value that indicates whether the window is on screen.

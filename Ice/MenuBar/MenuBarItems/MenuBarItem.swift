@@ -9,34 +9,32 @@ import Cocoa
 
 /// A representation of an item in the menu bar.
 struct MenuBarItem {
-    /// The item's window.
-    let window: WindowInfo
+    /// The item's window identifier.
+    let windowID: CGWindowID
+
+    /// The identifier of the process that owns the item.
+    let ownerPID: pid_t
+
+    /// The item's bounds, specified in screen coordinates.
+    let bounds: CGRect
+
+    /// The item's window title.
+    let title: String?
+
+    /// The name of the process that owns the item.
+    ///
+    /// This may have a value when ``owningApplication`` does not have
+    /// a localized name.
+    let ownerName: String?
+
+    /// A Boolean value that indicates whether the item is on screen.
+    let isOnScreen: Bool
 
     /// The legacy menu bar item info associated with this item.
     let legacyInfo: MenuBarItemLegacyInfo
 
     /// The menu bar item info associated with this item.
     let info: MenuBarItemInfo
-
-    /// The identifier of the item's window.
-    var windowID: CGWindowID {
-        window.windowID
-    }
-
-    /// The bounds of the item's window.
-    var bounds: CGRect {
-        window.bounds
-    }
-
-    /// The title of the item's window.
-    var title: String? {
-        window.title
-    }
-
-    /// A Boolean value that indicates whether the item is on screen.
-    var isOnScreen: Bool {
-        window.isOnScreen
-    }
 
     /// A Boolean value that indicates whether the item can be moved.
     var isMovable: Bool {
@@ -48,22 +46,9 @@ struct MenuBarItem {
         legacyInfo.canBeHidden
     }
 
-    /// The process identifier of the application that owns the item.
-    var ownerPID: pid_t {
-        window.ownerPID
-    }
-
-    /// The name of the application that owns the item.
-    ///
-    /// This may have a value when ``owningApplication`` does not have
-    /// a localized name.
-    var ownerName: String? {
-        window.ownerName
-    }
-
     /// The application that owns the item.
     var owningApplication: NSRunningApplication? {
-        window.owningApplication
+        NSRunningApplication(processIdentifier: ownerPID)
     }
 
     /// A name associated with the item that is suited for display.
@@ -138,7 +123,12 @@ struct MenuBarItem {
     /// it is a valid menu bar item window. Only call this initializer if you are
     /// certain that the window is valid.
     private init(uncheckedItemWindow itemWindow: WindowInfo) {
-        self.window = itemWindow
+        self.windowID = itemWindow.windowID
+        self.ownerPID = itemWindow.ownerPID
+        self.bounds = itemWindow.bounds
+        self.title = itemWindow.title
+        self.ownerName = itemWindow.ownerName
+        self.isOnScreen = itemWindow.isOnScreen
         self.legacyInfo = MenuBarItemLegacyInfo(uncheckedItemWindow: itemWindow)
         self.info = MenuBarItemInfo(windowID: itemWindow.windowID)
     }
@@ -222,14 +212,24 @@ extension MenuBarItem {
 // MARK: MenuBarItem: Equatable
 extension MenuBarItem: Equatable {
     static func == (lhs: MenuBarItem, rhs: MenuBarItem) -> Bool {
-        lhs.window == rhs.window
+        lhs.windowID == rhs.windowID &&
+        lhs.ownerPID == rhs.ownerPID &&
+        NSStringFromRect(lhs.bounds) == NSStringFromRect(rhs.bounds) &&
+        lhs.title == rhs.title &&
+        lhs.ownerName == rhs.ownerName &&
+        lhs.isOnScreen == rhs.isOnScreen
     }
 }
 
 // MARK: MenuBarItem: Hashable
 extension MenuBarItem: Hashable {
     func hash(into hasher: inout Hasher) {
-        hasher.combine(window)
+        hasher.combine(windowID)
+        hasher.combine(ownerPID)
+        hasher.combine(NSStringFromRect(bounds))
+        hasher.combine(title)
+        hasher.combine(ownerName)
+        hasher.combine(isOnScreen)
     }
 }
 

@@ -32,6 +32,6 @@ struct PermissionsWindow: Scene {
         .windowResizability(.contentSize)
         .windowStyle(.hiddenTitleBar)
         .environmentObject(appState)
-        .environmentObject(appState.permissionsManager)
+        .environmentObject(appState.permissions)
     }
 }

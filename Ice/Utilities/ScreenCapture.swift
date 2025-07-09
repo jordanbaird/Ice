@@ -15,7 +15,7 @@ enum ScreenCapture {
 
     /// Returns a Boolean value that indicates whether the app has screen capture permissions.
     static func checkPermissions() -> Bool {
-        for windowID in Bridging.getWindowList(option: [.menuBarItems, .activeSpace]) {
+        for windowID in Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace]) {
             guard
                 let window = WindowInfo(windowID: windowID),
                 window.owningApplication != .current // Skip windows we own.
@@ -72,13 +72,7 @@ enum ScreenCapture {
     ///     capture the minimum rectangle that encloses the windows.
     ///   - option: Options that specify which parts of the windows are captured.
     static func captureWindows(_ windowIDs: [CGWindowID], screenBounds: CGRect? = nil, option: CGWindowImageOption = []) -> CGImage? {
-        var pointers: [UnsafeRawPointer?] = windowIDs.reduce(into: []) { result, windowID in
-            guard let pointer = UnsafeRawPointer(bitPattern: UInt(windowID)) else {
-                return
-            }
-            result.append(pointer)
-        }
-        guard let windowArray = CFArrayCreate(nil, &pointers, pointers.count, nil) else {
+        guard let windowArray = Bridging.createCGWindowArray(with: windowIDs) else {
             return nil
         }
         let screenBounds = screenBounds ?? .null

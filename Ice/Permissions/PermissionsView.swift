@@ -7,7 +7,7 @@ import SwiftUI
 
 struct PermissionsView: View {
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject var manager: PermissionsManager
+    @EnvironmentObject var manager: AppPermissions
 
     private var continueButtonText: LocalizedStringKey {
         if case .hasRequired = manager.permissionsState {

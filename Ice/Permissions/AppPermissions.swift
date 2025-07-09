@@ -1,5 +1,5 @@
 //
-//  PermissionsManager.swift
+//  AppPermissions.swift
 //  Ice
 //
 
@@ -9,7 +9,13 @@ import OSLog
 
 /// A type that manages the permissions of the app.
 @MainActor
-final class PermissionsManager: ObservableObject {
+final class AppPermissions: ObservableObject {
+    /// Keys to access individual permissions.
+    enum PermissionKey {
+        case accessibility
+        case screenRecording
+    }
+
     /// The state of the app's granted permissions.
     enum PermissionsState {
         case missing
@@ -21,10 +27,10 @@ final class PermissionsManager: ObservableObject {
     let logger = Logger(category: "Permissions")
 
     /// The permission for Accessibility features.
-    let accessibilityPermission = AccessibilityPermission()
+    let accessibility = AccessibilityPermission()
 
     /// The permission for Screen Recording features.
-    let screenRecordingPermission = ScreenRecordingPermission()
+    let screenRecording = ScreenRecordingPermission()
 
     /// The state of the app's granted permissions.
     @Published private(set) var permissionsState: PermissionsState = .missing
@@ -34,7 +40,7 @@ final class PermissionsManager: ObservableObject {
 
     /// The permissions required for full app functionality.
     var allPermissions: [Permission] {
-        [accessibilityPermission, screenRecordingPermission]
+        [accessibility, screenRecording]
     }
 
     /// The permissions required for basic app functionality.

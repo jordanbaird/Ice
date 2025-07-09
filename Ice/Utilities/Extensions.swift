@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import AXSwift
 import Combine
 import SwiftUI
 
@@ -11,27 +12,38 @@ import SwiftUI
 extension Bundle {
     /// The bundle's copyright string.
     ///
-    /// This accessor looks for an associated value for the "NSHumanReadableCopyright"
-    /// key in the bundle's Info.plist. If a string value cannot be found for this key,
-    /// this accessor returns `nil`.
+    /// This accessor checks the bundle's `Info.plist` for a string value associated
+    /// with the "NSHumanReadableCopyright" key. If a valid value cannot be found for
+    /// the key, this accessor returns `nil`.
     var copyrightString: String? {
         object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String
     }
 
+    /// The bundle's display name.
+    ///
+    /// This accessor checks the bundle's `Info.plist` for a string value associated
+    /// with the "CFBundleDisplayName" key. If a valid value cannot be found for the
+    /// key, the same check is performed for the "CFBundleName" key. If a valid value
+    /// cannot be found for either key, this accessor returns `nil`.
+    var displayName: String? {
+        object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ??
+        object(forInfoDictionaryKey: "CFBundleName") as? String
+    }
+
     /// The bundle's version string.
     ///
-    /// This accessor looks for an associated value for the "CFBundleShortVersionString"
-    /// key in the bundle's Info.plist. If a string value cannot be found for this key,
-    /// this accessor returns `nil`.
+    /// This accessor checks the bundle's `Info.plist` for a string value associated
+    /// with the "CFBundleShortVersionString" key. If a valid value cannot be found
+    /// for the key, this accessor returns `nil`.
     var versionString: String? {
         object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
     }
 
     /// The bundle's build string.
     ///
-    /// This accessor looks for an associated value for the "CFBundleVersion" key in
-    /// the bundle's Info.plist. If a string value cannot be found for this key, this
-    /// accessor returns `nil`.
+    /// This accessor checks the bundle's `Info.plist` for a string value associated
+    /// with the "CFBundleVersion" key. If a valid value cannot be found for the key,
+    /// this accessor returns `nil`.
     var buildString: String? {
         object(forInfoDictionaryKey: "CFBundleVersion") as? String
     }
@@ -311,19 +323,31 @@ extension CGImage {
     }
 }
 
+// MARK: - CGPoint
+
+extension CGPoint {
+    /// Returns the distance between this point and another point.
+    func distance(to other: CGPoint) -> CGFloat {
+        hypot(x - other.x, y - other.y)
+    }
+}
+
+// MARK: - CGRect
+
+extension CGRect {
+    /// The center point of the rectangle.
+    var center: CGPoint {
+        CGPoint(x: midX, y: midY)
+    }
+}
+
 // MARK: - Collection where Element == MenuBarItem
 
 extension Collection where Element == MenuBarItem {
     /// Returns the first index where the menu bar item matching the specified
-    /// info appears in the collection.
-    func firstIndex(matching info: MenuBarItemInfo) -> Index? {
-        firstIndex { $0.info == info }
-    }
-
-    /// Returns the first index where the menu bar item matching the specified
-    /// legacy info appears in the collection.
-    func firstIndex(matching info: MenuBarItemLegacyInfo) -> Index? {
-        firstIndex { $0.legacyInfo == info }
+    /// tag appears in the collection.
+    func firstIndex(matching tag: MenuBarItemTag) -> Index? {
+        firstIndex { $0.tag == tag }
     }
 }
 
@@ -462,7 +486,7 @@ extension NSScreen {
     /// Returns the height of the menu bar on this screen.
     func getMenuBarHeight() -> CGFloat? {
         let menuBarWindow = WindowInfo.getMenuBarWindow(for: displayID)
-        return menuBarWindow?.frame.height
+        return menuBarWindow?.bounds.height
     }
 }
 
@@ -528,16 +552,62 @@ extension Publisher where Output: Sequence, Failure == Never {
     }
 }
 
+// MARK: - RangeReplaceableCollection where Element: Hashable
+
+extension RangeReplaceableCollection where Element: Hashable {
+    /// Returns a copy of the collection with duplicate values removed.
+    func removingDuplicates() -> Self {
+        var seen = Set<Element>()
+        return filter { seen.insert($0).inserted }
+    }
+
+    /// Removes duplicate values from the collection.
+    mutating func removeDuplicates() {
+        self = self.removingDuplicates()
+    }
+}
+
+// MARK: - RangeReplaceableCollection where Element == MenuBarItem
+
+extension RangeReplaceableCollection where Element == MenuBarItem {
+    /// Removes and returns the first menu bar item that matches the
+    /// specified tag.
+    mutating func removeFirst(matching tag: MenuBarItemTag) -> MenuBarItem? {
+        guard let index = firstIndex(matching: tag) else {
+            return nil
+        }
+        return remove(at: index)
+    }
+}
+
 // MARK: - Sequence where Element == MenuBarItem
 
 extension Sequence where Element == MenuBarItem {
-    /// Returns the first menu bar item that matches the specified info.
-    func first(matching info: MenuBarItemInfo) -> MenuBarItem? {
-        first { $0.info == info }
+    /// Returns the first menu bar item that matches the specified tag.
+    func first(matching tag: MenuBarItemTag) -> MenuBarItem? {
+        first { $0.tag == tag }
+    }
+}
+
+// MARK: - SystemWideElement
+
+extension SystemWideElement {
+    /// Returns the element at the specified top-down coordinates.
+    func elementAtPosition(_ point: CGPoint) throws -> UIElement? {
+        try elementAtPosition(Float(point.x), Float(point.y))
+    }
+}
+
+// MARK: - UIElement
+
+extension UIElement {
+    /// The element's frame.
+    var frame: CGRect? {
+        try? attribute(.frame)
     }
 
-    /// Returns the first menu bar item that matches the specified legacy info.
-    func first(matching info: MenuBarItemLegacyInfo) -> MenuBarItem? {
-        first { $0.legacyInfo == info }
+    /// The element's child elements.
+    var children: [UIElement] {
+        (try? arrayAttribute(.children)) ?? []
     }
 }

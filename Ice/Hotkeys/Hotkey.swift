@@ -75,13 +75,11 @@ extension Hotkey {
                 return nil
             }
             let registry = appState.settings.hotkeys.registry
-            let id = registry.register(hotkey: hotkey, eventKind: eventKind) { [weak appState] in
-                guard let appState else {
+            let id = registry.register(hotkey: hotkey, eventKind: eventKind) { [weak hotkey, weak appState] in
+                guard let hotkey, let appState else {
                     return
                 }
-                Task {
-                    await hotkey.action.perform(appState: appState)
-                }
+                hotkey.action.perform(appState: appState)
             }
             guard let id else {
                 return nil

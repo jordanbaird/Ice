@@ -6,32 +6,52 @@
 import Cocoa
 import Combine
 
+// MARK: - ControlItem
+
 /// A status item that controls a section in the menu bar.
 @MainActor
 final class ControlItem {
-    /// Possible identifiers for control items.
+    /// An identifier for a control item.
     enum Identifier: String, CaseIterable {
-        case iceIcon = "SItem"
-        case hidden = "HItem"
-        case alwaysHidden = "AHItem"
+        /// The identifier for the control item for the visible section.
+        case visible = "Ice.ControlItem.Visible"
+        /// The identifier for the control item for the hidden section.
+        case hidden = "Ice.ControlItem.Hidden"
+        /// The identifier for the control item for the always-hidden section.
+        case alwaysHidden = "Ice.ControlItem.AlwaysHidden"
 
-        /// Legacy menu bar info for the control item with this identifier.
-        var legacyInfo: MenuBarItemLegacyInfo {
+        /// A tag for the control item with this identifier.
+        var tag: MenuBarItemTag {
             switch self {
-            case .iceIcon: .iceIcon
+            case .visible: .visibleControlItem
             case .hidden: .hiddenControlItem
             case .alwaysHidden: .alwaysHiddenControlItem
             }
         }
+
+        /// Returns the length associated with this identifier and
+        /// the given hiding state.
+        func length(for state: HidingState) -> CGFloat {
+            switch self {
+            case .visible:
+                Lengths.standard
+            case .hidden, .alwaysHidden:
+                switch state {
+                case .showSection: Lengths.standard
+                case .hideSection: Lengths.expanded
+                }
+            }
+        }
     }
 
-    /// Possible hiding states for control items.
+    /// A hiding state for a control item.
     enum HidingState {
-        case hideItems, showItems
+        case showSection
+        case hideSection
     }
 
-    /// Possible lengths for control items.
-    enum Lengths {
+    /// A namespace for control item lengths.
+    private enum Lengths {
         static let standard: CGFloat = NSStatusItem.variableLength
         static let expanded: CGFloat = 10_000
     }
@@ -44,39 +64,20 @@ final class ControlItem {
         /// Creates a new storage instance.
         @MainActor
         init(controlItem: ControlItem) {
-            let autosaveName = controlItem.identifier.rawValue
-
-            if StatusItemDefaults[.preferredPosition, autosaveName] == nil {
-                // Ice icon and hidden control item should be added before
-                // existing items in the status bar.
-                switch controlItem.identifier {
-                case .iceIcon:
-                    StatusItemDefaults[.preferredPosition, autosaveName] = 0
-                case .hidden:
-                    StatusItemDefaults[.preferredPosition, autosaveName] = 1
-                case .alwaysHidden:
-                    break
-                }
-            }
-
-            if StatusItemDefaults[.visible, autosaveName] == nil {
-                // The status item should be visible by default. We change
-                // this after finishing setup, if needed.
-                StatusItemDefaults[.visible, autosaveName] = true
-            }
+            ControlItemDefaults.preflightSetup(for: controlItem)
 
             self.statusItem = NSStatusBar.system.statusItem(withLength: 0)
-            self.statusItem.autosaveName = autosaveName
+            self.statusItem.autosaveName = controlItem.identifier.rawValue
 
             if let button = statusItem.button {
-                // This could break in a new macOS release, but we need this constraint in order to be
-                // able to hide the control item when the `ShowSectionDividers` setting is disabled. A
-                // previous implementation used the status item's `isVisible` property, which was more
-                // robust, but would completely remove the control item. With the current set of
-                // features, we need to be able to accurately retrieve the items for each section, so
-                // we need the control item to always be present to act as a delimiter. The new solution
-                // is to remove the constraint that prevents status items from having a length of zero,
-                // then resize the content view. FIXME: Find a replacement for this.
+                // This could break in a new macOS release, but we need this constraint in order to
+                // be able to hide the status item when the `ShowSectionDividers` setting is disabled.
+                // A previous implementation used `statusItem.isVisible`, which was more robust, but
+                // would completely remove the status item. With the current set of features, we use
+                // the control item positions to determine the items in each section, so we need the
+                // status item to be present if its section is enabled. The new solution is to remove
+                // a constraint from the item's content view prevents it from having a length of zero.
+                // Then, we set the length. FIXME: Find a replacement for this.
                 if
                     let constraints = button.window?.contentView?.constraintsAffectingLayout(for: .horizontal),
                     let constraint = constraints.first(where: Predicates.controlItemConstraint(button: button))
@@ -103,14 +104,14 @@ final class ControlItem {
             // Removing the status item has the unwanted side effect of
             // deleting the preferred position. Cache and restore it.
             let autosaveName = statusItem.autosaveName as String
-            let cached = StatusItemDefaults[.preferredPosition, autosaveName]
+            let cached = ControlItemDefaults[.preferredPosition, autosaveName]
             NSStatusBar.system.removeStatusItem(statusItem)
-            StatusItemDefaults[.preferredPosition, autosaveName] = cached
+            ControlItemDefaults[.preferredPosition, autosaveName] = cached
         }
     }
 
     /// The control item's hiding state (`@Published`).
-    @Published var state = HidingState.hideItems
+    @Published var state = HidingState.hideSection
 
     /// The control item's window (`@Published`).
     @Published private(set) var window: NSWindow?
@@ -127,7 +128,7 @@ final class ControlItem {
     /// The control item's identifier.
     let identifier: Identifier
 
-    /// Storage for the control item's underlying status item.
+    /// Lazy storage for the control item's underlying status item.
     private lazy var storage = StatusItemStorage(controlItem: self)
 
     /// The shared app state.
@@ -149,7 +150,7 @@ final class ControlItem {
     /// A Boolean value that indicates whether the control item serves as
     /// a divider between sections.
     var isSectionDivider: Bool {
-        identifier != .iceIcon
+        identifier != .visible
     }
 
     /// A Boolean value that indicates whether the control item is currently
@@ -161,7 +162,7 @@ final class ControlItem {
     /// The corresponding section name for the control item.
     var sectionName: MenuBarSection.Name {
         switch identifier {
-        case .iceIcon: .visible
+        case .visible: .visible
         case .hidden: .hidden
         case .alwaysHidden: .alwaysHidden
         }
@@ -203,7 +204,7 @@ final class ControlItem {
                 let hotkeysSettings = appState.settings.hotkeys
 
                 let hotkey: Hotkey? = switch identifier {
-                case .iceIcon: nil
+                case .visible: nil
                 case .hidden: hotkeysSettings.hotkey(withAction: .toggleHiddenSection)
                 case .alwaysHidden: hotkeysSettings.hotkey(withAction: .toggleAlwaysHiddenSection)
                 }
@@ -293,7 +294,7 @@ final class ControlItem {
                 }
                 .store(in: &c)
 
-            if identifier == .iceIcon {
+            if identifier == .visible {
                 appState.settings.general.$showIceIcon
                     .combineLatest(statusItem.publisher(for: \.isVisible))
                     .removeDuplicates { $0 == $1 }
@@ -379,7 +380,7 @@ final class ControlItem {
         button.image = nil
 
         switch identifier {
-        case .iceIcon:
+        case .visible:
             updateStatusItemVisibility(true, state: state)
             updateButtonEnabledState(true) // Make sure button is enabled.
 
@@ -387,8 +388,8 @@ final class ControlItem {
 
             // We can usually just create the image directly from the icon.
             var image = switch state {
-            case .hideItems: icon.hidden.nsImage(for: appState)
-            case .showItems: icon.visible.nsImage(for: appState)
+            case .showSection: icon.visible.nsImage(for: appState)
+            case .hideSection: icon.hidden.nsImage(for: appState)
             }
 
             if
@@ -406,10 +407,7 @@ final class ControlItem {
             button.image = image
         case .hidden, .alwaysHidden:
             switch state {
-            case .hideItems:
-                updateStatusItemVisibility(true, state: state)
-                updateButtonEnabledState(false) // Keep button from highlighting.
-            case .showItems:
+            case .showSection:
                 switch appState.settings.advanced.sectionDividerStyle {
                 case .noDivider:
                     updateStatusItemVisibility(false, state: state)
@@ -428,9 +426,12 @@ final class ControlItem {
                         ControlItemImage.builtin(.chevronLarge).nsImage(for: appState)
                     case .alwaysHidden:
                         ControlItemImage.builtin(.chevronSmall).nsImage(for: appState)
-                    case .iceIcon: nil
+                    case .visible: nil
                     }
                 }
+            case .hideSection:
+                updateStatusItemVisibility(true, state: state)
+                updateButtonEnabledState(false) // Keep button from highlighting.
             }
         }
     }
@@ -447,23 +448,21 @@ final class ControlItem {
         guard let appState else {
             return
         }
+
         if isVisible {
-            statusItem.length = switch identifier {
-            case .iceIcon: Lengths.standard
-            case .hidden, .alwaysHidden:
-                switch state {
-                case .hideItems: Lengths.expanded
-                case .showItems: Lengths.standard
-                }
-            }
             constraint?.isActive = true
+            statusItem.length = identifier.length(for: state)
         } else {
-            let wider = appState.isDraggingMenuBarItem && appState.settings.advanced.showAllSectionsOnUserDrag
-            statusItem.length = wider ? 3 : 0
+            let showOnDrag = appState.settings.advanced.showAllSectionsOnUserDrag
+            let isDragging = appState.isDraggingMenuBarItem
+
+            let shouldShow = showOnDrag && isDragging
+
             constraint?.isActive = false
+            statusItem.length = shouldShow ? 3 : 0
+
             if let window {
-                var size = window.frame.size
-                size.width = wider ? 3 : 1
+                let size = with(window.frame.size) { $0.width = shouldShow ? 3 : 1 }
                 window.setContentSize(size)
             }
         }
@@ -485,9 +484,9 @@ final class ControlItem {
         // Setting `statusItem.isVisible` to `false` has the unwanted side
         // effect of deleting the preferred position. Cache and restore it.
         let autosaveName = statusItem.autosaveName as String
-        let cached = StatusItemDefaults[.preferredPosition, autosaveName]
+        let cached = ControlItemDefaults[.preferredPosition, autosaveName]
         statusItem.isVisible = false
-        StatusItemDefaults[.preferredPosition, autosaveName] = cached
+        ControlItemDefaults[.preferredPosition, autosaveName] = cached
     }
 
     /// Updates the enabled state of the status item's button.
@@ -536,9 +535,7 @@ final class ControlItem {
                 return
             }
 
-            Task {
-                await targetSection.toggle()
-            }
+            targetSection.toggle()
         case .rightMouseUp:
             showMenu()
         default:
@@ -658,9 +655,7 @@ final class ControlItem {
         guard let section = menuItem.representedObject as? MenuBarSection else {
             return
         }
-        Task {
-            await section.toggle()
-        }
+        section.toggle()
     }
 
     /// Opens the menu bar search panel.
@@ -671,9 +666,7 @@ final class ControlItem {
         else {
             return
         }
-        Task {
-            await appState.menuBarManager.searchPanel.show(on: screen)
-        }
+        appState.menuBarManager.searchPanel.show(on: screen)
     }
 
     /// Opens the settings window and checks for app updates.
@@ -683,4 +676,94 @@ final class ControlItem {
         }
         appState.updatesManager.checkForUpdates()
     }
+}
+
+// MARK: - ControlItemDefaults
+
+/// Proxy getters and setters for a control item's stored
+/// UserDefaults values.
+enum ControlItemDefaults {
+    /// Accesses the value associated with the specified key
+    /// and autosave name.
+    static subscript<Value>(key: Key<Value>, autosaveName: String) -> Value? {
+        get {
+            let stringKey = key.stringKey(for: autosaveName)
+            return UserDefaults.standard.object(forKey: stringKey) as? Value
+        }
+        set {
+            let stringKey = key.stringKey(for: autosaveName)
+            return UserDefaults.standard.set(newValue, forKey: stringKey)
+        }
+    }
+
+    /// Migrates the given control item defaults key from an old
+    /// autosave name to a new autosave name.
+    static func migrate<Value>(key: Key<Value>, from oldAutosaveName: String, to newAutosaveName: String) {
+        guard newAutosaveName != oldAutosaveName else {
+            return
+        }
+        Self[key, newAutosaveName] = Self[key, oldAutosaveName]
+        Self[key, oldAutosaveName] = nil
+    }
+
+    /// Performs some initial required setup work before the
+    /// creation of a control item.
+    fileprivate static func preflightSetup(for controlItem: ControlItem) {
+        let autosaveName = controlItem.identifier.rawValue
+
+        // Visible and hidden control items should be added before
+        // existing items in the status bar.
+        if ControlItemDefaults[.preferredPosition, autosaveName] == nil {
+            switch controlItem.identifier {
+            case .visible:
+                ControlItemDefaults[.preferredPosition, autosaveName] = 0
+            case .hidden:
+                ControlItemDefaults[.preferredPosition, autosaveName] = 1
+            case .alwaysHidden:
+                break
+            }
+        }
+
+        // The control item should be visible by default. We change
+        // this after finishing setup, if needed.
+        if ControlItemDefaults[.visible, autosaveName] == nil {
+            ControlItemDefaults[.visible, autosaveName] = true
+        }
+        if
+            #available(macOS 26.0, *),
+            ControlItemDefaults[.visibleCC, autosaveName] == nil
+        {
+            ControlItemDefaults[.visibleCC, autosaveName] = true
+        }
+    }
+}
+
+// MARK: - ControlItemDefaults.Key
+
+extension ControlItemDefaults {
+    /// Keys used to look up UserDefaults values for control items.
+    struct Key<Value> {
+        /// The raw value of the key.
+        let rawValue: String
+
+        /// Returns the full string key for the given autosave name.
+        func stringKey(for autosaveName: String) -> String {
+            "NSStatusItem \(rawValue) \(autosaveName)"
+        }
+    }
+}
+
+// MARK: ControlItemDefaults.Key<CGFloat>
+extension ControlItemDefaults.Key<CGFloat> {
+    /// String key: "NSStatusItem Preferred Position autosaveName"
+    static let preferredPosition = Self(rawValue: "Preferred Position")
+}
+
+// MARK: ControlItemDefaults.Key<Bool>
+extension ControlItemDefaults.Key<Bool> {
+    /// String key: "NSStatusItem Visible autosaveName"
+    static let visible = Self(rawValue: "Visible")
+
+    /// String key: "NSStatusItem VisibleCC autosaveName"
+    static let visibleCC = Self(rawValue: "VisibleCC")
 }

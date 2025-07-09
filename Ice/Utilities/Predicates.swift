@@ -44,7 +44,7 @@ extension Predicates where Input == WindowInfo {
             // wallpaper window belongs to the Dock process
             window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
             window.title?.hasPrefix("Wallpaper") == true &&
-            CGDisplayBounds(display).contains(window.frame)
+            CGDisplayBounds(display).contains(window.bounds)
         }
     }
 
@@ -57,7 +57,7 @@ extension Predicates where Input == WindowInfo {
             window.isOnScreen &&
             window.layer == kCGMainMenuWindowLevel &&
             window.title == "Menubar" &&
-            CGDisplayBounds(display).contains(window.frame)
+            CGDisplayBounds(display).contains(window.bounds)
         }
     }
 }
@@ -72,11 +72,15 @@ extension Predicates where Input == MenuBarItem {
         isInAlwaysHiddenSection: NonThrowingPredicate
     )
 
+    private static func bounds(for item: MenuBarItem) -> CGRect {
+        Bridging.getWindowBounds(for: item.windowID) ?? item.bounds
+    }
+
     /// Creates a predicate that returns whether a menu bar item is in the visible section
     /// using the control item for the hidden section as a delimiter.
     static func isInVisibleSection(hiddenControlItem: MenuBarItem) -> NonThrowingPredicate {
         predicate { item in
-            item.frame.minX >= hiddenControlItem.frame.maxX
+            bounds(for: item).minX >= bounds(for: hiddenControlItem).maxX
         }
     }
 
@@ -85,12 +89,12 @@ extension Predicates where Input == MenuBarItem {
     static func isInHiddenSection(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem?) -> NonThrowingPredicate {
         if let alwaysHiddenControlItem {
             predicate { item in
-                item.frame.maxX <= hiddenControlItem.frame.minX &&
-                item.frame.minX >= alwaysHiddenControlItem.frame.maxX
+                bounds(for: item).maxX <= bounds(for: hiddenControlItem).minX &&
+                bounds(for: item).minX >= bounds(for: alwaysHiddenControlItem).maxX
             }
         } else {
             predicate { item in
-                item.frame.maxX <= hiddenControlItem.frame.minX
+                bounds(for: item).maxX <= bounds(for: hiddenControlItem).minX
             }
         }
     }
@@ -100,7 +104,7 @@ extension Predicates where Input == MenuBarItem {
     static func isInAlwaysHiddenSection(alwaysHiddenControlItem: MenuBarItem?) -> NonThrowingPredicate {
         if let alwaysHiddenControlItem {
             predicate { item in
-                item.frame.maxX <= alwaysHiddenControlItem.frame.minX
+                bounds(for: item).maxX <= bounds(for: alwaysHiddenControlItem).minX
             }
         } else {
             predicate { false }

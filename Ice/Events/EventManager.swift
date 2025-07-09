@@ -186,7 +186,7 @@ extension EventManager {
                 return
             }
 
-            await targetSection.toggle()
+            targetSection.toggle()
         }
     }
 
@@ -239,9 +239,9 @@ extension EventManager {
             // Get the window that the user has clicked into.
             guard
                 let mouseLocation = MouseCursor.locationCoreGraphics,
-                let windowUnderMouse = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
+                let windowUnderMouse = WindowInfo.getWindows(option: .onScreen)
                     .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
-                    .first(where: { $0.frame.contains(mouseLocation) && $0.title?.isEmpty == false }),
+                    .first(where: { $0.bounds.contains(mouseLocation) && $0.title?.isEmpty == false }),
                 let owningApplication = windowUnderMouse.owningApplication
             else {
                 return
@@ -340,7 +340,7 @@ extension EventManager {
 
         if appState.settings.advanced.showAllSectionsOnUserDrag {
             for section in appState.menuBarManager.sections {
-                section.controlItem.state = .showItems
+                section.controlItem.state = .showSection
             }
         }
     }
@@ -373,7 +373,7 @@ extension EventManager {
                 guard isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen) else {
                     return
                 }
-                await hiddenSection.show()
+                hiddenSection.show()
             }
         } else {
             guard
@@ -416,12 +416,10 @@ extension EventManager {
 
         let averageDelta = (event.scrollingDeltaX + event.scrollingDeltaY) / 2
 
-        Task {
-            if averageDelta > 5 {
-                await hiddenSection.show()
-            } else if averageDelta < -5 {
-                hiddenSection.hide()
-            }
+        if averageDelta > 5 {
+            hiddenSection.show()
+        } else if averageDelta < -5 {
+            hiddenSection.hide()
         }
     }
 }
@@ -486,7 +484,7 @@ extension EventManager {
             option: [.onScreen, .activeSpace]
         )
         return menuBarItems.contains { item in
-            item.frame.contains(mouseLocation)
+            item.bounds.contains(mouseLocation)
         }
     }
 

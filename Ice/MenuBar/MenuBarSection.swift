@@ -74,7 +74,7 @@ final class MenuBarSection {
     /// A Boolean value that indicates whether the section is hidden.
     var isHidden: Bool {
         if useIceBar {
-            if controlItem.state == .showItems {
+            if controlItem.state == .showSection {
                 return false
             }
             switch name {
@@ -89,12 +89,12 @@ final class MenuBarSection {
             if menuBarManager?.iceBarPanel.currentSection == .hidden {
                 return false
             }
-            return controlItem.state == .hideItems
+            return controlItem.state == .hideSection
         case .alwaysHidden:
             if menuBarManager?.iceBarPanel.currentSection == .alwaysHidden {
                 return false
             }
-            return controlItem.state == .hideItems
+            return controlItem.state == .hideSection
         }
     }
 
@@ -117,7 +117,7 @@ final class MenuBarSection {
     convenience init(name: Name) {
         let controlItem = switch name {
         case .visible:
-            ControlItem(identifier: .iceIcon)
+            ControlItem(identifier: .visible)
         case .hidden:
             ControlItem(identifier: .hidden)
         case .alwaysHidden:
@@ -133,7 +133,7 @@ final class MenuBarSection {
     }
 
     /// Shows the section.
-    func show() async {
+    func show() {
         guard let menuBarManager, isHidden else {
             return
         }
@@ -144,54 +144,51 @@ final class MenuBarSection {
             return
         }
 
-        defer {
-            startRehideChecks()
+        if useIceBar {
+            // Make sure hidden and always-hidden control items are collapsed.
+            // Still update the visible control item (Ice icon) state to show
+            // its alternate icon.
+            for section in menuBarManager.sections {
+                switch section.name {
+                case .visible:
+                    section.controlItem.state = .showSection
+                case .hidden, .alwaysHidden:
+                    section.controlItem.state = .hideSection
+                }
+            }
+
+            if let screen = screenForIceBar {
+                Task(timeout: .seconds(3)) {
+                    switch name {
+                    case .visible, .hidden:
+                        await menuBarManager.iceBarPanel.show(section: .hidden, on: screen)
+                    case .alwaysHidden:
+                        await menuBarManager.iceBarPanel.show(section: .alwaysHidden, on: screen)
+                    }
+                    try Task.checkCancellation()
+                    startRehideChecks()
+                }
+            }
+
+            return // We're done.
         }
 
-        if useIceBar {
+        // If we made it here, we're not using the Ice Bar.
+        // Make sure it's closed.
+        menuBarManager.iceBarPanel.close()
+
+        switch name {
+        case .visible, .hidden:
+            for section in menuBarManager.sections where section.name != .alwaysHidden {
+                section.controlItem.state = .showSection
+            }
+        case .alwaysHidden:
             for section in menuBarManager.sections {
-                section.controlItem.state = switch section.name {
-                case .visible: .showItems
-                default: .hideItems
-                }
-            }
-            if let screen = screenForIceBar {
-                switch name {
-                case .visible, .hidden:
-                    await menuBarManager.iceBarPanel.show(section: .hidden, on: screen)
-                case .alwaysHidden:
-                    await menuBarManager.iceBarPanel.show(section: .alwaysHidden, on: screen)
-                }
-            }
-        } else {
-            // Make sure the Ice bar is closed.
-            menuBarManager.iceBarPanel.close()
-            var controlItems = [ControlItem]()
-            switch name {
-            case .visible:
-                if let hiddenControlItem = menuBarManager.controlItem(withName: .hidden) {
-                    controlItems.append(controlItem)
-                    controlItems.append(hiddenControlItem)
-                }
-            case .hidden:
-                if let visibleControlItem = menuBarManager.controlItem(withName: .visible) {
-                    controlItems.append(controlItem)
-                    controlItems.append(visibleControlItem)
-                }
-            case .alwaysHidden:
-                if
-                    let hiddenControlItem = menuBarManager.controlItem(withName: .hidden),
-                    let visibleControlItem = menuBarManager.controlItem(withName: .visible)
-                {
-                    controlItems.append(controlItem)
-                    controlItems.append(hiddenControlItem)
-                    controlItems.append(visibleControlItem)
-                }
-            }
-            for controlItem in controlItems {
-                controlItem.state = .showItems
+                section.controlItem.state = .showSection
             }
         }
+
+        startRehideChecks()
     }
 
     /// Hides the section.
@@ -199,47 +196,25 @@ final class MenuBarSection {
         guard let menuBarManager, !isHidden else {
             return
         }
-        // Make sure the Ice bar is always closed.
-        menuBarManager.iceBarPanel.close()
-        switch name {
-        case _ where useIceBar:
-            for section in menuBarManager.sections {
-                section.controlItem.state = .hideItems
-            }
-        case .visible:
-            guard
-                let hiddenSection = menuBarManager.section(withName: .hidden),
-                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
-            else {
-                return
-            }
-            controlItem.state = .hideItems
-            hiddenSection.controlItem.state = .hideItems
-            alwaysHiddenSection.controlItem.state = .hideItems
-        case .hidden:
-            guard
-                let visibleSection = menuBarManager.section(withName: .visible),
-                let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden)
-            else {
-                return
-            }
-            controlItem.state = .hideItems
-            visibleSection.controlItem.state = .hideItems
-            alwaysHiddenSection.controlItem.state = .hideItems
-        case .alwaysHidden:
-            controlItem.state = .hideItems
-        }
+
+        menuBarManager.iceBarPanel.close() // Make sure Ice Bar is always closed.
         menuBarManager.showOnHoverAllowed = true
+
+        switch name {
+        case _ where useIceBar, .visible, .hidden:
+            for section in menuBarManager.sections {
+                section.controlItem.state = .hideSection
+            }
+        case .alwaysHidden:
+            controlItem.state = .hideSection
+        }
+
         stopRehideChecks()
     }
 
     /// Toggles the visibility of the section.
-    func toggle() async {
-        if isHidden {
-            await show()
-        } else {
-            hide()
-        }
+    func toggle() {
+        if isHidden { show() } else { hide() }
     }
 
     /// Starts running checks to determine when to rehide the section.

@@ -32,17 +32,10 @@ final class LayoutBarItemView: NSView {
     var hasContainer = false
 
     /// The image displayed inside the view.
-    private var image: NSImage? {
+    private var cachedImage: MenuBarItemImageCache.CapturedImage? {
         didSet {
-            if
-                let image,
-                let screen = appState?.imageCache.screen
-            {
-                let size = CGSize(
-                    width: image.size.width / screen.backingScaleFactor,
-                    height: image.size.height / screen.backingScaleFactor
-                )
-                setFrameSize(size)
+            if let image = cachedImage {
+                setFrameSize(image.scaledSize)
             } else {
                 setFrameSize(.zero)
             }
@@ -72,7 +65,7 @@ final class LayoutBarItemView: NSView {
         self.appState = appState
 
         // set the frame to the full item frame size; the image will be centered when displayed
-        super.init(frame: CGRect(origin: .zero, size: item.frame.size))
+        super.init(frame: CGRect(origin: .zero, size: item.bounds.size))
         unregisterDraggedTypes()
 
         self.toolTip = item.displayName
@@ -92,13 +85,10 @@ final class LayoutBarItemView: NSView {
         if let appState {
             appState.imageCache.$images
                 .sink { [weak self] images in
-                    guard
-                        let self,
-                        let cgImage = images[item.info]
-                    else {
+                    guard let self, let cachedImage = images[item.tag] else {
                         return
                     }
-                    image = NSImage(cgImage: cgImage, size: CGSize(width: cgImage.width, height: cgImage.height))
+                    self.cachedImage = cachedImage
                 }
                 .store(in: &c)
         }
@@ -123,13 +113,13 @@ final class LayoutBarItemView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         if !isDraggingPlaceholder {
-            image?.draw(
+            cachedImage?.nsImage.draw(
                 in: bounds,
                 from: .zero,
                 operation: .sourceOver,
                 fraction: isEnabled ? 1.0 : 0.67
             )
-            if Bridging.responsivity(for: item.ownerPID) == .unresponsive {
+            if Bridging.isProcessUnresponsive(item.ownerPID) {
                 let warningImage = NSImage.warning
                 let width: CGFloat = 15
                 let scale = width / warningImage.size.width
@@ -158,20 +148,18 @@ final class LayoutBarItemView: NSView {
             return
         }
 
-        guard Bridging.responsivity(for: item.ownerPID) != .unresponsive else {
+        guard !Bridging.isProcessUnresponsive(item.ownerPID) else {
             let alert = provideAlertForUnresponsiveItem()
             alert.runModal()
             return
         }
 
+        // Data doesn't matter, but we do need to set the type.
         let pasteboardItem = NSPasteboardItem()
-        // contents of the pasteboard item don't matter here, as all needed information
-        // is available directly from the dragging session; what matters is that the type
-        // is set to `layoutBarItem`, as that is what the layout bar registers for
         pasteboardItem.setData(Data(), forType: .layoutBarItem)
 
         let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
-        draggingItem.setDraggingFrame(bounds, contents: image)
+        draggingItem.setDraggingFrame(bounds, contents: cachedImage?.nsImage)
 
         beginDraggingSession(with: [draggingItem], event: event, source: self)
     }

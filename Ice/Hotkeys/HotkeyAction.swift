@@ -16,13 +16,13 @@ enum HotkeyAction: String, Codable, CaseIterable {
     case toggleApplicationMenus = "ToggleApplicationMenus"
 
     @MainActor
-    func perform(appState: AppState) async {
+    func perform(appState: AppState) {
         switch self {
         case .toggleHiddenSection:
             guard let section = appState.menuBarManager.section(withName: .hidden) else {
                 return
             }
-            await section.toggle()
+            section.toggle()
             // Prevent the section from automatically rehiding after mouse movement.
             if !section.isHidden {
                 appState.menuBarManager.showOnHoverAllowed = false
@@ -31,13 +31,13 @@ enum HotkeyAction: String, Codable, CaseIterable {
             guard let section = appState.menuBarManager.section(withName: .alwaysHidden) else {
                 return
             }
-            await section.toggle()
+            section.toggle()
             // Prevent the section from automatically rehiding after mouse movement.
             if !section.isHidden {
                 appState.menuBarManager.showOnHoverAllowed = false
             }
         case .searchMenuBarItems:
-            await appState.menuBarManager.searchPanel.toggle()
+            appState.menuBarManager.searchPanel.toggle()
         case .enableIceBar:
             appState.settings.general.useIceBar.toggle()
         case .toggleApplicationMenus:

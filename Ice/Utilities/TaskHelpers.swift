@@ -1,58 +1,64 @@
 //
-//  TaskTimeout.swift
+//  TaskHelpers.swift
 //  Ice
 //
 
 import Foundation
 
+// MARK: - Task Timeout
+
 extension Task where Failure == any Error {
-    /// Runs the given throwing operation asynchronously as part of a new top-level task
-    /// on behalf of the current actor.
+    /// Runs the given throwing operation asynchronously as part of a new
+    /// top-level task on behalf of the current actor.
     ///
     /// - Parameters:
-    ///   - priority: The priority of the task.
-    ///   - timeout: The amount of time to wait before throwing a ``TaskTimeoutError``.
+    ///   - timeout: The amount of time to wait before cancelling the task
+    ///     by throwing a ``TaskTimeoutError``.
     ///   - tolerance: The tolerance of the clock.
-    ///   - clock: The clock to use in the timeout operation.
+    ///   - clock: The clock that manages the timeout operation.
+    ///   - priority: The priority of the task.
     ///   - operation: The operation to perform.
     @discardableResult
     init<C: Clock>(
-        priority: TaskPriority? = nil,
         timeout: C.Instant.Duration,
         tolerance: C.Instant.Duration? = nil,
         clock: C = ContinuousClock(),
-        operation: @escaping @Sendable () async throws -> Success
+        priority: TaskPriority? = nil,
+        @_inheritActorContext @_implicitSelfCapture
+        operation: sending @escaping @isolated(any) () async throws -> Success
     ) {
         self.init(priority: priority) {
             try await Task.run(operation: operation, withTimeout: timeout, tolerance: tolerance, clock: clock)
         }
     }
 
-    /// Runs the given throwing operation asynchronously as part of a new top-level task.
+    /// Runs the given throwing operation asynchronously as part of a new
+    /// top-level task.
     ///
     /// - Parameters:
-    ///   - priority: The priority of the task.
-    ///   - timeout: The amount of time to wait before throwing a ``TaskTimeoutError``.
+    ///   - timeout: The amount of time to wait before cancelling the task
+    ///     by throwing a ``TaskTimeoutError``.
     ///   - tolerance: The tolerance of the clock.
-    ///   - clock: The clock to use in the timeout operation.
+    ///   - clock: The clock that manages the timeout operation.
+    ///   - priority: The priority of the task.
     ///   - operation: The operation to perform.
     ///
     /// - Returns: A reference to the task.
     @discardableResult
     static func detached<C: Clock>(
-        priority: TaskPriority? = nil,
         timeout: C.Instant.Duration,
         tolerance: C.Instant.Duration? = nil,
         clock: C = ContinuousClock(),
-        operation: @escaping @Sendable () async throws -> Success
-    ) -> Task {
+        priority: TaskPriority? = nil,
+        operation: sending @escaping @isolated(any) () async throws -> Success
+    ) -> Task<Success, Failure> {
         detached(priority: priority) {
             try await run(operation: operation, withTimeout: timeout, tolerance: tolerance, clock: clock)
         }
     }
 
     private static func run<C: Clock>(
-        operation: @escaping @Sendable () async throws -> Success,
+        operation: sending @escaping @isolated(any) () async throws -> Success,
         withTimeout timeout: C.Instant.Duration,
         tolerance: C.Instant.Duration?,
         clock: C
@@ -72,14 +78,10 @@ extension Task where Failure == any Error {
     }
 }
 
-// MARK: - TaskTimeoutError
+// MARK: TaskTimeoutError
 
 /// An error that indicates that a task timed out.
-struct TaskTimeoutError: Error, CustomStringConvertible {
+struct TaskTimeoutError: LocalizedError, CustomStringConvertible {
     let description = "Task timed out before completion"
-}
-
-// MARK: TaskTimeoutError: LocalizedError
-extension TaskTimeoutError: LocalizedError {
     var errorDescription: String? { description }
 }

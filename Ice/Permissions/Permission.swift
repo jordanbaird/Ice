@@ -19,20 +19,25 @@ class Permission: ObservableObject, Identifiable {
 
     /// The title of the permission.
     let title: String
+
     /// Descriptive details for the permission.
     let details: [String]
+
     /// A Boolean value that indicates if the app can work without this permission.
     let isRequired: Bool
 
     /// The URL of the settings pane to open.
     private let settingsURL: URL?
+
     /// The function that checks permissions.
     private let check: () -> Bool
+
     /// The function that requests permissions.
     private let request: () -> Void
 
     /// Observer that runs on a timer to check permissions.
     private var timerCancellable: AnyCancellable?
+
     /// Observer that observes the ``hasPermission`` property.
     private var hasPermissionCancellable: AnyCancellable?
 

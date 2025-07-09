@@ -178,7 +178,7 @@ final class MenuBarManager: ObservableObject {
                     return
                 }
 
-                if sections.contains(where: { $0.controlItem.state == .showItems }) {
+                if sections.contains(where: { $0.controlItem.state == .showSection }) {
                     guard let screen = NSScreen.main else {
                         return
                     }
@@ -198,25 +198,25 @@ final class MenuBarManager: ObservableObject {
                         let alwaysHiddenSection = section(withName: .alwaysHidden),
                         alwaysHiddenSection.isEnabled
                     {
-                        if alwaysHiddenSection.controlItem.state == .hideItems {
+                        if alwaysHiddenSection.controlItem.state == .hideSection {
                             if let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map({ items.remove(at: $0) }) {
-                                items.trimPrefix { $0.frame.maxX <= alwaysHiddenControlItem.frame.minX }
+                                items.trimPrefix { $0.bounds.maxX <= alwaysHiddenControlItem.bounds.minX }
                             }
                         }
                     } else {
                         if let hiddenControlItem = items.firstIndex(matching: .hiddenControlItem).map({ items.remove(at: $0) }) {
-                            items.trimPrefix { $0.frame.maxX <= hiddenControlItem.frame.minX }
+                            items.trimPrefix { $0.bounds.maxX <= hiddenControlItem.bounds.minX }
                         }
                     }
 
                     // Get the leftmost item on the screen.
-                    guard let leftmostItem = items.min(by: { $0.frame.minX < $1.frame.minX }) else {
+                    guard let leftmostItem = items.min(by: { $0.bounds.minX < $1.bounds.minX }) else {
                         return
                     }
 
                     // If the minX of the item is less than or equal to the maxX of the
                     // application menu frame, activate the app to hide the menu.
-                    if leftmostItem.frame.minX <= applicationMenuFrame.maxX {
+                    if leftmostItem.bounds.minX <= applicationMenuFrame.maxX {
                         hideApplicationMenus()
                     }
                 } else if isHidingApplicationMenus {
@@ -241,12 +241,12 @@ final class MenuBarManager: ObservableObject {
         let image: CGImage?
         let source: MenuBarAverageColorInfo.Source
 
-        let windows = WindowInfo.getOnScreenWindows(excludeDesktopWindows: false)
+        let windows = WindowInfo.getWindows(option: .onScreen)
         let displayID = screen.displayID
 
         if #available(macOS 26.0, *) {
             if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
-                var bounds = window.frame
+                var bounds = window.bounds
                 bounds.size.height = 1
                 bounds.origin.x = bounds.midX
                 bounds.size.width /= 2
@@ -258,7 +258,7 @@ final class MenuBarManager: ObservableObject {
             }
         } else {
             if let window = WindowInfo.getMenuBarWindow(from: windows, for: displayID) {
-                var bounds = window.frame
+                var bounds = window.bounds
                 bounds.size.height = 1
                 bounds.origin.x = bounds.maxX - (bounds.width / 4)
                 bounds.size.width /= 4
@@ -266,7 +266,7 @@ final class MenuBarManager: ObservableObject {
                 image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
                 source = .menuBarWindow
             } else if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
-                var bounds = window.frame
+                var bounds = window.bounds
                 bounds.size.height = 1
                 bounds.origin.x = bounds.midX
                 bounds.size.width /= 2
@@ -298,7 +298,7 @@ final class MenuBarManager: ObservableObject {
         guard let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display) else {
             return false
         }
-        let position = menuBarWindow.frame.origin
+        let position = menuBarWindow.bounds.origin
         do {
             let uiElement = try systemWideElement.elementAtPosition(Float(position.x), Float(position.y))
             return try uiElement?.role() == .menuBar

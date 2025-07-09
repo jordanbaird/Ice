@@ -24,12 +24,12 @@ struct CGSSpaceMask: OptionSet {
     static let includesOthers = CGSSpaceMask(rawValue: 1 << 1)
     static let includesUser = CGSSpaceMask(rawValue: 1 << 2)
 
-    static let includesVisible = CGSSpaceMask(rawValue: 1 << 16)
+    static let visible = CGSSpaceMask(rawValue: 1 << 16)
 
-    static let currentSpace: CGSSpaceMask = [.includesUser, .includesCurrent]
-    static let otherSpaces: CGSSpaceMask = [.includesOthers, .includesCurrent]
-    static let allSpaces: CGSSpaceMask = [.includesUser, .includesOthers, .includesCurrent]
-    static let allVisibleSpaces: CGSSpaceMask = [.includesVisible, .allSpaces]
+    static let currentSpaceMask: CGSSpaceMask = [.includesUser, .includesCurrent]
+    static let otherSpacesMask: CGSSpaceMask = [.includesOthers, .includesCurrent]
+    static let allSpacesMask: CGSSpaceMask = [.includesUser, .includesOthers, .includesCurrent]
+    static let allVisibleSpacesMask: CGSSpaceMask = [.visible, .allSpacesMask]
 }
 
 // MARK: - CGSConnection Functions
@@ -126,13 +126,6 @@ func CGSGetOnScreenWindowCount(
     _ cid: CGSConnectionID,
     _ targetCID: CGSConnectionID,
     _ outCount: inout Int32
-) -> CGError
-
-@_silgen_name("CGSGetScreenRectForWindow")
-func CGSGetScreenRectForWindow(
-    _ cid: CGSConnectionID,
-    _ wid: CGWindowID,
-    _ outRect: inout CGRect
 ) -> CGError
 
 @_silgen_name("CGSGetWindowBounds")

@@ -1,5 +1,5 @@
 //
-//  MigrationManager.swift
+//  Migration.swift
 //  Ice
 //
 
@@ -39,6 +39,7 @@ extension MigrationManager {
             migrate0_10_1(),
             migrate0_11_10(),
             migrate0_11_13(),
+            migrate0_11_13_1(),
         ]
 
         for result in results {
@@ -93,7 +94,7 @@ extension MigrationManager {
         // to the corresponding hotkeys
         for name: MenuBarSection.Name in [.hidden, .alwaysHidden] {
             guard
-                let sectionDict = sectionsArray.first(where: { $0["name"] as? String == name.deprecatedRawValue }),
+                let sectionDict = sectionsArray.first(where: { $0["name"] as? String == name.rawValue0_8_0 }),
                 let hotkeyDict = sectionDict["hotkey"] as? [String: Int],
                 let key = hotkeyDict["key"],
                 let modifiers = hotkeyDict["modifiers"]
@@ -136,7 +137,7 @@ extension MigrationManager {
 
         for name in MenuBarSection.Name.allCases {
             guard
-                var sectionDict = sectionsArray.first(where: { $0["name"] as? String == name.deprecatedRawValue }),
+                var sectionDict = sectionsArray.first(where: { $0["name"] as? String == name.rawValue0_8_0 }),
                 var controlItemDict = sectionDict["controlItem"] as? [String: Any],
                 // remove the "autosaveName" key from the dictionary
                 let autosaveName = controlItemDict.removeValue(forKey: "autosaveName") as? String
@@ -146,19 +147,19 @@ extension MigrationManager {
 
             let identifier = switch name {
             case .visible:
-                ControlItem.Identifier.iceIcon.deprecatedRawValue
+                ControlItem.Identifier.visible.rawValue0_8_0
             case .hidden:
-                ControlItem.Identifier.hidden.deprecatedRawValue
+                ControlItem.Identifier.hidden.rawValue0_8_0
             case .alwaysHidden:
-                ControlItem.Identifier.alwaysHidden.deprecatedRawValue
+                ControlItem.Identifier.alwaysHidden.rawValue0_8_0
             }
 
             // add the "identifier" key to the dictionary
             controlItemDict["identifier"] = identifier
 
             // migrate the old autosave name to the new autosave name in UserDefaults
-            StatusItemDefaults.migrate(key: .preferredPosition, from: autosaveName, to: identifier)
-            StatusItemDefaults.migrate(key: .visible, from: autosaveName, to: identifier)
+            ControlItemDefaults.migrate(key: .preferredPosition, from: autosaveName, to: identifier)
+            ControlItemDefaults.migrate(key: .visible, from: autosaveName, to: identifier)
 
             // replace the old "controlItem" dictionary with the new one
             sectionDict["controlItem"] = controlItemDict
@@ -198,10 +199,10 @@ extension MigrationManager {
 
     private func migrateControlItems0_10_0() {
         for identifier in ControlItem.Identifier.allCases {
-            StatusItemDefaults.migrate(
+            ControlItemDefaults.migrate(
                 key: .preferredPosition,
-                from: identifier.deprecatedRawValue,
-                to: identifier.rawValue
+                from: identifier.rawValue0_8_0,
+                to: identifier.rawValue0_10_0
             )
         }
     }
@@ -231,17 +232,17 @@ extension MigrationManager {
 
         for identifier in ControlItem.Identifier.allCases {
             if
-                StatusItemDefaults[.visible, identifier.rawValue] == false,
-                StatusItemDefaults[.preferredPosition, identifier.rawValue] == nil
+                ControlItemDefaults[.visible, identifier.rawValue0_10_0] == false,
+                ControlItemDefaults[.preferredPosition, identifier.rawValue0_10_0] == nil
             {
                 needsResetPreferredPositions = true
             }
-            StatusItemDefaults[.visible, identifier.rawValue] = nil
+            ControlItemDefaults[.visible, identifier.rawValue0_10_0] = nil
         }
 
         if needsResetPreferredPositions {
             for identifier in ControlItem.Identifier.allCases {
-                StatusItemDefaults[.preferredPosition, identifier.rawValue] = nil
+                ControlItemDefaults[.preferredPosition, identifier.rawValue0_10_0] = nil
             }
 
             let alert = NSAlert()
@@ -347,6 +348,44 @@ extension MigrationManager {
     }
 }
 
+// MARK: - Migrate 0.11.13.1
+
+extension MigrationManager {
+    /// Performs all migrations for the `0.11.13.1` release.
+    private func migrate0_11_13_1() -> MigrationResult {
+        guard !Defaults.bool(forKey: .hasMigrated0_11_13_1) else {
+            return .success
+        }
+
+        migrateControlItems0_11_13_1()
+
+        Defaults.set(true, forKey: .hasMigrated0_11_13_1)
+        logger.info("Successfully migrated to 0.11.13.1 settings")
+
+        return .success
+    }
+
+    private func migrateControlItems0_11_13_1() {
+        for identifier in ControlItem.Identifier.allCases {
+            ControlItemDefaults.migrate(
+                key: .preferredPosition,
+                from: identifier.rawValue0_10_0,
+                to: identifier.rawValue
+            )
+            ControlItemDefaults.migrate(
+                key: .visible,
+                from: identifier.rawValue0_10_0,
+                to: identifier.rawValue
+            )
+            ControlItemDefaults.migrate(
+                key: .visibleCC,
+                from: identifier.rawValue0_10_0,
+                to: identifier.rawValue
+            )
+        }
+    }
+}
+
 // MARK: - Helpers
 
 extension MigrationManager {
@@ -421,9 +460,17 @@ extension MigrationManager {
 // MARK: - ControlItem.Identifier Extension
 
 private extension ControlItem.Identifier {
-    var deprecatedRawValue: String {
+    var rawValue0_8_0: String {
         switch self {
-        case .iceIcon: "IceIcon"
+        case .visible: "IceIcon"
+        case .hidden: "HItem"
+        case .alwaysHidden: "AHItem"
+        }
+    }
+
+    var rawValue0_10_0: String {
+        switch self {
+        case .visible: "SItem"
         case .hidden: "HItem"
         case .alwaysHidden: "AHItem"
         }
@@ -433,7 +480,7 @@ private extension ControlItem.Identifier {
 // MARK: - MenuBarSection.Name Extension
 
 private extension MenuBarSection.Name {
-    var deprecatedRawValue: String {
+    var rawValue0_8_0: String {
         switch self {
         case .visible: "Visible"
         case .hidden: "Hidden"

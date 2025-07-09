@@ -140,10 +140,10 @@ final class IceBarPanel: NSPanel {
 
                 guard
                     lowerBound <= upperBound,
-                    let iceIcon = appState.itemManager.itemCache.allItems.first(matching: .iceIcon),
-                    // Bridging API is more reliable than ControlItem.frame
-                    // in some cases (like if the control item is offscreen).
-                    let itemBounds = Bridging.getWindowBounds(for: iceIcon.windowID)
+                    let controlItem = appState.itemManager.itemCache.allItems.first(matching: .visibleControlItem),
+                    // Bridging API is more reliable than controlItem.frame in some
+                    // cases (like if the item is offscreen).
+                    let itemBounds = Bridging.getWindowBounds(for: controlItem.windowID)
                 else {
                     return originForRightOfScreen
                 }
@@ -163,13 +163,18 @@ final class IceBarPanel: NSPanel {
         }
 
         // IMPORTANT: We must set the navigation state and current section
-        // before updating the cache.
+        // before updating the caches.
         appState.navigationState.isIceBarPresented = true
         currentSection = section
 
-        await appState.itemManager.cacheItemsIfNeeded()
+        var managedItems = appState.itemManager.itemCache.managedItems(for: section)
 
-        if ScreenCapture.cachedCheckPermissions() {
+        if managedItems.isEmpty {
+            await appState.itemManager.cacheItemsIfNeeded()
+            managedItems = appState.itemManager.itemCache.managedItems(for: section)
+        }
+
+        if managedItems.contains(where: { appState.imageCache.images[$0.tag] == nil }) {
             await appState.imageCache.updateCache()
         }
 
@@ -283,7 +288,7 @@ private struct IceBarContentView: View {
     }
 
     private var contentHeight: CGFloat? {
-        guard let menuBarHeight = imageCache.menuBarHeight ?? screen.getMenuBarHeight() else {
+        guard let menuBarHeight = screen.getMenuBarHeight() else {
             return nil
         }
         if configuration.shapeKind != .none && configuration.isInset && screen.hasNotch {
@@ -325,7 +330,7 @@ private struct IceBarContentView: View {
             }
         }
         .padding(5)
-        .frame(maxWidth: imageCache.screen?.frame.width)
+        .frame(maxWidth: screen.frame.width)
         .fixedSize()
         .onFrameChange(update: $frame)
     }
@@ -368,7 +373,7 @@ private struct IceBarContentView: View {
                     }
                 }
             }
-            .environment(\.isScrollEnabled, frame.width == imageCache.screen?.frame.width)
+            .environment(\.isScrollEnabled, frame.width == screen.frame.width)
             .defaultScrollAnchor(.trailing)
             .scrollIndicatorsFlash(trigger: scrollIndicatorsFlashTrigger)
             .task {
@@ -415,17 +420,10 @@ private struct IceBarItemView: View {
     }
 
     private var image: NSImage? {
-        guard
-            let image = imageCache.images[item.info],
-            let screen = imageCache.screen
-        else {
+        guard let cachedImage = imageCache.images[item.tag] else {
             return nil
         }
-        let size = CGSize(
-            width: CGFloat(image.width) / screen.backingScaleFactor,
-            height: CGFloat(image.height) / screen.backingScaleFactor
-        )
-        return NSImage(cgImage: image, size: size)
+        return cachedImage.nsImage
     }
 
     var body: some View {

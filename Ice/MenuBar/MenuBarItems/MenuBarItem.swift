@@ -139,7 +139,7 @@ extension MenuBarItem {
     struct ListOption: OptionSet {
         let rawValue: Int
 
-        /// Specifies menu bar items that are currently on-screen.
+        /// Specifies menu bar items that are currently on screen.
         static let onScreen = ListOption(rawValue: 1 << 0)
 
         /// Specifies menu bar items on the currently active space.
@@ -155,36 +155,25 @@ extension MenuBarItem {
     ///     to return all available menu bar item windows.
     static func getMenuBarItemWindows(on display: CGDirectDisplayID? = nil, option: ListOption) -> [WindowInfo] {
         var bridgingOption: Bridging.MenuBarWindowListOption = .itemsOnly
+        var displayBoundsPredicate: (CGWindowID) -> Bool = { _ in true }
 
-        var onScreenPredicate: (CGWindowID) -> Bool = { _ in true }
-        var activeSpacePredicate: (CGWindowID) -> Bool = { _ in true }
-
-        if option.contains(.onScreen) {
+        if let display {
             bridgingOption.insert(.onScreen)
-            if let display {
-                let displayBounds = CGDisplayBounds(display)
-                onScreenPredicate = { windowID in
-                    if let bounds = Bridging.getWindowBounds(for: windowID) {
-                        return displayBounds.intersects(bounds)
-                    }
-                    return false
-                }
+            let displayBounds = CGDisplayBounds(display)
+            displayBoundsPredicate = { windowID in
+                Bridging.windowIntersectsDisplayBounds(windowID, displayBounds)
             }
+        } else if option.contains(.onScreen) {
+            bridgingOption.insert(.onScreen)
         }
         if option.contains(.activeSpace) {
             bridgingOption.insert(.activeSpace)
-            if let spaceID = display.flatMap(Bridging.getCurrentSpaceID) {
-                activeSpacePredicate = { windowID in
-                    Bridging.isWindowOnSpace(windowID, spaceID)
-                }
-            }
         }
 
         return Bridging.getMenuBarWindowList(option: bridgingOption)
             .reversed().compactMap { windowID in
                 guard
-                    onScreenPredicate(windowID),
-                    activeSpacePredicate(windowID),
+                    displayBoundsPredicate(windowID),
                     let window = WindowInfo(windowID: windowID)
                 else {
                     return nil

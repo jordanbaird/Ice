@@ -129,7 +129,7 @@ final class LayoutBarItemView: NSView {
                 operation: .sourceOver,
                 fraction: isEnabled ? 1.0 : 0.67
             )
-            if Bridging.responsivity(for: item.ownerPID) == .unresponsive {
+            if Bridging.isProcessUnresponsive(item.ownerPID) {
                 let warningImage = NSImage.warning
                 let width: CGFloat = 15
                 let scale = width / warningImage.size.width
@@ -158,16 +158,14 @@ final class LayoutBarItemView: NSView {
             return
         }
 
-        guard Bridging.responsivity(for: item.ownerPID) != .unresponsive else {
+        guard !Bridging.isProcessUnresponsive(item.ownerPID) else {
             let alert = provideAlertForUnresponsiveItem()
             alert.runModal()
             return
         }
 
+        // Data doesn't matter, but we do need to set the type.
         let pasteboardItem = NSPasteboardItem()
-        // contents of the pasteboard item don't matter here, as all needed information
-        // is available directly from the dragging session; what matters is that the type
-        // is set to `layoutBarItem`, as that is what the layout bar registers for
         pasteboardItem.setData(Data(), forType: .layoutBarItem)
 
         let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)

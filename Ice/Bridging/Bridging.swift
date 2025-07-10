@@ -6,7 +6,9 @@
 import Cocoa
 import OSLog
 
-/// A namespace for bridged functionality.
+// MARK: - Bridging
+
+/// A namespace for bridged APIs.
 enum Bridging {
     private static let mainConnectionID = CGSMainConnectionID()
     private static let logger = Logger(category: "Bridging")
@@ -15,13 +17,11 @@ enum Bridging {
 // MARK: - CGSConnection
 
 extension Bridging {
-    /// Sets a value for the given key in the app's connection to
-    /// the window server.
+    /// Sets the value for a property in the app's window server connection.
     ///
     /// - Parameters:
-    ///   - value: The value to set for `key`.
-    ///   - key: A key associated with the app's connection to the
-    ///     window server.
+    ///   - value: A value to set for `key`.
+    ///   - key: A key for a property in the app's window server connection.
     static func setConnectionProperty(_ value: Any?, forKey key: String) {
         let result = CGSSetConnectionProperty(
             mainConnectionID,
@@ -34,11 +34,9 @@ extension Bridging {
         }
     }
 
-    /// Returns the value for the given key in the app's connection
-    /// to the window server.
+    /// Returns the value for a property in the app's window server connection.
     ///
-    /// - Parameter key: A key associated with the app's connection
-    ///   to the window server.
+    /// - Parameter key: A key for a property in the app's window server connection.
     static func getConnectionProperty(forKey key: String) -> Any? {
         var value: Unmanaged<CFTypeRef>?
         let result = CGSCopyConnectionProperty(
@@ -54,31 +52,101 @@ extension Bridging {
     }
 }
 
+// MARK: - CGSEvent
+
+extension Bridging {
+    /// Returns a Boolean value indicating whether the given process is
+    /// unresponsive.
+    ///
+    /// - Parameter pid: An identifier for a process.
+    static func isProcessUnresponsive(_ pid: pid_t) -> Bool {
+        var psn = ProcessSerialNumber()
+        let result = GetProcessForPID(pid, &psn)
+        guard result == noErr else {
+            logger.error("GetProcessForPID failed with error \(result, privacy: .public)")
+            return false
+        }
+        return CGSEventIsAppUnresponsive(mainConnectionID, &psn)
+    }
+}
+
+// MARK: - CGSSpace
+
+extension Bridging {
+    /// Returns the identifier for the active space.
+    static func getActiveSpaceID() -> CGSSpaceID {
+        return CGSGetActiveSpace(mainConnectionID)
+    }
+
+    /// Returns the identifier for the current space on the given display.
+    ///
+    /// - Parameter displayID: An identifier for a display.
+    static func getCurrentSpaceID(for displayID: CGDirectDisplayID) -> CGSSpaceID? {
+        guard
+            let uuid = CGDisplayCreateUUIDFromDisplayID(displayID),
+            let uuidString = CFUUIDCreateString(nil, uuid.takeRetainedValue())
+        else {
+            logger.error("Failed to create UUID for display \(displayID, privacy: .public)")
+            return nil
+        }
+        return CGSManagedDisplayGetCurrentSpace(mainConnectionID, uuidString)
+    }
+
+    /// Returns a list of identifiers for the spaces that contain the
+    /// given window.
+    ///
+    /// - Parameters:
+    ///   - windowID: An identifier for a window.
+    ///   - visibleSpacesOnly: A Boolean value that determines whether
+    ///     the returned list should only include visible spaces.
+    ///     The default value is `false`.
+    static func getSpaceList(for windowID: CGWindowID, visibleSpacesOnly: Bool = false) -> [CGSSpaceID] {
+        let mask: CGSSpaceMask = visibleSpacesOnly ? .allVisibleSpacesMask : .allSpacesMask
+        guard let spaces = CGSCopySpacesForWindows(mainConnectionID, mask, [windowID] as CFArray) else {
+            logger.error("CGSCopySpacesForWindows returned nil")
+            return []
+        }
+        guard let list = spaces.takeRetainedValue() as? [CGSSpaceID] else {
+            logger.error("CGSCopySpacesForWindows returned array of unexpected type")
+            return []
+        }
+        return list
+    }
+
+    /// Returns a Boolean value that indicates whether the given space
+    /// is fullscreen.
+    ///
+    /// - Parameter spaceID: An identifier for a space.
+    static func isSpaceFullscreen(_ spaceID: CGSSpaceID) -> Bool {
+        let type = CGSSpaceGetType(mainConnectionID, spaceID)
+        return type == .fullscreen
+    }
+
+    /// Returns a Boolean value that indicates whether the active space
+    /// is fullscreen.
+    static func isActiveSpaceFullscreen() -> Bool {
+        let activeSpaceID = getActiveSpaceID()
+        return isSpaceFullscreen(activeSpaceID)
+    }
+}
+
 // MARK: - CGSWindow
 
 extension Bridging {
-    /// Returns the bounds for the window with the specified identifier.
+    /// Returns the bounds for the given window.
     ///
     /// - Parameter windowID: An identifier for a window.
     static func getWindowBounds(for windowID: CGWindowID) -> CGRect? {
         var bounds = CGRect.zero
-        if #available(macOS 26.0, *) {
-            let result = CGSGetWindowBounds(mainConnectionID, windowID, &bounds)
-            guard result == .success else {
-                logger.error("CGSGetWindowBounds failed with error \(result.logString, privacy: .public)")
-                return nil
-            }
-        } else {
-            let result = CGSGetScreenRectForWindow(mainConnectionID, windowID, &bounds)
-            guard result == .success else {
-                logger.error("CGSGetScreenRectForWindow failed with error \(result.logString, privacy: .public)")
-                return nil
-            }
+        let result = CGSGetWindowBounds(mainConnectionID, windowID, &bounds)
+        guard result == .success else {
+            logger.error("CGSGetWindowBounds failed with error \(result.logString, privacy: .public)")
+            return nil
         }
         return bounds
     }
 
-    /// Returns the level for the window with the specified identifier.
+    /// Returns the level for the given window.
     ///
     /// - Parameter windowID: An identifier for a window.
     static func getWindowLevel(for windowID: CGWindowID) -> CGWindowLevel? {
@@ -91,43 +159,52 @@ extension Bridging {
         return level
     }
 
-    /// Returns a Boolean value that indicates whether the window
-    /// with the given identifier is on the specified space.
+    /// Returns a Boolean value that indicates whether the given window
+    /// is on the given space.
     ///
     /// - Parameters:
     ///   - windowID: An identifier for a window.
     ///   - spaceID: An identifier for a space.
     static func isWindowOnSpace(_ windowID: CGWindowID, _ spaceID: CGSSpaceID) -> Bool {
-        let list = getSpaceList(for: windowID, option: .allSpaces)
+        let list = getSpaceList(for: windowID, visibleSpacesOnly: false)
         return list.contains(spaceID)
     }
 
-    /// Returns a Boolean value that indicates whether the window
-    /// with the given identifier is on the current active space.
+    /// Returns a Boolean value that indicates whether the given window
+    /// is on the active space.
     ///
     /// - Parameter windowID: An identifier for a window.
     static func isWindowOnActiveSpace(_ windowID: CGWindowID) -> Bool {
-        let spaceID = getActiveSpaceID()
-        return isWindowOnSpace(windowID, spaceID)
+        let activeSpaceID = getActiveSpaceID()
+        return isWindowOnSpace(windowID, activeSpaceID)
     }
 
-    /// Returns a Boolean value that indicates whether the window
-    /// with the given identifier is on the specified display.
+    /// Returns a Boolean value that indicates whether the given window
+    /// intersects the given display bounds.
+    ///
+    /// - Parameters:
+    ///   - windowID: An identifier for a window.
+    ///   - displayBounds: The bounds of a display.
+    static func windowIntersectsDisplayBounds(_ windowID: CGWindowID, _ displayBounds: CGRect) -> Bool {
+        if let windowBounds = getWindowBounds(for: windowID) {
+            return displayBounds.intersects(windowBounds)
+        }
+        return false
+    }
+
+    /// Returns a Boolean value that indicates whether the given window
+    /// is on the specified display.
     ///
     /// - Parameters:
     ///   - windowID: An identifier for a window.
     ///   - displayID: An identifier for a display.
     static func isWindowOnDisplay(_ windowID: CGWindowID, _ displayID: CGDirectDisplayID) -> Bool {
-        if let windowBounds = getWindowBounds(for: windowID) {
-            let displayBounds = CGDisplayBounds(displayID)
-            return displayBounds.intersects(windowBounds)
-        }
-        return false
+        let displayBounds = CGDisplayBounds(displayID)
+        return windowIntersectsDisplayBounds(windowID, displayBounds)
     }
-}
 
-// MARK: Private Window List Helpers
-extension Bridging {
+    // MARK: Private Window List Helpers
+
     private static func getFullWindowCount() -> Int32 {
         var count: Int32 = 0
         let result = CGSGetWindowCount(mainConnectionID, 0, &count)
@@ -181,26 +258,25 @@ extension Bridging {
         }
         return [CGWindowID](list[..<Int(outCount)])
     }
-}
 
-// MARK: Public Window List API
-extension Bridging {
+    // MARK: Public Window List API
+
     /// Options that specify the identifiers in a window list.
     struct WindowListOption: OptionSet {
         let rawValue: Int
 
-        /// Specifies windows that are currently on-screen.
+        /// Specifies windows that are currently on screen.
         static let onScreen = WindowListOption(rawValue: 1 << 0)
 
         /// Specifies windows on the currently active space.
         static let activeSpace = WindowListOption(rawValue: 1 << 1)
     }
 
-    /// Options that specify the identifiers included in a menu bar window list.
+    /// Options that specify the identifiers in a menu bar window list.
     struct MenuBarWindowListOption: OptionSet {
         let rawValue: Int
 
-        /// Specifies windows that are currently on-screen.
+        /// Specifies windows that are currently on screen.
         static let onScreen = MenuBarWindowListOption(rawValue: 1 << 0)
 
         /// Specifies windows on the currently active space.
@@ -210,7 +286,7 @@ extension Bridging {
         static let itemsOnly = MenuBarWindowListOption(rawValue: 1 << 2)
     }
 
-    /// Returns a list of window identifiers using the given options.
+    /// Returns a list of window identifiers.
     ///
     /// - Parameter option: Options that filter the returned list.
     ///   Pass an empty option set to return all available windows.
@@ -229,8 +305,8 @@ extension Bridging {
         return list
     }
 
-    /// Returns a list of window identifiers representing elements
-    /// of the menu bar.
+    /// Returns a list of window identifiers for the elements of
+    /// the menu bar.
     ///
     /// - Parameter option: Options that filter the returned list.
     ///   Pass an empty option set to return all available windows.
@@ -264,8 +340,10 @@ extension Bridging {
         }
     }
 
+    // MARK: - CGWindowList Specific
+
     /// Creates a `CFArray` containing the bit patterns of the given
-    /// list of window identifiers.
+    /// window list.
     ///
     /// Pass the returned array into one of the `CGWindowList` APIs
     /// from `CoreGraphics`.
@@ -288,108 +366,5 @@ extension Bridging {
             return nil
         }
         return array
-    }
-}
-
-// MARK: - CGSSpace
-
-extension Bridging {
-    /// Options that specify the identifiers in a space list.
-    enum SpaceListOption {
-        /// Specifies all available spaces.
-        case allSpaces
-
-        /// Specifies visible spaces.
-        case visibleSpaces
-    }
-
-    /// Returns the identifier for the current active space.
-    static func getActiveSpaceID() -> CGSSpaceID {
-        return CGSGetActiveSpace(mainConnectionID)
-    }
-
-    /// Returns the identifier for the current space on the given
-    /// display.
-    ///
-    /// - Parameter displayID: An identifier for a display.
-    static func getCurrentSpaceID(for displayID: CGDirectDisplayID) -> CGSSpaceID? {
-        guard
-            let uuid = CGDisplayCreateUUIDFromDisplayID(displayID),
-            let uuidString = CFUUIDCreateString(nil, uuid.takeRetainedValue())
-        else {
-            return nil
-        }
-        return CGSManagedDisplayGetCurrentSpace(mainConnectionID, uuidString)
-    }
-
-    /// Returns a list of identifiers for the spaces that contain
-    /// the given window.
-    ///
-    /// - Parameters:
-    ///   - windowID: An identifier for a window.
-    ///   - option: An option that filters the spaces included in
-    ///     the returned list.
-    static func getSpaceList(for windowID: CGWindowID, option: SpaceListOption) -> [CGSSpaceID] {
-        let mask: CGSSpaceMask = switch option {
-        case .allSpaces: .allSpaces
-        case .visibleSpaces: .allVisibleSpaces
-        }
-        guard let spaces = CGSCopySpacesForWindows(mainConnectionID, mask, [windowID] as CFArray) else {
-            logger.error("CGSCopySpacesForWindows returned nil value")
-            return []
-        }
-        guard let list = spaces.takeRetainedValue() as? [CGSSpaceID] else {
-            logger.error("CGSCopySpacesForWindows returned array of unexpected type")
-            return []
-        }
-        return list
-    }
-
-    /// Returns a Boolean value that indicates whether the space
-    /// with the given identifier is fullscreen.
-    ///
-    /// - Parameter spaceID: An identifier for a space.
-    static func isSpaceFullscreen(_ spaceID: CGSSpaceID) -> Bool {
-        let type = CGSSpaceGetType(mainConnectionID, spaceID)
-        return type == .fullscreen
-    }
-
-    /// Returns a Boolean value that indicates whether the current
-    /// active space is fullscreen.
-    static func isActiveSpaceFullscreen() -> Bool {
-        let spaceID = getActiveSpaceID()
-        return isSpaceFullscreen(spaceID)
-    }
-}
-
-// MARK: - Process Responsivity
-
-extension Bridging {
-    /// Constants that indicate the responsivity of a process.
-    enum Responsivity {
-        /// The process is known to be responsive.
-        case responsive
-
-        /// The process is known to be unresponsive.
-        case unresponsive
-
-        /// The responsivity of the process is unknown.
-        case unknown
-    }
-
-    /// Returns the responsivity of the given process.
-    ///
-    /// - Parameter pid: An identifier for a process.
-    static func responsivity(for pid: pid_t) -> Responsivity {
-        var psn = ProcessSerialNumber()
-        let result = GetProcessForPID(pid, &psn)
-        guard result == noErr else {
-            logger.error("GetProcessForPID failed with error \(result, privacy: .public)")
-            return .unknown
-        }
-        if CGSEventIsAppUnresponsive(mainConnectionID, &psn) {
-            return .unresponsive
-        }
-        return .responsive
     }
 }

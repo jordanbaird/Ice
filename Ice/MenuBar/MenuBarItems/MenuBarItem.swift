@@ -8,7 +8,7 @@ import Cocoa
 // MARK: - MenuBarItem
 
 /// A representation of an item in the menu bar.
-struct MenuBarItem {
+struct MenuBarItem: CustomStringConvertible {
     /// The item's window identifier.
     let windowID: CGWindowID
 
@@ -105,11 +105,9 @@ struct MenuBarItem {
         }
     }
 
-    /// A Boolean value that indicates whether the item is currently
-    /// in the menu bar.
-    var isCurrentlyInMenuBar: Bool {
-        let list = Set(Bridging.getMenuBarWindowList())
-        return list.contains(windowID)
+    /// A textual representation of the item.
+    var description: String {
+        String(describing: legacyInfo)
     }
 
     /// A string to use for logging purposes.

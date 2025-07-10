@@ -82,8 +82,8 @@ final class MenuBarItemImageCache: ObservableObject {
         logger.debug("Skipping menu bar item image cache as \(reason(), privacy: .public)")
     }
 
-    /// Returns a Boolean value that indicates whether caching menu bar items failed for
-    /// the given section.
+    /// Returns a Boolean value that indicates whether caching menu bar items
+    /// failed for the given section.
     @MainActor
     func cacheFailed(for section: MenuBarSection.Name) -> Bool {
         guard ScreenCapture.cachedCheckPermissions() else {
@@ -100,87 +100,109 @@ final class MenuBarItemImageCache: ObservableObject {
         return true
     }
 
-    /// Captures the images of the current menu bar items and returns a dictionary containing
-    /// the images, keyed by the current menu bar item infos.
-    func createImages(for section: MenuBarSection.Name, screen: NSScreen) async -> [MenuBarItemInfo: CGImage] {
-        guard let appState else {
-            return [:]
-        }
-
-        let items = await appState.itemManager.itemCache[section]
+    /// Captures the images of the given menu bar items and returns a dictionary
+    /// containing the images, keyed by their menu bar item infos.
+    func createImages(for items: [MenuBarItem], screen: NSScreen) -> [MenuBarItemInfo: CGImage] {
+        let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
+        let scale = screen.backingScaleFactor
 
         var images = [MenuBarItemInfo: CGImage]()
-        let backingScaleFactor = screen.backingScaleFactor
-        let displayBounds = CGDisplayBounds(screen.displayID)
-        let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
+        var excludedItems = [MenuBarItem]()
 
-        var itemInfosDict = [CGWindowID: MenuBarItemInfo]()
-        var itemBoundsDict = [CGWindowID: CGRect]()
-        var windowIDs = [CGWindowID]()
-        var combinedBounds = CGRect.null
+        compositeCapture: do {
+            var windowIDs = [CGWindowID]()
+            var storage = [CGWindowID: (MenuBarItem, CGRect)]()
+            var boundsUnion = CGRect.null
 
-        for item in items {
-            let windowID = item.windowID
-            guard
-                let itemBounds = Bridging.getWindowBounds(for: windowID), // Get latest bounds.
-                itemBounds.minY == displayBounds.minY
-            else {
-                continue
-            }
-            itemInfosDict[windowID] = item.info
-            itemBoundsDict[windowID] = itemBounds
-            windowIDs.append(windowID)
-            combinedBounds = combinedBounds.union(itemBounds)
-        }
+            for item in items {
+                let windowID = item.windowID
 
-        if
-            let compositeImage = ScreenCapture.captureWindows(windowIDs, option: option),
-            CGFloat(compositeImage.width) == combinedBounds.width * backingScaleFactor
-        {
-            for windowID in windowIDs {
-                guard
-                    let itemInfo = itemInfosDict[windowID],
-                    let itemBounds = itemBoundsDict[windowID]
-                else {
+                // Don't use item.bounds, it could be out of date.
+                guard let bounds = Bridging.getWindowBounds(for: windowID) else {
+                    excludedItems.append(item)
                     continue
                 }
 
-                let frame = CGRect(
-                    x: (itemBounds.origin.x - combinedBounds.origin.x) * backingScaleFactor,
-                    y: (itemBounds.origin.y - combinedBounds.origin.y) * backingScaleFactor,
-                    width: itemBounds.width * backingScaleFactor,
-                    height: itemBounds.height * backingScaleFactor
+                windowIDs.append(windowID)
+                storage[windowID] = (item, bounds)
+                boundsUnion = boundsUnion.union(bounds)
+            }
+
+            guard
+                let compositeImage = ScreenCapture.captureWindows(windowIDs, option: option),
+                CGFloat(compositeImage.width) == boundsUnion.width * scale, // Safety check.
+                !compositeImage.isTransparent()
+            else {
+                excludedItems = items // Exclude all items.
+                break compositeCapture
+            }
+
+            // Crop out each item from the composite.
+            for windowID in windowIDs {
+                guard let (item, bounds) = storage[windowID] else {
+                    continue
+                }
+
+                let cropRect = CGRect(
+                    x: (bounds.origin.x - boundsUnion.origin.x) * scale,
+                    y: (bounds.origin.y - boundsUnion.origin.y) * scale,
+                    width: bounds.width * scale,
+                    height: bounds.height * scale
                 )
 
-                guard let itemImage = compositeImage.cropping(to: frame) else {
+                guard let image = compositeImage.cropping(to: cropRect) else {
+                    excludedItems.append(item)
                     continue
                 }
 
-                images[itemInfo] = itemImage
+                images[item.info] = image
             }
-        } else {
-            logger.warning(
-                """
-                Composite capture failed for \(section.logString, privacy: .public). \
-                Attempting to capture items individually.
-                """
-            )
+        }
 
-            for windowID in windowIDs {
+        individualCapture: do {
+            if excludedItems.isEmpty {
+                break individualCapture // All good!
+            }
+
+            logger.notice("Some items were excluded from composite capture: \(excludedItems, privacy: .public)")
+            logger.notice("Attempting to capture excluded items individually")
+
+            var failedItems = [MenuBarItem]()
+
+            for item in excludedItems {
                 guard
-                    let itemInfo = itemInfosDict[windowID],
-                    let itemImage = ScreenCapture.captureWindow(windowID, option: option)
+                    let image = ScreenCapture.captureWindow(item.windowID, option: option),
+                    !image.isTransparent()
                 else {
+                    failedItems.append(item)
                     continue
                 }
-                images[itemInfo] = itemImage
+                images[item.info] = image
             }
+
+            if failedItems.isEmpty {
+                break individualCapture // All good!
+            }
+
+            logger.error("Some items failed capture: \(failedItems, privacy: .public)")
         }
 
         return images
     }
 
-    /// Updates the cache for the given sections, without checking whether caching is necessary.
+    /// Captures the images of the menu bar items in the given section and
+    /// returns a dictionary containing the images, keyed by their menu bar
+    /// item infos.
+    func createImages(for section: MenuBarSection.Name, screen: NSScreen) async -> [MenuBarItemInfo: CGImage] {
+        guard let appState else {
+            return [:]
+        }
+        let items = await appState.itemManager.itemCache.managedItems(for: section)
+        return createImages(for: items, screen: screen)
+    }
+
+    /// Updates the cache for the given sections, without checking whether
+    /// caching is necessary.
     func updateCacheWithoutChecks(sections: [MenuBarSection.Name]) async {
         guard
             let appState,
@@ -197,12 +219,7 @@ final class MenuBarItemImageCache: ObservableObject {
             }
             let sectionImages = await createImages(for: section, screen: screen)
             guard !sectionImages.isEmpty else {
-                logger.warning(
-                    """
-                    Failed to update cached menu bar item images for \
-                    \(section.logString, privacy: .public)
-                    """
-                )
+                logger.warning("Failed to update cached menu bar item images for \(section.logString, privacy: .public)")
                 continue
             }
             newImages.merge(sectionImages) { (_, new) in new }
@@ -259,6 +276,7 @@ final class MenuBarItemImageCache: ObservableObject {
         let isSettingsPresented = await appState.navigationState.isSettingsPresented
 
         var sectionsNeedingDisplay = [MenuBarSection.Name]()
+
         if isSettingsPresented || isSearchPresented {
             sectionsNeedingDisplay = MenuBarSection.Name.allCases
         } else if

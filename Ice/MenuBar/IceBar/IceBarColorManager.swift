@@ -157,7 +157,7 @@ final class IceBarColorManager: ObservableObject {
         let percentage = ((frame.midX - insetScreenFrame.minX) / insetScreenFrame.width).clamped(to: 0...1)
 
         let cropRect = CGRect(x: imageBounds.width * percentage, y: 0, width: 0, height: 1)
-            .insetBy(dx: -50, dy: 0)
+            .insetBy(dx: -150, dy: 0)
             .intersection(imageBounds)
 
         guard

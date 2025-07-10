@@ -284,7 +284,7 @@ extension MenuBarItemManager {
             return
         }
 
-        let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
+        let itemWindowIDs = Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace])
         if cachedItemWindowIDs == itemWindowIDs {
             logger.debug("Skipping menu bar item cache as item windows have not changed")
             return

@@ -128,84 +128,58 @@ extension Bridging {
 
 // MARK: Private Window List Helpers
 extension Bridging {
-    private static func getWindowCount() -> Int {
+    private static func getFullWindowCount() -> Int32 {
         var count: Int32 = 0
         let result = CGSGetWindowCount(mainConnectionID, 0, &count)
         if result != .success {
             logger.error("CGSGetWindowCount failed with error \(result.logString, privacy: .public)")
         }
-        return Int(count)
+        return count
     }
 
-    private static func getOnScreenWindowCount() -> Int {
+    private static func getOnScreenWindowCount() -> Int32 {
         var count: Int32 = 0
         let result = CGSGetOnScreenWindowCount(mainConnectionID, 0, &count)
         if result != .success {
             logger.error("CGSGetOnScreenWindowCount failed with error \(result.logString, privacy: .public)")
         }
-        return Int(count)
+        return count
     }
 
-    private static func getWindowList() -> [CGWindowID] {
-        let windowCount = getWindowCount()
-        var list = [CGWindowID](repeating: 0, count: windowCount)
-        var realCount: Int32 = 0
-        let result = CGSGetWindowList(
-            mainConnectionID,
-            0,
-            Int32(windowCount),
-            &list,
-            &realCount
-        )
+    private static func getFullWindowList() -> [CGWindowID] {
+        let count = getFullWindowCount()
+        var list = [CGWindowID](repeating: 0, count: Int(count))
+        var outCount: Int32 = 0
+        let result = CGSGetWindowList(mainConnectionID, 0, count, &list, &outCount)
         guard result == .success else {
             logger.error("CGSGetWindowList failed with error \(result.logString, privacy: .public)")
             return []
         }
-        return [CGWindowID](list[..<Int(realCount)])
+        return [CGWindowID](list[..<Int(outCount)])
     }
 
     private static func getOnScreenWindowList() -> [CGWindowID] {
-        let windowCount = getOnScreenWindowCount()
-        var list = [CGWindowID](repeating: 0, count: windowCount)
-        var realCount: Int32 = 0
-        let result = CGSGetOnScreenWindowList(
-            mainConnectionID,
-            0,
-            Int32(windowCount),
-            &list,
-            &realCount
-        )
+        let count = getOnScreenWindowCount()
+        var list = [CGWindowID](repeating: 0, count: Int(count))
+        var outCount: Int32 = 0
+        let result = CGSGetOnScreenWindowList(mainConnectionID, 0, count, &list, &outCount)
         guard result == .success else {
             logger.error("CGSGetOnScreenWindowList failed with error \(result.logString, privacy: .public)")
             return []
         }
-        return [CGWindowID](list[..<Int(realCount)])
+        return [CGWindowID](list[..<Int(outCount)])
     }
 
-    private static func getMenuBarItemWindowList() -> [CGWindowID] {
-        let windowCount = getWindowCount()
-        var list = [CGWindowID](repeating: 0, count: windowCount)
-        var realCount: Int32 = 0
-        let result = CGSGetProcessMenuBarWindowList(
-            mainConnectionID,
-            0,
-            Int32(windowCount),
-            &list,
-            &realCount
-        )
+    private static func getFullMenuBarWindowList() -> [CGWindowID] {
+        let count = getFullWindowCount()
+        var list = [CGWindowID](repeating: 0, count: Int(count))
+        var outCount: Int32 = 0
+        let result = CGSGetProcessMenuBarWindowList(mainConnectionID, 0, count, &list, &outCount)
         guard result == .success else {
             logger.error("CGSGetProcessMenuBarWindowList failed with error \(result.logString, privacy: .public)")
             return []
         }
-        return list[..<Int(realCount)].filter { windowID in
-            let level = getWindowLevel(for: windowID)
-            return level != kCGMainMenuWindowLevel
-        }
-    }
-
-    private static func getOnScreenMenuBarItemWindowList() -> [CGWindowID] {
-        let onScreenList = Set(getOnScreenWindowList())
-        return getMenuBarItemWindowList().filter(onScreenList.contains)
+        return [CGWindowID](list[..<Int(outCount)])
     }
 }
 
@@ -218,11 +192,22 @@ extension Bridging {
         /// Specifies windows that are currently on-screen.
         static let onScreen = WindowListOption(rawValue: 1 << 0)
 
-        /// Specifies windows that represent items in the menu bar.
-        static let menuBarItems = WindowListOption(rawValue: 1 << 1)
+        /// Specifies windows on the currently active space.
+        static let activeSpace = WindowListOption(rawValue: 1 << 1)
+    }
+
+    /// Options that specify the identifiers included in a menu bar window list.
+    struct MenuBarWindowListOption: OptionSet {
+        let rawValue: Int
+
+        /// Specifies windows that are currently on-screen.
+        static let onScreen = MenuBarWindowListOption(rawValue: 1 << 0)
 
         /// Specifies windows on the currently active space.
-        static let activeSpace = WindowListOption(rawValue: 1 << 2)
+        static let activeSpace = MenuBarWindowListOption(rawValue: 1 << 1)
+
+        /// Specifies only windows that represent menu bar items.
+        static let itemsOnly = MenuBarWindowListOption(rawValue: 1 << 2)
     }
 
     /// Returns a list of window identifiers using the given options.
@@ -230,21 +215,52 @@ extension Bridging {
     /// - Parameter option: Options that filter the returned list.
     ///   Pass an empty option set to return all available windows.
     static func getWindowList(option: WindowListOption = []) -> [CGWindowID] {
-        let list = if option.contains(.menuBarItems) {
-            if option.contains(.onScreen) {
-                getOnScreenMenuBarItemWindowList()
-            } else {
-                getMenuBarItemWindowList()
-            }
-        } else if option.contains(.onScreen) {
+        let list = if option.contains(.onScreen) {
             getOnScreenWindowList()
         } else {
-            getWindowList()
+            getFullWindowList()
         }
-        return if option.contains(.activeSpace) {
-            list.filter(isWindowOnActiveSpace)
-        } else {
-            list
+        if option.contains(.activeSpace) {
+            let activeSpaceID = getActiveSpaceID()
+            return list.filter { windowID in
+                isWindowOnSpace(windowID, activeSpaceID)
+            }
+        }
+        return list
+    }
+
+    /// Returns a list of window identifiers representing elements
+    /// of the menu bar.
+    ///
+    /// - Parameter option: Options that filter the returned list.
+    ///   Pass an empty option set to return all available windows.
+    static func getMenuBarWindowList(option: MenuBarWindowListOption = []) -> [CGWindowID] {
+        var predicates = [(CGWindowID) -> Bool]()
+
+        if option.contains(.onScreen) {
+            let onScreenList = Set(getOnScreenWindowList())
+            predicates.append { windowID in
+                onScreenList.contains(windowID)
+            }
+        }
+
+        if option.contains(.activeSpace) {
+            let activeSpaceID = getActiveSpaceID()
+            predicates.append { windowID in
+                isWindowOnSpace(windowID, activeSpaceID)
+            }
+        }
+
+        if option.contains(.itemsOnly) {
+            predicates.append { windowID in
+                getWindowLevel(for: windowID) != kCGMainMenuWindowLevel
+            }
+        }
+
+        return getFullMenuBarWindowList().filter { windowID in
+            predicates.allSatisfy { predicate in
+                predicate(windowID)
+            }
         }
     }
 

@@ -15,7 +15,7 @@ enum ScreenCapture {
 
     /// Returns a Boolean value that indicates whether the app has screen capture permissions.
     static func checkPermissions() -> Bool {
-        for windowID in Bridging.getWindowList(option: [.menuBarItems, .activeSpace]) {
+        for windowID in Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace]) {
             guard
                 let window = WindowInfo(windowID: windowID),
                 window.owningApplication != .current // Skip windows we own.

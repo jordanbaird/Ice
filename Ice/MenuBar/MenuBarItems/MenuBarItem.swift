@@ -108,7 +108,7 @@ struct MenuBarItem {
     /// A Boolean value that indicates whether the item is currently
     /// in the menu bar.
     var isCurrentlyInMenuBar: Bool {
-        let list = Set(Bridging.getWindowList(option: .menuBarItems))
+        let list = Set(Bridging.getMenuBarWindowList())
         return list.contains(windowID)
     }
 
@@ -156,7 +156,7 @@ extension MenuBarItem {
     ///   - option: Options that filter the returned list. Pass an empty option set
     ///     to return all available menu bar item windows.
     static func getMenuBarItemWindows(on display: CGDirectDisplayID? = nil, option: ListOption) -> [WindowInfo] {
-        var bridgingOption: Bridging.WindowListOption = .menuBarItems
+        var bridgingOption: Bridging.MenuBarWindowListOption = .itemsOnly
 
         var onScreenPredicate: (CGWindowID) -> Bool = { _ in true }
         var activeSpacePredicate: (CGWindowID) -> Bool = { _ in true }
@@ -182,7 +182,7 @@ extension MenuBarItem {
             }
         }
 
-        return Bridging.getWindowList(option: bridgingOption)
+        return Bridging.getMenuBarWindowList(option: bridgingOption)
             .reversed().compactMap { windowID in
                 guard
                     onScreenPredicate(windowID),

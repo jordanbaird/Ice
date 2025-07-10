@@ -95,7 +95,7 @@ struct AdvancedSettingsPane: View {
             Text(
                 """
                 Right-click in an empty area of the menu bar to display a minimal \
-                version of Ice's menu. Disable this if you experience conflicts with \
+                version of Ice's menu. Disable this if you encounter conflicts with \
                 other apps.
                 """
             )

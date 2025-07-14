@@ -61,6 +61,9 @@ enum ScreenCapture {
 
     // MARK: Capture Window(s)
 
+    /// Queue for screen capture operations.
+    private static let captureQueue = DispatchQueue(label: "ScreenCapture.captureQueue", qos: .userInteractive)
+
     /// Captures a composite image of an array of windows.
     ///
     /// The windows are composited from front to back, according to the order of the `windowIDs`
@@ -72,11 +75,13 @@ enum ScreenCapture {
     ///     capture the minimum rectangle that encloses the windows.
     ///   - option: Options that specify which parts of the windows are captured.
     static func captureWindows(_ windowIDs: [CGWindowID], screenBounds: CGRect? = nil, option: CGWindowImageOption = []) -> CGImage? {
-        guard let windowArray = Bridging.createCGWindowArray(with: windowIDs) else {
-            return nil
+        captureQueue.sync {
+            guard let windowArray = Bridging.createCGWindowArray(with: windowIDs) else {
+                return nil
+            }
+            let screenBounds = screenBounds ?? .null
+            return CGImage.windowListImage(from: screenBounds, windowArray: windowArray, imageOption: option)
         }
-        let screenBounds = screenBounds ?? .null
-        return CGImage.windowListImage(from: screenBounds, windowArray: windowArray, imageOption: option)
     }
 
     /// Captures an image of a window.
@@ -87,7 +92,7 @@ enum ScreenCapture {
     ///     capture the minimum rectangle that encloses the window.
     ///   - option: Options that specify which parts of the window are captured.
     static func captureWindow(_ windowID: CGWindowID, screenBounds: CGRect? = nil, option: CGWindowImageOption = []) -> CGImage? {
-        return captureWindows([windowID], screenBounds: screenBounds, option: option)
+        captureWindows([windowID], screenBounds: screenBounds, option: option)
     }
 }
 
@@ -104,7 +109,7 @@ private protocol WindowListImage {
 private extension WindowListImage {
     @inline(__always) // Ensure a direct call to the initializer.
     static func windowListImage(from screenBounds: CGRect, windowArray: CFArray, imageOption: CGWindowImageOption) -> Self? {
-        return Self(windowListFromArrayScreenBounds: screenBounds, windowArray: windowArray, imageOption: imageOption)
+        Self(windowListFromArrayScreenBounds: screenBounds, windowArray: windowArray, imageOption: imageOption)
     }
 }
 

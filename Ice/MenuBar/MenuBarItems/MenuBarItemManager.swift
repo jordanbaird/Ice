@@ -1206,31 +1206,30 @@ extension MenuBarItemManager {
             throw EventError(code: .invalidItem, item: item)
         }
 
-        let clickPoint = CGPoint(x: currentBounds.midX, y: currentBounds.midY)
-        let mouseTypes: (down: CGEventType, up: CGEventType) = switch mouseButton {
-        case .left: (.leftMouseDown, .leftMouseUp)
-        case .right: (.rightMouseDown, .rightMouseUp)
-        default: (.otherMouseDown, .otherMouseUp)
-        }
+        let buttonStates = mouseButton.buttonStates
+        let clickPoint = currentBounds.center
 
         guard
-            let mouseDownEvent = CGEvent(
-                mouseEventSource: source,
-                mouseType: mouseTypes.down,
-                mouseCursorPosition: clickPoint,
-                mouseButton: mouseButton
+            let mouseDownEvent = CGEvent.menuBarItemEvent(
+                type: .click(buttonStates.down),
+                location: clickPoint,
+                item: item,
+                pid: item.ownerPID,
+                source: source
             ),
-            let mouseUpEvent = CGEvent(
-                mouseEventSource: source,
-                mouseType: mouseTypes.up,
-                mouseCursorPosition: clickPoint,
-                mouseButton: mouseButton
+            let mouseUpEvent = CGEvent.menuBarItemEvent(
+                type: .click(buttonStates.up),
+                location: clickPoint,
+                item: item,
+                pid: item.ownerPID,
+                source: source
             ),
-            let fallbackEvent = CGEvent(
-                mouseEventSource: source,
-                mouseType: mouseTypes.up,
-                mouseCursorPosition: clickPoint,
-                mouseButton: mouseButton
+            let fallbackEvent = CGEvent.menuBarItemEvent(
+                type: .click(buttonStates.up),
+                location: clickPoint,
+                item: item,
+                pid: item.ownerPID,
+                source: source
             )
         else {
             throw EventError(code: .eventCreationFailure, item: item)
@@ -1260,16 +1259,11 @@ extension MenuBarItemManager {
                 \(mouseButton.logString, privacy: .public)
                 """
             )
-            try await postEventAndWaitToReceive(
-                mouseDownEvent,
-                to: .sessionEventTap,
-                item: item
-            )
-            try await postEventAndWaitToReceive(
-                mouseUpEvent,
-                to: .sessionEventTap,
-                item: item
-            )
+            await eventSleep()
+            try await scrombleEvent(mouseDownEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
+            await eventSleep()
+            try await scrombleEvent(mouseUpEvent, from: .pid(item.ownerPID), to: .sessionEventTap, item: item)
+            await eventSleep()
         } catch {
             do {
                 let eventTask = Task {
@@ -1623,13 +1617,20 @@ private extension CGEventField {
     /// Key to access a field that contains the event's window identifier.
     static let windowID = CGEventField(rawValue: 0x33)! // swiftlint:disable:this force_unwrapping
 
-    /// An array of integer event fields that can be used to compare menu bar item events.
-    static let menuBarItemEventFields: [CGEventField] = [
-        .eventSourceUserData,
+    /// An array of integer fields that are required for a menu bar item event.
+    static let menuBarItemRequiredWindowFields: [CGEventField] = [
         .mouseEventWindowUnderMousePointer,
         .mouseEventWindowUnderMousePointerThatCanHandleThisEvent,
-        .windowID,
     ]
+
+    /// An array of integer fields that may be set for a menu bar item event.
+    static let menuBarItemOptionalWindowFields: [CGEventField] = [.windowID]
+
+    /// An array of integer event fields that can be used to compare menu bar item events.
+    static let menuBarItemEventFields: [CGEventField] = {
+        let baseFields: [CGEventField] = [.eventSourceUserData]
+        return baseFields + menuBarItemRequiredWindowFields + menuBarItemOptionalWindowFields
+    }()
 }
 
 // MARK: - CGEventFilterMask Helpers
@@ -1699,38 +1700,69 @@ private extension CGMouseButton {
 // MARK: - CGEvent Constructor
 
 private extension CGEvent {
-    /// Returns an event that can be sent to the given menu bar item.
+    /// Returns an event that can be sent to a menu bar item.
     ///
     /// - Parameters:
     ///   - type: The type of the event.
-    ///   - location: The location of the event. Does not need to be within the bounds of the item.
+    ///   - location: The location of the event. Does not need to be
+    ///     within the bounds of the item.
     ///   - item: The target item of the event.
-    ///   - pid: The target process identifier of the event. Does not need to be the item's `ownerPID`.
+    ///   - pid: The target process identifier of the event. Does not
+    ///     need to be the item's `ownerPID`.
     ///   - source: The source of the event.
-    class func menuBarItemEvent(type: MenuBarItemEventType, location: CGPoint, item: MenuBarItem, pid: pid_t, source: CGEventSource) -> CGEvent? {
-        let mouseType = type.cgEventType
-        let mouseButton = type.mouseButton
-
-        guard let event = CGEvent(mouseEventSource: source, mouseType: mouseType, mouseCursorPosition: location, mouseButton: mouseButton) else {
+    class func menuBarItemEvent(
+        type: MenuBarItemEventType,
+        location: CGPoint,
+        item: MenuBarItem,
+        pid: pid_t,
+        source: CGEventSource
+    ) -> CGEvent? {
+        guard let event = CGEvent(
+            mouseEventSource: source,
+            mouseType: type.cgEventType,
+            mouseCursorPosition: location,
+            mouseButton: type.mouseButton
+        ) else {
             return nil
         }
+        event.setFlags(for: type)
+        event.setTargetPID(pid)
+        event.setUserData(ObjectIdentifier(event))
+        event.setWindowID(item.windowID, for: type)
+        event.setClickState(for: type)
+        return event
+    }
 
-        event.flags = type.cgEventFlags
+    private func setFlags(for type: MenuBarItemEventType) {
+        flags = type.cgEventFlags
+    }
 
+    private func setTargetPID(_ pid: pid_t) {
         let targetPID = Int64(pid)
-        let userData = Int64(truncatingIfNeeded: Int(bitPattern: ObjectIdentifier(event)))
-        let windowID = Int64(item.windowID)
+        setIntegerValueField(.eventTargetUnixProcessID, value: targetPID)
+    }
 
-        event.setIntegerValueField(.eventTargetUnixProcessID, value: targetPID)
-        event.setIntegerValueField(.eventSourceUserData, value: userData)
-        event.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: windowID)
-        event.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: windowID)
-        event.setIntegerValueField(.windowID, value: windowID)
+    private func setUserData(_ bitPattern: ObjectIdentifier) {
+        let userData = Int64(Int(bitPattern: bitPattern))
+        setIntegerValueField(.eventSourceUserData, value: userData)
+    }
 
-        if case .click = type {
-            event.setIntegerValueField(.mouseEventClickState, value: 1)
+    private func setWindowID(_ windowID: CGWindowID, for type: MenuBarItemEventType) {
+        let windowID = Int64(windowID)
+
+        for field in CGEventField.menuBarItemRequiredWindowFields {
+            setIntegerValueField(field, value: windowID)
         }
 
-        return event
+        if case .move = type {
+            setIntegerValueField(.windowID, value: windowID)
+        }
+    }
+
+    private func setClickState(for type: MenuBarItemEventType) {
+        guard case .click = type else {
+            return
+        }
+        setIntegerValueField(.mouseEventClickState, value: 1)
     }
 }

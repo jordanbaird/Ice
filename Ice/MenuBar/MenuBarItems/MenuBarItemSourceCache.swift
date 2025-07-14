@@ -6,155 +6,188 @@
 import AXSwift
 import Cocoa
 import Combine
-import OSLog
+import os.lock
 
 // MARK: - MenuBarItemSourceCache
 
 @available(macOS 26.0, *)
 enum MenuBarItemSourceCache {
-    private static let concurrentQueue = DispatchQueue.queue(
-        label: "MenuBarItemSourceCache.concurrentQueue",
+    private static let axQueue = DispatchQueue.queue(
+        label: "MenuBarItemSourceCache.axQueue",
+        qos: .utility,
+        attributes: .concurrent
+    )
+    private static let serialWorkQueue = DispatchQueue(
+        label: "MenuBarItemSourceCache.serialWorkQueue",
+        qos: .userInteractive
+    )
+    private static let concurrentWorkQueue = DispatchQueue(
+        label: "MenuBarItemSourceCache.concurrentWorkQueue",
         qos: .userInteractive,
         attributes: .concurrent
     )
 
-    @MainActor
-    static func start(with permissions: AppPermissions) {
-        Storage.start(with: permissions)
+    private final class CachedApplication: Sendable {
+        private struct ExtrasMenuBarLazyStorage: @unchecked Sendable {
+            var extrasMenuBar: UIElement?
+            var hasInitialized = false
+        }
+
+        private let runningApp: NSRunningApplication
+        private let extrasMenuBarState = OSAllocatedUnfairLock(initialState: ExtrasMenuBarLazyStorage())
+
+        var processIdentifier: pid_t {
+            runningApp.processIdentifier
+        }
+
+        var extrasMenuBar: UIElement? {
+            extrasMenuBarState.withLock { storage in
+                if storage.hasInitialized {
+                    return storage.extrasMenuBar
+                }
+
+                defer {
+                    storage.hasInitialized = true
+                }
+
+                // These checks help limit blocks that can occur when
+                // calling the AX APIs (app could be unresponsive, or
+                // in some other invalid state).
+                guard
+                    !Bridging.isProcessUnresponsive(processIdentifier),
+                    runningApp.isFinishedLaunching,
+                    !runningApp.isTerminated,
+                    runningApp.activationPolicy != .prohibited
+                else {
+                    return nil
+                }
+
+                storage.extrasMenuBar = axQueue.sync {
+                    guard let app = Application(runningApp) else {
+                        return nil
+                    }
+                    return try? app.attribute(.extrasMenuBar)
+                }
+
+                return storage.extrasMenuBar
+            }
+        }
+
+        init(_ runningApp: NSRunningApplication) {
+            self.runningApp = runningApp
+        }
     }
 
-    @discardableResult
-    private static func updateCachedPID(for window: WindowInfo) -> pid_t? {
-        let windowID = window.windowID
+    private struct State: Sendable {
+        var apps = [CachedApplication]()
+        var pids = [CGWindowID: pid_t]()
 
-        for runningApp in Storage.getRunningApps() {
-            // Since we're running concurrently, we could have a pid
-            // at any point.
-            if let pid = Storage.getPID(for: windowID) {
-                return pid
-            }
+        mutating func updateCachedPID(for window: WindowInfo) {
+            let windowID = window.windowID
 
-            // IMPORTANT: These checks help prevent some major thread
-            // blocking caused by the AX APIs.
-            guard
-                runningApp.isFinishedLaunching,
-                !runningApp.isTerminated,
-                runningApp.activationPolicy != .prohibited
-            else {
-                continue
-            }
-
-            guard
-                let app = Application(runningApp),
-                let bar: UIElement = try? app.attribute(.extrasMenuBar)
-            else {
-                continue
-            }
-
-            for child in bar.children {
-                if let pid = Storage.getPID(for: windowID) {
-                    return pid
+            for app in apps {
+                // Since we're running concurrently, we could have a pid
+                // at any point.
+                if pids[windowID] != nil {
+                    return
                 }
 
-                // Item window may have moved. Get the current bounds.
-                guard let windowBounds = Bridging.getWindowBounds(for: windowID) else {
-                    Storage.setPID(nil, for: windowID)
-                    return nil
-                }
-
-                guard windowBounds == window.bounds else {
-                    return nil
-                }
-
-                guard
-                    let childFrame = child.frame,
-                    childFrame.center.distance(to: windowBounds.center) <= 10
-                else {
+                guard let bar = app.extrasMenuBar else {
                     continue
                 }
 
-                let pid = runningApp.processIdentifier
-                Storage.setPID(pid, for: windowID)
-                return pid
-            }
-        }
-
-        return nil
-    }
-
-    static func getCachedPID(for window: WindowInfo) -> pid_t? {
-        if let pid = Storage.getPID(for: window.windowID) {
-            return pid
-        }
-        return concurrentQueue.sync {
-            updateCachedPID(for: window)
-        }
-    }
-}
-
-// MARK: - MenuBarItemSourceCache.Storage
-
-@available(macOS 26.0, *)
-extension MenuBarItemSourceCache {
-    private enum Storage {
-        private static let publisherQueue = DispatchQueue.queue(
-            label: "MenuBarItemSourceCache.Storage.publisherQueue",
-            qos: .userInteractive
-        )
-        private static let pidsQueue = DispatchQueue.queue(
-            label: "MenuBarItemSourceCache.Storage.pidsQueue",
-            qos: .userInteractive
-        )
-        private static let runningAppsQueue = DispatchQueue.queue(
-            label: "MenuBarItemSourceCache.Storage.runningAppsQueue",
-            qos: .userInteractive
-        )
-
-        private static var pids = [CGWindowID: pid_t]()
-        private static var runningApps = [NSRunningApplication]()
-        private static var cancellable: AnyCancellable?
-
-        static func getPID(for windowID: CGWindowID) -> pid_t? {
-            pidsQueue.sync { pids[windowID] }
-        }
-
-        static func setPID(_ pid: pid_t?, for windowID: CGWindowID) {
-            pidsQueue.sync { pids[windowID] = pid }
-        }
-
-        static func getRunningApps() -> [NSRunningApplication] {
-            runningAppsQueue.sync { runningApps }
-        }
-
-        @MainActor
-        static func start(with permissions: AppPermissions) {
-            cancellable = NSWorkspace.shared.publisher(for: \.runningApplications)
-                .receive(on: publisherQueue)
-                .sink { [weak permissions] runningApps in
-                    guard
-                        let permissions,
-                        permissions.accessibility.hasPermission
-                    else {
+                for child in axQueue.sync(execute: { bar.children }) {
+                    if pids[windowID] != nil {
                         return
                     }
 
-                    pidsQueue.sync {
-                        let newPIDs = Set(runningApps.map { $0.processIdentifier })
-                        for (key, value) in pids where !newPIDs.contains(value) {
-                            pids.removeValue(forKey: key)
+                    // Item window may have moved. Get the current bounds.
+                    guard let windowBounds = Bridging.getWindowBounds(for: windowID) else {
+                        pids.removeValue(forKey: windowID)
+                        return
+                    }
+
+                    guard windowBounds == window.bounds else {
+                        return
+                    }
+
+                    guard
+                        let childFrame = axQueue.sync(execute: { child.frame }),
+                        childFrame.center.distance(to: windowBounds.center) <= 10
+                    else {
+                        continue
+                    }
+
+                    pids[windowID] = app.processIdentifier
+                    return
+                }
+            }
+        }
+    }
+
+    private static let state = OSAllocatedUnfairLock(initialState: State())
+    private static var cancellable: AnyCancellable?
+
+    @MainActor
+    static func start(with permissions: AppPermissions) {
+        cancellable = NSWorkspace.shared.publisher(for: \.runningApplications)
+            .receive(on: serialWorkQueue)
+            .sink { [weak permissions] runningApps in
+                guard
+                    let permissions,
+                    permissions.accessibility.hasPermission
+                else {
+                    return
+                }
+
+                state.withLock { state in
+                    // Convert the cached state to dictionaries keyed by pid to
+                    // allow for efficient repeated access.
+                    let appMappings = state.apps.reduce(into: [:]) { result, app in
+                        result[app.processIdentifier] = app
+                    }
+                    let pidMappings = state.pids.reduce(into: [:]) { result, pair in
+                        result[pair.value, default: []].append(pair)
+                    }
+
+                    // Create a new state that matches the current running apps.
+                    state = runningApps.reduce(into: State()) { result, app in
+                        let pid = app.processIdentifier
+
+                        if let app = appMappings[pid] {
+                            // Prefer the cached app, as it may have already done
+                            // the work to initialize its extras menu bar.
+                            result.apps.append(app)
+                        } else {
+                            // App wasn't in the cache, so it must be new.
+                            result.apps.append(CachedApplication(app))
                         }
-                    }
 
-                    runningAppsQueue.sync {
-                        self.runningApps = runningApps
-                    }
-
-                    for window in MenuBarItem.getMenuBarItemWindows(option: .activeSpace) {
-                        concurrentQueue.async {
-                            updateCachedPID(for: window)
+                        if let pids = pidMappings[pid] {
+                            result.pids.merge(pids) { (_, new) in new }
                         }
                     }
                 }
+
+                for window in MenuBarItem.getMenuBarItemWindows(option: []) {
+                    concurrentWorkQueue.async {
+                        state.withLock { state in
+                            state.updateCachedPID(for: window)
+                        }
+                    }
+                }
+            }
+    }
+
+    static func getCachedPID(for window: WindowInfo) -> pid_t? {
+        concurrentWorkQueue.sync {
+            state.withLock { state in
+                if let pid = state.pids[window.windowID] {
+                    return pid
+                }
+                state.updateCachedPID(for: window)
+                return state.pids[window.windowID]
+            }
         }
     }
 }

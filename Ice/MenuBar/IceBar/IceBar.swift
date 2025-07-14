@@ -4,6 +4,7 @@
 //
 
 import Combine
+import OSLog
 import SwiftUI
 
 // MARK: - IceBarPanel
@@ -167,15 +168,17 @@ final class IceBarPanel: NSPanel {
         appState.navigationState.isIceBarPresented = true
         currentSection = section
 
-        var managedItems = appState.itemManager.itemCache.managedItems(for: section)
-
-        if managedItems.isEmpty {
+        let cacheTask = Task(timeout: .milliseconds(100)) {
             await appState.itemManager.cacheItemsIfNeeded()
-            managedItems = appState.itemManager.itemCache.managedItems(for: section)
+            await appState.imageCache.updateCache()
         }
 
-        if managedItems.contains(where: { appState.imageCache.images[$0.tag] == nil }) {
-            await appState.imageCache.updateCache()
+        do {
+            try await cacheTask.value
+        } catch is TaskTimeoutError {
+            Logger.general.error("Cache task timed out during IceBarPanel.show")
+        } catch {
+            Logger.general.error("Cache task failed during IceBarPanel.show - \(error)")
         }
 
         contentView = IceBarContentHostingView(

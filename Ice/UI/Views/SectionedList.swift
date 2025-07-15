@@ -180,11 +180,23 @@ struct SectionedListItem<ID: Hashable> {
 // MARK: - SectionedListItemView
 
 private struct SectionedListItemView<ItemID: Hashable>: View {
+    @Environment(\.self) private var environment
     @Binding var selection: ItemID?
     @Binding var itemFrames: [ItemID: CGRect]
     @State private var isHovering = false
 
     let item: SectionedListItem<ItemID>
+
+    private var foregroundStyle: some ShapeStyle {
+        if
+            environment.colorScheme == .light,
+            selection == item.id
+        {
+            Color.primary.resolve(in: with(environment) { $0.colorScheme = .dark })
+        } else {
+            Color.primary.resolve(in: environment)
+        }
+    }
 
     private var backgroundShape: some InsettableShape {
         if #available(macOS 26.0, *) {
@@ -204,6 +216,7 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
                 }
             }
             item.content
+                .foregroundStyle(foregroundStyle)
         }
         .frame(minWidth: 22, minHeight: 22)
         .contentShape(Rectangle())

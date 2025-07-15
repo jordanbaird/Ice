@@ -78,27 +78,17 @@ struct MenuBarItem: CustomStringConvertible {
             String(s).replacing(/([a-z])([A-Z])/) { $0.output.1 + " " + $0.output.2 }
         }
 
-        var fallback: String {
-            "Unknown"
+        guard let sourceApplication else {
+            return "Menu Bar Item"
         }
-        var mappedTitle: String? {
-            title.flatMap { $0.starts(with: /Item-\d+/) ? fallback : $0 }
-        }
+
         var bestName: String {
             if isControlItem {
                 Constants.displayName
-            } else if let sourceApplication {
+            } else {
                 sourceApplication.localizedName ??
                 sourceApplication.bundleIdentifier ??
-                mappedTitle ??
-                fallback
-            } else if let owningApplication {
-                owningApplication.localizedName ??
-                owningApplication.bundleIdentifier ??
-                mappedTitle ??
-                fallback
-            } else {
-                ownerName ?? mappedTitle ?? fallback
+                title ?? "Unknown"
             }
         }
 
@@ -113,6 +103,8 @@ struct MenuBarItem: CustomStringConvertible {
             // "PasswordsMenuBarExtra" -> "Passwords"
             // "WeatherMenu" -> "Weather"
             String(toTitleCase(bestName).prefix { !$0.isWhitespace })
+        case .textInput:
+            "Text Input"
         case .controlCenter where title.hasPrefix("BentoBox"):
             bestName
         case .controlCenter where title == "WiFi":

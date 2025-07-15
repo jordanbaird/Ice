@@ -23,15 +23,17 @@ final class MenuBarSearchPanel: NSPanel {
     /// Monitor for mouse down events.
     private lazy var mouseDownMonitor = UniversalEventMonitor(
         mask: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
-    ) { [weak self] event in
+    ) { [weak self, weak appState] event in
         guard
             let self,
-            event.window !== self,
-            Bridging.getWindowLevel(for: CGWindowID(event.windowNumber)) != kCGStatusWindowLevel
+            let appState,
+            event.window !== self
         else {
             return event
         }
-        close()
+        if !appState.itemManager.itemHasRecentlyMoved {
+            close()
+        }
         return event
     }
 
@@ -160,6 +162,7 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
                 displayID: displayID,
                 closePanel: { [weak panel] in panel?.close() }
             )
+            .environmentObject(appState)
             .environmentObject(appState.itemManager)
             .environmentObject(appState.imageCache)
             .erasedToAnyView()
@@ -448,6 +451,7 @@ private let controlCenterIcon: NSImage? = {
 }()
 
 private struct MenuBarSearchItemView: View {
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var imageCache: MenuBarItemImageCache
 
     let item: MenuBarItem
@@ -466,20 +470,16 @@ private struct MenuBarSearchItemView: View {
         return NSImage(cgImage: trimmedImage, size: size)
     }
 
-    private var appIcon: NSImage {
-        if
-            item.tag.namespace == .systemUIServer,
-            let icon = controlCenterIcon
-        {
-            return icon
+    private var appIcon: NSImage? {
+        guard let sourceApplication = item.sourceApplication else {
+            return nil
         }
-        if let icon = item.sourceApplication?.icon {
-            return icon
+        switch item.tag.namespace {
+        case .controlCenter, .systemUIServer, .textInput:
+            return controlCenterIcon
+        default:
+            return sourceApplication.icon
         }
-        if let icon = item.owningApplication?.icon {
-            return icon
-        }
-        return NSImage()
     }
 
     private var backgroundShape: some InsettableShape {
@@ -508,10 +508,7 @@ private struct MenuBarSearchItemView: View {
 
     var body: some View {
         HStack {
-            Image(nsImage: appIcon)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: size, height: size)
+            iconViewWithFrame
             Text(item.displayName)
             Spacer()
             imageViewWithBackground
@@ -520,23 +517,43 @@ private struct MenuBarSearchItemView: View {
     }
 
     @ViewBuilder
-    private var imageViewWithBackground: some View {
-        if #available(macOS 26.0, *) {
-            imageView.glassEffect(
-                Glass.regular.tint(.secondary.opacity(0.33)),
-                in: backgroundShape
-            )
+    private var iconViewWithFrame: some View {
+        iconView
+            .frame(width: size, height: size)
+    }
+
+    @ViewBuilder
+    private var iconView: some View {
+        if let appIcon {
+            Image(nsImage: appIcon)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
         } else {
-            imageView.background {
-                backgroundShape
-                    .fill(.regularMaterial.opacity(0.75))
-                    .brightness(0.25)
-                    .overlay {
-                        backgroundShape
-                            .strokeBorder(.white.opacity(0.15))
-                    }
-            }
+            RoundedRectangle(cornerRadius: 5)
+                .fill(Color.accentColor.gradient)
+                .strokeBorder(Color.primary.gradient.quaternary)
+                .overlay {
+                    Image(systemName: "rectangle.topthird.inset.filled")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .foregroundStyle(.white)
+                        .padding(3)
+                        .shadow(radius: 2)
+                }
+                .padding(2.5)
+                .shadow(color: .black.opacity(0.1), radius: 2)
         }
+    }
+
+    @ViewBuilder
+    private var imageViewWithBackground: some View {
+        imageView
+            .layoutBarStyle(appState: appState, averageColorInfo: appState.menuBarManager.averageColorInfo)
+            .clipShape(backgroundShape)
+            .overlay {
+                backgroundShape
+                    .strokeBorder(.quaternary)
+            }
     }
 
     @ViewBuilder

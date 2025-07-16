@@ -97,6 +97,7 @@ struct SettingsView: View {
             GeneralSettingsPane(settings: appState.settings.general)
         case .menuBarLayout:
             MenuBarLayoutSettingsPane()
+                .environmentObject(appState.itemManager)
         case .menuBarAppearance:
             MenuBarAppearanceSettingsPane()
         case .hotkeys:

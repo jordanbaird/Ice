@@ -190,34 +190,36 @@ final class MenuBarManager: ObservableObject {
                         return
                     }
 
-                    // Get all items.
-                    var items = MenuBarItem.getMenuBarItems(on: displayID, option: .activeSpace)
+                    Task {
+                        // Get all items.
+                        var items = await MenuBarItem.getMenuBarItems(on: displayID, option: .activeSpace)
 
-                    // Filter the items down according to the currently enabled/shown sections.
-                    if
-                        let alwaysHiddenSection = section(withName: .alwaysHidden),
-                        alwaysHiddenSection.isEnabled
-                    {
-                        if alwaysHiddenSection.controlItem.state == .hideSection {
-                            if let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map({ items.remove(at: $0) }) {
-                                items.trimPrefix { $0.bounds.maxX <= alwaysHiddenControlItem.bounds.minX }
+                        // Filter the items down according to the currently enabled/shown sections.
+                        if
+                            let alwaysHiddenSection = self.section(withName: .alwaysHidden),
+                            alwaysHiddenSection.isEnabled
+                        {
+                            if alwaysHiddenSection.controlItem.state == .hideSection {
+                                if let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map({ items.remove(at: $0) }) {
+                                    items.trimPrefix { $0.bounds.maxX <= alwaysHiddenControlItem.bounds.minX }
+                                }
+                            }
+                        } else {
+                            if let hiddenControlItem = items.firstIndex(matching: .hiddenControlItem).map({ items.remove(at: $0) }) {
+                                items.trimPrefix { $0.bounds.maxX <= hiddenControlItem.bounds.minX }
                             }
                         }
-                    } else {
-                        if let hiddenControlItem = items.firstIndex(matching: .hiddenControlItem).map({ items.remove(at: $0) }) {
-                            items.trimPrefix { $0.bounds.maxX <= hiddenControlItem.bounds.minX }
+
+                        // Get the leftmost item on the screen.
+                        guard let leftmostItem = items.min(by: { $0.bounds.minX < $1.bounds.minX }) else {
+                            return
                         }
-                    }
 
-                    // Get the leftmost item on the screen.
-                    guard let leftmostItem = items.min(by: { $0.bounds.minX < $1.bounds.minX }) else {
-                        return
-                    }
-
-                    // If the minX of the item is less than or equal to the maxX of the
-                    // application menu frame, activate the app to hide the menu.
-                    if leftmostItem.bounds.minX <= applicationMenuFrame.maxX {
-                        hideApplicationMenus()
+                        // If the minX of the item is less than or equal to the maxX of the
+                        // application menu frame, activate the app to hide the menu.
+                        if leftmostItem.bounds.minX <= applicationMenuFrame.maxX {
+                            self.hideApplicationMenus()
+                        }
                     }
                 } else if isHidingApplicationMenus {
                     showApplicationMenus()
@@ -241,11 +243,11 @@ final class MenuBarManager: ObservableObject {
         let image: CGImage?
         let source: MenuBarAverageColorInfo.Source
 
-        let windows = WindowInfo.getWindows(option: .onScreen)
+        let windows = WindowInfo.createWindows(option: .onScreen)
         let displayID = screen.displayID
 
         if #available(macOS 26.0, *) {
-            if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
+            if let window = WindowInfo.wallpaperWindow(from: windows, for: displayID) {
                 var bounds = window.bounds
                 bounds.size.height = 1
                 bounds.origin.x = bounds.midX
@@ -257,7 +259,7 @@ final class MenuBarManager: ObservableObject {
                 return
             }
         } else {
-            if let window = WindowInfo.getMenuBarWindow(from: windows, for: displayID) {
+            if let window = WindowInfo.menuBarWindow(from: windows, for: displayID) {
                 var bounds = window.bounds
                 bounds.size.height = 1
                 bounds.origin.x = bounds.maxX - (bounds.width / 4)
@@ -265,7 +267,7 @@ final class MenuBarManager: ObservableObject {
 
                 image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
                 source = .menuBarWindow
-            } else if let window = WindowInfo.getWallpaperWindow(from: windows, for: displayID) {
+            } else if let window = WindowInfo.wallpaperWindow(from: windows, for: displayID) {
                 var bounds = window.bounds
                 bounds.size.height = 1
                 bounds.origin.x = bounds.midX
@@ -295,12 +297,11 @@ final class MenuBarManager: ObservableObject {
     /// Returns a Boolean value that indicates whether the given display
     /// has a valid menu bar.
     func hasValidMenuBar(in windows: [WindowInfo], for display: CGDirectDisplayID) -> Bool {
-        guard let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display) else {
+        guard let window = WindowInfo.menuBarWindow(from: windows, for: display) else {
             return false
         }
-        let position = menuBarWindow.bounds.origin
         do {
-            let uiElement = try systemWideElement.elementAtPosition(Float(position.x), Float(position.y))
+            let uiElement = try systemWideElement.elementAtPosition(window.bounds.origin)
             return try uiElement?.role() == .menuBar
         } catch {
             return false
@@ -312,16 +313,19 @@ final class MenuBarManager: ObservableObject {
         let displayBounds = CGDisplayBounds(displayID)
 
         guard
-            let menuBar = try? systemWideElement.elementAtPosition(Float(displayBounds.origin.x), Float(displayBounds.origin.y)),
+            let menuBar = try? systemWideElement.elementAtPosition(displayBounds.origin),
             let role = try? menuBar.role(),
-            role == .menuBar,
-            let items: [UIElement] = try? menuBar.arrayAttribute(.children)?.filter({ (try? $0.attribute(.enabled)) == true })
+            role == .menuBar
         else {
             return nil
         }
 
-        let itemFrames = items.lazy.compactMap { try? $0.attribute(.frame) as CGRect? }
-        let applicationMenuFrame = itemFrames.reduce(.null, CGRectUnion)
+        let applicationMenuFrame = menuBar.children.reduce(CGRect.null) { result, item in
+            guard item.isEnabled, let frame = item.frame else {
+                return result
+            }
+            return result.union(frame)
+        }
 
         if applicationMenuFrame.width <= 0 {
             return nil

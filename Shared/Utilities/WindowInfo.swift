@@ -1,6 +1,6 @@
 //
 //  WindowInfo.swift
-//  Ice
+//  Shared
 //
 
 import Cocoa
@@ -64,56 +64,88 @@ struct WindowInfo {
     }
 
     /// Creates a window with the given window identifier.
+    ///
+    /// - Parameter windowID: A window identifier.
     init?(windowID: CGWindowID) {
-        guard
-            let array = Bridging.createCGWindowArray(with: [windowID]),
-            let list = CGWindowListCreateDescriptionFromArray(array) as? [CFDictionary],
-            let dictionary = list.first
-        else {
+        guard let window = WindowInfo.createWindows(from: [windowID]).first else {
             return nil
         }
-        self.init(dictionary: dictionary)
+        self = window
     }
-}
 
-// MARK: - WindowList Operations
+    // MARK: Create Windows
 
-// MARK: All Windows
-extension WindowInfo {
-    /// Returns a list of windows using the given options.
+    /// Creates a list of windows from the given list of window identifiers.
+    ///
+    /// - Parameter windowIDs: A list of window identifiers.
+    static func createWindows(from windowIDs: [CGWindowID]) -> [WindowInfo] {
+        guard
+            let array = Bridging.createCGWindowArray(with: windowIDs),
+            let list = CGWindowListCreateDescriptionFromArray(array) as? [CFDictionary]
+        else {
+            return []
+        }
+        return list.compactMap { WindowInfo(dictionary: $0) }
+    }
+
+    /// Creates a list of windows using the given options.
     ///
     /// - Parameter option: Options that filter the returned list.
     ///   Pass an empty option set to return all available windows.
-    static func getWindows(option: Bridging.WindowListOption = []) -> [WindowInfo] {
-        Bridging.getWindowList(option: option).compactMap { WindowInfo(windowID: $0) }
+    static func createWindows(option: Bridging.WindowListOption = []) -> [WindowInfo] {
+        createWindows(from: Bridging.getWindowList(option: option))
+    }
+
+    /// Creates a list of windows for the elements in the menu bar
+    /// using the given options.
+    ///
+    /// - Parameter option: Options that filter the returned list.
+    ///   Pass an empty option set to return all available windows.
+    static func createMenuBarWindows(option: Bridging.MenuBarWindowListOption = []) -> [WindowInfo] {
+        createWindows(from: Bridging.getMenuBarWindowList(option: option))
+    }
+
+    // MARK: Wallpaper Window
+
+    /// Returns the wallpaper window for the given display from the
+    /// given list of windows.
+    static func wallpaperWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) -> WindowInfo? {
+        windows.first { window in
+            // Wallpaper window belongs to the Dock process.
+            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            window.title?.hasPrefix("Wallpaper") == true &&
+            CGDisplayBounds(display).contains(window.bounds)
+        }
+    }
+
+    /// Creates and returns the wallpaper window for the given display.
+    static func wallpaperWindow(for display: CGDirectDisplayID) -> WindowInfo? {
+        wallpaperWindow(from: createWindows(option: .onScreen), for: display)
+    }
+
+    // MARK: Menu Bar Window
+
+    /// Returns the menu bar window for the given display from the
+    /// given list of windows.
+    static func menuBarWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) -> WindowInfo? {
+        windows.first { window in
+            // Menu bar window belongs to the WindowServer process.
+            window.isWindowServerWindow &&
+            window.isOnScreen &&
+            window.layer == kCGMainMenuWindowLevel &&
+            window.title == "Menubar" &&
+            CGDisplayBounds(display).contains(window.bounds)
+        }
+    }
+
+    /// Creates and returns the menu bar window for the given display.
+    static func menuBarWindow(for display: CGDirectDisplayID) -> WindowInfo? {
+        menuBarWindow(from: createMenuBarWindows(option: .onScreen), for: display)
     }
 }
 
-// MARK: Wallpaper Window
-extension WindowInfo {
-    /// Returns the wallpaper window in the given windows for the given display.
-    static func getWallpaperWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) -> WindowInfo? {
-        windows.first(where: Predicates.wallpaperWindow(for: display))
-    }
-
-    /// Returns the wallpaper window for the given display.
-    static func getWallpaperWindow(for display: CGDirectDisplayID) -> WindowInfo? {
-        getWallpaperWindow(from: getWindows(option: .onScreen), for: display)
-    }
-}
-
-// MARK: Menu Bar Window
-extension WindowInfo {
-    /// Returns the menu bar window for the given display.
-    static func getMenuBarWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) -> WindowInfo? {
-        windows.first(where: Predicates.menuBarWindow(for: display))
-    }
-
-    /// Returns the menu bar window for the given display.
-    static func getMenuBarWindow(for display: CGDirectDisplayID) -> WindowInfo? {
-        getMenuBarWindow(from: getWindows(option: .onScreen), for: display)
-    }
-}
+// MARK: WindowInfo: Codable
+extension WindowInfo: Codable { }
 
 // MARK: WindowInfo: Equatable
 extension WindowInfo: Equatable {

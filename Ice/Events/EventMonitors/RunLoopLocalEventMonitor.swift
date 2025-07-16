@@ -101,16 +101,20 @@ extension RunLoopLocalEventMonitor {
 
 extension RunLoopLocalEventMonitor.RunLoopLocalEventPublisher {
     private final class RunLoopLocalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
-        var subscriber: S?
-        let monitor: RunLoopLocalEventMonitor
+        let mask: NSEvent.EventTypeMask
+        let mode: RunLoop.Mode
+        private var subscriber: S?
+
+        private lazy var monitor = RunLoopLocalEventMonitor(mask: mask, mode: mode) { [weak self] event in
+            _ = self?.subscriber?.receive(event)
+            return event
+        }
 
         init(mask: NSEvent.EventTypeMask, mode: RunLoop.Mode, subscriber: S) {
+            self.mask = mask
+            self.mode = mode
             self.subscriber = subscriber
-            self.monitor = RunLoopLocalEventMonitor(mask: mask, mode: mode) { event in
-                _ = subscriber.receive(event)
-                return event
-            }
-            monitor.start()
+            self.monitor.start()
         }
 
         func request(_ demand: Subscribers.Demand) { }

@@ -1,14 +1,16 @@
 //
 //  Logging.swift
-//  Ice
+//  Shared
 //
 
 import OSLog
 
 extension Logger {
+    private static let subsystem = Bundle.main.bundleIdentifier ?? ""
+
     /// Creates a logger using the specified category.
     init(category: String) {
-        self.init(subsystem: Constants.bundleIdentifier, category: category)
+        self.init(subsystem: Self.subsystem, category: category)
     }
 }
 

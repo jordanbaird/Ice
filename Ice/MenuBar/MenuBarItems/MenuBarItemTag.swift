@@ -277,29 +277,28 @@ extension MenuBarItemTag {
 
 // MARK: MenuBarItemTag.Namespace Constants
 extension MenuBarItemTag.Namespace {
-    /// The namespace for menu bar items created by Ice.
+    /// The namespace for the "Ice" process.
     static let ice = Self(Constants.bundleIdentifier)
 
-    /// The namespace for menu bar items created by Control Center.
+    /// The namespace for the "Control Center" process.
     static let controlCenter = Self("com.apple.controlcenter")
 
-    /// The namespace for the "Passwords" menu bar item.
+    /// The namespace for the "PasswordsMenuBarExtra" process.
     static let passwords = Self("com.apple.Passwords.MenuBarExtra")
 
-    /// The namespace for the "stop recording" menu bar item that appears
-    /// during screen recordings started by the macOS "Screenshot" tool.
+    /// The namespace for the "screencaptureui" process.
     static let screenCaptureUI = Self("com.apple.screencaptureui")
 
-    /// The namespace for the "Spotlight" menu bar item.
+    /// The namespace for the "Spotlight" process.
     static let spotlight = Self("com.apple.Spotlight")
 
-    /// The namespace for menu bar items created by SystemUIServer.
+    /// The namespace for the "SystemUIServer" process.
     static let systemUIServer = Self("com.apple.systemuiserver")
 
-    /// The namespace for the "Text Input" menu bar item.
-    static let textInput = Self("com.apple.TextInputMenuAgent")
+    /// The namespace for the "TextInputMenuAgent" process.
+    static let textInputMenuAgent = Self("com.apple.TextInputMenuAgent")
 
-    /// The namespace for the "Weather" menu bar item.
+    /// The namespace for the "WeatherMenu" process.
     static let weather = Self("com.apple.weather.menu")
 
     /// The null namespace.

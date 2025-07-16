@@ -228,7 +228,7 @@ final class MenuBarOverlayPanel: NSPanel {
                     // Must be run async, or this will not remove the flags.
                     self.updateFlags.removeAll()
                 }
-                let windows = WindowInfo.getWindows(option: .onScreen)
+                let windows = WindowInfo.createWindows(option: .onScreen)
                 guard let owningDisplay = self.validate(for: .updates, with: windows) else {
                     return
                 }
@@ -294,8 +294,8 @@ final class MenuBarOverlayPanel: NSPanel {
     /// of the given display.
     private func updateDesktopWallpaper(for display: CGDirectDisplayID, with windows: [WindowInfo]) {
         guard
-            let wallpaperWindow = WindowInfo.getWallpaperWindow(from: windows, for: display),
-            let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display)
+            let wallpaperWindow = WindowInfo.wallpaperWindow(from: windows, for: display),
+            let menuBarWindow = WindowInfo.menuBarWindow(from: windows, for: display)
         else {
             return
         }
@@ -557,11 +557,11 @@ private final class MenuBarOverlayPanelContentView: NSView {
             return CGRect(x: rect.minX, y: rect.minY, width: maxX, height: rect.height)
         }()
         let trailingPathBounds: CGRect = {
-            let items = MenuBarItem.getMenuBarItems(on: screen.displayID, option: .onScreen)
-            guard !items.isEmpty else {
+            let itemWindows = MenuBarItem.getMenuBarItemWindows(on: screen.displayID, option: .onScreen)
+            guard !itemWindows.isEmpty else {
                 return .zero
             }
-            let totalWidth = items.reduce(into: 0) { width, item in
+            let totalWidth = itemWindows.reduce(into: 0) { width, item in
                 width += item.bounds.width
             }
             var position = rect.maxX - totalWidth

@@ -239,7 +239,7 @@ extension EventManager {
             // Get the window that the user has clicked into.
             guard
                 let mouseLocation = MouseCursor.locationCoreGraphics,
-                let windowUnderMouse = WindowInfo.getWindows(option: .onScreen)
+                let windowUnderMouse = WindowInfo.createWindows(option: .onScreen)
                     .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
                     .first(where: { $0.bounds.contains(mouseLocation) && $0.title?.isEmpty == false }),
                 let owningApplication = windowUnderMouse.owningApplication
@@ -479,12 +479,12 @@ extension EventManager {
         guard let mouseLocation = MouseCursor.locationCoreGraphics else {
             return false
         }
-        let menuBarItems = MenuBarItem.getMenuBarItems(
-            on: screen.displayID,
-            option: [.onScreen, .activeSpace]
-        )
-        return menuBarItems.contains { item in
-            item.bounds.contains(mouseLocation)
+        let windowIDs = Bridging.getMenuBarWindowList(option: [.onScreen, .activeSpace, .itemsOnly])
+        return windowIDs.contains { windowID in
+            guard let bounds = Bridging.getWindowBounds(for: windowID) else {
+                return false
+            }
+            return bounds.contains(mouseLocation)
         }
     }
 

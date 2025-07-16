@@ -65,28 +65,6 @@ extension CGColor {
     }
 }
 
-// MARK: - CGError
-
-extension CGError {
-    /// A string to use for logging purposes.
-    var logString: String {
-        switch self {
-        case .success: "\(rawValue): success"
-        case .failure: "\(rawValue): failure"
-        case .illegalArgument: "\(rawValue): illegalArgument"
-        case .invalidConnection: "\(rawValue): invalidConnection"
-        case .invalidContext: "\(rawValue): invalidContext"
-        case .cannotComplete: "\(rawValue): cannotComplete"
-        case .notImplemented: "\(rawValue): notImplemented"
-        case .rangeCheck: "\(rawValue): rangeCheck"
-        case .typeCheck: "\(rawValue): typeCheck"
-        case .invalidOperation: "\(rawValue): invalidOperation"
-        case .noneAvailable: "\(rawValue): noneAvailable"
-        @unknown default: "\(rawValue): unknown"
-        }
-    }
-}
-
 // MARK: - CGImage
 
 extension CGImage {
@@ -485,7 +463,7 @@ extension NSScreen {
 
     /// Returns the height of the menu bar on this screen.
     func getMenuBarHeight() -> CGFloat? {
-        let menuBarWindow = WindowInfo.getMenuBarWindow(for: displayID)
+        let menuBarWindow = WindowInfo.menuBarWindow(for: displayID)
         return menuBarWindow?.bounds.height
     }
 }
@@ -601,13 +579,18 @@ extension SystemWideElement {
 // MARK: - UIElement
 
 extension UIElement {
+    /// The element's child elements.
+    var children: [UIElement] {
+        (try? arrayAttribute(.children)) ?? []
+    }
+
     /// The element's frame.
     var frame: CGRect? {
         try? attribute(.frame)
     }
 
-    /// The element's child elements.
-    var children: [UIElement] {
-        (try? arrayAttribute(.children)) ?? []
+    /// A Boolean value that indicates whether the element is enabled.
+    var isEnabled: Bool {
+        (try? attribute(.enabled)) == true
     }
 }

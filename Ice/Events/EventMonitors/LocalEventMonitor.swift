@@ -72,16 +72,18 @@ extension LocalEventMonitor {
 
 extension LocalEventMonitor.LocalEventPublisher {
     private final class LocalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
-        var subscriber: S?
-        let monitor: LocalEventMonitor
+        let mask: NSEvent.EventTypeMask
+        private var subscriber: S?
+
+        private lazy var monitor = LocalEventMonitor(mask: mask) { [weak self] event in
+            _ = self?.subscriber?.receive(event)
+            return event
+        }
 
         init(mask: NSEvent.EventTypeMask, subscriber: S) {
+            self.mask = mask
             self.subscriber = subscriber
-            self.monitor = LocalEventMonitor(mask: mask) { event in
-                _ = subscriber.receive(event)
-                return event
-            }
-            monitor.start()
+            self.monitor.start()
         }
 
         func request(_ demand: Subscribers.Demand) { }

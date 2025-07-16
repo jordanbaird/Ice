@@ -34,34 +34,6 @@ enum Predicates<Input> {
     }
 }
 
-// MARK: - Window Predicates
-
-extension Predicates where Input == WindowInfo {
-    /// Creates a predicate that returns whether a window is the wallpaper window
-    /// for the given display.
-    static func wallpaperWindow(for display: CGDirectDisplayID) -> NonThrowingPredicate {
-        predicate { window in
-            // wallpaper window belongs to the Dock process
-            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
-            window.title?.hasPrefix("Wallpaper") == true &&
-            CGDisplayBounds(display).contains(window.bounds)
-        }
-    }
-
-    /// Creates a predicate that returns whether a window is the menu bar window for
-    /// the given display.
-    static func menuBarWindow(for display: CGDirectDisplayID) -> NonThrowingPredicate {
-        predicate { window in
-            // menu bar window belongs to the WindowServer process
-            window.isWindowServerWindow &&
-            window.isOnScreen &&
-            window.layer == kCGMainMenuWindowLevel &&
-            window.title == "Menubar" &&
-            CGDisplayBounds(display).contains(window.bounds)
-        }
-    }
-}
-
 // MARK: - Menu Bar Item Predicates
 
 extension Predicates where Input == MenuBarItem {

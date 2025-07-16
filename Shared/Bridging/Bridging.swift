@@ -1,6 +1,6 @@
 //
 //  Bridging.swift
-//  Ice
+//  Shared
 //
 
 import Cocoa
@@ -305,8 +305,8 @@ extension Bridging {
         return list
     }
 
-    /// Returns a list of window identifiers for the elements of
-    /// the menu bar.
+    /// Returns a list of window identifiers for elements in the
+    /// menu bar.
     ///
     /// - Parameter option: Options that filter the returned list.
     ///   Pass an empty option set to return all available windows.

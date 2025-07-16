@@ -20,6 +20,9 @@ final class MenuBarSearchPanel: NSPanel {
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
+    /// Model for menu bar item search.
+    private let model = MenuBarSearchModel()
+
     /// Monitor for mouse down events.
     private lazy var mouseDownMonitor = UniversalEventMonitor(
         mask: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
@@ -108,7 +111,7 @@ final class MenuBarSearchPanel: NSPanel {
         Task {
             await appState.imageCache.updateCache()
 
-            let hostingView = MenuBarSearchHostingView(appState: appState, displayID: screen.displayID, panel: self)
+            let hostingView = MenuBarSearchHostingView(appState: appState, model: model, displayID: screen.displayID, panel: self)
             hostingView.setFrameSize(hostingView.intrinsicContentSize)
             setFrame(hostingView.frame, display: true)
 
@@ -154,11 +157,13 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
 
     init(
         appState: AppState,
+        model: MenuBarSearchModel,
         displayID: CGDirectDisplayID,
         panel: MenuBarSearchPanel
     ) {
         super.init(
             rootView: MenuBarSearchContentView(
+                model: model,
                 displayID: displayID,
                 closePanel: { [weak panel] in panel?.close() }
             )
@@ -181,20 +186,11 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
 }
 
 private struct MenuBarSearchContentView: View {
-    private typealias ListItem = SectionedListItem<ItemID>
-
-    private enum ItemID: Hashable {
-        case header(MenuBarSection.Name)
-        case item(MenuBarItemTag)
-    }
+    private typealias ListItem = MenuBarSearchModel.ListItem
 
     @EnvironmentObject var itemManager: MenuBarItemManager
-    @State private var searchText = ""
-    @State private var displayedItems = [SectionedListItem<ItemID>]()
-    @State private var selection: ItemID?
+    @ObservedObject var model: MenuBarSearchModel
     @FocusState private var searchFieldIsFocused: Bool
-
-    private let fuse = Fuse(threshold: 0.5)
 
     let displayID: CGDirectDisplayID
     let closePanel: () -> Void
@@ -209,7 +205,7 @@ private struct MenuBarSearchContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TextField(text: $searchText, prompt: Text("Search menu bar items…")) {
+            TextField(text: $model.searchText, prompt: Text("Search menu bar items…")) {
                 Text("Search menu bar items…")
             }
             .labelsHidden()
@@ -221,15 +217,23 @@ private struct MenuBarSearchContentView: View {
 
             Divider()
 
-            if #available(macOS 26.0, *) {
+            if itemManager.itemCache.managedItems.isEmpty {
+                VStack {
+                    Text("Loading menu bar items…")
+                        .font(.title2)
+                    ProgressView()
+                        .controlSize(.small)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if #available(macOS 26.0, *) {
                 GlassEffectContainer(spacing: 0) {
-                    SectionedList(selection: $selection, items: $displayedItems)
+                    SectionedList(selection: $model.selection, items: $model.displayedItems)
                         .contentPadding(8)
                         .scrollContentBackground(.hidden)
                 }
                 .clipped()
             } else {
-                SectionedList(selection: $selection, items: $displayedItems)
+                SectionedList(selection: $model.selection, items: $model.displayedItems)
                     .contentPadding(8)
                     .scrollContentBackground(.hidden)
             }
@@ -248,7 +252,7 @@ private struct MenuBarSearchContentView: View {
                 Spacer()
 
                 if
-                    let selection,
+                    let selection = model.selection,
                     let item = menuBarItem(for: selection)
                 {
                     ShowItemButton(item: item, displayID: displayID) {
@@ -268,17 +272,20 @@ private struct MenuBarSearchContentView: View {
         .task {
             searchFieldIsFocused = true
         }
-        .onChange(of: searchText, initial: true) {
+        .onChange(of: model.searchText, initial: true) {
             updateDisplayedItems()
             selectFirstDisplayedItem()
         }
         .onChange(of: itemManager.itemCache, initial: true) {
             updateDisplayedItems()
+            if model.selection == nil {
+                selectFirstDisplayedItem()
+            }
         }
     }
 
     private func selectFirstDisplayedItem() {
-        selection = displayedItems.first { $0.isSelectable }?.id
+        model.selection = model.displayedItems.first { $0.isSelectable }?.id
     }
 
     private func updateDisplayedItems() {
@@ -306,8 +313,8 @@ private struct MenuBarSearchContentView: View {
             }
         }
 
-        if searchText.isEmpty {
-            displayedItems = searchItems.map { $0.listItem }
+        if model.searchText.isEmpty {
+            model.displayedItems = searchItems.map { $0.listItem }
         } else {
             let selectableItems = searchItems.compactMap { searchItem in
                 if searchItem.listItem.isSelectable {
@@ -315,12 +322,12 @@ private struct MenuBarSearchContentView: View {
                 }
                 return nil
             }
-            let results = fuse.searchSync(searchText, in: selectableItems.map { $0.title })
-            displayedItems = results.map { selectableItems[$0.index].listItem }
+            let results = model.fuse.searchSync(model.searchText, in: selectableItems.map { $0.title })
+            model.displayedItems = results.map { selectableItems[$0.index].listItem }
         }
     }
 
-    private func menuBarItem(for selection: ItemID) -> MenuBarItem? {
+    private func menuBarItem(for selection: MenuBarSearchModel.ItemID) -> MenuBarItem? {
         switch selection {
         case .item(let tag): itemManager.itemCache.managedItems.first(matching: tag)
         case .header: nil
@@ -443,6 +450,7 @@ private struct ShowItemButton: View {
     }
 }
 
+@MainActor
 private let controlCenterIcon: NSImage? = {
     guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first else {
         return nil
@@ -475,7 +483,7 @@ private struct MenuBarSearchItemView: View {
             return nil
         }
         switch item.tag.namespace {
-        case .controlCenter, .systemUIServer, .textInput:
+        case .controlCenter, .systemUIServer, .textInputMenuAgent:
             return controlCenterIcon
         default:
             return sourceApplication.icon

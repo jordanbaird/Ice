@@ -7,6 +7,11 @@ import SwiftUI
 
 struct MenuBarLayoutSettingsPane: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var itemManager: MenuBarItemManager
+
+    private var hasItems: Bool {
+        !itemManager.itemCache.managedItems.isEmpty
+    }
 
     var body: some View {
         if !ScreenCapture.cachedCheckPermissions() {
@@ -37,6 +42,18 @@ struct MenuBarLayoutSettingsPane: View {
         VStack(spacing: 25) {
             ForEach(MenuBarSection.Name.allCases, id: \.self) { section in
                 layoutBar(for: section)
+            }
+        }
+        .opacity(hasItems ? 1 : 0.75)
+        .blur(radius: hasItems ? 0 : 5)
+        .allowsHitTesting(hasItems)
+        .overlay {
+            if !hasItems {
+                VStack {
+                    Text("Loading menu bar items…")
+                        .font(.title)
+                    ProgressView()
+                }
             }
         }
     }

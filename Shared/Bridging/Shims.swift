@@ -1,6 +1,6 @@
 //
 //  Shims.swift
-//  Ice
+//  Shared
 //
 
 import ApplicationServices

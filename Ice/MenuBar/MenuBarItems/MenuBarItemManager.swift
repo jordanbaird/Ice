@@ -117,6 +117,8 @@ final class MenuBarItemManager: ObservableObject {
     /// The last time a menu bar item was moved.
     private var lastItemMoveStartDate: Date?
 
+    private var cacheTask: Task<Void, Never>?
+
     /// A Boolean value that indicates whether a menu bar item has
     /// recently moved.
     var itemHasRecentlyMoved: Bool {
@@ -127,8 +129,9 @@ final class MenuBarItemManager: ObservableObject {
     }
 
     /// Sets up the manager.
-    func performSetup(with appState: AppState) {
+    func performSetup(with appState: AppState) async {
         self.appState = appState
+        await cacheItemsRegardless()
         configureCancellables(with: appState)
     }
 
@@ -260,18 +263,24 @@ extension MenuBarItemManager {
     /// Caches the current menu bar items, regardless of the current item
     /// state, ensuring that the control items are in the correct order.
     func cacheItemsRegardless(_ currentItemWindowIDs: [CGWindowID]? = nil) async {
-        var items = MenuBarItem.getMenuBarItems(option: .activeSpace)
-        cachedItemWindowIDs = currentItemWindowIDs ?? items.reversed().map { $0.windowID }
+        cacheTask?.cancel()
+        cacheTask = Task {
+            logger.debug("Preparing to cache menu bar items")
 
-        guard let controlItems = ControlItemSet(items: &items) else {
-            logger.warning("Missing control item for hidden section")
-            logger.debug("Clearing menu bar item cache")
-            itemCache.clear()
-            return
+            var items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+            cachedItemWindowIDs = currentItemWindowIDs ?? items.reversed().map { $0.windowID }
+
+            guard let controlItems = ControlItemSet(items: &items) else {
+                logger.warning("Missing control item for hidden section")
+                logger.debug("Clearing menu bar item cache")
+                itemCache.clear()
+                return
+            }
+
+            await enforceControlItemOrder(controlItems: controlItems)
+            uncheckedCacheItems(controlItems: controlItems, otherItems: items)
         }
-
-        await enforceControlItemOrder(controlItems: controlItems)
-        uncheckedCacheItems(controlItems: controlItems, otherItems: items)
+        await cacheTask?.value
     }
 
     /// Caches the current menu bar items if needed, ensuring that the
@@ -1382,81 +1391,81 @@ extension MenuBarItemManager {
 
         logger.info("Temporarily showing \(item.logString, privacy: .public)")
 
-        var items = MenuBarItem.getMenuBarItems(option: .activeSpace)
+        Task {
+            var items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
 
-        guard let destination = getReturnDestination(for: item, in: items) else {
-            logger.warning("No return destination for \(item.logString, privacy: .public)")
-            return
-        }
-
-        // Remove all items up to the hidden control item.
-        items.trimPrefix { $0.tag != .hiddenControlItem }
-        // Remove the hidden control item.
-        items.removeFirst()
-
-        // Remove all offscreen items.
-        if #available(macOS 26.0, *) {
-            // TODO: isOnScreen doesn't work properly as of macOS 26 Developer Beta 1. Remove this if/when it works again.
-            items.trimPrefix { !Bridging.isWindowOnDisplay($0.windowID, displayID) }
-        } else {
-            items.trimPrefix { !$0.isOnScreen }
-        }
-
-        let maxX = if let rightArea = screen.auxiliaryTopRightArea {
-            max(rightArea.minX + 20, applicationMenuFrame.maxX)
-        } else {
-            applicationMenuFrame.maxX
-        }
-
-        // Remove items until we have enough room to show this item.
-        items.trimPrefix { $0.bounds.minX - item.bounds.width <= maxX }
-
-        guard let targetItem = items.first else {
-            let alert = NSAlert()
-            alert.messageText = "Not enough room to show \"\(item.displayName)\""
-            alert.runModal()
-            return
-        }
-
-        let contextTask = Task {
-            try await slowMove(item: item, to: .leftOfItem(targetItem))
-            await eventSleep()
-
-            let context: TempShownItemContext
-
-            if clickWhenFinished {
-                let beforeWindows = WindowInfo.getWindows(option: .onScreen)
-
-                await eventSleep()
-                try await click(item: item, with: mouseButton)
-                await eventSleep(for: .seconds(0.25))
-
-                let afterWindows = WindowInfo.getWindows(option: .onScreen)
-
-                let shownInterfaceWindow = afterWindows.first { afterWindow in
-                    afterWindow.ownerPID == item.sourcePID &&
-                    !beforeWindows.contains { beforeWindow in
-                        afterWindow.windowID == beforeWindow.windowID
-                    }
-                }
-
-                context = TempShownItemContext(
-                    tag: item.tag,
-                    returnDestination: destination,
-                    shownInterfaceWindow: shownInterfaceWindow
-                )
-            } else {
-                context = TempShownItemContext(
-                    tag: item.tag,
-                    returnDestination: destination,
-                    shownInterfaceWindow: nil
-                )
+            guard let destination = getReturnDestination(for: item, in: items) else {
+                logger.warning("No return destination for \(item.logString, privacy: .public)")
+                return
             }
 
-            return context
-        }
+            // Remove all items up to the hidden control item.
+            items.trimPrefix { $0.tag != .hiddenControlItem }
+            // Remove the hidden control item.
+            items.removeFirst()
 
-        Task {
+            // Remove all offscreen items.
+            if #available(macOS 26.0, *) {
+                // TODO: isOnScreen doesn't work properly as of macOS 26 Developer Beta 1. Remove this if/when it works again.
+                items.trimPrefix { !Bridging.isWindowOnDisplay($0.windowID, displayID) }
+            } else {
+                items.trimPrefix { !$0.isOnScreen }
+            }
+
+            let maxX = if let rightArea = screen.auxiliaryTopRightArea {
+                max(rightArea.minX + 20, applicationMenuFrame.maxX)
+            } else {
+                applicationMenuFrame.maxX
+            }
+
+            // Remove items until we have enough room to show this item.
+            items.trimPrefix { $0.bounds.minX - item.bounds.width <= maxX }
+
+            guard let targetItem = items.first else {
+                let alert = NSAlert()
+                alert.messageText = "Not enough room to show \"\(item.displayName)\""
+                alert.runModal()
+                return
+            }
+
+            let contextTask = Task {
+                try await slowMove(item: item, to: .leftOfItem(targetItem))
+                await eventSleep()
+
+                let context: TempShownItemContext
+
+                if clickWhenFinished {
+                    let beforeWindows = WindowInfo.createWindows(option: .onScreen)
+
+                    await eventSleep()
+                    try await click(item: item, with: mouseButton)
+                    await eventSleep(for: .seconds(0.25))
+
+                    let afterWindows = WindowInfo.createWindows(option: .onScreen)
+
+                    let shownInterfaceWindow = afterWindows.first { afterWindow in
+                        afterWindow.ownerPID == item.sourcePID &&
+                        !beforeWindows.contains { beforeWindow in
+                            afterWindow.windowID == beforeWindow.windowID
+                        }
+                    }
+
+                    context = TempShownItemContext(
+                        tag: item.tag,
+                        returnDestination: destination,
+                        shownInterfaceWindow: shownInterfaceWindow
+                    )
+                } else {
+                    context = TempShownItemContext(
+                        tag: item.tag,
+                        returnDestination: destination,
+                        shownInterfaceWindow: nil
+                    )
+                }
+
+                return context
+            }
+
             do {
                 let context = try await contextTask.value
                 tempShownItemContexts.append(context)
@@ -1491,7 +1500,7 @@ extension MenuBarItemManager {
 
         var failedContexts = [TempShownItemContext]()
 
-        let items = MenuBarItem.getMenuBarItems(option: .activeSpace)
+        let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
 
         while let context = tempShownItemContexts.popLast() {
             guard let item = items.first(where: { $0.tag == context.tag }) else {

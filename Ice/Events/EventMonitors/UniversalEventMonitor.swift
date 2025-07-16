@@ -64,16 +64,18 @@ extension UniversalEventMonitor {
 
 extension UniversalEventMonitor.UniversalEventPublisher {
     private final class UniversalEventSubscription<S: Subscriber<Output, Failure>>: Subscription {
-        var subscriber: S?
-        let monitor: UniversalEventMonitor
+        let mask: NSEvent.EventTypeMask
+        private var subscriber: S?
+
+        private lazy var monitor = UniversalEventMonitor(mask: mask) { [weak self] event in
+            _ = self?.subscriber?.receive(event)
+            return event
+        }
 
         init(mask: NSEvent.EventTypeMask, subscriber: S) {
+            self.mask = mask
             self.subscriber = subscriber
-            self.monitor = UniversalEventMonitor(mask: mask) { event in
-                _ = subscriber.receive(event)
-                return event
-            }
-            monitor.start()
+            self.monitor.start()
         }
 
         func request(_ demand: Subscribers.Demand) { }

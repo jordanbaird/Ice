@@ -115,12 +115,12 @@ final class IceBarColorManager: ObservableObject {
     }
 
     private func updateWindowImageInfo(for screen: NSScreen) {
-        let windows = WindowInfo.getWindows(option: .onScreen)
+        let windows = WindowInfo.createWindows(option: .onScreen)
         let displayID = screen.displayID
 
         guard
-            let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: displayID),
-            let wallpaperWindow = WindowInfo.getWallpaperWindow(from: windows, for: displayID)
+            let menuBarWindow = WindowInfo.menuBarWindow(from: windows, for: displayID),
+            let wallpaperWindow = WindowInfo.wallpaperWindow(from: windows, for: displayID)
         else {
             return
         }

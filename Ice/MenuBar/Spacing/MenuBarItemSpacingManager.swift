@@ -158,7 +158,7 @@ final class MenuBarItemSpacingManager {
 
         try? await Task.sleep(for: .milliseconds(100))
 
-        let items = MenuBarItem.getMenuBarItems(option: .activeSpace)
+        let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
         let pids = Set(items.map { $0.sourcePID ?? $0.ownerPID })
 
         var failedApps = [String]()

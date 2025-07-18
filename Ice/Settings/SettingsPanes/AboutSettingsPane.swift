@@ -74,22 +74,23 @@ struct AboutSettingsPane: View {
                     Image(nsImage: nsImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 225)
+                        .frame(width: 230)
                 }
 
                 VStack(alignment: .leading) {
                     Text("Ice")
-                        .font(.system(size: 72, weight: .medium))
+                        .font(.system(size: 80))
                         .foregroundStyle(.primary)
 
                     Text("Version \(Constants.versionString)")
-                        .font(.system(size: 18))
+                        .font(.system(size: 15))
                         .foregroundStyle(.secondary)
 
                     Text(Constants.copyrightString)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 14))
+                        .foregroundStyle(.secondary.opacity(0.67))
                 }
+                .fontWeight(.medium)
             }
         }
     }

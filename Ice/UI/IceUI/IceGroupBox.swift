@@ -157,20 +157,29 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
     var body: some View {
         VStack(alignment: .leading) {
             header
+                .padding(.top, 8)
+                .padding(.bottom, 2)
+                .padding(.leading, 8)
 
-            VStack {
-                content
-            }
-            .padding(padding)
-            .background {
-                backgroundShape
-                    .fill(.quinary.opacity(0.67))
-                    .strokeBorder(.quaternary)
-            }
-            .containerShape(backgroundShape)
+            contentStack
+                .padding(padding)
+                .background {
+                    backgroundShape
+                        .fill(.quinary.opacity(0.67))
+                        .strokeBorder(.quaternary)
+                }
+                .containerShape(backgroundShape)
 
             footer
+                .padding(.top, 2)
+                .padding(.bottom, 8)
+                .padding(.leading, 8)
         }
+    }
+
+    @ViewBuilder
+    private var contentStack: some View {
+        VStack { content }
     }
 }
 

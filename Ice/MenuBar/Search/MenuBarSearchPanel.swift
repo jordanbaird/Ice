@@ -314,7 +314,9 @@ private struct MenuBarSearchContentView: View {
             }
         }
 
-        if model.searchText.isEmpty {
+        let searchText = model.searchText
+
+        if searchText.isEmpty {
             model.displayedItems = searchItems.map { $0.listItem }
         } else {
             let selectableItems = searchItems.compactMap { searchItem in
@@ -323,8 +325,25 @@ private struct MenuBarSearchContentView: View {
                 }
                 return nil
             }
-            let results = model.fuse.searchSync(model.searchText, in: selectableItems.map { $0.title })
-            model.displayedItems = results.map { selectableItems[$0.index].listItem }
+
+            let fuseResults = model.fuse.searchSync(searchText, in: selectableItems.map { $0.title })
+            let maxFuseScore = Double(fuseResults.count)
+
+            let scoredItems: [(listItem: ListItem, score: Double)] = fuseResults.enumerated().map { index, result in
+                let searchItem = selectableItems[result.index]
+                let fuseScore = maxFuseScore - Double(index)
+
+                guard let match = bestMatch(query: searchText, input: searchItem.title, boundaryBonus: 16, camelCaseBonus: 16) else {
+                    return (searchItem.listItem, fuseScore)
+                }
+
+                let matchScore = Double(match.score.value)
+                let averageScore = (matchScore + fuseScore) / 2
+
+                return (searchItem.listItem, averageScore)
+            }
+
+            model.displayedItems = scoredItems.lazy.sorted { $0.score > $1.score }.map { $0.listItem }
         }
     }
 

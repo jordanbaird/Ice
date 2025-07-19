@@ -74,6 +74,7 @@ final class MenuBarSearchPanel: NSPanel {
     func performSetup(with appState: AppState) {
         self.appState = appState
         configureCancellables()
+        model.performSetup(with: self)
     }
 
     /// Configures the internal observers for the panel.
@@ -163,13 +164,13 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
     ) {
         super.init(
             rootView: MenuBarSearchContentView(
-                model: model,
                 displayID: displayID,
                 closePanel: { [weak panel] in panel?.close() }
             )
             .environmentObject(appState)
             .environmentObject(appState.itemManager)
             .environmentObject(appState.imageCache)
+            .environmentObject(model)
             .erasedToAnyView()
         )
     }
@@ -186,10 +187,10 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
 }
 
 private struct MenuBarSearchContentView: View {
-    private typealias ListItem = MenuBarSearchModel.ListItem
+    private typealias ListItem = SectionedListItem<MenuBarSearchModel.ItemID>
 
     @EnvironmentObject var itemManager: MenuBarItemManager
-    @ObservedObject var model: MenuBarSearchModel
+    @EnvironmentObject var model: MenuBarSearchModel
     @FocusState private var searchFieldIsFocused: Bool
 
     let displayID: CGDirectDisplayID
@@ -461,6 +462,7 @@ private let controlCenterIcon: NSImage? = {
 private struct MenuBarSearchItemView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var imageCache: MenuBarItemImageCache
+    @EnvironmentObject var model: MenuBarSearchModel
 
     let item: MenuBarItem
 
@@ -556,7 +558,7 @@ private struct MenuBarSearchItemView: View {
     @ViewBuilder
     private var imageViewWithBackground: some View {
         imageView
-            .layoutBarStyle(appState: appState, averageColorInfo: appState.menuBarManager.averageColorInfo)
+            .layoutBarStyle(appState: appState, averageColorInfo: model.averageColorInfo)
             .clipShape(backgroundShape)
             .overlay {
                 backgroundShape

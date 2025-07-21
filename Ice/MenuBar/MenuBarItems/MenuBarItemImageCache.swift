@@ -119,7 +119,7 @@ final class MenuBarItemImageCache: ObservableObject {
         for item in items {
             let windowID = item.windowID
 
-            // Don't use item.bounds, it could be out of date.
+            // Don't use `item.bounds`, it could be out of date.
             guard let bounds = Bridging.getWindowBounds(for: windowID) else {
                 result.excluded.append(item)
                 continue
@@ -131,7 +131,7 @@ final class MenuBarItemImageCache: ObservableObject {
         }
 
         guard
-            let compositeImage = ScreenCapture.captureWindows(windowIDs, option: captureOption),
+            let compositeImage = ScreenCapture.captureWindows(with: windowIDs, option: captureOption),
             CGFloat(compositeImage.width) == boundsUnion.width * scale, // Safety check.
             !compositeImage.isTransparent()
         else {
@@ -170,7 +170,7 @@ final class MenuBarItemImageCache: ObservableObject {
 
         for item in items {
             guard
-                let image = ScreenCapture.captureWindow(item.windowID, option: captureOption),
+                let image = ScreenCapture.captureWindow(with: item.windowID, option: captureOption),
                 !image.isTransparent()
             else {
                 result.excluded.append(item)
@@ -182,15 +182,21 @@ final class MenuBarItemImageCache: ObservableObject {
         return result
     }
 
-    /// Captures the images of the given menu bar items and returns a dictionary
-    /// containing the images, keyed by their menu bar item tags.
-    private nonisolated func captureImages(for items: [MenuBarItem], screen: NSScreen) -> [MenuBarItemTag: CapturedImage] {
-        let scale = screen.backingScaleFactor
+    /// Captures the images of the given menu bar items and returns the result.
+    private nonisolated func captureImages(of items: [MenuBarItem], scale: CGFloat, appState: AppState) async -> CaptureResult {
+        // This check may have already happened at a higher level, but let's check
+        // again with a more lenient duration. We want to use individual capture if
+        // there is any chance that items are still moving, since composite capture
+        // doesn't account for overlapping items.
+        if await appState.itemManager.latestMoveOperationStarted(within: .seconds(3)) {
+            logger.debug("Capturing individually due to recent item movement")
+            return individualCapture(items, scale: scale)
+        }
 
         let compositeResult = compositeCapture(items, scale: scale)
 
         if compositeResult.excluded.isEmpty {
-            return compositeResult.images // All items were captured successfully.
+            return compositeResult // All items captured successfully.
         }
 
         logger.notice(
@@ -200,23 +206,24 @@ final class MenuBarItemImageCache: ObservableObject {
             """
         )
 
-        let individualResult = individualCapture(compositeResult.excluded, scale: scale)
+        var individualResult = individualCapture(compositeResult.excluded, scale: scale)
 
-        if !individualResult.excluded.isEmpty {
-            logger.error("Some items failed capture: \(individualResult.excluded, privacy: .public)")
-        }
+        // Merge the successfully captured images from each result. Keep excluded
+        // items as part of the result, so they can be logged elsewhere.
+        individualResult.images.merge(compositeResult.images) { (_, new) in new }
 
-        return compositeResult.images.merging(individualResult.images) { (_, new) in new }
+        return individualResult
     }
 
     /// Captures the images of the menu bar items in the given section and returns
     /// a dictionary containing the images, keyed by their menu bar item tags.
-    private func captureImages(for section: MenuBarSection.Name, screen: NSScreen) async -> [MenuBarItemTag: CapturedImage] {
-        guard let appState else {
-            return [:]
-        }
+    private func captureImages(for section: MenuBarSection.Name, scale: CGFloat, appState: AppState) async -> [MenuBarItemTag: CapturedImage] {
         let items = await appState.itemManager.itemCache.managedItems(for: section)
-        return captureImages(for: items, screen: screen)
+        let captureResult = await captureImages(of: items, scale: scale, appState: appState)
+        if !captureResult.excluded.isEmpty {
+            logger.error("Some items failed capture: \(captureResult.excluded, privacy: .public)")
+        }
+        return captureResult.images
     }
 
     // MARK: Update Cache
@@ -226,12 +233,19 @@ final class MenuBarItemImageCache: ObservableObject {
     func updateCacheWithoutChecks(sections: [MenuBarSection.Name]) async {
         guard
             let appState,
-            await appState.hasPermission(.screenRecording),
-            let screen = NSScreen.main
+            await appState.hasPermission(.screenRecording)
         else {
             return
         }
 
+        guard
+            let displayID = await appState.itemManager.itemCache.displayID,
+            let screen = NSScreen.screens.first(where: { $0.displayID == displayID })
+        else {
+            return
+        }
+
+        let scale = screen.backingScaleFactor
         var newImages = [MenuBarItemTag: CapturedImage]()
 
         for section in sections {
@@ -239,15 +253,10 @@ final class MenuBarItemImageCache: ObservableObject {
                 continue
             }
 
-            let sectionImages = await captureImages(for: section, screen: screen)
+            let sectionImages = await captureImages(for: section, scale: scale, appState: appState)
 
             guard !sectionImages.isEmpty else {
-                logger.warning(
-                    """
-                    Failed to update cached menu bar item images for \
-                    \(section.logString, privacy: .public)
-                    """
-                )
+                logger.warning("Failed item image cache for \(section.logString, privacy: .public)")
                 continue
             }
 
@@ -261,10 +270,6 @@ final class MenuBarItemImageCache: ObservableObject {
 
     /// Updates the cache for the given sections, if necessary.
     func updateCache(sections: [MenuBarSection.Name]) async {
-        func skippingCache(reason: @escaping @autoclosure () -> String) {
-            logger.debug("Skipping menu bar item image cache as \(reason(), privacy: .public)")
-        }
-
         guard let appState else {
             return
         }
@@ -273,22 +278,21 @@ final class MenuBarItemImageCache: ObservableObject {
         let isSearchPresented = await appState.navigationState.isSearchPresented
 
         if !isIceBarPresented && !isSearchPresented {
+            guard
+                await appState.navigationState.isSettingsPresented,
+                case .menuBarLayout = await appState.navigationState.settingsNavigationIdentifier
+            else {
+                logger.debug("Skipping item image cache as interface not presented")
+                return
+            }
             guard await appState.navigationState.isAppFrontmost else {
-                skippingCache(reason: "Ice Bar not visible, app not frontmost")
-                return
-            }
-            guard await appState.navigationState.isSettingsPresented else {
-                skippingCache(reason: "Ice Bar not visible, Settings not visible")
-                return
-            }
-            guard case .menuBarLayout = await appState.navigationState.settingsNavigationIdentifier else {
-                skippingCache(reason: "Ice Bar not visible, Settings visible but not on Menu Bar Layout")
+                logger.debug("Skipping item image cache as app not frontmost")
                 return
             }
         }
 
-        guard await !appState.itemManager.itemHasRecentlyMoved else {
-            skippingCache(reason: "an item was recently moved")
+        guard await !appState.itemManager.latestMoveOperationStarted(within: .seconds(1)) else {
+            logger.debug("Skipping item image cache due to recent item movement")
             return
         }
 

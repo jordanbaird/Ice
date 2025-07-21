@@ -7,16 +7,11 @@ import Combine
 import SwiftUI
 
 final class IceBarColorManager: ObservableObject {
-    private struct WindowImageInfo {
-        let image: CGImage
-        let source: MenuBarAverageColorInfo.Source
-    }
-
     @Published private(set) var colorInfo: MenuBarAverageColorInfo?
 
     private weak var iceBarPanel: IceBarPanel?
 
-    private var windowImageInfo: WindowImageInfo?
+    private var windowImage: CGImage?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -39,7 +34,7 @@ final class IceBarColorManager: ObservableObject {
                     else {
                         return
                     }
-                    updateWindowImageInfo(for: screen)
+                    updateWindowImage(for: screen)
                 }
                 .store(in: &c)
 
@@ -101,7 +96,7 @@ final class IceBarColorManager: ObservableObject {
                 else {
                     return
                 }
-                updateWindowImageInfo(for: screen)
+                updateWindowImage(for: screen)
                 if iceBarPanel.isVisible {
                     withAnimation {
                         self.updateColorInfo(with: iceBarPanel.frame, screen: screen)
@@ -114,7 +109,7 @@ final class IceBarColorManager: ObservableObject {
         cancellables = c
     }
 
-    private func updateWindowImageInfo(for screen: NSScreen) {
+    private func updateWindowImage(for screen: NSScreen) {
         let windows = WindowInfo.createWindows(option: .onScreen)
         let displayID = screen.displayID
 
@@ -125,25 +120,22 @@ final class IceBarColorManager: ObservableObject {
             return
         }
 
-        let windowIDs = [menuBarWindow.windowID, wallpaperWindow.windowID]
-        let bounds = with(wallpaperWindow.bounds) { $0.size.height = 1 }
-        let option: CGWindowImageOption = .nominalResolution
-
-        guard let image = ScreenCapture.captureWindows(windowIDs, screenBounds: bounds, option: option) else {
+        guard let image = ScreenCapture.captureWindows(
+            with: [menuBarWindow.windowID, wallpaperWindow.windowID],
+            screenBounds: withMutableCopy(of: wallpaperWindow.bounds) { $0.size.height = 1 },
+            option: .nominalResolution
+        ) else {
             return
         }
 
-        // Just use `menuBarWindow` as the source for now, regardless
-        // of whether it contributes to the capture.
-        windowImageInfo = WindowImageInfo(image: image, source: .menuBarWindow)
+        windowImage = image
     }
 
     private func updateColorInfo(with frame: CGRect, screen: NSScreen) {
-        guard let windowImageInfo else {
+        guard let image = windowImage else {
             return
         }
 
-        let image = windowImageInfo.image
         let imageBounds = CGRect(x: 0, y: 0, width: image.width, height: image.height)
 
         let insetScreenFrame = screen.frame.insetBy(dx: frame.width / 2, dy: 0)
@@ -160,11 +152,13 @@ final class IceBarColorManager: ObservableObject {
             return
         }
 
-        colorInfo = MenuBarAverageColorInfo(color: averageColor, source: windowImageInfo.source)
+        // Just use `menuBarWindow` as the source for now, regardless
+        // of whether its image contributed to the average.
+        colorInfo = MenuBarAverageColorInfo(color: averageColor, source: .menuBarWindow)
     }
 
     func updateAllProperties(with frame: CGRect, screen: NSScreen) {
-        updateWindowImageInfo(for: screen)
+        updateWindowImage(for: screen)
         updateColorInfo(with: frame, screen: screen)
     }
 }

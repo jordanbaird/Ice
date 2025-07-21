@@ -56,17 +56,13 @@ final class MenuBarSearchModel: ObservableObject {
             return
         }
 
-        let windowIDs = [menuBarWindow.windowID, wallpaperWindow.windowID]
-        let option: CGWindowImageOption = .nominalResolution
-        let bounds = with(wallpaperWindow.bounds) { bounds in
-            bounds.size.height = 1
-            bounds.origin.x = bounds.midX
-            bounds.size.width /= 2
-        }
-
         guard
-            let image = ScreenCapture.captureWindows(windowIDs, screenBounds: bounds, option: option),
-            let color = image.averageColor(makeOpaque: true)
+            let image = ScreenCapture.captureWindows(
+                with: [menuBarWindow.windowID, wallpaperWindow.windowID],
+                screenBounds: withMutableCopy(of: wallpaperWindow.bounds) { $0.size.height = 1 },
+                option: .nominalResolution
+            ),
+            let color = image.averageColor(option: .ignoreAlpha)
         else {
             return
         }

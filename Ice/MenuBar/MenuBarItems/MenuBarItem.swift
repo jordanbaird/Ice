@@ -3,7 +3,6 @@
 //  Ice
 //
 
-import AXSwift
 import Cocoa
 import Combine
 
@@ -167,6 +166,13 @@ struct MenuBarItem: CustomStringConvertible {
         self.title = itemWindow.title
         self.ownerName = itemWindow.ownerName
         self.isOnScreen = itemWindow.isOnScreen
+    }
+
+    /// Returns the current bounds for the given menu bar item.
+    ///
+    /// - Parameter item: A menu bar item.
+    static func currentBounds(for item: MenuBarItem) -> CGRect? {
+        Bridging.getWindowBounds(for: item.windowID)
     }
 }
 
@@ -342,6 +348,8 @@ private extension MenuBarItemTag {
 // MARK: - MenuBarItemTag.Namespace Helper
 
 private extension MenuBarItemTag.Namespace {
+    private static var uuidCache = [CGWindowID: UUID]()
+
     /// Creates a namespace without checks.
     ///
     /// This initializer does not perform validity checks on its parameters.
@@ -355,9 +363,9 @@ private extension MenuBarItemTag.Namespace {
         // name seems less likely to change, so let's prefer it as a (somewhat)
         // stable identifier.
         if let app = itemWindow.owningApplication {
-            self.init(app.bundleIdentifier ?? itemWindow.ownerName ?? app.localizedName)
+            self = .optional(app.bundleIdentifier ?? itemWindow.ownerName ?? app.localizedName)
         } else {
-            self.init(itemWindow.ownerName)
+            self = .optional(itemWindow.ownerName)
         }
     }
 
@@ -372,11 +380,13 @@ private extension MenuBarItemTag.Namespace {
         // that don't. We should also be able to handle daemons and helpers,
         // which are more likely not to have a bundle ID.
         if let sourcePID, let app = NSRunningApplication(processIdentifier: sourcePID) {
-            self.init(app.bundleIdentifier ?? app.localizedName)
-        } else if let app = itemWindow.owningApplication {
-            self.init(app.bundleIdentifier ?? itemWindow.ownerName ?? app.localizedName)
+            self = .optional(app.bundleIdentifier ?? app.localizedName)
+        } else if let uuid = Self.uuidCache[itemWindow.windowID] {
+            self = .uuid(uuid)
         } else {
-            self.init(itemWindow.ownerName)
+            let uuid = UUID()
+            Self.uuidCache[itemWindow.windowID] = uuid
+            self = .uuid(uuid)
         }
     }
 }

@@ -288,7 +288,7 @@ extension MigrationManager {
         }
         do {
             let oldConfiguration = try decoder.decode(MenuBarAppearanceConfigurationV1.self, from: oldData)
-            let newConfiguration = with(MenuBarAppearanceConfigurationV2.defaultConfiguration) { configuration in
+            let newConfiguration = withMutableCopy(of: MenuBarAppearanceConfigurationV2.defaultConfiguration) { configuration in
                 let partialConfiguration = MenuBarAppearancePartialConfiguration(
                     hasShadow: oldConfiguration.hasShadow,
                     hasBorder: oldConfiguration.hasBorder,

@@ -11,8 +11,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The shared app state.
     let appState = AppState()
 
-    /// Logger for the delegate.
-    private let logger = Logger(category: "AppDelegate")
+    /// Logger for the app delegate.
+    let logger = Logger(category: "AppDelegate")
 
     // MARK: NSApplicationDelegate Methods
 
@@ -21,18 +21,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSSplitViewItem.swizzle()
         MigrationManager(appState: appState).migrateAll()
         Bridging.setConnectionProperty(true, forKey: "SetsCursorInBackground")
+        NSColorPanel.shared.animationBehavior = .none
+        NSColorPanel.shared.hidesOnDeactivate = false
+        NSColorPanel.shared.styleMask.insert(.nonactivatingPanel)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Hide the main menu to make more space in the menu bar.
-        if let mainMenu = NSApp.mainMenu {
-            for item in mainMenu.items {
-                item.isHidden = true
-            }
+        // Hide the main menu's items to make more room in the menu bar.
+        for item in NSApp.mainMenu?.items ?? [] {
+            item.isHidden = true
         }
 
         #if DEBUG
-        // Stop here if running as a preview.
+        // Don't perform setup if running as a preview.
         if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
             return
         }
@@ -42,13 +43,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // or prompt to grant permissions.
         switch appState.permissions.permissionsState {
         case .hasAll:
-            appState.permissions.logger.info("Passed all permissions checks")
+            appState.permissions.logger.debug("Passed all permissions checks")
             appState.performSetup(hasPermissions: true)
         case .hasRequired:
-            appState.permissions.logger.info("Passed required permissions checks")
+            appState.permissions.logger.debug("Passed required permissions checks")
             appState.performSetup(hasPermissions: true)
         case .missing:
-            appState.permissions.logger.info("Failed required permissions checks")
+            appState.permissions.logger.debug("Failed required permissions checks")
             appState.performSetup(hasPermissions: false)
         }
     }
@@ -65,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             sender.activationPolicy() != .accessory,
             appState.navigationState.isAppFrontmost
         {
-            logger.debug("All windows closed - deactivating")
+            logger.debug("All windows closed - deactivating with accessory activation policy")
             appState.deactivate(withPolicy: .accessory)
         }
         return false
@@ -79,7 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Opens the settings window and activates the app.
     @objc func openSettingsWindow() {
-        // Small delay makes this more reliable.
+        // Delay makes this more reliable for some reason.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [appState] in
             appState.activate(withPolicy: .regular)
             appState.openWindow(.settings)

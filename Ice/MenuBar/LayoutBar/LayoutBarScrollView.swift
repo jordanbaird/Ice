@@ -8,12 +8,6 @@ import Cocoa
 final class LayoutBarScrollView: NSScrollView {
     private let paddingView: LayoutBarPaddingView
 
-    /// The amount of space between each arranged view.
-    var spacing: CGFloat {
-        get { paddingView.spacing }
-        set { paddingView.spacing = newValue }
-    }
-
     /// The layout view's arranged views.
     ///
     /// The views are laid out from left to right in the order that they appear in
@@ -29,9 +23,8 @@ final class LayoutBarScrollView: NSScrollView {
     /// - Parameters:
     ///   - appState: The shared app state instance.
     ///   - section: The section whose items are represented.
-    ///   - spacing: The amount of space between each arranged view.
-    init(appState: AppState, section: MenuBarSection, spacing: CGFloat) {
-        self.paddingView = LayoutBarPaddingView(appState: appState, section: section, spacing: spacing)
+    init(appState: AppState, section: MenuBarSection.Name) {
+        self.paddingView = LayoutBarPaddingView(appState: appState, section: section)
 
         super.init(frame: .zero)
 

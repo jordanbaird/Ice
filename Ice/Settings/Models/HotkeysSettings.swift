@@ -75,7 +75,7 @@ final class HotkeysSettings: ObservableObject {
                         Logger.serialization.error("Error encoding hotkey: \(error, privacy: .public)")
                     }
                 } receiveValue: { data in
-                    with(Defaults.dictionary(forKey: .hotkeys) ?? [:]) { dictionary in
+                    withMutableCopy(of: Defaults.dictionary(forKey: .hotkeys) ?? [:]) { dictionary in
                         dictionary[hotkey.action.rawValue] = data
                         Defaults.set(dictionary, forKey: .hotkeys)
                     }

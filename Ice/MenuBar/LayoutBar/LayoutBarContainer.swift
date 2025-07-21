@@ -31,7 +31,7 @@ final class LayoutBarContainer: NSView {
     private(set) weak var appState: AppState?
 
     /// The section whose items are represented.
-    let section: MenuBarSection
+    let section: MenuBarSection.Name
 
     /// A Boolean value that indicates whether the container should
     /// animate its next layout pass.
@@ -42,13 +42,6 @@ final class LayoutBarContainer: NSView {
     /// A Boolean value that indicates whether the container can
     /// set its arranged views.
     var canSetArrangedViews = true
-
-    /// The amount of space between each arranged view.
-    var spacing: CGFloat {
-        didSet {
-            layoutArrangedViews()
-        }
-    }
 
     /// The contaner's arranged views.
     ///
@@ -68,11 +61,9 @@ final class LayoutBarContainer: NSView {
     /// - Parameters:
     ///   - appState: The shared app state instance.
     ///   - section: The section whose items are represented.
-    ///   - spacing: The amount of space between each arranged view.
-    init(appState: AppState, section: MenuBarSection, spacing: CGFloat) {
+    init(appState: AppState, section: MenuBarSection.Name) {
         self.appState = appState
         self.section = section
-        self.spacing = spacing
         super.init(frame: .zero)
         self.translatesAutoresizingMaskIntoConstraints = false
         unregisterDraggedTypes()
@@ -94,7 +85,7 @@ final class LayoutBarContainer: NSView {
                     guard let self else {
                         return
                     }
-                    setArrangedViews(items: cache.managedItems(for: section.name))
+                    setArrangedViews(items: cache.managedItems(for: section))
                 }
                 .store(in: &c)
 
@@ -164,7 +155,7 @@ final class LayoutBarContainer: NSView {
             // be a newly added view
             view.setFrameOrigin(
                 CGPoint(
-                    x: previous.map { $0.frame.maxX + spacing } ?? 0,
+                    x: previous.map { $0.frame.maxX } ?? 0,
                     y: (maxHeight / 2) - view.bounds.midY
                 )
             )

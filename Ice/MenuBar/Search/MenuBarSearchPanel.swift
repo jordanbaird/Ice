@@ -24,8 +24,8 @@ final class MenuBarSearchPanel: NSPanel {
     private let model = MenuBarSearchModel()
 
     /// Monitor for mouse down events.
-    private lazy var mouseDownMonitor = UniversalEventMonitor(
-        mask: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+    private lazy var mouseDownMonitor = EventMonitor.universal(
+        for: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
     ) { [weak self, weak appState] event in
         guard
             let self,
@@ -34,15 +34,15 @@ final class MenuBarSearchPanel: NSPanel {
         else {
             return event
         }
-        if !appState.itemManager.itemHasRecentlyMoved {
+        if !appState.itemManager.latestMoveOperationStarted(within: .seconds(1)) {
             close()
         }
         return event
     }
 
     /// Monitor for key down events.
-    private lazy var keyDownMonitor = UniversalEventMonitor(
-        mask: [.keyDown]
+    private lazy var keyDownMonitor = EventMonitor.universal(
+        for: [.keyDown]
     ) { [weak self] event in
         if KeyCode(rawValue: Int(event.keyCode)) == .escape {
             self?.close()
@@ -358,7 +358,11 @@ private struct MenuBarSearchContentView: View {
         closePanel()
         Task {
             try await Task.sleep(for: .milliseconds(25))
-            itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .left)
+            if Bridging.isWindowOnDisplay(item.windowID, displayID) {
+                try await itemManager.click(item: item, with: .left)
+            } else {
+                await itemManager.tempShow(item: item, clickingWith: .left)
+            }
         }
     }
 }
@@ -577,7 +581,7 @@ private struct MenuBarSearchItemView: View {
     @ViewBuilder
     private var imageViewWithBackground: some View {
         imageView
-            .layoutBarStyle(appState: appState, averageColorInfo: model.averageColorInfo)
+            .menuBarItemContainer(appState: appState, colorInfo: model.averageColorInfo)
             .clipShape(backgroundShape)
             .overlay {
                 backgroundShape

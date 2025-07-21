@@ -81,17 +81,17 @@ struct MenuBarLayoutSettingsPane: View {
     }
 
     @ViewBuilder
-    private func layoutBar(for section: MenuBarSection.Name) -> some View {
+    private func layoutBar(for name: MenuBarSection.Name) -> some View {
         if
-            let section = appState.menuBarManager.section(withName: section),
+            let section = appState.menuBarManager.section(withName: name),
             section.isEnabled
         {
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(section.name.displayString) Section")
+                Text("\(name.displayString) Section")
                     .font(.system(size: 14))
                     .padding(.leading, 2)
 
-                LayoutBar(section: section)
+                LayoutBar(section: name)
                     .environmentObject(appState.imageCache)
             }
         }

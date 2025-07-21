@@ -74,13 +74,13 @@ enum ScreenCapture {
     ///   - screenBounds: The bounds to capture, specified in screen coordinates. Pass `nil` to
     ///     capture the minimum rectangle that encloses the windows.
     ///   - option: Options that specify which parts of the windows are captured.
-    static func captureWindows(_ windowIDs: [CGWindowID], screenBounds: CGRect? = nil, option: CGWindowImageOption = []) -> CGImage? {
-        captureQueue.sync {
-            guard let windowArray = Bridging.createCGWindowArray(with: windowIDs) else {
-                return nil
-            }
-            let screenBounds = screenBounds ?? .null
-            return CGImage.windowListImage(from: screenBounds, windowArray: windowArray, imageOption: option)
+    static func captureWindows(with windowIDs: [CGWindowID], screenBounds: CGRect? = nil, option: CGWindowImageOption = []) -> CGImage? {
+        guard let array = Bridging.createCGWindowArray(with: windowIDs) else {
+            return nil
+        }
+        let bounds = screenBounds ?? .null
+        return captureQueue.sync {
+            CGImage.createWindowListImageFromArray(screenBounds: bounds, windowArray: array, imageOption: option)
         }
     }
 
@@ -91,8 +91,8 @@ enum ScreenCapture {
     ///   - screenBounds: The bounds to capture, specified in screen coordinates. Pass `nil` to
     ///     capture the minimum rectangle that encloses the window.
     ///   - option: Options that specify which parts of the window are captured.
-    static func captureWindow(_ windowID: CGWindowID, screenBounds: CGRect? = nil, option: CGWindowImageOption = []) -> CGImage? {
-        captureWindows([windowID], screenBounds: screenBounds, option: option)
+    static func captureWindow(with windowID: CGWindowID, screenBounds: CGRect? = nil, option: CGWindowImageOption = []) -> CGImage? {
+        captureWindows(with: [windowID], screenBounds: screenBounds, option: option)
     }
 }
 
@@ -108,7 +108,7 @@ private protocol WindowListImage {
 
 private extension WindowListImage {
     @inline(__always) // Ensure a direct call to the initializer.
-    static func windowListImage(from screenBounds: CGRect, windowArray: CFArray, imageOption: CGWindowImageOption) -> Self? {
+    static func createWindowListImageFromArray(screenBounds: CGRect, windowArray: CFArray, imageOption: CGWindowImageOption) -> Self? {
         Self(windowListFromArrayScreenBounds: screenBounds, windowArray: windowArray, imageOption: imageOption)
     }
 }

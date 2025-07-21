@@ -93,7 +93,12 @@ final class MenuBarOverlayPanel: NSPanel {
         self.title = "Menu Bar Overlay"
         self.backgroundColor = .clear
         self.hasShadow = false
+        self.animationBehavior = .none
+        self.hidesOnDeactivate = false
+        self.canHide = false
+        self.isMovable = false
         self.ignoresMouseEvents = true
+        self.isExcludedFromWindowsMenu = true
         self.collectionBehavior = [.fullScreenNone, .ignoresCycle, .moveToActiveSpace]
         self.contentView = MenuBarOverlayPanelContentView()
         configureCancellables()
@@ -140,19 +145,15 @@ final class MenuBarOverlayPanel: NSPanel {
         )
         .removeDuplicates()
         .sink { [weak self] _ in
-            guard
-                let self,
-                let appState
-            else {
+            guard let self else {
                 return
             }
-            let displayID = owningScreen.displayID
             updateTaskContext.setTask(for: .applicationMenuFrame, timeout: .seconds(10)) {
                 var hasDoneInitialUpdate = false
                 while true {
                     try Task.checkCancellation()
                     guard
-                        let latestFrame = appState.menuBarManager.getApplicationMenuFrame(for: displayID),
+                        let latestFrame = self.owningScreen.getApplicationMenuFrame(),
                         latestFrame != self.applicationMenuFrame
                     else {
                         if hasDoneInitialUpdate {
@@ -180,7 +181,7 @@ final class MenuBarOverlayPanel: NSPanel {
             publisher(for: \.isOnActiveSpace)
                 .receive(on: DispatchQueue.main)
                 .replace(with: ()),
-            UniversalEventMonitor.publisher(for: .leftMouseUp)
+            EventMonitor.publish(events: .leftMouseUp, scope: .universal)
                 .filter { [weak self] _ in self?.isOnActiveSpace ?? false }
                 .replace(with: ())
         )
@@ -229,10 +230,9 @@ final class MenuBarOverlayPanel: NSPanel {
                     self.updateFlags.removeAll()
                 }
                 let windows = WindowInfo.createWindows(option: .onScreen)
-                guard let owningDisplay = self.validate(for: .updates, with: windows) else {
-                    return
+                if validate(for: .updates, with: windows) {
+                    performUpdates(for: flags, windows: windows, screen: owningScreen)
                 }
-                performUpdates(for: flags, windows: windows, display: owningDisplay)
             }
             .store(in: &c)
 
@@ -254,40 +254,39 @@ final class MenuBarOverlayPanel: NSPanel {
 
     /// Performs validation for the given validation kind. Returns the panel's
     /// owning display if successful. Returns `nil` on failure.
-    private func validate(for kind: ValidationKind, with windows: [WindowInfo]) -> CGDirectDisplayID? {
+    private func validate(for kind: ValidationKind, with windows: [WindowInfo]) -> Bool {
         lazy var actionMessage = switch kind {
         case .showing: "Preventing overlay panel from showing."
         case .updates: "Preventing overlay panel from updating."
         }
         guard let appState else {
             MenuBarOverlayPanel.logger.debug("No app state. \(actionMessage, privacy: .public)")
-            return nil
+            return false
         }
         guard !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults else {
             MenuBarOverlayPanel.logger.debug("Menu bar is hidden by system. \(actionMessage, privacy: .public)")
-            return nil
+            return false
         }
-        guard !appState.isActiveSpaceFullscreen else {
+        guard !appState.activeSpace.isFullscreen else {
             MenuBarOverlayPanel.logger.debug("Active space is fullscreen. \(actionMessage, privacy: .public)")
-            return nil
+            return false
         }
-        let owningDisplay = owningScreen.displayID
-        guard appState.menuBarManager.hasValidMenuBar(in: windows, for: owningDisplay) else {
+        guard appState.menuBarManager.hasValidMenuBar(in: windows, for: owningScreen.displayID) else {
             MenuBarOverlayPanel.logger.debug("No valid menu bar found. \(actionMessage, privacy: .public)")
-            return nil
+            return false
         }
-        return owningDisplay
+        return true
     }
 
     /// Stores the frame of the menu bar's application menu.
-    private func updateApplicationMenuFrame(for display: CGDirectDisplayID) {
+    private func updateApplicationMenuFrame(for screen: NSScreen) {
         guard
             let menuBarManager = appState?.menuBarManager,
             !menuBarManager.isMenuBarHiddenBySystem
         else {
             return
         }
-        applicationMenuFrame = menuBarManager.getApplicationMenuFrame(for: display)
+        applicationMenuFrame = screen.getApplicationMenuFrame()
     }
 
     /// Stores the area of the desktop wallpaper that is under the menu bar
@@ -299,19 +298,19 @@ final class MenuBarOverlayPanel: NSPanel {
         else {
             return
         }
-        let wallpaper = ScreenCapture.captureWindow(wallpaperWindow.windowID, screenBounds: menuBarWindow.bounds)
+        let wallpaper = ScreenCapture.captureWindow(with: wallpaperWindow.windowID, screenBounds: menuBarWindow.bounds)
         if desktopWallpaper?.dataProvider?.data != wallpaper?.dataProvider?.data {
             desktopWallpaper = wallpaper
         }
     }
 
     /// Updates the panel to prepare for display.
-    private func performUpdates(for flags: Set<UpdateFlag>, windows: [WindowInfo], display: CGDirectDisplayID) {
+    private func performUpdates(for flags: Set<UpdateFlag>, windows: [WindowInfo], screen: NSScreen) {
         if flags.contains(.applicationMenuFrame) {
-            updateApplicationMenuFrame(for: display)
+            updateApplicationMenuFrame(for: screen)
         }
         if flags.contains(.desktopWallpaper) {
-            updateDesktopWallpaper(for: display, with: windows)
+            updateDesktopWallpaper(for: screen.displayID, with: windows)
         }
     }
 
@@ -616,7 +615,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
     /// Draws the tint defined by the given configuration in the given rectangle.
     private func drawTint(in rect: CGRect) {
         switch configuration.tintKind {
-        case .none:
+        case .noTint:
             break
         case .solid:
             if let tintColor = NSColor(cgColor: configuration.tintColor)?.withAlphaComponent(0.2) {
@@ -624,7 +623,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 rect.fill()
             }
         case .gradient:
-            if let tintGradient = configuration.tintGradient.withAlphaComponent(0.2).nsGradient {
+            if let tintGradient = configuration.tintGradient.withAlpha(0.2).nsGradient(using: .displayP3) {
                 tintGradient.draw(in: rect, angle: 0)
             }
         }
@@ -641,7 +640,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
         let drawableBounds = getDrawableBounds()
 
         let shapePath = switch fullConfiguration.shapeKind {
-        case .none:
+        case .noShape:
             NSBezierPath(rect: drawableBounds)
         case .full:
             pathForFullShape(
@@ -662,7 +661,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
         var hasBorder = false
 
         switch fullConfiguration.shapeKind {
-        case .none:
+        case .noShape:
             if configuration.hasShadow {
                 let gradient = NSGradient(
                     colors: [
@@ -743,7 +742,7 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 }
 
                 let borderPath = switch fullConfiguration.shapeKind {
-                case .none:
+                case .noShape:
                     NSBezierPath(rect: drawableBounds)
                 case .full:
                     pathForFullShape(

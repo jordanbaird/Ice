@@ -32,7 +32,7 @@ struct CGSSpaceMask: OptionSet {
     static let allVisibleSpacesMask: CGSSpaceMask = [.visible, .allSpacesMask]
 }
 
-// MARK: - CGSConnection Functions
+// MARK: - CGSConnection
 
 @_silgen_name("CGSMainConnectionID")
 func CGSMainConnectionID() -> CGSConnectionID
@@ -53,7 +53,12 @@ func CGSSetConnectionProperty(
     _ value: CFTypeRef
 ) -> CGError
 
-// MARK: - CGSEvent Functions
+// MARK: - CGSDisplay
+
+@_silgen_name("CGSCopyActiveMenuBarDisplayIdentifier")
+func CGSCopyActiveMenuBarDisplayIdentifier(_ cid: CGSConnectionID) -> Unmanaged<CFString>?
+
+// MARK: - CGSEvent
 
 @_silgen_name("CGSEventIsAppUnresponsive")
 func CGSEventIsAppUnresponsive(
@@ -61,7 +66,13 @@ func CGSEventIsAppUnresponsive(
     _ psn: inout ProcessSerialNumber
 ) -> Bool
 
-// MARK: - CGSSpace Functions
+@_silgen_name("CGSEventSetAppIsUnresponsiveNotificationTimeout")
+func CGSEventSetAppIsUnresponsiveNotificationTimeout(
+    _ cid: CGSConnectionID,
+    _ timeout: Double
+) -> CGError
+
+// MARK: - CGSSpace
 
 @_silgen_name("CGSGetActiveSpace")
 func CGSGetActiveSpace(_ cid: CGSConnectionID) -> CGSSpaceID
@@ -85,7 +96,21 @@ func CGSSpaceGetType(
     _ sid: CGSSpaceID
 ) -> CGSSpaceType
 
-// MARK: - CGSWindow Functions
+// MARK: - CGSWindow
+
+@_silgen_name("CGSGetWindowCount")
+func CGSGetWindowCount(
+    _ cid: CGSConnectionID,
+    _ targetCID: CGSConnectionID,
+    _ outCount: inout Int32
+) -> CGError
+
+@_silgen_name("CGSGetOnScreenWindowCount")
+func CGSGetOnScreenWindowCount(
+    _ cid: CGSConnectionID,
+    _ targetCID: CGSConnectionID,
+    _ outCount: inout Int32
+) -> CGError
 
 @_silgen_name("CGSGetWindowList")
 func CGSGetWindowList(
@@ -114,20 +139,6 @@ func CGSGetProcessMenuBarWindowList(
     _ outCount: inout Int32
 ) -> CGError
 
-@_silgen_name("CGSGetWindowCount")
-func CGSGetWindowCount(
-    _ cid: CGSConnectionID,
-    _ targetCID: CGSConnectionID,
-    _ outCount: inout Int32
-) -> CGError
-
-@_silgen_name("CGSGetOnScreenWindowCount")
-func CGSGetOnScreenWindowCount(
-    _ cid: CGSConnectionID,
-    _ targetCID: CGSConnectionID,
-    _ outCount: inout Int32
-) -> CGError
-
 @_silgen_name("CGSGetWindowBounds")
 func CGSGetWindowBounds(
     _ cid: CGSConnectionID,
@@ -142,7 +153,7 @@ func CGSGetWindowLevel(
     _ outLevel: inout CGWindowLevel
 ) -> CGError
 
-// MARK: - PSN/PID Functions
+// MARK: - ProcessSerialNumber
 
 @_silgen_name("GetProcessForPID")
 func GetProcessForPID(

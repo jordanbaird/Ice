@@ -74,24 +74,27 @@ struct SectionedList<ItemID: Hashable>: View {
             }
         }
         .scrollIndicatorsFlash(trigger: scrollIndicatorsFlashTrigger)
-        .onKeyDown(key: .downArrow) {
+        .onKeyDown(key: .downArrow, isEnabled: selection != nil) {
             DispatchQueue.main.async {
                 if let nextSelectableItem {
                     selection = nextSelectableItem.id
                 }
             }
+            return .handled
         }
-        .onKeyDown(key: .upArrow) {
+        .onKeyDown(key: .upArrow, isEnabled: selection != nil) {
             DispatchQueue.main.async {
                 if let previousSelectableItem {
                     selection = previousSelectableItem.id
                 }
             }
+            return .handled
         }
-        .onKeyDown(key: .return) {
+        .onKeyDown(key: .return, isEnabled: selection != nil) {
             DispatchQueue.main.async {
                 items.first { $0.id == selection }?.action?()
             }
+            return .handled
         }
         .task {
             scrollIndicatorsFlashTrigger += 1
@@ -144,7 +147,7 @@ struct SectionedList<ItemID: Hashable>: View {
 extension SectionedList {
     /// Sets the padding of the sectioned list's content.
     func contentPadding(_ insets: EdgeInsets) -> SectionedList {
-        with(self) { copy in
+        withMutableCopy(of: self) { copy in
             copy.contentPadding = insets
         }
     }
@@ -192,7 +195,7 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
             environment.colorScheme == .light,
             selection == item.id
         {
-            Color.primary.resolve(in: with(environment) { $0.colorScheme = .dark })
+            Color.primary.resolve(in: withMutableCopy(of: environment) { $0.colorScheme = .dark })
         } else {
             Color.primary.resolve(in: environment)
         }

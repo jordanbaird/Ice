@@ -10,8 +10,8 @@ import SwiftUI
 /// The model for app-wide state.
 @MainActor
 final class AppState: ObservableObject {
-    /// A Boolean value that indicates whether the active space is fullscreen.
-    @Published private(set) var isActiveSpaceFullscreen = Bridging.isActiveSpaceFullscreen()
+    /// Information for the active space.
+    @Published private(set) var activeSpace = SpaceInfo.activeSpace()
 
     /// A Boolean value that indicates whether the user is dragging a menu bar item.
     @Published private(set) var isDraggingMenuBarItem = false
@@ -101,30 +101,31 @@ final class AppState: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        Publishers.Merge3(
-            NSWorkspace.shared.notificationCenter
-                .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-                .replace(with: ()),
-            // Frontmost application change can indicate a space change from one display to
-            // another, which gets ignored by NSWorkspace.activeSpaceDidChangeNotification.
-            NSWorkspace.shared
-                .publisher(for: \.frontmostApplication)
-                .replace(with: ()),
-            // Clicking into a fullscreen space from another space is also ignored.
-            UniversalEventMonitor
-                .publisher(for: .leftMouseDown)
-                .delay(for: 0.1, scheduler: DispatchQueue.main)
-                .replace(with: ())
-        )
-        .receive(on: DispatchQueue.main)
-        .replace {
-            Bridging.isActiveSpaceFullscreen()
-        }
-        .removeDuplicates()
-        .sink { [weak self] isFullscreen in
-            self?.isActiveSpaceFullscreen = isFullscreen
-        }
-        .store(in: &c)
+        // Listen for changes to the active space. We need handle some special
+        // cases that NSWorkspace.shared.notificationCenter seems to miss.
+        //
+        // Special cases:
+        //
+        // * Changes to the frontmost application -- may indicate that a space
+        //   on another display was made active.
+        // * Left mouse down -- user may have clicked into a fullscreen space.
+        //   To account for variations in system timing, we publish a value
+        //   immediately upon receipt of the event, then publish another value
+        //   after a delay.
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .discardMerge(NSWorkspace.shared.publisher(for: \.frontmostApplication))
+            .discardMerge(EventMonitor.publish(events: .leftMouseDown, scope: .universal).flatMap { _ in
+                let initial = Just(())
+                let delayed = initial.delay(for: 0.1, scheduler: DispatchQueue.main)
+                return Publishers.Merge(initial, delayed)
+            })
+            .replace { Bridging.getActiveSpaceID() }
+            .removeDuplicates()
+            .sink { [weak self] spaceID in
+                self?.activeSpace = SpaceInfo(spaceID: spaceID)
+            }
+            .store(in: &c)
 
         NSWorkspace.shared.publisher(for: \.frontmostApplication)
             .receive(on: DispatchQueue.main)
@@ -136,9 +137,9 @@ final class AppState: ObservableObject {
             .store(in: &c)
 
         publisherForWindow(.settings)
-            .flatMap { $0.publisher } // Short circuit if nil.
-            .flatMap { $0.publisher(for: \.isVisible) }
+            .publisher(for: \.isVisible)
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
+            .replaceNil(with: false)
             .removeDuplicates()
             .sink { [weak self] isPresented in
                 self?.navigationState.isSettingsPresented = isPresented
@@ -236,39 +237,28 @@ final class AppState: ObservableObject {
     }
 
     /// Activates the app and sets its activation policy.
-    func activate(withPolicy policy: NSApplication.ActivationPolicy) {
+    func activate(withPolicy policy: NSApplication.ActivationPolicy? = nil) {
+        if let policy {
+            NSApp.setActivationPolicy(policy)
+        }
 
-        // What follows is NOT at all straightforward, but it seems to
-        // make app activation (mostly) reliable after changes made in
-        // macOS 14.
+        // NSApplication.activate(ignoringOtherApps:) is deprecated, with
+        // no suitable alternative for explicit activation, so we're using
+        // NSRunningApplication for now.
 
-        let current = NSRunningApplication.current
-        let workspace = NSWorkspace.shared
-
-        NSApp.setActivationPolicy(policy)
-        NSApp.yieldActivation(to: current)
-
-        guard var frontmost = workspace.frontmostApplication else {
-            current.activate()
+        guard let frontmost = NSWorkspace.shared.frontmostApplication else {
+            NSRunningApplication.current.activate()
             return
         }
-
-        if
-            current.isActive,
-            let next = workspace.menuBarOwningApplication,
-            !next.isActive
-        {
-            next.activate(from: frontmost)
-            frontmost = next
-        }
-
-        current.activate(from: frontmost)
+        NSRunningApplication.current.activate(from: frontmost)
     }
 
     /// Deactivates the app and sets its activation policy.
-    func deactivate(withPolicy policy: NSApplication.ActivationPolicy) {
+    func deactivate(withPolicy policy: NSApplication.ActivationPolicy? = nil) {
+        if let policy {
+            NSApp.setActivationPolicy(policy)
+        }
         NSApp.deactivate()
-        NSApp.setActivationPolicy(policy)
     }
 }
 

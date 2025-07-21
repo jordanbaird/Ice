@@ -47,7 +47,7 @@ final class MenuBarSection {
 
     /// An event monitor that handles starting the rehide timer when the mouse
     /// is outside of the menu bar.
-    private var rehideMonitor: UniversalEventMonitor?
+    private var rehideMonitor: EventMonitor?
 
     /// A Boolean value that indicates whether the Ice Bar should be used.
     private var useIceBar: Bool {
@@ -64,7 +64,7 @@ final class MenuBarSection {
         guard let appState else {
             return nil
         }
-        if appState.isActiveSpaceFullscreen {
+        if appState.activeSpace.isFullscreen {
             return NSScreen.screenWithMouse ?? NSScreen.main
         } else {
             return NSScreen.main
@@ -158,14 +158,13 @@ final class MenuBarSection {
             }
 
             if let screen = screenForIceBar {
-                Task(timeout: .seconds(3)) {
+                Task {
                     switch name {
                     case .visible, .hidden:
                         await menuBarManager.iceBarPanel.show(section: .hidden, on: screen)
                     case .alwaysHidden:
                         await menuBarManager.iceBarPanel.show(section: .alwaysHidden, on: screen)
                     }
-                    try Task.checkCancellation()
                     startRehideChecks()
                 }
             }
@@ -230,7 +229,7 @@ final class MenuBarSection {
             return
         }
 
-        rehideMonitor = UniversalEventMonitor(mask: .mouseMoved) { [weak self] event in
+        rehideMonitor = EventMonitor.universal(for: .mouseMoved) { [weak self] event in
             guard
                 let self,
                 let screen = NSScreen.main

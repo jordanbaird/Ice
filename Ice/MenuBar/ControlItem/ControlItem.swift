@@ -90,6 +90,7 @@ final class ControlItem {
 
                 button.target = controlItem
                 button.action = #selector(controlItem.performAction)
+                button.sendAction(on: [.leftMouseDown, .rightMouseUp])
             } else {
                 self.constraint = nil
             }
@@ -277,23 +278,6 @@ final class ControlItem {
                 }
                 .store(in: &c)
 
-            appState.settings.general.$useIceBar
-                .receive(on: DispatchQueue.main)
-                .sink { [weak self] useIceBar in
-                    guard
-                        let self,
-                        let button = statusItem.button
-                    else {
-                        return
-                    }
-                    if useIceBar {
-                        button.sendAction(on: [.leftMouseDown, .rightMouseUp])
-                    } else {
-                        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-                    }
-                }
-                .store(in: &c)
-
             if identifier == .visible {
                 appState.settings.general.$showIceIcon
                     .combineLatest(statusItem.publisher(for: \.isVisible))
@@ -462,7 +446,7 @@ final class ControlItem {
             statusItem.length = shouldShow ? 3 : 0
 
             if let window {
-                let size = with(window.frame.size) { $0.width = shouldShow ? 3 : 1 }
+                let size = withMutableCopy(of: window.frame.size) { $0.width = shouldShow ? 3 : 1 }
                 window.setContentSize(size)
             }
         }
@@ -505,7 +489,7 @@ final class ControlItem {
     /// Performs the control item's action.
     @objc private func performAction() {
         guard
-            let appState,
+            let menuBarManager = appState?.menuBarManager,
             let event = NSApp.currentEvent
         else {
             return
@@ -513,29 +497,32 @@ final class ControlItem {
 
         switch event.type {
         case .leftMouseDown, .leftMouseUp:
-            if NSEvent.modifierFlags == .control {
-                showMenu()
-                return
+            let modifierFlags = NSEvent.modifierFlags
+
+            // Running this from a Task seems to improve the visual
+            // responsiveness of the status item's button.
+            Task {
+                if modifierFlags == .control {
+                    showMenu()
+                    return
+                }
+
+                if
+                    modifierFlags == .option,
+                    let section = menuBarManager.section(withName: .alwaysHidden),
+                    section.isEnabled
+                {
+                    section.toggle()
+                    return
+                }
+
+                if
+                    let section = menuBarManager.section(withName: sectionName),
+                    section.isEnabled
+                {
+                    section.toggle()
+                }
             }
-
-            let targetSection: MenuBarSection
-
-            if
-                NSEvent.modifierFlags == .option,
-                let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden),
-                alwaysHiddenSection.isEnabled
-            {
-                targetSection = alwaysHiddenSection
-            } else if
-                let section = appState.menuBarManager.section(withName: sectionName),
-                section.isEnabled
-            {
-                targetSection = section
-            } else {
-                return
-            }
-
-            targetSection.toggle()
         case .rightMouseUp:
             showMenu()
         default:

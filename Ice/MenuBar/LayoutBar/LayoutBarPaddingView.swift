@@ -11,17 +11,6 @@ import OSLog
 final class LayoutBarPaddingView: NSView {
     private let container: LayoutBarContainer
 
-    /// The section whose items are represented.
-    var section: MenuBarSection {
-        container.section
-    }
-
-    /// The amount of space between each arranged view.
-    var spacing: CGFloat {
-        get { container.spacing }
-        set { container.spacing = newValue }
-    }
-
     /// The layout view's arranged views.
     ///
     /// The views are laid out from left to right in the order that they
@@ -37,9 +26,8 @@ final class LayoutBarPaddingView: NSView {
     /// - Parameters:
     ///   - appState: The shared app state instance.
     ///   - section: The section whose items are represented.
-    ///   - spacing: The amount of space between each arranged view.
-    init(appState: AppState, section: MenuBarSection, spacing: CGFloat) {
-        self.container = LayoutBarContainer(appState: appState, section: section, spacing: spacing)
+    init(appState: AppState, section: MenuBarSection.Name) {
+        self.container = LayoutBarContainer(appState: appState, section: section)
 
         super.init(frame: .zero)
         addSubview(self.container)
@@ -102,7 +90,7 @@ final class LayoutBarPaddingView: NSView {
                     // dragging source is the only view in the layout bar, so we
                     // need to find a target item
                     let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
-                    let targetItem: MenuBarItem? = switch section.name {
+                    let targetItem: MenuBarItem? = switch container.section {
                     case .visible: nil // visible section always has more than 1 item
                     case .hidden: items.first(matching: .hiddenControlItem)
                     case .alwaysHidden: items.first(matching: .alwaysHiddenControlItem)

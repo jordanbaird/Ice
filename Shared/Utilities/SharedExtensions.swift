@@ -28,6 +28,24 @@ extension CGError {
     }
 }
 
+// MARK: - CGPoint
+
+extension CGPoint {
+    /// Returns the distance between this point and another point.
+    func distance(to other: CGPoint) -> CGFloat {
+        hypot(x - other.x, y - other.y)
+    }
+}
+
+// MARK: - CGRect
+
+extension CGRect {
+    /// The center point of the rectangle.
+    var center: CGPoint {
+        CGPoint(x: midX, y: midY)
+    }
+}
+
 // MARK: - DispatchQueue
 
 extension DispatchQueue {

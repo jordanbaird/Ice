@@ -47,6 +47,10 @@ final class MenuBarManager: ObservableObject {
     /// The panel that contains the menu bar search interface.
     let searchPanel = MenuBarSearchPanel()
 
+    /// The panel that contains a portable version of the menu bar
+    /// appearance editor interface
+    let appearanceEditorPanel = MenuBarAppearanceEditorPanel()
+
     /// The managed sections in the menu bar.
     let sections = [
         MenuBarSection(name: .visible),
@@ -72,6 +76,7 @@ final class MenuBarManager: ObservableObject {
         configureCancellables()
         iceBarPanel.performSetup(with: appState)
         searchPanel.performSetup(with: appState)
+        appearanceEditorPanel.performSetup(with: appState)
         for section in sections {
             section.performSetup(with: appState)
         }
@@ -172,7 +177,7 @@ final class MenuBarManager: ObservableObject {
                     appState.settings.advanced.hideApplicationMenus,
                     !appState.settings.general.useIceBar,
                     !isMenuBarHiddenBySystem,
-                    !appState.isActiveSpaceFullscreen,
+                    !appState.activeSpace.isFullscreen,
                     !appState.navigationState.isSettingsPresented
                 else {
                     return
@@ -183,16 +188,14 @@ final class MenuBarManager: ObservableObject {
                         return
                     }
 
-                    let displayID = screen.displayID
-
                     // Get the application menu frame for the display.
-                    guard let applicationMenuFrame = getApplicationMenuFrame(for: displayID) else {
+                    guard let applicationMenuFrame = screen.getApplicationMenuFrame() else {
                         return
                     }
 
                     Task {
                         // Get all items.
-                        var items = await MenuBarItem.getMenuBarItems(on: displayID, option: .activeSpace)
+                        var items = await MenuBarItem.getMenuBarItems(on: screen.displayID, option: .activeSpace)
 
                         // Filter the items down according to the currently enabled/shown sections.
                         if
@@ -240,54 +243,28 @@ final class MenuBarManager: ObservableObject {
             return
         }
 
-        let image: CGImage?
-        let source: MenuBarAverageColorInfo.Source
-
         let windows = WindowInfo.createWindows(option: .onScreen)
         let displayID = screen.displayID
 
-        if #available(macOS 26.0, *) {
-            if let window = WindowInfo.wallpaperWindow(from: windows, for: displayID) {
-                var bounds = window.bounds
-                bounds.size.height = 1
-                bounds.origin.x = bounds.midX
-                bounds.size.width /= 2
-
-                image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
-                source = .desktopWallpaper
-            } else {
-                return
-            }
-        } else {
-            if let window = WindowInfo.menuBarWindow(from: windows, for: displayID) {
-                var bounds = window.bounds
-                bounds.size.height = 1
-                bounds.origin.x = bounds.maxX - (bounds.width / 4)
-                bounds.size.width /= 4
-
-                image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
-                source = .menuBarWindow
-            } else if let window = WindowInfo.wallpaperWindow(from: windows, for: displayID) {
-                var bounds = window.bounds
-                bounds.size.height = 1
-                bounds.origin.x = bounds.midX
-                bounds.size.width /= 2
-
-                image = ScreenCapture.captureWindow(window.windowID, screenBounds: bounds, option: .nominalResolution)
-                source = .desktopWallpaper
-            } else {
-                return
-            }
-        }
-
         guard
-            let image,
-            let color = image.averageColor(makeOpaque: true)
+            let menuBarWindow = WindowInfo.menuBarWindow(from: windows, for: displayID),
+            let wallpaperWindow = WindowInfo.wallpaperWindow(from: windows, for: displayID)
         else {
             return
         }
 
-        let info = MenuBarAverageColorInfo(color: color, source: source)
+        guard
+            let image = ScreenCapture.captureWindows(
+                with: [menuBarWindow.windowID, wallpaperWindow.windowID],
+                screenBounds: withMutableCopy(of: wallpaperWindow.bounds) { $0.size.height = 1 },
+                option: .nominalResolution
+            ),
+            let color = image.averageColor(option: .ignoreAlpha)
+        else {
+            return
+        }
+
+        let info = MenuBarAverageColorInfo(color: color, source: .menuBarWindow)
 
         if averageColorInfo != info {
             averageColorInfo = info
@@ -308,57 +285,17 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
-    /// Returns the frame of the application menu for the given display.
-    func getApplicationMenuFrame(for displayID: CGDirectDisplayID) -> CGRect? {
-        let displayBounds = CGDisplayBounds(displayID)
-
-        guard
-            let menuBar = try? systemWideElement.elementAtPosition(displayBounds.origin),
-            let role = try? menuBar.role(),
-            role == .menuBar
-        else {
-            return nil
-        }
-
-        let applicationMenuFrame = menuBar.children.reduce(CGRect.null) { result, item in
-            guard item.isEnabled, let frame = item.frame else {
-                return result
-            }
-            return result.union(frame)
-        }
-
-        if applicationMenuFrame.width <= 0 {
-            return nil
-        }
-
-        // The Accessibility API returns the menu bar for the active screen, regardless of the
-        // display origin used. This workaround prevents an incorrect frame from being returned
-        // for inactive displays in multi-display setups where one display has a notch.
-        if
-            let mainScreen = NSScreen.main,
-            let thisScreen = NSScreen.screens.first(where: { $0.displayID == displayID }),
-            thisScreen != mainScreen,
-            let notchedScreen = NSScreen.screens.first(where: { $0.hasNotch }),
-            let leftArea = notchedScreen.auxiliaryTopLeftArea,
-            applicationMenuFrame.width >= leftArea.maxX
-        {
-            return nil
-        }
-
-        return applicationMenuFrame
-    }
-
     /// Shows the secondary context menu.
     func showSecondaryContextMenu(at point: CGPoint) {
         let menu = NSMenu(title: "Ice")
 
-        let editItem = NSMenuItem(
+        let editAppearanceItem = NSMenuItem(
             title: "Edit Menu Bar Appearance…",
-            action: #selector(showAppearanceEditorPopover),
+            action: #selector(showAppearanceEditorPanel),
             keyEquivalent: ""
         )
-        editItem.target = self
-        menu.addItem(editItem)
+        editAppearanceItem.target = self
+        menu.addItem(editAppearanceItem)
 
         menu.addItem(.separator())
 
@@ -403,15 +340,12 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
-    /// Shows the appearance editor popover, centered under the menu bar.
-    @objc private func showAppearanceEditorPopover() {
-        guard let appState else {
-            logger.error("Error showing appearance editor popover: Missing app state")
+    /// Shows the appearance editor panel.
+    @objc private func showAppearanceEditorPanel() {
+        guard let screen = MenuBarAppearanceEditorPanel.defaultScreen else {
             return
         }
-        let panel = MenuBarAppearanceEditorPanel(appState: appState)
-        panel.orderFrontRegardless()
-        panel.showAppearanceEditorPopover()
+        appearanceEditorPanel.show(on: screen)
     }
 
     /// Returns the menu bar section with the given name.
@@ -430,13 +364,28 @@ extension MenuBarManager: BindingExposable { }
 
 // MARK: - MenuBarAverageColorInfo
 
-/// Information for the menu bar's average color.
+/// Information for the average color of the menu bar.
 struct MenuBarAverageColorInfo: Hashable {
+    /// Sources used to compute the average color of the menu bar.
     enum Source: Hashable {
         case menuBarWindow
         case desktopWallpaper
     }
 
+    /// The average color of the menu bar
     var color: CGColor
+
+    /// The source used to compute the color.
     var source: Source
+
+    /// The brightness of the menu bar's color.
+    var brightness: CGFloat { color.brightness ?? 0 }
+
+    /// A Boolean value that indicates whether the menu bar has a
+    /// bright color.
+    ///
+    /// This value is `true` if ``brightness`` is above `0.67`. At
+    /// the time of writing, if this value is `true`, the menu bar
+    /// draws its items with a darker appearance.
+    var isBright: Bool { brightness > 0.67 }
 }

@@ -71,15 +71,30 @@ extension CGImage {
 
     // MARK: Average Color
 
+    /// Options that effect how colors are processed when computing
+    /// an average color.
+    struct ColorAverageOption: OptionSet {
+        let rawValue: Int
+
+        /// Includes the alpha component in the resulting average.
+        static let ignoreAlpha = ColorAverageOption(rawValue: 1 << 0)
+    }
+
     /// Computes and returns the average color of the image.
     ///
     /// - Parameters:
-    ///   - alphaThreshold: An alpha value below which pixels should be ignored. Pixels with
-    ///     an alpha component greater than or equal to this value contribute to the average.
-    ///   - makeOpaque: A Boolean value that indicates whether the resulting color should be
-    ///     made opaque, regardless of the alpha content of the image.
-    func averageColor(alphaThreshold: CGFloat = 0.5, makeOpaque: Bool = false) -> CGColor? {
-        func createPixelData(width: Int, height: Int) -> [UInt32]? {
+    ///   - colorSpace: The color space used to process the colors in the image.
+    ///     The returned color also uses this color space. Must be an RGB color
+    ///     space, or this parameter is ignored.
+    ///   - alphaThreshold: An alpha value below which pixels should be ignored.
+    ///     Pixels with an alpha component greater than or equal to this value
+    ///     contribute to the average.
+    ///   - option: Options for computing the color.
+    func averageColor(using colorSpace: CGColorSpace? = nil, alphaThreshold: CGFloat = 0.5, option: ColorAverageOption = []) -> CGColor? {
+        func createPixelData(width: Int, height: Int, colorSpace: CGColorSpace) -> [UInt32]? {
+            guard width > 0 && height > 0 else {
+                return nil
+            }
             var data = [UInt32](repeating: 0, count: width * height)
             guard let context = CGContext(
                 data: &data,
@@ -87,8 +102,8 @@ extension CGImage {
                 height: height,
                 bitsPerComponent: 8,
                 bytesPerRow: width * 4,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGImageByteOrderInfo.order32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
+                space: colorSpace,
+                bitmapInfo: CGBitmapInfo(alpha: .premultipliedFirst, byteOrder: .order32Little)
             ) else {
                 return nil
             }
@@ -96,54 +111,70 @@ extension CGImage {
             return data
         }
 
-        func computeComponent(shift: UInt32, pixel: UInt32) -> Int {
-            return Int((pixel >> shift) & 255)
+        func computeComponent(pixel: UInt32, shift: UInt32) -> UInt64 {
+            UInt64((pixel >> shift) & 255)
         }
+
+        let colorSpace: CGColorSpace = {
+            if let colorSpace, colorSpace.model == .rgb {
+                return colorSpace
+            }
+            if let colorSpace = self.colorSpace, colorSpace.model == .rgb {
+                return colorSpace
+            }
+            if let colorSpace = CGColorSpace(name: CGColorSpace.displayP3) {
+                return colorSpace
+            }
+            return CGColorSpaceCreateDeviceRGB()
+        }()
 
         // Resize the image for better performance.
         let width = min(width, 10)
         let height = min(height, 10)
 
-        guard let pixelData = createPixelData(width: width, height: height) else {
+        guard let pixelData = createPixelData(width: width, height: height, colorSpace: colorSpace) else {
             return nil
         }
 
         // Convert the alpha threshold to a valid component for comparison.
-        let alphaThreshold = Int((alphaThreshold.clamped(to: 0...1) * 255).rounded(.toNearestOrAwayFromZero))
+        let alphaThreshold = UInt64((alphaThreshold.clamped(to: 0...1) * 255).rounded(.toNearestOrAwayFromZero))
 
-        var includedPixelCount = width * height
-        var totals = (red: 0, green: 0, blue: 0, alpha: 0)
+        var count = UInt64(width * height)
+        var totals: (r: UInt64, g: UInt64, b: UInt64, a: UInt64) = (0, 0, 0, 0)
 
         for column in 0..<width {
             for row in 0..<height {
                 let pixel = pixelData[(row * width) + column]
 
                 // Check alpha before computing other components.
-                let alphaComponent = computeComponent(shift: 24, pixel: pixel)
+                let alpha = computeComponent(pixel: pixel, shift: 24)
 
-                guard alphaComponent >= alphaThreshold else {
-                    includedPixelCount -= 1 // Don't include this pixel.
+                guard alpha >= alphaThreshold else {
+                    count -= 1 // Don't include this pixel.
                     continue
                 }
 
-                // Add the components to the totals.
-                totals.red += computeComponent(shift: 16, pixel: pixel)
-                totals.green += computeComponent(shift: 8, pixel: pixel)
-                totals.blue += computeComponent(shift: 0, pixel: pixel)
-                totals.alpha += alphaComponent
+                totals.r += computeComponent(pixel: pixel, shift: 16)
+                totals.g += computeComponent(pixel: pixel, shift: 8)
+                totals.b += computeComponent(pixel: pixel, shift: 0)
+                totals.a += alpha
             }
         }
 
-        // Multiply the included pixel count by 255 to convert the components
-        // to their corresponding floating point values.
-        let adjustedPixelCount = CGFloat(includedPixelCount * 255)
+        // Components are currently in integer format (0 to 255), but need
+        // to be converted to floating point (0 to 1). Makes more sense to
+        // scale the count up to match the components, rather than scale
+        // the components down to match the count.
+        let scaledCount = CGFloat(count * 255)
 
-        return CGColor(
-            red: CGFloat(totals.red) / adjustedPixelCount,
-            green: CGFloat(totals.green) / adjustedPixelCount,
-            blue: CGFloat(totals.blue) / adjustedPixelCount,
-            alpha: makeOpaque ? 1 : CGFloat(totals.alpha) / adjustedPixelCount
-        )
+        var components: [CGFloat] = [
+            CGFloat(totals.r) / scaledCount,
+            CGFloat(totals.g) / scaledCount,
+            CGFloat(totals.b) / scaledCount,
+            option.contains(.ignoreAlpha) ? 1 : CGFloat(totals.a) / scaledCount,
+        ]
+
+        return CGColor(colorSpace: colorSpace, components: &components)
     }
 
     // MARK: Trim Transparent Pixels
@@ -301,24 +332,6 @@ extension CGImage {
     }
 }
 
-// MARK: - CGPoint
-
-extension CGPoint {
-    /// Returns the distance between this point and another point.
-    func distance(to other: CGPoint) -> CGFloat {
-        hypot(x - other.x, y - other.y)
-    }
-}
-
-// MARK: - CGRect
-
-extension CGRect {
-    /// The center point of the rectangle.
-    var center: CGPoint {
-        CGPoint(x: midX, y: midY)
-    }
-}
-
 // MARK: - Collection where Element == MenuBarItem
 
 extension Collection where Element == MenuBarItem {
@@ -332,13 +345,27 @@ extension Collection where Element == MenuBarItem {
 // MARK: - Comparable
 
 extension Comparable {
-    /// Returns a copy of this value that has been clamped within the bounds
-    /// of the given limiting range.
+    /// Clamps this value to the given limiting range.
     ///
-    /// - Parameter limits: A closed range within which to clamp this value.
-    func clamped(to limits: ClosedRange<Self>) -> Self {
-        min(max(self, limits.lowerBound), limits.upperBound)
+    /// - Parameter limits: A range of values to clamp this value to.
+    mutating func clamp(to limits: ClosedRange<Self>) {
+        self = min(max(self, limits.lowerBound), limits.upperBound)
     }
+
+    /// Returns a copy of this value, clamped to the given limiting
+    /// range.
+    ///
+    /// - Parameter limits: A range of values to clamp the copy to.
+    func clamped(to limits: ClosedRange<Self>) -> Self {
+        withMutableCopy(of: self) { $0.clamp(to: limits) }
+    }
+}
+
+// MARK: - DistributedNotificationCenter
+
+extension DistributedNotificationCenter {
+    /// A notification posted whenever the system-wide interface theme changes.
+    static let interfaceThemeChangedNotification = Notification.Name("AppleInterfaceThemeChangedNotification")
 }
 
 // MARK: - EdgeInsets
@@ -466,6 +493,45 @@ extension NSScreen {
         let menuBarWindow = WindowInfo.menuBarWindow(for: displayID)
         return menuBarWindow?.bounds.height
     }
+
+    /// Returns the frame of the application menu on this screen.
+    func getApplicationMenuFrame() -> CGRect? {
+        let displayBounds = CGDisplayBounds(displayID)
+
+        guard
+            let menuBar = try? systemWideElement.elementAtPosition(displayBounds.origin),
+            let role = try? menuBar.role(),
+            role == .menuBar
+        else {
+            return nil
+        }
+
+        let applicationMenuFrame = menuBar.children.reduce(CGRect.null) { result, child in
+            guard child.isEnabled, let childFrame = child.frame else {
+                return result
+            }
+            return result.union(childFrame)
+        }
+
+        if applicationMenuFrame.width <= 0 {
+            return nil
+        }
+
+        // The Accessibility API returns the menu bar for the active screen, regardless of the
+        // display origin used. This workaround prevents an incorrect frame from being returned
+        // for inactive displays in multi-display setups where one display has a notch.
+        if
+            let mainScreen = NSScreen.main,
+            self != mainScreen,
+            let notchedScreen = NSScreen.screens.first(where: { $0.hasNotch }),
+            let leftArea = notchedScreen.auxiliaryTopLeftArea,
+            applicationMenuFrame.width >= leftArea.maxX
+        {
+            return nil
+        }
+
+        return applicationMenuFrame
+    }
 }
 
 // MARK: - NSStatusItem
@@ -503,12 +569,57 @@ extension Publisher {
         replace { output }
     }
 
+    func removeNil<T>() -> Publishers.CompactMap<Self, T> where Output == T? {
+        compactMap { $0 }
+    }
+
     func mergeReplace<P: Publisher, T>(_ other: P, with output: T) -> Publishers.Merge<Publishers.Map<Self, T>, Publishers.Map<P, T>> {
         replace(with: output).merge(with: other.replace(with: output))
     }
 
     func mergeReplace<P: Publisher, T>(_ other: P, transform: @escaping () -> T) -> Publishers.Merge<Publishers.Map<Self, T>, Publishers.Map<P, T>> {
         replace(transform).merge(with: other.replace(transform))
+    }
+
+    func discardMerge<P: Publisher>(_ other: P) -> Publishers.Merge<Publishers.Map<Self, Void>, Publishers.Map<P, Void>> {
+        mergeReplace(other, with: ())
+    }
+
+    func removeDuplicates<each T: Equatable>() -> Publishers.RemoveDuplicates<Self> where Output == (repeat each T) {
+        removeDuplicates { lhs, rhs in
+            for (left, right) in repeat (each lhs, each rhs) {
+                guard left == right else { return false }
+            }
+            return true
+        }
+    }
+}
+
+extension Publisher {
+    func publisher<Value>(
+        for keyPath: KeyPath<Output, Value>,
+        options: NSKeyValueObservingOptions = [.initial, .new]
+    ) -> some Publisher<Value, Failure> where Output: NSObject {
+        flatMap { $0.publisher(for: keyPath, options: options) }
+    }
+
+    func publisher<Wrapped: NSObject, Value>(
+        for keyPath: KeyPath<Wrapped, Value>,
+        options: NSKeyValueObservingOptions = [.initial, .new]
+    ) -> some Publisher<Value?, Failure> where Output == Wrapped? {
+        flatMap { $0.publisher }
+            .flatMap { $0.publisher(for: keyPath, options: options) }
+            .map { $0 as Value? }
+            .replaceEmpty(with: nil)
+    }
+
+    func publisher<Wrapped: NSObject, Value>(
+        for keyPath: KeyPath<Wrapped, Value?>,
+        options: NSKeyValueObservingOptions = [.initial, .new]
+    ) -> some Publisher<Value?, Failure> where Output == Wrapped? {
+        flatMap { $0.publisher }
+            .flatMap { $0.publisher(for: keyPath, options: options) }
+            .replaceEmpty(with: nil)
     }
 }
 

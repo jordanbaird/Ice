@@ -1,5 +1,5 @@
 //
-//  UpdatesManager.swift
+//  Updates.swift
 //  Ice
 //
 

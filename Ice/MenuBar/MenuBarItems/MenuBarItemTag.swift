@@ -4,6 +4,7 @@
 //
 
 import CoreGraphics
+import Foundation
 
 // MARK: - MenuBarItemTag
 
@@ -35,7 +36,7 @@ struct MenuBarItemTag: Hashable, CustomStringConvertible {
 
     /// A string representation of the tag.
     var stringValue: String {
-        var result = namespace.rawValue
+        var result = namespace.stringValue
         if !title.isEmpty {
             result.append(":\(title)")
         }
@@ -176,101 +177,40 @@ extension MenuBarItemTag {
     static let screenCaptureUI = MenuBarItemTag(namespace: .screenCaptureUI, title: "Item-0")
 }
 
-// MARK: MenuBarItemTag: Codable
-extension MenuBarItemTag: Codable {
-    init(from decoder: any Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let string = try container.decode(String.self)
-        let components = string.components(separatedBy: ":")
-        let count = components.count
-        if count > 2 {
-            self.namespace = Namespace(components[0])
-            self.title = components[1...].joined(separator: ":")
-        } else if count == 2 {
-            self.namespace = Namespace(components[0])
-            self.title = components[1]
-        } else if count == 1 {
-            self.namespace = Namespace(components[0])
-            self.title = ""
-        } else {
-            throw DecodingError.dataCorrupted(
-                DecodingError.Context(
-                    codingPath: container.codingPath,
-                    debugDescription: "Missing namespace component"
-                )
-            )
-        }
-    }
-
-    func encode(to encoder: any Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(stringValue)
-    }
-}
-
 // MARK: - MenuBarItemTag.Namespace
 
 extension MenuBarItemTag {
     /// A type that represents a menu bar item namespace.
-    struct Namespace: Codable, Hashable, RawRepresentable, CustomStringConvertible {
-        /// Private representation of a namespace.
-        private enum Kind {
-            case null
-            case rawValue(String)
-        }
+    enum Namespace: Hashable, CustomStringConvertible {
+        /// The null namespace.
+        case null
+        /// A namespace represented by string.
+        case string(String)
+        /// A namespace represented by uuid.
+        case uuid(UUID)
 
-        /// The private representation of the namespace.
-        private let kind: Kind
-
-        /// The namespace's raw value.
-        var rawValue: String {
-            switch kind {
-            case .null: "<null>"
-            case .rawValue(let rawValue): rawValue
+        /// The namespace's string value.
+        var stringValue: String {
+            switch self {
+            case .null: "null"
+            case .string(let string): string
+            case .uuid(let uuid): uuid.uuidString
             }
         }
 
         /// A textual representation of the namespace.
         var description: String {
-            rawValue
-        }
-
-        /// An Optional representation of the namespace that converts
-        /// the ``null`` namespace to `nil`.
-        var optional: Namespace? {
-            switch kind {
-            case .null: nil
-            case .rawValue: self
-            }
-        }
-
-        /// Creates a namespace with the given private representation.
-        private init(kind: Kind) {
-            self.kind = kind
-        }
-
-        /// Creates a namespace with the given raw value.
-        ///
-        /// - Parameter rawValue: The raw value of the namespace.
-        init(rawValue: String) {
-            self.init(kind: .rawValue(rawValue))
-        }
-
-        /// Creates a namespace with the given raw value.
-        ///
-        /// - Parameter rawValue: The raw value of the namespace.
-        init(_ rawValue: String) {
-            self.init(rawValue: rawValue)
+            stringValue
         }
 
         /// Creates a namespace with the given optional value.
-        ///
-        /// If the provided value is `nil`, the namespace is initialized
-        /// to the ``null`` namespace.
-        ///
+        /// 
         /// - Parameter value: An optional value for the namespace.
-        init(_ value: String?) {
-            self = value.map { Namespace($0) } ?? .null
+        ///
+        /// - Returns: The ``string(_:)`` namespace when `value` is not `nil`.
+        ///   Otherwise, the ``null`` namespace.
+        static func optional(_ value: String?) -> Namespace {
+            value.map { .string($0) } ?? .null
         }
     }
 }
@@ -278,29 +218,26 @@ extension MenuBarItemTag {
 // MARK: MenuBarItemTag.Namespace Constants
 extension MenuBarItemTag.Namespace {
     /// The namespace for the "Ice" process.
-    static let ice = Self(Constants.bundleIdentifier)
+    static let ice = string(Constants.bundleIdentifier)
 
     /// The namespace for the "Control Center" process.
-    static let controlCenter = Self("com.apple.controlcenter")
+    static let controlCenter = string("com.apple.controlcenter")
 
     /// The namespace for the "PasswordsMenuBarExtra" process.
-    static let passwords = Self("com.apple.Passwords.MenuBarExtra")
+    static let passwords = string("com.apple.Passwords.MenuBarExtra")
 
     /// The namespace for the "screencaptureui" process.
-    static let screenCaptureUI = Self("com.apple.screencaptureui")
+    static let screenCaptureUI = string("com.apple.screencaptureui")
 
     /// The namespace for the "Spotlight" process.
-    static let spotlight = Self("com.apple.Spotlight")
+    static let spotlight = string("com.apple.Spotlight")
 
     /// The namespace for the "SystemUIServer" process.
-    static let systemUIServer = Self("com.apple.systemuiserver")
+    static let systemUIServer = string("com.apple.systemuiserver")
 
     /// The namespace for the "TextInputMenuAgent" process.
-    static let textInputMenuAgent = Self("com.apple.TextInputMenuAgent")
+    static let textInputMenuAgent = string("com.apple.TextInputMenuAgent")
 
     /// The namespace for the "WeatherMenu" process.
-    static let weather = Self("com.apple.weather.menu")
-
-    /// The null namespace.
-    static let null = Self(kind: .null)
+    static let weather = string("com.apple.weather.menu")
 }

@@ -231,24 +231,6 @@ final class SourcePIDCache {
     }
 }
 
-// MARK: - CGPoint Extension
-
-private extension CGPoint {
-    /// Returns the distance between this point and another point.
-    func distance(to other: CGPoint) -> CGFloat {
-        hypot(x - other.x, y - other.y)
-    }
-}
-
-// MARK: - CGRect Extension
-
-private extension CGRect {
-    /// The center point of the rectangle.
-    var center: CGPoint {
-        CGPoint(x: midX, y: midY)
-    }
-}
-
 // MARK: - WindowInfo Extension
 
 private extension WindowInfo {

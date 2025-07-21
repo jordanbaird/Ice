@@ -3,8 +3,7 @@
 //  Ice
 //
 
-import CoreGraphics
-import Foundation
+import SwiftUI
 
 struct MenuBarAppearanceConfigurationV2: Hashable {
     var lightModeConfiguration: MenuBarAppearancePartialConfiguration
@@ -18,7 +17,7 @@ struct MenuBarAppearanceConfigurationV2: Hashable {
 
     var hasRoundedShape: Bool {
         switch shapeKind {
-        case .none: false
+        case .noShape: false
         case .full: fullShapeInfo.hasRoundedShape
         case .split: splitShapeInfo.hasRoundedShape
         }
@@ -42,7 +41,7 @@ extension MenuBarAppearanceConfigurationV2 {
         lightModeConfiguration: .defaultConfiguration,
         darkModeConfiguration: .defaultConfiguration,
         staticConfiguration: .defaultConfiguration,
-        shapeKind: .none,
+        shapeKind: .noShape,
         fullShapeInfo: .default,
         splitShapeInfo: .default,
         isInset: true,
@@ -98,7 +97,7 @@ struct MenuBarAppearancePartialConfiguration: Hashable {
     var borderWidth: Double
     var tintKind: MenuBarTintKind
     var tintColor: CGColor
-    var tintGradient: CustomGradient
+    var tintGradient: IceGradient
 }
 
 // MARK: Default Partial Configuration
@@ -108,7 +107,7 @@ extension MenuBarAppearancePartialConfiguration {
         hasBorder: false,
         borderColor: .black,
         borderWidth: 1,
-        tintKind: .none,
+        tintKind: .noTint,
         tintColor: .black,
         tintGradient: .defaultMenuBarTint
     )
@@ -134,11 +133,11 @@ extension MenuBarAppearancePartialConfiguration: Codable {
         try self.init(
             hasShadow: container.decodeIfPresent(Bool.self, forKey: .hasShadow) ?? Self.defaultConfiguration.hasShadow,
             hasBorder: container.decodeIfPresent(Bool.self, forKey: .hasBorder) ?? Self.defaultConfiguration.hasBorder,
-            borderColor: container.decodeIfPresent(CodableColor.self, forKey: .borderColor)?.cgColor ?? Self.defaultConfiguration.borderColor,
+            borderColor: container.decodeIfPresent(IceColor.self, forKey: .borderColor)?.cgColor ?? Self.defaultConfiguration.borderColor,
             borderWidth: container.decodeIfPresent(Double.self, forKey: .borderWidth) ?? Self.defaultConfiguration.borderWidth,
             tintKind: container.decodeIfPresent(MenuBarTintKind.self, forKey: .tintKind) ?? Self.defaultConfiguration.tintKind,
-            tintColor: container.decodeIfPresent(CodableColor.self, forKey: .tintColor)?.cgColor ?? Self.defaultConfiguration.tintColor,
-            tintGradient: container.decodeIfPresent(CustomGradient.self, forKey: .tintGradient) ?? Self.defaultConfiguration.tintGradient
+            tintColor: container.decodeIfPresent(IceColor.self, forKey: .tintColor)?.cgColor ?? Self.defaultConfiguration.tintColor,
+            tintGradient: container.decodeIfPresent(IceGradient.self, forKey: .tintGradient) ?? Self.defaultConfiguration.tintGradient
         )
     }
 
@@ -146,10 +145,10 @@ extension MenuBarAppearancePartialConfiguration: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(hasShadow, forKey: .hasShadow)
         try container.encode(hasBorder, forKey: .hasBorder)
-        try container.encode(CodableColor(cgColor: borderColor), forKey: .borderColor)
+        try container.encode(IceColor(cgColor: borderColor), forKey: .borderColor)
         try container.encode(borderWidth, forKey: .borderWidth)
         try container.encode(tintKind, forKey: .tintKind)
-        try container.encode(CodableColor(cgColor: tintColor), forKey: .tintColor)
+        try container.encode(IceColor(cgColor: tintColor), forKey: .tintColor)
         try container.encode(tintGradient, forKey: .tintGradient)
     }
 }

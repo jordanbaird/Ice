@@ -141,7 +141,7 @@ final class IceBarPanel: NSPanel {
 
                 guard
                     lowerBound <= upperBound,
-                    let controlItem = appState.itemManager.itemCache.allItems.first(matching: .visibleControlItem),
+                    let controlItem = appState.itemManager.itemCache.managedItems.first(matching: .visibleControlItem),
                     // Bridging API is more reliable than controlItem.frame in some
                     // cases (like if the item is offscreen).
                     let itemBounds = Bridging.getWindowBounds(for: controlItem.windowID)
@@ -168,20 +168,18 @@ final class IceBarPanel: NSPanel {
         appState.navigationState.isIceBarPresented = true
         currentSection = section
 
-        let cacheTask = Task(timeout: .milliseconds(100)) {
+        let cacheTask = Task(timeout: .seconds(1)) {
             await appState.itemManager.cacheItemsIfNeeded()
             await appState.imageCache.updateCache()
         }
 
         do {
             try await cacheTask.value
-        } catch is TaskTimeoutError {
-            Logger.general.error("Cache task timed out during IceBarPanel.show")
         } catch {
-            Logger.general.error("Cache task failed during IceBarPanel.show - \(error)")
+            Logger.general.error("Cache update failed when showing IceBarPanel - \(error)")
         }
 
-        contentView = IceBarContentHostingView(
+        contentView = IceBarHostingView(
             appState: appState,
             colorManager: colorManager,
             screen: screen,
@@ -220,12 +218,10 @@ final class IceBarPanel: NSPanel {
     }
 }
 
-// MARK: - IceBarContentHostingView
+// MARK: - IceBarHostingView
 
-private final class IceBarContentHostingView: NSHostingView<IceBarContentView> {
-    override var safeAreaInsets: NSEdgeInsets {
-        NSEdgeInsets()
-    }
+private final class IceBarHostingView: NSHostingView<IceBarContentView> {
+    override var safeAreaInsets: NSEdgeInsets { NSEdgeInsets() }
 
     init(
         appState: AppState,
@@ -294,7 +290,7 @@ private struct IceBarContentView: View {
         guard let menuBarHeight = screen.getMenuBarHeight() else {
             return nil
         }
-        if configuration.shapeKind != .none && configuration.isInset && screen.hasNotch {
+        if configuration.shapeKind != .noShape && configuration.isInset && screen.hasNotch {
             return menuBarHeight - appState.appearanceManager.menuBarInsetAmount * 2
         }
         return menuBarHeight
@@ -320,7 +316,7 @@ private struct IceBarContentView: View {
                 .frame(height: contentHeight)
                 .padding(.horizontal, horizontalPadding)
                 .padding(.vertical, verticalPadding)
-                .layoutBarStyle(appState: appState, averageColorInfo: colorManager.colorInfo)
+                .menuBarItemContainer(appState: appState, colorInfo: colorManager.colorInfo)
                 .foregroundStyle(colorManager.colorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
                 .clipShape(clipShape)
                 .shadow(color: .black.opacity(shadowOpacity), radius: 2.5)
@@ -378,6 +374,7 @@ private struct IceBarContentView: View {
                             itemManager: itemManager,
                             menuBarManager: menuBarManager,
                             item: item,
+                            screen: screen,
                             section: section
                         )
                     }
@@ -401,6 +398,7 @@ private struct IceBarItemView: View {
     @ObservedObject var menuBarManager: MenuBarManager
 
     let item: MenuBarItem
+    let screen: NSScreen
     let section: MenuBarSection.Name
 
     private var leftClickAction: () -> Void {
@@ -411,7 +409,11 @@ private struct IceBarItemView: View {
             menuBarManager.section(withName: section)?.hide()
             Task {
                 try await Task.sleep(for: .milliseconds(25))
-                itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .left)
+                if Bridging.isWindowOnDisplay(item.windowID, screen.displayID) {
+                    try await itemManager.click(item: item, with: .left)
+                } else {
+                    await itemManager.tempShow(item: item, clickingWith: .left)
+                }
             }
         }
     }
@@ -424,7 +426,11 @@ private struct IceBarItemView: View {
             menuBarManager.section(withName: section)?.hide()
             Task {
                 try await Task.sleep(for: .milliseconds(25))
-                itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .right)
+                if Bridging.isWindowOnDisplay(item.windowID, screen.displayID) {
+                    try await itemManager.click(item: item, with: .right)
+                } else {
+                    await itemManager.tempShow(item: item, clickingWith: .right)
+                }
             }
         }
     }

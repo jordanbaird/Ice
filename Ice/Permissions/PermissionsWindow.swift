@@ -19,7 +19,7 @@ struct PermissionsWindow: Scene {
                     window.standardWindowButton(.miniaturizeButton)?.isHidden = true
                     window.standardWindowButton(.zoomButton)?.isHidden = true
                     if let contentView = window.contentView {
-                        with(contentView.safeAreaInsets) { insets in
+                        withMutableCopy(of: contentView.safeAreaInsets) { insets in
                             insets.bottom = -insets.bottom
                             insets.left = -insets.left
                             insets.right = -insets.right

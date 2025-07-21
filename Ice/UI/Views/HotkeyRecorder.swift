@@ -13,14 +13,6 @@ struct HotkeyRecorder<Label: View>: View {
 
     private let label: Label
 
-    private var size: CGSize {
-        if #available(macOS 26.0, *) {
-            CGSize(width: 140, height: 24)
-        } else {
-            CGSize(width: 132, height: 24)
-        }
-    }
-
     init(hotkey: Hotkey, @ViewBuilder label: () -> Label) {
         self._model = StateObject(wrappedValue: HotkeyRecorderModel(hotkey: hotkey))
         self.label = label()
@@ -48,13 +40,17 @@ struct HotkeyRecorder<Label: View>: View {
             leadingSegment
             trailingSegment
         }
-        .frame(width: size.width, height: size.height)
+        .frame(width: 132, height: 24)
     }
 
     @ViewBuilder
     private var leadingSegment: some View {
         Button {
-            model.startRecording()
+            if model.isRecording {
+                model.stopRecording()
+            } else {
+                model.startRecording()
+            }
         } label: {
             leadingSegmentLabel
         }
@@ -132,7 +128,7 @@ private final class HotkeyRecorderModel: ObservableObject {
 
     let hotkey: Hotkey
 
-    private lazy var monitor = LocalEventMonitor(mask: .keyDown) { [weak self] event in
+    private lazy var monitor = EventMonitor.local(for: .keyDown) { [weak self] event in
         guard let self else {
             return event
         }
@@ -228,7 +224,7 @@ private struct HotkeyRecorderButtonStyle: ButtonStyle {
     }
 
     func makeBody(configuration: Configuration) -> some View {
-        let isProminent = isHighlighted || configuration.isPressed
+        let isProminent = configuration.isPressed != isHighlighted
         borderShape
             .fill(isProminent ? .tertiary : .quaternary)
             .opacity(isProminent ? 0.5 : 0.75)

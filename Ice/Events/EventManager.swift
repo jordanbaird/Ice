@@ -21,8 +21,8 @@ final class EventManager: ObservableObject {
     // MARK: Monitors
 
     /// Monitor for mouse down events.
-    private(set) lazy var mouseDownMonitor = UniversalEventMonitor(
-        mask: [.leftMouseDown, .rightMouseDown]
+    private(set) lazy var mouseDownMonitor = EventMonitor.universal(
+        for: [.leftMouseDown, .rightMouseDown]
     ) { [weak self] event in
         guard let self, let appState, let screen = bestScreen(appState: appState) else {
             return event
@@ -41,16 +41,16 @@ final class EventManager: ObservableObject {
     }
 
     /// Monitor for mouse up events.
-    private(set) lazy var mouseUpMonitor = UniversalEventMonitor(
-        mask: .leftMouseUp
+    private(set) lazy var mouseUpMonitor = EventMonitor.universal(
+        for: .leftMouseUp
     ) { [weak self] event in
         self?.handleLeftMouseUp()
         return event
     }
 
     /// Monitor for mouse dragged events.
-    private(set) lazy var mouseDraggedMonitor = UniversalEventMonitor(
-        mask: .leftMouseDragged
+    private(set) lazy var mouseDraggedMonitor = EventMonitor.universal(
+        for: .leftMouseDragged
     ) { [weak self] event in
         if let self, let appState, let screen = bestScreen(appState: appState) {
             handleLeftMouseDragged(with: event, appState: appState, screen: screen)
@@ -62,9 +62,9 @@ final class EventManager: ObservableObject {
     private(set) lazy var mouseMovedTap = EventTap(
         options: .listenOnly,
         location: .hidEventTap,
-        place: .tailAppendEventTap,
-        types: [.mouseMoved]
-    ) { [weak self] _, _, event in
+        placement: .tailAppendEventTap,
+        type: .mouseMoved
+    ) { [weak self] _, event in
         if let self, let appState, let screen = bestScreen(appState: appState) {
             handleShowOnHover(appState: appState, screen: screen)
         }
@@ -72,8 +72,8 @@ final class EventManager: ObservableObject {
     }
 
     /// Monitor for scroll wheel events.
-    private(set) lazy var scrollWheelMonitor = UniversalEventMonitor(
-        mask: .scrollWheel
+    private(set) lazy var scrollWheelMonitor = EventMonitor.universal(
+        for: .scrollWheel
     ) { [weak self] event in
         if let self, let appState, let screen = bestScreen(appState: appState) {
             handleShowOnScroll(with: event, appState: appState, screen: screen)
@@ -111,7 +111,7 @@ final class EventManager: ObservableObject {
             // menu bar, and run the show-on-hover check when it changes.
             Publishers.CombineLatest3(
                 hiddenSection.controlItem.$frame,
-                appState.$isActiveSpaceFullscreen,
+                appState.$activeSpace.map(\.isFullscreen),
                 appState.menuBarManager.$isMenuBarHiddenBySystem
             )
             .receive(on: DispatchQueue.main)
@@ -269,14 +269,18 @@ extension EventManager {
     // MARK: Handle Show Secondary Context Menu
 
     private func handleShowSecondaryContextMenu(appState: AppState, screen: NSScreen) {
-        guard
-            appState.settings.advanced.enableSecondaryContextMenu,
-            isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen),
-            let mouseLocation = MouseCursor.locationAppKit
-        else {
-            return
+        Task {
+            guard
+                appState.settings.advanced.enableSecondaryContextMenu,
+                isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen),
+                let mouseLocation = MouseCursor.locationAppKit
+            else {
+                return
+            }
+            // This delay prevents the menu from immediately closing.
+            try await Task.sleep(for: .milliseconds(100))
+            appState.menuBarManager.showSecondaryContextMenu(at: mouseLocation)
         }
-        appState.menuBarManager.showSecondaryContextMenu(at: mouseLocation)
     }
 
     // MARK: Handle Prevent Show On Hover
@@ -430,7 +434,7 @@ extension EventManager {
     /// Returns the best screen to use for event manager calculations.
     func bestScreen(appState: AppState) -> NSScreen? {
         guard
-            appState.isActiveSpaceFullscreen,
+            appState.activeSpace.isFullscreen,
             let screen = NSScreen.screenWithMouse
         else {
             return NSScreen.main
@@ -464,7 +468,7 @@ extension EventManager {
     func isMouseInsideApplicationMenu(appState: AppState, screen: NSScreen) -> Bool {
         guard
             let mouseLocation = MouseCursor.locationCoreGraphics,
-            var applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
+            var applicationMenuFrame = screen.getApplicationMenuFrame()
         else {
             return false
         }
@@ -549,7 +553,7 @@ private protocol EventMonitorProtocol {
     func stop()
 }
 
-extension UniversalEventMonitor: EventMonitorProtocol { }
+extension EventMonitor: EventMonitorProtocol { }
 
 extension EventTap: EventMonitorProtocol {
     fileprivate func start() {

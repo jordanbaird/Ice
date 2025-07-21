@@ -111,10 +111,10 @@ final class MenuBarAppearanceManager: ObservableObject {
         if current.hasBorder {
             return true
         }
-        if configuration.shapeKind != .none {
+        if configuration.shapeKind != .noShape {
             return true
         }
-        if current.tintKind != .none {
+        if current.tintKind != .noTint {
             return true
         }
         return false
@@ -142,6 +142,3 @@ final class MenuBarAppearanceManager: ObservableObject {
         self.overlayPanels = overlayPanels
     }
 }
-
-// MARK: MenuBarAppearanceManager: BindingExposable
-extension MenuBarAppearanceManager: BindingExposable { }

@@ -1,19 +1,19 @@
 //
-//  CodableColor.swift
+//  IceColor.swift
 //  Ice
 //
 
 import CoreGraphics
 import Foundation
 
-/// A Codable wrapper around a CGColor.
-struct CodableColor {
-    /// The CGColor contained within the wrapper.
+/// A custom color.
+struct IceColor: Hashable {
+    /// The color, represented as a `CGColor`.
     var cgColor: CGColor
 }
 
-// MARK: CodableColor: Codable
-extension CodableColor: Codable {
+// MARK: IceColor: Codable
+extension IceColor: Codable {
     private enum CodingKeys: CodingKey {
         case components
         case colorSpace

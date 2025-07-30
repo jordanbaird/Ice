@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// Locations where the Ice Bar can appear.
-enum IceBarLocation: Int, CaseIterable, Identifiable {
+enum IceBarLocation: Int, CaseIterable, Identifiable, Codable {
     /// The Ice Bar will appear in different locations based on context.
     case dynamic = 0
 

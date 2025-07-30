@@ -3,6 +3,8 @@
 //  Ice
 //
 
+import AppKit
+
 enum HotkeyAction: String, Codable, CaseIterable {
     // Menu Bar Sections
     case toggleHiddenSection = "ToggleHiddenSection"

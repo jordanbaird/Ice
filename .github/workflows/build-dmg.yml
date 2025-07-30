@@ -80,13 +80,16 @@ jobs:
           fi
           
           # Create DMG with proper naming
-          create-dmg 'build/Ice.app' \
-            --overwrite \
+          create-dmg \
             --volname "Ice ${{ steps.version.outputs.VERSION }}" \
+            --window-pos 200 120 \
             --window-size 500 300 \
             --icon-size 100 \
-            --app-drop-link 350 150 \
-            "build/Ice-${{ steps.version.outputs.VERSION }}.dmg"
+            --icon "Ice.app" 175 120 \
+            --hide-extension "Ice.app" \
+            --app-drop-link 325 120 \
+            "build/Ice-${{ steps.version.outputs.VERSION }}.dmg" \
+            "build/Ice.app"
 
       - name: Upload DMG as artifact
         uses: actions/upload-artifact@v4

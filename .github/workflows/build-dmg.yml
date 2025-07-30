@@ -60,10 +60,25 @@ jobs:
 
       - name: Extract version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            # Extract version from tag (e.g., refs/tags/v1.0.0 -> v1.0.0)
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            # For non-tag builds, use commit SHA
+            VERSION="build-${GITHUB_SHA:0:7}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create DMG
         run: |
+          # Verify the .app exists
+          if [ ! -d "build/Ice.app" ]; then
+            echo "Error: Ice.app not found in build directory"
+            ls -la build/
+            exit 1
+          fi
+          
           # Create DMG with proper naming
           create-dmg 'build/Ice.app' \
             --overwrite \

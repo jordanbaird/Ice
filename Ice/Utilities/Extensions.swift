@@ -3,7 +3,10 @@
 //  Ice
 //
 
+import AppKit
 import Combine
+import CoreGraphics
+import IOKit
 import SwiftUI
 
 // MARK: - Bundle
@@ -430,6 +433,22 @@ extension NSScreen {
         // Value and type are guaranteed here, so force casting is okay.
         // swiftlint:disable:next force_cast
         deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as! CGDirectDisplayID
+    }
+    
+    /// The human-readable name of the display.
+    var displayName: String {
+        // Try to get the display name from the device description
+        if let deviceName = deviceDescription[NSDeviceDescriptionKey("NSDeviceDescription")] as? String,
+           !deviceName.isEmpty {
+            return deviceName
+        }
+        
+        // If no device description, use simple naming
+        if self == NSScreen.main {
+            return hasNotch ? "Built-in Display" : "Main Display"
+        } else {
+            return "External Display"
+        }
     }
 
     /// A Boolean value that indicates whether the screen has a notch.

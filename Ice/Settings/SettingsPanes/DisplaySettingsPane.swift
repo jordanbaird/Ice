@@ -30,16 +30,8 @@ struct DisplaySettingsPane: View {
             let frame = screen.frame
             self.resolution = "\(Int(frame.width)) × \(Int(frame.height))"
             
-            // Generate a display name
-            if isMain {
-                if hasNotch {
-                    self.name = "Built-in Display (Main)"
-                } else {
-                    self.name = "Main Display"
-                }
-            } else {
-                self.name = "External Display"
-            }
+            // Use the new displayName property from NSScreen extension
+            self.name = screen.displayName
         }
     }
     
@@ -70,24 +62,19 @@ struct DisplaySettingsPane: View {
                         Text(displayInfo.name)
                             .font(.headline)
                         
-                        if displayInfo.isMain {
-                            Text("MAIN")
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(.blue.opacity(0.2))
-                                .foregroundColor(.blue)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                        }
-                        
+                        // Only show notch indicator for displays that actually have a notch
                         if displayInfo.hasNotch {
-                            Text("NOTCH")
-                                .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(.purple.opacity(0.2))
-                                .foregroundColor(.purple)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                            HStack(spacing: 4) {
+                                Image(systemName: "rectangle.inset.filled.and.person.filled")
+                                    .font(.caption2)
+                                Text("NOTCH")
+                                    .font(.caption2)
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.purple.opacity(0.2))
+                            .foregroundColor(.purple)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
                         }
                     }
                     
@@ -138,11 +125,17 @@ struct DisplaySettingsPane: View {
     
     private func updateAvailableDisplays() {
         let displays = NSScreen.screens.map { DisplayInfo(screen: $0) }
-        // Sort: main display first, then by resolution (larger first)
+        // Sort: built-in display first (has notch), then main display, then by resolution (larger first)
         availableDisplays = displays.sorted { lhs, rhs in
+            // Built-in displays (with notch) come first
+            if lhs.hasNotch != rhs.hasNotch {
+                return lhs.hasNotch
+            }
+            // Then main display
             if lhs.isMain != rhs.isMain {
                 return lhs.isMain
             }
+            // Finally by size (larger first)
             return lhs.screen.frame.width * lhs.screen.frame.height > rhs.screen.frame.width * rhs.screen.frame.height
         }
         

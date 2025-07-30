@@ -51,7 +51,13 @@ final class MenuBarSection {
 
     /// A Boolean value that indicates whether the Ice Bar should be used.
     private var useIceBar: Bool {
-        appState?.settingsManager.generalSettingsManager.useIceBar ?? false
+        guard let appState else { return false }
+        
+        // Get the screen where the Ice Bar would appear
+        guard let screen = screenForIceBar else { return false }
+        
+        // Check per-display configuration
+        return appState.settingsManager.displaySettingsManager.shouldUseIceBar(on: screen)
     }
 
     /// A weak reference to the menu bar manager's Ice Bar panel.

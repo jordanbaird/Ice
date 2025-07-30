@@ -175,35 +175,22 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var iceBarOptions: some View {
-        useIceBar
-        if manager.useIceBar {
-            iceBarLocationPicker
-        }
-    }
-
-    @ViewBuilder
-    private var useIceBar: some View {
-        Toggle("Use Ice Bar", isOn: manager.bindings.useIceBar)
-            .annotation("Show hidden menu bar items in a separate bar below the menu bar")
-    }
-
-    @ViewBuilder
-    private var iceBarLocationPicker: some View {
-        IcePicker("Location", selection: manager.bindings.iceBarLocation) {
-            ForEach(IceBarLocation.allCases) { location in
-                Text(location.localized).tag(location)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Ice Bar")
+                    .font(.headline)
+                Spacer()
+                Button("Configure per Display") {
+                    appState.navigationState.settingsNavigationIdentifier = .displays
+                }
+                .buttonStyle(.link)
             }
+            
+            Text("Ice Bar settings have been moved to the Displays pane, where you can configure Ice Bar individually for each connected display.")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
-        .annotation {
-            switch manager.iceBarLocation {
-            case .dynamic:
-                Text("The Ice Bar's location changes based on context")
-            case .mousePointer:
-                Text("The Ice Bar is centered below the mouse pointer")
-            case .iceIcon:
-                Text("The Ice Bar is centered below the Ice icon")
-            }
-        }
+        .padding(.vertical, 4)
     }
 
     @ViewBuilder

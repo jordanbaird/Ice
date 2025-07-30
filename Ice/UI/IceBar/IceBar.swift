@@ -148,7 +148,9 @@ final class IceBarPanel: NSPanel {
             }
         }
 
-        setFrameOrigin(getOrigin(for: appState.settingsManager.generalSettingsManager.iceBarLocation))
+        // Get the Ice Bar location for this specific screen
+        let iceBarLocation = appState.settingsManager.displaySettingsManager.configuration(for: screen.displayID).iceBarLocation
+        setFrameOrigin(getOrigin(for: iceBarLocation))
     }
 
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {

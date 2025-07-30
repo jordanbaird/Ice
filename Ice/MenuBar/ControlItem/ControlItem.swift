@@ -264,16 +264,16 @@ final class ControlItem {
                 }
                 .store(in: &c)
 
-            appState.settingsManager.generalSettingsManager.$useIceBar
+            appState.settingsManager.displaySettingsManager.anyIceBarUsageChanged
                 .receive(on: DispatchQueue.main)
-                .sink { [weak self] useIceBar in
+                .sink { [weak self] anyIceBarInUse in
                     guard
                         let self,
                         let button = statusItem.button
                     else {
                         return
                     }
-                    if useIceBar {
+                    if anyIceBarInUse {
                         button.sendAction(on: [.leftMouseDown, .rightMouseUp])
                     } else {
                         button.sendAction(on: [.leftMouseUp, .rightMouseUp])

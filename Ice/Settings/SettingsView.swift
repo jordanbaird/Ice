@@ -74,6 +74,8 @@ struct SettingsView: View {
             MenuBarLayoutSettingsPane()
         case .menuBarAppearance:
             MenuBarAppearanceSettingsPane()
+        case .displays:
+            DisplaySettingsPane()
         case .hotkeys:
             HotkeysSettingsPane()
         case .advanced:
@@ -100,6 +102,7 @@ struct SettingsView: View {
         case .general: .systemSymbol("gearshape")
         case .menuBarLayout: .systemSymbol("rectangle.topthird.inset.filled")
         case .menuBarAppearance: .systemSymbol("swatchpalette")
+        case .displays: .systemSymbol("display")
         case .hotkeys: .systemSymbol("keyboard")
         case .advanced: .systemSymbol("gearshape.2")
         case .about: .assetCatalog(.iceCubeStroke)

@@ -175,6 +175,10 @@ extension Defaults {
 
         case iceBarLocation = "IceBarLocation"
         case iceBarPinnedLocation = "IceBarPinnedLocation"
+        
+        // MARK: Display Settings
+        
+        case displayConfigurations = "DisplayConfigurations"
 
         // MARK: Migration
 

@@ -15,6 +15,9 @@ final class SettingsManager: ObservableObject {
 
     /// The manager for hotkey settings.
     let hotkeySettingsManager: HotkeySettingsManager
+    
+    /// The manager for display-specific settings.
+    let displaySettingsManager: DisplaySettingsManager
 
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
@@ -26,6 +29,7 @@ final class SettingsManager: ObservableObject {
         self.generalSettingsManager = GeneralSettingsManager(appState: appState)
         self.advancedSettingsManager = AdvancedSettingsManager(appState: appState)
         self.hotkeySettingsManager = HotkeySettingsManager(appState: appState)
+        self.displaySettingsManager = DisplaySettingsManager(appState: appState)
         self.appState = appState
     }
 
@@ -34,6 +38,7 @@ final class SettingsManager: ObservableObject {
         generalSettingsManager.performSetup()
         advancedSettingsManager.performSetup()
         hotkeySettingsManager.performSetup()
+        displaySettingsManager.performSetup()
     }
 
     private func configureCancellables() {
@@ -50,6 +55,11 @@ final class SettingsManager: ObservableObject {
             }
             .store(in: &c)
         hotkeySettingsManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
+        displaySettingsManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }

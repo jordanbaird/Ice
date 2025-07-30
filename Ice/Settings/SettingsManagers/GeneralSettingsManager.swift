@@ -25,9 +25,13 @@ final class GeneralSettingsManager: ObservableObject {
 
     /// A Boolean value that indicates whether to show hidden items
     /// in a separate bar below the menu bar.
+    /// - Note: This property is deprecated. Use DisplaySettingsManager for per-display Ice Bar configuration.
+    @available(*, deprecated, message: "Use DisplaySettingsManager for per-display Ice Bar configuration")
     @Published var useIceBar = false
 
     /// The location where the Ice Bar appears.
+    /// - Note: This property is deprecated. Use DisplaySettingsManager for per-display Ice Bar configuration.
+    @available(*, deprecated, message: "Use DisplaySettingsManager for per-display Ice Bar configuration")
     @Published var iceBarLocation: IceBarLocation = .dynamic
 
     /// A Boolean value that indicates whether the hidden section

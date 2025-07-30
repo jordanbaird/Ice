@@ -1,0 +1,92 @@
+name: Build macOS and Create DMG
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Create build directory
+        run: mkdir -p build
+
+      - name: Build archive
+        run: |
+          xcodebuild -scheme Ice \
+            -project Ice.xcodeproj \
+            -configuration Release \
+            -archivePath $PWD/build/Ice.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO
+
+      - name: Export .app
+        run: |
+          # Create export options plist
+          cat > ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>mac-application</string>
+              <key>signingStyle</key>
+              <string>automatic</string>
+              <key>stripSwiftSymbols</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+          
+          # Export the archive
+          xcodebuild -exportArchive \
+            -archivePath $PWD/build/Ice.xcarchive \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build/
+
+      - name: Install create-dmg
+        run: npm install --global create-dmg
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create DMG
+        run: |
+          # Create DMG with proper naming
+          create-dmg 'build/Ice.app' \
+            --overwrite \
+            --volname "Ice ${{ steps.version.outputs.VERSION }}" \
+            --window-size 500 300 \
+            --icon-size 100 \
+            --app-drop-link 350 150 \
+            "build/Ice-${{ steps.version.outputs.VERSION }}.dmg"
+
+      - name: Upload DMG as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ice-DMG-${{ steps.version.outputs.VERSION }}
+          path: build/*.dmg
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: build/*.dmg
+          name: Ice ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

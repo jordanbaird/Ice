@@ -55,9 +55,6 @@ jobs:
             -exportOptionsPlist ExportOptions.plist \
             -exportPath build/
 
-      - name: Install create-dmg
-        run: npm install --global create-dmg
-
       - name: Extract version from tag
         id: version
         run: |
@@ -79,17 +76,21 @@ jobs:
             exit 1
           fi
           
-          # Create DMG with proper naming
-          create-dmg \
-            --volname "Ice ${{ steps.version.outputs.VERSION }}" \
-            --window-pos 200 120 \
-            --window-size 500 300 \
-            --icon-size 100 \
-            --icon "Ice.app" 175 120 \
-            --hide-extension "Ice.app" \
-            --app-drop-link 325 120 \
-            "build/Ice-${{ steps.version.outputs.VERSION }}.dmg" \
-            "build/Ice.app"
+          # Create a temporary directory for DMG contents
+          mkdir -p dmg-contents
+          cp -R "build/Ice.app" dmg-contents/
+          
+          # Create a symbolic link to Applications folder
+          ln -s /Applications dmg-contents/Applications
+          
+          # Create the DMG using hdiutil
+          hdiutil create -volname "Ice ${{ steps.version.outputs.VERSION }}" \
+            -srcfolder dmg-contents \
+            -ov -format UDZO \
+            "build/Ice-${{ steps.version.outputs.VERSION }}.dmg"
+          
+          # Clean up temporary directory
+          rm -rf dmg-contents
 
       - name: Upload DMG as artifact
         uses: actions/upload-artifact@v4

@@ -220,7 +220,7 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var spacingOptions: some View {
-        IceLabeledContent {
+        LabeledContent {
             IceSlider(
                 localizedOffsetString(for: tempItemSpacingOffset),
                 value: $tempItemSpacingOffset,
@@ -229,7 +229,7 @@ struct GeneralSettingsPane: View {
             )
             .disabled(isApplyingOffset)
         } label: {
-            IceLabeledContent {
+            LabeledContent {
                 Button("Apply") {
                     applyOffset()
                 }

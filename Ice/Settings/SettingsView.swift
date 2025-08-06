@@ -8,8 +8,11 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @EnvironmentObject var navigationState: AppNavigationState
-    @Environment(\.appearsActive) var appearsActive
-    @Environment(\.sidebarRowSize) var sidebarRowSize
+    @Environment(\.appearsActive) private var appearsActive
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.sidebarRowSize) private var sidebarRowSize
+
+    private let sidebarPadding: CGFloat = 3
 
     private var sidebarWidth: CGFloat {
         if #available(macOS 26.0, *) {
@@ -38,13 +41,25 @@ struct SettingsView: View {
         }
     }
 
-    private var sidebarItemFontSize: CGFloat {
+    private var sidebarFontSize: CGFloat {
         switch sidebarRowSize {
         case .small: 13
         case .medium: 15
         case .large: 16
         @unknown default: 15
         }
+    }
+
+    private var sidebarTextStyle: some ShapeStyle {
+        if colorScheme == .dark {
+            AnyShapeStyle(Color(nsColor: appearsActive ? .labelColor : .secondaryLabelColor))
+        } else {
+            AnyShapeStyle(appearsActive ? .primary : .secondary)
+        }
+    }
+
+    private var sidebarIconStyle: some ShapeStyle {
+        HierarchicalShapeStyle.primary.opacity(appearsActive ? 1 : 0.67)
     }
 
     private var navigationTitle: LocalizedStringKey {
@@ -69,9 +84,10 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("Ice")
-                    .font(.system(size: 40, weight: .medium))
-                    .foregroundStyle(appearsActive ? .primary : .tertiary)
-                    .padding(.bottom, 10)
+                    .font(.system(size: sidebarFontSize * 2.67, weight: .medium))
+                    .foregroundStyle(sidebarTextStyle)
+                    .padding(.leading, sidebarPadding)
+                    .padding(.bottom, sidebarFontSize)
             }
             .collapsible(false)
         }
@@ -113,21 +129,13 @@ struct SettingsView: View {
     private func sidebarItem(for identifier: SettingsNavigationIdentifier) -> some View {
         Label {
             Text(identifier.localized)
-                .font(.system(size: sidebarItemFontSize))
-                .padding(.leading, 2)
+                .font(.system(size: sidebarFontSize))
+                .foregroundStyle(sidebarTextStyle)
         } icon: {
-            icon(for: identifier)
+            identifier.iconResource.view
+                .foregroundStyle(sidebarIconStyle)
+                .padding(sidebarPadding)
         }
         .frame(height: sidebarItemHeight)
-        .padding(.leading, 1)
-    }
-
-    @ViewBuilder
-    private func icon(for identifier: SettingsNavigationIdentifier) -> some View {
-        if #available(macOS 26.0, *) {
-            identifier.iconResource.view.padding(3)
-        } else {
-            identifier.iconResource.view
-        }
     }
 }

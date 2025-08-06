@@ -49,7 +49,7 @@ struct IceColorPicker<Label: View>: View {
     }
 
     var body: some View {
-        IceLabeledContent {
+        LabeledContent {
             IceColorPickerRoot(
                 selection: $selection,
                 isActive: $isActive,

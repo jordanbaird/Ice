@@ -90,44 +90,49 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
         @ViewBuilder content: () -> Content
     ) where Header == Text, Footer == EmptyView {
         self.init(spacing: spacing, options: options) {
-            Text(title)
-                .font(.headline)
+            Text(title).font(.headline)
         } content: {
             content()
         }
     }
 
     var body: some View {
-        if isBordered {
-            IceGroupBox(padding: spacing) {
-                header
-            } content: {
-                dividedContent
-            } footer: {
-                footer
-            }
-        } else {
-            VStack(alignment: .leading) {
-                header
-                dividedContent
-                footer
+        Section {
+            if isBordered {
+                IceGroupBox {
+                    header
+                } content: {
+                    contentLayout
+                } footer: {
+                    footer
+                }
+            } else {
+                VStack(alignment: .leading) {
+                    header.accessibilityAddTraits(.isHeader)
+                    contentLayout
+                    footer
+                }
+                .focusSection()
+                .accessibilityElement(children: .contain)
             }
         }
+        .focusSection()
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
-    private var dividedContent: some View {
+    private var contentLayout: some View {
         if hasDividers {
             _VariadicView.Tree(IceSectionLayout(spacing: spacing)) {
-                content
-                    .frame(maxWidth: .infinity)
+                content.frame(maxWidth: .infinity)
             }
         } else {
-            content
-                .frame(maxWidth: .infinity)
+            content.frame(maxWidth: .infinity)
         }
     }
 }
+
+// MARK: - IceSectionLayout
 
 private struct IceSectionLayout: _VariadicView_UnaryViewRoot {
     let spacing: CGFloat
@@ -139,9 +144,23 @@ private struct IceSectionLayout: _VariadicView_UnaryViewRoot {
             ForEach(children) { child in
                 child
                 if child.id != last {
-                    Divider()
+                    IceSectionDivider()
                 }
             }
+        }
+    }
+}
+
+// MARK: - IceSectionDivider
+
+private struct IceSectionDivider: View {
+    var body: some View {
+        if #available(macOS 26.0, *) {
+            Rectangle()
+                .fill(.separator.quinary)
+                .frame(height: 1)
+        } else {
+            Divider()
         }
     }
 }

@@ -19,7 +19,7 @@ struct HotkeyRecorder<Label: View>: View {
     }
 
     var body: some View {
-        IceLabeledContent {
+        LabeledContent {
             segmentStack
         } label: {
             label

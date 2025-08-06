@@ -42,26 +42,31 @@ struct IceForm<Content: View>: View {
     }
 
     var body: some View {
+        contentScrollView
+            .focusSection()
+            .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private var contentScrollView: some View {
         if isScrollEnabled {
             GeometryReader { geometry in
-                if contentFrame.height > geometry.size.height {
-                    ScrollView {
-                        contentStack
-                    }
-                    .scrollContentBackground(.hidden)
-                } else {
-                    contentStack
+                ScrollView {
+                    contentLayout
                 }
+                .scrollContentBackground(.hidden)
+                .scrollDisabled(contentFrame.height <= geometry.size.height)
             }
         } else {
-            contentStack
+            contentLayout
         }
     }
 
     @ViewBuilder
-    private var contentStack: some View {
+    private var contentLayout: some View {
         VStack(alignment: alignment, spacing: spacing) {
             content
+                .labeledContentStyle(IceFormLabeledContentStyle())
                 .toggleStyle(IceFormToggleStyle())
         }
         .padding(padding)
@@ -69,18 +74,28 @@ struct IceForm<Content: View>: View {
     }
 }
 
-private struct IceFormToggleStyle: ToggleStyle {
+// MARK: - IceFormLabeledContentStyle
+
+private struct IceFormLabeledContentStyle: LabeledContentStyle {
     func makeBody(configuration: Configuration) -> some View {
-        IceLabeledContent {
-            Toggle(isOn: configuration.$isOn) {
-                configuration.label
-            }
-            .labelsHidden()
-            .toggleStyle(.switch)
-            .controlSize(.mini)
+        LabeledContent {
+            configuration.content
+                .layoutPriority(1)
         } label: {
             configuration.label
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(0)
         }
+    }
+}
+
+// MARK: - IceFormToggleStyle
+
+private struct IceFormToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Toggle(configuration)
+            .toggleStyle(.switch)
+            .controlSize(.mini)
     }
 }
 

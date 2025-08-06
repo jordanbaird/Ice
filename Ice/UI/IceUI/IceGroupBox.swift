@@ -13,9 +13,17 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
 
     private var backgroundShape: some InsettableShape {
         if #available(macOS 26.0, *) {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
         } else {
             RoundedRectangle(cornerRadius: 7, style: .circular)
+        }
+    }
+
+    private var borderStyle: some ShapeStyle {
+        if #available(macOS 26.0, *) {
+            AnyShapeStyle(.clear)
+        } else {
+            AnyShapeStyle(.quaternary)
         }
     }
 
@@ -134,8 +142,7 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
         @ViewBuilder content: () -> Content
     ) where Header == Text, Footer == EmptyView {
         self.init(padding: padding) {
-            Text(title)
-                .font(.headline)
+            Text(title).font(.headline)
         } content: {
             content()
         }
@@ -147,8 +154,7 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
         @ViewBuilder content: () -> Content
     ) where Header == Text, Footer == EmptyView {
         self.init(padding: padding) {
-            Text(title)
-                .font(.headline)
+            Text(title).font(.headline)
         } content: {
             content()
         }
@@ -157,24 +163,25 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
     var body: some View {
         VStack(alignment: .leading) {
             header
-                .padding(.top, 8)
+                .accessibilityAddTraits(.isHeader)
+                .padding([.top, .leading], 8)
                 .padding(.bottom, 2)
-                .padding(.leading, 8)
 
             contentStack
                 .padding(padding)
                 .background {
                     backgroundShape
-                        .fill(.quinary.opacity(0.67))
-                        .strokeBorder(.quaternary)
+                        .fill(.quinary.opacity(0.75))
+                        .strokeBorder(borderStyle)
                 }
                 .containerShape(backgroundShape)
 
             footer
+                .padding([.bottom, .leading], 8)
                 .padding(.top, 2)
-                .padding(.bottom, 8)
-                .padding(.leading, 8)
         }
+        .focusSection()
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder

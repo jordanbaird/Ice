@@ -105,7 +105,7 @@ struct AdvancedSettingsPane: View {
 
     @ViewBuilder
     private var showOnHoverDelay: some View {
-        IceLabeledContent {
+        LabeledContent {
             IceSlider(
                 formattedToSeconds(settings.showOnHoverDelay),
                 value: $settings.showOnHoverDelay,
@@ -124,7 +124,7 @@ struct AdvancedSettingsPane: View {
 
     @ViewBuilder
     private var tempShowInterval: some View {
-        IceLabeledContent {
+        LabeledContent {
             IceSlider(
                 formattedToSeconds(settings.tempShowInterval),
                 value: $settings.tempShowInterval,
@@ -144,7 +144,7 @@ struct AdvancedSettingsPane: View {
     @ViewBuilder
     private var allPermissions: some View {
         ForEach(appState.permissions.allPermissions) { permission in
-            IceLabeledContent {
+            LabeledContent {
                 if permission.hasPermission {
                     Label {
                         Text("Permission Granted")

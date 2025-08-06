@@ -50,7 +50,7 @@ struct IceGradientPicker<Label: View>: View {
     }
 
     var body: some View {
-        IceLabeledContent {
+        LabeledContent {
             IceGradientPickerRoot(
                 gradient: $gradient,
                 selection: $selection,

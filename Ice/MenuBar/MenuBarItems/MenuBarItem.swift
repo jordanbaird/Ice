@@ -97,20 +97,24 @@ struct MenuBarItem: CustomStringConvertible {
 
         // Most items will use their computed "best name", but we need to
         // handle a few special cases for system items.
+
+        if tag == .controlCenter {
+            return bestName
+        }
+
         return switch tag.namespace {
-        case .passwords, .weather:
+        case .passwords, .weather, .textInputMenuAgent:
             // "PasswordsMenuBarExtra" -> "Passwords"
             // "WeatherMenu" -> "Weather"
-            String(toTitleCase(bestName).prefix { !$0.isWhitespace })
-        case .textInputMenuAgent:
-            toTitleCase(bestName).components(separatedBy: .whitespaces).prefix { $0 != "Agent" }.joined(separator: " ")
+            // "TextInputMenuAgent" -> "Text Input"
+            toTitleCase(bestName.replacing(/Menu.*/, with: ""))
         case .controlCenter where title.hasPrefix("BentoBox"):
-            bestName
-        case .controlCenter where title == "WiFi":
-            title
+            toTitleCase(title.replacing(/-/, with: " "))
         case .controlCenter where title.hasPrefix("Hearing"):
             // Changed to "Hearing_GlowE" in macOS 15.4.
-            String(toTitleCase(title).prefix { $0.isLetter || $0.isNumber })
+            toTitleCase(title.prefix { $0.isLetter || $0.isNumber })
+        case .controlCenter where title == "WiFi":
+            title
         case .systemUIServer where title.contains("TimeMachine"):
             // Sonoma:  "TimeMachine.TMMenuExtraHost"
             // Sequoia: "TimeMachineMenuExtra.TMMenuExtraHost"
@@ -128,7 +132,7 @@ struct MenuBarItem: CustomStringConvertible {
 
     /// A textual representation of the item.
     var description: String {
-        String(describing: tag)
+        "\(displayName) (\(tag))"
     }
 
     /// A string to use for logging purposes.

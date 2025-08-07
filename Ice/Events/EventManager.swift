@@ -238,7 +238,7 @@ extension EventManager {
 
             // Get the window that the user has clicked into.
             guard
-                let mouseLocation = MouseCursor.locationCoreGraphics,
+                let mouseLocation = MouseHelpers.locationCoreGraphics,
                 let windowUnderMouse = WindowInfo.createWindows(option: .onScreen)
                     .filter({ $0.layer < CGWindowLevelForKey(.cursorWindow) })
                     .first(where: { $0.bounds.contains(mouseLocation) && $0.title?.isEmpty == false }),
@@ -273,7 +273,7 @@ extension EventManager {
             guard
                 appState.settings.advanced.enableSecondaryContextMenu,
                 isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen),
-                let mouseLocation = MouseCursor.locationAppKit
+                let mouseLocation = MouseHelpers.locationAppKit
             else {
                 return
             }
@@ -451,7 +451,7 @@ extension EventManager {
             let iceIcon = appState.menuBarManager.controlItem(withName: .visible),
             let iceIconFrame = iceIcon.frame,
             iceIconFrame.maxY <= screen.frame.maxY,
-            let mouseLocation = MouseCursor.locationAppKit
+            let mouseLocation = MouseHelpers.locationAppKit
         else {
             return false
         }
@@ -467,7 +467,7 @@ extension EventManager {
     /// the bounds of the current application menu.
     func isMouseInsideApplicationMenu(appState: AppState, screen: NSScreen) -> Bool {
         guard
-            let mouseLocation = MouseCursor.locationCoreGraphics,
+            let mouseLocation = MouseHelpers.locationCoreGraphics,
             var applicationMenuFrame = screen.getApplicationMenuFrame()
         else {
             return false
@@ -480,7 +480,7 @@ extension EventManager {
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of a menu bar item.
     func isMouseInsideMenuBarItem(appState: AppState, screen: NSScreen) -> Bool {
-        guard let mouseLocation = MouseCursor.locationCoreGraphics else {
+        guard let mouseLocation = MouseHelpers.locationCoreGraphics else {
             return false
         }
         let windowIDs = Bridging.getMenuBarWindowList(option: [.onScreen, .activeSpace, .itemsOnly])
@@ -498,7 +498,7 @@ extension EventManager {
     /// If the screen does not have a notch, this property returns `false`.
     func isMouseInsideNotch(appState: AppState, screen: NSScreen) -> Bool {
         guard
-            let mouseLocation = MouseCursor.locationAppKit,
+            let mouseLocation = MouseHelpers.locationAppKit,
             var frameOfNotch = screen.frameOfNotch
         else {
             return false
@@ -519,7 +519,7 @@ extension EventManager {
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of the Ice Bar panel.
     func isMouseInsideIceBar(appState: AppState) -> Bool {
-        guard let mouseLocation = MouseCursor.locationAppKit else {
+        guard let mouseLocation = MouseHelpers.locationAppKit else {
             return false
         }
         let panel = appState.menuBarManager.iceBarPanel
@@ -535,7 +535,7 @@ extension EventManager {
         guard
             let visibleSection = appState.menuBarManager.section(withName: .visible),
             let iceIconFrame = visibleSection.controlItem.frame,
-            let mouseLocation = MouseCursor.locationAppKit
+            let mouseLocation = MouseHelpers.locationAppKit
         else {
             return false
         }

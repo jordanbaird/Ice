@@ -6,51 +6,62 @@
 import CoreGraphics
 import OSLog
 
-/// A namespace for mouse cursor operations.
-enum MouseCursor {
-    /// Returns the location of the mouse cursor in the coordinate space used by
-    /// the `AppKit` framework, with the origin at the bottom left of the screen.
+/// A namespace for mouse helper operations.
+enum MouseHelpers {
+    /// Returns the location of the mouse cursor in the coordinate
+    /// space used by `AppKit`, with the origin at the bottom left
+    /// of the screen.
     static var locationAppKit: CGPoint? {
         CGEvent(source: nil)?.unflippedLocation
     }
 
-    /// Returns the location of the mouse cursor in the coordinate space used by
-    /// the `CoreGraphics` framework, with the origin at the top left of the screen.
+    /// Returns the location of the mouse cursor in the coordinate
+    /// space used by `CoreGraphics`, with the origin at the top left
+    /// of the screen.
     static var locationCoreGraphics: CGPoint? {
         CGEvent(source: nil)?.location
     }
 
     /// Hides the mouse cursor and increments the hide cursor count.
-    static func hide() {
+    static func hideCursor() {
         let result = CGDisplayHideCursor(CGMainDisplayID())
         if result != .success {
             Logger.general.error("CGDisplayHideCursor failed with error \(result.logString, privacy: .public)")
         }
     }
 
-    /// Decrements the hide cursor count and shows the mouse cursor if the count is `0`.
-    static func show() {
+    /// Decrements the hide cursor count and shows the mouse cursor
+    /// if the count is `0`.
+    static func showCursor() {
         let result = CGDisplayShowCursor(CGMainDisplayID())
         if result != .success {
             Logger.general.error("CGDisplayShowCursor failed with error \(result.logString, privacy: .public)")
         }
     }
 
-    /// Moves the mouse cursor to the given point without generating events.
+    /// Moves the mouse cursor to the given point without generating
+    /// events.
     ///
-    /// - Parameter point: The point to move the cursor to in global display coordinates.
-    static func warp(to point: CGPoint) {
+    /// - Parameter point: The point to move the cursor to in global
+    ///   display coordinates.
+    static func warpCursor(to point: CGPoint) {
         let result = CGWarpMouseCursorPosition(point)
         if result != .success {
             Logger.general.error("CGWarpMouseCursorPosition failed with error \(result.logString, privacy: .public)")
         }
     }
-}
 
-// MARK: - MouseEvents
+    /// Connects or disconnects the positions of the mouse and cursor.
+    ///
+    /// - Parameter connected: A Boolean value that determines whether
+    ///   to connect or disconnect the positions.
+    static func associateMouseAndCursor(_ connected: Bool) {
+        let result = CGAssociateMouseAndMouseCursorPosition(connected ? 1 : 0)
+        if result != .success {
+            Logger.general.error("CGAssociateMouseAndMouseCursorPosition failed with error \(result.logString, privacy: .public)")
+        }
+    }
 
-/// A namespace for mouse event operations.
-enum MouseEvents {
     /// Returns a Boolean value that indicates whether a mouse button
     /// is pressed.
     ///

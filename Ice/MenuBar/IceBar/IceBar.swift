@@ -123,7 +123,7 @@ final class IceBarPanel: NSPanel {
                 }
                 return getOrigin(for: .iceIcon)
             case .mousePointer:
-                guard let location = MouseCursor.locationAppKit else {
+                guard let location = MouseHelpers.locationAppKit else {
                     return getOrigin(for: .iceIcon)
                 }
 

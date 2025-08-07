@@ -9,7 +9,7 @@ import OSLog
 /// A type that receives system events from various locations within the
 /// event stream.
 final class EventTap {
-    /// Constants that specify the possible tapping locations for events.
+    /// Constants that specify the possible locations for an event tap.
     enum Location {
         /// The location where HID system events enter the window server.
         case hidEventTap
@@ -26,6 +26,7 @@ final class EventTap {
         /// process.
         case pid(pid_t)
 
+        /// A string to use for logging purposes.
         var logString: String {
             switch self {
             case .hidEventTap: "HID event tap"
@@ -36,20 +37,24 @@ final class EventTap {
         }
     }
 
+    /// Shared logger for event taps.
     private static let logger = Logger(category: "EventTap")
-    private static let concurrentQueue = DispatchQueue(
+
+    /// Top level concurrent queue to run the shared event tap callback.
+    private static let concurrentQueue = DispatchQueue.targetingGlobal(
         label: "EventTap.concurrentQueue",
         qos: .userInteractive,
         attributes: .concurrent
     )
 
-    private static let eventTapCallBack: CGEventTapCallBack = { _, type, event, refcon in
-        concurrentQueue.sync {
+    /// The shared event tap callback.
+    private static let eventTapCallback: CGEventTapCallBack = { _, type, event, refcon in
+        concurrentQueue.asyncAndWait {
             guard let refcon else {
                 return Unmanaged.passUnretained(event)
             }
             let tap: EventTap = Unmanaged.fromOpaque(refcon).takeUnretainedValue()
-            return tap.callbackQueue.sync {
+            return tap.callbackQueue.asyncAndWait(flags: .barrier) {
                 if type == .tapDisabledByUserInput || type == .tapDisabledByTimeout {
                     tap.enable()
                     return nil
@@ -65,22 +70,26 @@ final class EventTap {
     }
 
     private var machPort: CFMachPort?
-    private var runLoop: CFRunLoop?
     private var source: CFRunLoopSource?
+    private let runLoop: CFRunLoop
+    private let callbackQueue: DispatchQueue
     private let callback: (EventTap, CGEvent) -> CGEvent?
 
     /// The label associated with the event tap.
     let label: String
 
-    /// The queue that performs the tap's callback.
-    var callbackQueue: DispatchQueue
-
-    /// A Boolean value that indicates whether the event tap is enabled.
+    /// A Boolean value that indicates whether the event tap is actively
+    /// listening for events.
     var isEnabled: Bool {
-        guard let machPort else {
-            return false
-        }
+        guard let machPort else { return false }
         return CGEvent.tapIsEnabled(tap: machPort)
+    }
+
+    /// A Boolean value that indicates whether the event tap is valid and
+    /// able to receive events.
+    var isValid: Bool {
+        guard let machPort else { return false }
+        return CFMachPortIsValid(machPort)
     }
 
     /// Creates a new event tap for the given event types.
@@ -89,9 +98,9 @@ final class EventTap {
     ///   - label: The label associated with the tap.
     ///   - options: A constant that specifies whether the tap is an active
     ///     filter or a passive listener.
-    ///   - location: The location of the tap.
-    ///   - placement: The placement of the tap relative to other active taps.
-    ///   - types: The set of event types observed by the tap.
+    ///   - location: The location in the event stream to insert the tap.
+    ///   - placement: The tap's placement relative to other active taps.
+    ///   - types: Specifies the types of the events received by the tap.
     ///   - callbackQueue: A dispatch queue that performs the tap's callback.
     ///   - callback: A callback function to perform when events are received.
     init(
@@ -99,32 +108,30 @@ final class EventTap {
         options: CGEventTapOptions,
         location: Location,
         placement: CGEventTapPlacement,
-        types: Set<CGEventType>,
+        types: [CGEventType],
         callbackQueue: DispatchQueue? = nil,
         callback: @escaping (_ tap: EventTap, _ event: CGEvent) -> CGEvent?
     ) {
         self.label = label
         self.callback = callback
+        self.runLoop = RunLoop.current.getCFRunLoop()
         self.callbackQueue = callbackQueue ?? DispatchQueue(label: label)
 
         guard
-            let machPort = createMachPort(
+            let machPort = EventTap.createMachPort(
                 location: location,
                 placement: placement,
                 options: options,
-                types: types
+                eventMask: types.reduce(0) { $0 | (1 << $1.rawValue) },
+                userInfo: Unmanaged.passUnretained(self).toOpaque()
             ),
-            let runLoop = CFRunLoopGetCurrent(),
             let source = CFMachPortCreateRunLoopSource(nil, machPort, 0)
         else {
             EventTap.logger.error(#"Error creating event tap "\#(label, privacy: .public)""#)
             return
         }
 
-        CFRunLoopAddSource(runLoop, source, .commonModes)
-
         self.machPort = machPort
-        self.runLoop = runLoop
         self.source = source
     }
 
@@ -134,9 +141,9 @@ final class EventTap {
     ///   - label: The label associated with the tap.
     ///   - options: A constant that specifies whether the tap is an active
     ///     filter or a passive listener.
-    ///   - location: The location of the tap.
-    ///   - placement: The placement of the tap relative to other active taps.
-    ///   - types: The event type observed by the tap.
+    ///   - location: The location in the event stream to insert the tap.
+    ///   - placement: The tap's placement relative to other active taps.
+    ///   - type: Specifies the type of the events received by the tap.
     ///   - callbackQueue: A dispatch queue that performs the tap's callback.
     ///   - callback: A callback function to perform when events are received.
     convenience init(
@@ -160,7 +167,7 @@ final class EventTap {
     }
 
     deinit {
-        if let runLoop, let source {
+        if let source {
             CFRunLoopRemoveSource(runLoop, source, .commonModes)
         }
         if let machPort {
@@ -169,63 +176,64 @@ final class EventTap {
         }
     }
 
-    private func createMachPort(
+    private static func createMachPort(
         location: Location,
         placement: CGEventTapPlacement,
         options: CGEventTapOptions,
-        types: Set<CGEventType>
+        eventMask: CGEventMask,
+        userInfo: UnsafeMutableRawPointer
     ) -> CFMachPort? {
-        func createEventMask() -> CGEventMask {
-            types.reduce(0) { $0 | (1 << $1.rawValue) }
-        }
-
-        func createUserInfo() -> UnsafeMutableRawPointer {
-            Unmanaged.passUnretained(self).toOpaque()
-        }
-
-        func createMachPortForLocation(_ location: CGEventTapLocation) -> CFMachPort? {
+        func createMachPort(location: CGEventTapLocation) -> CFMachPort? {
             CGEvent.tapCreate(
                 tap: location,
                 place: placement,
                 options: options,
-                eventsOfInterest: createEventMask(),
-                callback: EventTap.eventTapCallBack,
-                userInfo: createUserInfo()
+                eventsOfInterest: eventMask,
+                callback: eventTapCallback,
+                userInfo: userInfo
             )
         }
 
-        func createMachPortForPid(_ pid: pid_t) -> CFMachPort? {
+        func createMachPort(pid: pid_t) -> CFMachPort? {
             CGEvent.tapCreateForPid(
                 pid: pid,
                 place: placement,
                 options: options,
-                eventsOfInterest: createEventMask(),
-                callback: EventTap.eventTapCallBack,
-                userInfo: createUserInfo()
+                eventsOfInterest: eventMask,
+                callback: eventTapCallback,
+                userInfo: userInfo
             )
         }
 
         switch location {
         case .hidEventTap:
-            return createMachPortForLocation(.cghidEventTap)
+            return createMachPort(location: .cghidEventTap)
         case .sessionEventTap:
-            return createMachPortForLocation(.cgSessionEventTap)
+            return createMachPort(location: .cgSessionEventTap)
         case .annotatedSessionEventTap:
-            return createMachPortForLocation(.cgAnnotatedSessionEventTap)
+            return createMachPort(location: .cgAnnotatedSessionEventTap)
         case .pid(let pid):
-            return createMachPortForPid(pid)
+            return createMachPort(pid: pid)
         }
     }
 
     /// Enables the event tap.
     func enable() {
-        guard let machPort else { return }
-        CGEvent.tapEnable(tap: machPort, enable: true)
+        if let source {
+            CFRunLoopAddSource(runLoop, source, .commonModes)
+        }
+        if let machPort {
+            CGEvent.tapEnable(tap: machPort, enable: true)
+        }
     }
 
     /// Disables the event tap.
     func disable() {
-        guard let machPort else { return }
-        CGEvent.tapEnable(tap: machPort, enable: false)
+        if let source {
+            CFRunLoopRemoveSource(runLoop, source, .commonModes)
+        }
+        if let machPort {
+            CGEvent.tapEnable(tap: machPort, enable: false)
+        }
     }
 }

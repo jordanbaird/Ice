@@ -366,7 +366,7 @@ final class ControlItem {
         switch identifier {
         case .visible:
             updateStatusItemVisibility(true, state: state)
-            updateButtonEnabledState(true) // Make sure button is enabled.
+            button.appearsDisabled = false
 
             let icon = appState.settings.general.iceIcon
 
@@ -395,7 +395,8 @@ final class ControlItem {
                 switch appState.settings.advanced.sectionDividerStyle {
                 case .noDivider:
                     updateStatusItemVisibility(false, state: state)
-                    updateButtonEnabledState(false) // Keep button from highlighting.
+                    button.appearsDisabled = true
+                    button.isHighlighted = false
 
                     if appState.isDraggingMenuBarItem && appState.settings.advanced.showAllSectionsOnUserDrag {
                         // We still want a subtle marker between sections.
@@ -403,7 +404,7 @@ final class ControlItem {
                     }
                 case .chevron:
                     updateStatusItemVisibility(true, state: state)
-                    updateButtonEnabledState(true) // Make sure button is enabled.
+                    button.appearsDisabled = false
 
                     button.image = switch identifier {
                     case .hidden:
@@ -415,7 +416,8 @@ final class ControlItem {
                 }
             case .hideSection:
                 updateStatusItemVisibility(true, state: state)
-                updateButtonEnabledState(false) // Keep button from highlighting.
+                button.appearsDisabled = true
+                button.isHighlighted = false
             }
         }
     }
@@ -473,19 +475,6 @@ final class ControlItem {
         ControlItemDefaults[.preferredPosition, autosaveName] = cached
     }
 
-    /// Updates the enabled state of the status item's button.
-    private func updateButtonEnabledState(_ isEnabled: Bool) {
-        guard let button = statusItem.button else {
-            return
-        }
-        if isEnabled {
-            button.cell?.isEnabled = true
-        } else {
-            button.cell?.isEnabled = false
-            button.isHighlighted = false
-        }
-    }
-
     /// Performs the control item's action.
     @objc private func performAction() {
         guard
@@ -496,7 +485,7 @@ final class ControlItem {
         }
 
         switch event.type {
-        case .leftMouseDown, .leftMouseUp:
+        case .leftMouseDown:
             let modifierFlags = NSEvent.modifierFlags
 
             // Running this from a Task seems to improve the visual
@@ -576,7 +565,7 @@ final class ControlItem {
                 continue
             }
             let item = NSMenuItem(
-                title: "\(section.isHidden ? "Show" : "Hide") the \(name.displayString) Section",
+                title: "\(section.isHidden ? "Show" : "Hide") \(name.displayString) Section",
                 action: #selector(toggleMenuBarSection),
                 keyEquivalent: ""
             )
@@ -647,13 +636,7 @@ final class ControlItem {
 
     /// Opens the menu bar search panel.
     @objc private func showSearchPanel() {
-        guard
-            let appState,
-            let screen = MenuBarSearchPanel.defaultScreen
-        else {
-            return
-        }
-        appState.menuBarManager.searchPanel.show(on: screen)
+        appState?.menuBarManager.searchPanel.show()
     }
 
     /// Opens the settings window and checks for app updates.

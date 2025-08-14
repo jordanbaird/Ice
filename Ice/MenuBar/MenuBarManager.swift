@@ -359,9 +359,6 @@ final class MenuBarManager: ObservableObject {
     }
 }
 
-// MARK: MenuBarManager: BindingExposable
-extension MenuBarManager: BindingExposable { }
-
 // MARK: - MenuBarAverageColorInfo
 
 /// Information for the average color of the menu bar.

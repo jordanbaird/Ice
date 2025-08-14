@@ -12,10 +12,6 @@ final class LayoutBarPaddingView: NSView {
     private let container: LayoutBarContainer
 
     /// The layout view's arranged views.
-    ///
-    /// The views are laid out from left to right in the order that they
-    /// appear in the array. The ``spacing`` property determines the amount
-    /// of space between each view.
     var arrangedViews: [LayoutBarItemView] {
         get { container.arrangedViews }
         set { container.arrangedViews = newValue }
@@ -30,20 +26,13 @@ final class LayoutBarPaddingView: NSView {
         self.container = LayoutBarContainer(appState: appState, section: section)
 
         super.init(frame: .zero)
-        addSubview(self.container)
 
+        addSubview(container)
         self.translatesAutoresizingMaskIntoConstraints = false
+
         NSLayoutConstraint.activate([
-            // center the container along the y axis
             container.centerYAnchor.constraint(equalTo: centerYAnchor),
-
-            // give the container a few points of trailing space
             trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: 7.5),
-
-            // allow variable spacing between leading anchors to let the view stretch
-            // to fit whatever size is required; container should remain aligned toward
-            // the trailing edge; this view is itself nested in a scroll view, so if it
-            // has to expand to a larger size, it can be clipped
             leadingAnchor.constraint(lessThanOrEqualTo: container.leadingAnchor, constant: -7.5),
         ])
 

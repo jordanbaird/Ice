@@ -303,13 +303,8 @@ private extension MenuBarItemTag {
     /// This initializer does not perform validity checks on its parameters.
     /// Only call it if you are certain the window is a valid menu bar item.
     init(uncheckedItemWindow itemWindow: WindowInfo) {
-        let title = itemWindow.title ?? ""
-        if title.hasPrefix("Ice.ControlItem") {
-            self.namespace = .ice
-        } else {
-            self.namespace = Namespace(uncheckedItemWindow: itemWindow)
-        }
-        self.title = title
+        self.namespace = Namespace(uncheckedItemWindow: itemWindow)
+        self.title = itemWindow.title ?? ""
     }
 
     /// Creates a tag without checks.
@@ -319,34 +314,9 @@ private extension MenuBarItemTag {
     /// and the source pid belongs to the application that created it.
     @available(macOS 26.0, *)
     init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?) {
-        let title = itemWindow.title ?? ""
-        if title.hasPrefix("Ice.ControlItem") {
-            self.namespace = .ice
-        } else {
-            self.namespace = Namespace(uncheckedItemWindow: itemWindow, sourcePID: sourcePID)
-        }
-        self.title = title
+        self.namespace = Namespace(uncheckedItemWindow: itemWindow, sourcePID: sourcePID)
+        self.title = itemWindow.title ?? ""
     }
-
-//    /// Creates a tag without checks.
-//    ///
-//    /// This initializer does not perform validity checks on its parameters.
-//    /// Only call it if you are certain the window is a valid menu bar item.
-//    init(uncheckedItemWindow itemWindow: WindowInfo) {
-//        self.namespace = Namespace(uncheckedItemWindow: itemWindow)
-//        self.title = itemWindow.title ?? ""
-//    }
-//
-//    /// Creates a tag without checks.
-//    ///
-//    /// This initializer does not perform validity checks on its parameters.
-//    /// Only call it if you are certain the window is a valid menu bar item
-//    /// and the source pid belongs to the application that created it.
-//    @available(macOS 26.0, *)
-//    init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?) {
-//        self.namespace = Namespace(uncheckedItemWindow: itemWindow, sourcePID: sourcePID)
-//        self.title = itemWindow.title ?? ""
-//    }
 }
 
 // MARK: - MenuBarItemTag.Namespace Helper

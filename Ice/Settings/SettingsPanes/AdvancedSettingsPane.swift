@@ -77,8 +77,8 @@ struct AdvancedSettingsPane: View {
             Text(
                 """
                 Make more room in the menu bar by hiding the current app menus if \
-                needed. macOS requires Ice to be visible in the Dock while this setting \
-                is in effect.
+                needed. macOS requires Ice to make itself visible in the Dock while \
+                this setting is in effect.
                 """
             )
             .padding(.trailing, 75)
@@ -95,8 +95,8 @@ struct AdvancedSettingsPane: View {
             Text(
                 """
                 Right-click in an empty area of the menu bar to display a minimal \
-                version of Ice's menu. Disable this if you encounter conflicts with \
-                other apps.
+                version of Ice's menu. Disable this setting if you encounter conflicts \
+                with other apps.
                 """
             )
             .padding(.trailing, 75)

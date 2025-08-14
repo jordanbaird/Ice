@@ -261,6 +261,3 @@ final class AppState: ObservableObject {
         NSApp.deactivate()
     }
 }
-
-// MARK: AppState: BindingExposable
-extension AppState: BindingExposable { }

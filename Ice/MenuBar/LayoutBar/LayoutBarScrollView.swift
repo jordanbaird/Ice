@@ -28,29 +28,17 @@ final class LayoutBarScrollView: NSScrollView {
 
         super.init(frame: .zero)
 
+        self.documentView = paddingView
         self.hasHorizontalScroller = true
-        self.horizontalScroller = HorizontalScroller()
-
-        self.autohidesScrollers = true
-
+        self.hasVerticalScroller = false
         self.verticalScrollElasticity = .none
-
+        self.autohidesScrollers = true
         self.drawsBackground = false
-
-        self.documentView = self.paddingView
-
         self.translatesAutoresizingMaskIntoConstraints = false
+
         NSLayoutConstraint.activate([
-            // constrain the padding view's height to the content view's height
             paddingView.heightAnchor.constraint(equalTo: contentView.heightAnchor),
-
-            // constrain the padding view's width to greater than or equal to the content
-            // view's width
             paddingView.widthAnchor.constraint(greaterThanOrEqualTo: contentView.widthAnchor),
-
-            // constrain the padding view's trailing anchor to the content view's trailing
-            // anchor; this, in combination with the above width constraint, aligns the
-            // items in the layout bar to the trailing edge
             paddingView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
         ])
     }
@@ -64,22 +52,5 @@ final class LayoutBarScrollView: NSScrollView {
 extension LayoutBarScrollView {
     override func accessibilityChildren() -> [Any]? {
         return arrangedViews
-    }
-}
-
-extension LayoutBarScrollView {
-    /// A custom scroller that overrides its knob slot to be transparent.
-    final class HorizontalScroller: NSScroller {
-        override static var isCompatibleWithOverlayScrollers: Bool { true }
-
-        override init(frame frameRect: NSRect) {
-            super.init(frame: frameRect)
-            self.controlSize = .mini
-        }
-
-        @available(*, unavailable)
-        required init?(coder: NSCoder) {
-            fatalError("init(coder:) has not been implemented")
-        }
     }
 }

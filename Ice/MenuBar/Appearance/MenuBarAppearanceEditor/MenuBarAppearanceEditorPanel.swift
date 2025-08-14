@@ -34,11 +34,10 @@ final class MenuBarAppearanceEditorPanel: NSPanel {
         self.titlebarAppearsTransparent = true
         self.isExcludedFromWindowsMenu = false
         self.becomesKeyOnlyIfNeeded = true
-        self.isMovableByWindowBackground = false
-        self.isMovable = false
         self.hidesOnDeactivate = false
         self.level = .floating
         self.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle, .moveToActiveSpace]
+        self.animationBehavior = .documentWindow
         standardWindowButton(.closeButton)?.isHidden = true
     }
 
@@ -81,17 +80,16 @@ final class MenuBarAppearanceEditorPanel: NSPanel {
         cancellables = c
     }
 
-    /// Updates the origin of the panel's frame for display
-    /// on the given screen.
-    private func updateOrigin(for screen: NSScreen) {
+    /// Updates the panel's position for display on the given screen.
+    private func updatePosition(for screen: NSScreen) {
         let originX = screen.frame.midX - frame.width / 2
-        let originY = screen.visibleFrame.maxY - frame.height
-        setFrameOrigin(CGPoint(x: originX, y: originY))
+        let originY = screen.frame.maxY - frame.height / 8
+        setFrameTopLeftPoint(CGPoint(x: originX, y: originY))
     }
 
     /// Shows the panel on the given screen.
     func show(on screen: NSScreen) {
-        updateOrigin(for: screen)
+        updatePosition(for: screen)
         makeKeyAndOrderFront(nil)
     }
 
@@ -132,7 +130,7 @@ private struct MenuBarAppearanceEditorContentView: View {
     @ObservedObject var appState: AppState
 
     var body: some View {
-        MenuBarAppearanceEditor(location: .panel)
+        MenuBarAppearanceEditor(appearanceManager: appState.appearanceManager, location: .panel)
             .background {
                 Rectangle()
                     .fill(.regularMaterial)
@@ -141,6 +139,5 @@ private struct MenuBarAppearanceEditorContentView: View {
                     .opacity(0.25)
             }
             .environmentObject(appState)
-            .environmentObject(appState.appearanceManager)
     }
 }

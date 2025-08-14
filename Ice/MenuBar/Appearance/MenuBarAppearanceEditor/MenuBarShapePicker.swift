@@ -25,15 +25,8 @@ struct MenuBarShapePicker: View {
     @ViewBuilder
     private var shapeKindPicker: some View {
         IcePicker("Shape Kind", selection: $configuration.shapeKind) {
-            ForEach(MenuBarShapeKind.allCases, id: \.self) { shape in
-                switch shape {
-                case .noShape:
-                    Text("No Shape").tag(shape)
-                case .full:
-                    Text("Full").tag(shape)
-                case .split:
-                    Text("Split").tag(shape)
-                }
+            ForEach(MenuBarShapeKind.allCases) { shapeKind in
+                Text(shapeKind.localized).tag(shapeKind)
             }
         }
     }

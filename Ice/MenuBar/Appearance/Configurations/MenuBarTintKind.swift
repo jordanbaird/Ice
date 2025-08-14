@@ -19,7 +19,7 @@ enum MenuBarTintKind: Int, CaseIterable, Codable, Identifiable {
     /// Localized string key representation.
     var localized: LocalizedStringKey {
         switch self {
-        case .noTint: "No Tint"
+        case .noTint: "None"
         case .solid: "Solid"
         case .gradient: "Gradient"
         }

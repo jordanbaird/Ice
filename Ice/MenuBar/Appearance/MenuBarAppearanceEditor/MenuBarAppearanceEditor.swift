@@ -12,7 +12,7 @@ struct MenuBarAppearanceEditor: View {
     }
 
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
+    @ObservedObject var appearanceManager: MenuBarAppearanceManager
 
     let location: Location
 

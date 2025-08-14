@@ -135,6 +135,3 @@ extension UpdatesManager: @preconcurrency SPUStandardUserDriverDelegate {
         appState.userNotificationManager.removeDeliveredNotifications(with: [.updateCheck])
     }
 }
-
-// MARK: UpdatesManager: BindingExposable
-extension UpdatesManager: BindingExposable { }

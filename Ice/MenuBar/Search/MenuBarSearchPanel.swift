@@ -5,15 +5,11 @@
 
 import Combine
 import Ifrit
+import OSLog
 import SwiftUI
 
 /// A panel that contains the menu bar search interface.
 final class MenuBarSearchPanel: NSPanel {
-    /// The default screen to show the panel on.
-    static var defaultScreen: NSScreen? {
-        NSScreen.screenWithMouse ?? NSScreen.main
-    }
-
     /// The shared app state.
     private weak var appState: AppState?
 
@@ -49,6 +45,11 @@ final class MenuBarSearchPanel: NSPanel {
             return nil
         }
         return event
+    }
+
+    /// The default screen to show the panel on.
+    var defaultScreen: NSScreen? {
+        NSScreen.screenWithMouse ?? NSScreen.main
     }
 
     /// Overridden to always be `true`.
@@ -101,8 +102,13 @@ final class MenuBarSearchPanel: NSPanel {
     }
 
     /// Shows the search panel on the given screen.
-    func show(on screen: NSScreen) {
+    func show(on screen: NSScreen? = nil) {
         guard let appState else {
+            return
+        }
+
+        guard let screen = screen ?? defaultScreen else {
+            Logger.general.error("Missing screen for search panel")
             return
         }
 
@@ -134,11 +140,7 @@ final class MenuBarSearchPanel: NSPanel {
 
     /// Toggles the panel's visibility.
     func toggle() {
-        if isVisible {
-            close()
-        } else if let screen = MenuBarSearchPanel.defaultScreen {
-            show(on: screen)
-        }
+        if isVisible { close() } else { show() }
     }
 
     /// Dismisses the search panel.
@@ -196,6 +198,10 @@ private struct MenuBarSearchContentView: View {
     let displayID: CGDirectDisplayID
     let closePanel: () -> Void
 
+    private var hasItems: Bool {
+        !itemManager.itemCache.managedItems.isEmpty
+    }
+
     private var bottomBarPadding: CGFloat {
         if #available(macOS 26.0, *) {
             return 7
@@ -206,63 +212,9 @@ private struct MenuBarSearchContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TextField(text: $model.searchText, prompt: Text("Search menu bar items…")) {
-                Text("Search menu bar items…")
-            }
-            .labelsHidden()
-            .textFieldStyle(.plain)
-            .multilineTextAlignment(.leading)
-            .font(.system(size: 18))
-            .padding(15)
-            .focused($searchFieldIsFocused)
-
-            Divider()
-
-            if itemManager.itemCache.managedItems.isEmpty {
-                VStack {
-                    Text("Loading menu bar items…")
-                        .font(.title2)
-                    ProgressView()
-                        .controlSize(.small)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if #available(macOS 26.0, *) {
-                GlassEffectContainer(spacing: 0) {
-                    SectionedList(selection: $model.selection, items: $model.displayedItems)
-                        .contentPadding(8)
-                        .scrollContentBackground(.hidden)
-                }
-                .clipped()
-            } else {
-                SectionedList(selection: $model.selection, items: $model.displayedItems)
-                    .contentPadding(8)
-                    .scrollContentBackground(.hidden)
-            }
-
-            Divider()
-                .offset(y: 1)
-                .zIndex(1)
-
-            HStack {
-                SettingsButton {
-                    closePanel()
-                    itemManager.appState?.activate(withPolicy: .regular)
-                    itemManager.appState?.openWindow(.settings)
-                }
-
-                Spacer()
-
-                if
-                    let selection = model.selection,
-                    let item = menuBarItem(for: selection)
-                {
-                    ShowItemButton(item: item, displayID: displayID) {
-                        performAction(for: item)
-                    }
-                }
-            }
-            .padding(bottomBarPadding)
-            .background(.thinMaterial)
+            searchField
+            mainContent
+            bottomBar
         }
         .background {
             VisualEffectView(material: .sheet, blendingMode: .behindWindow)
@@ -282,6 +234,70 @@ private struct MenuBarSearchContentView: View {
             if model.selection == nil {
                 selectFirstDisplayedItem()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var searchField: some View {
+        let promptText = Text("Search menu bar items…")
+
+        VStack(spacing: 0) {
+            TextField(text: $model.searchText, prompt: promptText) {
+                promptText
+            }
+            .labelsHidden()
+            .textFieldStyle(.plain)
+            .multilineTextAlignment(.leading)
+            .font(.system(size: 18))
+            .padding(15)
+            .focused($searchFieldIsFocused)
+
+            Divider()
+        }
+    }
+
+    @ViewBuilder
+    private var mainContent: some View {
+        if hasItems {
+            SectionedList(selection: $model.selection, items: $model.displayedItems)
+                .contentPadding(8)
+                .scrollContentBackground(.hidden)
+        } else {
+            VStack {
+                Text("Loading menu bar items…")
+                    .font(.title2)
+                ProgressView()
+                    .controlSize(.small)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private var bottomBar: some View {
+        HStack {
+            SettingsButton {
+                closePanel()
+                itemManager.appState?.activate(withPolicy: .regular)
+                itemManager.appState?.openWindow(.settings)
+            }
+
+            Spacer()
+
+            if
+                let selection = model.selection,
+                let item = menuBarItem(for: selection)
+            {
+                ShowItemButton(item: item, displayID: displayID) {
+                    performAction(for: item)
+                }
+            }
+        }
+        .padding(bottomBarPadding)
+        .background(.thinMaterial)
+        .buttonStyle(BottomBarButtonStyle())
+        .overlay(alignment: .top) {
+            Divider()
         }
     }
 
@@ -367,65 +383,14 @@ private struct MenuBarSearchContentView: View {
     }
 }
 
-private struct BottomBarButton<Content: View>: View {
-    @State private var frame = CGRect.zero
-    @State private var isHovering = false
-    @State private var isPressed = false
-
-    let content: Content
-    let action: () -> Void
-
-    private var backgroundShape: some InsettableShape {
-        if #available(macOS 26.0, *) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-        } else {
-            RoundedRectangle(cornerRadius: 5, style: .circular)
-        }
-    }
-
-    init(action: @escaping () -> Void, @ViewBuilder content: () -> Content) {
-        self.action = action
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .padding(3)
-            .background {
-                backgroundShape
-                    .fill(.regularMaterial)
-                    .brightness(0.25)
-                    .opacity(isPressed ? 0.5 : isHovering ? 0.25 : 0)
-            }
-            .contentShape(Rectangle())
-            .onHover { hovering in
-                isHovering = hovering
-            }
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        isPressed = frame.contains(value.location)
-                    }
-                    .onEnded { value in
-                        isPressed = false
-                        if frame.contains(value.location) {
-                            action()
-                        }
-                    }
-            )
-            .onFrameChange(update: $frame)
-    }
-}
-
 private struct SettingsButton: View {
     let action: () -> Void
 
     var body: some View {
-        BottomBarButton(action: action) {
+        Button(action: action) {
             Image(.iceCubeStroke)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 18, height: 18)
                 .foregroundStyle(.secondary)
                 .padding(2)
         }
@@ -450,9 +415,9 @@ private struct ShowItemButton: View {
     }
 
     var body: some View {
-        BottomBarButton(action: action) {
+        Button(action: action) {
             HStack {
-                Text("\(isOnDisplay ? "Click" : "Show") item")
+                Text("\(isOnDisplay ? "Click" : "Show") Item")
                     .padding(.leading, 5)
 
                 Image(systemName: "return")
@@ -471,6 +436,35 @@ private struct ShowItemButton: View {
                     }
             }
         }
+    }
+}
+
+private struct BottomBarButtonStyle: ButtonStyle {
+    @State private var isHovering = false
+
+    private var borderShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .circular)
+        }
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(height: 22)
+            .frame(minWidth: 22)
+            .padding(3)
+            .background {
+                borderShape
+                    .fill(.regularMaterial)
+                    .brightness(0.25)
+                    .opacity(configuration.isPressed ? 0.5 : isHovering ? 0.25 : 0)
+            }
+            .contentShape([.focusEffect, .interaction], borderShape)
+            .onHover { hovering in
+                isHovering = hovering
+            }
     }
 }
 

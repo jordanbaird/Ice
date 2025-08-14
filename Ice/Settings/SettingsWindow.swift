@@ -24,16 +24,15 @@ struct SettingsWindow: Scene {
         .windowResizability(.contentSize)
         .defaultSize(width: 900, height: 625)
         .environmentObject(appState)
-        .environmentObject(appState.navigationState)
     }
 
     @ViewBuilder
     private var settingsView: some View {
         if #available(macOS 26.0, *) {
-            SettingsView()
+            SettingsView(navigationState: appState.navigationState)
                 .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         } else {
-            SettingsView()
+            SettingsView(navigationState: appState.navigationState)
         }
     }
 }

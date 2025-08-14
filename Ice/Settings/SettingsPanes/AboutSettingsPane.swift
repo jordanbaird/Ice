@@ -7,11 +7,8 @@ import SwiftUI
 
 struct AboutSettingsPane: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject var updatesManager: UpdatesManager
     @Environment(\.openURL) private var openURL
-
-    private var updatesManager: UpdatesManager {
-        appState.updatesManager
-    }
 
     private var acknowledgementsURL: URL {
         // swiftlint:disable:next force_unwrapping
@@ -41,17 +38,25 @@ struct AboutSettingsPane: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            mainForm
-            Spacer(minLength: 10)
-            bottomBar
+        if #available(macOS 26.0, *) {
+            contentForm(cornerStyle: .continuous)
+        } else {
+            contentForm(cornerStyle: .circular)
         }
-        .padding(.iceFormDefaultPadding)
     }
 
     @ViewBuilder
-    private var mainForm: some View {
-        IceForm(padding: EdgeInsets(top: 5, leading: 30, bottom: 30, trailing: 30), spacing: 0) {
+    private func contentForm(cornerStyle: RoundedCornerStyle) -> some View {
+        IceForm(spacing: 0) {
+            mainContent(containerShape: RoundedRectangle(cornerRadius: 20, style: cornerStyle))
+            Spacer(minLength: 10)
+            bottomBar(containerShape: Capsule(style: cornerStyle))
+        }
+    }
+
+    @ViewBuilder
+    private func mainContent(containerShape: some InsettableShape) -> some View {
+        IceSection(spacing: 0, options: .plain) {
             appIconAndCopyrightSection
                 .layoutPriority(1)
 
@@ -61,9 +66,11 @@ struct AboutSettingsPane: View {
             updatesSection
                 .layoutPriority(1)
         }
-        .scrollDisabled(true)
+        .padding(.top, 5)
+        .padding([.horizontal, .bottom], 30)
         .frame(maxHeight: 500)
-        .background(.quinary, in: RoundedRectangle(cornerRadius: 20, style: .circular))
+        .background(.quinary, in: containerShape)
+        .containerShape(containerShape)
     }
 
     @ViewBuilder
@@ -111,7 +118,7 @@ struct AboutSettingsPane: View {
     private var automaticallyCheckForUpdates: some View {
         Toggle(
             "Automatically check for updates",
-            isOn: updatesManager.bindings.automaticallyChecksForUpdates
+            isOn: $updatesManager.automaticallyChecksForUpdates
         )
     }
 
@@ -119,7 +126,7 @@ struct AboutSettingsPane: View {
     private var automaticallyDownloadUpdates: some View {
         Toggle(
             "Automatically download updates",
-            isOn: updatesManager.bindings.automaticallyDownloadsUpdates
+            isOn: $updatesManager.automaticallyDownloadsUpdates
         )
     }
 
@@ -136,7 +143,7 @@ struct AboutSettingsPane: View {
     }
 
     @ViewBuilder
-    private var bottomBar: some View {
+    private func bottomBar(containerShape: some InsettableShape) -> some View {
         HStack {
             Button("Quit Ice") {
                 NSApp.terminate(nil)
@@ -157,7 +164,8 @@ struct AboutSettingsPane: View {
         }
         .padding(8)
         .buttonStyle(BottomBarButtonStyle())
-        .background(.quinary, in: Capsule(style: .circular))
+        .background(.quinary, in: containerShape)
+        .containerShape(containerShape)
         .frame(height: 40)
     }
 }
@@ -166,7 +174,7 @@ private struct BottomBarButtonStyle: ButtonStyle {
     @State private var isHovering = false
 
     private var borderShape: some InsettableShape {
-        Capsule(style: .circular)
+        ContainerRelativeShape()
     }
 
     func makeBody(configuration: Configuration) -> some View {

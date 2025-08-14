@@ -14,11 +14,8 @@ struct SectionedList<ItemID: Hashable>: View {
     }
 
     @Binding var selection: ItemID?
-
     @Binding var items: [SectionedListItem<ItemID>]
-
     @State private var itemFrames = [ItemID: CGRect]()
-
     @State private var scrollIndicatorsFlashTrigger = 0
 
     let spacing: CGFloat
@@ -201,28 +198,38 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
         }
     }
 
-    private var backgroundShape: some InsettableShape {
-        if #available(macOS 26.0, *) {
+    private var borderShape: some InsettableShape {
+        if !item.isSelectable {
+            RoundedRectangle(cornerRadius: 0, style: .circular)
+        } else if #available(macOS 26.0, *) {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
         } else {
             RoundedRectangle(cornerRadius: 5, style: .circular)
         }
     }
 
+    private var borderOpacity: CGFloat {
+        guard item.isSelectable else {
+            return 0
+        }
+        if selection == item.id {
+            return 0.5
+        }
+        if isHovering {
+            return 0.25
+        }
+        return 0
+    }
+
     var body: some View {
         ZStack {
-            if item.isSelectable {
-                if selection == item.id {
-                    itemBackground.opacity(0.5)
-                } else if isHovering {
-                    itemBackground.opacity(0.25)
-                }
-            }
+            borderShape
+                .fill(.tint.opacity(borderOpacity))
             item.content
                 .foregroundStyle(foregroundStyle)
         }
         .frame(minWidth: 22, minHeight: 22)
-        .contentShape(Rectangle())
+        .contentShape([.focusEffect, .interaction], borderShape)
         .onHover { hovering in
             isHovering = hovering
         }
@@ -236,17 +243,6 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
         )
         .onFrameChange(in: .global) { frame in
             itemFrames[item.id] = frame
-        }
-    }
-
-    @ViewBuilder
-    private var itemBackground: some View {
-        if #available(macOS 26.0, *) {
-            backgroundShape
-                .fill(.tint)
-        } else {
-            VisualEffectView(material: .selection, blendingMode: .withinWindow)
-                .clipShape(backgroundShape)
         }
     }
 }

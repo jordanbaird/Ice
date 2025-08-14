@@ -6,7 +6,6 @@
 import SwiftUI
 
 struct IceForm<Content: View>: View {
-    @Environment(\.isScrollEnabled) private var isScrollEnabled
     @State private var contentFrame = CGRect.zero
 
     private let alignment: HorizontalAlignment
@@ -42,24 +41,20 @@ struct IceForm<Content: View>: View {
     }
 
     var body: some View {
-        contentScrollView
-            .focusSection()
-            .accessibilityElement(children: .contain)
-    }
-
-    @ViewBuilder
-    private var contentScrollView: some View {
-        if isScrollEnabled {
-            GeometryReader { geometry in
-                ScrollView {
-                    contentLayout
-                }
-                .scrollContentBackground(.hidden)
-                .scrollDisabled(contentFrame.height <= geometry.size.height)
+        GeometryReader { geometry in
+            ScrollView {
+                contentLayout.frame(
+                    maxWidth: geometry.size.width,
+                    minHeight: geometry.size.height,
+                    alignment: .top
+                )
             }
-        } else {
-            contentLayout
+            .scrollContentBackground(.hidden)
+            .scrollIndicatorsFlash(onAppear: true)
+            .scrollDisabled(contentFrame.height > 0 && contentFrame.height <= geometry.size.height)
         }
+        .focusSection()
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
@@ -74,8 +69,6 @@ struct IceForm<Content: View>: View {
     }
 }
 
-// MARK: - IceFormLabeledContentStyle
-
 private struct IceFormLabeledContentStyle: LabeledContentStyle {
     func makeBody(configuration: Configuration) -> some View {
         LabeledContent {
@@ -88,8 +81,6 @@ private struct IceFormLabeledContentStyle: LabeledContentStyle {
         }
     }
 }
-
-// MARK: - IceFormToggleStyle
 
 private struct IceFormToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {

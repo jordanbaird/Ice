@@ -7,7 +7,7 @@ import SwiftUI
 
 struct MenuBarLayoutSettingsPane: View {
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject var itemManager: MenuBarItemManager
+    @ObservedObject var itemManager: MenuBarItemManager
 
     private var hasItems: Bool {
         !itemManager.itemCache.managedItems.isEmpty
@@ -39,7 +39,7 @@ struct MenuBarLayoutSettingsPane: View {
 
     @ViewBuilder
     private var layoutBars: some View {
-        VStack(spacing: 25) {
+        VStack(spacing: 15) {
             ForEach(MenuBarSection.Name.allCases, id: \.self) { section in
                 layoutBar(for: section)
             }
@@ -86,13 +86,10 @@ struct MenuBarLayoutSettingsPane: View {
             let section = appState.menuBarManager.section(withName: name),
             section.isEnabled
         {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(name.displayString) Section")
-                    .font(.system(size: 14))
-                    .padding(.leading, 2)
-
-                LayoutBar(section: name)
-                    .environmentObject(appState.imageCache)
+            VStack(alignment: .leading) {
+                Text(name.localized)
+                    .font(.title3)
+                LayoutBar(imageCache: appState.imageCache, section: name)
             }
         }
     }

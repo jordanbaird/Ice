@@ -3,7 +3,7 @@
 //  Ice
 //
 
-import Cocoa
+import SwiftUI
 
 /// A representation of a section in a menu bar.
 @MainActor
@@ -30,6 +30,11 @@ final class MenuBarSection {
             case .hidden: "hidden section"
             case .alwaysHidden: "always-hidden section"
             }
+        }
+
+        /// Localized string key representation.
+        var localized: LocalizedStringKey {
+            LocalizedStringKey(displayString)
         }
     }
 
@@ -277,6 +282,3 @@ final class MenuBarSection {
         rehideMonitor = nil
     }
 }
-
-// MARK: MenuBarSection: BindingExposable
-extension MenuBarSection: BindingExposable { }

@@ -7,10 +7,11 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject var navigationState: AppNavigationState
+    @ObservedObject var navigationState: AppNavigationState
     @Environment(\.appearsActive) private var appearsActive
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.sidebarRowSize) private var sidebarRowSize
+    @State private var usesHardScrollEdgeEffect = false
 
     private let sidebarPadding: CGFloat = 3
 
@@ -75,11 +76,22 @@ struct SettingsView: View {
         .navigationTitle(navigationTitle)
     }
 
+    @ToolbarContentBuilder
+    private var sidebarToolbarSpacer: some ToolbarContent {
+        if #available(macOS 26.0, *) {
+            ToolbarSpacer(.flexible)
+        } else {
+            ToolbarItem {
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
     @ViewBuilder
     private var sidebar: some View {
         List(selection: $navigationState.settingsNavigationIdentifier) {
             Section {
-                ForEach(SettingsNavigationIdentifier.allCases, id: \.self) { identifier in
+                ForEach(SettingsNavigationIdentifier.allCases) { identifier in
                     sidebarItem(for: identifier)
                 }
             } header: {
@@ -92,7 +104,10 @@ struct SettingsView: View {
             .collapsible(false)
         }
         .scrollDisabled(true)
-        .removeSidebarToggle()
+        .toolbar(removing: .sidebarToggle)
+        .toolbar {
+            sidebarToolbarSpacer
+        }
         .navigationSplitViewColumnWidth(sidebarWidth)
     }
 
@@ -100,7 +115,12 @@ struct SettingsView: View {
     private var detailView: some View {
         if #available(macOS 26.0, *) {
             settingsPane
-                .scrollEdgeEffectStyle(.hard, for: .top)
+                .onScrollGeometryChange(for: Bool.self) { geometry in
+                    geometry.visibleRect.minY > -geometry.contentInsets.top
+                } action: { _, isScrolledPastTop in
+                    usesHardScrollEdgeEffect = isScrolledPastTop
+                }
+                .scrollEdgeEffectStyle(usesHardScrollEdgeEffect ? .hard : .soft, for: .top)
         } else {
             settingsPane
         }
@@ -112,16 +132,15 @@ struct SettingsView: View {
         case .general:
             GeneralSettingsPane(settings: appState.settings.general)
         case .menuBarLayout:
-            MenuBarLayoutSettingsPane()
-                .environmentObject(appState.itemManager)
+            MenuBarLayoutSettingsPane(itemManager: appState.itemManager)
         case .menuBarAppearance:
-            MenuBarAppearanceSettingsPane()
+            MenuBarAppearanceSettingsPane(appearanceManager: appState.appearanceManager)
         case .hotkeys:
             HotkeysSettingsPane(settings: appState.settings.hotkeys)
         case .advanced:
             AdvancedSettingsPane(settings: appState.settings.advanced)
         case .about:
-            AboutSettingsPane()
+            AboutSettingsPane(updatesManager: appState.updatesManager)
         }
     }
 
@@ -137,5 +156,6 @@ struct SettingsView: View {
                 .padding(sidebarPadding)
         }
         .frame(height: sidebarItemHeight)
+        .tag(identifier)
     }
 }

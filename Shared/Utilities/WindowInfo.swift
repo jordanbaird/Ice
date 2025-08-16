@@ -73,8 +73,15 @@ struct WindowInfo {
         self = window
     }
 
-    // MARK: Create Windows
+    /// Returns the current bounds of the window.
+    func currentBounds() -> CGRect? {
+        Bridging.getWindowBounds(for: windowID)
+    }
+}
 
+// MARK: - Window List
+
+extension WindowInfo {
     /// Creates a list of windows from the given list of window identifiers.
     ///
     /// - Parameter windowIDs: A list of window identifiers.
@@ -104,17 +111,20 @@ struct WindowInfo {
     static func createMenuBarWindows(option: Bridging.MenuBarWindowListOption = []) -> [WindowInfo] {
         createWindows(from: Bridging.getMenuBarWindowList(option: option))
     }
+}
 
-    // MARK: Wallpaper Window
+// MARK: - Specific Windows
 
+extension WindowInfo {
     /// Returns the wallpaper window for the given display from the
     /// given list of windows.
     static func wallpaperWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) -> WindowInfo? {
-        windows.first { window in
+        let displayBounds = CGDisplayBounds(display)
+        return windows.first { window in
             // Wallpaper window belongs to the Dock process.
             window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
             window.title?.hasPrefix("Wallpaper") == true &&
-            CGDisplayBounds(display).contains(window.bounds)
+            displayBounds.contains(window.bounds)
         }
     }
 
@@ -128,13 +138,14 @@ struct WindowInfo {
     /// Returns the menu bar window for the given display from the
     /// given list of windows.
     static func menuBarWindow(from windows: [WindowInfo], for display: CGDirectDisplayID) -> WindowInfo? {
-        windows.first { window in
+        let displayBounds = CGDisplayBounds(display)
+        return windows.first { window in
             // Menu bar window belongs to the WindowServer process.
             window.isWindowServerWindow &&
             window.isOnScreen &&
             window.layer == kCGMainMenuWindowLevel &&
             window.title == "Menubar" &&
-            CGDisplayBounds(display).contains(window.bounds)
+            displayBounds.contains(window.bounds)
         }
     }
 

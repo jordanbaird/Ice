@@ -10,7 +10,7 @@ import OSLog
 
 @available(macOS 26.0, *)
 extension MenuBarItemService {
-    /// A connection to the `MenuBarItemService` XPC process.
+    /// A connection to the `MenuBarItemService` XPC service.
     final class Connection: Sendable {
         /// The shared connection.
         static let shared = Connection()
@@ -153,9 +153,7 @@ extension MenuBarItemService {
 
         /// Sends the given request to the service and returns the response.
         func send(request: Request) -> Response? {
-            storage.withLock { storage in
-                storage.send(request: request)
-            }
+            storage.withLock { $0.send(request: request) }
         }
     }
 }

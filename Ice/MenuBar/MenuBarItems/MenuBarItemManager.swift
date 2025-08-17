@@ -26,9 +26,6 @@ final class MenuBarItemManager: ObservableObject {
     /// The manager's menu bar item cache.
     @Published private(set) var itemCache = ItemCache(displayID: nil)
 
-    /// Logger for the menu bar item manager.
-    private let logger = Logger(category: "MenuBarItemManager")
-
     /// Serial queue for posting events directly to menu bar items.
     private let scrombleQueue = DispatchQueue.targetingGlobal(
         label: "MenuBarItemManager.scrombleQueue",
@@ -58,6 +55,9 @@ final class MenuBarItemManager: ObservableObject {
 
     /// The shared app state.
     private(set) weak var appState: AppState?
+
+    /// Logger for the menu bar item manager.
+    private nonisolated var logger: Logger { .menuBarItemManager }
 
     /// Sets up the manager.
     func performSetup(with appState: AppState) async {
@@ -224,6 +224,7 @@ extension MenuBarItemManager {
 
         var cache: ItemCache
         var tempShownItems = [(MenuBarItem, MoveDestination)]()
+        var shouldClearCachedItemWindowIDs = false
 
         private(set) lazy var hiddenControlItemBounds = bestBounds(for: controlItems.hidden)
         private(set) lazy var alwaysHiddenControlItemBounds = controlItems.alwaysHidden.map(bestBounds)
@@ -242,23 +243,25 @@ extension MenuBarItemManager {
             item.canBeHidden && (!item.isControlItem || item.tag == .visibleControlItem)
         }
 
-        mutating func isItemInSection(_ item: MenuBarItem, _ section: MenuBarSection.Name) -> Bool {
+        mutating func findSection(for item: MenuBarItem) -> MenuBarSection.Name? {
             lazy var itemBounds = bestBounds(for: item)
-            switch section {
-            case .visible:
-                return itemBounds.minX >= hiddenControlItemBounds.maxX
-            case .hidden:
-                if let alwaysHiddenControlItemBounds {
-                    return itemBounds.maxX <= hiddenControlItemBounds.minX &&
-                    itemBounds.minX >= alwaysHiddenControlItemBounds.maxX
-                } else {
-                    return itemBounds.maxX <= hiddenControlItemBounds.minX
-                }
-            case .alwaysHidden:
-                if let alwaysHiddenControlItemBounds {
-                    return itemBounds.maxX <= alwaysHiddenControlItemBounds.minX
-                } else {
-                    return false
+            return MenuBarSection.Name.allCases.first { section in
+                switch section {
+                case .visible:
+                    return itemBounds.minX >= hiddenControlItemBounds.maxX
+                case .hidden:
+                    if let alwaysHiddenControlItemBounds {
+                        return itemBounds.maxX <= hiddenControlItemBounds.minX &&
+                        itemBounds.minX >= alwaysHiddenControlItemBounds.maxX
+                    } else {
+                        return itemBounds.maxX <= hiddenControlItemBounds.minX
+                    }
+                case .alwaysHidden:
+                    if let alwaysHiddenControlItemBounds {
+                        return itemBounds.maxX <= alwaysHiddenControlItemBounds.minX
+                    } else {
+                        return false
+                    }
                 }
             }
         }
@@ -269,7 +272,12 @@ extension MenuBarItemManager {
     private func uncheckedCacheItems(items: [MenuBarItem], context: CacheContext) {
         var context = context
 
-        outer: for item in items where context.isValidForCaching(item) {
+        for item in items where context.isValidForCaching(item) {
+            if item.sourcePID == nil {
+                logger.warning("Missing sourcePID for \(item.logString, privacy: .public)")
+                context.shouldClearCachedItemWindowIDs = true
+            }
+
             if let temp = tempShownItemContexts.first(where: { $0.tag == item.tag }) {
                 // Cache temporarily shown items as if they were in their original locations.
                 // Keep track of them separately and use their return destinations to insert
@@ -278,17 +286,22 @@ extension MenuBarItemManager {
                 continue
             }
 
-            for section in MenuBarSection.Name.allCases where context.isItemInSection(item, section) {
+            if let section = context.findSection(for: item) {
                 context.cache[section].append(item)
-                continue outer
+                continue
             }
 
-            logger.warning("\(item.logString, privacy: .public) was not cached")
-            cachedItemWindowIDs.removeAll() // Make sure we don't skip the next cache attempt.
+            logger.warning("Couldn't find section for caching \(item.logString, privacy: .public)")
+            context.shouldClearCachedItemWindowIDs = true
         }
 
         for (item, destination) in context.tempShownItems {
             context.cache.insert(item, at: destination)
+        }
+
+        if context.shouldClearCachedItemWindowIDs {
+            logger.info("Clearing cached menu bar item windowIDs")
+            cachedItemWindowIDs.removeAll() // Make sure we don't skip the next cache attempt.
         }
 
         itemCache = context.cache
@@ -330,10 +343,7 @@ extension MenuBarItemManager {
 
         let itemWindowIDs = Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace])
 
-        if
-            cachedItemWindowIDs == itemWindowIDs,
-            itemCache.managedItems.allSatisfy({ $0.sourcePID != nil })
-        {
+        guard cachedItemWindowIDs != itemWindowIDs else {
             return
         }
 
@@ -420,7 +430,7 @@ extension MenuBarItemManager {
         try await performWaitOperation(timeout: timeout) {
             var cancellable: AnyCancellable?
 
-            try await withCancellingContinuation { continuation in
+            await withCheckedContinuation { continuation in
                 let mask: NSEvent.EventTypeMask = [.leftMouseUp, .rightMouseUp, .otherMouseUp]
                 cancellable = RunLoopLocalEventMonitor.publisher(for: mask, mode: .eventTracking)
                     .merge(with: EventMonitor.publish(events: mask, scope: .universal))
@@ -433,9 +443,6 @@ extension MenuBarItemManager {
                         cancellable?.cancel()
                         continuation.resume()
                     }
-            } onCancel: { continuation in
-                cancellable?.cancel()
-                continuation.cancel()
             }
         }
     }
@@ -450,7 +457,7 @@ extension MenuBarItemManager {
         try await performWaitOperation(timeout: timeout) {
             var cancellable: AnyCancellable?
 
-            try await withCancellingContinuation { continuation in
+            await withCheckedContinuation { continuation in
                 let mask: NSEvent.EventTypeMask = .flagsChanged
                 cancellable = RunLoopLocalEventMonitor.publisher(for: mask, mode: .eventTracking)
                     .merge(with: EventMonitor.publish(events: mask, scope: .universal))
@@ -463,9 +470,6 @@ extension MenuBarItemManager {
                         cancellable?.cancel()
                         continuation.resume()
                     }
-            } onCancel: { continuation in
-                cancellable?.cancel()
-                continuation.cancel()
             }
         }
     }
@@ -633,39 +637,6 @@ extension MenuBarItemManager {
         source.localEventsSuppressionInterval = suppressionInterval
     }
 
-    /// Returns a Boolean value that indicates whether the given events have the
-    /// same values for each integer value field.
-    ///
-    /// - Parameters:
-    ///   - events: The events to compare.
-    ///   - integerFields: An array of integer value fields to compare on each event.
-    private nonisolated func eventsMatch(_ events: [CGEvent], by integerFields: [CGEventField]) -> Bool {
-        var fieldValues = Set<[Int64]>()
-        for event in events {
-            let values = integerFields.map(event.getIntegerValueField)
-            fieldValues.insert(values)
-            if fieldValues.count != 1 {
-                return false
-            }
-        }
-        return true
-    }
-
-    /// Posts an event to the given event tap location.
-    ///
-    /// - Parameters:
-    ///   - event: The event to post.
-    ///   - location: The event tap location to post the event to.
-    private nonisolated func postEvent(_ event: CGEvent, to location: EventTap.Location) {
-        logger.debug("Posting \(event.type.logString, privacy: .public) to \(location.logString, privacy: .public)")
-        switch location {
-        case .hidEventTap: event.post(tap: .cghidEventTap)
-        case .sessionEventTap: event.post(tap: .cgSessionEventTap)
-        case .annotatedSessionEventTap: event.post(tap: .cgAnnotatedSessionEventTap)
-        case .pid(let pid): event.postToPid(pid)
-        }
-    }
-
     /// Posts an event to the given event tap location and waits
     /// until it is received before returning.
     ///
@@ -680,12 +651,12 @@ extension MenuBarItemManager {
         item: MenuBarItem,
         timeout: Duration
     ) async throws {
-        let timeoutTask = Task(timeout: timeout) { [weak self] in
-            guard let self else {
-                throw EventError(code: .couldNotComplete, item: item)
-            }
-
+        let timeoutTask = Task(timeout: timeout) {
             var eventTap: EventTap?
+
+            defer {
+                eventTap?.disable()
+            }
 
             await withCheckedContinuation { continuation in
                 eventTap = EventTap(
@@ -693,20 +664,15 @@ extension MenuBarItemManager {
                     location: location,
                     placement: .tailAppendEventTap,
                     type: event.type,
-                    callbackQueue: self.scrombleQueue
-                ) { tap, rEvent in
-                    guard self.eventsMatch([rEvent, event], by: CGEventField.menuBarItemEventFields) else {
-                        return rEvent
+                    callbackQueue: scrombleQueue
+                ) { _, rEvent in
+                    if rEvent.matches(event, by: CGEventField.menuBarItemEventFields) {
+                        continuation.resume()
                     }
-
-                    tap.disable()
-                    continuation.resume()
-
                     return rEvent
                 }
-
                 eventTap?.enable()
-                self.postEvent(event, to: location)
+                event.post(to: location)
             }
         }
         do {
@@ -733,88 +699,66 @@ extension MenuBarItemManager {
         item: MenuBarItem,
         timeout: Duration
     ) async throws {
-        guard let nullEvent = CGEvent.uniqueNullEvent() else {
+        guard
+            let entryEvent = CGEvent.uniqueNullEvent(),
+            let exitEvent = CGEvent.uniqueNullEvent()
+        else {
             throw EventError(code: .eventCreationFailure, item: item)
         }
 
-        let timeoutTask = Task(timeout: timeout) { [weak self] in
-            guard let self else {
-                throw EventError(code: .couldNotComplete, item: item)
-            }
-
+        let timeoutTask = Task(timeout: timeout) {
             var eventTap1: EventTap?
             var eventTap2: EventTap?
-            var eventTap3: EventTap?
+
+            defer {
+                eventTap1?.disable()
+                eventTap2?.disable()
+            }
 
             await withCheckedContinuation { continuation in
-                // Create an event tap that listens for the null event at the first tap
-                // location. This tap posts the actual event to the second tap location
-                // and discards the null event.
+                // Create a tap for the entry and exit events at the first location.
+                // This tap is responsible for posting the actual event to the second
+                // location and resuming the continuation.
                 eventTap1 = EventTap(
                     label: "EventTap 1",
                     options: .defaultTap,
                     location: firstTapLocation,
                     placement: .headInsertEventTap,
-                    type: nullEvent.type,
-                    callbackQueue: self.scrombleQueue
-                ) { tap, rEvent in
-                    guard self.eventsMatch([rEvent, nullEvent], by: [.eventSourceUserData]) else {
-                        return rEvent
+                    type: .null,
+                    callbackQueue: scrombleQueue
+                ) { _, rEvent in
+                    if rEvent.matches(entryEvent, by: [.eventSourceUserData]) {
+                        event.post(to: secondTapLocation)
+                        return nil
                     }
-
-                    tap.disable()
-                    self.postEvent(event, to: secondTapLocation)
-
-                    return nil
+                    if rEvent.matches(exitEvent, by: [.eventSourceUserData]) {
+                        continuation.resume()
+                        return nil
+                    }
+                    return rEvent
                 }
 
-                // Create an event tap that listens for the actual event at the second
-                // tap location. This tap posts the event to the first tap location and
-                // returns normally.
+                // Create a tap for the actual event at the second location. This tap
+                // is responsible for posting the exit event to the first location.
                 eventTap2 = EventTap(
                     label: "EventTap 2",
                     options: .listenOnly,
                     location: secondTapLocation,
                     placement: .tailAppendEventTap,
                     type: event.type,
-                    callbackQueue: self.scrombleQueue
-                ) { tap, rEvent in
-                    guard self.eventsMatch([rEvent, event], by: CGEventField.menuBarItemEventFields) else {
-                        return rEvent
+                    callbackQueue: scrombleQueue
+                ) { _, rEvent in
+                    if rEvent.matches(event, by: CGEventField.menuBarItemEventFields) {
+                        exitEvent.post(to: firstTapLocation)
                     }
-
-                    tap.disable()
-                    self.postEvent(event, to: firstTapLocation)
-
                     return rEvent
-                }
-
-                // Create an event tap that listens for the actual event at the first tap
-                // location. This tap resumes the continuation and discards the event.
-                eventTap3 = EventTap(
-                    label: "EventTap 3",
-                    options: .defaultTap,
-                    location: firstTapLocation,
-                    placement: .headInsertEventTap,
-                    type: event.type,
-                    callbackQueue: self.scrombleQueue
-                ) { tap, rEvent in
-                    guard self.eventsMatch([rEvent, event], by: CGEventField.menuBarItemEventFields) else {
-                        return rEvent
-                    }
-
-                    tap.disable()
-                    continuation.resume()
-
-                    return nil
                 }
 
                 eventTap1?.enable()
                 eventTap2?.enable()
-                eventTap3?.enable()
 
-                // Post the null event to the first tap location to start the event chain.
-                self.postEvent(nullEvent, to: firstTapLocation)
+                // Post the entry event to the first location to start the event chain.
+                entryEvent.post(to: firstTapLocation)
             }
         }
         do {
@@ -847,10 +791,10 @@ extension MenuBarItemManager {
     ) async throws {
         let duration = getSleepDurationFromScreenRefreshRate(screen: screen)
         let initialBounds = try getCurrentBounds(for: item)
+        try await scrombleEvent(event, from: firstTapLocation, to: secondTapLocation, item: item, timeout: timeout)
         let boundsCheckTask = Task(timeout: timeout) {
             while true {
                 try Task.checkCancellation()
-                try await scrombleEvent(event, from: firstTapLocation, to: secondTapLocation, item: item, timeout: timeout)
                 let currentBounds = try getCurrentBounds(for: item)
                 guard currentBounds != initialBounds else {
                     try await Task.sleep(for: duration)
@@ -939,7 +883,6 @@ extension MenuBarItemManager {
         timeout: Duration
     ) async throws {
         let itemBounds = try getCurrentBounds(for: item)
-        let startLocation = CGPoint(x: 20_000, y: 20_000)
         let endLocation = try getEndLocation(for: destination)
         let fallbackLocation = CGPoint(x: itemBounds.midX, y: itemBounds.minY)
         let pid = item.sourcePID ?? item.ownerPID
@@ -948,18 +891,11 @@ extension MenuBarItemManager {
             let moveEvent1 = CGEvent.menuBarItemEvent(
                 source: source,
                 type: .move(.mouseDown),
-                location: startLocation,
-                item: item,
-                pid: pid
-            ),
-            let moveEvent2 = CGEvent.menuBarItemEvent(
-                source: source,
-                type: .move(.mouseDragged),
                 location: endLocation,
                 item: item,
                 pid: pid
             ),
-            let moveEvent3 = CGEvent.menuBarItemEvent(
+            let moveEvent2 = CGEvent.menuBarItemEvent(
                 source: source,
                 type: .move(.mouseUp),
                 location: endLocation,
@@ -984,19 +920,12 @@ extension MenuBarItemManager {
                 moveEvent1,
                 from: .pid(pid),
                 to: .sessionEventTap,
-                item: item,
-                timeout: timeout
-            )
-            try await scrombleEvent(
-                moveEvent2,
-                from: .pid(pid),
-                to: .sessionEventTap,
                 untilItemResponds: item,
                 screen: screen,
                 timeout: timeout
             )
             try await scrombleEvent(
-                moveEvent3,
+                moveEvent2,
                 from: .pid(pid),
                 to: .sessionEventTap,
                 item: item,
@@ -1543,13 +1472,11 @@ extension MenuBarItemManager {
 private enum MenuBarItemMoveEventMouseState {
     case mouseDown
     case mouseUp
-    case mouseDragged
 
     var cgEventType: CGEventType {
         switch self {
         case .mouseDown: .leftMouseDown
         case .mouseUp: .leftMouseUp
-        case .mouseDragged: .leftMouseDragged
         }
     }
 }
@@ -1736,6 +1663,37 @@ private extension CGEvent {
         return event
     }
 
+    /// Returns a Boolean value that indicates whether the given fields on
+    /// this event are equivalent to the same fields on the given event.
+    ///
+    /// - Parameters:
+    ///   - other: The event to compare with this event.
+    ///   - fields: The fields to check.
+    func matches(_ other: CGEvent, by fields: [CGEventField]) -> Bool {
+        fields.allSatisfy { field in
+            getIntegerValueField(field) == other.getIntegerValueField(field) &&
+            getDoubleValueField(field) == other.getDoubleValueField(field)
+        }
+    }
+
+    /// Posts the event to the given event tap location.
+    ///
+    /// - Parameter location: The event tap location to post the event to.
+    func post(to location: EventTap.Location) {
+        Logger.menuBarItemManager.debug(
+            """
+            Posting \(self.type.logString, privacy: .public) \
+            to \(location.logString, privacy: .public)
+            """
+        )
+        switch location {
+        case .hidEventTap: post(tap: .cghidEventTap)
+        case .sessionEventTap: post(tap: .cgSessionEventTap)
+        case .annotatedSessionEventTap: post(tap: .cgAnnotatedSessionEventTap)
+        case .pid(let pid): postToPid(pid)
+        }
+    }
+
     private func setFlags(for type: MenuBarItemEventType) {
         flags = type.cgEventFlags
     }
@@ -1767,4 +1725,9 @@ private extension CGEvent {
         }
         setIntegerValueField(.mouseEventClickState, value: 1)
     }
+}
+
+private extension Logger {
+    /// Logger for the menu bar item manager.
+    static let menuBarItemManager = Logger(category: "MenuBarItemManager")
 }

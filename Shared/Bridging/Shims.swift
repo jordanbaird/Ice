@@ -37,6 +37,9 @@ struct CGSSpaceMask: OptionSet {
 @_silgen_name("CGSMainConnectionID")
 func CGSMainConnectionID() -> CGSConnectionID
 
+@_silgen_name("CGSDefaultConnectionForThread")
+func CGSDefaultConnectionForThread() -> CGSConnectionID
+
 @_silgen_name("CGSCopyConnectionProperty")
 func CGSCopyConnectionProperty(
     _ cid: CGSConnectionID,
@@ -137,6 +140,13 @@ func CGSGetProcessMenuBarWindowList(
     _ count: Int32,
     _ list: UnsafeMutablePointer<CGWindowID>,
     _ outCount: inout Int32
+) -> CGError
+
+@_silgen_name("CGSGetScreenRectForWindow")
+func CGSGetScreenRectForWindow(
+    _ cid: CGSConnectionID,
+    _ wid: CGWindowID,
+    _ outRect: inout CGRect
 ) -> CGError
 
 @_silgen_name("CGSGetWindowBounds")

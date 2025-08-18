@@ -60,10 +60,10 @@ final class EventManager: ObservableObject {
 
     /// Tap for mouse moved events.
     private(set) lazy var mouseMovedTap = EventTap(
-        options: .listenOnly,
+        type: .mouseMoved,
         location: .hidEventTap,
         placement: .tailAppendEventTap,
-        type: .mouseMoved
+        option: .listenOnly
     ) { [weak self] _, event in
         if let self, let appState, let screen = bestScreen(appState: appState) {
             handleShowOnHover(appState: appState, screen: screen)

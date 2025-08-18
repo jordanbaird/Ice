@@ -195,11 +195,11 @@ extension Bridging {
     /// Returns the bounds for the given window.
     ///
     /// - Parameter windowID: An identifier for a window.
-    static func getWindowBounds(for windowID: CGWindowID) -> CGRect? {
+    static nonisolated func getWindowBounds(for windowID: CGWindowID) -> CGRect? {
         var bounds = CGRect.zero
-        let result = CGSGetWindowBounds(mainConnectionID, windowID, &bounds)
+        let result = CGSGetScreenRectForWindow(CGSDefaultConnectionForThread(), windowID, &bounds)
         guard result == .success else {
-            logger.error("CGSGetWindowBounds failed with error \(result.logString, privacy: .public)")
+            logger.error("CGSGetScreenRectForWindow failed with error \(result.logString, privacy: .public)")
             return nil
         }
         return bounds

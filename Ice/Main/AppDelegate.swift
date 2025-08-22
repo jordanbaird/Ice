@@ -11,26 +11,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// The shared app state.
     let appState = AppState()
 
-    /// Logger for the app delegate.
-    let logger = Logger(category: "AppDelegate")
-
     // MARK: NSApplicationDelegate Methods
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // Initial chore work.
         NSSplitViewItem.swizzle()
         MigrationManager(appState: appState).migrateAll()
-        Bridging.setConnectionProperty(true, forKey: "SetsCursorInBackground")
         NSColorPanel.shared.animationBehavior = .none
         NSColorPanel.shared.hidesOnDeactivate = false
         NSColorPanel.shared.styleMask.insert(.nonactivatingPanel)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Hide the main menu's items to make more room in the menu bar.
+        // Hide the main menu's items to add additional space to the
+        // menu bar when we are the focused app.
         for item in NSApp.mainMenu?.items ?? [] {
             item.isHidden = true
         }
+
+        // Allow hiding the mouse while the app is in the background
+        // to make menu bar item movement less jarring.
+        Bridging.setConnectionProperty(true, forKey: "SetsCursorInBackground")
 
         #if DEBUG
         // Don't perform setup if running as a preview.
@@ -55,7 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        logger.debug("Handling reopen")
+        Logger.default.debug("Handling reopen")
         openSettingsWindow()
         return true
     }
@@ -66,7 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             sender.activationPolicy() != .accessory,
             appState.navigationState.isAppFrontmost
         {
-            logger.debug("All windows closed - deactivating with accessory activation policy")
+            Logger.default.debug("All windows closed - deactivating with accessory activation policy")
             appState.deactivate(withPolicy: .accessory)
         }
         return false

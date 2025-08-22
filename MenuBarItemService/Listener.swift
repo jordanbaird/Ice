@@ -30,14 +30,14 @@ final class Listener {
             let request = try message.decode(as: MenuBarItemService.Request.self)
             switch request {
             case .start:
-                Logger.general.debug("Listener received start request")
+                Logger.default.debug("Listener received start request")
                 return .start
             case .sourcePID(let window):
                 let pid = SourcePIDCache.shared.pid(for: window)
                 return .sourcePID(pid)
             }
         } catch {
-            Logger.general.error("Listener failed to handle message with error \(error)")
+            Logger.default.error("Listener failed to handle message with error \(error)")
             return nil
         }
     }
@@ -66,11 +66,11 @@ final class Listener {
     /// Activates the listener.
     func activate() {
         guard listener == nil else {
-            Logger.general.notice("Listener is already active")
+            Logger.default.notice("Listener is already active")
             return
         }
 
-        Logger.general.debug("Activating listener")
+        Logger.default.debug("Activating listener")
 
         do {
             if #available(macOS 26.0, *) {
@@ -79,13 +79,13 @@ final class Listener {
                 try uncheckedActivate()
             }
         } catch {
-            Logger.general.error("Failed to activate listener with error \(error)")
+            Logger.default.error("Failed to activate listener with error \(error)")
         }
     }
 
     /// Cancels the listener.
     func cancel() {
-        Logger.general.debug("Canceling listener")
+        Logger.default.debug("Canceling listener")
         listener.take()?.cancel()
     }
 }

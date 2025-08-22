@@ -26,7 +26,7 @@ enum MouseHelpers {
     static func hideCursor() {
         let result = CGDisplayHideCursor(CGMainDisplayID())
         if result != .success {
-            Logger.general.error("CGDisplayHideCursor failed with error \(result.logString, privacy: .public)")
+            Logger.default.error("CGDisplayHideCursor failed with error \(result.logString, privacy: .public)")
         }
     }
 
@@ -35,7 +35,7 @@ enum MouseHelpers {
     static func showCursor() {
         let result = CGDisplayShowCursor(CGMainDisplayID())
         if result != .success {
-            Logger.general.error("CGDisplayShowCursor failed with error \(result.logString, privacy: .public)")
+            Logger.default.error("CGDisplayShowCursor failed with error \(result.logString, privacy: .public)")
         }
     }
 
@@ -47,7 +47,7 @@ enum MouseHelpers {
     static func warpCursor(to point: CGPoint) {
         let result = CGWarpMouseCursorPosition(point)
         if result != .success {
-            Logger.general.error("CGWarpMouseCursorPosition failed with error \(result.logString, privacy: .public)")
+            Logger.default.error("CGWarpMouseCursorPosition failed with error \(result.logString, privacy: .public)")
         }
     }
 
@@ -58,7 +58,7 @@ enum MouseHelpers {
     static func associateMouseAndCursor(_ connected: Bool) {
         let result = CGAssociateMouseAndMouseCursorPosition(connected ? 1 : 0)
         if result != .success {
-            Logger.general.error("CGAssociateMouseAndMouseCursorPosition failed with error \(result.logString, privacy: .public)")
+            Logger.default.error("CGAssociateMouseAndMouseCursorPosition failed with error \(result.logString, privacy: .public)")
         }
     }
 

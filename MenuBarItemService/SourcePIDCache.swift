@@ -169,7 +169,7 @@ final class SourcePIDCache {
             return
         }
 
-        Logger.general.debug("Received new running applications")
+        Logger.default.debug("Received new running applications")
 
         let windowIDs = Bridging.getMenuBarWindowList(option: .itemsOnly)
 
@@ -212,7 +212,7 @@ final class SourcePIDCache {
 
     /// Starts the observers for the cache.
     func start() {
-        Logger.general.debug("Starting observers for source PID cache")
+        Logger.default.debug("Starting observers for source PID cache")
         _ = cancellable
     }
 

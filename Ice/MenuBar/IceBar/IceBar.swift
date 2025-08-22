@@ -176,7 +176,7 @@ final class IceBarPanel: NSPanel {
         do {
             try await cacheTask.value
         } catch {
-            Logger.general.error("Cache update failed when showing IceBarPanel - \(error)")
+            Logger.default.error("Cache update failed when showing IceBarPanel - \(error)")
         }
 
         contentView = IceBarHostingView(

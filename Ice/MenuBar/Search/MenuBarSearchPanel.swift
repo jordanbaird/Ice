@@ -108,7 +108,7 @@ final class MenuBarSearchPanel: NSPanel {
         }
 
         guard let screen = screen ?? defaultScreen else {
-            Logger.general.error("Missing screen for search panel")
+            Logger.default.error("Missing screen for search panel")
             return
         }
 

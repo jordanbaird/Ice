@@ -8,24 +8,42 @@ import OSLog
 
 // MARK: - Bridging
 
-/// A namespace for bridged APIs.
+/// A namespace for bridged or wrapped APIs.
 enum Bridging {
-    private static let mainConnectionID = CGSMainConnectionID()
-    private static let nullConnectionID: CGSConnectionID = 0
     private static let logger = Logger(category: "Bridging")
 }
 
 // MARK: - CGSConnection
 
 extension Bridging {
-    /// Returns the value for a property in the app's window server connection.
+
+    // MARK: Private Connection Helpers
+
+    /// The identifier for the `null` window server connection.
+    private static let nullConnection: CGSConnectionID = 0
+
+    /// Returns the identifier for the main window server connection.
+    private static func getMainConnection() -> CGSConnectionID {
+        CGSMainConnectionID()
+    }
+
+    /// Returns the identifier for the window server connection
+    /// for the current thread.
+    private static func getConnectionForThread() -> CGSConnectionID {
+        CGSDefaultConnectionForThread()
+    }
+
+    // MARK: Public Connection API
+
+    /// Returns a value from the main window server connection.
     ///
-    /// - Parameter key: A key for a property in the app's window server connection.
+    /// - Parameter key: A key associated with a value in the main
+    ///   window server connection.
     static func getConnectionProperty(forKey key: String) -> Any? {
         var value: Unmanaged<CFTypeRef>?
         let result = CGSCopyConnectionProperty(
-            mainConnectionID,
-            mainConnectionID,
+            getMainConnection(),
+            getMainConnection(),
             key as CFString,
             &value
         )
@@ -35,15 +53,16 @@ extension Bridging {
         return value?.takeRetainedValue()
     }
 
-    /// Sets the value for a property in the app's window server connection.
+    /// Sets a value in the main window server connection.
     ///
     /// - Parameters:
-    ///   - value: A value to set for `key`.
-    ///   - key: A key for a property in the app's window server connection.
+    ///   - value: A value to set.
+    ///   - key: A key to associate with `value` as a property in the
+    ///     main window server connection.
     static func setConnectionProperty(_ value: Any?, forKey key: String) {
         let result = CGSSetConnectionProperty(
-            mainConnectionID,
-            mainConnectionID,
+            getMainConnection(),
+            getMainConnection(),
             key as CFString,
             value as CFTypeRef
         )
@@ -53,7 +72,7 @@ extension Bridging {
     }
 }
 
-// MARK: - Display
+// MARK: - CGDisplay / CGSDisplay
 
 extension Bridging {
 
@@ -94,7 +113,7 @@ extension Bridging {
 
     /// Returns the identifier of the display with the active menu bar.
     static func getActiveMenuBarDisplayID() -> CGDirectDisplayID? {
-        guard let string = CGSCopyActiveMenuBarDisplayIdentifier(mainConnectionID) else {
+        guard let string = CGSCopyActiveMenuBarDisplayIdentifier(getMainConnection()) else {
             logger.error("CGSCopyActiveMenuBarDisplayIdentifier returned nil")
             return nil
         }
@@ -111,8 +130,8 @@ extension Bridging {
 // MARK: - CGSEvent
 
 extension Bridging {
-    /// Returns a Boolean value indicating whether the given process is
-    /// unresponsive.
+    /// Returns a Boolean value indicating whether the given process
+    /// is unresponsive.
     ///
     /// - Parameter pid: An identifier for a process.
     static func isProcessUnresponsive(_ pid: pid_t) -> Bool {
@@ -122,14 +141,14 @@ extension Bridging {
             logger.error("GetProcessForPID failed with error \(result, privacy: .public)")
             return false
         }
-        return CGSEventIsAppUnresponsive(mainConnectionID, &psn)
+        return CGSEventIsAppUnresponsive(getMainConnection(), &psn)
     }
 
     /// Sets the timeout used to determine if a process is unresponsive.
     ///
     /// - Parameter timeout: An amount of time in seconds.
     static func setProcessUnresponsiveTimeout(_ timeout: TimeInterval) {
-        let result = CGSEventSetAppIsUnresponsiveNotificationTimeout(mainConnectionID, timeout)
+        let result = CGSEventSetAppIsUnresponsiveNotificationTimeout(getMainConnection(), timeout)
         if result != .success {
             logger.error("CGSEventSetAppIsUnresponsiveNotificationTimeout failed with error \(result.logString, privacy: .public)")
         }
@@ -141,10 +160,11 @@ extension Bridging {
 extension Bridging {
     /// Returns the identifier for the active space.
     static func getActiveSpaceID() -> CGSSpaceID {
-        CGSGetActiveSpace(mainConnectionID)
+        CGSGetActiveSpace(getMainConnection())
     }
 
-    /// Returns the identifier for the current space on the given display.
+    /// Returns the identifier for the current space on the given
+    /// display.
     ///
     /// - Parameter displayID: An identifier for a display.
     static func getCurrentSpaceID(for displayID: CGDirectDisplayID) -> CGSSpaceID? {
@@ -155,7 +175,7 @@ extension Bridging {
             logger.error("CFUUIDCreateString returned nil for display \(displayID, privacy: .public)")
             return nil
         }
-        return CGSManagedDisplayGetCurrentSpace(mainConnectionID, uuidString)
+        return CGSManagedDisplayGetCurrentSpace(getMainConnection(), uuidString)
     }
 
     /// Returns a list of identifiers for the spaces that contain the
@@ -165,10 +185,9 @@ extension Bridging {
     ///   - windowID: An identifier for a window.
     ///   - visibleSpacesOnly: A Boolean value that determines whether
     ///     the returned list should only include visible spaces.
-    ///     The default value is `false`.
     static func getSpaceList(for windowID: CGWindowID, visibleSpacesOnly: Bool = false) -> [CGSSpaceID] {
         let mask: CGSSpaceMask = visibleSpacesOnly ? .allVisibleSpacesMask : .allSpacesMask
-        guard let spaces = CGSCopySpacesForWindows(mainConnectionID, mask, [windowID] as CFArray) else {
+        guard let spaces = CGSCopySpacesForWindows(getMainConnection(), mask, [windowID] as CFArray) else {
             logger.error("CGSCopySpacesForWindows returned nil")
             return []
         }
@@ -184,7 +203,7 @@ extension Bridging {
     ///
     /// - Parameter spaceID: An identifier for a space.
     static func isSpaceFullscreen(_ spaceID: CGSSpaceID) -> Bool {
-        let type = CGSSpaceGetType(mainConnectionID, spaceID)
+        let type = CGSSpaceGetType(getMainConnection(), spaceID)
         return type == .fullscreen
     }
 }
@@ -195,9 +214,9 @@ extension Bridging {
     /// Returns the bounds for the given window.
     ///
     /// - Parameter windowID: An identifier for a window.
-    static nonisolated func getWindowBounds(for windowID: CGWindowID) -> CGRect? {
+    static func getWindowBounds(for windowID: CGWindowID) -> CGRect? {
         var bounds = CGRect.zero
-        let result = CGSGetScreenRectForWindow(CGSDefaultConnectionForThread(), windowID, &bounds)
+        let result = CGSGetScreenRectForWindow(getConnectionForThread(), windowID, &bounds)
         guard result == .success else {
             logger.error("CGSGetScreenRectForWindow failed with error \(result.logString, privacy: .public)")
             return nil
@@ -210,7 +229,7 @@ extension Bridging {
     /// - Parameter windowID: An identifier for a window.
     static func getWindowLevel(for windowID: CGWindowID) -> CGWindowLevel? {
         var level: CGWindowLevel = 0
-        let result = CGSGetWindowLevel(mainConnectionID, windowID, &level)
+        let result = CGSGetWindowLevel(getMainConnection(), windowID, &level)
         guard result == .success else {
             logger.error("CGSGetWindowLevel failed with error \(result.logString, privacy: .public)")
             return nil
@@ -257,7 +276,7 @@ extension Bridging {
 
     private static func getWindowCount() -> Int32? {
         var count: Int32 = 0
-        let result = CGSGetWindowCount(mainConnectionID, nullConnectionID, &count)
+        let result = CGSGetWindowCount(getMainConnection(), nullConnection, &count)
         guard result == .success else {
             logger.error("CGSGetWindowCount failed with error \(result.logString, privacy: .public)")
             return nil
@@ -267,7 +286,7 @@ extension Bridging {
 
     private static func getOnScreenWindowCount() -> Int32? {
         var count: Int32 = 0
-        let result = CGSGetOnScreenWindowCount(mainConnectionID, nullConnectionID, &count)
+        let result = CGSGetOnScreenWindowCount(getMainConnection(), nullConnection, &count)
         guard result == .success else {
             logger.error("CGSGetOnScreenWindowCount failed with error \(result.logString, privacy: .public)")
             return nil
@@ -280,7 +299,7 @@ extension Bridging {
             return []
         }
         var list = [CGWindowID](repeating: 0, count: Int(count))
-        let result = CGSGetWindowList(mainConnectionID, nullConnectionID, count, &list, &count)
+        let result = CGSGetWindowList(getMainConnection(), nullConnection, count, &list, &count)
         guard result == .success else {
             logger.error("CGSGetWindowList failed with error \(result.logString, privacy: .public)")
             return []
@@ -293,7 +312,7 @@ extension Bridging {
             return []
         }
         var list = [CGWindowID](repeating: 0, count: Int(count))
-        let result = CGSGetOnScreenWindowList(mainConnectionID, nullConnectionID, count, &list, &count)
+        let result = CGSGetOnScreenWindowList(getMainConnection(), nullConnection, count, &list, &count)
         guard result == .success else {
             logger.error("CGSGetOnScreenWindowList failed with error \(result.logString, privacy: .public)")
             return []
@@ -306,7 +325,7 @@ extension Bridging {
             return []
         }
         var list = [CGWindowID](repeating: 0, count: Int(count))
-        let result = CGSGetProcessMenuBarWindowList(mainConnectionID, nullConnectionID, count, &list, &count)
+        let result = CGSGetProcessMenuBarWindowList(getMainConnection(), nullConnection, count, &list, &count)
         guard result == .success else {
             logger.error("CGSGetProcessMenuBarWindowList failed with error \(result.logString, privacy: .public)")
             return []
@@ -395,7 +414,7 @@ extension Bridging {
         }
     }
 
-    // MARK: - CGWindowList Specific
+    // MARK: - CGWindowList Helpers
 
     /// Creates a `CFArray` containing the bit patterns of the given
     /// window list.

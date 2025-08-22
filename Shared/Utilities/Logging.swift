@@ -17,8 +17,8 @@ extension Logger {
 // MARK: - Shared Loggers
 
 extension Logger {
-    /// The general purpose logger.
-    static let general = Logger(category: "General")
+    /// The default logger.
+    static let `default` = Logger(.default)
 
     /// The logger for hotkey operations.
     static let hotkeys = Logger(category: "Hotkeys")

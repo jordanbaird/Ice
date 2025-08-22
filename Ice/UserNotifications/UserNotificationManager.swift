@@ -27,7 +27,7 @@ final class UserNotificationManager: NSObject {
             do {
                 try await notificationCenter.requestAuthorization(options: [.badge, .alert, .sound])
             } catch {
-                Logger.general.error("Failed to request notification authorization: \(error)")
+                Logger.default.error("Failed to request notification authorization: \(error)")
             }
         }
     }

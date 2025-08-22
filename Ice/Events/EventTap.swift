@@ -48,15 +48,14 @@ final class EventTap {
             return Unmanaged.passUnretained(event)
         }
         let tap: EventTap = Unmanaged.fromOpaque(refcon).takeUnretainedValue()
-        let retained = Unmanaged.passRetained(tap)
         if type == .tapDisabledByUserInput || type == .tapDisabledByTimeout {
-            retained.takeRetainedValue().enable()
+            tap.enable()
             return nil
         }
         guard tap.isEnabled else {
             return Unmanaged.passUnretained(event)
         }
-        return tap.callback(retained.takeRetainedValue(), event).map { eventFromCallback in
+        return tap.callback(tap, event).map { eventFromCallback in
             Unmanaged.passUnretained(eventFromCallback)
         }
     }
@@ -85,13 +84,14 @@ final class EventTap {
 
     /// Creates a new event tap for the specified event types.
     ///
-    /// If the tap is an active filter, the callback can return one
-    /// of the following:
-    ///   - The (possibly modified) received event to pass back to
+    /// If the tap is an active filter, the callback can return
+    /// one of the following:
+    ///
+    ///   * The (possibly modified) received event to pass back to
     ///     the event stream.
-    ///   - A new event to pass to the event stream in place of the
+    ///   * A new event to pass to the event stream in place of the
     ///     received event.
-    ///   - `nil` to remove the received event from the event stream.
+    ///   * `nil` to remove the received event from the event stream.
     ///
     /// If the tap is a passive listener, the callback's return value
     /// does not affect the event stream.
@@ -99,13 +99,13 @@ final class EventTap {
     /// - Parameters:
     ///   - label: A string label that identifies the tap in logging
     ///     and debugging contexts.
-    ///   - types: The types of the events received by the tap.
+    ///   - types: The event types monitored by the tap.
     ///   - location: The point in the event stream to insert the tap.
-    ///   - placement: The tap's placement relative to other active taps.
+    ///   - placement: The tap's placement, relative to existing taps
+    ///     at `location`.
     ///   - option: An option that specifies whether the tap is an
     ///     active filter or a passive listener.
-    ///   - callback: A closure for the tap to perform when events are
-    ///     received.
+    ///   - callback: A closure the tap calls to handle received events.
     init(
         label: String = #function,
         types: [CGEventType],
@@ -120,11 +120,11 @@ final class EventTap {
 
         guard
             let machPort = EventTap.createMachPort(
-                types: types,
+                mask: types.reduce(0) { $0 | (1 << $1.rawValue) },
                 location: location,
-                placement: placement,
-                option: option,
-                tap: self
+                place: placement,
+                options: option,
+                userInfo: Unmanaged.passUnretained(self).toOpaque()
             ),
             let source = CFMachPortCreateRunLoopSource(nil, machPort, 0)
         else {
@@ -138,13 +138,14 @@ final class EventTap {
 
     /// Creates a new event tap for the specified event type.
     ///
-    /// If the tap is an active filter, the callback can return one
-    /// of the following:
-    ///   - The (possibly modified) received event to pass back to
+    /// If the tap is an active filter, the callback can return
+    /// one of the following:
+    ///
+    ///   * The (possibly modified) received event to pass back to
     ///     the event stream.
-    ///   - A new event to pass to the event stream in place of the
+    ///   * A new event to pass to the event stream in place of the
     ///     received event.
-    ///   - `nil` to remove the received event from the event stream.
+    ///   * `nil` to remove the received event from the event stream.
     ///
     /// If the tap is a passive listener, the callback's return value
     /// does not affect the event stream.
@@ -152,13 +153,13 @@ final class EventTap {
     /// - Parameters:
     ///   - label: A string label that identifies the tap in logging
     ///     and debugging contexts.
-    ///   - type: The type of the events received by the tap.
+    ///   - type: The event type monitored by the tap.
     ///   - location: The point in the event stream to insert the tap.
-    ///   - placement: The tap's placement relative to other active taps.
+    ///   - placement: The tap's placement, relative to existing taps
+    ///     at `location`.
     ///   - option: An option that specifies whether the tap is an
     ///     active filter or a passive listener.
-    ///   - callback: A closure for the tap to perform when events are
-    ///     received.
+    ///   - callback: A closure the tap calls to handle received events.
     convenience init(
         label: String = #function,
         type: CGEventType,
@@ -187,40 +188,33 @@ final class EventTap {
         }
     }
 
+    /// Creates an event tap mach port.
     private static func createMachPort(
-        types: [CGEventType],
+        mask: CGEventMask,
         location: Location,
-        placement: CGEventTapPlacement,
-        option: CGEventTapOptions,
-        tap: EventTap
+        place: CGEventTapPlacement,
+        options: CGEventTapOptions,
+        userInfo: UnsafeMutableRawPointer
     ) -> CFMachPort? {
-        func createEventMask() -> CGEventMask {
-            types.reduce(0) { $0 | (1 << $1.rawValue) }
-        }
-
-        func createUserInfo() -> UnsafeMutableRawPointer {
-            Unmanaged.passUnretained(tap).toOpaque()
-        }
-
         func createMachPort(at tapLocation: CGEventTapLocation) -> CFMachPort? {
             CGEvent.tapCreate(
                 tap: tapLocation,
-                place: placement,
-                options: option,
-                eventsOfInterest: createEventMask(),
+                place: place,
+                options: options,
+                eventsOfInterest: mask,
                 callback: sharedCallback,
-                userInfo: createUserInfo()
+                userInfo: userInfo
             )
         }
 
         func createMachPort(for pid: pid_t) -> CFMachPort? {
             CGEvent.tapCreateForPid(
                 pid: pid,
-                place: placement,
-                options: option,
-                eventsOfInterest: createEventMask(),
+                place: place,
+                options: options,
+                eventsOfInterest: mask,
                 callback: sharedCallback,
-                userInfo: createUserInfo()
+                userInfo: userInfo
             )
         }
 
@@ -236,14 +230,14 @@ final class EventTap {
         }
     }
 
-    /// Enables the event tap.
+    /// Enables the tap.
     func enable() {
         guard let source, let machPort else { return }
         CGEvent.tapEnable(tap: machPort, enable: true)
         CFRunLoopAddSource(runLoop, source, .commonModes)
     }
 
-    /// Disables the event tap.
+    /// Disables the tap.
     func disable() {
         guard let source, let machPort else { return }
         CFRunLoopRemoveSource(runLoop, source, .commonModes)

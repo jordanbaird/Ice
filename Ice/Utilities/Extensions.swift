@@ -332,6 +332,15 @@ extension CGImage {
     }
 }
 
+// MARK: - CGPoint
+
+extension CGPoint {
+    /// A string to use for logging purposes.
+    var logString: String {
+        String(describing: self)
+    }
+}
+
 // MARK: - Collection where Element == MenuBarItem
 
 extension Collection where Element == MenuBarItem {

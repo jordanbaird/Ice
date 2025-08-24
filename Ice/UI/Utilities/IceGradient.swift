@@ -116,7 +116,7 @@ struct IceGradient: Codable, Hashable {
     ///     be an RGB color space, or this parameter is ignored. Pass `nil`
     ///     to let the method decide the color space.
     ///   - option: Options for computing the color.
-    func averageColor(using colorSpace: CGColorSpace? = nil, option: CGImage.ColorAverageOption = []) -> CGColor? {
+    func averageColor(using colorSpace: CGColorSpace? = nil, option: CGImage.ColorAveragingOption = []) -> CGColor? {
         guard !stops.isEmpty else {
             return nil
         }

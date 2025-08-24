@@ -3,7 +3,6 @@
 //  Ice
 //
 
-import AXSwift
 import Combine
 import OSLog
 import SwiftUI
@@ -274,15 +273,13 @@ final class MenuBarManager: ObservableObject {
     /// Returns a Boolean value that indicates whether the given display
     /// has a valid menu bar.
     func hasValidMenuBar(in windows: [WindowInfo], for display: CGDirectDisplayID) -> Bool {
-        guard let window = WindowInfo.menuBarWindow(from: windows, for: display) else {
+        guard
+            let window = WindowInfo.menuBarWindow(from: windows, for: display),
+            let element = AXHelpers.element(at: window.bounds.origin)
+        else {
             return false
         }
-        do {
-            let uiElement = try systemWideElement.elementAtPosition(window.bounds.origin)
-            return try uiElement?.role() == .menuBar
-        } catch {
-            return false
-        }
+        return AXHelpers.role(for: element) == .menuBar
     }
 
     /// Shows the secondary context menu.

@@ -152,7 +152,10 @@ final class MenuBarItemImageCache: ObservableObject {
                 height: bounds.height * scale
             )
 
-            guard let image = compositeImage.cropping(to: cropRect) else {
+            guard
+                let image = compositeImage.cropping(to: cropRect),
+                !image.isTransparent()
+            else {
                 result.excluded.append(item)
                 continue
             }
@@ -184,11 +187,9 @@ final class MenuBarItemImageCache: ObservableObject {
 
     /// Captures the images of the given menu bar items and returns the result.
     private nonisolated func captureImages(of items: [MenuBarItem], scale: CGFloat, appState: AppState) async -> CaptureResult {
-        // This check may have already happened at a higher level, but let's check
-        // again with a more lenient duration. We want to use individual capture if
-        // there is any chance that items are still moving, since composite capture
+        // Use individual capture after a move operation, since composite capture
         // doesn't account for overlapping items.
-        if await appState.itemManager.latestMoveOperationStarted(within: .seconds(3)) {
+        if await appState.itemManager.latestMoveOperationStarted(within: .seconds(2)) {
             logger.debug("Capturing individually due to recent item movement")
             return individualCapture(items, scale: scale)
         }

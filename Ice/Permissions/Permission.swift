@@ -3,10 +3,8 @@
 //  Ice
 //
 
-import AXSwift
 import Combine
 import Cocoa
-import ScreenCaptureKit
 
 // MARK: - Permission
 
@@ -131,10 +129,10 @@ final class AccessibilityPermission: Permission {
             isRequired: true,
             settingsURL: nil,
             check: {
-                checkIsProcessTrusted()
+                AXHelpers.isProcessTrusted()
             },
             request: {
-                checkIsProcessTrusted(prompt: true)
+                AXHelpers.isProcessTrusted(prompt: true)
             }
         )
     }

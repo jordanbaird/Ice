@@ -34,6 +34,12 @@ struct MenuBarItemTag: Hashable, CustomStringConvertible {
         MenuBarItemTag.controlItems.contains(self)
     }
 
+    /// A Boolean value that indicates whether the item identified
+    /// by this tag is a "BentoBox" item owned by Control Center.
+    var isBentoBox: Bool {
+        namespace == .controlCenter && title.hasPrefix("BentoBox")
+    }
+
     /// A string representation of the tag.
     var stringValue: String {
         var result = namespace.stringValue
@@ -112,7 +118,11 @@ extension MenuBarItemTag {
     /// The tag for Ice's control item for the "Always-Hidden" section.
     static let alwaysHiddenControlItem = MenuBarItemTag(controlItem: .alwaysHidden)
 
-    // MARK: Other System Items
+    // MARK: Other Special Items
+
+    /// The tag for the system item that appears in the menu bar
+    /// during screen or audio capture.
+    static let audioVideoModule = MenuBarItemTag(namespace: .controlCenter, title: "AudioVideoModule")
 
     /// The tag for the system "Clock" item.
     static let clock = MenuBarItemTag(namespace: .controlCenter, title: "Clock")
@@ -124,57 +134,27 @@ extension MenuBarItemTag {
         MenuBarItemTag(namespace: .controlCenter, title: "BentoBox")
     }
 
+    /// The tag for the system "FaceTime" item.
+    static let faceTime = MenuBarItemTag(namespace: .controlCenter, title: "FaceTime")
+
+    /// The tag for the system "Music Recognition" item.
+    static let musicRecognition = MenuBarItemTag(namespace: .controlCenter, title: "MusicRecognition")
+
+    /// The tag for the system item that appears in the menu bar
+    /// during recordings started by the macOS "Screenshot" tool.
+    static let screenCaptureUI = MenuBarItemTag(namespace: .screenCaptureUI, title: "Item-0")
+
     /// The tag for the system "Siri" item.
     static let siri = MenuBarItemTag(namespace: .systemUIServer, title: "Siri")
 
-    /// The tag for the system "Spotlight" item.
-    static let spotlight = MenuBarItemTag(namespace: .spotlight, title: "Item-0")
-
-    /// The tag for the system "WiFi" item.
-    static let wifi = MenuBarItemTag(namespace: .controlCenter, title: "WiFi")
-
-    /// The tag for the system "Bluetooth" item.
-    static let bluetooth = MenuBarItemTag(namespace: .controlCenter, title: "Bluetooth")
-
-    /// The tag for the system "Battery" item.
-    static let battery = MenuBarItemTag(namespace: .controlCenter, title: "Battery")
-
-    /// The tag for the system "Focus Modes" item.
-    static let focusModes = MenuBarItemTag(namespace: .controlCenter, title: "FocusModes")
-
-    /// The tag for the system "Screen Mirroring" item.
-    static let screenMirroring = MenuBarItemTag(namespace: .controlCenter, title: "ScreenMirroring")
-
-    /// The tag for the system "Display" item.
-    static let display = MenuBarItemTag(namespace: .controlCenter, title: "Display")
-
-    /// The tag for the system "Sound" item.
-    static let sound = MenuBarItemTag(namespace: .controlCenter, title: "Sound")
-
-    /// The tag for the system "Now Playing" item.
-    static let nowPlaying = MenuBarItemTag(namespace: .controlCenter, title: "NowPlaying")
-
-    /// The tag for the system "TimeMachine" item.
-    static let timeMachine = if #available(macOS 15.0, *) {
+    /// The tag for the system "Time Machine" item.
+    static let timeMachine = if #available(macOS 26.0, *) {
+        MenuBarItemTag(namespace: .systemUIServer, title: "com.apple.menuextra.TimeMachine")
+    } else if #available(macOS 15.0, *) {
         MenuBarItemTag(namespace: .systemUIServer, title: "TimeMachineMenuExtra.TMMenuExtraHost")
     } else {
         MenuBarItemTag(namespace: .systemUIServer, title: "TimeMachine.TMMenuExtraHost")
     }
-
-    /// The tag for the item that appears in the menu bar while the screen
-    /// or system audio is being recorded.
-    static let audioVideoModule = MenuBarItemTag(namespace: .controlCenter, title: "AudioVideoModule")
-
-    /// The tag for the system "FaceTime" item.
-    static let faceTime = MenuBarItemTag(namespace: .controlCenter, title: "FaceTime")
-
-    /// The tag for the system "MusicRecognition" item.
-    static let musicRecognition = MenuBarItemTag(namespace: .controlCenter, title: "MusicRecognition")
-
-    // TODO: How do we reference this item in macOS 26?
-    /// The tag for the "stop recording" item that appears in the menu bar
-    /// during screen recordings started by the macOS "Screenshot" tool.
-    static let screenCaptureUI = MenuBarItemTag(namespace: .screenCaptureUI, title: "Item-0")
 }
 
 // MARK: - MenuBarItemTag.Namespace
@@ -228,9 +208,6 @@ extension MenuBarItemTag.Namespace {
 
     /// The namespace for the "screencaptureui" process.
     static let screenCaptureUI = string("com.apple.screencaptureui")
-
-    /// The namespace for the "Spotlight" process.
-    static let spotlight = string("com.apple.Spotlight")
 
     /// The namespace for the "SystemUIServer" process.
     static let systemUIServer = string("com.apple.systemuiserver")

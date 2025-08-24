@@ -4,11 +4,8 @@
 //
 
 import Cocoa
-import Combine
 
-// MARK: - MenuBarItem
-
-/// A representation of an item in the menu bar.
+/// A structural representation of a menu bar item.
 struct MenuBarItem: CustomStringConvertible {
     /// The tag associated with this item.
     let tag: MenuBarItemTag
@@ -28,14 +25,8 @@ struct MenuBarItem: CustomStringConvertible {
     /// The item's window title.
     let title: String?
 
-    /// The name of the process that owns the item.
-    ///
-    /// This may have a value when ``owningApplication`` does not have
-    /// a localized name.
-    let ownerName: String?
-
-    /// A Boolean value that indicates whether the item is on screen.
-    let isOnScreen: Bool
+    /// A Boolean value that indicates whether the item is onscreen.
+    let isOnscreen: Bool
 
     /// A Boolean value that indicates whether the item can be moved.
     var isMovable: Bool {
@@ -53,16 +44,25 @@ struct MenuBarItem: CustomStringConvertible {
         tag.isControlItem
     }
 
+    /// A Boolean value that indicates whether the item is a "BentoBox"
+    /// item owned by the Control Center.
+    var isBentoBox: Bool {
+        tag.isBentoBox
+    }
+
     /// The application that owns the item.
     ///
-    /// - Note: In macOS 26 Tahoe and later, this property always returns
-    ///   the Control Center. To get the actual application that created
-    ///   the item, use ``sourceApplication``.
+    /// - Note: In macOS 26 and later, this property always returns the
+    ///   Control Center. To get the actual application that created the
+    ///   item, use ``sourceApplication``.
     var owningApplication: NSRunningApplication? {
         NSRunningApplication(processIdentifier: ownerPID)
     }
 
     /// The application that created the item.
+    ///
+    /// - Note: Prior to macOS 26, this property and ``owningApplication``
+    ///   are functionally equivalent.
     var sourceApplication: NSRunningApplication? {
         guard let sourcePID else {
             return nil
@@ -73,8 +73,11 @@ struct MenuBarItem: CustomStringConvertible {
     /// A name associated with the item that is suited for display.
     var displayName: String {
         /// Converts "UpperCamelCase" to "Title Case".
+        ///
+        /// Ignores cases where a single lowercase letter immediately
+        /// precedes an uppercase letter (i.e. "WiFi").
         func toTitleCase<S: StringProtocol>(_ s: S) -> String {
-            String(s).replacing(/([a-z])([A-Z])/) { $0.output.1 + " " + $0.output.2 }
+            String(s).replacing(/([a-z]{2})([A-Z])/) { $0.output.1 + " " + $0.output.2 }
         }
 
         guard let sourceApplication else {
@@ -95,38 +98,37 @@ struct MenuBarItem: CustomStringConvertible {
             return bestName
         }
 
-        // Most items will use their computed "best name", but we need to
-        // handle a few special cases for system items.
-
-        if tag == .controlCenter {
-            return bestName
+        guard !isBentoBox else {
+            if tag == .controlCenter {
+                return bestName
+            }
+            return title
         }
 
-        return switch tag.namespace {
+        // Most items use their computed "best name", but we handle
+        // a few special cases for system items.
+        switch tag.namespace {
         case .passwords, .weather, .textInputMenuAgent:
             // "PasswordsMenuBarExtra" -> "Passwords"
             // "WeatherMenu" -> "Weather"
             // "TextInputMenuAgent" -> "Text Input"
-            toTitleCase(bestName.replacing(/Menu.*/, with: ""))
-        case .controlCenter where title.hasPrefix("BentoBox"):
-            toTitleCase(title.replacing(/-/, with: " "))
-        case .controlCenter where title.hasPrefix("Hearing"):
-            // Changed to "Hearing_GlowE" in macOS 15.4.
-            toTitleCase(title.prefix { $0.isLetter || $0.isNumber })
-        case .controlCenter where title == "WiFi":
-            title
-        case .systemUIServer where title.contains("TimeMachine"):
+            return toTitleCase(bestName.replacing(/Menu.*/, with: ""))
+        case .controlCenter:
+            guard let match = title.prefixMatch(of: /Hearing/) else {
+                return toTitleCase(title)
+            }
+            // Changed from "Hearing" to "Hearing_GlowE" in macOS 15.4
+            return toTitleCase(match.output)
+        case .systemUIServer:
+            guard let match = title.firstMatch(of: /TimeMachine/) else {
+                return toTitleCase(title)
+            }
             // Sonoma:  "TimeMachine.TMMenuExtraHost"
             // Sequoia: "TimeMachineMenuExtra.TMMenuExtraHost"
             // Tahoe:   "com.apple.menuextra.TimeMachine"
-            "Time Machine"
-        case .controlCenter, .systemUIServer:
-            // Most system items are hosted by one of these two apps. They
-            // usually have descriptive, but unformatted titles, so we'll do
-            // some basic formatting ourselves.
-            toTitleCase(title.prefix { $0 != "." })
+            return toTitleCase(match.output)
         default:
-            bestName
+            return bestName
         }
     }
 
@@ -151,8 +153,7 @@ struct MenuBarItem: CustomStringConvertible {
         self.sourcePID = itemWindow.ownerPID
         self.bounds = itemWindow.bounds
         self.title = itemWindow.title
-        self.ownerName = itemWindow.ownerName
-        self.isOnScreen = itemWindow.isOnScreen
+        self.isOnscreen = itemWindow.isOnscreen
     }
 
     /// Creates a menu bar item without checks.
@@ -168,8 +169,7 @@ struct MenuBarItem: CustomStringConvertible {
         self.sourcePID = sourcePID
         self.bounds = itemWindow.bounds
         self.title = itemWindow.title
-        self.ownerName = itemWindow.ownerName
-        self.isOnScreen = itemWindow.isOnScreen
+        self.isOnscreen = itemWindow.isOnscreen
     }
 
     /// Returns the current bounds for the given menu bar item.
@@ -258,7 +258,7 @@ extension MenuBarItem {
     ///     items across all available displays.
     ///   - option: Options that filter the returned list. Pass an empty option set
     ///     to return all available menu bar items.
-    static func getMenuBarItems(caller: String = #function, on display: CGDirectDisplayID? = nil, option: ListOption) async -> [MenuBarItem] {
+    static func getMenuBarItems(on display: CGDirectDisplayID? = nil, option: ListOption) async -> [MenuBarItem] {
         if #available(macOS 26.0, *) {
             await getMenuBarItemsExperimental(on: display, option: option)
         } else {
@@ -276,8 +276,7 @@ extension MenuBarItem: Equatable {
         lhs.sourcePID == rhs.sourcePID &&
         NSStringFromRect(lhs.bounds) == NSStringFromRect(rhs.bounds) &&
         lhs.title == rhs.title &&
-        lhs.ownerName == rhs.ownerName &&
-        lhs.isOnScreen == rhs.isOnScreen
+        lhs.isOnscreen == rhs.isOnscreen
     }
 }
 
@@ -290,8 +289,7 @@ extension MenuBarItem: Hashable {
         hasher.combine(sourcePID)
         hasher.combine(NSStringFromRect(bounds))
         hasher.combine(title)
-        hasher.combine(ownerName)
-        hasher.combine(isOnScreen)
+        hasher.combine(isOnscreen)
     }
 }
 

@@ -128,20 +128,22 @@ private final class IceColorPickerCoordinator {
     func configure(with colorWell: NSColorWell) {
         var c = Set<AnyCancellable>()
 
-        colorWell.publisher(for: \.color).removeDuplicates()
+        colorWell.publisher(for: \.color)
+            .removeDuplicates()
+            .map { $0.cgColor }
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] color in
+            .sink { [weak self] selection in
                 guard let self else {
                     return
                 }
-                let selection = color.cgColor
                 if self.selection != selection {
                     self.selection = selection
                 }
             }
             .store(in: &c)
 
-        colorWell.publisher(for: \.isActive).removeDuplicates()
+        colorWell.publisher(for: \.isActive)
+            .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isActive in
                 guard let self else {
@@ -153,8 +155,11 @@ private final class IceColorPickerCoordinator {
             }
             .store(in: &c)
 
-        colorWell.publisher(for: \.window).publisher(for: \.isVisible)
-            .replaceNil(with: false).removeDuplicates()
+        colorWell.publisher(for: \.window)
+            .removeNil()
+            .flatMap { $0.publisher(for: \.isVisible) }
+            .replaceEmpty(with: false)
+            .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isVisible in
                 guard let self else {

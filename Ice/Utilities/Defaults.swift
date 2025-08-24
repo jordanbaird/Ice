@@ -137,27 +137,24 @@ enum Defaults {
 
 extension Defaults {
     enum Key: String {
-
         // MARK: General Settings
-
         case showIceIcon = "ShowIceIcon"
         case iceIcon = "IceIcon"
         case customIceIconIsTemplate = "CustomIceIconIsTemplate"
         case useIceBar = "UseIceBar"
+        case iceBarLocation = "IceBarLocation"
         case showOnClick = "ShowOnClick"
         case showOnHover = "ShowOnHover"
         case showOnScroll = "ShowOnScroll"
-        case itemSpacingOffset = "ItemSpacingOffset"
         case autoRehide = "AutoRehide"
         case rehideStrategy = "RehideStrategy"
         case rehideInterval = "RehideInterval"
+        case itemSpacingOffset = "ItemSpacingOffset"
 
-        // MARK: Hotkey Settings
-
+        // MARK: Hotkeys Settings
         case hotkeys = "Hotkeys"
 
         // MARK: Advanced Settings
-
         case enableAlwaysHiddenSection = "EnableAlwaysHiddenSection"
         case showAllSectionsOnUserDrag = "ShowAllSectionsOnUserDrag"
         case sectionDividerStyle = "SectionDividerStyle"
@@ -166,17 +163,10 @@ extension Defaults {
         case showOnHoverDelay = "ShowOnHoverDelay"
         case tempShowInterval = "TempShowInterval"
 
-        // MARK: Menu Bar Appearance Settings
-
+        // MARK: Appearance Settings
         case menuBarAppearanceConfigurationV2 = "MenuBarAppearanceConfigurationV2"
 
-        // MARK: Ice Bar Settings
-
-        case iceBarLocation = "IceBarLocation"
-        case iceBarPinnedLocation = "IceBarPinnedLocation"
-
         // MARK: Migration
-
         case hasMigrated0_8_0 = "hasMigrated0_8_0"
         case hasMigrated0_10_0 = "hasMigrated0_10_0"
         case hasMigrated0_10_1 = "hasMigrated0_10_1"
@@ -184,7 +174,7 @@ extension Defaults {
         case hasMigrated0_11_13 = "hasMigrated0_11_13"
         case hasMigrated0_11_13_1 = "hasMigrated0_11_13_1"
 
-        // MARK: Deprecated (Menu Bar Appearance)
+        // MARK: Deprecated (Appearance Settings)
         case menuBarHasBorder = "MenuBarHasBorder"
         case menuBarBorderColor = "MenuBarBorderColor"
         case menuBarBorderWidth = "MenuBarBorderWidth"
@@ -197,12 +187,11 @@ extension Defaults {
         case menuBarSplitShapeInfo = "MenuBarSplitShapeInfo"
         case menuBarAppearanceConfiguration = "MenuBarAppearanceConfiguration"
 
-        // MARK: Deprecated (Advanced)
+        // MARK: Deprecated (Advanced Settings)
         case showSectionDividers = "ShowSectionDividers"
         case canToggleAlwaysHiddenSection = "CanToggleAlwaysHiddenSection"
 
         // MARK: Deprecated (Other)
-
         case sections = "Sections"
     }
 }

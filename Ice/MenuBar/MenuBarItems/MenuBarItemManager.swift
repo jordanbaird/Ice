@@ -20,7 +20,7 @@ final class MenuBarItemManager: ObservableObject {
     private var cachedItemWindowIDs = [CGWindowID]()
 
     /// Contexts for temporarily shown menu bar items.
-    private var tempShownItemContexts = [TempShownItemContext]()
+    private var temporarilyShownItemContexts = [TemporarilyShownItemContext]()
 
     /// A timer for rehiding temporarily shown menu bar items.
     private var rehideTimer: Timer?
@@ -212,7 +212,7 @@ extension MenuBarItemManager {
         let controlItems: ControlItemPair
 
         var cache: ItemCache
-        var tempShownItems = [(MenuBarItem, MoveDestination)]()
+        var temporarilyShownItems = [(MenuBarItem, MoveDestination)]()
         var shouldClearCachedItemWindowIDs = false
 
         private(set) lazy var hiddenControlItemBounds = bestBounds(for: controlItems.hidden)
@@ -272,11 +272,11 @@ extension MenuBarItemManager {
                 context.shouldClearCachedItemWindowIDs = true
             }
 
-            if let temp = tempShownItemContexts.first(where: { $0.tag == item.tag }) {
+            if let temp = temporarilyShownItemContexts.first(where: { $0.tag == item.tag }) {
                 // Cache temporarily shown items as if they were in their original locations.
                 // Keep track of them separately and use their return destinations to insert
                 // them into the cache once all other items have been handled.
-                context.tempShownItems.append((item, temp.returnDestination))
+                context.temporarilyShownItems.append((item, temp.returnDestination))
                 continue
             }
 
@@ -289,7 +289,7 @@ extension MenuBarItemManager {
             context.shouldClearCachedItemWindowIDs = true
         }
 
-        for (item, destination) in context.tempShownItems {
+        for (item, destination) in context.temporarilyShownItems {
             context.cache.insert(item, at: destination)
         }
 
@@ -676,6 +676,16 @@ extension MenuBarItemManager {
         }
     }
 
+    /// Returns the timeout duration for moving the given item.
+    private nonisolated func getTimeout(forMoving item: MenuBarItem) -> Duration {
+        if item.isBentoBox {
+            // Bento Boxes (i.e. Control Center groups) take a little
+            // longer to respond.
+            return .milliseconds(100)
+        }
+        return .milliseconds(25)
+    }
+
     /// Returns the target points for creating the events needed to move
     /// a menu bar item to the given destination.
     private nonisolated func getTargetPoints(
@@ -750,7 +760,7 @@ extension MenuBarItemManager {
             logger.debug(
                 """
                 Item responded with new bounds origin: \
-                \(bounds.origin.logString, privacy: .public)
+                \(String(describing: bounds.origin), privacy: .public)
                 """
             )
             return bounds
@@ -803,6 +813,14 @@ extension MenuBarItemManager {
 
         await MainActor.run {
             latestMoveOperationTimestamp = .now
+        }
+
+        let mouseLocation = try getMouseLocation(item: item)
+
+        MouseHelpers.hideCursor()
+        defer {
+            MouseHelpers.warpCursor(to: mouseLocation)
+            MouseHelpers.showCursor()
         }
 
         do {
@@ -890,15 +908,6 @@ extension MenuBarItemManager {
         }
 
         let source = try getEventSource(for: item)
-        let mouseLocation = try getMouseLocation(item: item)
-        let timeout = Duration.milliseconds(25)
-        let maxAttempts = 10
-
-        MouseHelpers.hideCursor()
-        defer {
-            MouseHelpers.warpCursor(to: mouseLocation)
-            MouseHelpers.showCursor()
-        }
 
         logger.log(
             """
@@ -907,13 +916,16 @@ extension MenuBarItemManager {
             """
         )
 
-        for n in 1...maxAttempts {
+        let maxAttempts = 10
+        let timeout = getTimeout(forMoving: item)
+
+        moveLoop: for n in 1...maxAttempts {
             guard !Task.isCancelled else {
                 throw EventError(code: .cannotComplete, item: item)
             }
 
             attempt: do {
-                guard try await !itemHasCorrectPosition(item: item, for: destination) else {
+                if try await itemHasCorrectPosition(item: item, for: destination) {
                     logger.debug("Item has correct position")
                     break attempt
                 }
@@ -926,7 +938,7 @@ extension MenuBarItemManager {
             } catch where n < maxAttempts {
                 logger.debug("Attempt \(n, privacy: .public) failed: \(error, privacy: .public)")
                 await eventSleep()
-                continue
+                continue moveLoop
             } catch let error as EventError {
                 throw error
             } catch {
@@ -934,7 +946,7 @@ extension MenuBarItemManager {
             }
 
             logger.debug("Attempt \(n, privacy: .public) succeeded")
-            break
+            break moveLoop
         }
 
         logger.log("Successfully moved \(item.logString, privacy: .public)")
@@ -1062,7 +1074,7 @@ extension MenuBarItemManager {
 
 extension MenuBarItemManager {
     /// Context for a temporarily shown menu bar item.
-    private final class TempShownItemContext {
+    private final class TemporarilyShownItemContext {
         /// The tag associated with the item.
         let tag: MenuBarItemTag
 
@@ -1079,19 +1091,21 @@ extension MenuBarItemManager {
         /// interface is showing.
         var isShowingInterface: Bool {
             guard
-                let shownInterfaceWindow,
-                let currentWindow = WindowInfo(windowID: shownInterfaceWindow.windowID)
+                let window = shownInterfaceWindow,
+                let current = WindowInfo(windowID: window.windowID)
             else {
+                // Window no longer exists, so assume closed.
                 return false
             }
+            print(current.layer)
             if
-                currentWindow.layer != CGWindowLevelForKey(.popUpMenuWindow),
-                let owningApplication = currentWindow.owningApplication
+                current.layer != CGWindowLevelForKey(.popUpMenuWindow),
+                current.layer != CGWindowLevelForKey(.statusWindow),
+                let app = current.owningApplication
             {
-                return owningApplication.isActive && currentWindow.isOnScreen
-            } else {
-                return currentWindow.isOnScreen
+                return app.isActive && current.isOnscreen
             }
+            return current.isOnscreen
         }
 
         init(tag: MenuBarItemTag, returnDestination: MoveDestination) {
@@ -1131,7 +1145,7 @@ extension MenuBarItemManager {
             }
             logger.debug("Rehide timer fired")
             Task {
-                await self.rehideTempShownItems()
+                await self.rehideTemporarilyShownItems()
             }
         }
     }
@@ -1144,12 +1158,9 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - item: The item to temporarily show.
     ///   - mouseButton: The mouse button to click the item with.
-    func tempShow(item: MenuBarItem, clickingWith mouseButton: CGMouseButton) async {
-        guard
-            let displayID = Bridging.getActiveMenuBarDisplayID(),
-            let screen = NSScreen.screens.first(where: { $0.displayID == displayID })
-        else {
-            logger.error("No active menu bar display, so not showing \(item.logString, privacy: .public)")
+    func temporarilyShow(item: MenuBarItem, clickingWith mouseButton: CGMouseButton) async {
+        guard let screen = NSScreen.screenWithActiveMenuBar else {
+            logger.error("No active menu bar screen, so not showing \(item.logString, privacy: .public)")
             return
         }
 
@@ -1165,30 +1176,26 @@ extension MenuBarItemManager {
             return
         }
 
-        // Remove all items up to the hidden control item.
-        items.trimPrefix { $0.tag != .hiddenControlItem }
-
-        if !items.isEmpty {
-            items.removeFirst() // Remove the hidden control item.
+        // Remove all items up to and including the hidden control item.
+        if let index = items.firstIndex(matching: .hiddenControlItem) {
+            items.removeSubrange(...index)
         }
 
-        // Remove all offscreen items.
-        if #available(macOS 26.0, *) {
-            // MenuBarItem.isOnScreen doesn't work properly as of macOS 26.
-            // TODO: Revert this if and when it works again.
-            items.trimPrefix { !Bridging.isWindowOnDisplay($0.windowID, displayID) }
-        } else {
-            items.trimPrefix { !$0.isOnScreen }
-        }
-
-        let maxX = if let frameOfNotch = screen.frameOfNotch {
-            max(frameOfNotch.maxX + 30, applicationMenuFrame.maxX)
-        } else {
-            applicationMenuFrame.maxX
-        }
+        let maxX: CGFloat = {
+            var maxX = applicationMenuFrame.maxX
+            if let frameOfNotch = screen.frameOfNotch {
+                maxX = max(maxX, frameOfNotch.maxX + 30)
+            }
+            return maxX + item.bounds.width
+        }()
 
         // Remove items until we have enough room to show this item.
-        items.trimPrefix { !$0.canBeHidden || $0.bounds.minX - item.bounds.width <= maxX }
+        items.trimPrefix { item in
+            if item.isOnscreen && item.canBeHidden {
+                return item.bounds.minX <= maxX
+            }
+            return true
+        }
 
         guard let targetItem = items.first else {
             logger.warning("Not enough room to show \(item.logString, privacy: .public)")
@@ -1207,8 +1214,8 @@ extension MenuBarItemManager {
             return
         }
 
-        let context = TempShownItemContext(tag: item.tag, returnDestination: destination)
-        tempShownItemContexts.append(context)
+        let context = TemporarilyShownItemContext(tag: item.tag, returnDestination: destination)
+        temporarilyShownItemContexts.append(context)
 
         rehideTimer?.invalidate()
         defer {
@@ -1237,23 +1244,26 @@ extension MenuBarItemManager {
     ///
     /// If an item is currently showing its interface, this method waits
     /// for the interface to close before hiding the items.
-    func rehideTempShownItems() async {
-        guard !tempShownItemContexts.isEmpty else {
+    func rehideTemporarilyShownItems() async {
+        guard !temporarilyShownItemContexts.isEmpty else {
             return
         }
 
-        guard !tempShownItemContexts.contains(where: { $0.isShowingInterface }) else {
+        guard !temporarilyShownItemContexts.contains(where: { $0.isShowingInterface }) else {
             logger.debug("Menu bar item interface is shown, so waiting to rehide")
             runRehideTimer(for: 3)
             return
         }
 
+        var currentContexts = temporarilyShownItemContexts
+        temporarilyShownItemContexts.removeAll()
+
         let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
-        var failedContexts = [TempShownItemContext]()
+        var failedContexts = [TemporarilyShownItemContext]()
 
         logger.debug("Rehiding temporarily shown items")
 
-        while let context = tempShownItemContexts.popLast() {
+        while let context = currentContexts.popLast() {
             guard let item = items.first(matching: context.tag) else {
                 continue
             }
@@ -1272,7 +1282,7 @@ extension MenuBarItemManager {
                     """
                 )
                 if context.rehideAttempts < 3 {
-                    tempShownItemContexts.append(context) // Try again.
+                    currentContexts.append(context) // Try again.
                 } else {
                     // Failed contexts are ultimately added back to the array
                     // and rehidden after a longer delay, so reset the count.
@@ -1283,14 +1293,16 @@ extension MenuBarItemManager {
             await eventSleep()
         }
 
-        if !failedContexts.isEmpty {
-            tempShownItemContexts = failedContexts
+        if failedContexts.isEmpty {
+            logger.debug("All items were successfully rehidden")
+        } else {
             logger.error(
                 """
                 Some items failed to rehide: \
                 \(failedContexts.map { $0.tag }, privacy: .public)
                 """
             )
+            temporarilyShownItemContexts.append(contentsOf: failedContexts.reversed())
             runRehideTimer(for: 3)
         }
     }
@@ -1299,8 +1311,16 @@ extension MenuBarItemManager {
     ///
     /// This ensures that the item will _not_ be returned to its
     /// previous location.
-    func removeTempShownItemFromCache(with tag: MenuBarItemTag) {
-        tempShownItemContexts.removeAll { $0.tag == tag }
+    func removeTemporarilyShownItemFromCache(with tag: MenuBarItemTag) {
+        while let index = temporarilyShownItemContexts.firstIndex(where: { $0.tag == tag }) {
+            logger.debug(
+                """
+                Removing temporarily shown item from cache: \
+                \(tag, privacy: .public)
+                """
+            )
+            temporarilyShownItemContexts.remove(at: index)
+        }
     }
 }
 

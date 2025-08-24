@@ -137,9 +137,10 @@ final class AppState: ObservableObject {
             .store(in: &c)
 
         publisherForWindow(.settings)
-            .publisher(for: \.isVisible)
+            .removeNil()
+            .flatMap { $0.publisher(for: \.isVisible) }
+            .replaceEmpty(with: false)
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
-            .replaceNil(with: false)
             .removeDuplicates()
             .sink { [weak self] isPresented in
                 self?.navigationState.isSettingsPresented = isPresented

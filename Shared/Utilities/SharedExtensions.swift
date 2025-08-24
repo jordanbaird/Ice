@@ -53,7 +53,7 @@ extension DispatchQueue {
     /// system queue with the specified quality-of-service class.
     static func targetingGlobal(
         label: String,
-        qos: DispatchQoS.QoSClass,
+        qos: DispatchQoS.QoSClass = .default,
         attributes: Attributes = []
     ) -> DispatchQueue {
         let target = DispatchQueue.global(qos: qos)

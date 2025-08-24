@@ -11,16 +11,16 @@ import os
 /// A cache for the source process identifiers for menu bar item windows.
 ///
 /// We use the term "source process" to refer to the process that created
-/// a given menu bar item. Originally, we could use the CGWindowList API,
-/// as the item window's `kCGWindowOwnerPID` was always equivalent to the
-/// source process identifier. However, as of macOS 26, all item windows
-/// are owned by the Control Center.
+/// a menu bar item. Originally, we used the CGWindowList API to get the
+/// window's owning process (`kCGWindowOwnerPID`), which was always the
+/// source process. However, as of macOS 26, item windows are owned by
+/// the Control Center.
 ///
-/// We can still what we need using the Accessibility API, but doing it
-/// efficiently ends up being fairly complex. It doesn't help that calls
-/// to Accessibility are thread blocking. We resolve this by doing most
-/// of the heavy lifting in a dedicated XPC service, which we then call
-/// asynchronously from the main app.
+/// We can find what we need using the Accessibility API, but doing it
+/// efficiently ends up being a fairly complex process. Since calls to
+/// Accessibility are thread blocking, we do most of the heavy lifting
+/// in a dedicated XPC service, which we then call asynchronously from
+/// the main app.
 final class SourcePIDCache {
     /// An object that contains a running application and provides an
     /// interface to access relevant information, such as its process

@@ -1,6 +1,6 @@
 //
 //  AXHelpers.swift
-//  MenuBarItemService
+//  Shared
 //
 
 import AXSwift
@@ -9,12 +9,17 @@ import Cocoa
 enum AXHelpers {
     private static let queue = DispatchQueue.targetingGlobal(
         label: "AXHelpers.queue",
-        qos: .utility,
+        qos: .userInteractive,
         attributes: .concurrent
     )
 
-    static func isProcessTrusted() -> Bool {
-        queue.sync { checkIsProcessTrusted(prompt: false) }
+    @discardableResult
+    static func isProcessTrusted(prompt: Bool = false) -> Bool {
+        queue.sync { checkIsProcessTrusted(prompt: prompt) }
+    }
+
+    static func element(at point: CGPoint) -> UIElement? {
+        queue.sync { try? systemWideElement.elementAtPosition(Float(point.x), Float(point.y)) }
     }
 
     static func application(for runningApp: NSRunningApplication) -> Application? {
@@ -35,5 +40,9 @@ enum AXHelpers {
 
     static func frame(for element: UIElement) -> CGRect? {
         queue.sync { try? element.attribute(.frame) }
+    }
+
+    static func role(for element: UIElement) -> Role? {
+        queue.sync { try? element.role() }
     }
 }

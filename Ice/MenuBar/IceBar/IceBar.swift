@@ -279,11 +279,17 @@ private struct IceBarContentView: View {
     }
 
     private var horizontalPadding: CGFloat {
-        configuration.hasRoundedShape ? 7 : 5
+        if #available(macOS 26.0, *) {
+            return 3
+        }
+        return configuration.hasRoundedShape ? 7 : 5
     }
 
     private var verticalPadding: CGFloat {
-        screen.hasNotch ? 0 : 2
+        if #available(macOS 26.0, *) {
+            return screen.hasNotch && configuration.hasRoundedShape ? 2 : 0
+        }
+        return screen.hasNotch ? 0 : 2
     }
 
     private var contentHeight: CGFloat? {
@@ -374,7 +380,7 @@ private struct IceBarContentView: View {
                             itemManager: itemManager,
                             menuBarManager: menuBarManager,
                             item: item,
-                            screen: screen,
+                            displayID: screen.displayID,
                             section: section
                         )
                     }
@@ -398,38 +404,38 @@ private struct IceBarItemView: View {
     @ObservedObject var menuBarManager: MenuBarManager
 
     let item: MenuBarItem
-    let screen: NSScreen
+    let displayID: CGDirectDisplayID
     let section: MenuBarSection.Name
 
     private var leftClickAction: () -> Void {
-        return { [weak itemManager] in
-            guard let itemManager else {
+        return { [weak itemManager, weak menuBarManager] in
+            guard let itemManager, let menuBarManager else {
                 return
             }
             menuBarManager.section(withName: section)?.hide()
             Task {
                 try await Task.sleep(for: .milliseconds(25))
-                if Bridging.isWindowOnDisplay(item.windowID, screen.displayID) {
+                if Bridging.isWindowOnDisplay(item.windowID, displayID) {
                     try await itemManager.click(item: item, with: .left)
                 } else {
-                    await itemManager.tempShow(item: item, clickingWith: .left)
+                    await itemManager.temporarilyShow(item: item, clickingWith: .left)
                 }
             }
         }
     }
 
     private var rightClickAction: () -> Void {
-        return { [weak itemManager] in
-            guard let itemManager else {
+        return { [weak itemManager, weak menuBarManager] in
+            guard let itemManager, let menuBarManager else {
                 return
             }
             menuBarManager.section(withName: section)?.hide()
             Task {
                 try await Task.sleep(for: .milliseconds(25))
-                if Bridging.isWindowOnDisplay(item.windowID, screen.displayID) {
+                if Bridging.isWindowOnDisplay(item.windowID, displayID) {
                     try await itemManager.click(item: item, with: .right)
                 } else {
-                    await itemManager.tempShow(item: item, clickingWith: .right)
+                    await itemManager.temporarilyShow(item: item, clickingWith: .right)
                 }
             }
         }
@@ -447,7 +453,11 @@ private struct IceBarItemView: View {
             Image(nsImage: image)
                 .contentShape(Rectangle())
                 .overlay {
-                    IceBarItemClickView(item: item, leftClickAction: leftClickAction, rightClickAction: rightClickAction)
+                    IceBarItemClickView(
+                        item: item,
+                        leftClickAction: leftClickAction,
+                        rightClickAction: rightClickAction
+                    )
                 }
                 .accessibilityLabel(item.displayName)
                 .accessibilityAction(named: "left click", leftClickAction)
@@ -471,7 +481,11 @@ private struct IceBarItemClickView: NSViewRepresentable {
         private var lastLeftMouseDownLocation = CGPoint.zero
         private var lastRightMouseDownLocation = CGPoint.zero
 
-        init(item: MenuBarItem, leftClickAction: @escaping () -> Void, rightClickAction: @escaping () -> Void) {
+        init(
+            item: MenuBarItem,
+            leftClickAction: @escaping () -> Void,
+            rightClickAction: @escaping () -> Void
+        ) {
             self.item = item
             self.leftClickAction = leftClickAction
             self.rightClickAction = rightClickAction
@@ -482,10 +496,6 @@ private struct IceBarItemClickView: NSViewRepresentable {
         @available(*, unavailable)
         required init?(coder: NSCoder) {
             fatalError("init(coder:) has not been implemented")
-        }
-
-        private func absoluteDistance(_ p1: CGPoint, _ p2: CGPoint) -> CGFloat {
-            hypot(p1.x - p2.x, p1.y - p2.y).magnitude
         }
 
         override func mouseDown(with event: NSEvent) {
@@ -504,7 +514,7 @@ private struct IceBarItemClickView: NSViewRepresentable {
             super.mouseUp(with: event)
             guard
                 Date.now.timeIntervalSince(lastLeftMouseDownDate) < 0.5,
-                absoluteDistance(lastLeftMouseDownLocation, NSEvent.mouseLocation) < 5
+                lastLeftMouseDownLocation.distance(to: NSEvent.mouseLocation) < 5
             else {
                 return
             }
@@ -515,7 +525,7 @@ private struct IceBarItemClickView: NSViewRepresentable {
             super.rightMouseUp(with: event)
             guard
                 Date.now.timeIntervalSince(lastRightMouseDownDate) < 0.5,
-                absoluteDistance(lastRightMouseDownLocation, NSEvent.mouseLocation) < 5
+                lastRightMouseDownLocation.distance(to: NSEvent.mouseLocation) < 5
             else {
                 return
             }
@@ -529,7 +539,11 @@ private struct IceBarItemClickView: NSViewRepresentable {
     let rightClickAction: () -> Void
 
     func makeNSView(context: Context) -> NSView {
-        Represented(item: item, leftClickAction: leftClickAction, rightClickAction: rightClickAction)
+        Represented(
+            item: item,
+            leftClickAction: leftClickAction,
+            rightClickAction: rightClickAction
+        )
     }
 
     func updateNSView(_ nsView: NSView, context: Context) { }

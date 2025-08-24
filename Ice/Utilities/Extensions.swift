@@ -3,7 +3,6 @@
 //  Ice
 //
 
-import AXSwift
 import Combine
 import SwiftUI
 
@@ -69,15 +68,15 @@ extension CGColor {
 
 extension CGImage {
 
-    // MARK: Average Color
+    // MARK: Color Averaging
 
     /// Options that effect how colors are processed when computing
     /// an average color.
-    struct ColorAverageOption: OptionSet {
+    struct ColorAveragingOption: OptionSet {
         let rawValue: Int
 
         /// Includes the alpha component in the resulting average.
-        static let ignoreAlpha = ColorAverageOption(rawValue: 1 << 0)
+        static let ignoreAlpha = ColorAveragingOption(rawValue: 1 << 0)
     }
 
     /// Computes and returns the average color of the image.
@@ -90,7 +89,7 @@ extension CGImage {
     ///     Pixels with an alpha component greater than or equal to this value
     ///     contribute to the average.
     ///   - option: Options for computing the color.
-    func averageColor(using colorSpace: CGColorSpace? = nil, alphaThreshold: CGFloat = 0.5, option: ColorAverageOption = []) -> CGColor? {
+    func averageColor(using colorSpace: CGColorSpace? = nil, alphaThreshold: CGFloat = 0.5, option: ColorAveragingOption = []) -> CGColor? {
         func createPixelData(width: Int, height: Int, colorSpace: CGColorSpace) -> [UInt32]? {
             guard width > 0 && height > 0 else {
                 return nil
@@ -177,24 +176,28 @@ extension CGImage {
         return CGColor(colorSpace: colorSpace, components: &components)
     }
 
-    // MARK: Trim Transparent Pixels
+    // MARK: Transparency Trimming
 
     /// A context for handling transparency data in an image.
     private struct TransparencyContext: ~Copyable {
         private let image: CGImage
-        private let maxAlpha: UInt8
+        private let alphaThreshold: CGFloat
         private let cgContext: CGContext
+        private let data: UnsafeMutableRawPointer
         private let zeroByteBlock: UnsafeMutableRawPointer
-        private let rowRange: LazySequence<Range<Int>>
-        private let columnRange: LazySequence<Range<Int>>
+        private let rowRange: Range<Int>
+        private let columnRange: Range<Int>
 
         /// Creates a context with the given image and alpha threshold.
         ///
         /// - Parameters:
         ///   - image: The image to form a context around.
-        ///   - maxAlpha: The maximum alpha value to consider transparent.
-        init?(image: CGImage, maxAlpha: UInt8) {
+        ///   - alphaThreshold: The maximum alpha value to consider transparent.
+        init?(image: CGImage, alphaThreshold: CGFloat) {
             guard
+                image.width > 0,
+                image.height > 0,
+                alphaThreshold < 1,
                 let cgContext = CGContext(
                     data: nil,
                     width: image.width,
@@ -202,58 +205,66 @@ extension CGImage {
                     bitsPerComponent: 8,
                     bytesPerRow: 0,
                     space: CGColorSpaceCreateDeviceGray(),
-                    bitmapInfo: CGImageAlphaInfo.alphaOnly.rawValue
+                    bitmapInfo: CGBitmapInfo(alpha: .alphaOnly)
                 ),
-                cgContext.data != nil,
+                let data = cgContext.data,
                 let zeroByteBlock = calloc(image.width, MemoryLayout<UInt8>.size)
             else {
                 return nil
             }
 
-            cgContext.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+            let size = CGSize(width: image.width, height: image.height)
+            cgContext.draw(image, in: CGRect(origin: .zero, size: size))
 
             self.image = image
-            self.maxAlpha = maxAlpha
+            self.alphaThreshold = alphaThreshold
             self.cgContext = cgContext
+            self.data = data
             self.zeroByteBlock = zeroByteBlock
-            self.rowRange = (0..<image.height).lazy
-            self.columnRange = (0..<image.width).lazy
+            self.rowRange = 0..<image.height
+            self.columnRange = 0..<image.width
         }
 
         deinit {
             free(zeroByteBlock)
         }
 
-        /// Trims transparent pixels from the context.
-        func trim(edges: Set<CGRectEdge>) -> CGImage? {
-            guard
-                maxAlpha < 255,
-                !edges.isEmpty
-            else {
+        /// Returns an image derived from the context's image that has been
+        /// trimmed of transparency around the given edges.
+        func trim(around edges: Set<CGRectEdge>) -> CGImage? {
+            guard !edges.isEmpty else {
                 return image // Nothing to trim.
             }
 
             guard
-                let minYInset = inset(for: .minYEdge, in: edges),
-                let maxYInset = inset(for: .maxYEdge, in: edges),
                 let minXInset = inset(for: .minXEdge, in: edges),
-                let maxXInset = inset(for: .maxXEdge, in: edges)
+                let minYInset = inset(for: .minYEdge, in: edges),
+                let maxXInset = inset(for: .maxXEdge, in: edges),
+                let maxYInset = inset(for: .maxYEdge, in: edges)
             else {
                 return nil
             }
 
-            guard (minYInset, maxYInset, minXInset, maxXInset) != (0, 0, 0, 0) else {
+            guard (minXInset, minYInset, maxXInset, maxYInset) != (0, 0, 0, 0) else {
                 return image // Already trimmed.
             }
 
             let insetRect = CGRect(
                 x: minXInset,
-                y: maxYInset,
-                width: image.width - (minXInset + maxXInset),
-                height: image.height - (minYInset + maxYInset)
+                y: minYInset,
+                width: max(image.width - (minXInset + maxXInset), 0),
+                height: max(image.height - (minYInset + maxYInset), 0)
             )
 
             return image.cropping(to: insetRect)
+        }
+
+        /// Returns a Boolean value that indicates whether the context's
+        /// image is transparent.
+        func isTransparent() -> Bool {
+            rowRange.allSatisfy { row in
+                isRowTransparent(row: row)
+            }
         }
 
         private func inset(for edge: CGRectEdge, in edges: Set<CGRectEdge>) -> Int? {
@@ -261,43 +272,48 @@ extension CGImage {
                 return 0
             }
             return switch edge {
-            case .maxYEdge:
-                firstOpaqueRow(in: rowRange)
-            case .minYEdge:
-                firstOpaqueRow(in: rowRange.reversed()).map { (image.height - 1) - $0 }
             case .minXEdge:
                 firstOpaqueColumn(in: columnRange)
+            case .minYEdge:
+                firstOpaqueRow(in: rowRange)
             case .maxXEdge:
                 firstOpaqueColumn(in: columnRange.reversed()).map { (image.width - 1) - $0 }
+            case .maxYEdge:
+                firstOpaqueRow(in: rowRange.reversed()).map { (image.height - 1) - $0 }
             }
         }
 
         private func isPixelOpaque(row: Int, column: Int) -> Bool {
-            guard let bitmapData = cgContext.data else {
+            let rawAlpha = data.load(
+                fromByteOffset: (row * cgContext.bytesPerRow) + column,
+                as: UInt8.self
+            )
+            let convertedAlpha = CGFloat(rawAlpha) / 255
+            return convertedAlpha > alphaThreshold
+        }
+
+        private func isRowTransparent(row: Int) -> Bool {
+            // Use memcmp to efficiently check the entire row for zeroed out alpha.
+            if memcmp(data + (row * cgContext.bytesPerRow), zeroByteBlock, image.width) == 0 {
+                return true
+            }
+            // Avoid checking individual pixels if we can.
+            if alphaThreshold == 0 {
                 return false
             }
-            let rawAlpha = bitmapData.load(fromByteOffset: (row * cgContext.bytesPerRow) + column, as: UInt8.self)
-            return rawAlpha > maxAlpha
-        }
-
-        private func firstOpaqueRow<S: Sequence>(in rowRange: S) -> Int? where S.Element == Int {
-            guard let bitmapData = cgContext.data else {
-                return nil
-            }
-            return rowRange.first { row in
-                // Use memcmp to efficiently check the entire row for zeroed out alpha.
-                let rowByteBlock = bitmapData + (row * cgContext.bytesPerRow)
-                if memcmp(rowByteBlock, zeroByteBlock, image.width) == 0 {
-                    return true
-                }
-                // We found a non-zero row. Check each pixel until we find one that is opaque.
-                return columnRange.contains { column in
-                    isPixelOpaque(row: row, column: column)
-                }
+            // Check each pixel in the row until we find one that is opaque.
+            return !columnRange.contains { column in
+                isPixelOpaque(row: row, column: column)
             }
         }
 
-        private func firstOpaqueColumn<S: Sequence>(in columnRange: S) -> Int? where S.Element == Int {
+        private func firstOpaqueRow(in rowRange: some Sequence<Int>) -> Int? {
+            rowRange.first { row in
+                !isRowTransparent(row: row)
+            }
+        }
+
+        private func firstOpaqueColumn(in columnRange: some Sequence<Int>) -> Int? {
             columnRange.first { column in
                 rowRange.contains { row in
                     isPixelOpaque(row: row, column: column)
@@ -306,38 +322,33 @@ extension CGImage {
         }
     }
 
-    /// Returns an image that has been trimmed of transparency around the given edges.
+    /// Returns an image that has been trimmed of transparency around the
+    /// given edges.
+    ///
+    /// Each edge is trimmed up to the first row or column containing pixels
+    /// with an alpha component above the specified threshold.
     ///
     /// - Parameters:
-    ///   - edges: The edges to trim from around the image.
-    ///   - maxAlpha: The maximum alpha value to consider transparent. Pixels with alpha
-    ///     values above this value will be considered opaque, and will therefore remain
-    ///     in the image.
-    func trimmingTransparentPixels(
-        around edges: Set<CGRectEdge> = [.minXEdge, .maxXEdge, .minYEdge, .maxYEdge],
-        maxAlpha: CGFloat = 0
+    ///   - edges: A set of edges to trim from around the image.
+    ///   - alphaThreshold: The maximum alpha value to consider transparent.
+    func trimmingTransparency(
+        around edges: Set<CGRectEdge> = [.minXEdge, .minYEdge, .maxXEdge, .maxYEdge],
+        alphaThreshold: CGFloat = 0
     ) -> CGImage? {
-        let maxAlpha = UInt8(maxAlpha.clamped(to: 0...1) * 255)
-        let context = TransparencyContext(image: self, maxAlpha: maxAlpha)
-        return context?.trim(edges: edges)
+        guard let context = TransparencyContext(image: self, alphaThreshold: alphaThreshold) else {
+            return self
+        }
+        return context.trim(around: edges)
     }
 
     /// Returns a Boolean value that indicates whether the image is transparent.
     ///
-    /// - Parameter maxAlpha: The maximum alpha value to consider transparent.
-    ///   Pixels with alpha values above this value will be considered opaque.
-    func isTransparent(maxAlpha: CGFloat = 0) -> Bool {
-        // FIXME: This needs a dedicated implementation instead of relying on `trimmingTransparentPixels`
-        trimmingTransparentPixels(maxAlpha: maxAlpha) == nil
-    }
-}
-
-// MARK: - CGPoint
-
-extension CGPoint {
-    /// A string to use for logging purposes.
-    var logString: String {
-        String(describing: self)
+    /// - Parameter alphaThreshold: The maximum alpha value to consider transparent.
+    func isTransparent(alphaThreshold: CGFloat = 0) -> Bool {
+        guard let context = TransparencyContext(image: self, alphaThreshold: alphaThreshold) else {
+            return false
+        }
+        return context.isTransparent()
     }
 }
 
@@ -354,19 +365,11 @@ extension Collection where Element == MenuBarItem {
 // MARK: - Comparable
 
 extension Comparable {
-    /// Clamps this value to the given limiting range.
-    ///
-    /// - Parameter limits: A range of values to clamp this value to.
-    mutating func clamp(to limits: ClosedRange<Self>) {
-        self = min(max(self, limits.lowerBound), limits.upperBound)
-    }
-
-    /// Returns a copy of this value, clamped to the given limiting
-    /// range.
+    /// Returns a copy of this value, clamped to the given limiting range.
     ///
     /// - Parameter limits: A range of values to clamp the copy to.
     func clamped(to limits: ClosedRange<Self>) -> Self {
-        withMutableCopy(of: self) { $0.clamp(to: limits) }
+        min(max(self, limits.lowerBound), limits.upperBound)
     }
 }
 
@@ -469,6 +472,14 @@ extension NSScreen {
         screens.first { $0.frame.contains(NSEvent.mouseLocation) }
     }
 
+    /// The screen with the active menu bar.
+    static var screenWithActiveMenuBar: NSScreen? {
+        guard let displayID = Bridging.getActiveMenuBarDisplayID() else {
+            return nil
+        }
+        return screens.first { $0.displayID == displayID }
+    }
+
     /// The display identifier of the screen.
     var displayID: CGDirectDisplayID {
         // Value and type are guaranteed here, so force casting is okay.
@@ -508,27 +519,28 @@ extension NSScreen {
         let displayBounds = CGDisplayBounds(displayID)
 
         guard
-            let menuBar = try? systemWideElement.elementAtPosition(displayBounds.origin),
-            let role = try? menuBar.role(),
-            role == .menuBar
+            let menuBar = AXHelpers.element(at: displayBounds.origin),
+            AXHelpers.role(for: menuBar) == .menuBar
         else {
             return nil
         }
 
-        let applicationMenuFrame = menuBar.children.reduce(CGRect.null) { result, child in
-            guard child.isEnabled, let childFrame = child.frame else {
-                return result
+        let applicationMenuFrame = AXHelpers.children(for: menuBar).reduce(into: CGRect.null) { result, child in
+            if AXHelpers.isEnabled(child), let childFrame = AXHelpers.frame(for: child) {
+                result = result.union(childFrame)
             }
-            return result.union(childFrame)
         }
 
-        if applicationMenuFrame.width <= 0 {
+        if applicationMenuFrame.width <= 0 || applicationMenuFrame.isNull {
             return nil
         }
 
-        // The Accessibility API returns the menu bar for the active screen, regardless of the
-        // display origin used. This workaround prevents an incorrect frame from being returned
-        // for inactive displays in multi-display setups where one display has a notch.
+        // FIXME: The Accessibility API always returns the menu bar for the main screen.
+        // This can cause issues if one of the screens has a notch, since long app menus
+        // can display items the trailing side of the notch. This causes the frame to be
+        // invalid for all other screens. For now, we're working around this by checking
+        // the app menu's frame on inactive screens, and returning `nil` if it overlaps
+        // with the notch.
         if
             let mainScreen = NSScreen.main,
             self != mainScreen,
@@ -594,47 +606,6 @@ extension Publisher {
         mergeReplace(other, with: ())
     }
 
-    func removeDuplicates<each T: Equatable>() -> Publishers.RemoveDuplicates<Self> where Output == (repeat each T) {
-        removeDuplicates { lhs, rhs in
-            for (left, right) in repeat (each lhs, each rhs) {
-                guard left == right else { return false }
-            }
-            return true
-        }
-    }
-}
-
-extension Publisher {
-    func publisher<Value>(
-        for keyPath: KeyPath<Output, Value>,
-        options: NSKeyValueObservingOptions = [.initial, .new]
-    ) -> some Publisher<Value, Failure> where Output: NSObject {
-        flatMap { $0.publisher(for: keyPath, options: options) }
-    }
-
-    func publisher<Wrapped: NSObject, Value>(
-        for keyPath: KeyPath<Wrapped, Value>,
-        options: NSKeyValueObservingOptions = [.initial, .new]
-    ) -> some Publisher<Value?, Failure> where Output == Wrapped? {
-        flatMap { $0.publisher }
-            .flatMap { $0.publisher(for: keyPath, options: options) }
-            .map { $0 as Value? }
-            .replaceEmpty(with: nil)
-    }
-
-    func publisher<Wrapped: NSObject, Value>(
-        for keyPath: KeyPath<Wrapped, Value?>,
-        options: NSKeyValueObservingOptions = [.initial, .new]
-    ) -> some Publisher<Value?, Failure> where Output == Wrapped? {
-        flatMap { $0.publisher }
-            .flatMap { $0.publisher(for: keyPath, options: options) }
-            .replaceEmpty(with: nil)
-    }
-}
-
-// MARK: - Publisher where Output: Sequence, Failure == Never
-
-extension Publisher where Output: Sequence, Failure == Never {
     /// Transforms the elements of the upstream sequence into publishers and
     /// merges the results.
     ///
@@ -643,9 +614,21 @@ extension Publisher where Output: Sequence, Failure == Never {
     ///
     /// - Returns: A publisher that emits an event when any upstream publisher
     ///   emits an event.
-    func mergeMap<P: Publisher>(_ transform: @escaping (Output.Element) -> P) -> some Publisher<P.Output, P.Failure> {
+    func mergeMap<P: Publisher>(
+        _ transform: @escaping (Output.Element) -> P
+    ) -> some Publisher<P.Output, P.Failure> where Output: Sequence, Failure == Never {
         flatMap { sequence in
             Publishers.MergeMany(sequence.map(transform))
+        }
+    }
+
+    /// Publishes only elements that don't match the previous element.
+    func removeDuplicates<each T: Equatable>() -> Publishers.RemoveDuplicates<Self> where Output == (repeat each T) {
+        removeDuplicates { lhs, rhs in
+            for (left, right) in repeat (each lhs, each rhs) {
+                guard left == right else { return false }
+            }
+            return true
         }
     }
 }
@@ -658,18 +641,13 @@ extension RangeReplaceableCollection where Element: Hashable {
         var seen = Set<Element>()
         return filter { seen.insert($0).inserted }
     }
-
-    /// Removes duplicate values from the collection.
-    mutating func removeDuplicates() {
-        self = self.removingDuplicates()
-    }
 }
 
 // MARK: - RangeReplaceableCollection where Element == MenuBarItem
 
 extension RangeReplaceableCollection where Element == MenuBarItem {
-    /// Removes and returns the first menu bar item that matches the
-    /// specified tag.
+    /// Removes and returns the first menu bar item that matches
+    /// the specified tag.
     mutating func removeFirst(matching tag: MenuBarItemTag) -> MenuBarItem? {
         guard let index = firstIndex(matching: tag) else {
             return nil
@@ -684,33 +662,5 @@ extension Sequence where Element == MenuBarItem {
     /// Returns the first menu bar item that matches the specified tag.
     func first(matching tag: MenuBarItemTag) -> MenuBarItem? {
         first { $0.tag == tag }
-    }
-}
-
-// MARK: - SystemWideElement
-
-extension SystemWideElement {
-    /// Returns the element at the specified top-down coordinates.
-    func elementAtPosition(_ point: CGPoint) throws -> UIElement? {
-        try elementAtPosition(Float(point.x), Float(point.y))
-    }
-}
-
-// MARK: - UIElement
-
-extension UIElement {
-    /// The element's child elements.
-    var children: [UIElement] {
-        (try? arrayAttribute(.children)) ?? []
-    }
-
-    /// The element's frame.
-    var frame: CGRect? {
-        try? attribute(.frame)
-    }
-
-    /// A Boolean value that indicates whether the element is enabled.
-    var isEnabled: Bool {
-        (try? attribute(.enabled)) == true
     }
 }

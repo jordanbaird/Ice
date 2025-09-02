@@ -383,7 +383,19 @@ extension DistributedNotificationCenter {
 // MARK: - EdgeInsets
 
 extension EdgeInsets {
-    /// Creates edge insets with the given floating point value.
+    /// A copy of this instance with only the leading and trailing
+    /// edges set.
+    var horizontal: EdgeInsets {
+        EdgeInsets(top: 0, leading: leading, bottom: 0, trailing: trailing)
+    }
+
+    /// A copy of this instance with only the top and bottom
+    /// edges set.
+    var vertical: EdgeInsets {
+        EdgeInsets(top: top, leading: 0, bottom: bottom, trailing: 0)
+    }
+
+    /// Creates an instance with all edges set to the given value.
     init(all: CGFloat) {
         self.init(top: all, leading: all, bottom: all, trailing: all)
     }
@@ -572,42 +584,38 @@ extension NSStatusItem {
 // MARK: - Publisher
 
 extension Publisher {
-    /// Replaces all elements from the upstream publisher using the
-    /// provided closure.
+    /// Replaces each upstream element with an element returned from
+    /// the given closure.
     ///
-    /// - Parameter transform: A closure that returns an element to
+    /// - Parameter output: A closure that returns a new element to
     ///   publish in place of the upstream element.
-    func replace<T>(_ transform: @escaping () -> T) -> Publishers.Map<Self, T> {
-        map { _ in transform() }
+    func replace<T>(_ output: @escaping () -> T) -> Publishers.Map<Self, T> {
+        map { _ in output() }
     }
 
-    /// Replaces all elements from the upstream publisher with the
-    /// provided element.
+    /// Replaces each upstream element with the given element.
     ///
-    /// - Parameter output: An element to publish in place of the
-    ///   upstream element.
+    /// - Parameter output: A new element to publish in place of the
+    ///   upstream elements.
     func replace<T>(with output: T) -> Publishers.Map<Self, T> {
         replace { output }
     }
 
+    /// Publishes only non-`nil` elements.
     func removeNil<T>() -> Publishers.CompactMap<Self, T> where Output == T? {
         compactMap { $0 }
     }
 
-    func mergeReplace<P: Publisher, T>(_ other: P, with output: T) -> Publishers.Merge<Publishers.Map<Self, T>, Publishers.Map<P, T>> {
-        replace(with: output).merge(with: other.replace(with: output))
+    /// Merges this publisher with the given publisher, replacing upstream
+    /// elements with `Void` values.
+    ///
+    /// - Parameter other: Another publisher.
+    func discardMerge<P: Publisher>(_ other: P) -> some Publisher<Void, Failure> where P.Failure == Failure {
+        replace(with: ()).merge(with: other.replace(with: ()))
     }
 
-    func mergeReplace<P: Publisher, T>(_ other: P, transform: @escaping () -> T) -> Publishers.Merge<Publishers.Map<Self, T>, Publishers.Map<P, T>> {
-        replace(transform).merge(with: other.replace(transform))
-    }
-
-    func discardMerge<P: Publisher>(_ other: P) -> Publishers.Merge<Publishers.Map<Self, Void>, Publishers.Map<P, Void>> {
-        mergeReplace(other, with: ())
-    }
-
-    /// Transforms the elements of the upstream sequence into publishers and
-    /// merges the results.
+    /// Transforms the elements of the upstream sequence into a sequence of
+    /// publishers and merges the results.
     ///
     /// - Parameter transform: A closure that takes an element of the upstream
     ///   sequence as a parameter and returns a publisher.
@@ -619,16 +627,6 @@ extension Publisher {
     ) -> some Publisher<P.Output, P.Failure> where Output: Sequence, Failure == Never {
         flatMap { sequence in
             Publishers.MergeMany(sequence.map(transform))
-        }
-    }
-
-    /// Publishes only elements that don't match the previous element.
-    func removeDuplicates<each T: Equatable>() -> Publishers.RemoveDuplicates<Self> where Output == (repeat each T) {
-        removeDuplicates { lhs, rhs in
-            for (left, right) in repeat (each lhs, each rhs) {
-                guard left == right else { return false }
-            }
-            return true
         }
     }
 }

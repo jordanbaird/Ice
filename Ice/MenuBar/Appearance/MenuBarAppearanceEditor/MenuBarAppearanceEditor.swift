@@ -94,7 +94,8 @@ struct MenuBarAppearanceEditor: View {
             }
         }
         .controlSize(.large)
-        .padding(10)
+        .padding(.vertical, 10)
+        .padding(mainFormPadding.horizontal)
 
         if case .panel = location {
             stack.background(.ultraThickMaterial)

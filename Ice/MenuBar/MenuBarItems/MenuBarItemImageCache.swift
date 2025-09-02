@@ -280,14 +280,10 @@ final class MenuBarItemImageCache: ObservableObject {
 
         if !isIceBarPresented && !isSearchPresented {
             guard
+                await appState.navigationState.isAppFrontmost,
                 await appState.navigationState.isSettingsPresented,
-                case .menuBarLayout = await appState.navigationState.settingsNavigationIdentifier
+                await appState.navigationState.settingsNavigationIdentifier == .menuBarLayout
             else {
-                logger.debug("Skipping item image cache as interface not presented")
-                return
-            }
-            guard await appState.navigationState.isAppFrontmost else {
-                logger.debug("Skipping item image cache as app not frontmost")
                 return
             }
         }

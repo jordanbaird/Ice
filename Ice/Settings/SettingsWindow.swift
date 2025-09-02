@@ -14,26 +14,16 @@ struct SettingsWindow: Scene {
 
     var body: some Scene {
         IceWindow(id: .settings) {
-            settingsView
+            SettingsView(navigationState: appState.navigationState)
                 .onWindowChange { window in
                     model.observeWindowToolbar(window)
                 }
-                .frame(minWidth: 825, minHeight: 500)
+                .frame(minWidth: 825, maxWidth: 1150, minHeight: 500, maxHeight: 750)
         }
         .commandsRemoved()
         .windowResizability(.contentSize)
         .defaultSize(width: 900, height: 625)
         .environmentObject(appState)
-    }
-
-    @ViewBuilder
-    private var settingsView: some View {
-        if #available(macOS 26.0, *) {
-            SettingsView(navigationState: appState.navigationState)
-                .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-        } else {
-            SettingsView(navigationState: appState.navigationState)
-        }
     }
 }
 

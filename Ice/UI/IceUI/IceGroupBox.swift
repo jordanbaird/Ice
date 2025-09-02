@@ -21,9 +21,9 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
 
     private var borderStyle: some ShapeStyle {
         if #available(macOS 26.0, *) {
-            AnyShapeStyle(.clear)
+            AnyShapeStyle(Color.clear)
         } else {
-            AnyShapeStyle(.quaternary)
+            AnyShapeStyle(Color.primary.quaternary)
         }
     }
 
@@ -171,7 +171,7 @@ struct IceGroupBox<Header: View, Content: View, Footer: View>: View {
                 .padding(padding)
                 .background {
                     backgroundShape
-                        .fill(.quinary.opacity(0.75))
+                        .fill(Color.primary.quinary)
                         .strokeBorder(borderStyle)
                 }
                 .containerShape(backgroundShape)

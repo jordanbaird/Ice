@@ -9,9 +9,7 @@ struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject var navigationState: AppNavigationState
     @Environment(\.appearsActive) private var appearsActive
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.sidebarRowSize) private var sidebarRowSize
-    @State private var usesHardScrollEdgeEffect = false
 
     private let sidebarPadding: CGFloat = 3
 
@@ -52,15 +50,7 @@ struct SettingsView: View {
     }
 
     private var sidebarTextStyle: some ShapeStyle {
-        if colorScheme == .dark {
-            AnyShapeStyle(Color(nsColor: appearsActive ? .labelColor : .secondaryLabelColor))
-        } else {
-            AnyShapeStyle(appearsActive ? .primary : .secondary)
-        }
-    }
-
-    private var sidebarIconStyle: some ShapeStyle {
-        HierarchicalShapeStyle.primary.opacity(appearsActive ? 1 : 0.67)
+        appearsActive ? .primary : .secondary
     }
 
     private var navigationTitle: LocalizedStringKey {
@@ -74,17 +64,6 @@ struct SettingsView: View {
             detailView
         }
         .navigationTitle(navigationTitle)
-    }
-
-    @ToolbarContentBuilder
-    private var sidebarToolbarSpacer: some ToolbarContent {
-        if #available(macOS 26.0, *) {
-            ToolbarSpacer(.flexible)
-        } else {
-            ToolbarItem {
-                Spacer(minLength: 0)
-            }
-        }
     }
 
     @ViewBuilder
@@ -112,15 +91,36 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
+    private func sidebarItem(for identifier: SettingsNavigationIdentifier) -> some View {
+        Label {
+            Text(identifier.localized)
+                .font(.system(size: sidebarFontSize))
+                .foregroundStyle(sidebarTextStyle)
+        } icon: {
+            identifier.iconResource.view
+                .foregroundStyle(sidebarTextStyle)
+                .padding(sidebarPadding)
+        }
+        .frame(height: sidebarItemHeight)
+        .tag(identifier)
+    }
+
+    @ToolbarContentBuilder
+    private var sidebarToolbarSpacer: some ToolbarContent {
+        if #available(macOS 26.0, *) {
+            ToolbarSpacer(.flexible)
+        } else {
+            ToolbarItem {
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    @ViewBuilder
     private var detailView: some View {
         if #available(macOS 26.0, *) {
             settingsPane
-                .onScrollGeometryChange(for: Bool.self) { geometry in
-                    geometry.visibleRect.minY > -geometry.contentInsets.top
-                } action: { _, isScrolledPastTop in
-                    usesHardScrollEdgeEffect = isScrolledPastTop
-                }
-                .scrollEdgeEffectStyle(usesHardScrollEdgeEffect ? .hard : .soft, for: .top)
+                .scrollEdgeEffectStyle(.hard, for: .top)
         } else {
             settingsPane
         }
@@ -142,20 +142,5 @@ struct SettingsView: View {
         case .about:
             AboutSettingsPane(updatesManager: appState.updatesManager)
         }
-    }
-
-    @ViewBuilder
-    private func sidebarItem(for identifier: SettingsNavigationIdentifier) -> some View {
-        Label {
-            Text(identifier.localized)
-                .font(.system(size: sidebarFontSize))
-                .foregroundStyle(sidebarTextStyle)
-        } icon: {
-            identifier.iconResource.view
-                .foregroundStyle(sidebarIconStyle)
-                .padding(sidebarPadding)
-        }
-        .frame(height: sidebarItemHeight)
-        .tag(identifier)
     }
 }

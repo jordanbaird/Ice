@@ -36,7 +36,7 @@ struct GeneralSettingsPane: View {
     var body: some View {
         IceForm {
             IceSection {
-                launchAtLogin
+                appOptions
             }
             IceSection {
                 iceIconOptions
@@ -45,50 +45,25 @@ struct GeneralSettingsPane: View {
                 iceBarOptions
             }
             IceSection {
-                showOnClick
-                showOnHover
-                showOnScroll
+                showOptions
             }
             IceSection {
-                autoRehideOptions
+                rehideOptions
             }
             IceSection {
                 spacingOptions
             }
         }
-        .alert(isPresented: $isPresentingError, error: presentedError) {
-            Button("OK") {
-                presentedError = nil
-                isPresentingError = false
-            }
-        }
     }
 
+    // MARK: App Options
+
     @ViewBuilder
-    private var launchAtLogin: some View {
+    private var appOptions: some View {
         LaunchAtLogin.Toggle()
     }
 
-    @ViewBuilder
-    private func menuItem(for imageSet: ControlItemImageSet) -> some View {
-        Label {
-            Text(imageSet.name.rawValue)
-        } icon: {
-            if let nsImage = imageSet.hidden.nsImage(for: appState) {
-                switch imageSet.name {
-                case .custom:
-                    Image(size: CGSize(width: 18, height: 18)) { context in
-                        context.draw(
-                            Image(nsImage: nsImage),
-                            in: context.clipBoundingRect
-                        )
-                    }
-                default:
-                    Image(nsImage: nsImage)
-                }
-            }
-        }
-    }
+    // MARK: Ice Icon Options
 
     @ViewBuilder
     private var iceIconOptions: some View {
@@ -114,7 +89,7 @@ struct GeneralSettingsPane: View {
                     Button {
                         settings.iceIcon = imageSet
                     } label: {
-                        menuItem(for: imageSet)
+                        iceIconMenuItem(for: imageSet)
                     }
                     .tag(imageSet)
                 }
@@ -122,7 +97,7 @@ struct GeneralSettingsPane: View {
                     Button {
                         settings.iceIcon = lastCustomIceIcon
                     } label: {
-                        menuItem(for: lastCustomIceIcon)
+                        iceIconMenuItem(for: lastCustomIceIcon)
                     }
                     .tag(lastCustomIceIcon)
                 }
@@ -136,7 +111,7 @@ struct GeneralSettingsPane: View {
                 isImportingCustomIceIcon = true
             }
         } title: {
-            menuItem(for: settings.iceIcon)
+            iceIconMenuItem(for: settings.iceIcon)
         }
         .annotation("Choose a custom icon to show in the menu bar.")
         .fileImporter(
@@ -155,21 +130,47 @@ struct GeneralSettingsPane: View {
                 isPresentingError = true
             }
         }
+        .alert(isPresented: $isPresentingError, error: presentedError) {
+            Button("OK") {
+                presentedError = nil
+                isPresentingError = false
+            }
+        }
 
         if case .custom = settings.iceIcon.name {
-            Toggle("Custom icon uses system theme", isOn: $settings.customIceIconIsTemplate)
+            Toggle("Custom icon uses dynamic appearance", isOn: $settings.customIceIconIsTemplate)
                 .annotation {
                     Text(
                         """
                         Display the icon as a monochrome image that dynamically adjusts to match \
                         the menu bar's appearance. This setting removes all color from the icon, \
-                        but ensures consistent rendering against both light and dark backgrounds.
+                        but ensures consistent rendering with both light and dark backgrounds.
                         """
                     )
                     .padding(.trailing, 50)
                 }
         }
     }
+
+    @ViewBuilder
+    private func iceIconMenuItem(for imageSet: ControlItemImageSet) -> some View {
+        Label {
+            Text(imageSet.name.rawValue)
+        } icon: {
+            if let nsImage = imageSet.hidden.nsImage(for: appState) {
+                switch imageSet.name {
+                case .custom:
+                    Image(size: CGSize(width: 18, height: 18)) { context in
+                        context.draw(Image(nsImage: nsImage), in: context.clipBoundingRect)
+                    }
+                default:
+                    Image(nsImage: nsImage)
+                }
+            }
+        }
+    }
+
+    // MARK: Ice Bar Options
 
     @ViewBuilder
     private var iceBarOptions: some View {
@@ -204,62 +205,64 @@ struct GeneralSettingsPane: View {
         }
     }
 
+    // MARK: Show Options
+
     @ViewBuilder
-    private var showOnClick: some View {
+    private var showOptions: some View {
         Toggle("Show on click", isOn: $settings.showOnClick)
             .annotation("Click inside an empty area of the menu bar to show hidden menu bar items.")
-    }
-
-    @ViewBuilder
-    private var showOnHover: some View {
         Toggle("Show on hover", isOn: $settings.showOnHover)
             .annotation("Hover over an empty area of the menu bar to show hidden menu bar items.")
-    }
-
-    @ViewBuilder
-    private var showOnScroll: some View {
         Toggle("Show on scroll", isOn: $settings.showOnScroll)
             .annotation("Scroll or swipe in the menu bar to show hidden menu bar items.")
     }
 
+    // MARK: Rehide Options
+
     @ViewBuilder
-    private var rehideStrategyPicker: some View {
-        IcePicker("Strategy", selection: $settings.rehideStrategy) {
-            ForEach(RehideStrategy.allCases) { strategy in
-                Text(strategy.localized).tag(strategy)
-            }
-        }
-        .annotation {
-            switch settings.rehideStrategy {
-            case .smart:
-                Text("Menu bar items are rehidden using a smart algorithm.")
-            case .timed:
-                Text("Menu bar items are rehidden after a fixed amount of time.")
-            case .focusedApp:
-                Text("Menu bar items are rehidden when the focused app changes.")
-            }
+    private var rehideOptions: some View {
+        autoRehide
+        if settings.autoRehide {
+            rehideStrategyPicker
         }
     }
 
     @ViewBuilder
-    private var autoRehideOptions: some View {
+    private var autoRehide: some View {
         Toggle("Automatically rehide", isOn: $settings.autoRehide)
-        if settings.autoRehide {
-            if case .timed = settings.rehideStrategy {
-                VStack {
-                    rehideStrategyPicker
-                    IceSlider(
-                        rehideIntervalKey,
-                        value: $settings.rehideInterval,
-                        in: 0...30,
-                        step: 1
-                    )
+    }
+
+    @ViewBuilder
+    private var rehideStrategyPicker: some View {
+        VStack {
+            IcePicker("Strategy", selection: $settings.rehideStrategy) {
+                ForEach(RehideStrategy.allCases) { strategy in
+                    Text(strategy.localized).tag(strategy)
                 }
-            } else {
-                rehideStrategyPicker
+            }
+            .annotation {
+                switch settings.rehideStrategy {
+                case .smart:
+                    Text("Menu bar items are rehidden using a smart algorithm.")
+                case .timed:
+                    Text("Menu bar items are rehidden after a fixed amount of time.")
+                case .focusedApp:
+                    Text("Menu bar items are rehidden when the focused app changes.")
+                }
+            }
+
+            if case .timed = settings.rehideStrategy {
+                IceSlider(
+                    rehideIntervalKey,
+                    value: $settings.rehideInterval,
+                    in: 0...30,
+                    step: 1
+                )
             }
         }
     }
+
+    // MARK: Spacing Options
 
     @ViewBuilder
     private var spacingOptions: some View {

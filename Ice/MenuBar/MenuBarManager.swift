@@ -57,12 +57,6 @@ final class MenuBarManager: ObservableObject {
         MenuBarSection(name: .alwaysHidden),
     ]
 
-    /// A Boolean value that indicates whether the manager can update its stored
-    /// information for the menu bar's average color.
-    private var canUpdateAverageColorInfo: Bool {
-        settingsWindow?.isVisible == true
-    }
-
     /// A Boolean value that indicates whether at least one of the manager's
     /// sections is visible.
     var hasVisibleSection: Bool {
@@ -143,17 +137,11 @@ final class MenuBarManager: ObservableObject {
             .store(in: &c)
 
         $settingsWindow
-            .flatMap { $0.publisher } // Short circuit if nil.
+            .removeNil()
             .flatMap { $0.publisher(for: \.isVisible) }
+            .discardMerge(Timer.publish(every: 5, on: .main, in: .default).autoconnect())
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.updateAverageColorInfo()
-            }
-            .store(in: &c)
-
-        Timer.publish(every: 5, on: .main, in: .default)
-            .autoconnect()
-            .sink { [weak self] _ in
+            .sink { [weak self] in
                 self?.updateAverageColorInfo()
             }
             .store(in: &c)
@@ -236,8 +224,9 @@ final class MenuBarManager: ObservableObject {
     /// of the menu bar.
     func updateAverageColorInfo() {
         guard
-            canUpdateAverageColorInfo,
-            let screen = settingsWindow?.screen
+            let settingsWindow,
+            settingsWindow.isVisible,
+            let screen = settingsWindow.screen
         else {
             return
         }

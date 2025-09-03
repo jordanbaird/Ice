@@ -542,7 +542,6 @@ final class ControlItem {
             action: #selector(showSearchPanel),
             keyEquivalent: ""
         )
-        searchItem.target = self
         if
             let hotkey = hotkey(withAction: .searchMenuBarItems),
             let keyCombination = hotkey.keyCombination
@@ -550,18 +549,17 @@ final class ControlItem {
             searchItem.keyEquivalent = keyCombination.key.keyEquivalent
             searchItem.keyEquivalentModifierMask = keyCombination.modifiers.nsEventFlags
         }
+        searchItem.target = self
         menu.addItem(searchItem)
 
         menu.addItem(.separator())
 
-        // Add menu items to toggle the hidden and always-hidden sections.
-        let sectionNames: [MenuBarSection.Name] = [.hidden, .alwaysHidden]
-        for name in sectionNames {
+        // Add items to toggle the hidden and always-hidden sections.
+        for name: MenuBarSection.Name in [.hidden, .alwaysHidden] {
             guard
                 let section = appState.menuBarManager.section(withName: name),
-                section.controlItem.isAddedToMenuBar
+                section.isEnabled
             else {
-                // Section doesn't exist, or is disabled.
                 continue
             }
             let item = NSMenuItem(
@@ -569,28 +567,15 @@ final class ControlItem {
                 action: #selector(toggleMenuBarSection),
                 keyEquivalent: ""
             )
+            if
+                let hotkey = section.hotkey,
+                let keyCombination = hotkey.keyCombination
+            {
+                item.keyEquivalent = keyCombination.key.keyEquivalent
+                item.keyEquivalentModifierMask = keyCombination.modifiers.nsEventFlags
+            }
             item.target = self
             item.representedObject = section
-            switch name {
-            case .visible:
-                break
-            case .hidden:
-                if
-                    let hotkey = hotkey(withAction: .toggleHiddenSection),
-                    let keyCombination = hotkey.keyCombination
-                {
-                    item.keyEquivalent = keyCombination.key.keyEquivalent
-                    item.keyEquivalentModifierMask = keyCombination.modifiers.nsEventFlags
-                }
-            case .alwaysHidden:
-                if
-                    let hotkey = hotkey(withAction: .toggleAlwaysHiddenSection),
-                    let keyCombination = hotkey.keyCombination
-                {
-                    item.keyEquivalent = keyCombination.key.keyEquivalent
-                    item.keyEquivalentModifierMask = keyCombination.modifiers.nsEventFlags
-                }
-            }
             menu.addItem(item)
         }
 

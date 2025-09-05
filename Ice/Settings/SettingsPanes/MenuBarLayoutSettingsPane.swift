@@ -15,11 +15,11 @@ struct MenuBarLayoutSettingsPane: View {
 
     var body: some View {
         if !ScreenCapture.cachedCheckPermissions() {
-            missingScreenRecordingPermission
+            missingScreenRecordingPermissions
         } else if appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults {
             cannotArrange
         } else {
-            IceForm(alignment: .leading, spacing: 20) {
+            IceForm(spacing: 20) {
                 header
                 layoutBars
             }
@@ -28,18 +28,21 @@ struct MenuBarLayoutSettingsPane: View {
 
     @ViewBuilder
     private var header: some View {
-        Text("Drag to arrange your menu bar items")
-            .font(.title2)
-
-        CalloutBox(
-            "Tip: You can also arrange menu bar items by ⌘ Command + dragging them in the menu bar.",
-            systemImage: "lightbulb"
-        )
+        IceSection {
+            VStack(spacing: 2) {
+                Text("Drag to arrange your menu bar items into different sections.")
+                    .font(.title3.bold())
+                Text("Menu bar items can also be arranged by ⌘ Command + dragging them in the menu bar.")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(15)
+        }
     }
 
     @ViewBuilder
     private var layoutBars: some View {
-        VStack(spacing: 15) {
+        VStack(spacing: 20) {
             ForEach(MenuBarSection.Name.allCases, id: \.self) { section in
                 layoutBar(for: section)
             }
@@ -49,26 +52,22 @@ struct MenuBarLayoutSettingsPane: View {
         .allowsHitTesting(hasItems)
         .overlay {
             if !hasItems {
-                VStack {
-                    Text("Loading menu bar items…")
-                        .font(.title)
-                    ProgressView()
-                }
+                loadingMenuBarItems
             }
         }
     }
 
     @ViewBuilder
     private var cannotArrange: some View {
-        Text("Ice cannot arrange menu bar items in automatically hidden menu bars")
+        Text("Ice cannot arrange menu bar items in automatically hidden menu bars.")
             .font(.title3)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     @ViewBuilder
-    private var missingScreenRecordingPermission: some View {
+    private var missingScreenRecordingPermissions: some View {
         VStack {
-            Text("Menu bar layout requires screen recording permissions")
+            Text("Menu bar layout requires screen recording permissions.")
                 .font(.title2)
 
             Button {
@@ -81,6 +80,15 @@ struct MenuBarLayoutSettingsPane: View {
     }
 
     @ViewBuilder
+    private var loadingMenuBarItems: some View {
+        VStack {
+            Text("Loading menu bar items…")
+            ProgressView()
+        }
+        .font(.title)
+    }
+
+    @ViewBuilder
     private func layoutBar(for name: MenuBarSection.Name) -> some View {
         if
             let section = appState.menuBarManager.section(withName: name),
@@ -88,7 +96,9 @@ struct MenuBarLayoutSettingsPane: View {
         {
             VStack(alignment: .leading) {
                 Text(name.localized)
-                    .font(.title3)
+                    .font(.headline)
+                    .padding(.leading, 8)
+
                 LayoutBar(imageCache: appState.imageCache, section: name)
             }
         }

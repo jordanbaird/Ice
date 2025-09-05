@@ -59,12 +59,13 @@ final class AppState: ObservableObject {
     private lazy var setupTask = Task {
         permissions.stopAllChecks()
 
+        settings.performSetup(with: self)
+        menuBarManager.performSetup(with: self)
+
         if #available(macOS 26.0, *) {
             await MenuBarItemService.Connection.shared.start()
         }
 
-        settings.performSetup(with: self)
-        menuBarManager.performSetup(with: self)
         appearanceManager.performSetup(with: self)
         eventManager.performSetup(with: self)
         await itemManager.performSetup(with: self)
@@ -195,6 +196,8 @@ final class AppState: ObservableObject {
         cancellables = c
     }
 
+    /// Returns a Boolean value indicating whether the app has been
+    /// granted the permission associated with the given key.
     func hasPermission(_ key: AppPermissions.PermissionKey) -> Bool {
         switch key {
         case .accessibility:
@@ -221,7 +224,7 @@ final class AppState: ObservableObject {
 
     /// Opens the window with the given identifier.
     func openWindow(_ id: IceWindowIdentifier) {
-        // Defer to the next run loop to prevent conflicts with SwiftUI.
+        // Async prevents conflicts with SwiftUI.
         DispatchQueue.main.async {
             self.logger.debug("Opening window with id: \(id, privacy: .public)")
             EnvironmentValues().openWindow(id: id)
@@ -230,7 +233,7 @@ final class AppState: ObservableObject {
 
     /// Dismisses the window with the given identifier.
     func dismissWindow(_ id: IceWindowIdentifier) {
-        // Defer to the next run loop to prevent conflicts with SwiftUI.
+        // Async prevents conflicts with SwiftUI.
         DispatchQueue.main.async {
             self.logger.debug("Dismissing window with id: \(id, privacy: .public)")
             EnvironmentValues().dismissWindow(id: id)
@@ -242,11 +245,9 @@ final class AppState: ObservableObject {
         if let policy {
             NSApp.setActivationPolicy(policy)
         }
-
         // NSApplication.activate(ignoringOtherApps:) is deprecated, with
-        // no suitable alternative for explicit activation, so we're using
-        // NSRunningApplication for now.
-
+        // no suitable alternative for explicit activation, so we activate
+        // through NSRunningApplication.current for now.
         guard let frontmost = NSWorkspace.shared.frontmostApplication else {
             NSRunningApplication.current.activate()
             return

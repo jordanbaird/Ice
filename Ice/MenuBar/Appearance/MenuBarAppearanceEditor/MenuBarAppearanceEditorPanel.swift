@@ -83,7 +83,7 @@ final class MenuBarAppearanceEditorPanel: NSPanel {
     /// Updates the panel's position for display on the given screen.
     private func updatePosition(for screen: NSScreen) {
         let originX = screen.frame.midX - frame.width / 2
-        let originY = screen.frame.maxY - frame.height / 8
+        let originY = screen.visibleFrame.maxY
         setFrameTopLeftPoint(CGPoint(x: originX, y: originY))
     }
 

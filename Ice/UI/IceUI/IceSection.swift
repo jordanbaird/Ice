@@ -108,9 +108,16 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
                 }
             } else {
                 VStack(alignment: .leading) {
-                    header.accessibilityAddTraits(.isHeader)
+                    header
+                        .accessibilityAddTraits(.isHeader)
+                        .padding([.top, .leading], 8)
+                        .padding(.bottom, 2)
+
                     contentLayout
+
                     footer
+                        .padding([.bottom, .leading], 8)
+                        .padding(.top, 2)
                 }
                 .focusSection()
                 .accessibilityElement(children: .contain)

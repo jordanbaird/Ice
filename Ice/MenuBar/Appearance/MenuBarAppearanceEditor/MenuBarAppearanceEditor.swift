@@ -26,8 +26,16 @@ struct MenuBarAppearanceEditor: View {
     }
 
     var body: some View {
-        bodyContent.safeAreaInset(edge: .bottom, spacing: 0) {
-            bottomBar
+        if #available(macOS 26.0, *) {
+            bodyContent
+                .safeAreaBar(edge: .bottom, spacing: 0) {
+                    bottomBar
+                }
+        } else {
+            VStack(spacing: 0) {
+                bodyContent
+                bottomBar
+            }
         }
     }
 
@@ -35,6 +43,9 @@ struct MenuBarAppearanceEditor: View {
     private var bodyContent: some View {
         if appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults {
             cannotEdit
+        } else if #available(macOS 26.0, *) {
+            mainForm
+                .scrollEdgeEffectStyle(.hard, for: .bottom)
         } else {
             mainForm
         }
@@ -77,7 +88,13 @@ struct MenuBarAppearanceEditor: View {
 
     @ViewBuilder
     private var bottomBar: some View {
-        let stack = HStack {
+        HStack {
+            if case .panel = location {
+                DismissWindowButton("Done")
+            }
+
+            Spacer()
+
             if
                 !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
                 appearanceManager.configuration != .defaultConfiguration
@@ -86,22 +103,10 @@ struct MenuBarAppearanceEditor: View {
                     appearanceManager.configuration = .defaultConfiguration
                 }
             }
-
-            Spacer()
-
-            if case .panel = location {
-                DismissWindowButton("Done")
-            }
         }
         .controlSize(.large)
-        .padding(.vertical, 10)
-        .padding(mainFormPadding.horizontal)
-
-        if case .panel = location {
-            stack.background(.ultraThickMaterial)
-        } else {
-            stack.background(.bar)
-        }
+        .buttonBorderShape(.capsule)
+        .padding(10)
     }
 
     @ViewBuilder
@@ -238,20 +243,10 @@ private struct LabeledPartialEditor: View {
                 .onFrameChange(update: $textFrame)
 
             if currentAppearance != appearance {
-                previewButton
+                PreviewButton(appearance: appearance)
             }
         }
         .frame(height: textFrame.height)
-    }
-
-    @ViewBuilder
-    private var previewButton: some View {
-        switch appearance {
-        case .light:
-            PreviewButton(configuration: configuration.lightModeConfiguration)
-        case .dark:
-            PreviewButton(configuration: configuration.darkModeConfiguration)
-        }
     }
 
     @ViewBuilder
@@ -274,50 +269,56 @@ private struct StaticPartialEditor: View {
 }
 
 private struct PreviewButton: View {
-    private struct DummyButton: NSViewRepresentable {
-        @Binding var isPressed: Bool
+    @EnvironmentObject private var appState: AppState
+    @State private var isPressed = false
 
-        func makeNSView(context: Context) -> NSButton {
-            let button = NSButton()
-            button.title = ""
-            button.bezelStyle = .accessoryBarAction
-            return button
-        }
+    let appearance: SystemAppearance
 
-        func updateNSView(_ nsView: NSButton, context: Context) {
-            nsView.isHighlighted = isPressed
+    private var manager: MenuBarAppearanceManager {
+        appState.appearanceManager
+    }
+
+    private var previewConfiguration: MenuBarAppearancePartialConfiguration {
+        switch appearance {
+        case .light:
+            manager.configuration.lightModeConfiguration
+        case .dark:
+            manager.configuration.darkModeConfiguration
         }
     }
 
-    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
-
-    @State private var frame = CGRect.zero
-    @State private var isPressed = false
-
-    let configuration: MenuBarAppearancePartialConfiguration
-
     var body: some View {
-        ZStack {
-            DummyButton(isPressed: $isPressed)
-                .allowsHitTesting(false)
-            Text("Hold to Preview")
-                .baselineOffset(1.5)
-                .padding(.horizontal, 10)
-                .contentShape(Rectangle())
+        Button("Hold to Preview") { }
+            .buttonStyle(PreviewButtonStyle(isPressed: $isPressed))
+            .onChange(of: isPressed) {
+                manager.previewConfiguration = isPressed ? previewConfiguration : nil
+            }
+    }
+}
+
+private struct PreviewButtonStyle: ButtonStyle {
+    @Binding var isPressed: Bool
+
+    private var borderShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            AnyInsettableShape(Capsule(style: .continuous))
+        } else {
+            AnyInsettableShape(RoundedRectangle(cornerRadius: 6, style: .circular))
         }
-        .fixedSize()
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                    isPressed = frame.contains(value.location)
-                }
-                .onEnded { _ in
-                    isPressed = false
-                }
-        )
-        .onChange(of: isPressed) { _, newValue in
-            appearanceManager.previewConfiguration = newValue ? configuration : nil
-        }
-        .onFrameChange(update: $frame)
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
+            .background {
+                borderShape
+                    .fill(configuration.isPressed ? .tertiary : .quaternary)
+                    .opacity(configuration.isPressed ? 0.5 : 0.75)
+            }
+            .contentShape([.focusEffect, .interaction], borderShape)
+            .onChange(of: configuration.isPressed) { _, newValue in
+                isPressed = newValue
+            }
     }
 }

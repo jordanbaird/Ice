@@ -29,11 +29,11 @@ struct MenuBarLayoutSettingsPane: View {
     @ViewBuilder
     private var header: some View {
         IceSection {
-            VStack(spacing: 2) {
+            VStack(spacing: 3) {
                 Text("Drag to arrange your menu bar items into different sections.")
                     .font(.title3.bold())
-                Text("Menu bar items can also be arranged by ⌘ Command + dragging them in the menu bar.")
-                    .font(.system(size: 13, weight: .medium))
+                Text("They can also be arranged by ⌘ Command + dragging them in the menu bar.")
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
             }
             .padding(15)

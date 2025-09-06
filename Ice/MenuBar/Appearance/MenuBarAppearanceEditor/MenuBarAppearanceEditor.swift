@@ -13,6 +13,7 @@ struct MenuBarAppearanceEditor: View {
 
     @EnvironmentObject var appState: AppState
     @ObservedObject var appearanceManager: MenuBarAppearanceManager
+    @Environment(\.dismissWindow) private var dismissWindow
 
     let location: Location
 
@@ -90,7 +91,9 @@ struct MenuBarAppearanceEditor: View {
     private var bottomBar: some View {
         HStack {
             if case .panel = location {
-                DismissWindowButton("Done")
+                Button("Done") {
+                    dismissWindow()
+                }
             }
 
             Spacer()

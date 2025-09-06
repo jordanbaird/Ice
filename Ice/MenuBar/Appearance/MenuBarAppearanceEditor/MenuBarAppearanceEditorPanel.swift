@@ -27,18 +27,17 @@ final class MenuBarAppearanceEditorPanel: NSPanel {
     init() {
         super.init(
             contentRect: .zero,
-            styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel, .utilityWindow, .hudWindow],
+            styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
+        self.title = "Menu Bar Appearance"
         self.titlebarAppearsTransparent = true
-        self.isExcludedFromWindowsMenu = false
-        self.becomesKeyOnlyIfNeeded = true
+        self.allowsToolTipsWhenApplicationIsInactive = true
+        self.isFloatingPanel = true
         self.hidesOnDeactivate = false
-        self.level = .floating
-        self.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle, .moveToActiveSpace]
-        self.animationBehavior = .documentWindow
-        standardWindowButton(.closeButton)?.isHidden = true
+        self.isMovableByWindowBackground = false
+        self.collectionBehavior = [.fullScreenAuxiliary, .moveToActiveSpace]
     }
 
     /// Sets up the panel.
@@ -66,23 +65,23 @@ final class MenuBarAppearanceEditorPanel: NSPanel {
             }
             .store(in: &c)
 
-        // Close the panel when certain app or system events occur.
-        Publishers.Merge3(
-            NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification),
-            NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification),
-            NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)
-        )
-        .sink { [weak self] _ in
-            self?.close()
-        }
-        .store(in: &c)
+        publisher(for: \.isVisible)
+            .sink { isVisible in
+                if isVisible {
+                    NSColorPanel.shared.hidesOnDeactivate = false
+                } else {
+                    NSColorPanel.shared.hidesOnDeactivate = true
+                    NSColorPanel.shared.close()
+                }
+            }
+            .store(in: &c)
 
         cancellables = c
     }
 
     /// Updates the panel's position for display on the given screen.
     private func updatePosition(for screen: NSScreen) {
-        let originX = screen.frame.midX - frame.width / 2
+        let originX = screen.visibleFrame.midX - frame.width / 2
         let originY = screen.visibleFrame.maxY
         setFrameTopLeftPoint(CGPoint(x: originX, y: originY))
     }
@@ -92,21 +91,14 @@ final class MenuBarAppearanceEditorPanel: NSPanel {
         updatePosition(for: screen)
         makeKeyAndOrderFront(nil)
     }
-
-    override func cancelOperation(_ sender: Any?) {
-        super.cancelOperation(sender)
-        close()
-    }
 }
 
 // MARK: - MenuBarAppearanceEditorHostingView
 
 private final class MenuBarAppearanceEditorHostingView: NSHostingView<MenuBarAppearanceEditorContentView> {
-    override var acceptsFirstResponder: Bool { true }
-    override var needsPanelToBecomeKey: Bool { true }
-
-    override var safeAreaInsets: NSEdgeInsets { NSEdgeInsets() }
-    override var intrinsicContentSize: CGSize { CGSize(width: 550, height: 600) }
+    override var intrinsicContentSize: CGSize {
+        CGSize(width: 550, height: 600)
+    }
 
     init(appState: AppState) {
         super.init(rootView: MenuBarAppearanceEditorContentView(appState: appState))
@@ -130,14 +122,10 @@ private struct MenuBarAppearanceEditorContentView: View {
     @ObservedObject var appState: AppState
 
     var body: some View {
-        MenuBarAppearanceEditor(appearanceManager: appState.appearanceManager, location: .panel)
-            .background {
-                Rectangle()
-                    .fill(.regularMaterial)
-                Rectangle()
-                    .fill(.windowBackground)
-                    .opacity(0.25)
-            }
-            .environmentObject(appState)
+        MenuBarAppearanceEditor(
+            appearanceManager: appState.appearanceManager,
+            location: .panel
+        )
+        .environmentObject(appState)
     }
 }

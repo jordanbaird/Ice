@@ -17,9 +17,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Initial chore work.
         NSSplitViewItem.swizzle()
         MigrationManager(appState: appState).migrateAll()
-        NSColorPanel.shared.animationBehavior = .none
-        NSColorPanel.shared.hidesOnDeactivate = false
-        NSColorPanel.shared.styleMask.insert(.nonactivatingPanel)
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

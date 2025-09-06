@@ -14,17 +14,9 @@ struct MenuBarAppearanceEditor: View {
     @EnvironmentObject var appState: AppState
     @ObservedObject var appearanceManager: MenuBarAppearanceManager
     @Environment(\.dismissWindow) private var dismissWindow
+    @State private var isResetPromptPresented = false
 
     let location: Location
-
-    private var mainFormPadding: EdgeInsets {
-        withMutableCopy(of: EdgeInsets.iceFormDefaultPadding) { insets in
-            switch location {
-            case .settings: break
-            case .panel: insets.top = insets.bottom
-            }
-        }
-    }
 
     var body: some View {
         if #available(macOS 26.0, *) {
@@ -46,7 +38,7 @@ struct MenuBarAppearanceEditor: View {
             cannotEdit
         } else if #available(macOS 26.0, *) {
             mainForm
-                .scrollEdgeEffectStyle(.hard, for: .bottom)
+                .scrollEdgeEffectStyle(.hard, for: .vertical)
         } else {
             mainForm
         }
@@ -61,7 +53,7 @@ struct MenuBarAppearanceEditor: View {
 
     @ViewBuilder
     private var mainForm: some View {
-        IceForm(padding: mainFormPadding) {
+        IceForm {
             if
                 case .settings = location,
                 appState.settings.advanced.enableSecondaryContextMenu
@@ -103,11 +95,21 @@ struct MenuBarAppearanceEditor: View {
                 appearanceManager.configuration != .defaultConfiguration
             {
                 Button("Reset") {
-                    appearanceManager.configuration = .defaultConfiguration
+                    isResetPromptPresented = true
+                }
+                .alert("Reset Menu Bar Appearance", isPresented: $isResetPromptPresented) {
+                    Button("Cancel", role: .cancel) {
+                        isResetPromptPresented = false
+                    }
+                    Button("Reset", role: .destructive) {
+                        appearanceManager.configuration = .defaultConfiguration
+                        isResetPromptPresented = false
+                    }
+                } message: {
+                    Text("This action cannot be undone.")
                 }
             }
         }
-        .controlSize(.large)
         .buttonBorderShape(.capsule)
         .padding(10)
     }
@@ -165,7 +167,7 @@ private struct UnlabeledPartialEditor: View {
                 case .noTint:
                     EmptyView()
                 case .solid:
-                    IceColorPicker(
+                    ColorPicker(
                         configuration.tintKind.localized,
                         selection: $configuration.tintColor,
                         supportsOpacity: false
@@ -197,7 +199,7 @@ private struct UnlabeledPartialEditor: View {
     @ViewBuilder
     private var borderColor: some View {
         if configuration.hasBorder {
-            IceColorPicker(
+            ColorPicker(
                 "Border Color",
                 selection: $configuration.borderColor,
                 supportsOpacity: true

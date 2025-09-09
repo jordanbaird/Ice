@@ -606,6 +606,16 @@ extension Publisher {
         compactMap { $0 }
     }
 
+    /// Publishes only elements that don't match the previous element.
+    func removeDuplicates<each T: Equatable>() -> Publishers.RemoveDuplicates<Self> where Output == (repeat each T) {
+        removeDuplicates { lhs, rhs in
+            for (left, right) in repeat (each lhs, each rhs) {
+                guard left == right else { return false }
+            }
+            return true
+        }
+    }
+
     /// Merges this publisher with the given publisher, replacing upstream
     /// elements with `Void` values.
     ///

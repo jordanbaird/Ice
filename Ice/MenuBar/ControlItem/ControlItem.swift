@@ -177,12 +177,7 @@ final class ControlItem {
     /// Performs the initial setup of the control item.
     func performSetup(with appState: AppState) {
         self.appState = appState
-        Task {
-            updateStatusItem(with: state)
-            Task {
-                configureCancellables()
-            }
-        }
+        configureCancellables()
     }
 
     /// Configures the internal observers for the control item.
@@ -190,30 +185,23 @@ final class ControlItem {
         var c = Set<AnyCancellable>()
 
         $state
-            .sink { [weak self] state in
-                self?.updateStatusItem(with: state)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateStatusItem()
             }
             .store(in: &c)
 
         statusItem.publisher(for: \.isVisible)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isVisible in
-                guard let self, let appState else {
+                guard
+                    let self,
+                    let menuBarManager = appState?.menuBarManager,
+                    let section = menuBarManager.section(withName: sectionName),
+                    let hotkey = section.hotkey
+                else {
                     return
                 }
-
-                let hotkeysSettings = appState.settings.hotkeys
-
-                let hotkey: Hotkey? = switch identifier {
-                case .visible: nil
-                case .hidden: hotkeysSettings.hotkey(withAction: .toggleHiddenSection)
-                case .alwaysHidden: hotkeysSettings.hotkey(withAction: .toggleAlwaysHiddenSection)
-                }
-
-                guard let hotkey else {
-                    return
-                }
-
                 if isVisible {
                     hotkey.enable()
                 } else {
@@ -222,58 +210,58 @@ final class ControlItem {
             }
             .store(in: &c)
 
-        statusItem.publisher(for: \.button)
-            .compactMap { $0 }
+        statusItem.publisher(for: \.button).removeNil()
             .flatMap { $0.publisher(for: \.window) }
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] window in
                 self?.window = window
             }
             .store(in: &c)
 
-        $window
-            .compactMap { $0 }
+        $window.removeNil()
             .flatMap { $0.publisher(for: \.frame) }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] frame in
                 self?.frame = frame
             }
             .store(in: &c)
 
-        $window
-            .compactMap { $0 }
+        $window.removeNil()
             .flatMap { $0.publisher(for: \.screen) }
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] screen in
                 self?.screen = screen
             }
             .store(in: &c)
 
-        Publishers.CombineLatest(
-            $frame
-                .compactMap { $0 },
-            $screen
-                .compactMap { $0 }
-                .flatMap { $0.publisher(for: \.frame) }
-        )
-        .sink { [weak self] frame, screenFrame in
-            guard let self else {
-                return
+        $screen.removeNil()
+            .flatMap { $0.publisher(for: \.frame) }
+            .combineLatest($frame.removeNil())
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] screenFrame, frame in
+                guard let self else {
+                    return
+                }
+                if screenFrame.intersects(frame) {
+                    onScreenFrame = frame
+                } else {
+                    onScreenFrame = nil
+                }
             }
-            if screenFrame.intersects(frame) {
-                onScreenFrame = frame
-            } else {
-                onScreenFrame = nil
-            }
-        }
-        .store(in: &c)
+            .store(in: &c)
 
         if let appState {
             appState.$isDraggingMenuBarItem
+                .removeDuplicates()
                 .receive(on: DispatchQueue.main)
-                .sink { [weak self] dragging in
+                .sink { [weak self] isDragging in
                     guard let self else {
                         return
                     }
-                    if dragging {
-                        updateStatusItem(with: state)
+                    if isDragging {
+                        updateStatusItem()
                     }
                 }
                 .store(in: &c)
@@ -281,7 +269,7 @@ final class ControlItem {
             if identifier == .visible {
                 appState.settings.general.$showIceIcon
                     .combineLatest(statusItem.publisher(for: \.isVisible))
-                    .removeDuplicates { $0 == $1 }
+                    .removeDuplicates()
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] shouldShow, _ in
                         guard let self else {
@@ -296,22 +284,11 @@ final class ControlItem {
                     .store(in: &c)
 
                 appState.settings.general.$iceIcon
+                    .combineLatest(appState.settings.general.$customIceIconIsTemplate)
+                    .removeDuplicates()
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
-                        guard let self else {
-                            return
-                        }
-                        updateStatusItem(with: state)
-                    }
-                    .store(in: &c)
-
-                appState.settings.general.$customIceIconIsTemplate
-                    .receive(on: DispatchQueue.main)
-                    .sink { [weak self] _ in
-                        guard let self else {
-                            return
-                        }
-                        updateStatusItem(with: state)
+                        self?.updateStatusItem()
                     }
                     .store(in: &c)
             }
@@ -319,7 +296,7 @@ final class ControlItem {
             if identifier == .alwaysHidden {
                 appState.settings.advanced.$enableAlwaysHiddenSection
                     .combineLatest(statusItem.publisher(for: \.isVisible))
-                    .removeDuplicates { $0 == $1 }
+                    .removeDuplicates()
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] shouldEnable, _ in
                         guard let self else {
@@ -336,12 +313,10 @@ final class ControlItem {
 
             if isSectionDivider {
                 appState.settings.advanced.$sectionDividerStyle
+                    .removeDuplicates()
                     .receive(on: DispatchQueue.main)
                     .sink { [weak self] _ in
-                        guard let self else {
-                            return
-                        }
-                        updateStatusItem(with: state)
+                        self?.updateStatusItem()
                     }
                     .store(in: &c)
             }
@@ -350,8 +325,8 @@ final class ControlItem {
         cancellables = c
     }
 
-    /// Updates the appearance of the status item using the given hiding state.
-    private func updateStatusItem(with state: HidingState) {
+    /// Updates the appearance of the status item using the current hiding state.
+    private func updateStatusItem() {
         guard
             let appState,
             let button = statusItem.button
@@ -365,7 +340,7 @@ final class ControlItem {
 
         switch identifier {
         case .visible:
-            updateStatusItemVisibility(true, state: state)
+            updateStatusItemVisibility(true)
             button.appearsDisabled = false
 
             let icon = appState.settings.general.iceIcon
@@ -394,7 +369,7 @@ final class ControlItem {
             case .showSection:
                 switch appState.settings.advanced.sectionDividerStyle {
                 case .noDivider:
-                    updateStatusItemVisibility(false, state: state)
+                    updateStatusItemVisibility(false)
                     button.appearsDisabled = true
                     button.isHighlighted = false
 
@@ -403,7 +378,7 @@ final class ControlItem {
                         button.title = "|"
                     }
                 case .chevron:
-                    updateStatusItemVisibility(true, state: state)
+                    updateStatusItemVisibility(true)
                     button.appearsDisabled = false
 
                     button.image = switch identifier {
@@ -415,7 +390,7 @@ final class ControlItem {
                     }
                 }
             case .hideSection:
-                updateStatusItemVisibility(true, state: state)
+                updateStatusItemVisibility(true)
                 button.appearsDisabled = true
                 button.isHighlighted = false
             }
@@ -424,13 +399,13 @@ final class ControlItem {
 
     /// Updates the visibility of the status item.
     ///
-    /// The control item must be present in the menu bar so that Ice can determine
-    /// the items in its section. The status item's `isVisible` property completely
-    /// removes the item, and therefore cannot be used. Instead, this method sets
-    /// the status item's length to the appropriate value for the provided hiding
-    /// state, then either enables or disables a layout constraint on the item's
-    /// content view and adjusts the item's window if needed.
-    private func updateStatusItemVisibility(_ isVisible: Bool, state: HidingState) {
+    /// The hidden and always-hidden control items must always be present in
+    /// the menu bar, as we use their positions to determine the items in each
+    /// section. Setting `statusItem.isVisible` to `false` completely removes
+    /// the item. Instead, we toggle the width constraint on the item's content
+    /// view, update the item's length, then adjust the content size of the
+    /// item's window if needed.
+    private func updateStatusItemVisibility(_ isVisible: Bool) {
         guard let appState else {
             return
         }

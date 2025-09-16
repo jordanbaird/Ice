@@ -380,7 +380,6 @@ private struct IceBarContentView: View {
                             itemManager: itemManager,
                             menuBarManager: menuBarManager,
                             item: item,
-                            displayID: screen.displayID,
                             section: section
                         )
                     }
@@ -404,7 +403,6 @@ private struct IceBarItemView: View {
     @ObservedObject var menuBarManager: MenuBarManager
 
     let item: MenuBarItem
-    let displayID: CGDirectDisplayID
     let section: MenuBarSection.Name
 
     private var leftClickAction: () -> Void {
@@ -415,7 +413,7 @@ private struct IceBarItemView: View {
             menuBarManager.section(withName: section)?.hide()
             Task {
                 try await Task.sleep(for: .milliseconds(25))
-                if Bridging.isWindowOnDisplay(item.windowID, displayID) {
+                if Bridging.isWindowOnScreen(item.windowID) {
                     try await itemManager.click(item: item, with: .left)
                 } else {
                     await itemManager.temporarilyShow(item: item, clickingWith: .left)
@@ -432,7 +430,7 @@ private struct IceBarItemView: View {
             menuBarManager.section(withName: section)?.hide()
             Task {
                 try await Task.sleep(for: .milliseconds(25))
-                if Bridging.isWindowOnDisplay(item.windowID, displayID) {
+                if Bridging.isWindowOnScreen(item.windowID) {
                     try await itemManager.click(item: item, with: .right)
                 } else {
                     await itemManager.temporarilyShow(item: item, clickingWith: .right)

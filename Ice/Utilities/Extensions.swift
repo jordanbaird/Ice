@@ -365,11 +365,34 @@ extension Collection where Element == MenuBarItem {
 // MARK: - Comparable
 
 extension Comparable {
-    /// Returns a copy of this value, clamped to the given limiting range.
+    /// Returns a copy of this value, clamped to the given minimum
+    /// and maximum limiting values.
     ///
-    /// - Parameter limits: A range of values to clamp the copy to.
-    func clamped(to limits: ClosedRange<Self>) -> Self {
-        min(max(self, limits.lowerBound), limits.upperBound)
+    /// - Parameters:
+    ///   - min: The minimum limiting value.
+    ///   - max: The maximum limiting value.
+    ///
+    /// - Precondition: `min <= max`
+    ///
+    /// - Returns: The value nearest this value that is both greater
+    ///   than or equal to `min` and less than or equal to `max`.
+    func clamped(min: Self, max: Self) -> Self {
+        precondition(min <= max, "Clamp requires min <= max")
+        return Swift.min(Swift.max(self, min), max)
+    }
+
+    /// Returns a copy of this value, clamped to the given limiting
+    /// range.
+    ///
+    /// - Parameter range: A range of values of this type, whose
+    ///   lower and upper bounds represent the minimum and maximum
+    ///   limiting values.
+    ///
+    /// - Returns: The value nearest this value that is both greater
+    ///   than or equal to `range.lowerBound` and less than or equal
+    ///   to `range.upperBound`.
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        clamped(min: range.lowerBound, max: range.upperBound)
     }
 }
 

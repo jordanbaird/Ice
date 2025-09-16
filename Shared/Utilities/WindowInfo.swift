@@ -28,8 +28,8 @@ struct WindowInfo {
     /// a localized name.
     let ownerName: String?
 
-    /// A Boolean value that indicates whether the window is onscreen.
-    let isOnscreen: Bool
+    /// A Boolean value that indicates whether the window is on screen.
+    let isOnScreen: Bool
 
     /// The application that owns the window.
     var owningApplication: NSRunningApplication? {
@@ -60,7 +60,7 @@ struct WindowInfo {
         self.layer = layer
         self.title = info[kCGWindowName] as? String
         self.ownerName = info[kCGWindowOwnerName] as? String
-        self.isOnscreen = info[kCGWindowIsOnscreen] as? Bool ?? false
+        self.isOnScreen = info[kCGWindowIsOnscreen] as? Bool ?? false
     }
 
     /// Creates a window with the given window identifier.
@@ -142,7 +142,7 @@ extension WindowInfo {
         return windows.first { window in
             // Menu bar window belongs to the WindowServer process.
             window.isWindowServerWindow &&
-            window.isOnscreen &&
+            window.isOnScreen &&
             window.layer == kCGMainMenuWindowLevel &&
             window.title == "Menubar" &&
             displayBounds.contains(window.bounds)
@@ -167,7 +167,7 @@ extension WindowInfo: Equatable {
         lhs.layer == rhs.layer &&
         lhs.title == rhs.title &&
         lhs.ownerName == rhs.ownerName &&
-        lhs.isOnscreen == rhs.isOnscreen
+        lhs.isOnScreen == rhs.isOnScreen
     }
 }
 
@@ -180,6 +180,6 @@ extension WindowInfo: Hashable {
         hasher.combine(layer)
         hasher.combine(title)
         hasher.combine(ownerName)
-        hasher.combine(isOnscreen)
+        hasher.combine(isOnScreen)
     }
 }

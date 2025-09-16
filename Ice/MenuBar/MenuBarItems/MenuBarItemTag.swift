@@ -25,7 +25,8 @@ struct MenuBarItemTag: Hashable, CustomStringConvertible {
     /// A Boolean value that indicates whether the item identified
     /// by this tag can be hidden.
     var canBeHidden: Bool {
-        !MenuBarItemTag.nonHideableItems.contains(self)
+        !MenuBarItemTag.nonHideableItems.contains(self) &&
+        !(namespace.isUUID && title == "AudioVideoModule")
     }
 
     /// A Boolean value that indicates whether the item identified
@@ -40,18 +41,20 @@ struct MenuBarItemTag: Hashable, CustomStringConvertible {
         namespace == .controlCenter && title.hasPrefix("BentoBox")
     }
 
-    /// A string representation of the tag.
-    var stringValue: String {
-        var result = namespace.stringValue
-        if !title.isEmpty {
-            result.append(":\(title)")
-        }
-        return result
+    /// A Boolean value that indicates whether the item identified
+    /// by this tag is a system-created clone of an actual item,
+    /// and therefore invalid for management.
+    var isSystemClone: Bool {
+        namespace.isUUID && title == "System Status Item Clone"
     }
 
     /// A textual representation of the tag.
     var description: String {
-        stringValue
+        var result = String(describing: namespace)
+        if !title.isEmpty {
+            result.append(":\(title)")
+        }
+        return result
     }
 
     /// Creates a tag with the given namespace and title.
@@ -162,15 +165,15 @@ extension MenuBarItemTag {
 extension MenuBarItemTag {
     /// A type that represents a menu bar item namespace.
     enum Namespace: Hashable, CustomStringConvertible {
-        /// The null namespace.
+        /// The `null` namespace.
         case null
-        /// A namespace represented by string.
+        /// A namespace represented by a string.
         case string(String)
-        /// A namespace represented by uuid.
+        /// A namespace represented by a UUID.
         case uuid(UUID)
 
-        /// The namespace's string value.
-        var stringValue: String {
+        /// A textual representation of the namespace.
+        var description: String {
             switch self {
             case .null: "null"
             case .string(let string): string
@@ -178,17 +181,39 @@ extension MenuBarItemTag {
             }
         }
 
-        /// A textual representation of the namespace.
-        var description: String {
-            stringValue
+        /// A Boolean value that indicates whether this namespace is
+        /// the `null` namespace.
+        var isNull: Bool {
+            switch self {
+            case .null: true
+            case .string, .uuid: false
+            }
+        }
+
+        /// A Boolean value that indicates whether this namespace is
+        /// represented by a string.
+        var isString: Bool {
+            switch self {
+            case .string: true
+            case .uuid, .null: false
+            }
+        }
+
+        /// A Boolean value that indicates whether this namespace is
+        /// represented by a UUID.
+        var isUUID: Bool {
+            switch self {
+            case .uuid: true
+            case .null, .string: false
+            }
         }
 
         /// Creates a namespace with the given optional value.
-        /// 
+        ///
         /// - Parameter value: An optional value for the namespace.
         ///
-        /// - Returns: The ``string(_:)`` namespace when `value` is not `nil`.
-        ///   Otherwise, the ``null`` namespace.
+        /// - Returns: A namespace represented by a string when `value`
+        ///   is not `nil`. Otherwise, the `null` namespace.
         static func optional(_ value: String?) -> Namespace {
             value.map { .string($0) } ?? .null
         }

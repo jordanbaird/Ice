@@ -272,6 +272,29 @@ extension Bridging {
         return windowIntersectsDisplayBounds(windowID, displayBounds)
     }
 
+    /// Returns a Boolean value that indicates whether the given window
+    /// is on screen.
+    ///
+    /// - Parameter windowID: An identifier for a window.
+    static func isWindowOnScreen(_ windowID: CGWindowID) -> Bool {
+        // On screen window list could potentially include menu bar
+        // items hidden via drag-and-drop (seems like a bug in macOS?).
+        //
+        // Checking individual displays could be relatively expensive,
+        // so we can at least short circuit if the window is _not_ in
+        // the list.
+        if !getOnScreenWindowList().contains(windowID) {
+            return false
+        }
+        guard let windowBounds = getWindowBounds(for: windowID) else {
+            return false
+        }
+        return getActiveDisplayList().contains { displayID in
+            let displayBounds = CGDisplayBounds(displayID)
+            return displayBounds.intersects(windowBounds)
+        }
+    }
+
     // MARK: Private Window List Helpers
 
     private static func getWindowCount() -> Int32? {

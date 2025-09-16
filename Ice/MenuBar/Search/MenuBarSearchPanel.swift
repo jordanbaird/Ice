@@ -30,7 +30,7 @@ final class MenuBarSearchPanel: NSPanel {
         else {
             return event
         }
-        if !appState.itemManager.latestMoveOperationStarted(within: .seconds(1)) {
+        if !appState.itemManager.lastMoveOperationOccurred(within: .seconds(1)) {
             close()
         }
         return event
@@ -377,7 +377,7 @@ private struct MenuBarSearchContentView: View {
         closePanel()
         Task {
             try await Task.sleep(for: .milliseconds(25))
-            if item.isOnscreen {
+            if Bridging.isWindowOnScreen(item.windowID) {
                 try await itemManager.click(item: item, with: .left)
             } else {
                 await itemManager.temporarilyShow(item: item, clickingWith: .left)
@@ -415,7 +415,7 @@ private struct ShowItemButton: View {
     var body: some View {
         Button(action: action) {
             HStack {
-                Text("\(item.isOnscreen ? "Click" : "Show") Item")
+                Text("\(Bridging.isWindowOnScreen(item.windowID) ? "Click" : "Show") Item")
                     .padding(.leading, 5)
 
                 Image(systemName: "return")

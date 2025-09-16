@@ -25,29 +25,36 @@ struct MenuBarItem: CustomStringConvertible {
     /// The item's window title.
     let title: String?
 
-    /// A Boolean value that indicates whether the item is onscreen.
-    let isOnscreen: Bool
+    /// A Boolean value that indicates whether the item is on screen.
+    let isOnScreen: Bool
 
-    /// A Boolean value that indicates whether the item can be moved.
+    /// A Boolean value that indicates whether this item can be moved.
     var isMovable: Bool {
         tag.isMovable
     }
 
-    /// A Boolean value that indicates whether the item can be hidden.
+    /// A Boolean value that indicates whether this item can be hidden.
     var canBeHidden: Bool {
         tag.canBeHidden
     }
 
-    /// A Boolean value that indicates whether the item is one of Ice's
+    /// A Boolean value that indicates whether this item is one of Ice's
     /// control items.
     var isControlItem: Bool {
         tag.isControlItem
     }
 
-    /// A Boolean value that indicates whether the item is a "BentoBox"
+    /// A Boolean value that indicates whether this item is a "BentoBox"
     /// item owned by the Control Center.
     var isBentoBox: Bool {
         tag.isBentoBox
+    }
+
+    /// A Boolean value that indicates whether this item is a
+    /// system-created clone of an actual item, and therefore invalid
+    /// for management.
+    var isSystemClone: Bool {
+        tag.isSystemClone
     }
 
     /// The application that owns the item.
@@ -153,7 +160,7 @@ struct MenuBarItem: CustomStringConvertible {
         self.sourcePID = itemWindow.ownerPID
         self.bounds = itemWindow.bounds
         self.title = itemWindow.title
-        self.isOnscreen = itemWindow.isOnscreen
+        self.isOnScreen = itemWindow.isOnScreen
     }
 
     /// Creates a menu bar item without checks.
@@ -169,14 +176,7 @@ struct MenuBarItem: CustomStringConvertible {
         self.sourcePID = sourcePID
         self.bounds = itemWindow.bounds
         self.title = itemWindow.title
-        self.isOnscreen = itemWindow.isOnscreen
-    }
-
-    /// Returns the current bounds for the given menu bar item.
-    ///
-    /// - Parameter item: A menu bar item.
-    static func currentBounds(for item: MenuBarItem) -> CGRect? {
-        Bridging.getWindowBounds(for: item.windowID)
+        self.isOnScreen = itemWindow.isOnScreen
     }
 }
 
@@ -276,7 +276,7 @@ extension MenuBarItem: Equatable {
         lhs.sourcePID == rhs.sourcePID &&
         NSStringFromRect(lhs.bounds) == NSStringFromRect(rhs.bounds) &&
         lhs.title == rhs.title &&
-        lhs.isOnscreen == rhs.isOnscreen
+        lhs.isOnScreen == rhs.isOnScreen
     }
 }
 
@@ -289,7 +289,7 @@ extension MenuBarItem: Hashable {
         hasher.combine(sourcePID)
         hasher.combine(NSStringFromRect(bounds))
         hasher.combine(title)
-        hasher.combine(isOnscreen)
+        hasher.combine(isOnScreen)
     }
 }
 

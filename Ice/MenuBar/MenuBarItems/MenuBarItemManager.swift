@@ -23,18 +23,14 @@ final class MenuBarItemManager: ObservableObject {
     /// Actor for managing menu bar item cache operations.
     private let cacheActor = CacheActor()
 
-    /// Window identifiers for the most recently cached menu bar items.
-    private var cachedItemWindowIDs = [CGWindowID]()
-
     /// Contexts for temporarily shown menu bar items.
     private var temporarilyShownItemContexts = [TemporarilyShownItemContext]()
 
     /// A timer for rehiding temporarily shown menu bar items.
     private var rehideTimer: Timer?
 
-    /// A timestamp representing the start of the most recent menu
-    /// bar item move operation.
-    private var latestMoveOperationTimestamp: ContinuousClock.Instant?
+    /// Timestamp of the most recent menu bar item move operation.
+    private var lastMoveOperationTimestamp: ContinuousClock.Instant?
 
     /// Cached timeouts for move operations.
     private var moveOperationTimeouts = [MenuBarItemTag: Duration]()
@@ -84,10 +80,10 @@ final class MenuBarItemManager: ObservableObject {
         cancellables = c
     }
 
-    /// Returns a Boolean value that indicates whether the latest menu bar
-    /// item move operation was started within the given time duration.
-    func latestMoveOperationStarted(within duration: Duration) -> Bool {
-        guard let timestamp = latestMoveOperationTimestamp else {
+    /// Returns a Boolean value that indicates whether the most recent
+    /// menu bar item move operation occurred within the given duration.
+    func lastMoveOperationOccurred(within duration: Duration) -> Bool {
+        guard let timestamp = lastMoveOperationTimestamp else {
             return false
         }
         return timestamp.duration(to: .now) <= duration
@@ -99,7 +95,12 @@ final class MenuBarItemManager: ObservableObject {
 extension MenuBarItemManager {
     /// An actor that manages menu bar item cache operations.
     private final actor CacheActor {
+        /// Stored task for the current cache operation.
         private var cacheTask: Task<Void, Never>?
+
+        /// A list of the menu bar item window identifiers at the time
+        /// of the previous cache.
+        private(set) var cachedItemWindowIDs = [CGWindowID]()
 
         /// Runs the given async closure as a task and waits for it to
         /// complete before returning.
@@ -107,9 +108,20 @@ extension MenuBarItemManager {
         /// If a task from a previous call to this method is currently
         /// running, that task is cancelled and replaced.
         func runCacheTask(_ operation: @escaping () async -> Void) async {
-            cacheTask?.cancel()
-            cacheTask = Task(operation: operation)
-            await cacheTask?.value
+            cacheTask.take()?.cancel()
+            let task = Task(operation: operation)
+            cacheTask = task
+            await task.value
+        }
+
+        /// Updates the list of cached menu bar item window identifiers.
+        func updateCachedItemWindowIDs(_ itemWindowIDs: [CGWindowID]) {
+            cachedItemWindowIDs = itemWindowIDs
+        }
+
+        /// Clears the list of cached menu bar item window identifiers.
+        func clearCachedItemWindowIDs() {
+            cachedItemWindowIDs.removeAll()
         }
     }
 
@@ -231,11 +243,14 @@ extension MenuBarItemManager {
         }
 
         func bestBounds(for item: MenuBarItem) -> CGRect {
-            MenuBarItem.currentBounds(for: item) ?? item.bounds
+            Bridging.getWindowBounds(for: item.windowID) ?? item.bounds
         }
 
         func isValidForCaching(_ item: MenuBarItem) -> Bool {
             if !item.canBeHidden {
+                return false
+            }
+            if item.isSystemClone {
                 return false
             }
             if item.isControlItem, item.tag != .visibleControlItem {
@@ -274,7 +289,7 @@ extension MenuBarItemManager {
         items: [MenuBarItem],
         controlItems: ControlItemPair,
         displayID: CGDirectDisplayID?
-    ) {
+    ) async {
         var context = CacheContext(controlItems: controlItems, displayID: displayID)
 
         for item in items where context.isValidForCaching(item) {
@@ -306,59 +321,132 @@ extension MenuBarItemManager {
 
         if context.shouldClearCachedItemWindowIDs {
             logger.info("Clearing cached menu bar item windowIDs")
-            cachedItemWindowIDs.removeAll() // Make sure we don't skip the next cache attempt.
+            await cacheActor.clearCachedItemWindowIDs() // Ensure next cache isn't skipped.
         }
 
         itemCache = context.cache
         logger.debug("Updated menu bar item cache")
     }
 
-    /// Caches the current menu bar items regardless of the current item
-    /// state, ensuring that the control items are correctly ordered.
+    /// Caches the current menu bar items, regardless of whether the
+    /// items have changed since the previous cache.
+    ///
+    /// Before caching, this method ensures that the control items for
+    /// the hidden and always-hidden sections are correctly ordered,
+    /// arranging them into valid positions if needed.
     func cacheItemsRegardless(_ currentItemWindowIDs: [CGWindowID]? = nil) async {
         await cacheActor.runCacheTask { [weak self] in
             guard let self else {
                 return
             }
 
+            guard !lastMoveOperationOccurred(within: .seconds(1)) else {
+                logger.debug("Skipping menu bar item cache due to recent item movement")
+                return
+            }
+
             let displayID = Bridging.getActiveMenuBarDisplayID()
             var items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
 
-            cachedItemWindowIDs = currentItemWindowIDs ?? items.reversed().map { $0.windowID }
+            let itemWindowIDs = currentItemWindowIDs ?? items.reversed().map { $0.windowID }
+            await cacheActor.updateCachedItemWindowIDs(itemWindowIDs)
 
             guard let controlItems = ControlItemPair(items: &items) else {
                 // ???: Is clearing the cache the best thing to do here?
-                logger.warning("Missing control item for hidden section - clearing menu bar item cache")
+                logger.warning("Missing control item for hidden section, clearing menu bar item cache")
                 itemCache = ItemCache(displayID: nil)
                 return
             }
 
             await enforceControlItemOrder(controlItems: controlItems)
-            uncheckedCacheItems(items: items, controlItems: controlItems, displayID: displayID)
+            await uncheckedCacheItems(items: items, controlItems: controlItems, displayID: displayID)
         }
     }
 
-    /// Caches the current menu bar items if needed, ensuring that the
-    /// control items are correctly ordered.
+    /// Caches the current menu bar items, if the items have changed
+    /// since the previous cache.
+    ///
+    /// Before caching, this method ensures that the control items for
+    /// the hidden and always-hidden sections are correctly ordered,
+    /// arranging them into valid positions if needed.
     func cacheItemsIfNeeded() async {
-        guard !latestMoveOperationStarted(within: .seconds(1)) else {
-            logger.debug("Skipping menu bar item cache due to recent item movement")
-            return
-        }
-
         let itemWindowIDs = Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace])
-
-        guard cachedItemWindowIDs != itemWindowIDs else {
-            return
+        if await cacheActor.cachedItemWindowIDs != itemWindowIDs {
+            await cacheItemsRegardless(itemWindowIDs)
         }
-
-        await cacheItemsRegardless(itemWindowIDs)
     }
 }
 
-// MARK: - User Input Checks
+// MARK: - Event Helpers
 
 extension MenuBarItemManager {
+    /// An error that can occur during menu bar item event operations.
+    enum EventError: CustomStringConvertible, LocalizedError {
+        /// A generic indication of a failure.
+        case cannotComplete
+        /// An event source cannot be created or is otherwise invalid.
+        case invalidEventSource
+        /// The location of the mouse cannot be found.
+        case missingMouseLocation
+        /// A failure during the creation of an event.
+        case eventCreationFailure(MenuBarItem)
+        /// A timeout during an event operation.
+        case eventOperationTimeout(MenuBarItem)
+        /// A menu bar item is not movable.
+        case itemNotMovable(MenuBarItem)
+        /// A timeout waiting for a menu bar item to respond to an event.
+        case itemResponseTimeout(MenuBarItem)
+        /// A menu bar item's bounds cannot be found.
+        case missingItemBounds(MenuBarItem)
+
+        var description: String {
+            switch self {
+            case .cannotComplete:
+                "\(Self.self).cannotComplete"
+            case .invalidEventSource:
+                "\(Self.self).invalidEventSource"
+            case .missingMouseLocation:
+                "\(Self.self).missingMouseLocation"
+            case .eventCreationFailure(let item):
+                "\(Self.self).eventCreationFailure(item: \(item.tag))"
+            case .eventOperationTimeout(let item):
+                "\(Self.self).eventOperationTimeout(item: \(item.tag))"
+            case .itemNotMovable(let item):
+                "\(Self.self).itemNotMovable(item: \(item.tag))"
+            case .itemResponseTimeout(let item):
+                "\(Self.self).itemResponseTimeout(item: \(item.tag))"
+            case .missingItemBounds(let item):
+                "\(Self.self).missingItemBounds(item: \(item.tag))"
+            }
+        }
+
+        var errorDescription: String? {
+            switch self {
+            case .cannotComplete:
+                "Operation could not be completed"
+            case .invalidEventSource:
+                "Invalid event source"
+            case .missingMouseLocation:
+                "Missing mouse location"
+            case .eventCreationFailure(let item):
+                "Could not create event for \"\(item.displayName)\""
+            case .eventOperationTimeout(let item):
+                "Event operation timed out for \"\(item.displayName)\""
+            case .itemNotMovable(let item):
+                "\"\(item.displayName)\" is not movable"
+            case .itemResponseTimeout(let item):
+                "\"\(item.displayName)\" took too long to respond"
+            case .missingItemBounds(let item):
+                "Missing bounds rectangle for \"\(item.displayName)\""
+            }
+        }
+
+        var recoverySuggestion: String? {
+            if case .itemNotMovable = self { return nil }
+            return "Please try again. If the error persists, please file a bug report."
+        }
+    }
+
     /// Returns a Boolean value that indicates whether the user has
     /// paused input for at least the given duration.
     ///
@@ -372,109 +460,34 @@ extension MenuBarItemManager {
     }
 
     /// Waits asynchronously for the user to pause input.
-    ///
-    /// - Parameter timeout: The duration to wait before throwing an error.
-    private nonisolated func waitForUserToPauseInput(timeout: Duration = .seconds(30)) async throws {
-        let duration = Duration.milliseconds(100)
-        if hasUserPausedInput(for: duration) {
-            return
-        }
-        let waitTask = Task(timeout: timeout) {
+    private nonisolated func waitForUserToPauseInput() async throws {
+        let waitTask = Task {
             while true {
                 try Task.checkCancellation()
-                if hasUserPausedInput(for: duration) {
+                if hasUserPausedInput(for: .milliseconds(50)) {
                     break
                 }
-                try await Task.sleep(for: duration * 2)
+                try await Task.sleep(for: .milliseconds(250))
             }
         }
-        try await waitTask.value
+        do {
+            try await waitTask.value
+        } catch {
+            throw EventError.cannotComplete
+        }
     }
-}
 
-// MARK: - Event Helpers
-
-extension MenuBarItemManager {
-    /// An error that can occur during menu bar item event operations.
-    struct EventError: Error, CustomStringConvertible, LocalizedError {
-        /// Error codes within the domain of menu bar item event errors.
-        enum ErrorCode: Int, CustomStringConvertible {
-            /// A generic indication of a failure.
-            case cannotComplete
-            /// A failure during the creation of an event.
-            case eventCreationFailure
-            /// A timeout during an event operation.
-            case eventOperationTimeout
-            /// An event source cannot be created or is otherwise invalid.
-            case invalidEventSource
-            /// A menu bar item is not movable.
-            case itemNotMovable
-            /// A timeout waiting for a menu bar item to respond to an event.
-            case itemResponseTimeout
-            /// A menu bar item's bounds cannot be found.
-            case missingItemBounds
-            /// The location of the mouse cannot be found.
-            case missingMouseLocation
-
-            /// Description of the code for debugging purposes.
-            var description: String {
-                switch self {
-                case .cannotComplete: "cannotComplete"
-                case .eventCreationFailure: "eventCreationFailure"
-                case .eventOperationTimeout: "eventOperationTimeout"
-                case .invalidEventSource: "invalidEventSource"
-                case .itemNotMovable: "itemNotMovable"
-                case .itemResponseTimeout: "itemResponseTimeout"
-                case .missingItemBounds: "missingItemBounds"
-                case .missingMouseLocation: "missingMouseLocation"
-                }
+    /// Waits between move operations for a dynamic amount of time,
+    /// based on the timestamp of the last move operation.
+    private nonisolated func waitForMoveOperationBuffer() async throws {
+        if let timestamp = await lastMoveOperationTimestamp {
+            let buffer = max(.milliseconds(25) - timestamp.duration(to: .now), .zero)
+            logger.debug("Move operation buffer: \(buffer)")
+            do {
+                try await Task.sleep(for: buffer)
+            } catch {
+                throw EventError.cannotComplete
             }
-
-            /// A string to use for logging purposes.
-            var logString: String {
-                "\(self) (rawValue: \(rawValue))"
-            }
-        }
-
-        /// The error code associated with the error.
-        let code: ErrorCode
-
-        /// The menu bar item associated with the error.
-        let item: MenuBarItem
-
-        /// Description of the error for debugging purposes.
-        var description: String {
-            var parameters = [String]()
-            parameters.append("code: \(code.logString)")
-            parameters.append("item: \(item.logString)")
-            return "\(Self.self)(\(parameters.joined(separator: ", ")))"
-        }
-
-        /// Description of the error for display purposes.
-        var errorDescription: String? {
-            switch code {
-            case .cannotComplete:
-                #"Operation could not be completed for "\#(item.displayName)""#
-            case .eventCreationFailure:
-                #"Failed to create event for "\#(item.displayName)""#
-            case .eventOperationTimeout:
-                #"Timeout sending events to "\#(item.displayName)""#
-            case .invalidEventSource:
-                #"Invalid event source for "\#(item.displayName)""#
-            case .itemNotMovable:
-                #""\#(item.displayName)" is not movable"#
-            case .itemResponseTimeout:
-                #"Timeout waiting for response from "\#(item.displayName)""#
-            case .missingItemBounds:
-                #"Missing screen bounds for "\#(item.displayName)""#
-            case .missingMouseLocation:
-                #"Missing mouse location for "\#(item.displayName)""#
-            }
-        }
-
-        /// Suggestion for recovery from the error.
-        var recoverySuggestion: String? {
-            "Please try again. If the error persists, please file a bug report."
         }
     }
 
@@ -492,8 +505,8 @@ extension MenuBarItemManager {
     /// Returns the current bounds for the given item.
     private nonisolated func getCurrentBounds(for item: MenuBarItem) async throws -> CGRect {
         let task = Task.detached(priority: .userInitiated) {
-            guard let bounds = MenuBarItem.currentBounds(for: item) else {
-                throw EventError(code: .missingItemBounds, item: item)
+            guard let bounds = Bridging.getWindowBounds(for: item.windowID) else {
+                throw EventError.missingItemBounds(item)
             }
             return bounds
         }
@@ -501,9 +514,9 @@ extension MenuBarItemManager {
     }
 
     /// Returns the current mouse location.
-    private nonisolated func getMouseLocation(item: MenuBarItem) throws -> CGPoint {
+    private nonisolated func getMouseLocation() throws -> CGPoint {
         guard let location = MouseHelpers.locationCoreGraphics else {
-            throw EventError(code: .missingMouseLocation, item: item)
+            throw EventError.missingMouseLocation
         }
         return location
     }
@@ -516,8 +529,7 @@ extension MenuBarItemManager {
 
     /// Returns an event source for a menu bar item event operation.
     private nonisolated func getEventSource(
-        with stateID: CGEventSourceStateID = .hidSystemState,
-        for item: MenuBarItem
+        with stateID: CGEventSourceStateID = .hidSystemState
     ) throws -> CGEventSource {
         enum Context {
             static var cache = [CGEventSourceStateID: CGEventSource]()
@@ -526,45 +538,40 @@ extension MenuBarItemManager {
             return source
         }
         guard let source = CGEventSource(stateID: stateID) else {
-            throw EventError(code: .invalidEventSource, item: item)
+            throw EventError.invalidEventSource
         }
         Context.cache[stateID] = source
         return source
     }
 
-    /// Permits all events for an event source during the given suppression
-    /// states, suppressing local events for the given interval.
-    private nonisolated func permitAllEvents(
-        for stateID: CGEventSourceStateID,
-        during states: [CGEventSuppressionState],
-        suppressionInterval: TimeInterval,
-        item: MenuBarItem
-    ) throws {
-        let source = try getEventSource(with: stateID, for: item)
+    /// Prevents local events from being suppressed.
+    private nonisolated func permitLocalEvents() throws {
+        let source = try getEventSource(with: .combinedSessionState)
+        let states: [CGEventSuppressionState] = [
+            .eventSuppressionStateRemoteMouseDrag,
+            .eventSuppressionStateSuppressionInterval,
+        ]
         for state in states {
             source.setLocalEventsFilterDuringSuppressionState(.permitAllEvents, state: state)
         }
-        source.localEventsSuppressionInterval = suppressionInterval
+        source.localEventsSuppressionInterval = 0
     }
 
-    /// Casts forbidden magic to make a menu bar item receive an event.
+    /// Posts an event to the given menu bar item and waits until
+    /// it is received before returning.
     ///
     /// - Parameters:
     ///   - event: The event to post.
-    ///   - firstLocation: The first event tap location to post the event.
-    ///   - secondLocation: The second event tap location to post the event.
     ///   - item: The menu bar item that the event targets.
-    ///   - timeout: The base duration to wait before throwing an error. The
-    ///     value of this parameter is multiplied by `count` to produce the
-    ///     actual timeout duration.
-    ///   - count: The number of times to repeat the operation. As it is
-    ///     considerably more efficient, prefer increasing this value over
-    ///     repeatedly calling `scrombleEvent`.
-    private nonisolated func scrombleEvent(
+    ///   - timeout: The base duration to wait before throwing an error.
+    ///     The value of this parameter is multiplied by `count` to
+    ///     produce the actual timeout duration.
+    ///   - count: The number of times to repeat the operation. As it
+    ///     is considerably more efficient, prefer increasing this value
+    ///     over repeatedly calling `postEventWithBarrier`.
+    private nonisolated func postEventWithBarrier(
         _ event: CGEvent,
-        from firstLocation: EventTap.Location,
-        to secondLocation: EventTap.Location,
-        item: MenuBarItem,
+        to item: MenuBarItem,
         timeout: Duration,
         repeating count: Int = 1
     ) async throws {
@@ -572,21 +579,28 @@ extension MenuBarItemManager {
         defer {
             MouseHelpers.showCursor()
         }
+
         guard
             let entryEvent = CGEvent.uniqueNullEvent(),
             let exitEvent = CGEvent.uniqueNullEvent()
         else {
-            throw EventError(code: .eventCreationFailure, item: item)
+            throw EventError.eventCreationFailure(item)
         }
 
-        var counter = count
+        let firstLocation = EventTap.Location.pid(getEventPID(for: item))
+        let secondLocation = EventTap.Location.sessionEventTap
+
+        var count = count
         var eventTaps = [EventTap]()
 
         let timeoutTask = Task(timeout: timeout * count) {
             try await withCheckedThrowingContinuation { continuation in
-                // Create a tap for the entry and exit events at the first location.
-                // On entry, decrement the count and post the real event.
-                // On exit, resume the continuation.
+                // Listen for the following events at the first location and
+                // perform the following actions:
+                //
+                // - Entry event: Decrement the count and post the real event
+                //   to the second location.
+                // - Exit event: Disable the tap and resume the continuation.
                 let eventTap1 = EventTap(
                     label: "EventTap 1",
                     type: .null,
@@ -595,7 +609,7 @@ extension MenuBarItemManager {
                     option: .defaultTap
                 ) { tap, rEvent in
                     if rEvent.matches(entryEvent, byIntegerFields: [.eventSourceUserData]) {
-                        counter -= 1
+                        count -= 1
                         event.post(to: secondLocation)
                         return nil
                     }
@@ -607,9 +621,11 @@ extension MenuBarItemManager {
                     return rEvent
                 }
 
-                // Create a tap for the real event at the second location. If the
-                // count has reached zero, post the exit event. Otherwise, repost
-                // the entry event to go around again.
+                // Listen for the real event at the second location and
+                // perform the following actions:
+                //
+                // - If count <= 0: Disable the tap and post the exit event.
+                // - Otherwise: Repost the entry event to start another pass.
                 let eventTap2 = EventTap(
                     label: "EventTap 2",
                     type: event.type,
@@ -620,7 +636,7 @@ extension MenuBarItemManager {
                     guard rEvent.matches(event, byIntegerFields: CGEventField.menuBarItemEventFields) else {
                         return rEvent
                     }
-                    if counter <= 0 {
+                    if count <= 0 {
                         tap.disable()
                         exitEvent.post(to: firstLocation)
                     } else {
@@ -649,9 +665,129 @@ extension MenuBarItemManager {
         do {
             try await timeoutTask.value
         } catch is TaskTimeoutError {
-            throw EventError(code: .eventOperationTimeout, item: item)
+            throw EventError.eventOperationTimeout(item)
         } catch {
-            throw EventError(code: .cannotComplete, item: item)
+            throw EventError.cannotComplete
+        }
+    }
+
+    /// Casts forbidden magic to make a menu bar item receive and
+    /// respond to an event during a move operation.
+    ///
+    /// - Parameters:
+    ///   - event: The event to post.
+    ///   - item: The menu bar item that the event targets.
+    ///   - timeout: The base duration to wait before throwing an error.
+    ///     The value of this parameter is multiplied by `count` to
+    ///     produce the actual timeout duration.
+    ///   - count: The number of times to repeat the operation. As it
+    ///     is considerably more efficient, prefer increasing this value
+    ///     over repeatedly calling `scrombleEvent`.
+    private nonisolated func scrombleEvent(
+        _ event: CGEvent,
+        item: MenuBarItem,
+        timeout: Duration,
+        repeating count: Int = 1
+    ) async throws {
+        MouseHelpers.hideCursor()
+        defer {
+            MouseHelpers.showCursor()
+        }
+
+        guard
+            let entryEvent = CGEvent.uniqueNullEvent(),
+            let exitEvent = CGEvent.uniqueNullEvent()
+        else {
+            throw EventError.eventCreationFailure(item)
+        }
+
+        let firstLocation = EventTap.Location.pid(getEventPID(for: item))
+        let secondLocation = EventTap.Location.sessionEventTap
+
+        var count = count
+        var eventTaps = [EventTap]()
+
+        let timeoutTask = Task(timeout: timeout * count) {
+            try await withCheckedThrowingContinuation { continuation in
+                // Listen for the following events at the first location and
+                // perform the following actions:
+                //
+                // - Entry event: Decrement the count and post the real event
+                //   to the second location.
+                // - Exit event: Disable the tap and resume the continuation.
+                // - Real event:
+                //   - If count <= 0: Post the exit event.
+                //   - Otherwise: Repost the entry event to start another pass.
+                let eventTap1 = EventTap(
+                    label: "EventTap 1",
+                    types: [.null, event.type],
+                    location: firstLocation,
+                    placement: .headInsertEventTap,
+                    option: .defaultTap
+                ) { tap, rEvent in
+                    switch rEvent.type {
+                    case .null where rEvent.matches(entryEvent, byIntegerFields: [.eventSourceUserData]):
+                        count -= 1
+                        event.post(to: secondLocation)
+                        return nil
+                    case .null where rEvent.matches(exitEvent, byIntegerFields: [.eventSourceUserData]):
+                        tap.disable()
+                        continuation.resume()
+                        return nil
+                    case event.type where rEvent.matches(event, byIntegerFields: CGEventField.menuBarItemEventFields):
+                        if count <= 0 {
+                            exitEvent.post(to: firstLocation)
+                        } else {
+                            entryEvent.post(to: firstLocation)
+                        }
+                        return rEvent
+                    default:
+                        return rEvent
+                    }
+                }
+
+                // Listen for the real event at the second location and forward
+                // it back to the first location. If count <= 0, disable the tap.
+                let eventTap2 = EventTap(
+                    label: "EventTap 2",
+                    type: event.type,
+                    location: secondLocation,
+                    placement: .tailAppendEventTap,
+                    option: .listenOnly
+                ) { tap, rEvent in
+                    guard rEvent.matches(event, byIntegerFields: CGEventField.menuBarItemEventFields) else {
+                        return rEvent
+                    }
+                    if count <= 0 {
+                        tap.disable()
+                    }
+                    event.post(to: firstLocation)
+                    return rEvent
+                }
+
+                // Keep the taps alive.
+                eventTaps.append(eventTap1)
+                eventTaps.append(eventTap2)
+
+                Task {
+                    await withTaskCancellationHandler {
+                        eventTap1.enable()
+                        eventTap2.enable()
+                        entryEvent.post(to: firstLocation)
+                    } onCancel: {
+                        eventTap1.disable()
+                        eventTap2.disable()
+                        continuation.resume(throwing: CancellationError())
+                    }
+                }
+            }
+        }
+        do {
+            try await timeoutTask.value
+        } catch is TaskTimeoutError {
+            throw EventError.eventOperationTimeout(item)
+        } catch {
+            throw EventError.cannotComplete
         }
     }
 }
@@ -682,24 +818,33 @@ extension MenuBarItemManager {
         }
     }
 
-    /// Returns the timeout for move operations associated with the
-    /// given item.
+    /// Returns the default timeout for move operations associated
+    /// with the given item.
+    private func getDefaultMoveOperationTimeout(for item: MenuBarItem) -> Duration {
+        if item.isBentoBox {
+            // Bento Boxes (i.e. Control Center groups) generally
+            // take a little longer to respond.
+            return .milliseconds(100)
+        }
+        return .milliseconds(50)
+    }
+
+    /// Returns the cached timeout for move operations associated
+    /// with the given item.
     private func getMoveOperationTimeout(for item: MenuBarItem) -> Duration {
         if let timeout = moveOperationTimeouts[item.tag] {
             return timeout
         }
-        if item.isBentoBox {
-            // Bento Boxes (i.e. Control Center groups) generally take
-            // a little longer to respond.
-            return .milliseconds(100)
-        }
-        return .milliseconds(25)
+        return getDefaultMoveOperationTimeout(for: item)
     }
 
-    /// Updates the timeout for move operations associated with the
-    /// given item.
+    /// Updates the cached timeout for move operations associated
+    /// with the given item.
     private func updateMoveOperationTimeout(_ timeout: Duration, for item: MenuBarItem) {
-        moveOperationTimeouts[item.tag] = min(timeout, .milliseconds(100))
+        let current = getMoveOperationTimeout(for: item)
+        let average = (timeout + current) / 2
+        let clamped = average.clamped(min: .milliseconds(25), max: .milliseconds(150))
+        moveOperationTimeouts[item.tag] = clamped
     }
 
     /// Returns the target points for creating the events needed to
@@ -766,7 +911,7 @@ extension MenuBarItemManager {
         defer {
             MouseHelpers.showCursor()
         }
-        let responseTask = Task.detached(timeout: timeout) {
+        let responseTask = Task.detached {
             while true {
                 try Task.checkCancellation()
                 let origin = try await self.getCurrentBounds(for: item).origin
@@ -775,8 +920,15 @@ extension MenuBarItemManager {
                 }
             }
         }
+        let timeoutTask = Task(timeout: timeout) {
+            try await withTaskCancellationHandler {
+                try await responseTask.value
+            } onCancel: {
+                responseTask.cancel()
+            }
+        }
         do {
-            let origin = try await responseTask.value
+            let origin = try await timeoutTask.value
             logger.debug(
                 """
                 Item responded to events with new origin: \
@@ -787,9 +939,9 @@ extension MenuBarItemManager {
         } catch let error as EventError {
             throw error
         } catch is TaskTimeoutError {
-            throw EventError(code: .itemResponseTimeout, item: item)
+            throw EventError.itemResponseTimeout(item)
         } catch {
-            throw EventError(code: .cannotComplete, item: item)
+            throw EventError.cannotComplete
         }
     }
 
@@ -799,15 +951,7 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - item: The menu bar item to move.
     ///   - destination: The destination to move the menu bar item.
-    ///   - source: The event source used to create the events.
-    ///   - timeout: The duration for each individual operation to wait
-    ///     before throwing an error.
-    private nonisolated func postMoveEvents(
-        item: MenuBarItem,
-        destination: MoveDestination,
-        source: CGEventSource,
-        timeout: Duration
-    ) async throws {
+    private func postMoveEvents(item: MenuBarItem, destination: MoveDestination) async throws {
         try await eventSemaphore.waitUnlessCancelled()
         defer {
             eventSemaphore.signal()
@@ -815,43 +959,43 @@ extension MenuBarItemManager {
 
         var itemOrigin = try await getCurrentBounds(for: item).origin
         let targetPoints = try await getTargetPoints(forMoving: item, to: destination)
-        let mouseLocation = try getMouseLocation(item: item)
-        let pid = getEventPID(for: item)
+        let mouseLocation = try getMouseLocation()
+        let source = try getEventSource()
+
+        try permitLocalEvents()
 
         guard
-            let moveEvent1 = CGEvent.menuBarItemEvent(
+            let mouseDown = CGEvent.menuBarItemEvent(
+                item: item,
                 source: source,
                 type: .move(.mouseDown),
-                location: targetPoints.start,
-                item: item,
-                pid: pid
+                location: targetPoints.start
             ),
-            let moveEvent2 = CGEvent.menuBarItemEvent(
+            let mouseUp = CGEvent.menuBarItemEvent(
+                item: destination.targetItem,
                 source: source,
                 type: .move(.mouseUp),
-                location: targetPoints.end,
-                item: destination.targetItem,
-                pid: pid
+                location: targetPoints.end
             )
         else {
-            throw EventError(code: .eventCreationFailure, item: item)
+            throw EventError.eventCreationFailure(item)
         }
 
-        await MainActor.run {
-            latestMoveOperationTimestamp = .now
-        }
+        var timeout = getMoveOperationTimeout(for: item)
+        logger.debug("Move operation timeout: \(timeout)")
 
+        lastMoveOperationTimestamp = .now
         MouseHelpers.hideCursor()
         defer {
             MouseHelpers.warpCursor(to: mouseLocation)
             MouseHelpers.showCursor()
+            lastMoveOperationTimestamp = .now
+            updateMoveOperationTimeout(timeout, for: item)
         }
 
         do {
             try await scrombleEvent(
-                moveEvent1,
-                from: .pid(pid),
-                to: .sessionEventTap,
+                mouseDown,
                 item: item,
                 timeout: timeout
             )
@@ -861,9 +1005,7 @@ extension MenuBarItemManager {
                 timeout: timeout
             )
             try await scrombleEvent(
-                moveEvent2,
-                from: .pid(pid),
-                to: .sessionEventTap,
+                mouseUp,
                 item: item,
                 timeout: timeout,
                 repeating: 2 // Double mouse up prevents invalid item state.
@@ -873,15 +1015,14 @@ extension MenuBarItemManager {
                 initialOrigin: itemOrigin,
                 timeout: timeout
             )
+            timeout -= timeout / 4
         } catch {
             do {
-                logger.debug("Move events failed, posting fallback")
+                logger.warning("Move events failed, posting fallback")
                 try await scrombleEvent(
-                    moveEvent2,
-                    from: .pid(pid),
-                    to: .sessionEventTap,
+                    mouseUp,
                     item: item,
-                    timeout: timeout,
+                    timeout: .milliseconds(100), // Fixed timeout for fallback.
                     repeating: 2 // Double mouse up prevents invalid item state.
                 )
             } catch {
@@ -889,6 +1030,7 @@ extension MenuBarItemManager {
                 // the original error.
                 logger.error("Fallback failed with error: \(error, privacy: .public)")
             }
+            timeout += timeout / 2
             throw error
         }
     }
@@ -899,44 +1041,15 @@ extension MenuBarItemManager {
     ///   - item: The menu bar item to move.
     ///   - destination: The destination to move the item to.
     func move(item: MenuBarItem, to destination: MoveDestination) async throws {
-        guard try await !itemHasCorrectPosition(item: item, for: destination) else {
-            logger.log("\(item.logString, privacy: .public) already has correct position")
-            return
-        }
         guard item.isMovable else {
-            throw EventError(code: .itemNotMovable, item: item)
+            throw EventError.itemNotMovable(item)
         }
         guard let appState else {
-            throw EventError(code: .cannotComplete, item: item)
+            throw EventError.cannotComplete
         }
 
-        do {
-            try await waitForUserToPauseInput()
-        } catch {
-            throw EventError(code: .cannotComplete, item: item)
-        }
-
-        try permitAllEvents(
-            for: .combinedSessionState,
-            during: [
-                .eventSuppressionStateRemoteMouseDrag,
-                .eventSuppressionStateSuppressionInterval,
-            ],
-            suppressionInterval: 0,
-            item: item
-        )
-
-        appState.eventManager.stopAll()
-        defer {
-            appState.eventManager.startAll()
-        }
-
-        let source = try getEventSource(for: item)
-        var timeout = getMoveOperationTimeout(for: item)
-
-        defer {
-            updateMoveOperationTimeout(timeout, for: item)
-        }
+        try await waitForUserToPauseInput()
+        try await waitForMoveOperationBuffer()
 
         logger.log(
             """
@@ -945,43 +1058,43 @@ extension MenuBarItemManager {
             """
         )
 
-        let maxAttempts = 10
-
-        moveLoop: for n in 1...maxAttempts {
-            guard !Task.isCancelled else {
-                throw EventError(code: .cannotComplete, item: item)
-            }
-
-            attempt: do {
-                if try await itemHasCorrectPosition(item: item, for: destination) {
-                    logger.debug("Item has correct position")
-                    break attempt
-                }
-                try await postMoveEvents(
-                    item: item,
-                    destination: destination,
-                    source: source,
-                    timeout: timeout
-                )
-                timeout -= timeout / 2
-            } catch where n < maxAttempts {
-                logger.debug("Attempt \(n, privacy: .public) failed: \(error, privacy: .public)")
-                await eventSleep()
-                timeout += timeout / 2
-                continue moveLoop
-            } catch let error as EventError {
-                timeout += timeout / 2
-                throw error
-            } catch {
-                timeout += timeout / 2
-                throw EventError(code: .cannotComplete, item: item)
-            }
-
-            logger.debug("Attempt \(n, privacy: .public) succeeded")
-            break moveLoop
+        guard try await !itemHasCorrectPosition(item: item, for: destination) else {
+            logger.debug("Item has correct position, cancelling move")
+            return
         }
 
-        logger.log("Successfully moved \(item.logString, privacy: .public)")
+        appState.eventManager.stopAll()
+        MouseHelpers.hideCursor()
+        defer {
+            MouseHelpers.showCursor()
+            appState.eventManager.startAll()
+        }
+
+        let maxAttempts = 8
+        for n in 1...maxAttempts {
+            guard !Task.isCancelled else {
+                throw EventError.cannotComplete
+            }
+            do {
+                if try await itemHasCorrectPosition(item: item, for: destination) {
+                    logger.debug("Item has correct position, finished with move")
+                    return
+                }
+                try await postMoveEvents(item: item, destination: destination)
+                logger.debug("Attempt \(n, privacy: .public) succeeded, finished with move")
+                return
+            } catch {
+                logger.debug("Attempt \(n, privacy: .public) failed: \(error, privacy: .public)")
+                if n < maxAttempts {
+                    try await waitForMoveOperationBuffer()
+                    continue
+                }
+                if error is EventError {
+                    throw error
+                }
+                throw EventError.cannotComplete
+            }
+        }
     }
 }
 
@@ -1005,42 +1118,36 @@ extension MenuBarItemManager {
     /// - Parameters:
     ///   - item: The menu bar item to click.
     ///   - mouseButton: The mouse button to click the item with.
-    ///   - source: The event source used to create the events.
-    ///   - timeout: The duration for each individual operation to wait
-    ///     before throwing an error.
-    private nonisolated func postClickEvents(
-        item: MenuBarItem,
-        mouseButton: CGMouseButton,
-        source: CGEventSource,
-        timeout: Duration
-    ) async throws {
+    private func postClickEvents(item: MenuBarItem, mouseButton: CGMouseButton) async throws {
         try await eventSemaphore.waitUnlessCancelled()
         defer {
             eventSemaphore.signal()
         }
 
         let clickPoint = try await getCurrentBounds(for: item).center
-        let mouseLocation = try getMouseLocation(item: item)
+        let mouseLocation = try getMouseLocation()
+        let source = try getEventSource()
+
+        try permitLocalEvents()
+
         let clickTypes = getClickSubtypes(for: mouseButton)
-        let pid = getEventPID(for: item)
+        let timeout = Duration.milliseconds(250)
 
         guard
-            let clickEvent1 = CGEvent.menuBarItemEvent(
+            let mouseDown = CGEvent.menuBarItemEvent(
+                item: item,
                 source: source,
                 type: .click(clickTypes.down),
-                location: clickPoint,
-                item: item,
-                pid: pid
+                location: clickPoint
             ),
-            let clickEvent2 = CGEvent.menuBarItemEvent(
+            let mouseUp = CGEvent.menuBarItemEvent(
+                item: item,
                 source: source,
                 type: .click(clickTypes.up),
-                location: clickPoint,
-                item: item,
-                pid: pid
+                location: clickPoint
             )
         else {
-            throw EventError(code: .eventCreationFailure, item: item)
+            throw EventError.eventCreationFailure(item)
         }
 
         MouseHelpers.hideCursor()
@@ -1050,29 +1157,23 @@ extension MenuBarItemManager {
         }
 
         do {
-            try await scrombleEvent(
-                clickEvent1,
-                from: .pid(pid),
-                to: .sessionEventTap,
-                item: item,
+            try await postEventWithBarrier(
+                mouseDown,
+                to: item,
                 timeout: timeout
             )
-            try await scrombleEvent(
-                clickEvent2,
-                from: .pid(pid),
-                to: .sessionEventTap,
-                item: item,
+            try await postEventWithBarrier(
+                mouseUp,
+                to: item,
                 timeout: timeout,
                 repeating: 2 // Double mouse up prevents invalid item state.
             )
         } catch {
             do {
-                logger.debug("Click events failed, posting fallback")
-                try await scrombleEvent(
-                    clickEvent2,
-                    from: .pid(pid),
-                    to: .sessionEventTap,
-                    item: item,
+                logger.warning("Click events failed, posting fallback")
+                try await postEventWithBarrier(
+                    mouseUp,
+                    to: item,
                     timeout: timeout,
                     repeating: 2 // Double mouse up prevents invalid item state.
                 )
@@ -1092,32 +1193,10 @@ extension MenuBarItemManager {
     ///   - mouseButton: The mouse button to click the item with.
     func click(item: MenuBarItem, with mouseButton: CGMouseButton) async throws {
         guard let appState else {
-            throw EventError(code: .cannotComplete, item: item)
+            throw EventError.cannotComplete
         }
 
-        do {
-            try await waitForUserToPauseInput()
-        } catch {
-            throw EventError(code: .cannotComplete, item: item)
-        }
-
-        try permitAllEvents(
-            for: .combinedSessionState,
-            during: [
-                .eventSuppressionStateRemoteMouseDrag,
-                .eventSuppressionStateSuppressionInterval,
-            ],
-            suppressionInterval: 0,
-            item: item
-        )
-
-        appState.eventManager.stopAll()
-        defer {
-            appState.eventManager.startAll()
-        }
-
-        let source = try getEventSource(for: item)
-        let timeout = Duration.milliseconds(250)
+        try await waitForUserToPauseInput()
 
         logger.log(
             """
@@ -1126,14 +1205,32 @@ extension MenuBarItemManager {
             """
         )
 
-        try await postClickEvents(
-            item: item,
-            mouseButton: mouseButton,
-            source: source,
-            timeout: timeout
-        )
+        appState.eventManager.stopAll()
+        defer {
+            appState.eventManager.startAll()
+        }
 
-        logger.log("Successfully clicked \(item.logString, privacy: .public)")
+        let maxAttempts = 4
+        for n in 1...maxAttempts {
+            guard !Task.isCancelled else {
+                throw EventError.cannotComplete
+            }
+            do {
+                try await postClickEvents(item: item, mouseButton: mouseButton)
+                logger.debug("Attempt \(n, privacy: .public) succeeded, finished with click")
+                return
+            } catch {
+                logger.debug("Attempt \(n, privacy: .public) failed: \(error, privacy: .public)")
+                if n < maxAttempts {
+                    await eventSleep()
+                    continue
+                }
+                if error is EventError {
+                    throw error
+                }
+                throw EventError.cannotComplete
+            }
+        }
     }
 }
 
@@ -1166,12 +1263,14 @@ extension MenuBarItemManager {
             }
             if
                 current.layer != CGWindowLevelForKey(.popUpMenuWindow),
+                current.layer != CGWindowLevelForKey(.popUpMenuWindow) - 1,
                 current.layer != CGWindowLevelForKey(.statusWindow),
+                current.layer != CGWindowLevelForKey(.mainMenuWindow),
                 let app = current.owningApplication
             {
-                return app.isActive && current.isOnscreen
+                return app.isActive && current.isOnScreen
             }
-            return current.isOnscreen
+            return current.isOnScreen
         }
 
         init(tag: MenuBarItemTag, returnDestination: MoveDestination) {
@@ -1257,7 +1356,7 @@ extension MenuBarItemManager {
 
         // Remove items until we have enough room to show this item.
         items.trimPrefix { item in
-            if item.isOnscreen && item.canBeHidden {
+            if item.isOnScreen && item.canBeHidden {
                 return item.bounds.minX <= maxX
             }
             return true
@@ -1314,10 +1413,14 @@ extension MenuBarItemManager {
         guard !temporarilyShownItemContexts.isEmpty else {
             return
         }
-
         guard !temporarilyShownItemContexts.contains(where: { $0.isShowingInterface }) else {
             logger.debug("Menu bar item interface is shown, so waiting to rehide")
             runRehideTimer(for: 3)
+            return
+        }
+        guard hasUserPausedInput(for: .milliseconds(250)) else {
+            logger.debug("Found recent user input, so waiting to rehide")
+            runRehideTimer(for: 1)
             return
         }
 
@@ -1328,6 +1431,11 @@ extension MenuBarItemManager {
         var failedContexts = [TemporarilyShownItemContext]()
 
         logger.debug("Rehiding temporarily shown items")
+
+        MouseHelpers.hideCursor()
+        defer {
+            MouseHelpers.showCursor()
+        }
 
         while let context = currentContexts.popLast() {
             guard let item = items.first(matching: context.tag) else {
@@ -1353,7 +1461,6 @@ extension MenuBarItemManager {
                     failedContexts.append(context)
                 }
             }
-            await eventSleep()
         }
 
         if failedContexts.isEmpty {
@@ -1568,19 +1675,16 @@ private extension CGEvent {
     /// Returns an event that can be sent to a menu bar item.
     ///
     /// - Parameters:
-    ///   - source: The source of the event.
-    ///   - type: The type of the event.
-    ///   - location: The location of the event. Does not need to be within
-    ///     the bounds of the item.
-    ///   - item: The target item of the event.
-    ///   - pid: The target process identifier of the event. Does not need
-    ///     to be the item's `ownerPID`.
+    ///   - item: The event's target item.
+    ///   - source: The event's source.
+    ///   - type: The event's specialized type.
+    ///   - location: The event's location. Does not need to be
+    ///     within the bounds of the item.
     static func menuBarItemEvent(
+        item: MenuBarItem,
         source: CGEventSource,
         type: MenuBarItemEventType,
-        location: CGPoint,
-        item: MenuBarItem,
-        pid: pid_t
+        location: CGPoint
     ) -> CGEvent? {
         guard let event = CGEvent(
             mouseEventSource: source,
@@ -1592,7 +1696,6 @@ private extension CGEvent {
         }
         event.setFlags(for: type)
         event.setUserData(ObjectIdentifier(event))
-        event.setTargetPID(pid)
         event.setWindowID(item.windowID, for: type)
         event.setClickState(for: type)
         return event
@@ -1646,11 +1749,6 @@ private extension CGEvent {
     private func setUserData(_ bitPattern: ObjectIdentifier) {
         let userData = Int64(Int(bitPattern: bitPattern))
         setIntegerValueField(.eventSourceUserData, value: userData)
-    }
-
-    private func setTargetPID(_ pid: pid_t) {
-        let targetPID = Int64(pid)
-        setIntegerValueField(.eventTargetUnixProcessID, value: targetPID)
     }
 
     private func setWindowID(_ windowID: CGWindowID, for type: MenuBarItemEventType) {

@@ -47,16 +47,18 @@ final class EventTap {
         guard let refcon else {
             return Unmanaged.passUnretained(event)
         }
-        let tap: EventTap = Unmanaged.fromOpaque(refcon).takeUnretainedValue()
-        if type == .tapDisabledByUserInput || type == .tapDisabledByTimeout {
-            tap.enable()
-            return nil
-        }
-        guard tap.isEnabled else {
-            return Unmanaged.passUnretained(event)
-        }
-        return tap.callback(tap, event).map { eventFromCallback in
-            Unmanaged.passUnretained(eventFromCallback)
+        let unretained: EventTap = Unmanaged.fromOpaque(refcon).takeUnretainedValue()
+        return withExtendedLifetime(unretained) { tap in
+            if type == .tapDisabledByUserInput || type == .tapDisabledByTimeout {
+                tap.enable()
+                return nil
+            }
+            guard tap.isEnabled else {
+                return Unmanaged.passUnretained(event)
+            }
+            return tap.callback(tap, event).map { eventFromCallback in
+                Unmanaged.passUnretained(eventFromCallback)
+            }
         }
     }
 

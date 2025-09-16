@@ -189,7 +189,7 @@ final class MenuBarItemImageCache: ObservableObject {
     private nonisolated func captureImages(of items: [MenuBarItem], scale: CGFloat, appState: AppState) async -> CaptureResult {
         // Use individual capture after a move operation, since composite capture
         // doesn't account for overlapping items.
-        if await appState.itemManager.latestMoveOperationStarted(within: .seconds(2)) {
+        if await appState.itemManager.lastMoveOperationOccurred(within: .seconds(2)) {
             logger.debug("Capturing individually due to recent item movement")
             return individualCapture(items, scale: scale)
         }
@@ -288,7 +288,7 @@ final class MenuBarItemImageCache: ObservableObject {
             }
         }
 
-        guard await !appState.itemManager.latestMoveOperationStarted(within: .seconds(1)) else {
+        guard await !appState.itemManager.lastMoveOperationOccurred(within: .seconds(1)) else {
             logger.debug("Skipping item image cache due to recent item movement")
             return
         }

@@ -149,13 +149,6 @@ func CGSGetScreenRectForWindow(
     _ outRect: inout CGRect
 ) -> CGError
 
-@_silgen_name("CGSGetWindowBounds")
-func CGSGetWindowBounds(
-    _ cid: CGSConnectionID,
-    _ wid: CGWindowID,
-    _ outBounds: inout CGRect
-) -> CGError
-
 @_silgen_name("CGSGetWindowLevel")
 func CGSGetWindowLevel(
     _ cid: CGSConnectionID,

@@ -32,7 +32,7 @@ final class MenuBarAppearanceManager: ObservableObject {
     private(set) var overlayPanels = Set<MenuBarOverlayPanel>()
 
     /// The amount to inset the menu bar if called for by the configuration.
-    let menuBarInsetAmount: CGFloat = 3.5
+    let menuBarInsetAmount: CGFloat = if #available(macOS 26.0, *) { 3.5 } else { 5 }
 
     /// Performs initial setup of the manager.
     func performSetup(with appState: AppState) {

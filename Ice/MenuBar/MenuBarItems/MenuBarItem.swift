@@ -77,7 +77,8 @@ struct MenuBarItem: CustomStringConvertible {
         return NSRunningApplication(processIdentifier: sourcePID)
     }
 
-    /// A name associated with the item that is suited for display.
+    // TODO: Generate this once, during initialization.
+    /// A name associated with the item, suited for display.
     var displayName: String {
         /// Converts "UpperCamelCase" to "Title Case".
         ///
@@ -87,23 +88,23 @@ struct MenuBarItem: CustomStringConvertible {
             String(s).replacing(/([a-z]{2})([A-Z])/) { $0.output.1 + " " + $0.output.2 }
         }
 
-        guard let sourceApplication else {
-            return "Menu Bar Item"
+        guard !isControlItem else {
+            return Constants.displayName
         }
 
-        var bestName: String {
-            if isControlItem {
-                Constants.displayName
-            } else {
-                sourceApplication.localizedName ??
-                sourceApplication.bundleIdentifier ??
-                title ?? "Unknown"
-            }
+        lazy var fallbackName = "Menu Bar Item"
+
+        guard let sourceApplication else {
+            return fallbackName
         }
+
+        lazy var sourceName = sourceApplication.localizedName ?? sourceApplication.bundleIdentifier
 
         guard let title else {
-            return bestName
+            return sourceName ?? fallbackName
         }
+
+        lazy var bestName = sourceName ?? title
 
         guard !isBentoBox else {
             if tag == .controlCenter {
@@ -114,29 +115,38 @@ struct MenuBarItem: CustomStringConvertible {
 
         // Most items use their computed "best name", but we handle
         // a few special cases for system items.
-        switch tag.namespace {
+        let displayName = switch tag.namespace {
         case .passwords, .weather, .textInputMenuAgent:
             // "PasswordsMenuBarExtra" -> "Passwords"
             // "WeatherMenu" -> "Weather"
             // "TextInputMenuAgent" -> "Text Input"
-            return toTitleCase(bestName.replacing(/Menu.*/, with: ""))
+            toTitleCase(bestName.replacing(/Menu.*/, with: ""))
         case .controlCenter:
-            guard let match = title.prefixMatch(of: /Hearing/) else {
-                return toTitleCase(title)
+            if let match = title.prefixMatch(of: /Hearing/) {
+                // Changed from "Hearing" to "Hearing_GlowE" in macOS 15.4
+                toTitleCase(match.output)
+            } else {
+                toTitleCase(title)
             }
-            // Changed from "Hearing" to "Hearing_GlowE" in macOS 15.4
-            return toTitleCase(match.output)
         case .systemUIServer:
-            guard let match = title.firstMatch(of: /TimeMachine/) else {
-                return toTitleCase(title)
+            if let match = title.firstMatch(of: /TimeMachine/) {
+                // Sonoma:  "TimeMachine.TMMenuExtraHost"
+                // Sequoia: "TimeMachineMenuExtra.TMMenuExtraHost"
+                // Tahoe:   "com.apple.menuextra.TimeMachine"
+                toTitleCase(match.output)
+            } else {
+                toTitleCase(title)
             }
-            // Sonoma:  "TimeMachine.TMMenuExtraHost"
-            // Sequoia: "TimeMachineMenuExtra.TMMenuExtraHost"
-            // Tahoe:   "com.apple.menuextra.TimeMachine"
-            return toTitleCase(match.output)
         default:
-            return bestName
+            bestName
         }
+
+        // Provide some extra context if the name is just a UUID.
+        if UUID(uuidString: displayName) != nil, let sourceName {
+            return "\(sourceName) (\(displayName))"
+        }
+
+        return displayName
     }
 
     /// A textual representation of the item.

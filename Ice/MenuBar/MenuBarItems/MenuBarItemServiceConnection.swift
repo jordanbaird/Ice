@@ -26,7 +26,11 @@ extension MenuBarItemService {
 
         /// Creates a new connection.
         private init() {
-            let queue = DispatchQueue.targetingGlobal(label: "MenuBarItemService.Connection.queue", qos: .utility)
+            let queue = DispatchQueue.targetingGlobal(
+                label: "MenuBarItemService.Connection.queue",
+                qos: .userInteractive,
+                attributes: .concurrent
+            )
             let logger = Logger(category: "MenuBarItemService.Connection")
             self.session = Session(queue: queue, logger: logger)
             self.queue = queue

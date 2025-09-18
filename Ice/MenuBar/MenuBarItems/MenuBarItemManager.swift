@@ -324,6 +324,11 @@ extension MenuBarItemManager {
             await cacheActor.clearCachedItemWindowIDs() // Ensure next cache isn't skipped.
         }
 
+        guard itemCache != context.cache else {
+            logger.debug("Not updating menu bar item cache, as items haven't changed")
+            return
+        }
+
         itemCache = context.cache
         logger.debug("Updated menu bar item cache")
     }

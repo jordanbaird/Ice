@@ -452,6 +452,11 @@ extension EventManager {
         else {
             return false
         }
+        
+        if !NSScreen.screensHaveSeparateSpaces && screen != NSScreen.screens.first {
+            return false
+        }
+
         if appState.menuBarManager.isMenuBarHiddenBySystem || appState.isActiveSpaceFullscreen {
             if
                 let mouseLocation = MouseCursor.locationCoreGraphics,

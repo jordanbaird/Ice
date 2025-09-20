@@ -118,7 +118,7 @@ final class IceBarPanel: NSPanel {
 
             switch iceBarLocation {
             case .dynamic:
-                if appState.eventManager.isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen) {
+                if appState.hidEventManager.isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen) {
                     return getOrigin(for: .mousePointer)
                 }
                 return getOrigin(for: .iceIcon)

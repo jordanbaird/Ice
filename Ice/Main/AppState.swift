@@ -40,8 +40,8 @@ final class AppState: ObservableObject {
     /// Global cache for menu bar item images.
     let imageCache = MenuBarItemImageCache()
 
-    /// Manager for events received by the app.
-    let eventManager = EventManager()
+    /// Manager for input events received by the app.
+    let hidEventManager = HIDEventManager()
 
     /// Manager for app updates.
     let updatesManager = UpdatesManager()
@@ -67,7 +67,7 @@ final class AppState: ObservableObject {
         }
 
         appearanceManager.performSetup(with: self)
-        eventManager.performSetup(with: self)
+        hidEventManager.performSetup(with: self)
         await itemManager.performSetup(with: self)
         imageCache.performSetup(with: self)
         updatesManager.performSetup(with: self)
@@ -148,7 +148,7 @@ final class AppState: ObservableObject {
             }
             .store(in: &c)
 
-        eventManager.$isDraggingMenuBarItem
+        hidEventManager.$isDraggingMenuBarItem
             .removeDuplicates()
             .sink { [weak self] isDragging in
                 self?.isDraggingMenuBarItem = isDragging

@@ -1082,6 +1082,12 @@ extension MenuBarItemManager {
         }
 
         try await waitForUserToPauseInput()
+
+        appState.hidEventManager.stopAll()
+        defer {
+            appState.hidEventManager.startAll()
+        }
+
         try await waitForMoveOperationBuffer()
 
         logger.log(
@@ -1096,11 +1102,9 @@ extension MenuBarItemManager {
             return
         }
 
-        appState.eventManager.stopAll()
         MouseHelpers.hideCursor()
         defer {
             MouseHelpers.showCursor()
-            appState.eventManager.startAll()
         }
 
         let maxAttempts = 8
@@ -1238,9 +1242,9 @@ extension MenuBarItemManager {
             """
         )
 
-        appState.eventManager.stopAll()
+        appState.hidEventManager.stopAll()
         defer {
-            appState.eventManager.startAll()
+            appState.hidEventManager.startAll()
         }
 
         let maxAttempts = 4
@@ -1357,6 +1361,10 @@ extension MenuBarItemManager {
     ///   - item: The item to temporarily show.
     ///   - mouseButton: The mouse button to click the item with.
     func temporarilyShow(item: MenuBarItem, clickingWith mouseButton: CGMouseButton) async {
+        guard let appState else {
+            logger.error("Missing AppState, so not showing \(item.logString, privacy: .public)")
+            return
+        }
         guard let screen = NSScreen.screenWithActiveMenuBar else {
             logger.error("No active menu bar screen, so not showing \(item.logString, privacy: .public)")
             return
@@ -1403,6 +1411,11 @@ extension MenuBarItemManager {
             return
         }
 
+        appState.hidEventManager.stopAll()
+        defer {
+            appState.hidEventManager.startAll()
+        }
+
         logger.debug("Temporarily showing \(item.logString, privacy: .public)")
 
         do {
@@ -1443,6 +1456,10 @@ extension MenuBarItemManager {
     /// If an item is currently showing its interface, this method waits
     /// for the interface to close before hiding the items.
     func rehideTemporarilyShownItems() async {
+        guard let appState else {
+            logger.error("Missing AppState, so not rehiding")
+            return
+        }
         guard !temporarilyShownItemContexts.isEmpty else {
             return
         }
@@ -1462,6 +1479,13 @@ extension MenuBarItemManager {
 
         let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
         var failedContexts = [TemporarilyShownItemContext]()
+
+        appState.hidEventManager.stopAll()
+        defer {
+            appState.hidEventManager.startAll()
+        }
+
+        await eventSleep(for: .milliseconds(250))
 
         logger.debug("Rehiding temporarily shown items")
 

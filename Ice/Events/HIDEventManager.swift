@@ -1,15 +1,18 @@
 //
-//  EventManager.swift
+//  HIDEventManager.swift
 //  Ice
 //
 
 import Cocoa
 import Combine
 
-/// Manager for the various event monitors maintained by the app.
+/// Manager that monitors input events and implements the features
+/// that are triggered by them, such as showing hidden items on
+/// click/hover/scroll.
 @MainActor
-final class EventManager: ObservableObject {
-    /// A Boolean value that indicates whether the user is dragging a menu bar item.
+final class HIDEventManager: ObservableObject {
+    /// A Boolean value that indicates whether the user is dragging
+    /// a menu bar item.
     @Published private(set) var isDraggingMenuBarItem = false
 
     /// The shared app state.
@@ -18,13 +21,31 @@ final class EventManager: ObservableObject {
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
+    /// History of the manager's enabled states.
+    private var enabledStateStack = [Bool]()
+
+    /// A Boolean value that indicates whether the manager is enabled.
+    private var isEnabled = false {
+        didSet {
+            if isEnabled {
+                for monitor in allMonitors {
+                    monitor.start()
+                }
+            } else {
+                for monitor in allMonitors {
+                    monitor.stop()
+                }
+            }
+        }
+    }
+
     // MARK: Monitors
 
     /// Monitor for mouse down events.
     private(set) lazy var mouseDownMonitor = EventMonitor.universal(
         for: [.leftMouseDown, .rightMouseDown]
     ) { [weak self] event in
-        guard let self, let appState, let screen = bestScreen(appState: appState) else {
+        guard let self, isEnabled, let appState, let screen = bestScreen(appState: appState) else {
             return event
         }
         switch event.type {
@@ -32,7 +53,7 @@ final class EventManager: ObservableObject {
             handleShowOnClick(appState: appState, screen: screen)
             handleSmartRehide(with: event, appState: appState, screen: screen)
         case .rightMouseDown:
-            handleShowSecondaryContextMenu(appState: appState, screen: screen)
+            handleSecondaryContextMenu(appState: appState, screen: screen)
         default:
             return event
         }
@@ -44,7 +65,10 @@ final class EventManager: ObservableObject {
     private(set) lazy var mouseUpMonitor = EventMonitor.universal(
         for: .leftMouseUp
     ) { [weak self] event in
-        self?.handleLeftMouseUp()
+        guard let self, isEnabled else {
+            return event
+        }
+        handleMenuBarItemDragStop()
         return event
     }
 
@@ -52,8 +76,8 @@ final class EventManager: ObservableObject {
     private(set) lazy var mouseDraggedMonitor = EventMonitor.universal(
         for: .leftMouseDragged
     ) { [weak self] event in
-        if let self, let appState, let screen = bestScreen(appState: appState) {
-            handleLeftMouseDragged(with: event, appState: appState, screen: screen)
+        if let self, isEnabled, let appState, let screen = bestScreen(appState: appState) {
+            handleMenuBarItemDragStart(with: event, appState: appState, screen: screen)
         }
         return event
     }
@@ -65,7 +89,7 @@ final class EventManager: ObservableObject {
         placement: .tailAppendEventTap,
         option: .listenOnly
     ) { [weak self] _, event in
-        if let self, let appState, let screen = bestScreen(appState: appState) {
+        if let self, isEnabled, let appState, let screen = bestScreen(appState: appState) {
             handleShowOnHover(appState: appState, screen: screen)
         }
         return event
@@ -75,7 +99,7 @@ final class EventManager: ObservableObject {
     private(set) lazy var scrollWheelMonitor = EventMonitor.universal(
         for: .scrollWheel
     ) { [weak self] event in
-        if let self, let appState, let screen = bestScreen(appState: appState) {
+        if let self, isEnabled, let appState, let screen = bestScreen(appState: appState) {
             handleShowOnScroll(with: event, appState: appState, screen: screen)
         }
         return event
@@ -116,7 +140,7 @@ final class EventManager: ObservableObject {
             )
             .receive(on: DispatchQueue.main)
             .sink { [weak self, weak appState] _, isFullscreen, isMenuBarHiddenBySystem in
-                guard let self, let appState, isFullscreen || isMenuBarHiddenBySystem else {
+                guard let self, isEnabled, let appState, isFullscreen || isMenuBarHiddenBySystem else {
                     return
                 }
                 if let screen = bestScreen(appState: appState) {
@@ -133,22 +157,19 @@ final class EventManager: ObservableObject {
 
     /// Starts all monitors.
     func startAll() {
-        for monitor in allMonitors {
-            monitor.start()
-        }
+        isEnabled = enabledStateStack.popLast() ?? true
     }
 
     /// Stops all monitors.
     func stopAll() {
-        for monitor in allMonitors {
-            monitor.stop()
-        }
+        enabledStateStack.append(isEnabled)
+        isEnabled = false
     }
 }
 
 // MARK: - Handler Methods
 
-extension EventManager {
+extension HIDEventManager {
 
     // MARK: Handle Show On Click
 
@@ -161,11 +182,8 @@ extension EventManager {
         }
 
         Task {
-            // Short delay helps the toggle action feel more natural.
-            try await Task.sleep(for: .milliseconds(50))
-
             if NSEvent.modifierFlags == .control {
-                handleShowSecondaryContextMenu(appState: appState, screen: screen)
+                handleSecondaryContextMenu(appState: appState, screen: screen)
                 return
             }
 
@@ -207,28 +225,25 @@ extension EventManager {
             }
         }
 
-        // Make sure clicking the Ice Bar doesn't trigger rehide.
-        guard event.window !== appState.menuBarManager.iceBarPanel else {
-            return
-        }
-
-        // Only continue if at least one section is visible.
-        guard appState.menuBarManager.hasVisibleSection else {
-            return
-        }
-
-        // Make sure the mouse is not in the menu bar.
-        guard !isMouseInsideMenuBar(appState: appState, screen: screen) else {
+        // Only continue if the click is not inside the Ice Bar, at
+        // least one section is visible, and the mouse is not inside
+        // the menu bar.
+        guard
+            event.window !== appState.menuBarManager.iceBarPanel,
+            appState.menuBarManager.hasVisibleSection,
+            !isMouseInsideMenuBar(appState: appState, screen: screen)
+        else {
             return
         }
 
         let initialSpaceID = Bridging.getActiveSpaceID()
 
         Task {
-            // Wait for a bit to give the window under the mouse a chance to focus.
+            // Give the window under the mouse a chance to focus.
             try await Task.sleep(for: .milliseconds(250))
 
-            // If clicking caused a space change, don't bother with the window check.
+            // Don't bother checking the window if the click caused
+            // a space change.
             if Bridging.getActiveSpaceID() != initialSpaceID {
                 for section in appState.menuBarManager.sections {
                     section.hide()
@@ -236,7 +251,7 @@ extension EventManager {
                 return
             }
 
-            // Get the window that the user has clicked into.
+            // Get the window that was clicked.
             guard
                 let mouseLocation = MouseHelpers.locationCoreGraphics,
                 let windowUnderMouse = WindowInfo.createWindows(option: .onScreen)
@@ -247,9 +262,9 @@ extension EventManager {
                 return
             }
 
-            // The dock is an exception to the following check.
+            // Note: The Dock is an exception to the following check.
             if owningApplication.bundleIdentifier != "com.apple.dock" {
-                // Only continue if the user has clicked into an active window with
+                // Only continue if the clicked app is active, and has
                 // a regular activation policy.
                 guard
                     owningApplication.isActive,
@@ -259,16 +274,16 @@ extension EventManager {
                 }
             }
 
-            // All checks have passed, so hide the sections.
+            // All checks have passed, hide the sections.
             for section in appState.menuBarManager.sections {
                 section.hide()
             }
         }
     }
 
-    // MARK: Handle Show Secondary Context Menu
+    // MARK: Handle Secondary Context Menu
 
-    private func handleShowSecondaryContextMenu(appState: AppState, screen: NSScreen) {
+    private func handleSecondaryContextMenu(appState: AppState, screen: NSScreen) {
         Task {
             guard
                 appState.settings.advanced.enableSecondaryContextMenu,
@@ -277,63 +292,25 @@ extension EventManager {
             else {
                 return
             }
-            // This delay prevents the menu from immediately closing.
+            // Delay prevents the menu from immediately closing.
             try await Task.sleep(for: .milliseconds(100))
             appState.menuBarManager.showSecondaryContextMenu(at: mouseLocation)
         }
     }
 
-    // MARK: Handle Prevent Show On Hover
+    // MARK: Handle Menu Bar Item Drag Stop
 
-    private func handlePreventShowOnHover(with event: NSEvent, appState: AppState, screen: NSScreen) {
-        guard
-            appState.settings.general.showOnHover,
-            !appState.settings.general.useIceBar
-        else {
-            return
+    private func handleMenuBarItemDragStop() {
+        if isDraggingMenuBarItem {
+            isDraggingMenuBarItem = false
         }
-
-        guard isMouseInsideMenuBar(appState: appState, screen: screen) else {
-            return
-        }
-
-        if isMouseInsideMenuBarItem(appState: appState, screen: screen) {
-            switch event.type {
-            case .leftMouseDown:
-                if appState.menuBarManager.hasVisibleSection {
-                    break
-                }
-                if isMouseInsideIceIcon(appState: appState) {
-                    break
-                }
-                return
-            case .rightMouseDown:
-                if appState.menuBarManager.hasVisibleSection {
-                    break
-                }
-                return
-            default:
-                return
-            }
-        } else if isMouseInsideApplicationMenu(appState: appState, screen: screen) {
-            return
-        }
-
-        // Mouse is inside the menu bar, outside an item or application
-        // menu, so it must be inside an empty menu bar space.
-        appState.menuBarManager.showOnHoverAllowed = false
     }
 
-    // MARK: Handle Left Mouse Up
+    // MARK: Handle Menu Bar Item Drag Start
 
-    private func handleLeftMouseUp() {
-        isDraggingMenuBarItem = false
-    }
-
-    // MARK: Handle Left Mouse Dragged
-
-    private func handleLeftMouseDragged(with event: NSEvent, appState: AppState, screen: NSScreen) {
+    private func handleMenuBarItemDragStart(with event: NSEvent, appState: AppState, screen: NSScreen) {
         guard
+            !isDraggingMenuBarItem,
             event.modifierFlags.contains(.command),
             isMouseInsideMenuBar(appState: appState, screen: screen)
         else {
@@ -400,21 +377,55 @@ extension EventManager {
         }
     }
 
-    // MARK: Handle Show On Scroll
+    // MARK: Handle Prevent Show On Hover
 
-    private func handleShowOnScroll(with event: NSEvent, appState: AppState, screen: NSScreen) {
-        // Make sure the "ShowOnScroll" feature is enabled.
-        guard appState.settings.general.showOnScroll else {
+    private func handlePreventShowOnHover(with event: NSEvent, appState: AppState, screen: NSScreen) {
+        guard
+            appState.settings.general.showOnHover,
+            !appState.settings.general.useIceBar
+        else {
             return
         }
 
-        // Make sure the mouse is inside the menu bar.
         guard isMouseInsideMenuBar(appState: appState, screen: screen) else {
             return
         }
 
-        // Only continue if we have a hidden section (we should).
-        guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
+        if isMouseInsideMenuBarItem(appState: appState, screen: screen) {
+            switch event.type {
+            case .leftMouseDown:
+                if appState.menuBarManager.hasVisibleSection {
+                    break
+                }
+                if isMouseInsideIceIcon(appState: appState) {
+                    break
+                }
+                return
+            case .rightMouseDown:
+                if appState.menuBarManager.hasVisibleSection {
+                    break
+                }
+                return
+            default:
+                return
+            }
+        } else if isMouseInsideApplicationMenu(appState: appState, screen: screen) {
+            return
+        }
+
+        // Mouse is inside the menu bar, outside an item or application
+        // menu, so it must be inside an empty menu bar space.
+        appState.menuBarManager.showOnHoverAllowed = false
+    }
+
+    // MARK: Handle Show On Scroll
+
+    private func handleShowOnScroll(with event: NSEvent, appState: AppState, screen: NSScreen) {
+        guard
+            appState.settings.general.showOnScroll,
+            isMouseInsideMenuBar(appState: appState, screen: screen),
+            let hiddenSection = appState.menuBarManager.section(withName: .hidden)
+        else {
             return
         }
 
@@ -430,7 +441,7 @@ extension EventManager {
 
 // MARK: - Helper Methods
 
-extension EventManager {
+extension HIDEventManager {
     /// Returns the best screen to use for event manager calculations.
     func bestScreen(appState: AppState) -> NSScreen? {
         guard
@@ -525,7 +536,7 @@ extension EventManager {
         let panel = appState.menuBarManager.iceBarPanel
         // Pad the frame to be more forgiving if the user accidentally
         // moves their mouse outside of the Ice Bar.
-        let paddedFrame = panel.frame.insetBy(dx: -10, dy: -10)
+        let paddedFrame = panel.frame.insetBy(dx: -15, dy: -15)
         return paddedFrame.contains(mouseLocation)
     }
 

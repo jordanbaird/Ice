@@ -1,14 +1,18 @@
 name: Feature Request
-description: Request a feature or suggest an idea
-title: "[Feature Request]: <feature title>"
+description: Request a feature or suggest an idea.
+title: "[Feature Request]: "
 labels: Feature
 body:
   - type: checkboxes
     attributes:
-      label: Check Existing Issues
-      description: Check existing open and closed issues to prevent duplicates. Use the search field at the top of the issue tracker. Please only submit a new issue if it has not been covered by an existing issue.
+      label: Search for Similar Requests
+      description: |
+        Please use the search feature on the repository's [Issues](https://github.com/jordanbaird/Ice/issues) page to see if this feature has already been requested. Make sure to include both open and closed issues in your search.
+
+        > [!IMPORTANT]
+        > Only submit a new issue if the feature you want hasn't been requested in another issue.
       options:
-        - label: I have checked existing issues, and this issue is not a duplicate
+        - label: I have searched existing issues for similar requests
           required: true
   - type: textarea
     attributes:
@@ -18,6 +22,5 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: Screenshots
-      description: Relevant screenshots or screen recordings.
-      placeholder: (optional)
+      label: Additional Info
+      placeholder: Screenshots, screen recordings, mockups, or anything else you think might be helpful.

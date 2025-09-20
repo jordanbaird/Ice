@@ -3,6 +3,8 @@
 //  Ice
 //
 
+import AppKit
+
 enum HotkeyAction: String, Codable, CaseIterable {
     // Menu Bar Sections
     case toggleHiddenSection = "ToggleHiddenSection"
@@ -40,7 +42,15 @@ enum HotkeyAction: String, Codable, CaseIterable {
         case .searchMenuBarItems:
             await appState.menuBarManager.searchPanel.toggle()
         case .enableIceBar:
-            appState.settingsManager.generalSettingsManager.useIceBar.toggle()
+            // Toggle Ice Bar on the current display (where mouse is, or main display)
+            let targetScreen = NSScreen.screenWithMouse ?? NSScreen.main
+            if let targetScreen {
+                let displayManager = appState.settingsManager.displaySettingsManager
+                let currentConfig = displayManager.configuration(for: targetScreen.displayID)
+                var newConfig = currentConfig
+                newConfig.useIceBar.toggle()
+                displayManager.setConfiguration(newConfig, for: targetScreen.displayID)
+            }
         case .showSectionDividers:
             appState.settingsManager.advancedSettingsManager.showSectionDividers.toggle()
         case .toggleApplicationMenus:

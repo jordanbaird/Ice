@@ -9,8 +9,7 @@ body:
       description: |
         Please use the search feature on the repository's [Issues](https://github.com/jordanbaird/Ice/issues) page to see if a report already exists for the bug you encountered. Make sure to include both open and closed issues in your search.
 
-        > [!IMPORTANT]
-        > Only submit a new issue if the bug you encountered hasn't been reported in an existing open issue, or if a regression has occurred with a previously closed issue.
+        **Important**: Only submit a new issue if the bug you encountered hasn't been reported in an existing open issue, or if a regression has occurred with a previously closed issue.
       options:
         - label: I have searched existing issues for similar reports
           required: true
@@ -47,5 +46,5 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: Additional Info
-      placeholder: Screenshots, screen recordings, logs, crash reports, or anything else you think might be helpful.
+      label: Additional Information
+      placeholder: Screenshots, screen recordings, logs, crash reports, or anything else you think might be helpful...

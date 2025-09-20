@@ -9,8 +9,7 @@ body:
       description: |
         Please use the search feature on the repository's [Issues](https://github.com/jordanbaird/Ice/issues) page to see if this feature has already been requested. Make sure to include both open and closed issues in your search.
 
-        > [!IMPORTANT]
-        > Only submit a new issue if the feature you want hasn't been requested in another issue.
+        **Important**: Only submit a new issue if the feature you want hasn't been requested in another issue.
       options:
         - label: I have searched existing issues for similar requests
           required: true
@@ -22,5 +21,5 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: Additional Info
-      placeholder: Screenshots, screen recordings, mockups, or anything else you think might be helpful.
+      label: Additional Information
+      placeholder: Screenshots, screen recordings, mockups, or anything else you think might be helpful...

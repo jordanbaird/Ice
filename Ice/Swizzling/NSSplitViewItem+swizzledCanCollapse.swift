@@ -31,6 +31,10 @@ extension NSSplitViewItem {
     }
 
     static func swizzle() {
+        if #available(macOS 26, *) {
+            // Workaround: disable swizzle on macOS 26+ to avoid crash; minor UI issue is acceptable.
+            return
+        }
         _ = swizzler
     }
 }

@@ -12,7 +12,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 部分"
+            "value" : "%@ 板块"
           }
         }
       }
@@ -54,7 +54,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "可显示“始终隐藏的部分”"
+            "value" : "可显示“始终隐藏”的板块"
           }
         }
       }
@@ -104,7 +104,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "应用此设置将重启所有带有菜单栏项目的应用。部分应用可能需要手动重启。\n"
+            "value" : "应用此设置将重启所有带有菜单栏项目的应用。部分应用可能需要手动重启。"
           }
         }
       }
@@ -147,7 +147,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "部分之间"
+            "value" : "板块之间"
           }
         }
       }
@@ -327,7 +327,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用“总是被隐藏”的部分"
+            "value" : "启用“总是被隐藏”的板块"
           }
         }
       }
@@ -383,7 +383,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "授予权限\n"
+            "value" : "授予权限"
           }
         }
       }
@@ -486,7 +486,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ice 需要权限来管理菜单栏。\n"
+            "value" : "Ice 需要权限来管理菜单栏。"
           }
         }
       }
@@ -649,7 +649,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "菜单栏部分"
+            "value" : "菜单栏板块"
           }
         }
       }
@@ -725,7 +725,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "按下 Option 键并点击 Ice 的任意一个菜单栏项目，即可显示该部分。"
+            "value" : "按下 Option 键并点击 Ice 的任意一个菜单栏项目，即可显示该板块。"
           }
         }
       }
@@ -735,7 +735,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "按下 Option 键并点击 Ice 的任意一个菜单栏项目，即可显示该部分"
+            "value" : "按下 Option 键并点击 Ice 的任意一个菜单栏项目，即可显示该板块"
           }
         }
       }
@@ -848,7 +848,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在菜单栏中滚动或滑动，以切换隐藏的菜单栏项目。\n"
+            "value" : "在菜单栏中滚动或滑动，以切换隐藏的菜单栏项目。"
           }
         }
       }
@@ -1070,7 +1070,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ice 栏位于鼠标指针正下方的居中位置\n"
+            "value" : "Ice 栏位于鼠标指针正下方的居中位置"
           }
         }
       }
@@ -1136,7 +1136,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "切换“始终隐藏”部分"
+            "value" : "切换“始终隐藏”板块"
           }
         }
       }
@@ -1146,7 +1146,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "切换隐藏部分"
+            "value" : "切换隐藏板块"
           }
         }
       }

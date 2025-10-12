@@ -1,14 +1,17 @@
 name: Bug Report
-description: File a bug report
-title: "[Bug]: <bug title>"
+description: Submit a bug report.
+title: "[Bug]: "
 labels: Bug
 body:
   - type: checkboxes
     attributes:
-      label: Check Existing Issues
-      description: Check existing open and closed issues to prevent duplicates. Use the search field at the top of the issue tracker. Please only submit a new issue if it has not been covered by an existing issue, or if a regression has occurred.
+      label: Search for Similar Reports
+      description: |
+        Please use the search feature on the repository's [Issues](https://github.com/jordanbaird/Ice/issues) page to see if a report already exists for the bug you encountered. Make sure to include both open and closed issues in your search.
+
+        **Important**: Only submit a new issue if the bug you encountered hasn't been reported in an existing open issue, or if a regression has occurred with a previously closed issue.
       options:
-        - label: I have checked existing issues, and this issue is not a duplicate
+        - label: I have searched existing issues for similar reports
           required: true
   - type: textarea
     attributes:
@@ -28,19 +31,20 @@ body:
     validations:
       required: true
   - type: input
+    id: app_version
     attributes:
-      label: Ice Version
+      label: App Version
       placeholder: e.g. 1.2.3
     validations:
       required: true
   - type: input
+    id: macos_version
     attributes:
       label: macOS Version
-      placeholder: e.g. 14.4.1
+      placeholder: e.g. 15.3.2
     validations:
       required: true
   - type: textarea
     attributes:
-      label: Screenshots
-      description: Relevant screenshots or screen recordings.
-      placeholder: (optional)
+      label: Additional Information
+      placeholder: Screenshots, screen recordings, logs, crash reports, or anything else you think might be helpful...

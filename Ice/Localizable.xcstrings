@@ -12,7 +12,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 板块"
+            "value" : "%@ 版块"
           }
         }
       }
@@ -54,7 +54,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "可显示“始终隐藏”的板块"
+            "value" : "可显示“始终隐藏”的版块"
           }
         }
       }
@@ -147,7 +147,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "板块之间"
+            "value" : "版块之间"
           }
         }
       }
@@ -327,7 +327,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用“总是被隐藏”的板块"
+            "value" : "启用“总是被隐藏”的版块"
           }
         }
       }
@@ -649,7 +649,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "菜单栏板块"
+            "value" : "菜单栏版块"
           }
         }
       }
@@ -725,7 +725,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "按下 Option 键并点击 Ice 的任意一个菜单栏项目，即可显示该板块。"
+            "value" : "按下 Option 键并点击 Ice 的任意一个菜单栏项目，即可显示该版块。"
           }
         }
       }
@@ -735,7 +735,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "按下 Option 键并点击 Ice 的任意一个菜单栏项目，即可显示该板块"
+            "value" : "按下 Option 键并点击 Ice 的任意一个菜单栏项目，即可显示该版块"
           }
         }
       }
@@ -1136,7 +1136,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "切换“始终隐藏”板块"
+            "value" : "切换“始终隐藏”版块"
           }
         }
       }
@@ -1146,7 +1146,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "切换隐藏板块"
+            "value" : "切换隐藏版块"
           }
         }
       }

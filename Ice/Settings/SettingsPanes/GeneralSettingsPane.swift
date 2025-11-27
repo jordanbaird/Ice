@@ -176,6 +176,13 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private var iceBarOptions: some View {
         useIceBar
+        autoEnableIceBarToggle
+        if manager.autoEnableIceBarOnBuiltInDisplay {
+            onlyOnScreensWithNotchToggle
+            if manager.iceBarAutoEnableMode != .screensWithNotch {
+                widthThresholdInput
+            }
+        }
         if manager.useIceBar {
             iceBarLocationPicker
         }
@@ -185,6 +192,40 @@ struct GeneralSettingsPane: View {
     private var useIceBar: some View {
         Toggle("Use Ice Bar", isOn: manager.bindings.useIceBar)
             .annotation("Show hidden menu bar items in a separate bar below the menu bar")
+            .disabled(manager.autoEnableIceBarOnBuiltInDisplay)
+    }
+
+    @ViewBuilder
+    private var autoEnableIceBarToggle: some View {
+        Toggle(isOn: manager.bindings.autoEnableIceBarOnBuiltInDisplay) {
+            HStack {
+                Text("Auto-enable Ice Bar")
+                BetaBadge()
+            }
+        }
+        .annotation("Automatically enable or disable Ice Bar based on display")
+    }
+
+    @ViewBuilder
+    private var onlyOnScreensWithNotchToggle: some View {
+        Toggle("Only on screens with a notch", isOn: Binding(
+            get: { manager.iceBarAutoEnableMode == .screensWithNotch },
+            set: { manager.iceBarAutoEnableMode = $0 ? .screensWithNotch : .screenWidth }
+        ))
+        .annotation("Enable Ice Bar only on screens with a notch")
+    }
+
+    @ViewBuilder
+    private var widthThresholdInput: some View {
+        HStack {
+            Text("Width threshold:")
+            TextField("", value: manager.bindings.iceBarDisplayWidthThreshold, format: .number.grouping(.never))
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 80)
+            Text("pixels")
+                .foregroundStyle(.secondary)
+        }
+        .annotation("Ice Bar will be enabled when screen width is less than this value")
     }
 
     @ViewBuilder

@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import AppKit
 import Combine
 import Foundation
 
@@ -26,6 +27,17 @@ final class GeneralSettingsManager: ObservableObject {
     /// A Boolean value that indicates whether to show hidden items
     /// in a separate bar below the menu bar.
     @Published var useIceBar = false
+
+    /// A Boolean value that indicates whether Ice Bar should be
+    /// automatically enabled on built-in displays.
+    @Published var autoEnableIceBarOnBuiltInDisplay = false
+
+    /// The detection mode for automatic Ice Bar enabling.
+    @Published var iceBarAutoEnableMode: IceBarAutoEnableMode = .screenWidth
+
+    /// The screen width threshold (in pixels) below which Ice Bar is enabled.
+    /// Ice Bar will be enabled when screen width < threshold.
+    @Published var iceBarDisplayWidthThreshold: Double = 3000
 
     /// The location where the Ice Bar appears.
     @Published var iceBarLocation: IceBarLocation = .dynamic
@@ -78,12 +90,20 @@ final class GeneralSettingsManager: ObservableObject {
     func performSetup() {
         loadInitialState()
         configureCancellables()
+        observeScreenChanges()
     }
 
     private func loadInitialState() {
         Defaults.ifPresent(key: .showIceIcon, assign: &showIceIcon)
         Defaults.ifPresent(key: .customIceIconIsTemplate, assign: &customIceIconIsTemplate)
         Defaults.ifPresent(key: .useIceBar, assign: &useIceBar)
+        Defaults.ifPresent(key: .autoEnableIceBarOnBuiltInDisplay, assign: &autoEnableIceBarOnBuiltInDisplay)
+        Defaults.ifPresent(key: .iceBarAutoEnableMode) { rawValue in
+            if let mode = IceBarAutoEnableMode(rawValue: rawValue) {
+                iceBarAutoEnableMode = mode
+            }
+        }
+        Defaults.ifPresent(key: .iceBarDisplayWidthThreshold, assign: &iceBarDisplayWidthThreshold)
         Defaults.ifPresent(key: .showOnClick, assign: &showOnClick)
         Defaults.ifPresent(key: .showOnHover, assign: &showOnHover)
         Defaults.ifPresent(key: .showOnScroll, assign: &showOnScroll)
@@ -156,6 +176,32 @@ final class GeneralSettingsManager: ObservableObject {
             }
             .store(in: &c)
 
+        $autoEnableIceBarOnBuiltInDisplay
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] autoEnable in
+                Defaults.set(autoEnable, forKey: .autoEnableIceBarOnBuiltInDisplay)
+                if autoEnable {
+                    self?.updateIceBarForCurrentDisplay()
+                }
+            }
+            .store(in: &c)
+
+        $iceBarAutoEnableMode
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] mode in
+                Defaults.set(mode.rawValue, forKey: .iceBarAutoEnableMode)
+                self?.updateIceBarForCurrentDisplay()
+            }
+            .store(in: &c)
+
+        $iceBarDisplayWidthThreshold
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] threshold in
+                Defaults.set(threshold, forKey: .iceBarDisplayWidthThreshold)
+                self?.updateIceBarForCurrentDisplay()
+            }
+            .store(in: &c)
+
         $iceBarLocation
             .receive(on: DispatchQueue.main)
             .sink { location in
@@ -214,6 +260,38 @@ final class GeneralSettingsManager: ObservableObject {
             .store(in: &c)
 
         cancellables = c
+    }
+
+    /// Updates the Ice Bar setting based on the current display configuration.
+    private func updateIceBarForCurrentDisplay() {
+        guard autoEnableIceBarOnBuiltInDisplay else {
+            return
+        }
+
+        // Get the main screen (where the menu bar is)
+        guard let mainScreen = NSScreen.main else {
+            return
+        }
+
+        switch iceBarAutoEnableMode {
+        case .screenWidth:
+            // Enable Ice Bar if screen width is less than threshold
+            let screenWidth = mainScreen.frame.width
+            useIceBar = screenWidth < iceBarDisplayWidthThreshold
+        case .screensWithNotch:
+            // Enable Ice Bar only on screens with a notch
+            useIceBar = mainScreen.hasNotch
+        }
+    }
+
+    /// Sets up an observer for screen configuration changes.
+    func observeScreenChanges() {
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateIceBarForCurrentDisplay()
+            }
+            .store(in: &cancellables)
     }
 }
 

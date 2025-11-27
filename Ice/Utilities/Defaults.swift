@@ -175,6 +175,9 @@ extension Defaults {
 
         case iceBarLocation = "IceBarLocation"
         case iceBarPinnedLocation = "IceBarPinnedLocation"
+        case autoEnableIceBarOnBuiltInDisplay = "AutoEnableIceBarOnBuiltInDisplay"
+        case iceBarAutoEnableMode = "IceBarAutoEnableMode"
+        case iceBarDisplayWidthThreshold = "IceBarDisplayWidthThreshold"
 
         // MARK: Migration
 

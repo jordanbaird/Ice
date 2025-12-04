@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var navigationState: AppNavigationState
     @Environment(\.sidebarRowSize) var sidebarRowSize
 
@@ -42,7 +43,7 @@ struct SettingsView: View {
         } detail: {
             detailView
         }
-        .navigationTitle(navigationState.settingsNavigationIdentifier.localized)
+        .navigationTitle(navigationState.settingsNavigationIdentifier.localized(for: appState.settingsManager.generalSettingsManager.language))
     }
 
     @ViewBuilder
@@ -86,7 +87,7 @@ struct SettingsView: View {
     @ViewBuilder
     private func sidebarItem(for identifier: SettingsNavigationIdentifier) -> some View {
         Label {
-            Text(identifier.localized)
+            Text(identifier.localized(for: appState.settingsManager.generalSettingsManager.language))
                 .font(.system(size: sidebarItemFontSize))
                 .padding(.leading, 2)
         } icon: {

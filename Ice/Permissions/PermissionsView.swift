@@ -11,9 +11,9 @@ struct PermissionsView: View {
 
     private var continueButtonText: LocalizedStringKey {
         if case .hasRequiredPermissions = permissionsManager.permissionsState {
-            "Continue in Limited Mode"
+            LocalizedStringKey("Continue in Limited Mode".localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
         } else {
-            "Continue"
+            LocalizedStringKey("Continue".localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
         }
     }
 
@@ -58,7 +58,7 @@ struct PermissionsView: View {
     @ViewBuilder
     private var headerView: some View {
         Label {
-            Text("Permissions")
+            Text("Permissions".localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
                 .font(.system(size: 36))
         } icon: {
             if let nsImage = NSImage(named: NSImage.applicationIconName) {
@@ -74,8 +74,8 @@ struct PermissionsView: View {
     private var explanationView: some View {
         IceSection {
             VStack {
-                Text("Ice needs permission to manage the menu bar.")
-                Text("Absolutely no personal information is collected or stored.")
+                Text("Ice needs permission to manage the menu bar.".localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
+                Text("Absolutely no personal information is collected or stored.".localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
                     .bold()
                     .foregroundStyle(.red)
             }
@@ -108,7 +108,7 @@ struct PermissionsView: View {
         Button {
             NSApp.terminate(nil)
         } label: {
-            Text("Quit")
+            Text("Quit".localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
                 .frame(maxWidth: .infinity)
         }
     }
@@ -134,12 +134,12 @@ struct PermissionsView: View {
     private func permissionBox(_ permission: Permission) -> some View {
         IceSection {
             VStack(spacing: 10) {
-                Text(permission.title)
+                Text(permission.title.localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
                     .font(.title)
                     .underline()
 
                 VStack(spacing: 0) {
-                    Text("Ice needs this to:")
+                    Text("Ice needs this to:".localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
                         .font(.title3)
                         .bold()
 
@@ -147,7 +147,7 @@ struct PermissionsView: View {
                         ForEach(permission.details, id: \.self) { detail in
                             HStack {
                                 Text("•").bold()
-                                Text(detail)
+                                Text(detail.localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
                             }
                         }
                     }
@@ -165,10 +165,10 @@ struct PermissionsView: View {
                     }
                 } label: {
                     if permission.hasPermission {
-                        Text("Permission Granted")
+                        Text("Permission Granted".localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
                             .foregroundStyle(.green)
                     } else {
-                        Text("Grant Permission")
+                        Text("Grant Permission".localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
                     }
                 }
                 .allowsHitTesting(!permission.hasPermission)
@@ -180,7 +180,7 @@ struct PermissionsView: View {
                             font: .callout.bold()
                         ) {
                             Label {
-                                Text("Ice can work in a limited mode without this permission.")
+                                Text("Ice can work in a limited mode without this permission.".localized(for: permissionsManager.appState?.settingsManager.generalSettingsManager.language ?? .english))
                             } icon: {
                                 Image(systemName: "checkmark.shield")
                                     .foregroundStyle(.green)

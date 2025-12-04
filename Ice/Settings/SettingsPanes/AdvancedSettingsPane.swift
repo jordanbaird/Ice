@@ -17,12 +17,16 @@ struct AdvancedSettingsPane: View {
         appState.settingsManager.advancedSettingsManager
     }
 
+    private var generalSettingsManager: GeneralSettingsManager {
+        appState.settingsManager.generalSettingsManager
+    }
+
     private func formattedToSeconds(_ interval: TimeInterval) -> LocalizedStringKey {
         let formatted = interval.formatted()
         return if interval == 1 {
-            LocalizedStringKey(formatted + " second")
+            LocalizedStringKey(formatted + " second".localized(for: generalSettingsManager.language))
         } else {
-            LocalizedStringKey(formatted + " seconds")
+            LocalizedStringKey(formatted + " seconds".localized(for: generalSettingsManager.language))
         }
     }
 
@@ -42,7 +46,10 @@ struct AdvancedSettingsPane: View {
                 showOnHoverDelaySlider
                 tempShowIntervalSlider
             }
-            IceSection("Permissions") {
+            IceSection(header: {
+                Text(verbatim: "Permissions".localized(for: generalSettingsManager.language))
+                    .font(.headline)
+            }) {
                 allPermissions
             }
         }
@@ -50,47 +57,57 @@ struct AdvancedSettingsPane: View {
 
     @ViewBuilder
     private var hideApplicationMenus: some View {
-        Toggle("Hide application menus when showing menu bar items", isOn: manager.bindings.hideApplicationMenus)
-            .annotation("Make more room in the menu bar by hiding the left application menus if needed")
+        Toggle(isOn: manager.bindings.hideApplicationMenus) {
+            Text(verbatim: "Hide application menus when showing menu bar items".localized(for: generalSettingsManager.language))
+        }
+        .annotation {
+            Text(verbatim: "Make more room in the menu bar by hiding the left application menus if needed".localized(for: generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
     private var showSectionDividers: some View {
-        Toggle("Show section dividers", isOn: manager.bindings.showSectionDividers)
-            .annotation {
-                HStack(spacing: 2) {
-                    Text("Insert divider items")
-                    if let nsImage = ControlItemImage.builtin(.chevronLarge).nsImage(for: appState) {
-                        HStack(spacing: 0) {
-                            Text("(")
-                                .font(.body.monospaced().bold())
-                            Image(nsImage: nsImage)
-                                .padding(.horizontal, -2)
-                            Text(")")
-                                .font(.body.monospaced().bold())
-                        }
+        Toggle(isOn: manager.bindings.showSectionDividers) {
+            Text(verbatim: "Show section dividers".localized(for: generalSettingsManager.language))
+        }
+        .annotation {
+            HStack(spacing: 2) {
+                Text(verbatim: "Insert divider items".localized(for: generalSettingsManager.language))
+                if let nsImage = ControlItemImage.builtin(.chevronLarge).nsImage(for: appState) {
+                    HStack(spacing: 0) {
+                        Text("(")
+                            .font(.body.monospaced().bold())
+                        Image(nsImage: nsImage)
+                            .padding(.horizontal, -2)
+                        Text(")")
+                            .font(.body.monospaced().bold())
                     }
-                    Text("between sections")
                 }
+                Text(verbatim: "between sections".localized(for: generalSettingsManager.language))
             }
+        }
     }
 
     @ViewBuilder
     private var enableAlwaysHiddenSection: some View {
-        Toggle("Enable always-hidden section", isOn: manager.bindings.enableAlwaysHiddenSection)
+        Toggle(isOn: manager.bindings.enableAlwaysHiddenSection) {
+            Text(verbatim: "Enable always-hidden section".localized(for: generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
     private var canToggleAlwaysHiddenSection: some View {
         if manager.enableAlwaysHiddenSection {
-            Toggle("Always-hidden section can be shown", isOn: manager.bindings.canToggleAlwaysHiddenSection)
-                .annotation {
-                    if appState.settingsManager.generalSettingsManager.showOnClick {
-                        Text("Option + click one of Ice's menu bar items, or inside an empty area of the menu bar to show the section")
-                    } else {
-                        Text("Option + click one of Ice's menu bar items to show the section")
-                    }
+            Toggle(isOn: manager.bindings.canToggleAlwaysHiddenSection) {
+                Text(verbatim: "Always-hidden section can be shown".localized(for: generalSettingsManager.language))
+            }
+            .annotation {
+                if appState.settingsManager.generalSettingsManager.showOnClick {
+                    Text(verbatim: "Option + click one of Ice's menu bar items, or inside an empty area of the menu bar to show the section".localized(for: generalSettingsManager.language))
+                } else {
+                    Text(verbatim: "Option + click one of Ice's menu bar items to show the section".localized(for: generalSettingsManager.language))
                 }
+            }
         }
     }
 
@@ -104,14 +121,16 @@ struct AdvancedSettingsPane: View {
                 step: 0.1
             )
         } label: {
-            Text("Show on hover delay")
+            Text(verbatim: "Show on hover delay".localized(for: generalSettingsManager.language))
                 .frame(minHeight: .compactSliderMinHeight)
                 .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
                 .onFrameChange { frame in
                     maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
                 }
         }
-        .annotation("The amount of time to wait before showing on hover")
+        .annotation {
+            Text(verbatim: "The amount of time to wait before showing on hover".localized(for: generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
@@ -124,24 +143,30 @@ struct AdvancedSettingsPane: View {
                 step: 1
             )
         } label: {
-            Text("Temporarily shown item delay")
+            Text(verbatim: "Temporarily shown item delay".localized(for: generalSettingsManager.language))
                 .frame(minHeight: .compactSliderMinHeight)
                 .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
                 .onFrameChange { frame in
                     maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
                 }
         }
-        .annotation("The amount of time to wait before hiding temporarily shown menu bar items")
+        .annotation {
+            Text(verbatim: "The amount of time to wait before hiding temporarily shown menu bar items".localized(for: generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
     private var showAllSectionsOnUserDrag: some View {
-        Toggle("Show all sections when Command + dragging menu bar items", isOn: manager.bindings.showAllSectionsOnUserDrag)
+        Toggle(isOn: manager.bindings.showAllSectionsOnUserDrag) {
+            Text(verbatim: "Show all sections when Command + dragging menu bar items".localized(for: generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
     private var showContextMenuOnRightClick: some View {
-        Toggle("Show context menu on right click", isOn: manager.bindings.showContextMenuOnRightClick)
+        Toggle(isOn: manager.bindings.showContextMenuOnRightClick) {
+            Text(verbatim: "Show context menu on right click".localized(for: generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
@@ -150,18 +175,20 @@ struct AdvancedSettingsPane: View {
             IceLabeledContent {
                 if permission.hasPermission {
                     Label {
-                        Text("Permission Granted")
+                        Text(verbatim: "Permission Granted".localized(for: generalSettingsManager.language))
                     } icon: {
                         Image(systemName: "checkmark.circle")
                             .foregroundStyle(.green)
                     }
                 } else {
-                    Button("Grant Permission") {
+                    Button {
                         permission.performRequest()
+                    } label: {
+                        Text(verbatim: "Grant Permission".localized(for: generalSettingsManager.language))
                     }
                 }
             } label: {
-                Text(permission.title)
+                Text(verbatim: permission.title.localized(for: generalSettingsManager.language))
             }
             .frame(height: 22)
         }

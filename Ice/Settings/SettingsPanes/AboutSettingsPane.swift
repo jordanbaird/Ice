@@ -13,6 +13,10 @@ struct AboutSettingsPane: View {
         appState.updatesManager
     }
 
+    private var generalSettingsManager: GeneralSettingsManager {
+        appState.settingsManager.generalSettingsManager
+    }
+
     private var acknowledgementsURL: URL {
         // swiftlint:disable:next force_unwrapping
         Bundle.main.url(forResource: "Acknowledgements", withExtension: "pdf")!
@@ -36,7 +40,7 @@ struct AboutSettingsPane: View {
         if let date = updatesManager.lastUpdateCheckDate {
             date.formatted(date: .abbreviated, time: .standard)
         } else {
-            "Never"
+            "Never".localized(for: generalSettingsManager.language)
         }
     }
 
@@ -78,11 +82,11 @@ struct AboutSettingsPane: View {
                 }
 
                 VStack(alignment: .leading) {
-                    Text("Ice")
+                    Text(verbatim: "Ice".localized(for: generalSettingsManager.language))
                         .font(.system(size: 72, weight: .medium))
                         .foregroundStyle(.primary)
 
-                    Text("Version \(Constants.versionString)")
+                    Text(verbatim: "Version ".localized(for: generalSettingsManager.language) + Constants.versionString)
                         .font(.system(size: 18))
                         .foregroundStyle(.secondary)
 
@@ -108,28 +112,28 @@ struct AboutSettingsPane: View {
 
     @ViewBuilder
     private var automaticallyCheckForUpdates: some View {
-        Toggle(
-            "Automatically check for updates",
-            isOn: updatesManager.bindings.automaticallyChecksForUpdates
-        )
+        Toggle(isOn: updatesManager.bindings.automaticallyChecksForUpdates) {
+            Text(verbatim: "Automatically check for updates".localized(for: generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
     private var automaticallyDownloadUpdates: some View {
-        Toggle(
-            "Automatically download updates",
-            isOn: updatesManager.bindings.automaticallyDownloadsUpdates
-        )
+        Toggle(isOn: updatesManager.bindings.automaticallyDownloadsUpdates) {
+            Text(verbatim: "Automatically download updates".localized(for: generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
     private var checkForUpdates: some View {
         HStack {
-            Button("Check for Updates") {
+            Button {
                 updatesManager.checkForUpdates()
+            } label: {
+                Text(verbatim: "Check for Updates".localized(for: generalSettingsManager.language))
             }
             Spacer()
-            Text("Last checked: \(lastUpdateCheckString)")
+            Text(verbatim: "Last checked: ".localized(for: generalSettingsManager.language) + lastUpdateCheckString)
                 .font(.caption)
         }
     }
@@ -137,21 +141,35 @@ struct AboutSettingsPane: View {
     @ViewBuilder
     private var bottomBar: some View {
         HStack {
-            Button("Quit Ice") {
+            Button {
                 NSApp.terminate(nil)
+            } label: {
+                Text(verbatim: "Quit Ice".localized(for: generalSettingsManager.language))
             }
             Spacer()
-            Button("Acknowledgements") {
+            Button {
                 NSWorkspace.shared.open(acknowledgementsURL)
+            } label: {
+                Text(verbatim: "Acknowledgements".localized(for: generalSettingsManager.language))
             }
-            Button("Contribute") {
+            Button {
                 openURL(contributeURL)
+            } label: {
+                Text(verbatim: "Contribute".localized(for: generalSettingsManager.language))
             }
-            Button("Report a Bug") {
+            Button {
                 openURL(issuesURL)
+            } label: {
+                Text(verbatim: "Report a Bug".localized(for: generalSettingsManager.language))
             }
-            Button("Support Ice", systemImage: "heart.circle.fill") {
+            Button {
                 openURL(donateURL)
+            } label: {
+                Label {
+                    Text(verbatim: "Support Ice".localized(for: generalSettingsManager.language))
+                } icon: {
+                    Image(systemName: "heart.circle.fill")
+                }
             }
         }
         .padding(8)

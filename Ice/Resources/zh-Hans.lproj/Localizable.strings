@@ -1,0 +1,44 @@
+/* Settings Navigation */
+"General" = "通用";
+"Menu Bar Layout" = "菜单栏布局";
+"Menu Bar Appearance" = "菜单栏外观";
+"Hotkeys" = "快捷键";
+"Advanced" = "高级";
+"About" = "关于";
+
+/* General Settings */
+"Show Ice icon" = "显示 Ice 图标";
+"You can still access Ice's settings by right-clicking an empty area in the menu bar" = "您仍然可以通过右键单击菜单栏的空白区域来访问 Ice 设置";
+"Ice icon" = "Ice 图标";
+"Choose image…" = "选择图像…";
+"Choose a custom icon to show in the menu bar" = "选择要在菜单栏中显示的自定义图标";
+"Apply system theme to icon" = "应用系统主题到图标";
+"Display the icon as a monochrome image matching the system appearance" = "将图标显示为与系统外观匹配的单色图像";
+"Use Ice Bar" = "使用 Ice Bar";
+"Show hidden menu bar items in a separate bar below the menu bar" = "在菜单栏下方的单独栏中显示隐藏的菜单栏项目";
+"Location" = "位置";
+"The Ice Bar's location changes based on context" = "Ice Bar 的位置根据上下文变化";
+"The Ice Bar is centered below the mouse pointer" = "Ice Bar 居中显示在鼠标指针下方";
+"The Ice Bar is centered below the Ice icon" = "Ice Bar 居中显示在 Ice 图标下方";
+"Show on click" = "点击显示";
+"Click inside an empty area of the menu bar to show hidden menu bar items" = "在菜单栏的空白区域内点击以显示隐藏的菜单栏项目";
+"Show on hover" = "悬停显示";
+"Hover over an empty area of the menu bar to show hidden menu bar items" = "将鼠标悬停在菜单栏的空白区域上以显示隐藏的菜单栏项目";
+"Show on scroll" = "滚动显示";
+"Scroll or swipe in the menu bar to toggle hidden menu bar items" = "在菜单栏中滚动或滑动以切换隐藏的菜单栏项目";
+"Menu bar item spacing" = "菜单栏项目间距";
+"Apply" = "应用";
+"Apply the current spacing" = "应用当前间距";
+"Reset to the default spacing" = "重置为默认间距";
+"Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched." = "应用此设置将重新启动所有具有菜单栏项目的应用程序。某些应用程序可能需要手动重新启动。";
+"Note: You may need to log out and back in for this setting to apply properly." = "注意：您可能需要注销并重新登录才能使此设置正确生效。";
+"Automatically rehide" = "自动隐藏";
+"Strategy" = "策略";
+"Menu bar items are rehidden using a smart algorithm" = "使用智能算法重新隐藏菜单栏项目";
+"Menu bar items are rehidden after a fixed amount of time" = "在固定时间后重新隐藏菜单栏项目";
+"Menu bar items are rehidden when the focused app changes" = "当焦点应用程序更改时重新隐藏菜单栏项目";
+
+/* Language */
+"Language" = "语言";
+"English" = "English";
+"Chinese" = "中文";

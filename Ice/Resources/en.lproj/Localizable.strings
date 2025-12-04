@@ -1,0 +1,44 @@
+/* Settings Navigation */
+"General" = "General";
+"Menu Bar Layout" = "Menu Bar Layout";
+"Menu Bar Appearance" = "Menu Bar Appearance";
+"Hotkeys" = "Hotkeys";
+"Advanced" = "Advanced";
+"About" = "About";
+
+/* General Settings */
+"Show Ice icon" = "Show Ice icon";
+"You can still access Ice's settings by right-clicking an empty area in the menu bar" = "You can still access Ice's settings by right-clicking an empty area in the menu bar";
+"Ice icon" = "Ice icon";
+"Choose image…" = "Choose image…";
+"Choose a custom icon to show in the menu bar" = "Choose a custom icon to show in the menu bar";
+"Apply system theme to icon" = "Apply system theme to icon";
+"Display the icon as a monochrome image matching the system appearance" = "Display the icon as a monochrome image matching the system appearance";
+"Use Ice Bar" = "Use Ice Bar";
+"Show hidden menu bar items in a separate bar below the menu bar" = "Show hidden menu bar items in a separate bar below the menu bar";
+"Location" = "Location";
+"The Ice Bar's location changes based on context" = "The Ice Bar's location changes based on context";
+"The Ice Bar is centered below the mouse pointer" = "The Ice Bar is centered below the mouse pointer";
+"The Ice Bar is centered below the Ice icon" = "The Ice Bar is centered below the Ice icon";
+"Show on click" = "Show on click";
+"Click inside an empty area of the menu bar to show hidden menu bar items" = "Click inside an empty area of the menu bar to show hidden menu bar items";
+"Show on hover" = "Show on hover";
+"Hover over an empty area of the menu bar to show hidden menu bar items" = "Hover over an empty area of the menu bar to show hidden menu bar items";
+"Show on scroll" = "Show on scroll";
+"Scroll or swipe in the menu bar to toggle hidden menu bar items" = "Scroll or swipe in the menu bar to toggle hidden menu bar items";
+"Menu bar item spacing" = "Menu bar item spacing";
+"Apply" = "Apply";
+"Apply the current spacing" = "Apply the current spacing";
+"Reset to the default spacing" = "Reset to the default spacing";
+"Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched." = "Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.";
+"Note: You may need to log out and back in for this setting to apply properly." = "Note: You may need to log out and back in for this setting to apply properly.";
+"Automatically rehide" = "Automatically rehide";
+"Strategy" = "Strategy";
+"Menu bar items are rehidden using a smart algorithm" = "Menu bar items are rehidden using a smart algorithm";
+"Menu bar items are rehidden after a fixed amount of time" = "Menu bar items are rehidden after a fixed amount of time";
+"Menu bar items are rehidden when the focused app changes" = "Menu bar items are rehidden when the focused app changes";
+
+/* Language */
+"Language" = "Language";
+"English" = "English";
+"Chinese" = "Chinese";

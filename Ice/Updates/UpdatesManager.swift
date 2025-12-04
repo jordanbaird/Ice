@@ -76,9 +76,7 @@ final class UpdatesManager: NSObject, ObservableObject {
     @objc func checkForUpdates() {
         #if DEBUG
         // Checking for updates hangs in debug mode.
-        let alert = NSAlert()
-        alert.messageText = "Checking for updates is not supported in debug mode."
-        alert.runModal()
+        print("Checking for updates is not supported in debug mode.")
         #else
         guard let appState else {
             return

@@ -12,16 +12,29 @@ struct HotkeysSettingsPane: View {
         appState.settingsManager.hotkeySettingsManager
     }
 
+    private var generalSettingsManager: GeneralSettingsManager {
+        appState.settingsManager.generalSettingsManager
+    }
+
     var body: some View {
         IceForm {
-            IceSection("Menu Bar Sections") {
+            IceSection(header: {
+                Text(verbatim: "Menu Bar Sections".localized(for: generalSettingsManager.language))
+                    .font(.headline)
+            }) {
                 hotkeyRecorder(forSection: .hidden)
                 hotkeyRecorder(forSection: .alwaysHidden)
             }
-            IceSection("Menu Bar Items") {
+            IceSection(header: {
+                Text(verbatim: "Menu Bar Items".localized(for: generalSettingsManager.language))
+                    .font(.headline)
+            }) {
                 hotkeyRecorder(forAction: .searchMenuBarItems)
             }
-            IceSection("Other") {
+            IceSection(header: {
+                Text(verbatim: "Other".localized(for: generalSettingsManager.language))
+                    .font(.headline)
+            }) {
                 hotkeyRecorder(forAction: .enableIceBar)
                 hotkeyRecorder(forAction: .showSectionDividers)
                 hotkeyRecorder(forAction: .toggleApplicationMenus)
@@ -35,17 +48,17 @@ struct HotkeysSettingsPane: View {
             HotkeyRecorder(hotkey: hotkey) {
                 switch action {
                 case .toggleHiddenSection:
-                    Text("Toggle the hidden section")
+                    Text(verbatim: "Toggle the hidden section".localized(for: generalSettingsManager.language))
                 case .toggleAlwaysHiddenSection:
-                    Text("Toggle the always-hidden section")
+                    Text(verbatim: "Toggle the always-hidden section".localized(for: generalSettingsManager.language))
                 case .searchMenuBarItems:
-                    Text("Search menu bar items")
+                    Text(verbatim: "Search menu bar items".localized(for: generalSettingsManager.language))
                 case .enableIceBar:
-                    Text("Enable the Ice Bar")
+                    Text(verbatim: "Enable the Ice Bar".localized(for: generalSettingsManager.language))
                 case .showSectionDividers:
-                    Text("Show section dividers")
+                    Text(verbatim: "Show section dividers".localized(for: generalSettingsManager.language))
                 case .toggleApplicationMenus:
-                    Text("Toggle application menus")
+                    Text(verbatim: "Toggle application menus".localized(for: generalSettingsManager.language))
                 }
             }
         }

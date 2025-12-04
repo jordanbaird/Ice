@@ -7,6 +7,7 @@ import SwiftUI
 
 struct MenuBarShapePicker: View {
     @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
+    @EnvironmentObject var appState: AppState
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -16,17 +17,19 @@ struct MenuBarShapePicker: View {
 
     @ViewBuilder
     private var shapeKindPicker: some View {
-        IcePicker("Shape Kind", selection: appearanceManager.bindings.configuration.shapeKind) {
+        IcePicker(selection: appearanceManager.bindings.configuration.shapeKind) {
             ForEach(MenuBarShapeKind.allCases, id: \.self) { shape in
                 switch shape {
                 case .none:
-                    Text("None").tag(shape)
+                    Text(verbatim: "None".localized(for: appState.settingsManager.generalSettingsManager.language)).tag(shape)
                 case .full:
-                    Text("Full").tag(shape)
+                    Text(verbatim: "Full".localized(for: appState.settingsManager.generalSettingsManager.language)).tag(shape)
                 case .split:
-                    Text("Split").tag(shape)
+                    Text(verbatim: "Split".localized(for: appState.settingsManager.generalSettingsManager.language)).tag(shape)
                 }
             }
+        } label: {
+            Text(verbatim: "Shape Kind".localized(for: appState.settingsManager.generalSettingsManager.language))
         }
     }
 
@@ -34,7 +37,7 @@ struct MenuBarShapePicker: View {
     private var exampleView: some View {
         switch appearanceManager.configuration.shapeKind {
         case .none:
-            Text("No shape kind selected")
+            Text(verbatim: "No shape kind selected".localized(for: appState.settingsManager.generalSettingsManager.language))
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         case .full:

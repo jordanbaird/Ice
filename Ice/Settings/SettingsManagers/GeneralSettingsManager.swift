@@ -5,6 +5,21 @@
 
 import Combine
 import Foundation
+import SwiftUI
+
+enum Language: String, CaseIterable, Identifiable {
+    case english = "en"
+    case chinese = "zh-Hans"
+
+    var id: String { rawValue }
+
+    var localized: LocalizedStringKey {
+        switch self {
+        case .english: "English"
+        case .chinese: "Chinese"
+        }
+    }
+}
 
 @MainActor
 final class GeneralSettingsManager: ObservableObject {
@@ -59,6 +74,9 @@ final class GeneralSettingsManager: ObservableObject {
     /// is ``RehideStrategy/timed``.
     @Published var rehideInterval: TimeInterval = 15
 
+    /// The language to use for the application.
+    @Published var language: Language = .english
+
     /// Encoder for properties.
     private let encoder = JSONEncoder()
 
@@ -89,7 +107,14 @@ final class GeneralSettingsManager: ObservableObject {
         Defaults.ifPresent(key: .showOnScroll, assign: &showOnScroll)
         Defaults.ifPresent(key: .itemSpacingOffset, assign: &itemSpacingOffset)
         Defaults.ifPresent(key: .autoRehide, assign: &autoRehide)
+        Defaults.ifPresent(key: .autoRehide, assign: &autoRehide)
         Defaults.ifPresent(key: .rehideInterval, assign: &rehideInterval)
+
+        Defaults.ifPresent(key: .language) { rawValue in
+            if let language = Language(rawValue: rawValue) {
+                self.language = language
+            }
+        }
 
         Defaults.ifPresent(key: .iceBarLocation) { rawValue in
             if let location = IceBarLocation(rawValue: rawValue) {
@@ -210,6 +235,13 @@ final class GeneralSettingsManager: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { interval in
                 Defaults.set(interval, forKey: .rehideInterval)
+            }
+            .store(in: &c)
+
+        $language
+            .receive(on: DispatchQueue.main)
+            .sink { language in
+                Defaults.set(language.rawValue, forKey: .language)
             }
             .store(in: &c)
 

@@ -36,10 +36,14 @@ struct MenuBarAppearanceEditor: View {
     private var stackHeader: some View {
         if case .popover(let closePopover) = location {
             ZStack {
-                Text("Menu Bar Appearance")
+                Text(verbatim: "Menu Bar Appearance".localized(for: appState.settingsManager.generalSettingsManager.language))
                     .font(.title2)
                     .frame(maxWidth: .infinity, alignment: .center)
-                Button("Done", action: closePopover)
+                Button {
+                    closePopover()
+                } label: {
+                    Text(verbatim: "Done".localized(for: appState.settingsManager.generalSettingsManager.language))
+                }
                     .controlSize(.large)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
@@ -68,7 +72,10 @@ struct MenuBarAppearanceEditor: View {
             } else {
                 StaticPartialEditor()
             }
-            IceSection("Menu Bar Shape") {
+            IceSection(header: {
+                Text(verbatim: "Menu Bar Shape".localized(for: appState.settingsManager.generalSettingsManager.language))
+                    .font(.headline)
+            }) {
                 shapePicker
                 isInset
             }
@@ -79,7 +86,7 @@ struct MenuBarAppearanceEditor: View {
                         font: .callout.bold()
                     ) {
                         Label {
-                            Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
+                            Text(verbatim: "Tip: you can also edit these settings by right-clicking in an empty area of the menu bar".localized(for: appState.settingsManager.generalSettingsManager.language))
                         } icon: {
                             Image(systemName: "lightbulb")
                         }
@@ -90,8 +97,10 @@ struct MenuBarAppearanceEditor: View {
                 !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
                 appearanceManager.configuration != .defaultConfiguration
             {
-                Button("Reset") {
+                Button {
                     appearanceManager.configuration = .defaultConfiguration
+                } label: {
+                    Text(verbatim: "Reset".localized(for: appState.settingsManager.generalSettingsManager.language))
                 }
                 .controlSize(.large)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
@@ -101,13 +110,17 @@ struct MenuBarAppearanceEditor: View {
 
     @ViewBuilder
     private var isDynamicToggle: some View {
-        Toggle("Use dynamic appearance", isOn: appearanceManager.bindings.configuration.isDynamic)
-            .annotation("Apply different settings based on the current system appearance")
+        Toggle(isOn: appearanceManager.bindings.configuration.isDynamic) {
+            Text(verbatim: "Use dynamic appearance".localized(for: appState.settingsManager.generalSettingsManager.language))
+        }
+        .annotation {
+            Text(verbatim: "Apply different settings based on the current system appearance".localized(for: appState.settingsManager.generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
     private var cannotEdit: some View {
-        Text("Ice cannot edit the appearance of automatically hidden menu bars")
+        Text(verbatim: "Ice cannot edit the appearance of automatically hidden menu bars".localized(for: appState.settingsManager.generalSettingsManager.language))
             .font(.title3)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
@@ -121,16 +134,16 @@ struct MenuBarAppearanceEditor: View {
     @ViewBuilder
     private var isInset: some View {
         if appearanceManager.configuration.shapeKind != .none {
-            Toggle(
-                "Use inset shape on screens with notch",
-                isOn: appearanceManager.bindings.configuration.isInset
-            )
+            Toggle(isOn: appearanceManager.bindings.configuration.isInset) {
+                Text(verbatim: "Use inset shape on screens with notch".localized(for: appState.settingsManager.generalSettingsManager.language))
+            }
         }
     }
 }
 
 private struct UnlabeledPartialEditor: View {
     @Binding var configuration: MenuBarAppearancePartialConfiguration
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         IceSection {
@@ -146,12 +159,14 @@ private struct UnlabeledPartialEditor: View {
 
     @ViewBuilder
     private var tintPicker: some View {
-        IceLabeledContent("Tint") {
+        IceLabeledContent {
             HStack {
-                IcePicker("Tint", selection: $configuration.tintKind) {
+                IcePicker(selection: $configuration.tintKind) {
                     ForEach(MenuBarTintKind.allCases) { tintKind in
                         Text(tintKind.localized).tag(tintKind)
                     }
+                } label: {
+                    Text(verbatim: "Tint".localized(for: appState.settingsManager.generalSettingsManager.language))
                 }
                 .labelsHidden()
 
@@ -174,28 +189,36 @@ private struct UnlabeledPartialEditor: View {
                 }
             }
             .frame(height: 24)
+        } label: {
+            Text(verbatim: "Tint".localized(for: appState.settingsManager.generalSettingsManager.language))
         }
     }
 
     @ViewBuilder
     private var shadowToggle: some View {
-        Toggle("Shadow", isOn: $configuration.hasShadow)
+        Toggle(isOn: $configuration.hasShadow) {
+            Text(verbatim: "Shadow".localized(for: appState.settingsManager.generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
     private var borderToggle: some View {
-        Toggle("Border", isOn: $configuration.hasBorder)
+        Toggle(isOn: $configuration.hasBorder) {
+            Text(verbatim: "Border".localized(for: appState.settingsManager.generalSettingsManager.language))
+        }
     }
 
     @ViewBuilder
     private var borderColor: some View {
         if configuration.hasBorder {
-            IceLabeledContent("Border Color") {
+            IceLabeledContent {
                 CustomColorPicker(
                     selection: $configuration.borderColor,
                     supportsOpacity: true,
                     mode: .crayon
                 )
+            } label: {
+                Text(verbatim: "Border Color".localized(for: appState.settingsManager.generalSettingsManager.language))
             }
         }
     }
@@ -204,12 +227,13 @@ private struct UnlabeledPartialEditor: View {
     private var borderWidth: some View {
         if configuration.hasBorder {
             IcePicker(
-                "Border Width",
                 selection: $configuration.borderWidth
             ) {
                 Text("1").tag(1.0)
                 Text("2").tag(2.0)
                 Text("3").tag(3.0)
+            } label: {
+                Text(verbatim: "Border Width".localized(for: appState.settingsManager.generalSettingsManager.language))
             }
         }
     }
@@ -293,6 +317,8 @@ private struct PreviewButton: View {
     }
 
     @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
+    @EnvironmentObject var appState: AppState
+
 
     @State private var frame = CGRect.zero
     @State private var isPressed = false
@@ -303,7 +329,7 @@ private struct PreviewButton: View {
         ZStack {
             DummyButton(isPressed: $isPressed)
                 .allowsHitTesting(false)
-            Text("Hold to Preview")
+            Text(verbatim: "Hold to Preview".localized(for: appState.settingsManager.generalSettingsManager.language))
                 .baselineOffset(1.5)
                 .padding(.horizontal, 10)
                 .contentShape(Rectangle())

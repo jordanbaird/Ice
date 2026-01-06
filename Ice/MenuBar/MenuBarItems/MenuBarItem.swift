@@ -163,6 +163,7 @@ struct MenuBarItem: CustomStringConvertible {
     ///
     /// This initializer does not perform validity checks on its parameters.
     /// Only call it if you are certain the window is a valid menu bar item.
+    @MainActor
     private init(uncheckedItemWindow itemWindow: WindowInfo) {
         self.tag = MenuBarItemTag(uncheckedItemWindow: itemWindow)
         self.windowID = itemWindow.windowID
@@ -179,6 +180,7 @@ struct MenuBarItem: CustomStringConvertible {
     /// Only call it if you are certain the window is a valid menu bar item
     /// and the source pid belongs to the application that created it.
     @available(macOS 26.0, *)
+    @MainActor
     private init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?) {
         self.tag = MenuBarItemTag(uncheckedItemWindow: itemWindow, sourcePID: sourcePID)
         self.windowID = itemWindow.windowID
@@ -243,6 +245,7 @@ extension MenuBarItem {
     /// Creates and returns a list of menu bar items using experimental
     /// source pid retrieval for macOS 26.
     @available(macOS 26.0, *)
+    @MainActor
     private static func getMenuBarItemsExperimental(on display: CGDirectDisplayID?, option: ListOption) async -> [MenuBarItem] {
         var items = [MenuBarItem]()
         for window in getMenuBarItemWindows(on: display, option: option) {
@@ -255,6 +258,7 @@ extension MenuBarItem {
 
     /// Creates and returns a list of menu bar items, defaulting to the
     /// legacy source pid behavior, prior to macOS 26.
+    @MainActor
     private static func getMenuBarItemsLegacyMethod(on display: CGDirectDisplayID?, option: ListOption) -> [MenuBarItem] {
         getMenuBarItemWindows(on: display, option: option).map { window in
             MenuBarItem(uncheckedItemWindow: window)
@@ -268,6 +272,7 @@ extension MenuBarItem {
     ///     items across all available displays.
     ///   - option: Options that filter the returned list. Pass an empty option set
     ///     to return all available menu bar items.
+    @MainActor
     static func getMenuBarItems(on display: CGDirectDisplayID? = nil, option: ListOption) async -> [MenuBarItem] {
         if #available(macOS 26.0, *) {
             await getMenuBarItemsExperimental(on: display, option: option)
@@ -310,6 +315,7 @@ private extension MenuBarItemTag {
     ///
     /// This initializer does not perform validity checks on its parameters.
     /// Only call it if you are certain the window is a valid menu bar item.
+    @MainActor
     init(uncheckedItemWindow itemWindow: WindowInfo) {
         self.namespace = Namespace(uncheckedItemWindow: itemWindow)
         self.title = itemWindow.title ?? ""
@@ -321,6 +327,7 @@ private extension MenuBarItemTag {
     /// Only call it if you are certain the window is a valid menu bar item
     /// and the source pid belongs to the application that created it.
     @available(macOS 26.0, *)
+    @MainActor
     init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?) {
         self.namespace = Namespace(uncheckedItemWindow: itemWindow, sourcePID: sourcePID)
         self.title = itemWindow.title ?? ""
@@ -329,13 +336,21 @@ private extension MenuBarItemTag {
 
 // MARK: - MenuBarItemTag.Namespace Helper
 
-private extension MenuBarItemTag.Namespace {
+extension MenuBarItemTag.Namespace {
     private static var uuidCache = [CGWindowID: UUID]()
+
+    /// Prunes the UUID cache, keeping only the entries for the given
+    /// valid window identifiers.
+    @MainActor
+    static func pruneUUIDCache(keeping validWindowIDs: Set<CGWindowID>) {
+        uuidCache = uuidCache.filter { validWindowIDs.contains($0.key) }
+    }
 
     /// Creates a namespace without checks.
     ///
     /// This initializer does not perform validity checks on its parameters.
     /// Only call it if you are certain the window is a valid menu bar item.
+    @MainActor
     init(uncheckedItemWindow itemWindow: WindowInfo) {
         // Most apps have a bundle ID, but we should be able to handle apps
         // that don't. We should also be able to handle daemons and helpers,
@@ -357,6 +372,7 @@ private extension MenuBarItemTag.Namespace {
     /// Only call it if you are certain the window is a valid menu bar item
     /// and the source pid belongs to the application that created it.
     @available(macOS 26.0, *)
+    @MainActor
     init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?) {
         // Most apps have a bundle ID, but we should be able to handle apps
         // that don't. We should also be able to handle daemons and helpers,

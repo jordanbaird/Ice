@@ -158,14 +158,14 @@ extension SectionedList {
 // MARK: - SectionedListItem
 
 /// An item in a sectioned list.
-struct SectionedListItem<ID: Hashable> {
+struct SectionedListItem<ID: Hashable>: @unchecked Sendable {
     let content: AnyView
     let id: ID
     let isSelectable: Bool
-    let action: (() -> Void)?
+    let action: (@MainActor @Sendable () -> Void)?
 
     /// Returns a selectable item for a sectioned list.
-    static func item(id: ID, isSelectable: Bool = true, action: (() -> Void)? = nil, @ViewBuilder content: () -> some View) -> SectionedListItem {
+    static func item(id: ID, isSelectable: Bool = true, action: (@MainActor @Sendable () -> Void)? = nil, @ViewBuilder content: () -> some View) -> SectionedListItem {
         SectionedListItem(content: AnyView(content()), id: id, isSelectable: isSelectable, action: action)
     }
 

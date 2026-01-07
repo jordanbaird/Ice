@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ukushu/Ifrit",
       "state" : {
-        "revision" : "3f961f6d39cd2188305671f2ec65914d297571d0",
-        "version" : "2.0.6"
+        "revision" : "7c889a67bad90c5efefa56889b2d61bfbb831473",
+        "version" : "4.0.0"
       }
     },
     {

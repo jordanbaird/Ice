@@ -595,7 +595,7 @@
 			repositoryURL = "https://github.com/ukushu/Ifrit";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.0.3;
+				minimumVersion = 4.0.0;
 			};
 		};
 		71A065072E680C620087DB38 /* XCRemoteSwiftPackageReference "Semaphore" */ = {

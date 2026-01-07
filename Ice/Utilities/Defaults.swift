@@ -163,6 +163,9 @@ extension Defaults {
         case showOnHoverDelay = "ShowOnHoverDelay"
         case tempShowInterval = "TempShowInterval"
 
+        // MARK: Internal
+        case menuBarSearchPanelFrame = "MenuBarSearchPanelFrame"
+
         // MARK: Appearance Settings
         case menuBarAppearanceConfigurationV2 = "MenuBarAppearanceConfigurationV2"
 

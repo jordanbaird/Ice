@@ -1,0 +1,95 @@
+/* =========================
+   Ice — 简体中文（macOS 风格）
+   ========================= */
+
+/* App Menu */
+"Ice" = "Ice";
+"About Ice" = "关于 Ice";
+"Settings" = "设置";
+"Preferences" = "偏好设置";
+"Quit Ice" = "退出 Ice";
+
+/* General */
+"General" = "通用";
+"Enable Ice" = "启用 Ice";
+"Enable Ice Bar" = "启用 Ice 工具栏";
+"Launch at login" = "登录时启动";
+"Automatic updates" = "自动更新";
+"Check for updates" = "检查更新";
+
+/* Menu Bar Sections */
+"Menu Bar" = "菜单栏";
+"Always-visible section" = "始终显示";
+"Always-hidden section" = "始终隐藏";
+"Hidden section" = "隐藏区域";
+"Visible section" = "显示区域";
+
+/* Item Management */
+"Hide menu bar items" = "隐藏菜单栏项目";
+"Show menu bar items" = "显示菜单栏项目";
+"Reorder menu bar items" = "重新排列菜单栏项目";
+"Drag to reorder" = "拖动以重新排列";
+"Reset menu bar layout" = "重置菜单栏布局";
+
+/* Hidden Items */
+"Show hidden items on hover" = "悬停时显示隐藏项目";
+"Show hidden items on click" = "点击时显示隐藏项目";
+"Show hidden items on scroll" = "滚动时显示隐藏项目";
+"Automatically rehide" = "自动重新隐藏";
+"Rehide immediately" = "立即重新隐藏";
+
+/* Ice Bar */
+"Ice Bar" = "Ice 工具栏";
+"Show Ice Bar" = "显示 Ice 工具栏";
+"Hide Ice Bar" = "隐藏 Ice 工具栏";
+"Separate bar for hidden items" = "在独立工具栏中显示隐藏项目";
+
+/* Appearance */
+"Appearance" = "外观";
+"Menu bar appearance" = "菜单栏外观";
+"Menu bar background" = "菜单栏背景";
+"Show menu bar background" = "显示菜单栏背景";
+"Menu bar tint" = "菜单栏色调";
+"Menu bar opacity" = "菜单栏不透明度";
+"Menu bar shadow" = "菜单栏阴影";
+"Menu bar border" = "菜单栏边框";
+"Menu bar shape" = "菜单栏形状";
+"Rounded corners" = "圆角";
+"Inset for notch" = "适配刘海屏";
+
+/* Spacing */
+"Item spacing" = "项目间距";
+"Add spacer" = "添加间隔";
+"Remove spacer" = "移除间隔";
+"Spacer" = "间隔";
+
+/* Groups & Profiles */
+"Groups" = "分组";
+"Create group" = "新建分组";
+"Remove group" = "移除分组";
+"Profiles" = "配置";
+"Create profile" = "新建配置";
+"Delete profile" = "删除配置";
+"Switch profile" = "切换配置";
+
+/* Search */
+"Search" = "搜索";
+"Search…" = "搜索…";
+"No results found" = "未找到结果";
+
+/* Hotkeys */
+"Hotkeys" = "快捷键";
+"Keyboard shortcuts" = "键盘快捷键";
+"Set hotkey" = "设置快捷键";
+"Clear hotkey" = "清除快捷键";
+"Toggle Ice" = "启用或关闭 Ice";
+
+/* Context Menu */
+"Always show" = "始终显示";
+"Always hide" = "始终隐藏";
+"Remove item" = "移除";
+
+/* Messages */
+"Changes will take effect immediately" = "更改将立即生效";
+"Restart Ice to apply changes" = "重新启动 Ice 以应用更改";
+"Are you sure?" = "确定要继续吗？";

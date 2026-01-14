@@ -493,3 +493,51 @@ extension Sequence where Element == MenuBarItem {
         }
     }
 }
+// MARK: - NSWindow
+
+extension NSWindow {
+    /// Returns the window's identifier as a `CGWindowID`, or `nil` if the
+    /// window number cannot be safely converted.
+    ///
+    /// This property performs bounds checking to ensure the `windowNumber`
+    /// can be safely represented as a `UInt32` without overflow.
+    ///
+    /// - Note: This computed property can return `nil` if the window hasn't
+    ///   been displayed yet (windowNumber == -1) or if the value exceeds
+    ///   `UInt32.max`. For reactive use cases, consider using `cgWindowIDPublisher`
+    ///   to observe valid window IDs as they become available.
+    var cgWindowID: CGWindowID? {
+        guard 
+            windowNumber >= 0,
+            windowNumber <= Int(UInt32.max)
+        else {
+            return nil
+        }
+        return CGWindowID(windowNumber)
+    }
+    
+    /// A publisher that emits valid `CGWindowID` values when the window number changes.
+    ///
+    /// This publisher observes the `windowNumber` property and only emits values that
+    /// can be safely represented as a `CGWindowID`. This is useful for reactive code
+    /// that needs to respond to window availability.
+    ///
+    /// The publisher completes when the window is deallocated.
+    ///
+    /// - Returns: A publisher that emits `CGWindowID` values when available.
+    var cgWindowIDPublisher: AnyPublisher<CGWindowID, Never> {
+        publisher(for: \.windowNumber)
+            .compactMap { windowNumber in
+                guard 
+                    windowNumber >= 0,
+                    windowNumber <= Int(UInt32.max)
+                else {
+                    return nil
+                }
+                return CGWindowID(windowNumber)
+            }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
+    }
+}
+

@@ -35,6 +35,11 @@ final class ControlItem {
 
     /// The frame of the control item's window (`@Published`).
     @Published private(set) var windowFrame: CGRect?
+    
+    /// The identifier of the control item's window (`@Published`).
+    ///
+    /// This value is `nil` until the status item's window is ready and has a valid window number.
+    @Published private(set) var windowID: CGWindowID?
 
     /// The shared app state.
     private weak var appState: AppState?
@@ -59,14 +64,6 @@ final class ControlItem {
     /// The control item's window.
     var window: NSWindow? {
         statusItem.button?.window
-    }
-
-    /// The identifier of the control item's window.
-    var windowID: CGWindowID? {
-        guard let window else {
-            return nil
-        }
-        return CGWindowID(window.windowNumber)
     }
 
     /// A Boolean value that indicates whether the control item serves as
@@ -225,6 +222,16 @@ final class ControlItem {
                 windowFrame = frame
             }
             .store(in: &c)
+
+        // Observe window ID changes reactively
+        if let window {
+            window.cgWindowIDPublisher
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] windowID in
+                    self?.windowID = windowID
+                }
+                .store(in: &c)
+        }
 
         if let appState {
             appState.settingsManager.generalSettingsManager.$showIceIcon

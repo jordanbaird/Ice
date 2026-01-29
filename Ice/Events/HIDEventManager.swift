@@ -181,6 +181,18 @@ extension HIDEventManager {
             return
         }
 
+        // On displays without a notch in fullscreen mode, the menu bar auto-hides.
+        // Don't trigger showOnClick when the menu bar hasn't slid down yet.
+        // We detect this by checking if there's a visible menu bar window on this screen.
+        if appState.activeSpace.isFullscreen && !screen.hasNotch {
+            let windows = WindowInfo.createWindows(option: .onScreen)
+            let menuBarWindow = WindowInfo.menuBarWindow(from: windows, for: screen.displayID)
+            // If there's no menu bar window on screen, the menu bar hasn't slid down yet
+            if menuBarWindow == nil {
+                return
+            }
+        }
+
         Task {
             if NSEvent.modifierFlags == .control {
                 handleSecondaryContextMenu(appState: appState, screen: screen)
@@ -465,6 +477,15 @@ extension HIDEventManager {
             let mouseLocation = MouseHelpers.locationAppKit
         else {
             return false
+        }
+
+        // In fullscreen mode on displays without a notch, the system menu bar is hidden
+        // and slides down when the user hovers at the top. We should not consider the
+        // mouse to be inside the menu bar when the menu bar is hidden by the system.
+        if appState.activeSpace.isFullscreen && !screen.hasNotch {
+            if appState.menuBarManager.isMenuBarHiddenBySystem {
+                return false
+            }
         }
 
         // Infer the menu bar frame from the screen frame.

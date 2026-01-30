@@ -188,6 +188,9 @@ final class AppState: ObservableObject {
         itemManager.performSetup()
         imageCache.performSetup()
         updatesManager.performSetup()
+		DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+			self?.updatesManager.startUpdater()
+		}
         userNotificationManager.performSetup()
     }
 

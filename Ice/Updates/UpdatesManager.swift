@@ -20,11 +20,19 @@ final class UpdatesManager: NSObject, ObservableObject {
 
     /// The underlying updater controller.
     private(set) lazy var updaterController = SPUStandardUpdaterController(
-        startingUpdater: true,
+        startingUpdater: false,
         updaterDelegate: self,
         userDriverDelegate: self
     )
 
+	func startUpdater() {
+		do {
+			try updater.start()
+		} catch {
+			Logger.updatesManager.error("Failed to start updater: \(error)")
+		}
+	}
+	
     /// The underlying updater.
     var updater: SPUUpdater {
         updaterController.updater
@@ -143,3 +151,8 @@ extension UpdatesManager: @preconcurrency SPUStandardUserDriverDelegate {
 
 // MARK: UpdatesManager: BindingExposable
 extension UpdatesManager: BindingExposable { }
+
+// MARK: - Logger
+private extension Logger {
+	static let updatesManager = Logger(category: "UpdatesManager")
+}

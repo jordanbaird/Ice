@@ -119,11 +119,19 @@ final class MenuBarItemImageCache: ObservableObject {
 
         for item in items {
             let windowID = item.windowID
-            guard
-                // Use the most up-to-date window frame.
-                let itemFrame = Bridging.getWindowFrame(for: windowID),
-                itemFrame.minY == displayBounds.minY
-            else {
+            // macOS 26 fix: Bridging.getWindowFrame may fail with new window ID format
+            // Fall back to item.frame if CGSGetScreenRectForWindow fails
+            var itemFrame = Bridging.getWindowFrame(for: windowID)
+            if itemFrame == nil {
+                Logger.imageCache.debug("getWindowFrame failed for \(item.info), using item.frame")
+                itemFrame = item.frame
+            }
+            guard let itemFrame else { continue }
+            // macOS 26 fix: Allow items with different minY values (coordinate system may differ)
+            // Only skip items that are clearly not on the menu bar (too far from display top)
+            let yDiff = abs(itemFrame.minY - displayBounds.minY)
+            if yDiff > 50 {
+                Logger.imageCache.debug("Skipping \(item.info): itemFrame.minY=\(itemFrame.minY), displayBounds.minY=\(displayBounds.minY)")
                 continue
             }
             itemInfos[windowID] = item.info
@@ -131,6 +139,7 @@ final class MenuBarItemImageCache: ObservableObject {
             windowIDs.append(windowID)
             frame = frame.union(itemFrame)
         }
+        Logger.imageCache.debug("Prepared \(windowIDs.count) windows for capture")
 
         if
             let compositeImage = ScreenCapture.captureWindows(windowIDs, option: option),

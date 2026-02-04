@@ -117,6 +117,59 @@ struct WindowInfo {
         }
         self.init(dictionary: dictionary)
     }
+    
+    /// Creates a synthetic WindowInfo for use when CGWindowListCreateDescriptionFromArray fails.
+    /// This is needed for macOS 26+ where the window ID format has changed.
+    static func synthetic(
+        windowID: CGWindowID,
+        frame: CGRect,
+        title: String?,
+        ownerPID: pid_t
+    ) -> WindowInfo {
+        WindowInfo(
+            windowID: windowID,
+            frame: frame,
+            title: title,
+            layer: Int(kCGStatusWindowLevel),
+            alpha: 1.0,
+            ownerPID: ownerPID,
+            ownerName: nil,
+            sharingState: .none,
+            backingStoreType: .backingStoreRetained,
+            memoryUsage: Measurement(value: 0, unit: .bytes),
+            isOnScreen: true,
+            isBackedByVideoMemory: false
+        )
+    }
+    
+    /// Private memberwise initializer for synthetic creation
+    private init(
+        windowID: CGWindowID,
+        frame: CGRect,
+        title: String?,
+        layer: Int,
+        alpha: Double,
+        ownerPID: pid_t,
+        ownerName: String?,
+        sharingState: CGWindowSharingType,
+        backingStoreType: CGWindowBackingType,
+        memoryUsage: Measurement<UnitInformationStorage>,
+        isOnScreen: Bool,
+        isBackedByVideoMemory: Bool
+    ) {
+        self.windowID = windowID
+        self.frame = frame
+        self.title = title
+        self.layer = layer
+        self.alpha = alpha
+        self.ownerPID = ownerPID
+        self.ownerName = ownerName
+        self.sharingState = sharingState
+        self.backingStoreType = backingStoreType
+        self.memoryUsage = memoryUsage
+        self.isOnScreen = isOnScreen
+        self.isBackedByVideoMemory = isBackedByVideoMemory
+    }
 }
 
 // MARK: - WindowList Operations

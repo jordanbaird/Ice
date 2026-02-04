@@ -116,6 +116,8 @@ class Permission: ObservableObject, Identifiable {
 // MARK: - AccessibilityPermission
 
 final class AccessibilityPermission: Permission {
+    private static let logger = Logger(category: "AccessibilityPermission")
+    
     init() {
         super.init(
             title: "Accessibility",
@@ -124,9 +126,11 @@ final class AccessibilityPermission: Permission {
                 "Arrange menu bar items.",
             ],
             isRequired: true,
-            settingsURL: nil,
+            settingsURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"),
             check: {
-                checkIsProcessTrusted()
+                let result = checkIsProcessTrusted()
+                Self.logger.debug("checkIsProcessTrusted returned: \(result)")
+                return result
             },
             request: {
                 checkIsProcessTrusted(prompt: true)

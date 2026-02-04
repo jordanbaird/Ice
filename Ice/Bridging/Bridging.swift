@@ -124,6 +124,7 @@ extension Bridging {
 
     private static func getMenuBarWindowList() -> [CGWindowID] {
         let windowCount = getWindowCount()
+        Logger.bridging.debug("getMenuBarWindowList: total window count = \(windowCount)")
         var list = [CGWindowID](repeating: 0, count: windowCount)
         var realCount: Int32 = 0
         let result = CGSGetProcessMenuBarWindowList(
@@ -137,6 +138,23 @@ extension Bridging {
             Logger.bridging.error("CGSGetProcessMenuBarWindowList failed with error \(result.logString)")
             return []
         }
+        Logger.bridging.debug("getMenuBarWindowList: found \(realCount) menu bar windows")
+        
+        // Debug: check for Ice windows in the list
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+        for windowID in list[..<Int(realCount)] {
+            var pointer = UnsafeRawPointer(bitPattern: Int(windowID))
+            if let array = CFArrayCreate(kCFAllocatorDefault, &pointer, 1, nil),
+               let descList = CGWindowListCreateDescriptionFromArray(array) as? [[CFString: Any]],
+               let desc = descList.first,
+               let ownerPID = desc[kCGWindowOwnerPID] as? pid_t,
+               ownerPID == currentPID {
+                let layer = desc[kCGWindowLayer] as? Int ?? -1
+                let title = desc[kCGWindowName] as? String ?? "nil"
+                Logger.bridging.debug("Ice window in menubar list: windowID=\(windowID), layer=\(layer), title=\(title), expectedLayer=\(Int(kCGStatusWindowLevel))")
+            }
+        }
+        
         return [CGWindowID](list[..<Int(realCount)])
     }
 

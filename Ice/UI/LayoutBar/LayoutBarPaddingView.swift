@@ -99,12 +99,26 @@ final class LayoutBarPaddingView: NSView {
             if arrangedViews.count == 1 {
                 // dragging source is the only view in the layout bar, so we
                 // need to find a target item
+                // macOS 26 fix: Get control items from appState instead of getMenuBarItems
+                // because synthetic control items may not be in the system-returned list
                 let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
-                let targetItem: MenuBarItem? = switch section.name {
+                var targetItem: MenuBarItem? = switch section.name {
                 case .visible: nil // visible section always has more than 1 item
                 case .hidden: items.first { $0.info == .hiddenControlItem }
                 case .alwaysHidden: items.first { $0.info == .alwaysHiddenControlItem }
                 }
+                
+                // macOS 26 fix: If alwaysHiddenControlItem not found in items, use hiddenControlItem as fallback
+                // because CGSGetScreenRectForWindow fails for alwaysHiddenControlItem on macOS 26
+                if targetItem == nil, section.name == .alwaysHidden {
+                    // Use hiddenControlItem as the target - moving to left of it will place item in hidden section
+                    // which is the best we can do on macOS 26 due to API limitations
+                    targetItem = items.first { $0.info == .hiddenControlItem }
+                    if targetItem != nil {
+                        Logger.layoutBar.debug("macOS 26: Using hiddenControlItem as fallback for alwaysHidden drag")
+                    }
+                }
+                
                 if let targetItem {
                     move(item: draggingSource.item, to: .leftOfItem(targetItem))
                 } else {

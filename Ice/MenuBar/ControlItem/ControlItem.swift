@@ -60,13 +60,46 @@ final class ControlItem {
     var window: NSWindow? {
         statusItem.button?.window
     }
+    
+    /// The control item's button frame in screen coordinates.
+    var buttonFrameInScreen: CGRect? {
+        guard let button = statusItem.button, let window = button.window else {
+            return nil
+        }
+        // The button frame is relative to its window
+        // Use the window frame origin plus button bounds for screen coordinates
+        let windowFrame = window.frame
+        let buttonBounds = button.bounds
+        // Convert button bounds to window coordinates
+        let buttonFrameInWindow = button.convert(buttonBounds, to: nil)
+        // Add window origin to get screen coordinates
+        return CGRect(
+            x: windowFrame.origin.x + buttonFrameInWindow.origin.x,
+            y: windowFrame.origin.y + buttonFrameInWindow.origin.y,
+            width: buttonFrameInWindow.width,
+            height: buttonFrameInWindow.height
+        )
+    }
 
+    private static let logger = Logger(category: "ControlItem")
+    
     /// The identifier of the control item's window.
     var windowID: CGWindowID? {
         guard let window else {
             return nil
         }
-        return CGWindowID(window.windowNumber)
+        let windowNumber = window.windowNumber
+        Self.logger.debug("windowNumber=\(windowNumber) for \(identifier.rawValue)")
+        guard windowNumber > 0 else {
+            return nil
+        }
+        // macOS 26+: windowNumber format changed - ID is in high 32 bits
+        // Try high bits first, then low bits for backwards compatibility
+        let highBits = CGWindowID(windowNumber >> 32)
+        let lowBits = CGWindowID(truncatingIfNeeded: windowNumber)
+        let resultID = highBits > 0 ? highBits : lowBits
+        Self.logger.debug("windowID=\(resultID) (high=\(highBits), low=\(lowBits)) for \(identifier.rawValue)")
+        return resultID > 0 ? resultID : nil
     }
 
     /// A Boolean value that indicates whether the control item serves as

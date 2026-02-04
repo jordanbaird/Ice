@@ -8,18 +8,28 @@ import ScreenCaptureKit
 
 /// A namespace for screen capture operations.
 enum ScreenCapture {
+    private static let logger = Logger(category: "ScreenCapture")
+    
     /// Returns a Boolean value that indicates whether the app has been granted screen capture permissions.
     static func checkPermissions() -> Bool {
-        for item in MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true) {
-            // Don't check items owned by Ice.
-            if item.owningApplication == .current {
-                continue
+        // Use SCShareableContent to check permissions (more reliable on macOS 15+)
+        var hasPermission = false
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) { content, error in
+            if let error = error as? NSError {
+                // Error code -3801 means no permission
+                hasPermission = error.code != -3801
+                logger.debug("SCShareableContent error code: \(error.code), hasPermission: \(hasPermission)")
+            } else {
+                hasPermission = content != nil
+                logger.debug("SCShareableContent succeeded, hasPermission: \(hasPermission)")
             }
-            return item.title != nil
+            semaphore.signal()
         }
-        // CGPreflightScreenCaptureAccess() only returns an initial value for whether the app
-        // has permissions, but we can use it as a fallback.
-        return CGPreflightScreenCaptureAccess()
+        
+        _ = semaphore.wait(timeout: .now() + 1.0)
+        return hasPermission
     }
 
     /// Returns a Boolean value that indicates whether the app has been granted screen capture permissions.

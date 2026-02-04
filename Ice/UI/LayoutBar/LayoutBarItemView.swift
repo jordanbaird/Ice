@@ -109,15 +109,24 @@ final class LayoutBarItemView: NSView {
     /// Provides an alert to display when the item view is disabled.
     func provideAlertForDisabledItem() -> NSAlert {
         let alert = NSAlert()
-        alert.messageText = "Menu bar item is not movable."
-        alert.informativeText = "macOS prohibits \"\(item.displayName)\" from being moved."
+        alert.messageText = NSLocalizedString("Menu bar item is not movable.", comment: "Alert title")
+        alert.informativeText = String(
+            format: NSLocalizedString("macOS prohibits \"%@\" from being moved.", comment: "Alert message"),
+            item.displayName
+        )
         return alert
     }
 
     /// Provides an alert to display when a menu bar item is unresponsive.
     func provideAlertForUnresponsiveItem() -> NSAlert {
         let alert = provideAlertForDisabledItem()
-        alert.informativeText = "\(item.displayName) is unresponsive. Until it is restarted, it cannot be moved. Movement of other menu bar items may also be affected until this is resolved."
+        alert.informativeText = String(
+            format: NSLocalizedString(
+                "%@ is unresponsive. Until it is restarted, it cannot be moved. Movement of other menu bar items may also be affected until this is resolved.",
+                comment: "Alert message"
+            ),
+            item.displayName
+        )
         return alert
     }
 

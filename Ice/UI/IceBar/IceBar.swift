@@ -404,8 +404,14 @@ private struct IceBarItemView: View {
                     IceBarItemClickView(item: item, leftClickAction: leftClickAction, rightClickAction: rightClickAction)
                 }
                 .accessibilityLabel(item.displayName)
-                .accessibilityAction(named: "left click", leftClickAction)
-                .accessibilityAction(named: "right click", rightClickAction)
+                .accessibilityAction(
+                    named: NSLocalizedString("left click", comment: "Accessibility action"),
+                    leftClickAction
+                )
+                .accessibilityAction(
+                    named: NSLocalizedString("right click", comment: "Accessibility action"),
+                    rightClickAction
+                )
         }
     }
 }

@@ -37,11 +37,12 @@ struct GeneralSettingsPane: View {
 
     private var rehideIntervalKey: LocalizedStringKey {
         let formatted = manager.rehideInterval.formatted()
-        if manager.rehideInterval == 1 {
-            return LocalizedStringKey(formatted + " second")
+        let localized = if manager.rehideInterval == 1 {
+            String(format: NSLocalizedString("%@ second", comment: "Time interval (singular)"), formatted)
         } else {
-            return LocalizedStringKey(formatted + " seconds")
+            String(format: NSLocalizedString("%@ seconds", comment: "Time interval (plural)"), formatted)
         }
+        return LocalizedStringKey(localized)
     }
 
     private var hasSpacingSliderValueChanged: Bool {
@@ -91,7 +92,7 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private func menuItem(for imageSet: ControlItemImageSet) -> some View {
         Label {
-            Text(imageSet.name.rawValue)
+            Text(LocalizedStringKey(imageSet.name.rawValue))
         } icon: {
             if let nsImage = imageSet.hidden.nsImage(for: appState) {
                 switch imageSet.name {

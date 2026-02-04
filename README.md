@@ -3,9 +3,9 @@
     <h1>Ice</h1>
 </div>
 
-Ice is a powerful menu bar management tool. While its primary function is hiding and showing menu bar items, it aims to cover a wide variety of additional features to make it one of the most versatile menu bar tools available.
+Ice 是一款强大的菜单栏管理工具。它的核心能力是隐藏与显示菜单栏项目，同时也提供丰富的外观与交互选项，目标是成为最灵活的菜单栏工具之一。
 
-![Banner](https://github.com/user-attachments/assets/4423085c-4e4b-4f3d-ad0f-90a217c03470)
+![Banner](docs/images/banner-zh.png)
 
 [![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
@@ -14,99 +14,104 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 [![Website](https://img.shields.io/badge/Website-015FBA?style=flat-square)](https://icemenubar.app)
 [![License](https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square)](LICENSE)
 
-> [!NOTE]
-> Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
+English README → https://github.com/jordanbaird/Ice#readme
 
-<a href="https://www.buymeacoffee.com/jordanbaird" target="_blank">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;">
-</a>
+## 中文说明
 
-## Install
+Ice 是一款强大的菜单栏管理工具。它的核心能力是隐藏与显示菜单栏项目，同时也提供丰富的外观与交互选项，目标是成为最灵活的菜单栏工具之一。
 
-### Manual Installation
+### 安装
 
-Download the "Ice.zip" file from the [latest release](https://github.com/jordanbaird/Ice/releases/latest) and move the unzipped app into your `Applications` folder.
+#### 手动安装
 
-### Homebrew
+从 [原版英文最新版本](https://github.com/jordanbaird/Ice/releases/latest) 下载 `Ice.zip`，或从 [简体中文汉化版](https://github.com/mianm1986/Ice/releases/tag/v0.11.12-zh) 下载 `Ice.zip`。解压后将 `Ice.app` 拖到 `Applications` 文件夹。
 
-Install Ice using the following command:
+#### Homebrew
 
 ```sh
 brew install --cask jordanbaird-ice
 ```
 
-## Features/Roadmap
+说明：Homebrew 安装的是原版英文版本。
 
-### Menu bar item management
+### 功能/路线图
 
-- [x] Hide menu bar items
-- [x] "Always-hidden" menu bar section
-- [x] Show hidden menu bar items when hovering over the menu bar
-- [x] Show hidden menu bar items when an empty area in the menu bar is clicked
-- [x] Show hidden menu bar items by scrolling or swiping in the menu bar
-- [x] Automatically rehide menu bar items
-- [x] Hide application menus when they overlap with shown menu bar items
-- [x] Drag and drop interface to arrange individual menu bar items
-- [x] Display hidden menu bar items in a separate bar (e.g. for MacBooks with the notch)
-- [x] Search menu bar items
-- [x] Menu bar item spacing (BETA)
-- [ ] Profiles for menu bar layout
-- [ ] Individual spacer items
-- [ ] Menu bar item groups
-- [ ] Show menu bar items when trigger conditions are met
+#### 菜单栏项目管理
 
-### Menu bar appearance
+- [x] 隐藏菜单栏项目
+- [x] “始终隐藏”分区
+- [x] 鼠标悬停时显示隐藏项目
+- [x] 点击菜单栏空白处显示隐藏项目
+- [x] 滚动或滑动显示隐藏项目
+- [x] 自动重新隐藏
+- [x] 隐藏会与菜单栏项目重叠的应用菜单
+- [x] 拖拽排序菜单栏项目
+- [x] 在独立栏中显示隐藏项目（例如带刘海的 Mac）
+- [x] 搜索菜单栏项目
+- [x] 菜单栏项目间距（测试版）
+- [ ] 菜单栏布局配置文件
+- [ ] 独立分隔项
+- [ ] 菜单栏项目分组
+- [ ] 满足触发条件时显示项目
 
-- [x] Menu bar tint (solid and gradient)
-- [x] Menu bar shadow
-- [x] Menu bar border
-- [x] Custom menu bar shapes (rounded and/or split)
-- [ ] Remove background behind menu bar
-- [ ] Rounded screen corners
-- [ ] Different settings for light/dark mode
+#### 菜单栏外观
 
-### Hotkeys
+- [x] 菜单栏着色（纯色与渐变）
+- [x] 菜单栏阴影
+- [x] 菜单栏边框
+- [x] 自定义菜单栏形状（圆角与分割）
+- [ ] 移除菜单栏背景
+- [ ] 屏幕圆角
+- [ ] 深色/浅色模式分别配置
 
-- [x] Toggle individual menu bar sections
-- [x] Show the search panel
-- [x] Enable/disable the Ice Bar
-- [x] Show/hide section divider icons
-- [x] Toggle application menus
-- [ ] Enable/disable auto rehide
-- [ ] Temporarily show individual menu bar items
+#### 快捷键
 
-### Other
+- [x] 切换各菜单栏分区
+- [x] 打开搜索面板
+- [x] 启用/停用 Ice Bar
+- [x] 显示/隐藏分区分隔图标
+- [x] 切换应用菜单
+- [ ] 启用/停用自动重新隐藏
+- [ ] 临时显示单个菜单栏项目
 
-- [x] Launch at login
-- [x] Automatic updates
-- [ ] Menu bar widgets
+#### 其他
 
-## Why does Ice only support macOS 14 and later?
+- [x] 开机自启
+- [x] 自动更新
+- [ ] 菜单栏小组件
 
-Ice uses a number of system APIs that are available starting in macOS 14. As such, there are no plans to support earlier versions of macOS.
+### 为什么只支持 macOS 14 及以上？
 
-## Gallery
+Ice 使用了从 macOS 14 开始提供的一些系统 API，因此目前没有支持更早版本的计划。
 
-#### Show hidden menu bar items below the menu bar
+### 截图
+
+#### 在菜单栏下方显示隐藏项目
 
 ![Ice Bar](https://github.com/user-attachments/assets/f1429589-6186-4e1b-8aef-592219d49b9b)
 
-#### Drag-and-drop interface to arrange menu bar items
+#### 拖拽排序菜单栏项目
 
-![Menu Bar Layout](https://github.com/user-attachments/assets/095442ba-f2d0-4bb4-9632-91e26ef8d45b)
+![Menu Bar Layout](docs/images/menu-bar-layout-zh.png)
 
-#### Customize the menu bar's appearance
+#### 自定义菜单栏外观
 
 ![Menu Bar Appearance](https://github.com/user-attachments/assets/8c22c185-c3d2-49bb-971e-e1fc17df04b3)
 
-#### Menu bar item search
+#### 菜单栏项目搜索
 
 ![Menu Bar Item Search](https://github.com/user-attachments/assets/d1a7df3a-4989-4077-a0b1-8e7d5a1ba5b8)
 
-#### Custom menu bar item spacing
+#### 菜单栏项目间距
 
 ![Menu Bar Item Spacing](https://github.com/user-attachments/assets/b196aa7e-184a-4d4c-b040-502f4aae40a6)
 
-## License
+### 许可协议
 
-Ice is available under the [GPL-3.0 license](LICENSE).
+Ice 使用 [GPL-3.0 license](LICENSE) 许可发布。
+
+### 赞助
+
+<a href="https://www.buymeacoffee.com/jordanbaird" target="_blank">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;">
+</a>

@@ -68,7 +68,7 @@ struct MenuBarItem {
     /// A name associated with the item that is suited for display to
     /// the user.
     var displayName: String {
-        var fallback: String { "Unknown" }
+        var fallback: String { NSLocalizedString("Unknown", comment: "Fallback menu bar item name") }
         guard let owningApplication else {
             return ownerName ?? title ?? fallback
         }
@@ -85,24 +85,35 @@ struct MenuBarItem {
         return switch MenuBarItemInfo.Namespace(owningApplication.bundleIdentifier) {
         case .controlCenter:
             switch title {
-            case "AccessibilityShortcuts": "Accessibility Shortcuts"
+            case "AccessibilityShortcuts":
+                NSLocalizedString("Accessibility Shortcuts", comment: "Control Center item")
             case "BentoBox": bestName // Control Center
-            case "FocusModes": "Focus"
-            case "KeyboardBrightness": "Keyboard Brightness"
-            case "MusicRecognition": "Music Recognition"
-            case "NowPlaying": "Now Playing"
-            case "ScreenMirroring": "Screen Mirroring"
-            case "StageManager": "Stage Manager"
-            case "UserSwitcher": "Fast User Switching"
-            case "WiFi": "Wi-Fi"
+            case "FocusModes":
+                NSLocalizedString("Focus", comment: "Control Center item")
+            case "KeyboardBrightness":
+                NSLocalizedString("Keyboard Brightness", comment: "Control Center item")
+            case "MusicRecognition":
+                NSLocalizedString("Music Recognition", comment: "Control Center item")
+            case "NowPlaying":
+                NSLocalizedString("Now Playing", comment: "Control Center item")
+            case "ScreenMirroring":
+                NSLocalizedString("Screen Mirroring", comment: "Control Center item")
+            case "StageManager":
+                NSLocalizedString("Stage Manager", comment: "Control Center item")
+            case "UserSwitcher":
+                NSLocalizedString("Fast User Switching", comment: "Control Center item")
+            case "WiFi":
+                NSLocalizedString("Wi-Fi", comment: "Control Center item")
             default: title
             }
         case .systemUIServer:
             switch title {
-            case "TimeMachine.TMMenuExtraHost"/*Sonoma*/, "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/: "Time Machine"
+            case "TimeMachine.TMMenuExtraHost"/*Sonoma*/, "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/:
+                NSLocalizedString("Time Machine", comment: "System menu bar item")
             default: title
             }
-        case MenuBarItemInfo.Namespace("com.apple.Passwords.MenuBarExtra"): "Passwords"
+        case MenuBarItemInfo.Namespace("com.apple.Passwords.MenuBarExtra"):
+            NSLocalizedString("Passwords", comment: "System menu bar item")
         default:
             bestName
         }

@@ -118,10 +118,10 @@ class Permission: ObservableObject, Identifiable {
 final class AccessibilityPermission: Permission {
     init() {
         super.init(
-            title: "Accessibility",
+            title: NSLocalizedString("Accessibility", comment: "Permission title"),
             details: [
-                "Get real-time information about the menu bar.",
-                "Arrange menu bar items.",
+                NSLocalizedString("Get real-time information about the menu bar.", comment: "Permission detail"),
+                NSLocalizedString("Arrange menu bar items.", comment: "Permission detail"),
             ],
             isRequired: true,
             settingsURL: nil,
@@ -140,10 +140,10 @@ final class AccessibilityPermission: Permission {
 final class ScreenRecordingPermission: Permission {
     init() {
         super.init(
-            title: "Screen Recording",
+            title: NSLocalizedString("Screen Recording", comment: "Permission title"),
             details: [
-                "Edit the menu bar's appearance.",
-                "Display images of individual menu bar items.",
+                NSLocalizedString("Edit the menu bar's appearance.", comment: "Permission detail"),
+                NSLocalizedString("Display images of individual menu bar items.", comment: "Permission detail"),
             ],
             isRequired: false,
             settingsURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"),

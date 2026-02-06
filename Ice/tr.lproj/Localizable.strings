@@ -1,0 +1,130 @@
+/* 
+  Localizable.strings
+  Ice
+
+  Created by Ice Translation Bot.
+*/
+
+// Settings Navigation
+"General" = "Genel";
+"Menu Bar Layout" = "Menü Çubuğu Düzeni";
+"Menu Bar Appearance" = "Menü Çubuğu Görünümü";
+"Hotkeys" = "Kısayollar";
+"Advanced" = "Gelişmiş";
+"About" = "Hakkında";
+
+// General Settings
+"none" = "yok";
+"default" = "varsayılan";
+"max" = "maksimum";
+"Show Ice icon" = "Ice simgesini göster";
+"Click to show hidden menu bar items. Right-click to access Ice's settings." = "Gizli menü öğelerini göstermek için tıklayın. Ice ayarlarına erişmek için sağ tıklayın.";
+"Ice icon" = "Ice simgesi";
+"Choose image…" = "Görsel seç…";
+"Choose a custom icon to show in the menu bar." = "Menü çubuğunda gösterilecek özel bir simge seçin.";
+"Custom icon uses dynamic appearance" = "Özel simge dinamik görünüm kullanır";
+"Display the icon as a monochrome image that dynamically adjusts to match the menu bar's appearance. This setting removes all color from the icon, but ensures consistent rendering with both light and dark backgrounds." = "Simgeyi menü çubuğunun görünümüne dinamik olarak uyum sağlayan tek renkli bir görüntü olarak gösterin. Bu ayar simgedeki tüm renkleri kaldırır ancak hem açık hem de koyu arka planlarla tutarlı bir görünüm sağlar.";
+"Use Ice Bar" = "Ice Bar Kullan";
+"Show hidden menu bar items in a separate bar below the menu bar." = "Gizli menü çubuğu öğelerini menü çubuğunun altında ayrı bir çubukta göster.";
+"Location" = "Konum";
+"The Ice Bar's location changes based on context." = "Ice Bar'ın konumu bağlama göre değişir.";
+"The Ice Bar is centered below the mouse pointer." = "Ice Bar fare imlecinin altında ortalanır.";
+"The Ice Bar is centered below the Ice icon." = "Ice Bar, Ice simgesinin altında ortalanır.";
+"Show on click" = "Tıklayınca göster";
+"Click inside an empty area of the menu bar to show hidden menu bar items." = "Gizli menü çubuğu öğelerini göstermek için menü çubuğunun boş bir alanına tıklayın.";
+"Show on hover" = "Üzerine gelince göster";
+"Hover over an empty area of the menu bar to show hidden menu bar items." = "Gizli menü çubuğu öğelerini göstermek için imleci menü çubuğunun boş bir alanı üzerine getirin.";
+"Show on scroll" = "Kaydırınca göster";
+"Scroll or swipe in the menu bar to show hidden menu bar items." = "Gizli menü çubuğu öğelerini göstermek için menü çubuğunda kaydırın.";
+"Apply" = "Uygula";
+"Apply the current spacing" = "Mevcut aralığı uygula";
+"Reset to the default spacing" = "Varsayılan aralığa sıfırla";
+"Menu bar item spacing" = "Menü çubuğu öğe aralığı";
+"Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched." = "Bu ayarın uygulanması, menü çubuğu öğelerine sahip tüm uygulamaları yeniden başlatacaktır. Bazı uygulamaların manuel olarak yeniden başlatılması gerekebilir.";
+"Note: You may need to log out and back in for this setting to apply properly." = "Not: Bu ayarın düzgün uygulanabilmesi için oturumu kapatıp tekrar açmanız gerekebilir.";
+"Strategy" = "Strateji";
+"Menu bar items are rehidden using a smart algorithm." = "Menü çubuğu öğeleri akıllı bir algoritma kullanılarak yeniden gizlenir.";
+"Menu bar items are rehidden after a fixed amount of time." = "Menü çubuğu öğeleri belirli bir süre sonra yeniden gizlenir.";
+"Menu bar items are rehidden when the focused app changes." = "Menü çubuğu öğeleri odaklanılan uygulama değiştiğinde yeniden gizlenir.";
+"Automatically rehide" = "Otomatik gizle";
+" second" = " saniye";
+" seconds" = " saniye";
+
+// Menu Bar Layout Settings
+"Drag to arrange your menu bar items." = "Menü çubuğu öğelerinizi düzenlemek için sürükleyin.";
+"Tip: you can also arrange menu bar items by Command + dragging them in the menu bar." = "İpucu: Menü çubuğu öğelerini Command + sürükle yaparak da düzenleyebilirsiniz.";
+"Ice cannot arrange menu bar items in automatically hidden menu bars." = "Ice, otomatik gizlenen menü çubuklarındaki öğeleri düzenleyemez.";
+"Menu bar layout requires screen recording permissions." = "Menü çubuğu düzeni, ekran kaydı izni gerektirir.";
+"Go to Advanced Settings" = "Gelişmiş Ayarlara Git";
+" Section" = " Bölümü";
+
+// Hotkeys Settings
+"Menu Bar Sections" = "Menü Çubuğu Bölümleri";
+"Menu Bar Items" = "Menü Çubuğu Öğeleri";
+"Other" = "Diğer";
+"Toggle the hidden section" = "Gizli bölümü aç/kapat";
+"Toggle the always-hidden section" = "Her zaman gizli bölümü aç/kapat";
+"Search menu bar items" = "Menü çubuğu öğelerinde ara";
+"Enable the Ice Bar" = "Ice Bar'ı etkinleştir";
+"Show section dividers" = "Bölüm ayırıcılarını göster";
+"Toggle application menus" = "Uygulama menülerini aç/kapat";
+
+// Advanced Settings
+"Hide application menus when showing menu bar items" = "Menü çubuğu öğeleri gösterilirken uygulama menülerini gizle";
+"Make more room in the menu bar by hiding the left application menus if needed." = "Gerekirse sol uygulama menülerini gizleyerek menü çubuğunda daha fazla yer açın.";
+"Insert divider items" = "Ayırıcı öğeler ekle";
+"between sections" = "bölümler arasına"; 
+
+"Enable always-hidden section" = "Her zaman gizli bölümü etkinleştir";
+"Always-hidden section can be shown" = "Her zaman gizli bölüm gösterilebilir";
+"Option + click one of Ice's menu bar items, or inside an empty area of the menu bar to show the section." = "Bölümü göstermek için Option + Ice menü öğelerinden birine veya boş alana tıklayın.";
+"Option + click one of Ice's menu bar items to show the section." = "Bölümü göstermek için Option + Ice menü öğelerinden birine tıklayın.";
+"Show on hover delay" = "Üzerine gelme gecikmesi";
+"The amount of time to wait before showing on hover." = "Üzerine gelindiğinde göstermeden önce beklenecek süre.";
+"Temporarily shown item delay" = "Geçici gösterim süresi";
+"The amount of time to wait before hiding temporarily shown menu bar items." = "Geçici olarak gösterilen öğeler gizlenmeden önce beklenecek süre.";
+"Show all sections when Command + dragging menu bar items" = "Command + sürükleme sırasında tüm bölümleri göster";
+"Show context menu on right click" = "Sağ tıkta bağlam menüsünü göster";
+"Permissions" = "İzinler";
+"Permission Granted" = "İzin Verildi";
+"Grant Permission" = "İzin Ver";
+
+// About Settings
+"Version" = "Sürüm";
+"Automatically check for updates" = "Güncellemeleri otomatik denetle";
+"Automatically download updates" = "Güncellemeleri otomatik indir";
+"Check for Updates" = "Güncellemeleri Denetle";
+"Last checked: " = "Son denetim: ";
+"Never" = "Asla";
+"Quit Ice" = "Ice'tan Çık";
+"Acknowledgements" = "Teşekkürler";
+"Contribute" = "Katkıda Bulun";
+"Report a Bug" = "Hata Bildir";
+"Support Ice" = "Ice'ı Destekle";
+
+// Rehide Strategy
+"Smart" = "Akıllı";
+"Timed" = "Zamanlı";
+"Focused app" = "Odaklanılan uygulama";
+
+// Ice Bar Location
+"Dynamic" = "Dinamik";
+"Mouse pointer" = "Fare imleci";
+// "Ice icon" already included
+
+// Permissions
+"Permissions" = "İzinler";
+"Ice needs permission to manage the menu bar." = "Ice'ın menü çubuğunu yönetmesi için izne ihtiyacı var.";
+"Absolutely no personal information is collected or stored." = "Kesinlikle hiçbir kişisel bilgi toplanmaz veya saklanmaz.";
+"Ice needs this to:" = "Ice buna şu işlemler için ihtiyaç duyar:";
+"Get real-time information about the menu bar." = "Menü çubuğu hakkında gerçek zamanlı bilgi almak.";
+"Arrange menu bar items." = "Menü çubuğu öğelerini düzenlemek.";
+"Accessibility" = "Erişilebilirlik";
+"Screen Recording" = "Ekran Kaydı";
+"Edit the menu bar's appearance." = "Menü çubuğunun görünümünü düzenlemek.";
+"Display images of individual menu bar items." = "Bireysel menü çubuğu öğelerinin görüntülerini göstermek.";
+"Ice can work in a limited mode without this permission." = "Ice, bu izin olmadan sınırlı modda çalışabilir.";
+"Continue in Limited Mode" = "Sınırlı Modda Devam Et";
+"Continue" = "Devam Et";
+"Quit" = "Çık";
+// "Permission Granted" & "Grant Permission" already in Advanced Settings

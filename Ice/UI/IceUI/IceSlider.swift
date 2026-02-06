@@ -6,54 +6,67 @@
 import CompactSlider
 import SwiftUI
 
-struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View, ValueLabelSelectability: TextSelectability>: View {
-    private let value: Binding<Value>
+struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View>: View {
+    @Binding private var value: Value
+
     private let bounds: ClosedRange<Value>
-    private let step: Value
+    private let step: Value?
     private let valueLabel: ValueLabel
-    private let valueLabelSelectability: ValueLabelSelectability
 
     init(
         value: Binding<Value>,
-        in bounds: ClosedRange<Value> = 0...1,
-        step: Value = 0,
-        valueLabelSelectability: ValueLabelSelectability = .disabled,
+        in bounds: ClosedRange<Value>,
+        step: Value? = nil,
         @ViewBuilder valueLabel: () -> ValueLabel
     ) {
-        self.value = value
+        self._value = value
         self.bounds = bounds
         self.step = step
         self.valueLabel = valueLabel()
-        self.valueLabelSelectability = valueLabelSelectability
     }
 
     init(
         _ valueLabelKey: LocalizedStringKey,
-        valueLabelSelectability: ValueLabelSelectability = .disabled,
         value: Binding<Value>,
-        in bounds: ClosedRange<Value> = 0...1,
-        step: Value = 0
+        in bounds: ClosedRange<Value>,
+        step: Value? = nil
     ) where ValueLabel == Text {
-        self.init(
-            value: value,
-            in: bounds,
-            step: step,
-            valueLabelSelectability: valueLabelSelectability
-        ) {
-            Text(valueLabelKey)
+        self._value = value
+        self.bounds = bounds
+        self.step = step
+        self.valueLabel = Text(valueLabelKey)
+    }
+
+    private var borderShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .circular)
         }
+    }
+
+    private var height: CGFloat {
+        if #available(macOS 26.0, *) { 24 } else { 22 }
     }
 
     var body: some View {
         CompactSlider(
-            value: value,
+            value: $value,
             in: bounds,
-            step: step,
-            handleVisibility: .hovering(width: 1)
+            step: step ?? 0,
+            handleVisibility: .hovering(width: 0),
+            minHeight: 0,
+            gestureOptions: .default.subtracting([.scrollWheel])
         ) {
             valueLabel
-                .textSelection(valueLabelSelectability)
+                .frame(height: height)
         }
         .compactSliderDisabledHapticFeedback(true)
+        .compactSliderSecondaryColor(
+            progressColor: .accentColor.opacity(0.5),
+            focusedProgressColor: .accentColor.opacity(0.75)
+        )
+        .clipShape(borderShape)
+        .contentShape([.interaction, .focusEffect], borderShape)
     }
 }

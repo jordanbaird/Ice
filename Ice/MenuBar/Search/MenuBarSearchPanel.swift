@@ -5,24 +5,23 @@
 
 import Combine
 import Ifrit
+import OSLog
 import SwiftUI
 
 /// A panel that contains the menu bar search interface.
 final class MenuBarSearchPanel: NSPanel {
-    /// The default screen to show the panel on.
-    static var defaultScreen: NSScreen? {
-        NSScreen.screenWithMouse ?? NSScreen.main
-    }
-
     /// The shared app state.
     private weak var appState: AppState?
 
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
+    /// Model for menu bar item search.
+    private let model = MenuBarSearchModel()
+
     /// Monitor for mouse down events.
-    private lazy var mouseDownMonitor = UniversalEventMonitor(
-        mask: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+    private lazy var mouseDownMonitor = EventMonitor.universal(
+        for: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
     ) { [weak self, weak appState] event in
         guard
             let self,
@@ -31,15 +30,15 @@ final class MenuBarSearchPanel: NSPanel {
         else {
             return event
         }
-        if !appState.itemManager.isMovingItem {
+        if !appState.itemManager.lastMoveOperationOccurred(within: .seconds(1)) {
             close()
         }
         return event
     }
 
     /// Monitor for key down events.
-    private lazy var keyDownMonitor = UniversalEventMonitor(
-        mask: [.keyDown]
+    private lazy var keyDownMonitor = EventMonitor.universal(
+        for: [.keyDown]
     ) { [weak self] event in
         if KeyCode(rawValue: Int(event.keyCode)) == .escape {
             self?.close()
@@ -48,25 +47,35 @@ final class MenuBarSearchPanel: NSPanel {
         return event
     }
 
+    /// The default screen to show the panel on.
+    var defaultScreen: NSScreen? {
+        NSScreen.screenWithMouse ?? NSScreen.main
+    }
+
     /// Overridden to always be `true`.
     override var canBecomeKey: Bool { true }
 
-    /// Creates a menu bar search panel with the given app state.
-    init(appState: AppState) {
+    /// Creates a menu bar search panel.
+    init() {
         super.init(
             contentRect: .zero,
             styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel, .utilityWindow, .hudWindow],
             backing: .buffered,
             defer: false
         )
-        self.appState = appState
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = false
         self.animationBehavior = .none
         self.isFloatingPanel = true
         self.level = .floating
         self.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle, .moveToActiveSpace]
+    }
+
+    /// Performs the initial setup of the panel.
+    func performSetup(with appState: AppState) {
+        self.appState = appState
         configureCancellables()
+        model.performSetup(with: self)
     }
 
     /// Configures the internal observers for the panel.
@@ -93,44 +102,45 @@ final class MenuBarSearchPanel: NSPanel {
     }
 
     /// Shows the search panel on the given screen.
-    func show(on screen: NSScreen) async {
+    func show(on screen: NSScreen? = nil) {
         guard let appState else {
+            return
+        }
+
+        guard let screen = screen ?? defaultScreen else {
+            Logger.default.error("Missing screen for search panel")
             return
         }
 
         // Important that we set the navigation state before updating the cache.
         appState.navigationState.isSearchPresented = true
 
-        if ScreenCapture.cachedCheckPermissions() {
+        Task {
             await appState.imageCache.updateCache()
+
+            let hostingView = MenuBarSearchHostingView(appState: appState, model: model, displayID: screen.displayID, panel: self)
+            hostingView.setFrameSize(hostingView.intrinsicContentSize)
+            setFrame(hostingView.frame, display: true)
+
+            contentView = hostingView
+
+            // Calculate the top left position.
+            let topLeft = CGPoint(
+                x: screen.frame.midX - frame.width / 2,
+                y: screen.frame.midY + (frame.height / 2) + (screen.frame.height / 8)
+            )
+
+            cascadeTopLeft(from: topLeft)
+            makeKeyAndOrderFront(nil)
+
+            mouseDownMonitor.start()
+            keyDownMonitor.start()
         }
-
-        let hostingView = MenuBarSearchHostingView(appState: appState, panel: self)
-        hostingView.setFrameSize(hostingView.intrinsicContentSize)
-        setFrame(hostingView.frame, display: true)
-
-        contentView = hostingView
-
-        // Calculate the top left position.
-        let topLeft = CGPoint(
-            x: screen.frame.midX - frame.width / 2,
-            y: screen.frame.midY + (frame.height / 2) + (screen.frame.height / 8)
-        )
-
-        cascadeTopLeft(from: topLeft)
-        makeKeyAndOrderFront(nil)
-
-        mouseDownMonitor.start()
-        keyDownMonitor.start()
     }
 
     /// Toggles the panel's visibility.
-    func toggle() async {
-        if isVisible {
-            close()
-        } else if let screen = MenuBarSearchPanel.defaultScreen {
-            await show(on: screen)
-        }
+    func toggle() {
+        if isVisible { close() } else { show() }
     }
 
     /// Dismisses the search panel.
@@ -150,12 +160,16 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
 
     init(
         appState: AppState,
+        model: MenuBarSearchModel,
+        displayID: CGDirectDisplayID,
         panel: MenuBarSearchPanel
     ) {
         super.init(
-            rootView: MenuBarSearchContentView(closePanel: { [weak panel] in panel?.close() })
+            rootView: MenuBarSearchContentView { [weak panel] in panel?.close() }
+                .environmentObject(appState)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.imageCache)
+                .environmentObject(model)
                 .erasedToAnyView()
         )
     }
@@ -172,64 +186,27 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
 }
 
 private struct MenuBarSearchContentView: View {
-    private typealias ListItem = SectionedListItem<ItemID>
-
-    private enum ItemID: Hashable {
-        case header(MenuBarSection.Name)
-        case item(MenuBarItemInfo)
-    }
+    private typealias ListItem = SectionedListItem<MenuBarSearchModel.ItemID>
 
     @EnvironmentObject var itemManager: MenuBarItemManager
-    @State private var searchText = ""
-    @State private var displayedItems = [SectionedListItem<ItemID>]()
-    @State private var selection: ItemID?
+    @EnvironmentObject var model: MenuBarSearchModel
     @FocusState private var searchFieldIsFocused: Bool
-
-    private let fuse = Fuse(threshold: 0.5)
 
     let closePanel: () -> Void
 
+    private var hasItems: Bool {
+        !itemManager.itemCache.managedItems.isEmpty
+    }
+
+    private var bottomBarPadding: CGFloat {
+        if #available(macOS 26.0, *) { 7 } else { 5 }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            TextField(text: $searchText, prompt: Text("Search menu bar items…")) {
-                Text("Search menu bar items…")
-            }
-            .labelsHidden()
-            .textFieldStyle(.plain)
-            .multilineTextAlignment(.leading)
-            .font(.system(size: 18))
-            .padding(15)
-            .focused($searchFieldIsFocused)
-
-            Divider()
-
-            SectionedList(selection: $selection, items: $displayedItems)
-                .contentPadding(8)
-                .scrollContentBackground(.hidden)
-
-            Divider()
-                .offset(y: 1)
-                .zIndex(1)
-
-            HStack {
-                SettingsButton {
-                    closePanel()
-                    itemManager.appState?.appDelegate?.openSettingsWindow()
-                }
-
-                Spacer()
-
-                if
-                    let selection,
-                    let item = menuBarItem(for: selection)
-                {
-                    ShowItemButton(item: item) {
-                        performAction(for: item)
-                    }
-                }
-            }
-            .padding(5)
-            .background(.thinMaterial)
+            searchField
+            mainContent
+            bottomBar
         }
         .background {
             VisualEffectView(material: .sheet, blendingMode: .behindWindow)
@@ -240,64 +217,159 @@ private struct MenuBarSearchContentView: View {
         .task {
             searchFieldIsFocused = true
         }
-        .onChange(of: searchText, initial: true) {
+        .onChange(of: model.searchText, initial: true) {
             updateDisplayedItems()
             selectFirstDisplayedItem()
         }
         .onChange(of: itemManager.itemCache, initial: true) {
             updateDisplayedItems()
+            if model.selection == nil {
+                selectFirstDisplayedItem()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var searchField: some View {
+        let promptText = Text("Search menu bar items…")
+
+        VStack(spacing: 0) {
+            TextField(text: $model.searchText, prompt: promptText) {
+                promptText
+            }
+            .labelsHidden()
+            .textFieldStyle(.plain)
+            .multilineTextAlignment(.leading)
+            .font(.system(size: 18))
+            .padding(15)
+            .focused($searchFieldIsFocused)
+
+            Divider()
+        }
+    }
+
+    @ViewBuilder
+    private var mainContent: some View {
+        if hasItems {
+            SectionedList(selection: $model.selection, items: $model.displayedItems)
+                .contentPadding(8)
+                .scrollContentBackground(.hidden)
+        } else {
+            VStack {
+                Text("Loading menu bar items…")
+                    .font(.title2)
+                ProgressView()
+                    .controlSize(.small)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private var bottomBar: some View {
+        HStack {
+            SettingsButton {
+                closePanel()
+                itemManager.appState?.activate(withPolicy: .regular)
+                itemManager.appState?.openWindow(.settings)
+            }
+
+            Spacer()
+
+            if
+                let selection = model.selection,
+                let item = menuBarItem(for: selection)
+            {
+                ShowItemButton(item: item) {
+                    performAction(for: item)
+                }
+            }
+        }
+        .padding(bottomBarPadding)
+        .background(.thinMaterial)
+        .buttonStyle(BottomBarButtonStyle())
+        .overlay(alignment: .top) {
+            Divider()
         }
     }
 
     private func selectFirstDisplayedItem() {
-        selection = displayedItems.first { $0.isSelectable }?.id
+        model.selection = model.displayedItems.first { $0.isSelectable }?.id
     }
 
     private func updateDisplayedItems() {
-        let searchItems: [(listItem: ListItem, title: String)] = MenuBarSection.Name.allCases.reduce(into: []) { items, section in
-            if itemManager.appState?.menuBarManager.section(withName: section)?.isEnabled == false {
-                return
-            }
+        typealias SearchItem = (listItem: ListItem, title: String)
+        typealias ScoredItem = (listItem: ListItem, score: Double)
 
-            let headerItem = ListItem.header(id: .header(section)) {
-                Text(section.displayString)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 10)
-            }
-            items.append((headerItem, section.displayString))
-
-            for item in itemManager.itemCache.managedItems(for: section).reversed() {
-                let listItem = ListItem.item(id: .item(item.info)) {
-                    performAction(for: item)
-                } content: {
-                    MenuBarSearchItemView(item: item)
+        let searchItems: [SearchItem] = MenuBarSection.Name.allCases
+            .reduce(into: []) { items, name in
+                if
+                    let appState = itemManager.appState,
+                    let section = appState.menuBarManager.section(withName: name),
+                    !section.isEnabled
+                {
+                    return
                 }
-                items.append((listItem, item.displayName))
-            }
-        }
 
-        if searchText.isEmpty {
-            displayedItems = searchItems.map { $0.listItem }
+                let headerItem = ListItem.header(id: .header(name)) {
+                    Text(name.displayString)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 10)
+                }
+                items.append(SearchItem(headerItem, name.displayString))
+
+                for item in itemManager.itemCache.managedItems(for: name).reversed() {
+                    let listItem = ListItem.item(id: .item(item.tag)) {
+                        performAction(for: item)
+                    } content: {
+                        MenuBarSearchItemView(item: item)
+                    }
+                    items.append(SearchItem(listItem, item.displayName))
+                }
+            }
+
+        if model.searchText.isEmpty {
+            model.displayedItems = searchItems.map { $0.listItem }
         } else {
-            let selectableItems = searchItems.compactMap { searchItem in
-                if searchItem.listItem.isSelectable {
-                    return searchItem
+            let selectableItems = searchItems.filter { $0.listItem.isSelectable }
+            let fuseResults = model.fuse.searchSync(
+                model.searchText,
+                in: selectableItems.map { $0.title }
+            )
+            let maxFuseScore = Double(fuseResults.count)
+
+            model.displayedItems = fuseResults.enumerated()
+                .map { index, result in
+                    let fuseScore = maxFuseScore - Double(index)
+                    let (listItem, title) = selectableItems[result.index]
+
+                    guard let match = bestMatch(
+                        query: model.searchText,
+                        input: title,
+                        boundaryBonus: 16,
+                        camelCaseBonus: 16
+                    ) else {
+                        return ScoredItem(listItem, fuseScore)
+                    }
+
+                    let matchScore = Double(match.score.value)
+                    let averageScore = (matchScore + fuseScore) / 2
+
+                    return ScoredItem(listItem, averageScore)
                 }
-                return nil
-            }
-            let results = fuse.searchSync(searchText, in: selectableItems.map { $0.title })
-            displayedItems = results.map { selectableItems[$0.index].listItem }
+                .sorted { $0.score > $1.score }
+                .map { $0.listItem }
         }
     }
 
-    private func menuBarItem(for selection: ItemID) -> MenuBarItem? {
+    private func menuBarItem(for selection: MenuBarSearchModel.ItemID) -> MenuBarItem? {
         switch selection {
-        case .item(let info):
-            itemManager.itemCache.managedItems.first { $0.info == info }
+        case .item(let tag):
+            return itemManager.itemCache.managedItems.first(matching: tag)
         case .header:
-            nil
+            return nil
         }
     }
 
@@ -305,50 +377,12 @@ private struct MenuBarSearchContentView: View {
         closePanel()
         Task {
             try await Task.sleep(for: .milliseconds(25))
-            itemManager.tempShowItem(item, clickWhenFinished: true, mouseButton: .left)
+            if Bridging.isWindowOnScreen(item.windowID) {
+                try await itemManager.click(item: item, with: .left)
+            } else {
+                await itemManager.temporarilyShow(item: item, clickingWith: .left)
+            }
         }
-    }
-}
-
-private struct BottomBarButton<Content: View>: View {
-    @State private var frame = CGRect.zero
-    @State private var isHovering = false
-    @State private var isPressed = false
-
-    let content: Content
-    let action: () -> Void
-
-    init(action: @escaping () -> Void, @ViewBuilder content: () -> Content) {
-        self.action = action
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .padding(3)
-            .background {
-                RoundedRectangle(cornerRadius: 5, style: .circular)
-                    .fill(.regularMaterial)
-                    .brightness(0.25)
-                    .opacity(isPressed ? 0.5 : isHovering ? 0.25 : 0)
-            }
-            .contentShape(Rectangle())
-            .onHover { hovering in
-                isHovering = hovering
-            }
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        isPressed = frame.contains(value.location)
-                    }
-                    .onEnded { value in
-                        isPressed = false
-                        if frame.contains(value.location) {
-                            action()
-                        }
-                    }
-            )
-            .onFrameChange(update: $frame)
     }
 }
 
@@ -356,11 +390,10 @@ private struct SettingsButton: View {
     let action: () -> Void
 
     var body: some View {
-        BottomBarButton(action: action) {
+        Button(action: action) {
             Image(.iceCubeStroke)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 18, height: 18)
                 .foregroundStyle(.secondary)
                 .padding(2)
         }
@@ -371,21 +404,30 @@ private struct ShowItemButton: View {
     let item: MenuBarItem
     let action: () -> Void
 
+    private var backgroundShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 5, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 3, style: .circular)
+        }
+    }
+
     var body: some View {
-        BottomBarButton(action: action) {
+        Button(action: action) {
             HStack {
-                Text(item.isOnScreen ? "Click item" : "Show item")
-                    .padding(.horizontal, 5)
+                Text("\(Bridging.isWindowOnScreen(item.windowID) ? "Click" : "Show") Item")
+                    .padding(.leading, 5)
 
                 Image(systemName: "return")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 11, height: 11)
                     .foregroundStyle(.secondary)
+                    .fontWeight(.bold)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 5)
                     .background {
-                        RoundedRectangle(cornerRadius: 3, style: .circular)
+                        backgroundShape
                             .fill(.regularMaterial)
                             .brightness(0.25)
                             .opacity(0.5)
@@ -395,75 +437,153 @@ private struct ShowItemButton: View {
     }
 }
 
+private struct BottomBarButtonStyle: ButtonStyle {
+    @State private var isHovering = false
+
+    private var borderShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .circular)
+        }
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(height: 22)
+            .frame(minWidth: 22)
+            .padding(3)
+            .background {
+                borderShape
+                    .fill(.regularMaterial)
+                    .brightness(0.25)
+                    .opacity(configuration.isPressed ? 0.5 : isHovering ? 0.25 : 0)
+            }
+            .contentShape([.focusEffect, .interaction], borderShape)
+            .onHover { hovering in
+                isHovering = hovering
+            }
+    }
+}
+
+@MainActor
 private let controlCenterIcon: NSImage? = {
-    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.controlcenter").first else {
+    guard let app = NSRunningApplication
+        .runningApplications(withBundleIdentifier: "com.apple.controlcenter")
+        .first
+    else {
         return nil
     }
     return app.icon
 }()
 
 private struct MenuBarSearchItemView: View {
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var imageCache: MenuBarItemImageCache
+    @EnvironmentObject var model: MenuBarSearchModel
 
     let item: MenuBarItem
 
-    private var image: NSImage? {
+    private var itemImage: NSImage {
         guard
-            let image = imageCache.images[item.info]?.trimmingTransparentPixels(around: [.minXEdge, .maxXEdge]),
-            let screen = imageCache.screen
+            let cached = imageCache.images[item.tag],
+            let trimmed = cached.cgImage.trimmingTransparency(around: [.minXEdge, .maxXEdge])
         else {
-            return nil
+            return NSImage()
         }
         let size = CGSize(
-            width: CGFloat(image.width) / screen.backingScaleFactor,
-            height: CGFloat(image.height) / screen.backingScaleFactor
+            width: CGFloat(trimmed.width) / cached.scale,
+            height: CGFloat(trimmed.height) / cached.scale
         )
-        return NSImage(cgImage: image, size: size)
+        return NSImage(cgImage: trimmed, size: size)
     }
 
     private var appIcon: NSImage? {
-        if item.info.namespace == .systemUIServer {
-            controlCenterIcon
-        } else {
-            item.owningApplication?.icon
+        guard let app = item.sourceApplication else {
+            return nil
         }
+        switch item.tag.namespace {
+        case .controlCenter, .systemUIServer, .textInputMenuAgent:
+            return controlCenterIcon
+        default:
+            return app.icon
+        }
+    }
+
+    private var backgroundShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .circular)
+        }
+    }
+
+    private var dimension: CGFloat {
+        if #available(macOS 26.0, *) { 26 } else { 24 }
+    }
+
+    private var padding: CGFloat {
+        if #available(macOS 26.0, *) { 6 } else { 8 }
     }
 
     var body: some View {
         HStack {
-            if let appIcon {
-                Image(nsImage: appIcon)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 24, height: 24)
+            Label {
+                labelText
+            } icon: {
+                labelIcon
             }
-            Text(item.displayName)
             Spacer()
-            imageViewWithBackground
+            itemView
         }
-        .padding(8)
+        .padding(padding)
     }
 
     @ViewBuilder
-    private var imageViewWithBackground: some View {
-        if let image {
-            ZStack {
-                RoundedRectangle(cornerRadius: 5, style: .circular)
-                    .fill(.regularMaterial)
-                    .brightness(0.25)
-                    .opacity(0.75)
-                    .frame(width: item.frame.width)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 5, style: .circular)
-                            .inset(by: 0.5)
-                            .stroke(lineWidth: 1)
-                            .foregroundStyle(.white)
-                            .opacity(0.15)
-                    }
+    private var labelText: some View {
+        Text(item.displayName)
+    }
 
-                Image(nsImage: image)
-                    .frame(height: 24)
-            }
+    @ViewBuilder
+    private var labelIcon: some View {
+        if let appIcon {
+            Image(nsImage: appIcon)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: dimension, height: dimension)
+        } else {
+            RoundedRectangle(cornerRadius: 5)
+                .fill(Color.accentColor.gradient)
+                .strokeBorder(Color.primary.gradient.quaternary)
+                .overlay {
+                    Image(systemName: "rectangle.topthird.inset.filled")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .foregroundStyle(.white)
+                        .padding(3)
+                        .shadow(radius: 2)
+                }
+                .padding(2.5)
+                .shadow(color: .black.opacity(0.1), radius: 2)
+                .frame(width: dimension, height: dimension)
         }
+    }
+
+    @ViewBuilder
+    private var itemView: some View {
+        Image(nsImage: itemImage)
+            .frame(
+                width: item.bounds.width,
+                height: dimension
+            )
+            .menuBarItemContainer(
+                appState: appState,
+                colorInfo: model.averageColorInfo
+            )
+            .clipShape(backgroundShape)
+            .overlay {
+                backgroundShape
+                    .strokeBorder(.quaternary)
+            }
     }
 }

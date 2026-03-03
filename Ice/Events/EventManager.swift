@@ -24,6 +24,9 @@ final class EventManager {
         guard let self else {
             return event
         }
+        if handleOpenSettingsFallback(with: event) {
+            return event
+        }
         switch event.type {
         case .leftMouseDown:
             handleShowOnClick()
@@ -263,6 +266,27 @@ extension EventManager {
             return
         }
         appState.menuBarManager.showRightClickMenu(at: mouseLocation)
+    }
+
+    // MARK: Handle Open Settings Fallback
+
+    private func handleOpenSettingsFallback(with event: NSEvent) -> Bool {
+        guard
+            let appState,
+            !appState.settingsManager.advancedSettingsManager.showContextMenuOnRightClick,
+            event.type == .leftMouseDown || event.type == .rightMouseDown,
+            isMouseInsideMenuBar
+        else {
+            return false
+        }
+
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard modifiers.contains([.option, .command]) else {
+            return false
+        }
+
+        appState.appDelegate?.openSettingsWindow()
+        return true
     }
 
     // MARK: Handle Prevent Show On Hover

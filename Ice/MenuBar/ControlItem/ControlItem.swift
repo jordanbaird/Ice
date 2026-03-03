@@ -394,12 +394,17 @@ final class ControlItem {
         else {
             return
         }
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let showContextMenus = appState.settingsManager.advancedSettingsManager.showContextMenuOnRightClick
         switch event.type {
         case .leftMouseDown, .leftMouseUp:
-            if NSEvent.modifierFlags == .control {
+            if
+                modifiers == .control,
+                showContextMenus
+            {
                 statusItem.showMenu(createMenu(with: appState))
             } else if
-                NSEvent.modifierFlags == .option,
+                modifiers == .option,
                 appState.settingsManager.advancedSettingsManager.canToggleAlwaysHiddenSection
             {
                 if let alwaysHiddenSection = appState.menuBarManager.section(withName: .alwaysHidden) {
@@ -409,6 +414,9 @@ final class ControlItem {
                 section?.toggle()
             }
         case .rightMouseUp:
+            guard showContextMenus else {
+                return
+            }
             statusItem.showMenu(createMenu(with: appState))
         default:
             break

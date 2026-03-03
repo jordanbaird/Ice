@@ -141,7 +141,8 @@ struct AdvancedSettingsPane: View {
 
     @ViewBuilder
     private var showContextMenuOnRightClick: some View {
-        Toggle("Show context menu on right click", isOn: manager.bindings.showContextMenuOnRightClick)
+        Toggle("Show Ice context menus on right click", isOn: manager.bindings.showContextMenuOnRightClick)
+            .annotation("Disable this to ignore Ice right-click menus for better compatibility with apps like DynamicLake. When disabled, Option + Command + click in the menu bar opens Ice settings.")
     }
 
     @ViewBuilder

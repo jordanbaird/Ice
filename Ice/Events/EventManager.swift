@@ -117,6 +117,28 @@ final class EventManager {
                 }
                 .store(in: &c)
             }
+
+            // If "Show on click", "Show on hover", "Show on scroll", and "Show context menu on
+            // right click" are all disabled, stop all monitors to save resources and prevent
+            // potential issues.
+            Publishers.CombineLatest4(
+                appState.settingsManager.generalSettingsManager.$showOnClick,
+                appState.settingsManager.generalSettingsManager.$showOnHover,
+                appState.settingsManager.generalSettingsManager.$showOnScroll,
+                appState.settingsManager.advancedSettingsManager.$showContextMenuOnRightClick
+            )
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] showOnClick, showOnHover, showOnScroll, showContextMenuOnRightClick in
+                guard let self else {
+                    return
+                }
+                if showOnClick || showOnHover || showOnScroll || showContextMenuOnRightClick {
+                    startAll()
+                } else {
+                    stopAll()
+                }
+            }
+            .store(in: &c)
         }
 
         cancellables = c

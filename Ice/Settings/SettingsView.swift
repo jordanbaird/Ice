@@ -62,6 +62,7 @@ struct SettingsView: View {
             sidebar
         } detail: {
             detailView
+                .id(navigationState.settingsNavigationIdentifier)
         }
         .navigationTitle(navigationTitle)
     }

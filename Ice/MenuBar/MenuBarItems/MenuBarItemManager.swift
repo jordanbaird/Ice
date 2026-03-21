@@ -351,7 +351,50 @@ extension MenuBarItemManager {
             }
 
             let displayID = Bridging.getActiveMenuBarDisplayID()
-            var items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+
+            // Build a mapping of control item window IDs to their identifiers
+            // so the item enumeration can identify Ice's own items on Tahoe
+            // (where all items appear owned by Control Center with nil titles).
+            //
+            // On Tahoe, NSWindow.windowNumber returns 64-bit IDs that don't match
+            // the 32-bit CGWindowIDs used by CGWindowListCopyWindowInfo.
+            // We match by converting NSWindow frames (Cocoa bottom-left origin)
+            // to CG screen coordinates (top-left origin) and comparing the full
+            // rect against the CGWindowList bounds.
+            let menuBarItemWindows = MenuBarItem.getMenuBarItemWindows(option: .activeSpace)
+
+            var controlItemMap = [CGWindowID: ControlItem.Identifier]()
+            if let appState {
+                // Build a list of control item bounds in CG screen coordinates.
+                var controlItemBounds = [(CGRect, ControlItem.Identifier)]()
+                for section in appState.menuBarManager.sections {
+                    let ci = section.controlItem
+                    if let frame = ci.window?.frame, let screen = ci.screen {
+                        let cgRect = CGRect(
+                            x: frame.origin.x,
+                            y: screen.frame.height - frame.origin.y - frame.height,
+                            width: frame.width,
+                            height: frame.height
+                        )
+                        controlItemBounds.append((cgRect, ci.identifier))
+                    }
+                }
+
+                // Match menu bar windows by their full bounds rect.
+                for window in menuBarItemWindows {
+                    for (bounds, identifier) in controlItemBounds {
+                        if window.bounds == bounds {
+                            controlItemMap[window.windowID] = identifier
+                            break
+                        }
+                    }
+                }
+            }
+
+            var items = await MenuBarItem.getMenuBarItems(
+                windows: menuBarItemWindows,
+                controlItemMap: controlItemMap
+            )
 
             let itemWindowIDs = currentItemWindowIDs ?? items.reversed().map { $0.windowID }
             await cacheActor.updateCachedItemWindowIDs(itemWindowIDs)

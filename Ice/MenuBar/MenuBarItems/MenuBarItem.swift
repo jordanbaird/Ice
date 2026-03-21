@@ -179,13 +179,14 @@ struct MenuBarItem: CustomStringConvertible {
     /// Only call it if you are certain the window is a valid menu bar item
     /// and the source pid belongs to the application that created it.
     @available(macOS 26.0, *)
-    private init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?) {
-        self.tag = MenuBarItemTag(uncheckedItemWindow: itemWindow, sourcePID: sourcePID)
+    private init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?, titleOverride: String? = nil) {
+        let effectiveTitle = titleOverride ?? itemWindow.title
+        self.tag = MenuBarItemTag(uncheckedItemWindow: itemWindow, sourcePID: sourcePID, titleOverride: effectiveTitle)
         self.windowID = itemWindow.windowID
         self.ownerPID = itemWindow.ownerPID
         self.sourcePID = sourcePID
         self.bounds = itemWindow.bounds
-        self.title = itemWindow.title
+        self.title = effectiveTitle
         self.isOnScreen = itemWindow.isOnScreen
     }
 }
@@ -243,20 +244,38 @@ extension MenuBarItem {
     /// Creates and returns a list of menu bar items using experimental
     /// source pid retrieval for macOS 26.
     @available(macOS 26.0, *)
-    private static func getMenuBarItemsExperimental(on display: CGDirectDisplayID?, option: ListOption) async -> [MenuBarItem] {
+    private static func getMenuBarItemsExperimental(
+        windows: [WindowInfo],
+        controlItemMap: [CGWindowID: ControlItem.Identifier] = [:]
+    ) async -> [MenuBarItem] {
+        let icePID = ProcessInfo.processInfo.processIdentifier
+
         var items = [MenuBarItem]()
-        for window in getMenuBarItemWindows(on: display, option: option) {
-            let sourcePID = await MenuBarItemService.Connection.shared.sourcePID(for: window)
-            let item = MenuBarItem(uncheckedItemWindow: window, sourcePID: sourcePID)
-            items.append(item)
+        for window in windows {
+            // On Tahoe, all menu bar items appear owned by Control Center
+            // and have nil titles. Identify Ice's own control items by
+            // matching their known window IDs and restore their titles.
+            // For all other items, resolve the source PID via XPC.
+            if let identifier = controlItemMap[window.windowID] {
+                let item = MenuBarItem(
+                    uncheckedItemWindow: window,
+                    sourcePID: icePID,
+                    titleOverride: identifier.rawValue
+                )
+                items.append(item)
+            } else {
+                let sourcePID = await MenuBarItemService.Connection.shared.sourcePID(for: window)
+                let item = MenuBarItem(uncheckedItemWindow: window, sourcePID: sourcePID)
+                items.append(item)
+            }
         }
         return items
     }
 
     /// Creates and returns a list of menu bar items, defaulting to the
     /// legacy source pid behavior, prior to macOS 26.
-    private static func getMenuBarItemsLegacyMethod(on display: CGDirectDisplayID?, option: ListOption) -> [MenuBarItem] {
-        getMenuBarItemWindows(on: display, option: option).map { window in
+    private static func getMenuBarItemsLegacyMethod(windows: [WindowInfo]) -> [MenuBarItem] {
+        windows.map { window in
             MenuBarItem(uncheckedItemWindow: window)
         }
     }
@@ -268,11 +287,35 @@ extension MenuBarItem {
     ///     items across all available displays.
     ///   - option: Options that filter the returned list. Pass an empty option set
     ///     to return all available menu bar items.
-    static func getMenuBarItems(on display: CGDirectDisplayID? = nil, option: ListOption) async -> [MenuBarItem] {
+    ///   - controlItemMap: A mapping of window IDs to control item identifiers,
+    ///     used to identify Ice's own items on Tahoe.
+    static func getMenuBarItems(
+        on display: CGDirectDisplayID? = nil,
+        option: ListOption,
+        controlItemMap: [CGWindowID: ControlItem.Identifier] = [:]
+    ) async -> [MenuBarItem] {
+        let windows = getMenuBarItemWindows(on: display, option: option)
         if #available(macOS 26.0, *) {
-            await getMenuBarItemsExperimental(on: display, option: option)
+            return await getMenuBarItemsExperimental(windows: windows, controlItemMap: controlItemMap)
         } else {
-            getMenuBarItemsLegacyMethod(on: display, option: option)
+            return getMenuBarItemsLegacyMethod(windows: windows)
+        }
+    }
+
+    /// Creates and returns a list of menu bar items from pre-fetched windows.
+    ///
+    /// - Parameters:
+    ///   - windows: Pre-fetched menu bar item windows.
+    ///   - controlItemMap: A mapping of window IDs to control item identifiers,
+    ///     used to identify Ice's own items on Tahoe.
+    static func getMenuBarItems(
+        windows: [WindowInfo],
+        controlItemMap: [CGWindowID: ControlItem.Identifier] = [:]
+    ) async -> [MenuBarItem] {
+        if #available(macOS 26.0, *) {
+            return await getMenuBarItemsExperimental(windows: windows, controlItemMap: controlItemMap)
+        } else {
+            return getMenuBarItemsLegacyMethod(windows: windows)
         }
     }
 }
@@ -321,9 +364,9 @@ private extension MenuBarItemTag {
     /// Only call it if you are certain the window is a valid menu bar item
     /// and the source pid belongs to the application that created it.
     @available(macOS 26.0, *)
-    init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?) {
+    init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?, titleOverride: String? = nil) {
         self.namespace = Namespace(uncheckedItemWindow: itemWindow, sourcePID: sourcePID)
-        self.title = itemWindow.title ?? ""
+        self.title = titleOverride ?? itemWindow.title ?? ""
     }
 }
 

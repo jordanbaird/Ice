@@ -8,122 +8,130 @@ import SwiftUI
 struct MenuBarAppearanceEditor: View {
     enum Location {
         case settings
-        case popover(closePopover: () -> Void)
+        case panel
     }
 
     @EnvironmentObject var appState: AppState
-    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
+    @ObservedObject var appearanceManager: MenuBarAppearanceManager
+    @Environment(\.dismissWindow) private var dismissWindow
+    @State private var isResetPromptPresented = false
 
     let location: Location
 
-    private var mainFormPadding: EdgeInsets {
-        with(EdgeInsets(all: 20)) { insets in
-            switch location {
-            case .settings: break
-            case .popover: insets.top = 0
-            }
-        }
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            stackHeader
-            stackBody
-        }
-    }
-
-    @ViewBuilder
-    private var stackHeader: some View {
-        if case .popover(let closePopover) = location {
-            ZStack {
-                Text("Menu Bar Appearance")
-                    .font(.title2)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                Button("Done", action: closePopover)
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+        if #available(macOS 26.0, *) {
+            bodyContent
+                .safeAreaBar(edge: .bottom, spacing: 0) {
+                    bottomBar
+                }
+        } else {
+            VStack(spacing: 0) {
+                bodyContent
+                bottomBar
             }
-            .padding(20)
         }
     }
 
     @ViewBuilder
-    private var stackBody: some View {
+    private var bodyContent: some View {
         if appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults {
             cannotEdit
+        } else if #available(macOS 26.0, *) {
+            mainForm
+                .scrollEdgeEffectStyle(.hard, for: .vertical)
         } else {
             mainForm
         }
     }
 
     @ViewBuilder
-    private var mainForm: some View {
-        IceForm(padding: mainFormPadding) {
-            IceSection {
-                isDynamicToggle
-            }
-            if appearanceManager.configuration.isDynamic {
-                LabeledPartialEditor(appearance: .light)
-                LabeledPartialEditor(appearance: .dark)
-            } else {
-                StaticPartialEditor()
-            }
-            IceSection("Menu Bar Shape") {
-                shapePicker
-                isInset
-            }
-            if case .settings = location {
-                IceGroupBox {
-                    AnnotationView(
-                        alignment: .center,
-                        font: .callout.bold()
-                    ) {
-                        Label {
-                            Text("Tip: you can also edit these settings by right-clicking in an empty area of the menu bar")
-                        } icon: {
-                            Image(systemName: "lightbulb")
-                        }
-                    }
-                }
-            }
-            if
-                !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
-                appearanceManager.configuration != .defaultConfiguration
-            {
-                Button("Reset") {
-                    appearanceManager.configuration = .defaultConfiguration
-                }
-                .controlSize(.large)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var isDynamicToggle: some View {
-        Toggle("Use dynamic appearance", isOn: appearanceManager.bindings.configuration.isDynamic)
-            .annotation("Apply different settings based on the current system appearance")
-    }
-
-    @ViewBuilder
     private var cannotEdit: some View {
-        Text("Ice cannot edit the appearance of automatically hidden menu bars")
+        Text("Ice cannot edit the appearance of automatically hidden menu bars.")
             .font(.title3)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     @ViewBuilder
+    private var mainForm: some View {
+        IceForm {
+            if
+                case .settings = location,
+                appState.settings.advanced.enableSecondaryContextMenu
+            {
+                CalloutBox(
+                    "Tip: You can also edit these settings by right-clicking in an empty area of the menu bar.",
+                    systemImage: "lightbulb"
+                )
+            }
+            IceSection {
+                isDynamicToggle
+            }
+            if appearanceManager.configuration.isDynamic {
+                LabeledPartialEditor(configuration: $appearanceManager.configuration, appearance: .light)
+                LabeledPartialEditor(configuration: $appearanceManager.configuration, appearance: .dark)
+            } else {
+                StaticPartialEditor(configuration: $appearanceManager.configuration)
+            }
+            IceSection("Menu Bar Shape") {
+                shapePicker
+                isInset
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var bottomBar: some View {
+        HStack {
+            if case .panel = location {
+                Button("Done") {
+                    dismissWindow()
+                }
+            }
+
+            Spacer()
+
+            if
+                !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
+                appearanceManager.configuration != .defaultConfiguration
+            {
+                Button("Reset") {
+                    isResetPromptPresented = true
+                }
+                .alert("Reset Menu Bar Appearance", isPresented: $isResetPromptPresented) {
+                    Button("Cancel", role: .cancel) {
+                        isResetPromptPresented = false
+                    }
+                    Button("Reset", role: .destructive) {
+                        appearanceManager.configuration = .defaultConfiguration
+                        isResetPromptPresented = false
+                    }
+                } message: {
+                    Text("This action cannot be undone.")
+                }
+            }
+        }
+        .buttonBorderShape(.capsule)
+        .padding(10)
+    }
+
+    @ViewBuilder
+    private var isDynamicToggle: some View {
+        Toggle("Use dynamic appearance", isOn: $appearanceManager.configuration.isDynamic)
+            .annotation("Apply different settings based on the current system appearance.")
+    }
+
+    @ViewBuilder
     private var shapePicker: some View {
-        MenuBarShapePicker()
+        MenuBarShapePicker(configuration: $appearanceManager.configuration)
             .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder
     private var isInset: some View {
-        if appearanceManager.configuration.shapeKind != .none {
+        if appearanceManager.configuration.shapeKind != .noShape {
             Toggle(
                 "Use inset shape on screens with notch",
-                isOn: appearanceManager.bindings.configuration.isInset
+                isOn: $appearanceManager.configuration.isInset
             )
         }
     }
@@ -146,7 +154,7 @@ private struct UnlabeledPartialEditor: View {
 
     @ViewBuilder
     private var tintPicker: some View {
-        IceLabeledContent("Tint") {
+        LabeledContent("Tint") {
             HStack {
                 IcePicker("Tint", selection: $configuration.tintKind) {
                     ForEach(MenuBarTintKind.allCases) { tintKind in
@@ -156,21 +164,22 @@ private struct UnlabeledPartialEditor: View {
                 .labelsHidden()
 
                 switch configuration.tintKind {
-                case .none:
+                case .noTint:
                     EmptyView()
                 case .solid:
-                    CustomColorPicker(
+                    ColorPicker(
+                        configuration.tintKind.localized,
                         selection: $configuration.tintColor,
-                        supportsOpacity: false,
-                        mode: .crayon
+                        supportsOpacity: false
                     )
+                    .labelsHidden()
                 case .gradient:
-                    CustomGradientPicker(
+                    IceGradientPicker(
+                        configuration.tintKind.localized,
                         gradient: $configuration.tintGradient,
-                        supportsOpacity: false,
-                        allowsEmptySelections: false,
-                        mode: .crayon
+                        supportsOpacity: false
                     )
+                    .labelsHidden()
                 }
             }
             .frame(height: 24)
@@ -190,13 +199,11 @@ private struct UnlabeledPartialEditor: View {
     @ViewBuilder
     private var borderColor: some View {
         if configuration.hasBorder {
-            IceLabeledContent("Border Color") {
-                CustomColorPicker(
-                    selection: $configuration.borderColor,
-                    supportsOpacity: true,
-                    mode: .crayon
-                )
-            }
+            ColorPicker(
+                "Border Color",
+                selection: $configuration.borderColor,
+                supportsOpacity: true
+            )
         }
     }
 
@@ -216,7 +223,7 @@ private struct UnlabeledPartialEditor: View {
 }
 
 private struct LabeledPartialEditor: View {
-    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
+    @Binding var configuration: MenuBarAppearanceConfigurationV2
     @State private var currentAppearance = SystemAppearance.current
     @State private var textFrame = CGRect.zero
 
@@ -241,86 +248,82 @@ private struct LabeledPartialEditor: View {
                 .onFrameChange(update: $textFrame)
 
             if currentAppearance != appearance {
-                previewButton
+                PreviewButton(appearance: appearance)
             }
         }
         .frame(height: textFrame.height)
     }
 
     @ViewBuilder
-    private var previewButton: some View {
-        switch appearance {
-        case .light:
-            PreviewButton(configuration: appearanceManager.configuration.lightModeConfiguration)
-        case .dark:
-            PreviewButton(configuration: appearanceManager.configuration.darkModeConfiguration)
-        }
-    }
-
-    @ViewBuilder
     private var partialEditor: some View {
         switch appearance {
         case .light:
-            UnlabeledPartialEditor(configuration: appearanceManager.bindings.configuration.lightModeConfiguration)
+            UnlabeledPartialEditor(configuration: $configuration.lightModeConfiguration)
         case .dark:
-            UnlabeledPartialEditor(configuration: appearanceManager.bindings.configuration.darkModeConfiguration)
+            UnlabeledPartialEditor(configuration: $configuration.darkModeConfiguration)
         }
     }
 }
 
 private struct StaticPartialEditor: View {
-    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
+    @Binding var configuration: MenuBarAppearanceConfigurationV2
 
     var body: some View {
-        UnlabeledPartialEditor(configuration: appearanceManager.bindings.configuration.staticConfiguration)
+        UnlabeledPartialEditor(configuration: $configuration.staticConfiguration)
     }
 }
 
 private struct PreviewButton: View {
-    private struct DummyButton: NSViewRepresentable {
-        @Binding var isPressed: Bool
+    @EnvironmentObject private var appState: AppState
+    @State private var isPressed = false
 
-        func makeNSView(context: Context) -> NSButton {
-            let button = NSButton()
-            button.title = ""
-            button.bezelStyle = .accessoryBarAction
-            return button
-        }
+    let appearance: SystemAppearance
 
-        func updateNSView(_ nsView: NSButton, context: Context) {
-            nsView.isHighlighted = isPressed
+    private var manager: MenuBarAppearanceManager {
+        appState.appearanceManager
+    }
+
+    private var previewConfiguration: MenuBarAppearancePartialConfiguration {
+        switch appearance {
+        case .light:
+            manager.configuration.lightModeConfiguration
+        case .dark:
+            manager.configuration.darkModeConfiguration
         }
     }
 
-    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
-
-    @State private var frame = CGRect.zero
-    @State private var isPressed = false
-
-    let configuration: MenuBarAppearancePartialConfiguration
-
     var body: some View {
-        ZStack {
-            DummyButton(isPressed: $isPressed)
-                .allowsHitTesting(false)
-            Text("Hold to Preview")
-                .baselineOffset(1.5)
-                .padding(.horizontal, 10)
-                .contentShape(Rectangle())
+        Button("Hold to Preview") { }
+            .buttonStyle(PreviewButtonStyle(isPressed: $isPressed))
+            .onChange(of: isPressed) {
+                manager.previewConfiguration = isPressed ? previewConfiguration : nil
+            }
+    }
+}
+
+private struct PreviewButtonStyle: ButtonStyle {
+    @Binding var isPressed: Bool
+
+    private var borderShape: some InsettableShape {
+        if #available(macOS 26.0, *) {
+            AnyInsettableShape(Capsule(style: .continuous))
+        } else {
+            AnyInsettableShape(RoundedRectangle(cornerRadius: 6, style: .circular))
         }
-        .fixedSize()
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                    isPressed = frame.contains(value.location)
-                }
-                .onEnded { _ in
-                    isPressed = false
-                }
-        )
-        .onChange(of: isPressed) { _, newValue in
-            appearanceManager.previewConfiguration = newValue ? configuration : nil
-        }
-        .onFrameChange(update: $frame)
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
+            .background {
+                borderShape
+                    .fill(configuration.isPressed ? .tertiary : .quaternary)
+                    .opacity(configuration.isPressed ? 0.5 : 0.75)
+            }
+            .contentShape([.focusEffect, .interaction], borderShape)
+            .onChange(of: configuration.isPressed) { _, newValue in
+                isPressed = newValue
+            }
     }
 }

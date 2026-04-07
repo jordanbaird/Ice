@@ -553,10 +553,7 @@ extension NSScreen {
     func getApplicationMenuFrame() -> CGRect? {
         let displayBounds = CGDisplayBounds(displayID)
 
-        guard
-            let menuBar = AXHelpers.element(at: displayBounds.origin),
-            AXHelpers.role(for: menuBar) == .menuBar
-        else {
+        guard let menuBar = AXHelpers.menuBarElement(nearDisplayOrigin: displayBounds.origin) else {
             return nil
         }
 

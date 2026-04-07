@@ -363,7 +363,38 @@ private extension MenuBarItemTag.Namespace {
         // which are more likely not to have a bundle ID.
         if let sourcePID, let app = NSRunningApplication(processIdentifier: sourcePID) {
             self = .optional(app.bundleIdentifier ?? app.localizedName)
-        } else if let uuid = Self.uuidCache[itemWindow.windowID] {
+            return
+        }
+
+        // The XPC source-PID lookup failed. Before falling back to a
+        // synthetic UUID, recognise Ice's own control items by their
+        // window title — those titles ("Ice.ControlItem.Visible" etc.)
+        // are unique to Ice and are still set on the item windows even
+        // after Control Center re-parents them in macOS 26. Without
+        // this, the source-PID lookup failing for our own control items
+        // would give them UUID namespaces, the cache would never match
+        // them against `MenuBarItemTag.hiddenControlItem` and friends,
+        // and the cache rebuild would loop forever clearing itself.
+        if let title = itemWindow.title, title.hasPrefix("Ice.ControlItem.") {
+            self = .ice
+            return
+        }
+
+        // Same idea for items whose owning process is itself a meaningful
+        // source — i.e. items NOT re-parented to Control Center. We
+        // deliberately exclude Control Center as a fallback owner: for
+        // Control Center-owned windows the owner is not the source, and
+        // synthesising the namespace from it would collapse every
+        // unresolvable item into the same bucket.
+        if
+            let owningApp = itemWindow.owningApplication,
+            owningApp.bundleIdentifier != "com.apple.controlcenter"
+        {
+            self = .optional(owningApp.bundleIdentifier ?? itemWindow.ownerName ?? owningApp.localizedName)
+            return
+        }
+
+        if let uuid = Self.uuidCache[itemWindow.windowID] {
             self = .uuid(uuid)
         } else {
             let uuid = UUID()

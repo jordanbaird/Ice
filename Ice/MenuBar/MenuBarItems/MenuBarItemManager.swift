@@ -295,7 +295,18 @@ extension MenuBarItemManager {
         for item in items where context.isValidForCaching(item) {
             if item.sourcePID == nil {
                 logger.warning("Missing sourcePID for \(item.logString, privacy: .public)")
-                context.shouldClearCachedItemWindowIDs = true
+                // Intentionally do NOT set shouldClearCachedItemWindowIDs here.
+                // Previously, a nil sourcePID forced a full cache invalidation,
+                // which created a feedback loop for items whose source pid can
+                // never be resolved (e.g., an app that does not expose its
+                // extras menu bar via AX): every cache refresh would re-trigger
+                // another full re-cache, thrash the MenuBarItemService with
+                // repeated expensive AX enumerations, and cause the main app's
+                // IceBar show path to race with an in-progress background cache
+                // operation. SourcePIDCache now throttles retries with a
+                // negative-lookup TTL, so items with a stable UUID-based tag
+                // just stay in the cache until a new running-apps change gives
+                // them another chance to resolve.
             }
 
             if let temp = temporarilyShownItemContexts.first(where: { $0.tag == item.tag }) {

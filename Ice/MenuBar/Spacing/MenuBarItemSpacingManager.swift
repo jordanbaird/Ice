@@ -6,6 +6,7 @@
 import Cocoa
 import Combine
 import OSLog
+import os.lock
 
 /// Manager for menu bar item spacing.
 @MainActor
@@ -84,6 +85,7 @@ final class MenuBarItemSpacingManager {
         app.terminate()
 
         var cancellable: AnyCancellable?
+        let didResume = OSAllocatedUnfairLock(initialState: false)
         return try await withCheckedThrowingContinuation { continuation in
             let timeoutTask = Task {
                 try await Task.sleep(for: .seconds(forceTerminateDelay))
@@ -95,6 +97,12 @@ final class MenuBarItemSpacingManager {
                         """
                     )
                     app.forceTerminate()
+                    // Failsafe: if KVO doesn't fire after force terminate, resume anyway.
+                    try? await Task.sleep(for: .seconds(1))
+                    cancellable?.cancel()
+                    if didResume.tryClaimOnce() {
+                        continuation.resume()
+                    }
                 }
             }
 
@@ -108,15 +116,25 @@ final class MenuBarItemSpacingManager {
                 timeoutTask.cancel()
                 cancellable?.cancel()
                 logger.debug("Application \"\(app.logString, privacy: .public)\" terminated successfully")
-                continuation.resume()
+                if didResume.tryClaimOnce() {
+                    continuation.resume()
+                }
             }
         }
     }
 
     /// Asynchronously launches the app at the given URL.
-    private nonisolated func launchApp(at applicationURL: URL, bundleIdentifier: String) async throws {
-        if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
-            logger.debug("Application \"\(app.logString, privacy: .public)\" is already open, so skipping launch")
+    ///
+    /// `replacedPID` is the PID of the just-terminated process. The
+    /// "already running" check ignores any process matching that PID,
+    /// so an auto-respawn under a new PID is recognized as fresh,
+    /// while an unexpected match against the dead PID falls through to
+    /// `openApplication(at:)`.
+    private nonisolated func launchApp(at applicationURL: URL, bundleIdentifier: String, replacedPID: pid_t) async throws {
+        if let app = NSWorkspace.shared.runningApplications.first(where: {
+            $0.bundleIdentifier == bundleIdentifier && $0.processIdentifier != replacedPID
+        }) {
+            logger.debug("Application \"\(app.logString, privacy: .public)\" already running at PID \(app.processIdentifier, privacy: .public), skipping launch")
             return
         }
         let configuration = NSWorkspace.OpenConfiguration()
@@ -136,9 +154,10 @@ final class MenuBarItemSpacingManager {
         else {
             throw RelaunchError()
         }
+        let oldPID = app.processIdentifier
         try await signalAppToQuit(app)
         if app.isTerminated {
-            try await launchApp(at: url, bundleIdentifier: bundleIdentifier)
+            try await launchApp(at: url, bundleIdentifier: bundleIdentifier, replacedPID: oldPID)
         } else {
             throw RelaunchError()
         }
@@ -160,22 +179,30 @@ final class MenuBarItemSpacingManager {
 
         let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
         let pids = Set(items.map { $0.sourcePID ?? $0.ownerPID })
+        logger.debug("applyOffset: \(items.count, privacy: .public) items, \(pids.count, privacy: .public) unique PIDs: \(pids.map { String($0) }.sorted().joined(separator: ", "), privacy: .public)")
 
         var failedApps = [String]()
 
         await withTaskGroup(of: Void.self) { group in
             for pid in pids {
-                guard
-                    let app = NSRunningApplication(processIdentifier: pid),
-                    app.bundleIdentifier != "com.apple.controlcenter", // ControlCenter handles its own relaunch, so skip it.
-                    app != .current
-                else {
-                    break
+                guard let app = NSRunningApplication(processIdentifier: pid) else {
+                    logger.debug("applyOffset: skipping pid \(pid, privacy: .public) (no NSRunningApplication)")
+                    continue
                 }
+                guard app.bundleIdentifier != "com.apple.controlcenter" else {
+                    logger.debug("applyOffset: skipping pid \(pid, privacy: .public) (Control Center)")
+                    continue
+                }
+                guard app != .current else {
+                    logger.debug("applyOffset: skipping pid \(pid, privacy: .public) (self)")
+                    continue
+                }
+                logger.debug("applyOffset: relaunching pid \(pid, privacy: .public) bundle=\(app.bundleIdentifier ?? "<nil>", privacy: .public)")
                 group.addTask { @MainActor in
                     do {
                         try await self.relaunchApp(app)
                     } catch {
+                        self.logger.debug("applyOffset: relaunch FAILED for pid \(app.processIdentifier, privacy: .public) bundle=\(app.bundleIdentifier ?? "<nil>", privacy: .public) error=\(String(describing: error), privacy: .public)")
                         guard let name = app.localizedName else {
                             return
                         }

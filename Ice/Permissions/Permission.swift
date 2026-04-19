@@ -24,8 +24,12 @@ class Permission: ObservableObject, Identifiable {
     /// A Boolean value that indicates if the app can work without this permission.
     let isRequired: Bool
 
-    /// The URL of the settings pane to open.
-    private let settingsURL: URL?
+    /// A Boolean value that indicates whether the app may need to relaunch
+    /// before this permission becomes usable.
+    let mayRequireRelaunch: Bool
+
+    /// The URLs of the settings panes to try to open.
+    private let settingsURLs: [URL]
 
     /// The function that checks permissions.
     private let check: () -> Bool
@@ -45,21 +49,23 @@ class Permission: ObservableObject, Identifiable {
     ///   - title: The title of the permission.
     ///   - details: Descriptive details for the permission.
     ///   - isRequired: A Boolean value that indicates if the app can work without this permission.
-    ///   - settingsURL: The URL of the settings pane to open.
+    ///   - settingsURLs: The URLs of the settings panes to open.
     ///   - check: A function that checks permissions.
     ///   - request: A function that requests permissions.
     init(
         title: String,
         details: [String],
         isRequired: Bool,
-        settingsURL: URL?,
+        mayRequireRelaunch: Bool = false,
+        settingsURLs: [URL] = [],
         check: @escaping () -> Bool,
         request: @escaping () -> Void
     ) {
         self.title = title
         self.details = details
         self.isRequired = isRequired
-        self.settingsURL = settingsURL
+        self.mayRequireRelaunch = mayRequireRelaunch
+        self.settingsURLs = settingsURLs
         self.check = check
         self.request = request
         self.hasPermission = check()
@@ -82,9 +88,45 @@ class Permission: ObservableObject, Identifiable {
     /// Performs the request and opens the System Settings app to the appropriate pane.
     func performRequest() {
         request()
-        if let settingsURL {
-            NSWorkspace.shared.open(settingsURL)
+        openSettingsPane()
+    }
+
+    /// Opens the most relevant System Settings pane for the permission.
+    private func openSettingsPane() {
+        guard !settingsURLs.isEmpty else {
+            return
         }
+
+        if #available(macOS 13, *) {
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = true
+            NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/System/Applications/System Settings.app"), configuration: configuration)
+        }
+
+        if openSettingsURLFallbacks() {
+            return
+        }
+
+        for settingsURL in settingsURLs {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            process.arguments = [settingsURL.absoluteString]
+
+            do {
+                try process.run()
+                return
+            } catch {
+                continue
+            }
+        }
+    }
+
+    /// Attempts to open each settings URL through NSWorkspace.
+    private func openSettingsURLFallbacks() -> Bool {
+        for settingsURL in settingsURLs where NSWorkspace.shared.open(settingsURL) {
+            return true
+        }
+        return false
     }
 
     /// Asynchronously waits for the app to be granted this permission.
@@ -127,7 +169,8 @@ final class AccessibilityPermission: Permission {
                 "Arrange menu bar items.",
             ],
             isRequired: true,
-            settingsURL: nil,
+            mayRequireRelaunch: false,
+            settingsURLs: [],
             check: {
                 AXHelpers.isProcessTrusted()
             },
@@ -149,7 +192,12 @@ final class ScreenRecordingPermission: Permission {
                 "Display images of individual menu bar items.",
             ],
             isRequired: false,
-            settingsURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"),
+            mayRequireRelaunch: true,
+            settingsURLs: [
+                URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy_ScreenCapture"),
+                URL(string: "x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension?Privacy"),
+                URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"),
+            ].compactMap { $0 },
             check: {
                 ScreenCapture.checkPermissions()
             },

@@ -70,12 +70,21 @@ struct MenuBarLayoutSettingsPane: View {
             Text("Menu bar layout requires screen recording permissions.")
                 .font(.title2)
 
-            Button {
-                appState.navigationState.settingsNavigationIdentifier = .advanced
-            } label: {
-                Text("Go to Advanced Settings")
+            Text("On macOS 26, Ice may need to relaunch after you grant this permission.")
+                .foregroundStyle(.secondary)
+
+            HStack {
+                Button {
+                    appState.navigationState.settingsNavigationIdentifier = .advanced
+                } label: {
+                    Text("Go to Advanced Settings")
+                }
+                .buttonStyle(.link)
+
+                Button("Relaunch Ice") {
+                    appState.relaunch()
+                }
             }
-            .buttonStyle(.link)
         }
     }
 

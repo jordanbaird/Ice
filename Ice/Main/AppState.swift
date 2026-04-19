@@ -57,8 +57,6 @@ final class AppState: ObservableObject {
 
     /// Async setup actions, run once on first access.
     private lazy var setupTask = Task {
-        permissions.stopAllChecks()
-
         settings.performSetup(with: self)
         menuBarManager.performSetup(with: self)
 
@@ -94,6 +92,23 @@ final class AppState: ObservableObject {
                 activate(withPolicy: .regular)
                 dismissWindow(.settings) // Shouldn't be open anyway.
                 openWindow(.permissions)
+            }
+        }
+    }
+
+    /// Relaunches the app from its current bundle location.
+    func relaunch() {
+        let bundleURL = Bundle.main.bundleURL
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = true
+
+        NSWorkspace.shared.openApplication(at: bundleURL, configuration: configuration) { _, error in
+            if let error {
+                self.logger.error("Failed to relaunch app - \(error.localizedDescription)")
+                return
+            }
+            DispatchQueue.main.async {
+                NSApp.terminate(nil)
             }
         }
     }

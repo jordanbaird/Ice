@@ -38,7 +38,7 @@ enum ScreenCapture {
         enum Context {
             static var cachedResult: Bool?
         }
-        if !reset, let result = Context.cachedResult {
+        if !reset, let result = Context.cachedResult, result {
             return result
         }
         let result = checkPermissions()

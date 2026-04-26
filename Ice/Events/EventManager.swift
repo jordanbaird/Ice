@@ -516,7 +516,25 @@ extension EventManager {
         isMouseInsideMenuBar &&
         !isMouseInsideApplicationMenu &&
         !isMouseInsideMenuBarItem &&
-        !isMouseInsideNotch
+        !isMouseInsideNotch &&
+        !isMouseInsideOverlayAboveMenuBar
+    }
+
+    /// A Boolean value that indicates whether the mouse pointer is occluded
+    /// by a third-party window whose level is above the menu bar.
+    var isMouseInsideOverlayAboveMenuBar: Bool {
+        guard let mouseLocation = MouseCursor.locationCoreGraphics else {
+            return false
+        }
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let menuBarLevel = Int(CGWindowLevelForKey(.mainMenuWindow))
+        let cursorLevel = Int(CGWindowLevelForKey(.cursorWindow))
+        return WindowInfo.getOnScreenWindows(excludeDesktopWindows: true).contains { window in
+            window.ownerPID != pid &&
+            window.layer > menuBarLevel &&
+            window.layer < cursorLevel &&
+            window.frame.contains(mouseLocation)
+        }
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within

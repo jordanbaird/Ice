@@ -82,15 +82,15 @@ final class ControlItem {
                 // status item to be present if its section is enabled. The new solution is to remove
                 // a constraint from the item's content view prevents it from having a length of zero.
                 // Then, we set the length. FIXME: Find a replacement for this.
+                var foundConstraint: NSLayoutConstraint? = nil
                 if
-                    let constraints = button.window?.contentView?.constraintsAffectingLayout(for: .horizontal),
-                    let constraint = constraints.first(where: Predicates.controlItemConstraint(button: button))
+                    let window = button.window,
+                    let contentView = window.contentView,
+                    let constraints = try? contentView.constraintsAffectingLayout(for: .horizontal)
                 {
-                    assert(constraints.filter(Predicates.controlItemConstraint(button: button)).count == 1)
-                    self.constraint = constraint
-                } else {
-                    self.constraint = nil
+                    foundConstraint = constraints.first(where: Predicates.controlItemConstraint(button: button))
                 }
+                self.constraint = foundConstraint
 
                 // On macOS 27, Ice finds its own items through Accessibility by this identifier.
                 button.setAccessibilityIdentifier(controlItem.identifier.rawValue)

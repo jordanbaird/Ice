@@ -5,6 +5,7 @@
 
 import Cocoa
 import Combine
+import OSLog
 
 /// Manager for menu bar item spacing.
 @MainActor
@@ -35,6 +36,9 @@ final class MenuBarItemSpacingManager {
             "You may need to log out for the changes to take effect."
         }
     }
+
+    /// Logger for the menu bar item spacing manager.
+    private let logger = Logger(category: "MenuBarItemSpacingManager")
 
     /// Delay before force terminating an app.
     private let forceTerminateDelay = 1
@@ -68,18 +72,13 @@ final class MenuBarItemSpacingManager {
         try await runCommand("defaults", with: ["-currentHost", "write", "-globalDomain", key.rawValue, "-int", String(key.defaultValue + offset)])
     }
 
-    /// Returns a log string for the given app.
-    private nonisolated func logString(for app: NSRunningApplication) -> String {
-        app.localizedName ?? app.bundleIdentifier ?? "<NIL>"
-    }
-
     /// Asynchronously signals the given app to quit.
     private func signalAppToQuit(_ app: NSRunningApplication) async throws {
         if app.isTerminated {
-            Logger.spacing.debug("Application \"\(logString(for: app))\" is already terminated")
+            logger.debug("Application \"\(app.logString, privacy: .public)\" is already terminated")
             return
         } else {
-            Logger.spacing.debug("Signaling application \"\(logString(for: app))\" to quit")
+            logger.debug("Signaling application \"\(app.logString, privacy: .public)\" to quit")
         }
 
         app.terminate()
@@ -89,7 +88,12 @@ final class MenuBarItemSpacingManager {
             let timeoutTask = Task {
                 try await Task.sleep(for: .seconds(forceTerminateDelay))
                 if !app.isTerminated {
-                    Logger.spacing.debug("Application \"\(logString(for: app))\" did not terminate within \(forceTerminateDelay) seconds, attempting to force terminate")
+                    logger.debug(
+                        """
+                        Application \"\(app.logString, privacy: .public)\" did not terminate within \
+                        \(self.forceTerminateDelay, privacy: .public) seconds, attempting to force terminate
+                        """
+                    )
                     app.forceTerminate()
                 }
             }
@@ -103,7 +107,7 @@ final class MenuBarItemSpacingManager {
                 }
                 timeoutTask.cancel()
                 cancellable?.cancel()
-                Logger.spacing.debug("Application \"\(logString(for: app))\" terminated successfully")
+                logger.debug("Application \"\(app.logString, privacy: .public)\" terminated successfully")
                 continuation.resume()
             }
         }
@@ -112,7 +116,7 @@ final class MenuBarItemSpacingManager {
     /// Asynchronously launches the app at the given URL.
     private nonisolated func launchApp(at applicationURL: URL, bundleIdentifier: String) async throws {
         if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
-            Logger.spacing.debug("Application \"\(logString(for: app))\" is already open, so skipping launch")
+            logger.debug("Application \"\(app.logString, privacy: .public)\" is already open, so skipping launch")
             return
         }
         let configuration = NSWorkspace.OpenConfiguration()
@@ -154,8 +158,8 @@ final class MenuBarItemSpacingManager {
 
         try? await Task.sleep(for: .milliseconds(100))
 
-        let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
-        let pids = Set(items.map { $0.ownerPID })
+        let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+        let pids = Set(items.map { $0.sourcePID ?? $0.ownerPID })
 
         var failedApps = [String]()
 
@@ -209,7 +213,9 @@ final class MenuBarItemSpacingManager {
     }
 }
 
-// MARK: - Logger
-private extension Logger {
-    static let spacing = Logger(category: "Spacing")
+private extension NSRunningApplication {
+    /// A string to use for logging purposes.
+    var logString: String {
+        localizedName ?? bundleIdentifier ?? "<NIL>"
+    }
 }

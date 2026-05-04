@@ -72,14 +72,23 @@ final class Listener {
 
         Logger.default.debug("Activating listener")
 
-        do {
-            if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, *) {
+            do {
                 try uncheckedActivateWithSameTeamRequirement()
-            } else {
-                try uncheckedActivate()
+            } catch {
+                Logger.default.warning("Failed to activate with same-team requirement (\(error)), falling back to no requirement")
+                do {
+                    try uncheckedActivate()
+                } catch {
+                    Logger.default.error("Failed to activate listener with error \(error)")
+                }
             }
-        } catch {
-            Logger.default.error("Failed to activate listener with error \(error)")
+        } else {
+            do {
+                try uncheckedActivate()
+            } catch {
+                Logger.default.error("Failed to activate listener with error \(error)")
+            }
         }
     }
 

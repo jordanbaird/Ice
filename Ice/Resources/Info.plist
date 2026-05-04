@@ -6,5 +6,9 @@
 	<string>https://jordanbaird.github.io/ice-releases/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>3nfIGMOD8DALPE8vIdFo2tUOIVc2MVbzhc+2J9JLn+Q=</string>
+	<key>NSAccessibilityUsageDescription</key>
+	<string>Ice needs Accessibility permissions to detect and arrange menu bar items.</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>Ice needs Screen Recording permissions to capture menu bar item images and modify the menu bar appearance.</string>
 </dict>
 </plist>

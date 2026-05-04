@@ -104,9 +104,25 @@ extension MenuBarItemService {
                     logger.warning("Session was cancelled with error \(error.localizedDescription)")
                     self.session = nil
                 }
-                session.setPeerRequirement(.isFromSameTeam())
-                session.setTargetQueue(queue)
-                try session.activate()
+                // Try with same-team requirement first, fall back to no requirement
+                do {
+                    session.setPeerRequirement(.isFromSameTeam())
+                    session.setTargetQueue(queue)
+                    try session.activate()
+                } catch {
+                    logger.warning("Failed to activate session with same-team requirement (\(error)), trying without requirement")
+                    let fallbackSession = try XPCSession(xpcService: name, options: .inactive) { [weak self] error in
+                        guard let self else {
+                            return
+                        }
+                        logger.warning("Session was cancelled with error \(error.localizedDescription)")
+                        self.session = nil
+                    }
+                    fallbackSession.setTargetQueue(queue)
+                    try fallbackSession.activate()
+                    self.session = fallbackSession
+                    return fallbackSession
+                }
                 self.session = session
                 return session
             }

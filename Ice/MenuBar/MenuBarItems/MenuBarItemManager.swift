@@ -182,6 +182,7 @@ final class MenuBarItemManager: ObservableObject {
                 }
                 Task {
                     await self.cacheItemsIfNeeded()
+                    await self.relocateNotchObscuredItems()
                 }
             }
             .store(in: &c)
@@ -1458,6 +1459,70 @@ extension MenuBarItemManager {
     /// This ensures that the item will _not_ be returned to its previous location.
     func removeTempShownItemFromCache(with info: MenuBarItemInfo) {
         tempShownItemContexts.removeAll { $0.info == info }
+    }
+}
+
+// MARK: - Notch Obscured Items
+
+extension MenuBarItemManager {
+    /// Detects visible-section items obscured by the display notch and moves them
+    /// to the hidden section automatically.
+    func relocateNotchObscuredItems() async {
+        guard
+            let appState,
+            let screen = NSScreen.main,
+            screen.hasNotch,
+            let rightArea = screen.auxiliaryTopRightArea,
+            !isMovingItem,
+            !isMouseButtonDown,
+            !mouseHasRecentlyMoved,
+            tempShownItemContexts.isEmpty,
+            appState.menuBarManager.iceBarPanel.currentSection == nil,
+            appState.menuBarManager.section(withName: .hidden)?.controlItem.state == .hideItems
+        else {
+            return
+        }
+
+        let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
+
+        guard let hiddenControlItem = items.first(where: { $0.info == .hiddenControlItem }) else {
+            return
+        }
+
+        let visibleItems = items.filter { $0.frame.minX >= hiddenControlItem.frame.maxX }
+
+        // An item is obscured if its left edge falls within the notch region (left of the
+        // right auxiliary area). Exclude Ice's own control items.
+        let obscuredItems = visibleItems.filter { item in
+            item.frame.minX < rightArea.minX &&
+            item.info != .hiddenControlItem &&
+            item.info != .alwaysHiddenControlItem &&
+            item.info != .iceIcon
+        }
+
+        guard !obscuredItems.isEmpty else {
+            return
+        }
+
+        Logger.itemManager.info("Found \(obscuredItems.count) items obscured by notch, relocating to hidden section")
+
+        itemMoveCount += 1
+        defer {
+            itemMoveCount -= 1
+        }
+
+        // Move in reverse order to preserve relative ordering in the hidden section.
+        for item in obscuredItems.reversed() {
+            do {
+                try await move(item: item, to: .leftOfItem(hiddenControlItem))
+            } catch {
+                Logger.itemManager.warning("Failed to relocate notch-obscured item \(item.logString): \(error)")
+            }
+        }
+
+        // Force full cache refresh so UI reflects the new positions immediately.
+        cachedItemWindowIDs.removeAll()
+        await cacheItemsIfNeeded()
     }
 }
 

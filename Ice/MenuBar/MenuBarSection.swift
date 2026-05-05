@@ -50,8 +50,12 @@ final class MenuBarSection {
     private var rehideMonitor: UniversalEventMonitor?
 
     /// A Boolean value that indicates whether the Ice Bar should be used.
+    /// On notched screens, always use Ice Bar to prevent items from being obscured.
     private var useIceBar: Bool {
-        appState?.settingsManager.generalSettingsManager.useIceBar ?? false
+        if NSScreen.main?.hasNotch == true {
+            return true
+        }
+        return appState?.settingsManager.generalSettingsManager.useIceBar ?? false
     }
 
     /// A weak reference to the menu bar manager's Ice Bar panel.

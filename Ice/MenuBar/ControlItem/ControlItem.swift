@@ -63,7 +63,7 @@ final class ControlItem {
 
     /// The identifier of the control item's window.
     var windowID: CGWindowID? {
-        guard let window else {
+        guard let window, window.windowNumber > 0 else {
             return nil
         }
         return CGWindowID(window.windowNumber)
@@ -273,7 +273,7 @@ final class ControlItem {
                     else {
                         return
                     }
-                    if useIceBar {
+                    if useIceBar || NSScreen.main?.hasNotch == true {
                         button.sendAction(on: [.leftMouseDown, .rightMouseUp])
                     } else {
                         button.sendAction(on: [.leftMouseUp, .rightMouseUp])

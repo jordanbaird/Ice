@@ -24,7 +24,7 @@ struct PermissionsView: View {
         case .hasAll:
             AnyShapeStyle(.primary)
         case .hasRequired:
-            AnyShapeStyle(.yellow)
+            AnyShapeStyle(Color("LimitedModeButtonColor"))
         }
     }
 

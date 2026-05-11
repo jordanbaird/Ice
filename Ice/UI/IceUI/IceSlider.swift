@@ -55,8 +55,7 @@ struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View>: View {
             in: bounds,
             step: step ?? 0,
             handleVisibility: .hovering(width: 0),
-            minHeight: 0,
-            gestureOptions: .default.subtracting([.scrollWheel])
+            minHeight: 0
         ) {
             valueLabel
                 .frame(height: height)

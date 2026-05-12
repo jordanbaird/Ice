@@ -112,7 +112,8 @@ extension UpdatesManager: @preconcurrency SPUStandardUserDriverDelegate {
         if NSApp.isActive {
             return immediateFocus
         } else {
-            return false
+            appState?.activate(withPolicy: .regular)
+            return true
         }
     }
 
@@ -124,7 +125,9 @@ extension UpdatesManager: @preconcurrency SPUStandardUserDriverDelegate {
         guard let appState else {
             return
         }
-        if !state.userInitiated {
+        if handleShowingUpdate {
+                appState.activate(withPolicy: .regular)
+        } else if !state.userInitiated {
             appState.userNotificationManager.addRequest(
                 with: .updateCheck,
                 title: "A new update is available",

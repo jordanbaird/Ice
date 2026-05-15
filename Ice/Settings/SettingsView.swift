@@ -104,6 +104,15 @@ struct SettingsView: View {
         }
         .frame(height: sidebarItemHeight)
         .tag(identifier)
+        // On macOS Tahoe, NavigationSplitView's List selection binding
+        // sometimes fails to propagate on single click (sidebar highlight
+        // moves, but the bound value stays stale until a second click).
+        // Mirror the selection into navigationState explicitly so the
+        // detail pane and title always reflect the visible selection.
+        .contentShape(Rectangle())
+        .simultaneousGesture(TapGesture().onEnded {
+            navigationState.settingsNavigationIdentifier = identifier
+        })
     }
 
     @ToolbarContentBuilder

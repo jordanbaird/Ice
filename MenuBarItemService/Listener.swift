@@ -72,12 +72,20 @@ final class Listener {
 
         Logger.default.debug("Activating listener")
 
-        do {
-            if #available(macOS 26.0, *) {
+        // `.isFromSameTeam()` silently drops every check-in when the
+        // service is ad-hoc signed (no team ID), with no way to detect
+        // the rejection from the listener side. Only enforce the same-team
+        // requirement when we actually have a team ID.
+        if #available(macOS 26.0, *), currentProcessTeamID() != nil {
+            do {
                 try uncheckedActivateWithSameTeamRequirement()
-            } else {
-                try uncheckedActivate()
+                return
+            } catch {
+                Logger.default.warning("Failed to activate with same-team requirement (\(error)), falling back to no requirement")
             }
+        }
+        do {
+            try uncheckedActivate()
         } catch {
             Logger.default.error("Failed to activate listener with error \(error)")
         }

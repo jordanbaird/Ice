@@ -97,14 +97,20 @@ extension MenuBarItemService {
                 if let session {
                     return session
                 }
-                let session = try XPCSession(xpcService: name, options: .inactive) { [weak self] error in
-                    guard let self else {
-                        return
-                    }
+                // Don't mutate `self.session` from the cancellation handler:
+                // it runs on the session's target queue, not under the
+                // storage lock, which races with `send` and trips
+                // `libdispatch: Resurrection of an object`. Detection of a
+                // dead session happens via `sendSync` failure in `send` below.
+                let session = try XPCSession(xpcService: name, options: .inactive) { [logger] error in
                     logger.warning("Session was cancelled with error \(error.localizedDescription)")
-                    self.session = nil
                 }
-                session.setPeerRequirement(.isFromSameTeam())
+                // `.isFromSameTeam()` silently rejects all replies when the
+                // peer is ad-hoc signed (no team ID to compare against), so
+                // only apply the requirement when we have a team ID.
+                if currentProcessTeamID() != nil {
+                    session.setPeerRequirement(.isFromSameTeam())
+                }
                 session.setTargetQueue(queue)
                 try session.activate()
                 self.session = session
@@ -125,6 +131,9 @@ extension MenuBarItemService {
                     return try reply.decode(as: Response.self)
                 } catch {
                     logger.error("Session failed with error \(error)")
+                    if let dead = self.session.take() {
+                        dead.cancel(reason: "Send failed: \(error.localizedDescription)")
+                    }
                     return nil
                 }
             }

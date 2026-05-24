@@ -16,10 +16,15 @@ final class MenuBarSection {
 
         /// A string to show in the interface.
         var displayString: String {
+            localizationKey.rawValue
+        }
+
+        /// The localization key for the section name.
+        var localizationKey: LocalizationKey {
             switch self {
-            case .visible: "Visible"
-            case .hidden: "Hidden"
-            case .alwaysHidden: "Always-Hidden"
+            case .visible: .visible
+            case .hidden: .hidden
+            case .alwaysHidden: .alwaysHidden
             }
         }
 

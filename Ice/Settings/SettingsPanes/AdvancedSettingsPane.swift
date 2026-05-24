@@ -9,6 +9,8 @@ struct AdvancedSettingsPane: View {
     @EnvironmentObject var appState: AppState
     @State private var maxSliderLabelWidth: CGFloat = 0
 
+    private var loc: LocalizationManager { appState.localizationManager }
+
     private var menuBarManager: MenuBarManager {
         appState.menuBarManager
     }
@@ -17,12 +19,12 @@ struct AdvancedSettingsPane: View {
         appState.settingsManager.advancedSettingsManager
     }
 
-    private func formattedToSeconds(_ interval: TimeInterval) -> LocalizedStringKey {
+    private func formattedToSeconds(_ interval: TimeInterval) -> String {
         let formatted = interval.formatted()
         return if interval == 1 {
-            LocalizedStringKey(formatted + " second")
+            formatted + " " + loc.localized(.second)
         } else {
-            LocalizedStringKey(formatted + " seconds")
+            formatted + " " + loc.localized(.seconds)
         }
     }
 
@@ -42,7 +44,7 @@ struct AdvancedSettingsPane: View {
                 showOnHoverDelaySlider
                 tempShowIntervalSlider
             }
-            IceSection("Permissions") {
+            IceSection(loc.localizedKey(.permissions)) {
                 allPermissions
             }
         }
@@ -50,16 +52,16 @@ struct AdvancedSettingsPane: View {
 
     @ViewBuilder
     private var hideApplicationMenus: some View {
-        Toggle("Hide application menus when showing menu bar items", isOn: manager.bindings.hideApplicationMenus)
-            .annotation("Make more room in the menu bar by hiding the left application menus if needed")
+        Toggle(loc.localizedKey(.hideApplicationMenus), isOn: manager.bindings.hideApplicationMenus)
+            .annotation(loc.localizedKey(.hideApplicationMenusDetail))
     }
 
     @ViewBuilder
     private var showSectionDividers: some View {
-        Toggle("Show section dividers", isOn: manager.bindings.showSectionDividers)
+        Toggle(loc.localizedKey(.showSectionDividers), isOn: manager.bindings.showSectionDividers)
             .annotation {
                 HStack(spacing: 2) {
-                    Text("Insert divider items")
+                    Text(loc.localizedKey(.showSectionDividersDetailPrefix))
                     if let nsImage = ControlItemImage.builtin(.chevronLarge).nsImage(for: appState) {
                         HStack(spacing: 0) {
                             Text("(")
@@ -70,25 +72,25 @@ struct AdvancedSettingsPane: View {
                                 .font(.body.monospaced().bold())
                         }
                     }
-                    Text("between sections")
+                    Text(loc.localizedKey(.showSectionDividersDetailMiddle))
                 }
             }
     }
 
     @ViewBuilder
     private var enableAlwaysHiddenSection: some View {
-        Toggle("Enable always-hidden section", isOn: manager.bindings.enableAlwaysHiddenSection)
+        Toggle(loc.localizedKey(.enableAlwaysHiddenSection), isOn: manager.bindings.enableAlwaysHiddenSection)
     }
 
     @ViewBuilder
     private var canToggleAlwaysHiddenSection: some View {
         if manager.enableAlwaysHiddenSection {
-            Toggle("Always-hidden section can be shown", isOn: manager.bindings.canToggleAlwaysHiddenSection)
+            Toggle(loc.localizedKey(.canToggleAlwaysHiddenSection), isOn: manager.bindings.canToggleAlwaysHiddenSection)
                 .annotation {
                     if appState.settingsManager.generalSettingsManager.showOnClick {
-                        Text("Option + click one of Ice's menu bar items, or inside an empty area of the menu bar to show the section")
+                        Text(loc.localizedKey(.toggleAlwaysHiddenSectionDetailWithOption))
                     } else {
-                        Text("Option + click one of Ice's menu bar items to show the section")
+                        Text(loc.localizedKey(.toggleAlwaysHiddenSectionDetail))
                     }
                 }
         }
@@ -98,50 +100,50 @@ struct AdvancedSettingsPane: View {
     private var showOnHoverDelaySlider: some View {
         IceLabeledContent {
             IceSlider(
-                formattedToSeconds(manager.showOnHoverDelay),
+                LocalizedStringKey(formattedToSeconds(manager.showOnHoverDelay)),
                 value: manager.bindings.showOnHoverDelay,
                 in: 0...1,
                 step: 0.1
             )
         } label: {
-            Text("Show on hover delay")
+            Text(loc.localizedKey(.showOnHoverDelay))
                 .frame(minHeight: .compactSliderMinHeight)
                 .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
                 .onFrameChange { frame in
                     maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
                 }
         }
-        .annotation("The amount of time to wait before showing on hover")
+        .annotation(loc.localizedKey(.showOnHoverDelayDetail))
     }
 
     @ViewBuilder
     private var tempShowIntervalSlider: some View {
         IceLabeledContent {
             IceSlider(
-                formattedToSeconds(manager.tempShowInterval),
+                LocalizedStringKey(formattedToSeconds(manager.tempShowInterval)),
                 value: manager.bindings.tempShowInterval,
                 in: 0...30,
                 step: 1
             )
         } label: {
-            Text("Temporarily shown item delay")
+            Text(loc.localizedKey(.tempShowInterval))
                 .frame(minHeight: .compactSliderMinHeight)
                 .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
                 .onFrameChange { frame in
                     maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
                 }
         }
-        .annotation("The amount of time to wait before hiding temporarily shown menu bar items")
+        .annotation(loc.localizedKey(.tempShowIntervalDetail))
     }
 
     @ViewBuilder
     private var showAllSectionsOnUserDrag: some View {
-        Toggle("Show all sections when Command + dragging menu bar items", isOn: manager.bindings.showAllSectionsOnUserDrag)
+        Toggle(loc.localizedKey(.showAllSectionsOnUserDrag), isOn: manager.bindings.showAllSectionsOnUserDrag)
     }
 
     @ViewBuilder
     private var showContextMenuOnRightClick: some View {
-        Toggle("Show context menu on right click", isOn: manager.bindings.showContextMenuOnRightClick)
+        Toggle(loc.localizedKey(.showContextMenuOnRightClick), isOn: manager.bindings.showContextMenuOnRightClick)
     }
 
     @ViewBuilder
@@ -150,13 +152,13 @@ struct AdvancedSettingsPane: View {
             IceLabeledContent {
                 if permission.hasPermission {
                     Label {
-                        Text("Permission Granted")
+                        Text(loc.localizedKey(.permissionGranted))
                     } icon: {
                         Image(systemName: "checkmark.circle")
                             .foregroundStyle(.green)
                     }
                 } else {
-                    Button("Grant Permission") {
+                    Button(loc.localizedKey(.grantPermission)) {
                         permission.performRequest()
                     }
                 }

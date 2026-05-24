@@ -14,33 +14,35 @@ struct GeneralSettingsPane: View {
     @State private var isApplyingOffset = false
     @State private var tempItemSpacingOffset: CGFloat = 0 // Temporary state for the slider
 
+    private var loc: LocalizationManager { appState.localizationManager }
+
     private var manager: GeneralSettingsManager {
         appState.settingsManager.generalSettingsManager
     }
 
-    private var itemSpacingOffset: LocalizedStringKey {
+    private var itemSpacingOffset: String {
         localizedOffsetString(for: manager.itemSpacingOffset)
     }
 
-    private func localizedOffsetString(for offset: CGFloat) -> LocalizedStringKey {
+    private func localizedOffsetString(for offset: CGFloat) -> String {
         switch offset {
         case -16:
-            return LocalizedStringKey("none")
+            return loc.localized(.none_)
         case 0:
-            return LocalizedStringKey("default")
+            return loc.localized(.default_)
         case 16:
-            return LocalizedStringKey("max")
+            return loc.localized(.max)
         default:
-            return LocalizedStringKey(offset.formatted())
+            return offset.formatted()
         }
     }
 
-    private var rehideIntervalKey: LocalizedStringKey {
+    private var rehideIntervalLabel: String {
         let formatted = manager.rehideInterval.formatted()
         if manager.rehideInterval == 1 {
-            return LocalizedStringKey(formatted + " second")
+            return formatted + " " + loc.localized(.second)
         } else {
-            return LocalizedStringKey(formatted + " seconds")
+            return formatted + " " + loc.localized(.seconds)
         }
     }
 
@@ -54,6 +56,9 @@ struct GeneralSettingsPane: View {
 
     var body: some View {
         IceForm {
+            IceSection {
+                languagePicker
+            }
             IceSection {
                 launchAtLogin
             }
@@ -76,11 +81,21 @@ struct GeneralSettingsPane: View {
             }
         }
         .alert(isPresented: $isPresentingError, error: presentedError) {
-            Button("OK") {
+            Button(loc.localizedKey(.ok)) {
                 presentedError = nil
                 isPresentingError = false
             }
         }
+    }
+
+    @ViewBuilder
+    private var languagePicker: some View {
+        IcePicker(loc.localizedKey(.language), selection: appState.localizationManager.bindings.language) {
+            ForEach(AppLanguage.allCases) { language in
+                Text(loc.localizedKey(language.localizationKey)).tag(language)
+            }
+        }
+        .annotation(loc.localizedKey(.languageAnnotation))
     }
 
     @ViewBuilder
@@ -111,15 +126,15 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var iceIconOptions: some View {
-        Toggle("Show Ice icon", isOn: manager.bindings.showIceIcon)
+        Toggle(loc.localizedKey(.showIceIcon), isOn: manager.bindings.showIceIcon)
             .annotation {
                 if !manager.showIceIcon {
-                    Text("You can still access Ice's settings by right-clicking an empty area in the menu bar")
+                    Text(loc.localizedKey(.iceIconSettings))
                 }
             }
         if manager.showIceIcon {
-            IceMenu("Ice icon") {
-                Picker("Ice icon", selection: manager.bindings.iceIcon) {
+            IceMenu(loc.localizedKey(.iceIcon)) {
+                Picker(loc.localizedKey(.iceIcon), selection: manager.bindings.iceIcon) {
                     ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
                         Button {
                             manager.iceIcon = imageSet
@@ -142,13 +157,13 @@ struct GeneralSettingsPane: View {
 
                 Divider()
 
-                Button("Choose image…") {
+                Button(loc.localizedKey(.chooseImage)) {
                     isImportingCustomIceIcon = true
                 }
             } title: {
                 menuItem(for: manager.iceIcon)
             }
-            .annotation("Choose a custom icon to show in the menu bar")
+            .annotation(loc.localizedKey(.chooseCustomIcon))
             .fileImporter(
                 isPresented: $isImportingCustomIceIcon,
                 allowedContentTypes: [.image]
@@ -167,8 +182,8 @@ struct GeneralSettingsPane: View {
             }
 
             if case .custom = manager.iceIcon.name {
-                Toggle("Apply system theme to icon", isOn: manager.bindings.customIceIconIsTemplate)
-                    .annotation("Display the icon as a monochrome image matching the system appearance")
+                Toggle(loc.localizedKey(.applySystemTheme), isOn: manager.bindings.customIceIconIsTemplate)
+                    .annotation(loc.localizedKey(.applySystemThemeDetail))
             }
         }
     }
@@ -183,52 +198,52 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var useIceBar: some View {
-        Toggle("Use Ice Bar", isOn: manager.bindings.useIceBar)
-            .annotation("Show hidden menu bar items in a separate bar below the menu bar")
+        Toggle(loc.localizedKey(.useIceBar), isOn: manager.bindings.useIceBar)
+            .annotation(loc.localizedKey(.useIceBarDetail))
     }
 
     @ViewBuilder
     private var iceBarLocationPicker: some View {
-        IcePicker("Location", selection: manager.bindings.iceBarLocation) {
+        IcePicker(loc.localizedKey(.location), selection: manager.bindings.iceBarLocation) {
             ForEach(IceBarLocation.allCases) { location in
-                Text(location.localized).tag(location)
+                Text(loc.localizedKey(location.localizationKey)).tag(location)
             }
         }
         .annotation {
             switch manager.iceBarLocation {
             case .dynamic:
-                Text("The Ice Bar's location changes based on context")
+                Text(loc.localizedKey(.locationDynamic))
             case .mousePointer:
-                Text("The Ice Bar is centered below the mouse pointer")
+                Text(loc.localizedKey(.locationMousePointer))
             case .iceIcon:
-                Text("The Ice Bar is centered below the Ice icon")
+                Text(loc.localizedKey(.locationIceIcon))
             }
         }
     }
 
     @ViewBuilder
     private var showOnClick: some View {
-        Toggle("Show on click", isOn: manager.bindings.showOnClick)
-            .annotation("Click inside an empty area of the menu bar to show hidden menu bar items")
+        Toggle(loc.localizedKey(.showOnClick), isOn: manager.bindings.showOnClick)
+            .annotation(loc.localizedKey(.showOnClickDetail))
     }
 
     @ViewBuilder
     private var showOnHover: some View {
-        Toggle("Show on hover", isOn: manager.bindings.showOnHover)
-            .annotation("Hover over an empty area of the menu bar to show hidden menu bar items")
+        Toggle(loc.localizedKey(.showOnHover), isOn: manager.bindings.showOnHover)
+            .annotation(loc.localizedKey(.showOnHoverDetail))
     }
 
     @ViewBuilder
     private var showOnScroll: some View {
-        Toggle("Show on scroll", isOn: manager.bindings.showOnScroll)
-            .annotation("Scroll or swipe in the menu bar to toggle hidden menu bar items")
+        Toggle(loc.localizedKey(.showOnScroll), isOn: manager.bindings.showOnScroll)
+            .annotation(loc.localizedKey(.showOnScrollDetail))
     }
 
     @ViewBuilder
     private var spacingOptions: some View {
         IceLabeledContent {
             IceSlider(
-                localizedOffsetString(for: tempItemSpacingOffset),
+                LocalizedStringKey(localizedOffsetString(for: tempItemSpacingOffset)),
                 value: $tempItemSpacingOffset,
                 in: -16...16,
                 step: 2
@@ -236,10 +251,10 @@ struct GeneralSettingsPane: View {
             .disabled(isApplyingOffset)
         } label: {
             IceLabeledContent {
-                Button("Apply") {
+                Button(loc.localizedKey(.apply)) {
                     applyOffset()
                 }
-                .help("Apply the current spacing")
+                .help(loc.localizedKey(.applySpacing))
                 .disabled(isApplyingOffset || !hasSpacingSliderValueChanged)
 
                 if isApplyingOffset {
@@ -254,24 +269,21 @@ struct GeneralSettingsPane: View {
                         Image(systemName: "arrow.counterclockwise.circle.fill")
                     }
                     .buttonStyle(.borderless)
-                    .help("Reset to the default spacing")
+                    .help(loc.localizedKey(.resetToDefault))
                     .disabled(isApplyingOffset || !isActualOffsetDifferentFromDefault)
                 }
             } label: {
                 HStack {
-                    Text("Menu bar item spacing")
+                    Text(loc.localizedKey(.menuBarItemSpacing))
                     BetaBadge()
                 }
             }
         }
-        .annotation(
-            "Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.",
-            spacing: 2
-        )
+        .annotation(loc.localizedKey(.spacingRelaunchNote), spacing: 2)
         .annotation(spacing: 10, font: .callout.bold()) {
             IceGroupBox {
                 Label {
-                    Text("Note: You may need to log out and back in for this setting to apply properly.")
+                    Text(loc.localizedKey(.spacingLogoutNote))
                 } icon: {
                     Image(systemName: "exclamationmark.circle")
                 }
@@ -285,32 +297,32 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var rehideStrategyPicker: some View {
-        IcePicker("Strategy", selection: manager.bindings.rehideStrategy) {
+        IcePicker(loc.localizedKey(.strategy), selection: manager.bindings.rehideStrategy) {
             ForEach(RehideStrategy.allCases) { strategy in
-                Text(strategy.localized).tag(strategy)
+                Text(loc.localizedKey(strategy.localizationKey)).tag(strategy)
             }
         }
         .annotation {
             switch manager.rehideStrategy {
             case .smart:
-                Text("Menu bar items are rehidden using a smart algorithm")
+                Text(loc.localizedKey(.smartDetail))
             case .timed:
-                Text("Menu bar items are rehidden after a fixed amount of time")
+                Text(loc.localizedKey(.timedDetail))
             case .focusedApp:
-                Text("Menu bar items are rehidden when the focused app changes")
+                Text(loc.localizedKey(.focusedAppDetail))
             }
         }
     }
 
     @ViewBuilder
     private var autoRehideOptions: some View {
-        Toggle("Automatically rehide", isOn: manager.bindings.autoRehide)
+        Toggle(loc.localizedKey(.autoRehide), isOn: manager.bindings.autoRehide)
         if manager.autoRehide {
             if case .timed = manager.rehideStrategy {
                 VStack {
                     rehideStrategyPicker
                     IceSlider(
-                        rehideIntervalKey,
+                        LocalizedStringKey(rehideIntervalLabel),
                         value: manager.bindings.rehideInterval,
                         in: 0...30,
                         step: 1

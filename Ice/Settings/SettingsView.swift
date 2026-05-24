@@ -6,8 +6,11 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var navigationState: AppNavigationState
     @Environment(\.sidebarRowSize) var sidebarRowSize
+
+    private var loc: LocalizationManager { appState.localizationManager }
 
     private var sidebarWidth: CGFloat {
         switch sidebarRowSize {
@@ -42,7 +45,7 @@ struct SettingsView: View {
         } detail: {
             detailView
         }
-        .navigationTitle(navigationState.settingsNavigationIdentifier.localized)
+        .navigationTitle(loc.localizedKey(navigationState.settingsNavigationIdentifier.localizationKey))
     }
 
     @ViewBuilder
@@ -86,7 +89,7 @@ struct SettingsView: View {
     @ViewBuilder
     private func sidebarItem(for identifier: SettingsNavigationIdentifier) -> some View {
         Label {
-            Text(identifier.localized)
+            Text(loc.localizedKey(identifier.localizationKey))
                 .font(.system(size: sidebarItemFontSize))
                 .padding(.leading, 2)
         } icon: {

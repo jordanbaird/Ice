@@ -9,6 +9,8 @@ struct AboutSettingsPane: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.openURL) private var openURL
 
+    private var loc: LocalizationManager { appState.localizationManager }
+
     private var updatesManager: UpdatesManager {
         appState.updatesManager
     }
@@ -36,7 +38,7 @@ struct AboutSettingsPane: View {
         if let date = updatesManager.lastUpdateCheckDate {
             date.formatted(date: .abbreviated, time: .standard)
         } else {
-            "Never"
+            loc.localized(.never)
         }
     }
 
@@ -82,7 +84,7 @@ struct AboutSettingsPane: View {
                         .font(.system(size: 72, weight: .medium))
                         .foregroundStyle(.primary)
 
-                    Text("Version \(Constants.versionString)")
+                    Text("\(loc.localizedKey(.versionPrefix)) \(Constants.versionString)")
                         .font(.system(size: 18))
                         .foregroundStyle(.secondary)
 
@@ -109,7 +111,7 @@ struct AboutSettingsPane: View {
     @ViewBuilder
     private var automaticallyCheckForUpdates: some View {
         Toggle(
-            "Automatically check for updates",
+            loc.localizedKey(.automaticallyCheckForUpdates),
             isOn: updatesManager.bindings.automaticallyChecksForUpdates
         )
     }
@@ -117,7 +119,7 @@ struct AboutSettingsPane: View {
     @ViewBuilder
     private var automaticallyDownloadUpdates: some View {
         Toggle(
-            "Automatically download updates",
+            loc.localizedKey(.automaticallyDownloadUpdates),
             isOn: updatesManager.bindings.automaticallyDownloadsUpdates
         )
     }
@@ -125,11 +127,11 @@ struct AboutSettingsPane: View {
     @ViewBuilder
     private var checkForUpdates: some View {
         HStack {
-            Button("Check for Updates") {
+            Button(loc.localizedKey(.checkForUpdates)) {
                 updatesManager.checkForUpdates()
             }
             Spacer()
-            Text("Last checked: \(lastUpdateCheckString)")
+            Text("\(loc.localizedKey(.lastChecked)) \(lastUpdateCheckString)")
                 .font(.caption)
         }
     }
@@ -137,20 +139,20 @@ struct AboutSettingsPane: View {
     @ViewBuilder
     private var bottomBar: some View {
         HStack {
-            Button("Quit Ice") {
+            Button(loc.localizedKey(.quitIce)) {
                 NSApp.terminate(nil)
             }
             Spacer()
-            Button("Acknowledgements") {
+            Button(loc.localizedKey(.acknowledgements)) {
                 NSWorkspace.shared.open(acknowledgementsURL)
             }
-            Button("Contribute") {
+            Button(loc.localizedKey(.contribute)) {
                 openURL(contributeURL)
             }
-            Button("Report a Bug") {
+            Button(loc.localizedKey(.reportABug)) {
                 openURL(issuesURL)
             }
-            Button("Support Ice", systemImage: "heart.circle.fill") {
+            Button(loc.localizedKey(.supportIce), systemImage: "heart.circle.fill") {
                 openURL(donateURL)
             }
         }

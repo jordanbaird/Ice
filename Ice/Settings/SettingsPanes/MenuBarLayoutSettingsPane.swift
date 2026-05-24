@@ -8,6 +8,8 @@ import SwiftUI
 struct MenuBarLayoutSettingsPane: View {
     @EnvironmentObject var appState: AppState
 
+    private var loc: LocalizationManager { appState.localizationManager }
+
     var body: some View {
         if !ScreenCapture.cachedCheckPermissions() {
             missingScreenRecordingPermission
@@ -23,7 +25,7 @@ struct MenuBarLayoutSettingsPane: View {
 
     @ViewBuilder
     private var header: some View {
-        Text("Drag to arrange your menu bar items")
+        Text(loc.localizedKey(.dragToArrange))
             .font(.title2)
 
         IceGroupBox {
@@ -32,7 +34,7 @@ struct MenuBarLayoutSettingsPane: View {
                 font: .callout.bold()
             ) {
                 Label {
-                    Text("Tip: you can also arrange menu bar items by Command + dragging them in the menu bar")
+                    Text(loc.localizedKey(.dragTip))
                 } icon: {
                     Image(systemName: "lightbulb")
                 }
@@ -51,7 +53,7 @@ struct MenuBarLayoutSettingsPane: View {
 
     @ViewBuilder
     private var cannotArrange: some View {
-        Text("Ice cannot arrange menu bar items in automatically hidden menu bars")
+        Text(loc.localizedKey(.cannotArrangeInHiddenMenuBar))
             .font(.title3)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
@@ -59,13 +61,13 @@ struct MenuBarLayoutSettingsPane: View {
     @ViewBuilder
     private var missingScreenRecordingPermission: some View {
         VStack {
-            Text("Menu bar layout requires screen recording permissions")
+            Text(loc.localizedKey(.layoutRequiresPermissions))
                 .font(.title2)
 
             Button {
                 appState.navigationState.settingsNavigationIdentifier = .advanced
             } label: {
-                Text("Go to Advanced Settings")
+                Text(loc.localizedKey(.goToAdvancedSettings))
             }
             .buttonStyle(.link)
         }
@@ -78,7 +80,7 @@ struct MenuBarLayoutSettingsPane: View {
             section.isEnabled
         {
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(section.name.displayString) Section")
+                Text("\(loc.localizedKey(section.name.localizationKey)) \(loc.localizedKey(.section))")
                     .font(.system(size: 14))
                     .padding(.leading, 2)
 

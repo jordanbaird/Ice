@@ -11,4 +11,15 @@ enum SettingsNavigationIdentifier: String, NavigationIdentifier {
     case hotkeys = "Hotkeys"
     case advanced = "Advanced"
     case about = "About"
+
+    var localizationKey: LocalizationKey {
+        switch self {
+        case .general: .general
+        case .menuBarLayout: .settingsMenuBarLayout
+        case .menuBarAppearance: .settingsMenuBarAppearance
+        case .hotkeys: .settingsHotkeys
+        case .advanced: .advanced
+        case .about: .about
+        }
+    }
 }

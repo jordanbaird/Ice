@@ -36,6 +36,9 @@ final class AppState: ObservableObject {
     /// Manager for user notifications.
     private(set) lazy var userNotificationManager = UserNotificationManager(appState: self)
 
+    /// Manager for localization.
+    private(set) lazy var localizationManager = LocalizationManager(appState: self)
+
     /// Global cache for menu bar item images.
     private(set) lazy var imageCache = MenuBarItemImageCache(appState: self)
 
@@ -163,6 +166,11 @@ final class AppState: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &c)
+        localizationManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
         settingsManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
@@ -184,6 +192,7 @@ final class AppState: ObservableObject {
         menuBarManager.performSetup()
         appearanceManager.performSetup()
         eventManager.performSetup()
+        localizationManager.performSetup()
         settingsManager.performSetup()
         itemManager.performSetup()
         imageCache.performSetup()

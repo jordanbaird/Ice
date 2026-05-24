@@ -1,0 +1,52 @@
+name: Build
+
+on:
+  push:
+    branches: [ "main", "claude/**" ]
+    paths:
+      - ".github/workflows/build.yml"
+      - "Ice/**/*.swift"
+      - "Ice.xcodeproj/**"
+  pull_request:
+    paths:
+      - "Ice/**/*.swift"
+      - "Ice.xcodeproj/**"
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+      - name: Build
+        run: |
+          xcodebuild -project Ice.xcodeproj -scheme Ice \
+            -derivedDataPath DerivedData \
+            -configuration Release \
+            build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+      - name: Ad-hoc sign
+        run: |
+          BUILT_DIR=$(xcodebuild -project Ice.xcodeproj -scheme Ice \
+            -configuration Release -derivedDataPath DerivedData \
+            -showBuildSettings 2>/dev/null | grep " BUILT_PRODUCTS_DIR" | awk '{print $NF}')
+          APP_PATH="$BUILT_DIR/Ice.app"
+          echo "Signing: $APP_PATH"
+          codesign --force --deep --sign - "$APP_PATH"
+          codesign -dv "$APP_PATH" 2>&1 | head -5
+      - name: Package .app
+        run: |
+          BUILT_DIR=$(xcodebuild -project Ice.xcodeproj -scheme Ice \
+            -configuration Release -derivedDataPath DerivedData \
+            -showBuildSettings 2>/dev/null | grep " BUILT_PRODUCTS_DIR" | awk '{print $NF}')
+          APP_PATH="$BUILT_DIR/Ice.app"
+          echo "BUILT_PRODUCTS_DIR=$BUILT_DIR"
+          echo "APP_PATH=$APP_PATH"
+          ls -ld "$APP_PATH"
+          ditto -c -k --keepParent "$APP_PATH" Ice-app.zip
+          ls -lh Ice-app.zip
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ice-app
+          path: Ice-app.zip

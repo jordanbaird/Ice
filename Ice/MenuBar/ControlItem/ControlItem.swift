@@ -425,7 +425,7 @@ final class ControlItem {
         let menu = NSMenu(title: "Ice")
 
         let settingsItem = NSMenuItem(
-            title: "Ice Settings…",
+            title: LocalizationManager.localizedStatic(.iceSettings),
             action: #selector(AppDelegate.openSettingsWindow),
             keyEquivalent: ","
         )
@@ -435,7 +435,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let searchItem = NSMenuItem(
-            title: "Search Menu Bar Items",
+            title: LocalizationManager.localizedStatic(.searchMenuBarItemsMenu),
             action: #selector(showSearchPanel),
             keyEquivalent: ""
         )
@@ -461,8 +461,11 @@ final class ControlItem {
                 // Section doesn't exist, or is disabled.
                 continue
             }
+            let actionPrefix = section.isHidden
+                ? LocalizationManager.localizedStatic(.showSection)
+                : LocalizationManager.localizedStatic(.hideSection)
             let item = NSMenuItem(
-                title: "\(section.isHidden ? "Show" : "Hide") the \(name.displayString) Section",
+                title: "\(actionPrefix) \(name.displayString) \(LocalizationManager.localizedStatic(.section))",
                 action: #selector(toggleMenuBarSection),
                 keyEquivalent: ""
             )
@@ -494,7 +497,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let checkForUpdatesItem = NSMenuItem(
-            title: "Check for Updates…",
+            title: LocalizationManager.localizedStatic(.checkForUpdatesMenu),
             action: #selector(checkForUpdates),
             keyEquivalent: ""
         )
@@ -504,7 +507,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit Ice",
+            title: LocalizationManager.localizedStatic(.quitIce),
             action: #selector(NSApp.terminate),
             keyEquivalent: "q"
         )

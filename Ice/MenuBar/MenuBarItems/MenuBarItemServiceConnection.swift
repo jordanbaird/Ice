@@ -104,7 +104,16 @@ extension MenuBarItemService {
                     logger.warning("Session was cancelled with error \(error.localizedDescription)")
                     self.session = nil
                 }
-                session.setPeerRequirement(.isFromSameTeam())
+                // Same logic as MenuBarItemService/Listener.swift's listener-side
+                // guard: only enforce `.isFromSameTeam()` when we actually have
+                // a team identifier. Ad-hoc-signed builds (every community fork
+                // without an Apple Developer Program account) have no team
+                // identifier and would silently reject our own helper service
+                // — making the Menu Bar Layout pane spin forever on
+                // "Loading menu bar items…" (upstream issues #744 and #891).
+                if MenuBarItemService.ownTeamIdentifier() != nil {
+                    session.setPeerRequirement(.isFromSameTeam())
+                }
                 session.setTargetQueue(queue)
                 try session.activate()
                 self.session = session

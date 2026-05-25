@@ -73,7 +73,16 @@ final class Listener {
         Logger.default.debug("Activating listener")
 
         do {
-            if #available(macOS 26.0, *) {
+            // On macOS 26+ the listener can constrain peers by team
+            // identifier, but only when we actually have a team
+            // identifier to compare against. Ad-hoc-signed builds (every
+            // community fork without an Apple Developer Program account)
+            // have no team identifier and would reject every connection
+            // — including their own parent app — silently. The shared
+            // helper lives on MenuBarItemService so the matching guard
+            // in MenuBarItemServiceConnection (the client side) uses
+            // exactly the same predicate.
+            if #available(macOS 26.0, *), MenuBarItemService.ownTeamIdentifier() != nil {
                 try uncheckedActivateWithSameTeamRequirement()
             } else {
                 try uncheckedActivate()

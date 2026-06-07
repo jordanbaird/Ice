@@ -73,9 +73,15 @@ final class Listener {
         Logger.default.debug("Activating listener")
 
         do {
-            if #available(macOS 26.0, *) {
+            // The `isFromSameTeam` requirement can only be satisfied when the
+            // process has a Team Identifier. Ad-hoc/local development builds
+            // have none, so fall back to an unrestricted listener for them.
+            if #available(macOS 26.0, *), CodeSigning.hasTeamIdentifier {
                 try uncheckedActivateWithSameTeamRequirement()
             } else {
+                if #available(macOS 26.0, *) {
+                    Logger.default.notice("Activating listener without same-team requirement (no Team Identifier)")
+                }
                 try uncheckedActivate()
             }
         } catch {

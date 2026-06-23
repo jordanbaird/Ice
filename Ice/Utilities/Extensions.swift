@@ -371,7 +371,7 @@ extension NSBezierPath {
         shadow.shadowColor = color
 
         // swiftlint:disable:next force_cast
-        let path = copy() as! NSBezierPath
+        guard let path = copy() as? NSBezierPath else { return }
 
         context.saveGraphicsState()
 
@@ -429,7 +429,7 @@ extension NSScreen {
     var displayID: CGDirectDisplayID {
         // Value and type are guaranteed here, so force casting is okay.
         // swiftlint:disable:next force_cast
-        deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as! CGDirectDisplayID
+        deviceDescription((deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
     }
 
     /// A Boolean value that indicates whether the screen has a notch.

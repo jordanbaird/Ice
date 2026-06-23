@@ -68,6 +68,7 @@ final class IceBarPanel: NSPanel {
                         // can't currently display its menu bar items.
                         appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
                         let info = window.flatMap({ WindowInfo(windowID: CGWindowID($0.windowNumber)) }),
+                        info.windowID != 0,
                         // Window being offscreen means the menu bar is currently hidden.
                         // Close the bar, as things will start to look weird if we don't.
                         !info.isOnScreen

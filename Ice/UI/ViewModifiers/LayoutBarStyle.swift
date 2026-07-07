@@ -38,17 +38,35 @@ extension View {
         }
         .overlay {
             if !appState.isActiveSpaceFullscreen {
-                switch appState.appearanceManager.configuration.current.tintKind {
+                let current = appState.appearanceManager.configuration.current
+                switch current.appearanceKind {
                 case .none:
                     EmptyView()
-                case .solid:
-                    Color(cgColor: appState.appearanceManager.configuration.current.tintColor)
-                        .opacity(0.2)
-                        .allowsHitTesting(false)
-                case .gradient:
-                    appState.appearanceManager.configuration.current.tintGradient
-                        .opacity(0.2)
-                        .allowsHitTesting(false)
+                case .tint:
+                    // Fixed 20% overlay, regardless of stored alpha.
+                    switch current.tintKind {
+                    case .none:
+                        EmptyView()
+                    case .solid:
+                        Color(cgColor: current.tintColor.copy(alpha: 1) ?? current.tintColor)
+                            .opacity(0.2)
+                            .allowsHitTesting(false)
+                    case .gradient:
+                        current.tintGradient.withAlphaComponent(0.2)
+                            .allowsHitTesting(false)
+                    }
+                case .backdrop:
+                    // Honor the stored alpha (user-controllable, default 100%).
+                    switch current.tintKind {
+                    case .none:
+                        EmptyView()
+                    case .solid:
+                        Color(cgColor: current.tintColor)
+                            .allowsHitTesting(false)
+                    case .gradient:
+                        current.tintGradient
+                            .allowsHitTesting(false)
+                    }
                 }
             }
         }

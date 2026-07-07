@@ -458,6 +458,15 @@ extension NSScreen {
         let menuBarWindow = WindowInfo.getMenuBarWindow(for: displayID)
         return menuBarWindow?.frame.height
     }
+
+    /// A stable identifier derived from the screen's display UUID, suitable
+    /// for persisting per-display settings across reboots and reconnections.
+    var stableIdentifier: String? {
+        guard let uuid = CGDisplayCreateUUIDFromDisplayID(displayID)?.takeRetainedValue() else {
+            return nil
+        }
+        return CFUUIDCreateString(nil, uuid) as String
+    }
 }
 
 // MARK: - NSStatusItem

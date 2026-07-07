@@ -9,6 +9,15 @@ import Combine
 // MARK: - Overlay Panel
 
 /// A subclass of `NSPanel` that sits atop the menu bar to alter its appearance.
+///
+/// The panel is glued to its owning screen via `.stationary + .canJoinAllSpaces +
+/// .fullScreenAuxiliary`, mirroring the system menu bar's own behavior. It is
+/// never repositioned during Space/fullscreen slide animations; its visibility
+/// and frame are recomputed only at steady-state moments (active Space change,
+/// presentation-options change, fullscreen-state change, screen-parameters
+/// change, config change). The menu bar height is cached on first use and on
+/// screen-parameters change so drawing never reads transient WindowServer
+/// geometry during a Space transition.
 final class MenuBarOverlayPanel: NSPanel {
     /// Flags representing the updatable components of a panel.
     enum UpdateFlag: String, CustomStringConvertible {
@@ -18,10 +27,14 @@ final class MenuBarOverlayPanel: NSPanel {
         var description: String { rawValue }
     }
 
-    /// The kind of validation that occurs before an update.
-    private enum ValidationKind {
-        case showing
-        case updates
+    /// The visual mode the panel is currently rendering in.
+    enum RenderMode: Equatable {
+        /// Full menu-bar-height backdrop with optional rounded top corners
+        /// drawn just below the menu bar.
+        case backdrop
+        /// Only the rounded top-corner wedges, drawn flush with the top edge
+        /// of the screen. Used when the system menu bar is hidden.
+        case topCornersOnly
     }
 
     /// A context that manages panel update tasks.
@@ -57,6 +70,10 @@ final class MenuBarOverlayPanel: NSPanel {
     /// A Boolean value that indicates whether the user is dragging a menu bar item.
     @Published var isDraggingMenuBarItem = false
 
+    /// The current visual mode the panel is rendering in. Published so the
+    /// content view can request a redraw when it flips.
+    @Published private(set) var renderMode: RenderMode = .backdrop
+
     /// Flags representing the components of the panel currently in need of an update.
     @Published private(set) var updateFlags = Set<UpdateFlag>()
 
@@ -72,6 +89,12 @@ final class MenuBarOverlayPanel: NSPanel {
     /// The context that manages panel update tasks.
     private let updateTaskContext = UpdateTaskContext()
 
+    /// Cached menu bar height for this panel's screen. Captured once at init
+    /// and refreshed on screen-parameters changes so the visibility/frame
+    /// logic never has to read live WindowServer geometry during a Space
+    /// transition. The content view reads this for drawing.
+    fileprivate var cachedMenuBarHeight: CGFloat
+
     /// The shared app state.
     private(set) weak var appState: AppState?
 
@@ -82,6 +105,7 @@ final class MenuBarOverlayPanel: NSPanel {
     init(appState: AppState, owningScreen: NSScreen) {
         self.appState = appState
         self.owningScreen = owningScreen
+        self.cachedMenuBarHeight = owningScreen.getMenuBarHeight() ?? NSStatusBar.system.thickness
         super.init(
             contentRect: .zero,
             styleMask: [.borderless, .fullSizeContentView, .nonactivatingPanel],
@@ -93,20 +117,42 @@ final class MenuBarOverlayPanel: NSPanel {
         self.backgroundColor = .clear
         self.hasShadow = false
         self.ignoresMouseEvents = true
-        self.collectionBehavior = [.fullScreenNone, .ignoresCycle, .moveToActiveSpace]
+        // `.stationary` glues the panel to this physical screen position
+        // through Space/fullscreen slide animations, so a swipe between Spaces
+        // never tears the overlay off the screen edge mid-animation. The
+        // sibling `ScreenBottomCornerOverlayPanel` uses the same set.
+        self.collectionBehavior = [.ignoresCycle, .canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         self.contentView = MenuBarOverlayPanelContentView()
+        updateLevel(for: appState.appearanceManager.configuration.current.appearanceKind)
         configureCancellables()
+    }
+
+    /// Sets the panel's window level based on the appearance kind. Backdrop
+    /// mode sits one below `.statusBar` so status items render on top.
+    fileprivate func updateLevel(for kind: MenuBarAppearanceKind) {
+        let target: NSWindow.Level = switch kind {
+        case .backdrop: NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue - 1)
+        case .none, .tint: .statusBar
+        }
+        if self.level != target {
+            self.level = target
+        }
     }
 
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // Show the panel on the active space.
+        // The panel joins every Space. On a space switch, refresh visibility
+        // for the new steady state and re-arm per-space content updates.
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .debounce(for: 0.1, scheduler: DispatchQueue.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.needsShow = true
+                guard let self, self.updateVisibility() else {
+                    return
+                }
+                self.insertUpdateFlag(.applicationMenuFrame)
+                self.insertUpdateFlag(.desktopWallpaper)
             }
             .store(in: &c)
 
@@ -141,12 +187,13 @@ final class MenuBarOverlayPanel: NSPanel {
         .sink { [weak self] _ in
             guard
                 let self,
-                let appState
+                let appState,
+                self.updateVisibility()
             else {
                 return
             }
-            let displayID = owningScreen.displayID
-            updateTaskContext.setTask(for: .applicationMenuFrame, timeout: .seconds(10)) {
+            let displayID = self.owningScreen.displayID
+            self.updateTaskContext.setTask(for: .applicationMenuFrame, timeout: .seconds(10)) {
                 var hasDoneInitialUpdate = false
                 while true {
                     try Task.checkCancellation()
@@ -174,6 +221,23 @@ final class MenuBarOverlayPanel: NSPanel {
         }
         .store(in: &c)
 
+        // Re-promote the panel whenever this app's own activation changes. The
+        // "Hide application menus" feature flips Ice's activation policy
+        // (.accessory ↔ .regular), and WindowServer can briefly reshuffle the
+        // order of windows at our level during the transition.
+        Publishers.Merge(
+            NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification),
+            NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)
+        )
+        .receive(on: DispatchQueue.main)
+        .sink { [weak self] _ in
+            guard let self, self.updateVisibility() else {
+                return
+            }
+            self.orderForCurrentLevel()
+        }
+        .store(in: &c)
+
         // Special cases for when the user drags an app onto or clicks into another space.
         Publishers.Merge(
             publisher(for: \.isOnActiveSpace)
@@ -185,9 +249,26 @@ final class MenuBarOverlayPanel: NSPanel {
         )
         .debounce(for: 0.05, scheduler: DispatchQueue.main)
         .sink { [weak self] in
-            self?.insertUpdateFlag(.applicationMenuFrame)
+            guard let self, self.updateVisibility() else {
+                return
+            }
+            self.insertUpdateFlag(.applicationMenuFrame)
         }
         .store(in: &c)
+
+        NotificationCenter.default
+            .publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .debounce(for: 0.1, scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                if let height = self.owningScreen.getMenuBarHeight(), height > 0 {
+                    self.cachedMenuBarHeight = height
+                }
+                self.updateVisibility()
+            }
+            .store(in: &c)
 
         // Continually update the desktop wallpaper. Ideally, we would set up an observer
         // for a wallpaper change notification, but macOS doesn't post one anymore.
@@ -214,7 +295,7 @@ final class MenuBarOverlayPanel: NSPanel {
                 defer {
                     self.needsShow = false
                 }
-                show()
+                updateVisibility()
             }
             .store(in: &c)
 
@@ -228,7 +309,7 @@ final class MenuBarOverlayPanel: NSPanel {
                     self.updateFlags.removeAll()
                 }
                 let windows = WindowInfo.getOnScreenWindows()
-                guard let owningDisplay = self.validate(for: .updates, with: windows) else {
+                guard let owningDisplay = self.validate(with: windows) else {
                     return
                 }
                 performUpdates(for: flags, windows: windows, display: owningDisplay)
@@ -236,11 +317,51 @@ final class MenuBarOverlayPanel: NSPanel {
             .store(in: &c)
 
         if let appState {
+            // This combines the steady menu-bar policy with transient system
+            // presentation options such as Mission Control/Expose.
             appState.menuBarManager.$isMenuBarHiddenBySystem
-                .sink { [weak self] isHidden in
-                    self?.alphaValue = isHidden ? 0 : 1
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.updateVisibility()
                 }
                 .store(in: &c)
+
+            // During Mission Control/Expose, macOS hides the system menu bar
+            // even on desktop spaces where it normally remains visible. Treat
+            // that as hidden for overlay layout, then restore when it settles.
+            appState.menuBarManager.$isMenuBarHiddenBySystemPresentationOptions
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.updateVisibility()
+                }
+                .store(in: &c)
+
+            // Re-evaluate when the active space flips between desktop and
+            // fullscreen. This only fires once per transition, at the end.
+            appState.$isActiveSpaceFullscreen
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.updateVisibility()
+                }
+                .store(in: &c)
+
+            // Keep the window level in sync with the current appearance kind.
+            appState.appearanceManager.$configuration
+                .map { $0.current.appearanceKind }
+                .removeDuplicates()
+                .sink { [weak self] kind in
+                    self?.updateLevel(for: kind)
+                }
+                .store(in: &c)
+
+            for section in appState.menuBarManager.sections {
+                section.controlItem.$windowFrame
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] _ in
+                        self?.insertUpdateFlag(.applicationMenuFrame)
+                    }
+                    .store(in: &c)
+            }
         }
 
         cancellables = c
@@ -251,28 +372,145 @@ final class MenuBarOverlayPanel: NSPanel {
         updateFlags.insert(flag)
     }
 
-    /// Performs validation for the given validation kind. Returns the panel's
-    /// owning display if successful. Returns `nil` on failure.
-    private func validate(for kind: ValidationKind, with windows: [WindowInfo]) -> CGDirectDisplayID? {
-        lazy var actionMessage = switch kind {
-        case .showing: "Preventing overlay panel from showing."
-        case .updates: "Preventing overlay panel from updating."
+    /// Re-evaluates the panel's visibility and frame from steady-state inputs
+    /// only: the active-space menu-bar policy, fullscreen state, and
+    /// configuration. This never queries live WindowServer geometry, so it is
+    /// safe to call during the brief window after
+    /// `activeSpaceDidChangeNotification` where the menu bar window has not
+    /// yet finished settling.
+    ///
+    /// Returns `true` if the panel is visible after the update.
+    @discardableResult
+    private func updateVisibility() -> Bool {
+        guard
+            let appState,
+            !appState.isPreview,
+            appState.appearanceManager.overlayPanels.contains(self)
+        else {
+            return false
         }
+
+        let isMenuBarHidden = appState.menuBarManager.isMenuBarHiddenBySystem(on: owningScreen)
+        let isFullscreen = appState.menuBarManager.isSpaceFullscreen(on: owningScreen)
+        let info = appState.appearanceManager.configuration.effectiveScreenShapeInfo(for: owningScreen)
+        let cornerRadius = hasActiveRoundedTopScreenCorners() ? info.cornerRadius : 0
+
+        // Notched displays cannot use corners-only mode. When the system menu
+        // bar is hidden in this screen's current space, order the panel out so
+        // it cannot reappear above the status items during a menu-bar peek.
+        if owningScreen.hasNotch {
+            renderMode = .backdrop
+            if isMenuBarHidden {
+                alphaValue = 0
+                updateFlags.removeAll()
+                orderOut(nil)
+                return false
+            }
+            applyBackdropFrame(cornerExtension: cornerRadius)
+            orderForCurrentLevel()
+            alphaValue = 1
+            updateFlags = [.applicationMenuFrame, .desktopWallpaper]
+            return true
+        }
+
+        // Non-notched displays switch between backdrop and corners-only
+        // depending on the steady-state menu-bar visibility for this screen's
+        // current space. Corners-only is only drawn when rounded top corners are
+        // configured and the fullscreen setting allows it.
+        let canShowFullscreenCorners = !isFullscreen || info.showInFullscreen
+        let shouldShowCornersOnly = isMenuBarHidden && cornerRadius > 0 && canShowFullscreenCorners
+
+        if isMenuBarHidden {
+            if shouldShowCornersOnly {
+                renderMode = .topCornersOnly
+                applyCornersOnlyFrame(cornerExtension: cornerRadius)
+                orderFrontRegardless()
+                alphaValue = 1
+                updateFlags.removeAll()
+                contentView?.needsDisplay = true
+                return true
+            }
+            renderMode = .backdrop
+            orderOut(nil)
+            return false
+        }
+
+        renderMode = .backdrop
+        applyBackdropFrame(cornerExtension: cornerRadius)
+        orderForCurrentLevel()
+        alphaValue = 1
+        updateFlags = [.applicationMenuFrame, .desktopWallpaper]
+        return true
+    }
+
+    /// Orders the panel appropriately for its current level. Backdrop panels
+    /// sit below the system menu bar window so status items stay on top even
+    /// after Mission Control/Expose reshuffles WindowServer ordering.
+    private func orderForCurrentLevel() {
+        guard
+            level.rawValue < NSWindow.Level.statusBar.rawValue,
+            let menuBarWindow = WindowInfo.getMenuBarWindow(for: owningScreen.displayID)
+        else {
+            orderFrontRegardless()
+            return
+        }
+        order(.below, relativeTo: Int(menuBarWindow.windowID))
+    }
+
+    /// Positions the panel as a full-height backdrop covering the menu bar
+    /// with an optional rounded-corner extension below it.
+    private func applyBackdropFrame(cornerExtension: CGFloat) {
+        let menuBarHeight = cachedMenuBarHeight
+        let newFrame = CGRect(
+            x: owningScreen.frame.minX,
+            y: (owningScreen.frame.maxY - menuBarHeight) - 5 - cornerExtension,
+            width: owningScreen.frame.width,
+            height: menuBarHeight + 5 + cornerExtension
+        )
+        if frame != newFrame {
+            setFrame(newFrame, display: false)
+        }
+    }
+
+    /// Positions the panel as just the rounded top-corner wedges sitting flush
+    /// against the screen's top edge.
+    private func applyCornersOnlyFrame(cornerExtension: CGFloat) {
+        let newFrame = CGRect(
+            x: owningScreen.frame.minX,
+            y: owningScreen.frame.maxY - cornerExtension,
+            width: owningScreen.frame.width,
+            height: cornerExtension
+        )
+        if frame != newFrame {
+            setFrame(newFrame, display: false)
+        }
+    }
+
+    /// Returns whether rounded top screen corners are active for this panel's
+    /// screen and current configuration.
+    private func hasActiveRoundedTopScreenCorners() -> Bool {
+        guard let appearanceManager = appState?.appearanceManager else {
+            return false
+        }
+        return appearanceManager.hasActiveRoundedTopScreenCorners(
+            for: owningScreen,
+            in: appearanceManager.configuration
+        )
+    }
+
+    /// Validates the panel for an update pass. Returns the owning display ID
+    /// when it is safe to refresh application-menu/wallpaper state, otherwise
+    /// `nil`. Updates only happen in backdrop mode; corners-only mode does not
+    /// depend on the menu bar window being valid.
+    private func validate(with windows: [WindowInfo]) -> CGDirectDisplayID? {
         guard let appState else {
-            Logger.overlayPanel.debug("No app state. \(actionMessage)")
             return nil
         }
-        guard !appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults else {
-            Logger.overlayPanel.debug("Menu bar is hidden by system. \(actionMessage)")
-            return nil
-        }
-        guard !appState.isActiveSpaceFullscreen else {
-            Logger.overlayPanel.debug("Active space is fullscreen. \(actionMessage)")
+        guard renderMode == .backdrop else {
             return nil
         }
         let owningDisplay = owningScreen.displayID
         guard appState.menuBarManager.hasValidMenuBar(in: windows, for: owningDisplay) else {
-            Logger.overlayPanel.debug("No valid menu bar found. \(actionMessage)")
             return nil
         }
         return owningDisplay
@@ -280,10 +518,7 @@ final class MenuBarOverlayPanel: NSPanel {
 
     /// Stores the frame of the menu bar's application menu.
     private func updateApplicationMenuFrame(for display: CGDirectDisplayID) {
-        guard
-            let menuBarManager = appState?.menuBarManager,
-            !menuBarManager.isMenuBarHiddenBySystem
-        else {
+        guard let menuBarManager = appState?.menuBarManager else {
             return
         }
         applicationMenuFrame = menuBarManager.getApplicationMenuFrame(for: display)
@@ -311,42 +546,6 @@ final class MenuBarOverlayPanel: NSPanel {
         }
         if flags.contains(.desktopWallpaper) {
             updateDesktopWallpaper(for: display, with: windows)
-        }
-    }
-
-    /// Shows the panel.
-    private func show() {
-        guard
-            let appState,
-            !appState.isPreview
-        else {
-            return
-        }
-
-        guard appState.appearanceManager.overlayPanels.contains(self) else {
-            Logger.overlayPanel.warning("Overlay panel \(self) not retained")
-            return
-        }
-
-        guard let menuBarHeight = owningScreen.getMenuBarHeight() else {
-            return
-        }
-
-        let newFrame = CGRect(
-            x: owningScreen.frame.minX,
-            y: (owningScreen.frame.maxY - menuBarHeight) - 5,
-            width: owningScreen.frame.width,
-            height: menuBarHeight + 5
-        )
-
-        alphaValue = 0
-        setFrame(newFrame, display: false)
-        orderFrontRegardless()
-
-        updateFlags = [.applicationMenuFrame, .desktopWallpaper]
-
-        if !appState.menuBarManager.isMenuBarHiddenBySystem {
-            animator().alphaValue = 1
         }
     }
 
@@ -441,6 +640,13 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 .store(in: &c)
             // Redraw whenever the desktop wallpaper changes.
             overlayPanel.$desktopWallpaper
+                .sink { [weak self] _ in
+                    self?.needsDisplay = true
+                }
+                .store(in: &c)
+            // Redraw when the panel switches between backdrop and corners-only modes.
+            overlayPanel.$renderMode
+                .removeDuplicates()
                 .sink { [weak self] _ in
                     self?.needsDisplay = true
                 }
@@ -616,29 +822,129 @@ private final class MenuBarOverlayPanelContentView: NSView {
         }
     }
 
-    /// Returns the bounds that the view's drawn content can occupy.
+    /// Returns the bounds that the view's drawn content can occupy. This is
+    /// always exactly the menu bar's rectangle at the top of the panel,
+    /// regardless of any extra extension the panel has reserved for wedges.
     private func getDrawableBounds() -> CGRect {
+        let menuBarHeight = currentMenuBarHeight()
         return CGRect(
             x: bounds.origin.x,
-            y: bounds.origin.y + 5,
+            y: bounds.maxY - menuBarHeight,
             width: bounds.width,
-            height: bounds.height - 5
+            height: menuBarHeight
         )
+    }
+
+    /// Returns the corner-wedge extension currently reserved by the panel's
+    /// frame, derived from frame geometry so it stays in sync without polling.
+    /// In corners-only mode the entire panel height is the wedge extension.
+    /// In backdrop mode the wedge extension is what remains below the menu
+    /// bar and the 5pt shadow strip.
+    private func currentCornerExtension() -> CGFloat {
+        guard let overlayPanel else {
+            return 0
+        }
+        switch overlayPanel.renderMode {
+        case .topCornersOnly:
+            return bounds.height
+        case .backdrop:
+            return max(0, bounds.height - currentMenuBarHeight() - 5)
+        }
+    }
+
+    /// Returns the menu bar height appropriate for the panel's current frame.
+    /// Zero in corners-only mode (the menu bar itself is hidden in that
+    /// state); otherwise the panel's cached menu bar height for its screen.
+    private func currentMenuBarHeight() -> CGFloat {
+        guard let overlayPanel else {
+            return 0
+        }
+        if overlayPanel.renderMode == .topCornersOnly {
+            return 0
+        }
+        return overlayPanel.cachedMenuBarHeight
+    }
+
+    /// Returns whether rounded top screen corners should be drawn for the
+    /// current configuration on the panel's owning screen.
+    private func shouldDrawTopScreenCorners() -> Bool {
+        guard
+            let appearanceManager = overlayPanel?.appState?.appearanceManager,
+            let screen = overlayPanel?.owningScreen
+        else {
+            return false
+        }
+        return appearanceManager.hasActiveRoundedTopScreenCorners(for: screen, in: fullConfiguration)
+    }
+
+    /// Returns a path containing the menu bar rect unioned with the left and
+    /// right top-corner wedges that sit just below it.
+    private func pathForMenuBarWithTopScreenCorners(menuBarRect: CGRect, radius: CGFloat) -> NSBezierPath {
+        let leftWedge = NSBezierPath()
+        leftWedge.move(to: CGPoint(x: menuBarRect.minX, y: menuBarRect.minY))
+        leftWedge.line(to: CGPoint(x: menuBarRect.minX, y: menuBarRect.minY - radius))
+        leftWedge.appendArc(
+            withCenter: CGPoint(x: menuBarRect.minX + radius, y: menuBarRect.minY - radius),
+            radius: radius,
+            startAngle: 180,
+            endAngle: 90,
+            clockwise: true
+        )
+        leftWedge.close()
+
+        let rightWedge = NSBezierPath()
+        rightWedge.move(to: CGPoint(x: menuBarRect.maxX, y: menuBarRect.minY))
+        rightWedge.line(to: CGPoint(x: menuBarRect.maxX, y: menuBarRect.minY - radius))
+        rightWedge.appendArc(
+            withCenter: CGPoint(x: menuBarRect.maxX - radius, y: menuBarRect.minY - radius),
+            radius: radius,
+            startAngle: 0,
+            endAngle: 90,
+            clockwise: false
+        )
+        rightWedge.close()
+
+        return NSBezierPath(rect: menuBarRect)
+            .union(leftWedge)
+            .union(rightWedge)
     }
 
     /// Draws the tint defined by the given configuration in the given rectangle.
     private func drawTint(in rect: CGRect) {
-        switch configuration.tintKind {
+        switch configuration.appearanceKind {
         case .none:
-            break
-        case .solid:
-            if let tintColor = NSColor(cgColor: configuration.tintColor)?.withAlphaComponent(0.2) {
-                tintColor.setFill()
-                rect.fill()
+            return
+        case .tint:
+            // Tint mode renders above status items at a fixed 20% opacity so the
+            // icons stay legible.
+            switch configuration.tintKind {
+            case .none:
+                break
+            case .solid:
+                if let tintColor = NSColor(cgColor: configuration.tintColor)?.withAlphaComponent(0.2) {
+                    tintColor.setFill()
+                    rect.fill()
+                }
+            case .gradient:
+                if let tintGradient = configuration.tintGradient.withAlphaComponent(0.2).nsGradient {
+                    tintGradient.draw(in: rect, angle: 0)
+                }
             }
-        case .gradient:
-            if let tintGradient = configuration.tintGradient.withAlphaComponent(0.2).nsGradient {
-                tintGradient.draw(in: rect, angle: 0)
+        case .backdrop:
+            // Backdrop mode renders beneath status items, so we use the color's
+            // stored alpha verbatim — user-controllable, defaulting to opaque.
+            switch configuration.tintKind {
+            case .none:
+                break
+            case .solid:
+                if let tintColor = NSColor(cgColor: configuration.tintColor) {
+                    tintColor.setFill()
+                    rect.fill()
+                }
+            case .gradient:
+                if let tintGradient = configuration.tintGradient.nsGradient {
+                    tintGradient.draw(in: rect, angle: 0)
+                }
             }
         }
     }
@@ -652,6 +958,28 @@ private final class MenuBarOverlayPanelContentView: NSView {
         }
 
         let drawableBounds = getDrawableBounds()
+
+        if overlayPanel.renderMode == .topCornersOnly {
+            let cornerExt = currentCornerExtension()
+            let drawCorners = shouldDrawTopScreenCorners() && cornerExt > 0
+            guard drawCorners else {
+                return
+            }
+            let combined = pathForMenuBarWithTopScreenCorners(
+                menuBarRect: CGRect(
+                    x: bounds.minX,
+                    y: bounds.maxY,
+                    width: bounds.width,
+                    height: 0
+                ),
+                radius: cornerExt
+            )
+            context.saveGraphicsState()
+            combined.setClip()
+            drawTint(in: bounds)
+            context.restoreGraphicsState()
+            return
+        }
 
         let shapePath = switch fullConfiguration.shapeKind {
         case .none:
@@ -676,6 +1004,9 @@ private final class MenuBarOverlayPanelContentView: NSView {
 
         switch fullConfiguration.shapeKind {
         case .none:
+            let cornerExt = currentCornerExtension()
+            let drawCorners = shouldDrawTopScreenCorners() && cornerExt > 0
+
             if configuration.hasShadow {
                 let gradient = NSGradient(
                     colors: [
@@ -692,12 +1023,23 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 gradient?.draw(in: shadowBounds, angle: 90)
             }
 
-            drawTint(in: drawableBounds)
+            if drawCorners {
+                let combined = pathForMenuBarWithTopScreenCorners(
+                    menuBarRect: drawableBounds,
+                    radius: cornerExt
+                )
+                context.saveGraphicsState()
+                combined.setClip()
+                drawTint(in: combined.bounds)
+                context.restoreGraphicsState()
+            } else {
+                drawTint(in: drawableBounds)
+            }
 
             if configuration.hasBorder {
                 let borderBounds = CGRect(
                     x: bounds.minX,
-                    y: bounds.minY + 5,
+                    y: drawableBounds.minY,
                     width: bounds.width,
                     height: configuration.borderWidth
                 )

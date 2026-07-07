@@ -102,11 +102,11 @@ extension CustomGradient {
     static let defaultMenuBarTint = CustomGradient(
         unsortedStops: [
             ColorStop(
-                color: CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1),
+                color: CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.2),
                 location: 0
             ),
             ColorStop(
-                color: CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1),
+                color: CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 0.2),
                 location: 1
             ),
         ]

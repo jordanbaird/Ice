@@ -64,6 +64,18 @@ extension Bridging {
         }
         return rect
     }
+
+    /// Marks a window as sticky across spaces.
+    ///
+    /// This uses the private WindowServer sticky tag expected by the overlay
+    /// panels, so it should stay narrowly scoped to those panels.
+    static func setStickyAcrossSpaces(_ windowID: CGWindowID) {
+        var tags: UInt64 = 1 << 11
+        let result = CGSSetWindowTags(CGSMainConnectionID(), windowID, &tags, 1)
+        if result != .success {
+            Logger.bridging.error("CGSSetWindowTags failed with error \(result.logString)")
+        }
+    }
 }
 
 // MARK: Private Window List Helpers
@@ -243,6 +255,42 @@ extension Bridging {
     static func isSpaceFullscreen(_ spaceID: CGSSpaceID) -> Bool {
         let type = CGSSpaceGetType(CGSMainConnectionID(), spaceID)
         return type == .fullscreen
+    }
+
+    /// Returns a Boolean value that indicates whether the current space for
+    /// the display with the given stable identifier is a fullscreen space.
+    ///
+    /// This differs from ``activeSpaceID`` in multi-display setups, where each
+    /// display can show a different current space.
+    static func isCurrentSpaceFullscreen(forDisplayWithIdentifier displayIdentifier: String?) -> Bool? {
+        guard
+            let displayIdentifier,
+            let managedDisplays = CGSCopyManagedDisplaySpaces(CGSMainConnectionID())?.takeRetainedValue() as? [[String: Any]]
+        else {
+            return nil
+        }
+        guard
+            let managedDisplay = managedDisplays.first(where: { $0["Display Identifier"] as? String == displayIdentifier }),
+            let currentSpace = managedDisplay["Current Space"] as? [String: Any],
+            let rawType = currentSpace["type"].flatMap({ rawSpaceType(from: $0) }),
+            let type = CGSSpaceType(rawValue: rawType)
+        else {
+            return nil
+        }
+        return type == .fullscreen
+    }
+
+    private static func rawSpaceType(from value: Any) -> UInt32? {
+        switch value {
+        case let value as UInt32:
+            return value
+        case let value as Int:
+            return UInt32(value)
+        case let value as NSNumber:
+            return value.uint32Value
+        default:
+            return nil
+        }
     }
 }
 

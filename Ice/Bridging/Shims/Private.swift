@@ -72,6 +72,9 @@ func CGSCopySpacesForWindows(
     _ windowIDs: CFArray
 ) -> Unmanaged<CFArray>?
 
+@_silgen_name("CGSCopyManagedDisplaySpaces")
+func CGSCopyManagedDisplaySpaces(_ cid: CGSConnectionID) -> Unmanaged<CFArray>?
+
 @_silgen_name("CGSSpaceGetType")
 func CGSSpaceGetType(
     _ cid: CGSConnectionID,
@@ -126,4 +129,12 @@ func CGSGetScreenRectForWindow(
     _ cid: CGSConnectionID,
     _ wid: CGWindowID,
     _ outRect: inout CGRect
+) -> CGError
+
+@_silgen_name("CGSSetWindowTags")
+func CGSSetWindowTags(
+    _ cid: CGSConnectionID,
+    _ wid: CGWindowID,
+    _ tags: UnsafePointer<UInt64>,
+    _ tagCount: Int32
 ) -> CGError

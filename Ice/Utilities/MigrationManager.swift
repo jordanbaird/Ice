@@ -31,6 +31,8 @@ extension MigrationManager {
         let results = [
             manager.migrate0_10_1(),
             manager.migrate0_11_10(),
+            manager.migrateTintAlpha(),
+            manager.migrateAppearanceKind(),
         ]
 
         for result in results {
@@ -282,7 +284,8 @@ extension MigrationManager {
                     hasBorder: oldConfiguration.hasBorder,
                     borderColor: oldConfiguration.borderColor,
                     borderWidth: oldConfiguration.borderWidth,
-                    tintKind: oldConfiguration.tintKind,
+                    appearanceKind: oldConfiguration.tintKind == .none ? .none : .tint,
+                    tintKind: oldConfiguration.tintKind == .none ? .solid : oldConfiguration.tintKind,
                     tintColor: oldConfiguration.tintColor,
                     tintGradient: oldConfiguration.tintGradient
                 )
@@ -300,6 +303,86 @@ extension MigrationManager {
             return .failureAndLogError(.appearanceConfigurationMigrationError(.otherError(error)))
         }
         return .success
+    }
+}
+
+// MARK: - Migrate Tint Alpha
+
+extension MigrationManager {
+    /// Scales the alpha of each saved tint color and tint gradient stop down to
+    /// 0.2, preserving the visual appearance that existed before the alpha
+    /// component became user-controllable.
+    private func migrateTintAlpha() -> MigrationResult {
+        guard !Defaults.bool(forKey: .hasMigratedTintAlpha) else {
+            return .success
+        }
+        guard let oldData = Defaults.data(forKey: .menuBarAppearanceConfigurationV2) else {
+            Defaults.set(true, forKey: .hasMigratedTintAlpha)
+            return .success
+        }
+        do {
+            var configuration = try decoder.decode(MenuBarAppearanceConfigurationV2.self, from: oldData)
+            configuration.lightModeConfiguration = scaleTintAlpha(in: configuration.lightModeConfiguration)
+            configuration.darkModeConfiguration = scaleTintAlpha(in: configuration.darkModeConfiguration)
+            configuration.staticConfiguration = scaleTintAlpha(in: configuration.staticConfiguration)
+            let newData = try encoder.encode(configuration)
+            Defaults.set(newData, forKey: .menuBarAppearanceConfigurationV2)
+            Defaults.set(true, forKey: .hasMigratedTintAlpha)
+            Logger.migration.info("Successfully migrated tint alpha")
+        } catch {
+            return .failureAndLogError(.appearanceConfigurationMigrationError(.otherError(error)))
+        }
+        return .success
+    }
+
+    private func scaleTintAlpha(in partial: MenuBarAppearancePartialConfiguration) -> MenuBarAppearancePartialConfiguration {
+        var copy = partial
+        if let scaled = copy.tintColor.copy(alpha: copy.tintColor.alpha * 0.2) {
+            copy.tintColor = scaled
+        }
+        copy.tintGradient = copy.tintGradient.withAlphaComponent(0.2)
+        return copy
+    }
+}
+
+// MARK: - Migrate Appearance Kind
+
+extension MigrationManager {
+    /// Resets stored tint color and gradient alphas to 1.0 now that the new
+    /// `appearanceKind` field decides whether the color is rendered at a
+    /// fixed 20% (tint) or at its stored alpha (backdrop). The decoder
+    /// derives `appearanceKind` from the legacy `tintKind`, so persisting
+    /// the inferred kind happens automatically on re-encode here.
+    private func migrateAppearanceKind() -> MigrationResult {
+        guard !Defaults.bool(forKey: .hasMigratedAppearanceKind) else {
+            return .success
+        }
+        guard let oldData = Defaults.data(forKey: .menuBarAppearanceConfigurationV2) else {
+            Defaults.set(true, forKey: .hasMigratedAppearanceKind)
+            return .success
+        }
+        do {
+            var configuration = try decoder.decode(MenuBarAppearanceConfigurationV2.self, from: oldData)
+            configuration.lightModeConfiguration = resetAlpha(in: configuration.lightModeConfiguration)
+            configuration.darkModeConfiguration = resetAlpha(in: configuration.darkModeConfiguration)
+            configuration.staticConfiguration = resetAlpha(in: configuration.staticConfiguration)
+            let newData = try encoder.encode(configuration)
+            Defaults.set(newData, forKey: .menuBarAppearanceConfigurationV2)
+            Defaults.set(true, forKey: .hasMigratedAppearanceKind)
+            Logger.migration.info("Successfully migrated appearance kind")
+        } catch {
+            return .failureAndLogError(.appearanceConfigurationMigrationError(.otherError(error)))
+        }
+        return .success
+    }
+
+    private func resetAlpha(in partial: MenuBarAppearancePartialConfiguration) -> MenuBarAppearancePartialConfiguration {
+        var copy = partial
+        if let opaque = copy.tintColor.copy(alpha: 1) {
+            copy.tintColor = opaque
+        }
+        copy.tintGradient = copy.tintGradient.withAlphaComponent(1)
+        return copy
     }
 }
 

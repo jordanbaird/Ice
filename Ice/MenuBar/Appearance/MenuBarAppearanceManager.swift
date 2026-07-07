@@ -30,6 +30,9 @@ final class MenuBarAppearanceManager: ObservableObject {
     /// The currently managed menu bar overlay panels.
     private(set) var overlayPanels = Set<MenuBarOverlayPanel>()
 
+    /// The currently managed screen bottom corner overlay panels.
+    private(set) var bottomCornerOverlayPanels = Set<ScreenBottomCornerOverlayPanel>()
+
     /// The amount to inset the menu bar if called for by the configuration.
     let menuBarInsetAmount: CGFloat = 5
 
@@ -67,10 +70,47 @@ final class MenuBarAppearanceManager: ObservableObject {
                     return
                 }
                 while let panel = overlayPanels.popFirst() {
-                    panel.orderOut(self)
+                    panel.close()
                 }
-                if Set(overlayPanels.map { $0.owningScreen }) != Set(NSScreen.screens) {
+                while let panel = bottomCornerOverlayPanels.popFirst() {
+                    panel.close()
+                }
+                configureOverlayPanels(with: configuration)
+                configureBottomCornerOverlayPanels(with: configuration)
+            }
+            .store(in: &c)
+
+        NSWorkspace.shared.notificationCenter
+            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .debounce(for: 0.1, scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                if needsOverlayPanels(for: configuration) {
                     configureOverlayPanels(with: configuration)
+                    for panel in overlayPanels {
+                        panel.needsShow = true
+                    }
+                }
+                for panel in bottomCornerOverlayPanels {
+                    panel.updateVisibility()
+                }
+            }
+            .store(in: &c)
+
+        // Dynamic appearance flips `current.appearanceKind` without mutating
+        // the configuration value itself. Trigger a re-show so panels that
+        // depend on the current appearance (rounded top corners) reframe.
+        DistributedNotificationCenter.default()
+            .publisher(for: DistributedNotificationCenter.interfaceThemeChangedNotification)
+            .debounce(for: 0.15, scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                for panel in overlayPanels {
+                    panel.needsShow = true
                 }
             }
             .store(in: &c)
@@ -93,13 +133,38 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                // The overlay panels may not have been configured yet. Since some of the
-                // properties on the manager might call for them, try to configure now.
-                if overlayPanels.isEmpty {
+                let needsMenuBar = needsOverlayPanels(for: configuration)
+                let hasMenuBar = !overlayPanels.isEmpty
+                if needsMenuBar && !hasMenuBar {
                     configureOverlayPanels(with: configuration)
+                } else if needsMenuBar && hasMenuBar {
+                    configureOverlayPanels(with: configuration)
+                    // Settings that affect panel frame (e.g. rounded top corners) need a re-show.
+                    for panel in overlayPanels {
+                        panel.needsShow = true
+                    }
+                } else if !needsMenuBar && hasMenuBar {
+                    while let panel = overlayPanels.popFirst() {
+                        panel.close()
+                    }
                 }
+                configureBottomCornerOverlayPanels(with: configuration)
             }
             .store(in: &c)
+
+        if let appState {
+            appState.$isActiveSpaceFullscreen
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    guard let self else {
+                        return
+                    }
+                    for panel in bottomCornerOverlayPanels {
+                        panel.updateVisibility()
+                    }
+                }
+                .store(in: &c)
+        }
 
         cancellables = c
     }
@@ -117,8 +182,34 @@ final class MenuBarAppearanceManager: ObservableObject {
         if configuration.shapeKind != .none {
             return true
         }
-        if current.tintKind != .none {
+        if current.appearanceKind != .none {
             return true
+        }
+        for screen in NSScreen.screens {
+            if hasActiveRoundedTopScreenCorners(for: screen, in: configuration) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Returns whether the configuration's effective settings for the given
+    /// screen meet all of the gating conditions required to render rounded
+    /// top screen corners.
+    func hasActiveRoundedTopScreenCorners(for screen: NSScreen, in configuration: MenuBarAppearanceConfigurationV2) -> Bool {
+        let info = configuration.effectiveScreenShapeInfo(for: screen)
+        return info.hasRoundedTopCorners
+            && configuration.shapeKind == .none
+            && configuration.current.appearanceKind != .none
+    }
+
+    /// Returns a Boolean value that indicates whether a set of screen bottom
+    /// corner overlay panels is needed for the given configuration.
+    private func needsBottomCornerOverlayPanels(for configuration: MenuBarAppearanceConfigurationV2) -> Bool {
+        for screen in NSScreen.screens {
+            if configuration.effectiveScreenShapeInfo(for: screen).hasRoundedBottomCorners {
+                return true
+            }
         }
         return false
     }
@@ -135,14 +226,59 @@ final class MenuBarAppearanceManager: ObservableObject {
             return
         }
 
-        var overlayPanels = Set<MenuBarOverlayPanel>()
-        for screen in NSScreen.screens {
-            let panel = MenuBarOverlayPanel(appState: appState, owningScreen: screen)
-            overlayPanels.insert(panel)
-            panel.needsShow = true
+        let existingScreens = Set(overlayPanels.map { $0.owningScreen })
+        if existingScreens == Set(NSScreen.screens), overlayPanels.count == NSScreen.screens.count {
+            return
         }
 
-        self.overlayPanels = overlayPanels
+        while let panel = overlayPanels.popFirst() {
+            panel.close()
+        }
+
+        var panels = Set<MenuBarOverlayPanel>()
+        for screen in NSScreen.screens {
+            let panel = MenuBarOverlayPanel(
+                appState: appState,
+                owningScreen: screen
+            )
+            panel.needsShow = true
+            panels.insert(panel)
+        }
+        overlayPanels = panels
+    }
+
+    /// Configures the manager's screen bottom corner overlay panels, if
+    /// required by the given configuration.
+    private func configureBottomCornerOverlayPanels(with configuration: MenuBarAppearanceConfigurationV2) {
+        guard
+            let appState,
+            needsBottomCornerOverlayPanels(for: configuration)
+        else {
+            while let panel = bottomCornerOverlayPanels.popFirst() {
+                panel.close()
+            }
+            return
+        }
+
+        let existingScreens = Set(bottomCornerOverlayPanels.map { $0.owningScreen })
+        if existingScreens == Set(NSScreen.screens) {
+            for panel in bottomCornerOverlayPanels {
+                panel.show()
+            }
+            return
+        }
+
+        while let panel = bottomCornerOverlayPanels.popFirst() {
+            panel.close()
+        }
+
+        var panels = Set<ScreenBottomCornerOverlayPanel>()
+        for screen in NSScreen.screens {
+            let panel = ScreenBottomCornerOverlayPanel(appState: appState, owningScreen: screen)
+            panels.insert(panel)
+            panel.show()
+        }
+        self.bottomCornerOverlayPanels = panels
     }
 
     /// Sets the value of ``MenuBarOverlayPanel/isDraggingMenuBarItem`` for each

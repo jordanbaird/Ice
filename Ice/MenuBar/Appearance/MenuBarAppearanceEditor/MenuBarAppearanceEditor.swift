@@ -72,6 +72,10 @@ struct MenuBarAppearanceEditor: View {
                 shapePicker
                 isInset
             }
+            IceSection("Screen Shape") {
+                ScreenShapePicker()
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if case .settings = location {
                 IceGroupBox {
                     AnnotationView(
@@ -131,11 +135,22 @@ struct MenuBarAppearanceEditor: View {
 
 private struct UnlabeledPartialEditor: View {
     @Binding var configuration: MenuBarAppearancePartialConfiguration
+    @StateObject private var backgroundProbe = MenuBarBackgroundProbe()
+
+    private static let isBackdropSupported: Bool = {
+        if #available(macOS 26.0, *) { true } else { false }
+    }()
 
     var body: some View {
         IceSection {
-            tintPicker
+            appearancePicker
+            if configuration.appearanceKind != .none {
+                colorPicker
+            }
             shadowToggle
+        }
+        if configuration.appearanceKind == .backdrop {
+            backdropWarnings
         }
         IceSection {
             borderToggle
@@ -145,29 +160,63 @@ private struct UnlabeledPartialEditor: View {
     }
 
     @ViewBuilder
-    private var tintPicker: some View {
-        IceLabeledContent("Tint") {
-            HStack {
-                IcePicker("Tint", selection: $configuration.tintKind) {
-                    ForEach(MenuBarTintKind.allCases) { tintKind in
-                        Text(tintKind.localized).tag(tintKind)
+    private var appearancePicker: some View {
+        IceLabeledContent("Appearance") {
+            Menu {
+                ForEach(MenuBarAppearanceKind.allCases) { kind in
+                    let isUnavailable = kind == .backdrop && !Self.isBackdropSupported
+                    Button {
+                        guard !isUnavailable else { return }
+                        configuration.appearanceKind = kind
+                    } label: {
+                        if isUnavailable {
+                            HStack(spacing: 6) {
+                                Text(kind.localized)
+                                Text("Requires macOS 26")
+                                    .font(.caption2)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(.tertiary, in: Capsule())
+                            }
+                        } else {
+                            Text(kind.localized)
+                        }
                     }
+                    .disabled(isUnavailable)
+                }
+            } label: {
+                Text(configuration.appearanceKind.localized)
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .frame(height: 24)
+        }
+    }
+
+    @ViewBuilder
+    private var colorPicker: some View {
+        IceLabeledContent("Color") {
+            HStack {
+                IcePicker("Color", selection: $configuration.tintKind) {
+                    Text(MenuBarTintKind.solid.localized).tag(MenuBarTintKind.solid)
+                    Text(MenuBarTintKind.gradient.localized).tag(MenuBarTintKind.gradient)
                 }
                 .labelsHidden()
 
+                let allowsOpacity = configuration.appearanceKind == .backdrop
                 switch configuration.tintKind {
                 case .none:
                     EmptyView()
                 case .solid:
                     CustomColorPicker(
                         selection: $configuration.tintColor,
-                        supportsOpacity: false,
+                        supportsOpacity: allowsOpacity,
                         mode: .crayon
                     )
                 case .gradient:
                     CustomGradientPicker(
                         gradient: $configuration.tintGradient,
-                        supportsOpacity: false,
+                        supportsOpacity: allowsOpacity,
                         allowsEmptySelections: false,
                         mode: .crayon
                     )
@@ -175,6 +224,67 @@ private struct UnlabeledPartialEditor: View {
             }
             .frame(height: 24)
         }
+    }
+
+    @ViewBuilder
+    private var backdropWarnings: some View {
+        let blockers = activeBackdropBlockers
+        if !blockers.isEmpty {
+            IceGroupBox {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(blockers) { blocker in
+                        backdropWarningRow(blocker)
+                    }
+                }
+            }
+        }
+    }
+
+    private var activeBackdropBlockers: [BackdropBlocker] {
+        var blockers: [BackdropBlocker] = []
+        if !Self.isBackdropSupported {
+            blockers.append(.requiresMacOS26)
+        }
+        if backgroundProbe.isOpaqueBackgroundEnabled {
+            blockers.append(.opaqueMenuBarBackground)
+        }
+        if backgroundProbe.isReduceTransparencyEnabled {
+            blockers.append(.reduceTransparency)
+        }
+        return blockers
+    }
+
+    @ViewBuilder
+    private func backdropWarningRow(_ blocker: BackdropBlocker) -> some View {
+        Button {
+            if let url = blocker.settingsURL {
+                NSWorkspace.shared.open(url)
+            }
+        } label: {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .imageScale(.large)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(blocker.title)
+                        .font(.callout.weight(.semibold))
+                    Text(blocker.body)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if blocker.settingsURL != nil {
+                    Image(systemName: "arrow.up.right.square")
+                        .foregroundStyle(.secondary)
+                        .imageScale(.medium)
+                        .padding(.top, 2)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(blocker.settingsURL == nil)
     }
 
     @ViewBuilder
@@ -211,6 +321,47 @@ private struct UnlabeledPartialEditor: View {
                 Text("2").tag(2.0)
                 Text("3").tag(3.0)
             }
+        }
+    }
+}
+
+private enum BackdropBlocker: Hashable, Identifiable {
+    case requiresMacOS26
+    case opaqueMenuBarBackground
+    case reduceTransparency
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .requiresMacOS26:
+            "Backdrop requires macOS 26"
+        case .opaqueMenuBarBackground:
+            "“Show menu bar background” must be off"
+        case .reduceTransparency:
+            "“Reduce transparency” must be off"
+        }
+    }
+
+    var body: String {
+        switch self {
+        case .requiresMacOS26:
+            "The backdrop effect relies on the transparent menu bar introduced in macOS 26. Upgrade macOS or pick Tint instead."
+        case .opaqueMenuBarBackground:
+            "macOS is currently drawing an opaque menu bar background, which will hide the backdrop tint. Open System Settings → Menu Bar and turn off Show menu bar background."
+        case .reduceTransparency:
+            "Reduce transparency makes the menu bar opaque, which hides the backdrop tint. Open System Settings → Accessibility → Display and turn off Reduce transparency."
+        }
+    }
+
+    var settingsURL: URL? {
+        switch self {
+        case .requiresMacOS26:
+            nil
+        case .opaqueMenuBarBackground:
+            URL(string: "x-apple.systempreferences:com.apple.ControlCenter-Settings.extension?MenuBar")
+        case .reduceTransparency:
+            URL(string: "x-apple.systempreferences:com.apple.Accessibility-Settings.extension?Display")
         }
     }
 }

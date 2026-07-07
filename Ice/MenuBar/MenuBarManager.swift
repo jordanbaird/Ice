@@ -13,14 +13,19 @@ final class MenuBarManager: ObservableObject {
     /// Information for the menu bar's average color.
     @Published private(set) var averageColorInfo: MenuBarAverageColorInfo?
 
-    /// A Boolean value that indicates whether the menu bar is either always hidden
-    /// by the system, or automatically hidden and shown by the system based on the
-    /// location of the mouse.
+    /// A Boolean value that indicates whether the menu bar should be treated
+    /// as hidden by the system in the active space. This is derived from the
+    /// user's menu bar auto-hide settings, transient system presentation
+    /// options, and the active space type.
     @Published private(set) var isMenuBarHiddenBySystem = false
 
     /// A Boolean value that indicates whether the menu bar is hidden by the system
-    /// according to a value stored in UserDefaults.
+    /// on desktop spaces according to a value stored in UserDefaults.
     @Published private(set) var isMenuBarHiddenBySystemUserDefaults = false
+
+    /// A Boolean value that indicates whether system presentation options are
+    /// currently hiding the menu bar, such as during Mission Control/Expose.
+    @Published private(set) var isMenuBarHiddenBySystemPresentationOptions = false
 
     /// The shared app state.
     private weak var appState: AppState?
@@ -39,6 +44,13 @@ final class MenuBarManager: ObservableObject {
 
     /// The panel that contains the menu bar search interface.
     let searchPanel: MenuBarSearchPanel
+
+    /// Global defaults keys used by System Settings' "Automatically hide and
+    /// show the menu bar" setting.
+    private enum SystemMenuBarDefaultsKey {
+        static let autoHideOnDesktop = "_HIHideMenuBar"
+        static let visibleInFullscreen = "AppleMenuBarVisibleInFullscreen"
+    }
 
     /// A Boolean value that indicates whether the manager can update its stored
     /// information for the menu bar's average color.
@@ -84,14 +96,27 @@ final class MenuBarManager: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
+        refreshSystemMenuBarHiddenState()
+        refreshSystemPresentationOptions(NSApp.currentSystemPresentationOptions)
+
         NSApp.publisher(for: \.currentSystemPresentationOptions)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] options in
-                guard let self else {
-                    return
-                }
-                let hidden = options.contains(.hideMenuBar) || options.contains(.autoHideMenuBar)
-                isMenuBarHiddenBySystem = hidden
+                self?.refreshSystemPresentationOptions(options)
+            }
+            .store(in: &c)
+
+        appState?.$isActiveSpaceFullscreen
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.refreshSystemMenuBarHiddenState()
+            }
+            .store(in: &c)
+
+        NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.refreshSystemMenuBarHiddenState()
             }
             .store(in: &c)
 
@@ -104,13 +129,7 @@ final class MenuBarManager: ObservableObject {
                 .removeDuplicates()
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
-                    guard
-                        let self,
-                        let isMenuBarHidden = Defaults.globalDomain["_HIHideMenuBar"] as? Bool
-                    else {
-                        return
-                    }
-                    isMenuBarHiddenBySystemUserDefaults = isMenuBarHidden
+                    self?.refreshSystemMenuBarHiddenState()
                 }
                 .store(in: &c)
         }
@@ -223,6 +242,89 @@ final class MenuBarManager: ObservableObject {
         cancellables = c
     }
 
+    /// Refreshes the system menu bar hidden state for the active space.
+    private func refreshSystemMenuBarHiddenState() {
+        let isMenuBarHiddenOnDesktop = self.isMenuBarHiddenOnDesktop
+        let isActiveSpaceFullscreen = appState?.isActiveSpaceFullscreen
+            ?? Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
+        let isMenuBarHiddenInActiveSpace = isActiveSpaceFullscreen
+            ? isMenuBarHiddenInFullscreen
+            : isMenuBarHiddenOnDesktop
+        let isMenuBarHidden = isMenuBarHiddenInActiveSpace
+            || isMenuBarHiddenBySystemPresentationOptions
+
+        if isMenuBarHiddenBySystemUserDefaults != isMenuBarHiddenOnDesktop {
+            isMenuBarHiddenBySystemUserDefaults = isMenuBarHiddenOnDesktop
+        }
+        if isMenuBarHiddenBySystem != isMenuBarHidden {
+            isMenuBarHiddenBySystem = isMenuBarHidden
+        }
+    }
+
+    /// Refreshes the transient presentation-options hidden state.
+    private func refreshSystemPresentationOptions(_ options: NSApplication.PresentationOptions) {
+        let isMenuBarHidden = options.contains(.hideMenuBar) || options.contains(.autoHideMenuBar)
+        if isMenuBarHiddenBySystemPresentationOptions != isMenuBarHidden {
+            isMenuBarHiddenBySystemPresentationOptions = isMenuBarHidden
+        }
+        refreshSystemMenuBarHiddenState()
+    }
+
+    /// Returns whether the menu bar should be treated as hidden by the system
+    /// on the given screen's current space.
+    func isMenuBarHiddenBySystem(on screen: NSScreen) -> Bool {
+        if isMenuBarHiddenBySystemPresentationOptions {
+            return true
+        }
+        let isFullscreen = isSpaceFullscreen(on: screen)
+        return isFullscreen ? isMenuBarHiddenInFullscreen : isMenuBarHiddenOnDesktop
+    }
+
+    /// Returns whether the given screen is currently showing a fullscreen space.
+    func isSpaceFullscreen(on screen: NSScreen) -> Bool {
+        Bridging.isCurrentSpaceFullscreen(forDisplayWithIdentifier: screen.stableIdentifier)
+            ?? appState?.isActiveSpaceFullscreen
+            ?? Bridging.isSpaceFullscreen(Bridging.activeSpaceID)
+    }
+
+    /// The desktop-space portion of System Settings' menu bar auto-hide mode.
+    private var isMenuBarHiddenOnDesktop: Bool {
+        globalBool(
+            forKey: SystemMenuBarDefaultsKey.autoHideOnDesktop,
+            defaultValue: false
+        )
+    }
+
+    /// The fullscreen-space portion of System Settings' menu bar auto-hide mode.
+    private var isMenuBarHiddenInFullscreen: Bool {
+        !globalBool(
+            forKey: SystemMenuBarDefaultsKey.visibleInFullscreen,
+            defaultValue: false
+        )
+    }
+
+    /// Reads a Boolean from the global domain, accepting the common plist
+    /// representations used by `defaults`.
+    private func globalBool(forKey key: String, defaultValue: Bool) -> Bool {
+        switch Defaults.globalDomain[key] {
+        case let value as Bool:
+            return value
+        case let value as NSNumber:
+            return value.boolValue
+        case let value as String:
+            switch value.lowercased() {
+            case "1", "true", "yes":
+                return true
+            case "0", "false", "no":
+                return false
+            default:
+                return defaultValue
+            }
+        default:
+            return defaultValue
+        }
+    }
+
     /// Updates the ``averageColorInfo`` property with the current average color
     /// of the menu bar.
     func updateAverageColorInfo() {
@@ -285,6 +387,40 @@ final class MenuBarManager: ObservableObject {
             return try uiElement?.role() == .menuBar
         } catch {
             return false
+        }
+    }
+
+    /// Returns whether the given screen's menu bar is currently visible.
+    ///
+    /// `isMenuBarHiddenBySystem` describes policy and transient presentation
+    /// state, which can remain true while an auto-hidden menu bar is
+    /// temporarily revealed. This helper checks the live WindowServer/AX state,
+    /// with Ice's own status-item windows as a short-lived fallback while the
+    /// menu bar is animating.
+    func isMenuBarCurrentlyVisible(on screen: NSScreen, in windows: [WindowInfo]) -> Bool {
+        let displayID = screen.displayID
+        if
+            WindowInfo.getMenuBarWindow(from: windows, for: displayID)?.alpha ?? 0 > 0,
+            hasValidMenuBar(in: windows, for: displayID)
+        {
+            return true
+        }
+        return hasVisibleControlItemWindow(on: displayID, in: windows)
+    }
+
+    /// Returns whether one of Ice's control item windows is currently visible
+    /// on the given display.
+    private func hasVisibleControlItemWindow(on display: CGDirectDisplayID, in windows: [WindowInfo]) -> Bool {
+        let displayBounds = CGDisplayBounds(display)
+        let controlItemWindowIDs = Set(sections.compactMap(\.controlItem.windowID))
+        guard !controlItemWindowIDs.isEmpty else {
+            return false
+        }
+        return windows.contains { window in
+            controlItemWindowIDs.contains(window.windowID) &&
+            window.isOnScreen &&
+            window.alpha > 0 &&
+            displayBounds.intersects(window.frame)
         }
     }
 

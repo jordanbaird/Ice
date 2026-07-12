@@ -35,6 +35,26 @@ Install Ice using the following command:
 brew install --cask jordanbaird-ice
 ```
 
+### Uninstall
+
+To remove Ice from your Mac:
+
+1. Quit Ice from the menu bar (click the Ice icon and select "Quit Ice").
+2. Drag the Ice app from your `Applications` folder to the Trash.
+3. (Optional) Remove leftover preferences and cache files:
+
+```sh
+rm -rf ~/Library/Preferences/com.jordanbaird.Ice.plist
+rm -rf ~/Library/Caches/com.jordanbaird.Ice
+rm -rf ~/Library/Application\ Support/Ice
+```
+
+If you installed Ice via Homebrew, you can uninstall it with:
+
+```sh
+brew uninstall --cask jordanbaird-ice
+```
+
 ## Features/Roadmap
 
 ### Menu bar item management

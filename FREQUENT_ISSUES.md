@@ -9,7 +9,7 @@
 
 By default, macOS adds new items to the far left of the menu bar, which is also the location of Ice's always-hidden section. Most apps are configured
 to remember the positions of their items, but some are not. macOS treats the items of these apps as new items each time they appear. This results in
-these items appearing in the always-hidden section, even if they have been previously been moved.
+these items appearing in the always-hidden section, even if they have been previously moved.
 
 Ice does not currently manage individual items, and in fact cannot, as of the current release. Once issues
 [#6](https://github.com/jordanbaird/Ice/issues/6) and [#26](https://github.com/jordanbaird/Ice/issues/26) are implemented, Ice will be able to

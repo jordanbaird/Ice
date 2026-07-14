@@ -135,9 +135,8 @@ final class MenuBarSection {
         else {
             return
         }
-        guard controlItem.isAddedToMenuBar else {
+        guard isEnabled else {
             // The section is disabled.
-            // TODO: Can we use isEnabled for this check?
             return
         }
         switch name {

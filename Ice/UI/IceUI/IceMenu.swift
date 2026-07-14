@@ -47,7 +47,7 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
     }
 
     var body: some View {
-        IceLabeledContent {
+        LabeledContent {
             Menu {
                 content
                     .labelStyle(.titleAndIcon)

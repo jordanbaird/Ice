@@ -4,7 +4,7 @@
 //
 
 import Cocoa
-import Combine
+import OSLog
 
 /// Manager for menu bar item spacing.
 @MainActor
@@ -36,8 +36,14 @@ final class MenuBarItemSpacingManager {
         }
     }
 
-    /// Delay before force terminating an app.
-    private let forceTerminateDelay = 1
+    /// An app did not finish a normal termination request in time.
+    private struct AppQuitTimeoutError: Error { }
+
+    /// Logger for the menu bar item spacing manager.
+    private let logger = Logger(category: "MenuBarItemSpacingManager")
+
+    /// Time to allow an app to terminate normally.
+    private let gracefulQuitTimeout = Duration.seconds(5)
 
     /// The offset to apply to the default spacing and padding.
     /// Does not take effect until ``applyOffset()`` is called.
@@ -68,51 +74,37 @@ final class MenuBarItemSpacingManager {
         try await runCommand("defaults", with: ["-currentHost", "write", "-globalDomain", key.rawValue, "-int", String(key.defaultValue + offset)])
     }
 
-    /// Returns a log string for the given app.
-    private nonisolated func logString(for app: NSRunningApplication) -> String {
-        app.localizedName ?? app.bundleIdentifier ?? "<NIL>"
-    }
-
     /// Asynchronously signals the given app to quit.
     private func signalAppToQuit(_ app: NSRunningApplication) async throws {
         if app.isTerminated {
-            Logger.spacing.debug("Application \"\(logString(for: app))\" is already terminated")
+            logger.debug("Application \"\(app.logString)\" is already terminated")
             return
         } else {
-            Logger.spacing.debug("Signaling application \"\(logString(for: app))\" to quit")
+            logger.debug("Signaling application \"\(app.logString)\" to quit")
         }
 
         app.terminate()
 
-        var cancellable: AnyCancellable?
-        return try await withCheckedThrowingContinuation { continuation in
-            let timeoutTask = Task {
-                try await Task.sleep(for: .seconds(forceTerminateDelay))
-                if !app.isTerminated {
-                    Logger.spacing.debug("Application \"\(logString(for: app))\" did not terminate within \(forceTerminateDelay) seconds, attempting to force terminate")
-                    app.forceTerminate()
-                }
-            }
-
-            cancellable = app.publisher(for: \.isTerminated).sink { [weak self] isTerminated in
-                guard
-                    let self,
-                    isTerminated
-                else {
-                    return
-                }
-                timeoutTask.cancel()
-                cancellable?.cancel()
-                Logger.spacing.debug("Application \"\(logString(for: app))\" terminated successfully")
-                continuation.resume()
-            }
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: gracefulQuitTimeout)
+        while !app.isTerminated, clock.now < deadline {
+            try await Task.sleep(for: .milliseconds(100))
         }
+
+        guard app.isTerminated else {
+            // Never force-terminate a third-party app: it may have unsaved
+            // documents. Report the failure and let the user close it.
+            logger.warning("Application \"\(app.logString)\" did not terminate normally")
+            throw AppQuitTimeoutError()
+        }
+
+        logger.debug("Application \"\(app.logString)\" terminated successfully")
     }
 
     /// Asynchronously launches the app at the given URL.
     private nonisolated func launchApp(at applicationURL: URL, bundleIdentifier: String) async throws {
         if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
-            Logger.spacing.debug("Application \"\(logString(for: app))\" is already open, so skipping launch")
+            logger.debug("Application \"\(app.logString)\" is already open, so skipping launch")
             return
         }
         let configuration = NSWorkspace.OpenConfiguration()
@@ -154,8 +146,8 @@ final class MenuBarItemSpacingManager {
 
         try? await Task.sleep(for: .milliseconds(100))
 
-        let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
-        let pids = Set(items.map { $0.ownerPID })
+        let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+        let pids = Set(items.map { $0.sourcePID ?? $0.ownerPID })
 
         var failedApps = [String]()
 
@@ -166,7 +158,7 @@ final class MenuBarItemSpacingManager {
                     app.bundleIdentifier != "com.apple.controlcenter", // ControlCenter handles its own relaunch, so skip it.
                     app != .current
                 else {
-                    break
+                    continue
                 }
                 group.addTask { @MainActor in
                     do {
@@ -209,7 +201,9 @@ final class MenuBarItemSpacingManager {
     }
 }
 
-// MARK: - Logger
-private extension Logger {
-    static let spacing = Logger(category: "Spacing")
+private extension NSRunningApplication {
+    /// A string to use for logging purposes.
+    var logString: String {
+        localizedName ?? bundleIdentifier ?? "<NIL>"
+    }
 }

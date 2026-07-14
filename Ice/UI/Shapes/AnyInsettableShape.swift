@@ -7,12 +7,10 @@ import SwiftUI
 
 /// A type-erased insettable shape.
 struct AnyInsettableShape: InsettableShape {
-    typealias InsetShape = AnyInsettableShape
-
     private let base: any InsettableShape
 
     /// Creates a type-erased insettable shape.
-    init(_ shape: any InsettableShape) {
+    init<S: InsettableShape>(_ shape: S) {
         self.base = shape
     }
 

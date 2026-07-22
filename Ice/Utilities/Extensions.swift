@@ -146,6 +146,9 @@ extension CGImage {
 
         // Multiply the included pixel count by 255 to convert the components
         // to their corresponding floating point values.
+        guard includedPixelCount > 0 else {
+            return nil
+        }
         let adjustedPixelCount = CGFloat(includedPixelCount * 255)
 
         return CGColor(

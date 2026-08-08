@@ -281,7 +281,7 @@ private struct IceBarContentView: View {
     let section: MenuBarSection.Name
 
     private var items: [MenuBarItem] {
-        itemManager.itemCache.managedItems(for: section)
+        itemManager.itemsForIceBar(in: section, on: screen)
     }
 
     private var configuration: MenuBarAppearanceConfigurationV2 {

@@ -222,6 +222,35 @@ extension MenuBarItemManager {
         }
     }
 
+    /// Returns the items to display for an Ice Bar section on the given screen.
+    ///
+    /// The system keeps items pushed behind a display notch in Ice's visible
+    /// section, even though the user cannot see or click them. Include those
+    /// items in the hidden Ice Bar without permanently changing their layout.
+    func itemsForIceBar(in section: MenuBarSection.Name, on screen: NSScreen) -> [MenuBarItem] {
+        let sectionItems = itemCache[section]
+
+        guard section == .hidden else {
+            return sectionItems
+        }
+
+        let visibleItems = itemCache[.visible]
+        let excludedIndices = Set(visibleItems.indices.filter { visibleItems[$0].isControlItem })
+        let itemBounds = visibleItems.map { Bridging.getWindowBounds(for: $0.windowID) }
+        let obscuredIndices = NotchOverflowResolver.obscuredIndices(
+            itemBounds: itemBounds,
+            excluding: excludedIndices,
+            screenBounds: CGDisplayBounds(screen.displayID),
+            rightSafeArea: screen.auxiliaryTopRightArea
+        )
+        let existingWindowIDs = Set(sectionItems.map(\.windowID))
+        let obscuredItems = obscuredIndices
+            .map { visibleItems[$0] }
+            .filter { !existingWindowIDs.contains($0.windowID) }
+
+        return sectionItems + obscuredItems
+    }
+
     /// A pair of control items, taken from a list of menu bar items
     /// during a menu bar item cache operation.
     private struct ControlItemPair {

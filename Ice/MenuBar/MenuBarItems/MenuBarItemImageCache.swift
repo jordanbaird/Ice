@@ -256,17 +256,6 @@ final class MenuBarItemImageCache: ObservableObject {
         return individualResult
     }
 
-    /// Captures the images of the menu bar items in the given section and returns
-    /// a dictionary containing the images, keyed by their menu bar item tags.
-    private func captureImages(for section: MenuBarSection.Name, scale: CGFloat, appState: AppState) async -> [MenuBarItemTag: CapturedImage] {
-        let items = await appState.itemManager.itemCache.managedItems(for: section)
-        let captureResult = await captureImages(of: items, scale: scale, appState: appState)
-        if !captureResult.excluded.isEmpty {
-            logger.error("Some items failed capture: \(captureResult.excluded, privacy: .public)")
-        }
-        return captureResult.images
-    }
-
     // MARK: Update Cache
 
     /// Updates the cache for the given sections, without checking whether
@@ -295,11 +284,16 @@ final class MenuBarItemImageCache: ObservableObject {
         let token = await MainActor.run { refreshSequencer.begin() }
 
         for section in sections {
-            guard await !appState.itemManager.itemCache[section].isEmpty else {
+            let items = await appState.itemManager.itemsForIceBar(in: section, on: screen)
+            guard !items.isEmpty else {
                 continue
             }
 
-            let sectionImages = await captureImages(for: section, scale: scale, appState: appState)
+            let captureResult = await captureImages(of: items, scale: scale, appState: appState)
+            if !captureResult.excluded.isEmpty {
+                logger.error("Some items failed capture: \(captureResult.excluded, privacy: .public)")
+            }
+            let sectionImages = captureResult.images
 
             guard !sectionImages.isEmpty else {
                 logger.warning("Failed item image cache for \(section.logString, privacy: .public)")
@@ -386,7 +380,18 @@ final class MenuBarItemImageCache: ObservableObject {
         guard ScreenCapture.cachedCheckPermissions() else {
             return true
         }
-        let items = appState?.itemManager.itemCache[section] ?? []
+        guard let appState else {
+            return false
+        }
+        let items: [MenuBarItem]
+        if
+            let displayID = appState.itemManager.itemCache.displayID,
+            let screen = NSScreen.screens.first(where: { $0.displayID == displayID })
+        {
+            items = appState.itemManager.itemsForIceBar(in: section, on: screen)
+        } else {
+            items = appState.itemManager.itemCache[section]
+        }
         guard !items.isEmpty else {
             return false
         }

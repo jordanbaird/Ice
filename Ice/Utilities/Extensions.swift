@@ -144,6 +144,12 @@ extension CGImage {
             }
         }
 
+        // An image with no pixels at or above the alpha threshold has no
+        // average color. Returning here also prevents a division by zero.
+        guard includedPixelCount > 0 else {
+            return nil
+        }
+
         // Multiply the included pixel count by 255 to convert the components
         // to their corresponding floating point values.
         let adjustedPixelCount = CGFloat(includedPixelCount * 255)

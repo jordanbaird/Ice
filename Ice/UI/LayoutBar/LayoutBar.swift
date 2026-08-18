@@ -55,9 +55,18 @@ struct LayoutBar: View {
     private var conditionalBody: some View {
         if imageCache.cacheFailed(for: section.name) {
             Text("Unable to display menu bar items")
-                .foregroundStyle(menuBarManager.averageColorInfo?.color.brightness ?? 0 > 0.67 ? .black : .white)
+                .foregroundStyle(placeholderTextColor)
         } else {
             Representable(appState: appState, section: section, spacing: spacing)
         }
+    }
+
+    /// The color of the text displayed when the item images cannot be rendered,
+    /// chosen to contrast with the layout bar's background.
+    private var placeholderTextColor: Color {
+        guard let brightness = menuBarManager.averageColorInfo?.color.brightness else {
+            return .primary
+        }
+        return brightness > 0.67 ? .black : .white
     }
 }

@@ -110,6 +110,23 @@ final class MenuBarOverlayPanel: NSPanel {
             }
             .store(in: &c)
 
+        appState?.$isActiveSpaceFullscreen
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isFullscreen in
+                guard let self else {
+                    return
+                }
+                needsShow = false
+                updateFlags.removeAll()
+                if isFullscreen {
+                    orderOut(nil)
+                } else {
+                    needsShow = true
+                }
+            }
+            .store(in: &c)
+
         // Update when light/dark mode changes.
         DistributedNotificationCenter.default()
             .publisher(for: DistributedNotificationCenter.interfaceThemeChangedNotification)
@@ -328,16 +345,18 @@ final class MenuBarOverlayPanel: NSPanel {
             return
         }
 
-        guard let menuBarHeight = owningScreen.getMenuBarHeight() else {
+        let windows = WindowInfo.getOnScreenWindows(excludeDesktopWindows: true)
+        guard
+            let owningDisplay = validate(for: .showing, with: windows),
+            let menuBarFrame = WindowInfo.getMenuBarWindow(from: windows, for: owningDisplay)?.frame,
+            let newFrame = Self.overlayFrame(
+                for: owningScreen.frame,
+                menuBarFrame: menuBarFrame,
+                inset: appState.appearanceManager.menuBarInsetAmount
+            )
+        else {
             return
         }
-
-        let newFrame = CGRect(
-            x: owningScreen.frame.minX,
-            y: (owningScreen.frame.maxY - menuBarHeight) - 5,
-            width: owningScreen.frame.width,
-            height: menuBarHeight + 5
-        )
 
         alphaValue = 0
         setFrame(newFrame, display: false)
@@ -348,6 +367,30 @@ final class MenuBarOverlayPanel: NSPanel {
         if !appState.menuBarManager.isMenuBarHiddenBySystem {
             animator().alphaValue = 1
         }
+    }
+
+    static func overlayFrame(for screenFrame: CGRect, menuBarFrame: CGRect, inset: CGFloat) -> CGRect? {
+        guard
+            screenFrame.width > 0,
+            screenFrame.height > 0,
+            menuBarFrame.width > 0,
+            menuBarFrame.height > 0
+        else {
+            return nil
+        }
+
+        let frame = CGRect(
+            x: screenFrame.minX,
+            y: screenFrame.maxY - menuBarFrame.height - inset,
+            width: screenFrame.width,
+            height: menuBarFrame.height + inset
+        )
+
+        guard screenFrame.contains(frame) else {
+            return nil
+        }
+
+        return frame
     }
 
     override func isAccessibilityElement() -> Bool {

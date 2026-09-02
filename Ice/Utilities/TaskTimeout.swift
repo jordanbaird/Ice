@@ -76,7 +76,7 @@ extension Task where Failure == any Error {
 
 /// An error that indicates that a task timed out.
 struct TaskTimeoutError: Error, CustomStringConvertible {
-    let description = "Task timed out before completion"
+    var description: String { String(localized: "Task timed out before completion") }
 }
 
 // MARK: TaskTimeoutError: LocalizedError

@@ -68,7 +68,7 @@ struct MenuBarItem {
     /// A name associated with the item that is suited for display to
     /// the user.
     var displayName: String {
-        var fallback: String { "Unknown" }
+        var fallback: String { String(localized: "Unknown") }
         guard let owningApplication else {
             return ownerName ?? title ?? fallback
         }
@@ -85,24 +85,24 @@ struct MenuBarItem {
         return switch MenuBarItemInfo.Namespace(owningApplication.bundleIdentifier) {
         case .controlCenter:
             switch title {
-            case "AccessibilityShortcuts": "Accessibility Shortcuts"
+            case "AccessibilityShortcuts": String(localized: "Accessibility Shortcuts")
             case "BentoBox": bestName // Control Center
-            case "FocusModes": "Focus"
-            case "KeyboardBrightness": "Keyboard Brightness"
-            case "MusicRecognition": "Music Recognition"
-            case "NowPlaying": "Now Playing"
-            case "ScreenMirroring": "Screen Mirroring"
-            case "StageManager": "Stage Manager"
-            case "UserSwitcher": "Fast User Switching"
-            case "WiFi": "Wi-Fi"
+            case "FocusModes": String(localized: "Focus")
+            case "KeyboardBrightness": String(localized: "Keyboard Brightness")
+            case "MusicRecognition": String(localized: "Music Recognition")
+            case "NowPlaying": String(localized: "Now Playing")
+            case "ScreenMirroring": String(localized: "Screen Mirroring")
+            case "StageManager": String(localized: "Stage Manager")
+            case "UserSwitcher": String(localized: "Fast User Switching")
+            case "WiFi": String(localized: "Wi-Fi")
             default: title
             }
         case .systemUIServer:
             switch title {
-            case "TimeMachine.TMMenuExtraHost"/*Sonoma*/, "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/: "Time Machine"
+            case "TimeMachine.TMMenuExtraHost"/*Sonoma*/, "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/: String(localized: "Time Machine")
             default: title
             }
-        case MenuBarItemInfo.Namespace("com.apple.Passwords.MenuBarExtra"): "Passwords"
+        case MenuBarItemInfo.Namespace("com.apple.Passwords.MenuBarExtra"): String(localized: "Passwords")
         default:
             bestName
         }

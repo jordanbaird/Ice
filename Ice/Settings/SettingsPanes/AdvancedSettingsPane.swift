@@ -20,9 +20,9 @@ struct AdvancedSettingsPane: View {
     private func formattedToSeconds(_ interval: TimeInterval) -> LocalizedStringKey {
         let formatted = interval.formatted()
         return if interval == 1 {
-            LocalizedStringKey(formatted + " second")
+            "\(formatted) second"
         } else {
-            LocalizedStringKey(formatted + " seconds")
+            "\(formatted) seconds"
         }
     }
 

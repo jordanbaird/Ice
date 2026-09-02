@@ -38,9 +38,9 @@ struct GeneralSettingsPane: View {
     private var rehideIntervalKey: LocalizedStringKey {
         let formatted = manager.rehideInterval.formatted()
         if manager.rehideInterval == 1 {
-            return LocalizedStringKey(formatted + " second")
+            return "\(formatted) second"
         } else {
-            return LocalizedStringKey(formatted + " seconds")
+            return "\(formatted) seconds"
         }
     }
 
@@ -85,13 +85,15 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var launchAtLogin: some View {
-        LaunchAtLogin.Toggle()
+        LaunchAtLogin.Toggle {
+            Text("Launch at login")
+        }
     }
 
     @ViewBuilder
     private func menuItem(for imageSet: ControlItemImageSet) -> some View {
         Label {
-            Text(imageSet.name.rawValue)
+            Text(imageSet.name.localized)
         } icon: {
             if let nsImage = imageSet.hidden.nsImage(for: appState) {
                 switch imageSet.name {

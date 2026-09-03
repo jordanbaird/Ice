@@ -93,7 +93,7 @@ final class UpdatesManager: NSObject, ObservableObject {
 }
 
 // MARK: UpdatesManager: SPUUpdaterDelegate
-extension UpdatesManager: @preconcurrency SPUUpdaterDelegate {
+extension UpdatesManager: SPUUpdaterDelegate {
     func updater(_ updater: SPUUpdater, willScheduleUpdateCheckAfterDelay delay: TimeInterval) {
         guard let appState else {
             return

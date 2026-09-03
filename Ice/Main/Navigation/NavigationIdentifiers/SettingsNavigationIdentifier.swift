@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import SwiftUI
 /// The navigation identifier type for the "Settings" interface.
 enum SettingsNavigationIdentifier: String, NavigationIdentifier {
     case general = "General"
@@ -10,7 +11,20 @@ enum SettingsNavigationIdentifier: String, NavigationIdentifier {
     case menuBarAppearance = "Menu Bar Appearance"
     case hotkeys = "Hotkeys"
     case advanced = "Advanced"
+    case help = "Help"
     case about = "About"
+
+    var localized: LocalizedStringKey {
+        switch self {
+        case .general: "General"
+        case .menuBarLayout: "Menu Bar Layout"
+        case .menuBarAppearance: "Menu Bar Appearance"
+        case .hotkeys: "Hotkeys"
+        case .advanced: "Advanced"
+        case .help: "Help"
+        case .about: "About"
+        }
+    }
 
     var iconResource: IconResource {
         switch self {
@@ -19,6 +33,7 @@ enum SettingsNavigationIdentifier: String, NavigationIdentifier {
         case .menuBarAppearance: .systemSymbol("swatchpalette")
         case .hotkeys: .systemSymbol("keyboard")
         case .advanced: .systemSymbol("gearshape.2")
+        case .help: .systemSymbol("questionmark.circle")
         case .about: .assetCatalog(.iceCubeStroke)
         }
     }

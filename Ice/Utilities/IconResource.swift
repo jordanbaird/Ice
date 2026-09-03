@@ -18,11 +18,11 @@ enum IconResource: Hashable {
     var view: some View {
         image
             .resizable()
-            .aspectRatio(contentMode: .fit)
+            .scaledToFit()
     }
 
     /// The image produced by the resource.
-    private var image: Image {
+    var image: Image {
         switch self {
         case .systemSymbol(let name):
             Image(systemName: name)

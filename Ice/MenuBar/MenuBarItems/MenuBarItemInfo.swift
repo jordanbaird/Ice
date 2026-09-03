@@ -3,6 +3,8 @@
 //  Ice
 //
 
+import Foundation
+
 /// A simplified version of a menu bar item.
 struct MenuBarItemInfo: Hashable, CustomStringConvertible {
     /// The namespace of the item.

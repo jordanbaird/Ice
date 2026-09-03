@@ -331,7 +331,7 @@ extension MigrationManager {
         }
         let object = try JSONSerialization.jsonObject(with: data)
         guard let array = object as? [[String: Any]] else {
-            throw MigrationError.invalidMenuBarSectionsJSONObject(object)
+            throw MigrationError.invalidMenuBarSectionsJSONObject(String(describing: object))
         }
         return array
     }
@@ -351,7 +351,7 @@ extension MigrationManager {
 
 extension MigrationManager {
     enum MigrationError: Error, CustomStringConvertible {
-        case invalidMenuBarSectionsJSONObject(Any)
+        case invalidMenuBarSectionsJSONObject(String)
         case hotkeyMigrationError(any Error)
         case controlItemMigrationError(any Error)
         case appearanceConfigurationMigrationError(AppearanceConfigurationMigrationError)

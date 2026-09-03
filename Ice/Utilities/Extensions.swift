@@ -464,6 +464,7 @@ extension NSScreen {
 
 extension NSStatusItem {
     /// Shows the given menu under the status item.
+    @MainActor
     func showMenu(_ menu: NSMenu) {
         let originalMenu = self.menu
         defer {

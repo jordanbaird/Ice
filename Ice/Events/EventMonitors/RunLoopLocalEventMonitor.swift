@@ -7,7 +7,9 @@ import Cocoa
 import Combine
 
 final class RunLoopLocalEventMonitor {
-    private let runLoop = CFRunLoopGetCurrent()
+    // The observer reads and posts events through `NSApp`, which is only
+    // valid on the main thread, so it is always scheduled on the main run loop.
+    private let runLoop = CFRunLoopGetMain()
     private let mode: RunLoop.Mode
     private let handler: (NSEvent) -> NSEvent?
     private let observer: CFRunLoopObserver
@@ -25,32 +27,39 @@ final class RunLoopLocalEventMonitor {
     ) {
         self.mode = mode
         self.handler = handler
+        // The handler is only ever called from the main thread (see below), but
+        // it is not `Sendable`, so it cannot be captured by the observer directly.
+        nonisolated(unsafe) let handler = handler
         self.observer = CFRunLoopObserverCreateWithHandler(
             kCFAllocatorDefault,
             CFRunLoopActivity.beforeSources.rawValue,
             true,
             0
         ) { _, _ in
-            var events = [NSEvent]()
+            // Run loop observers are performed on the thread of the run loop they
+            // are scheduled on, which is always the main run loop for this monitor.
+            MainActor.assumeIsolated {
+                var events = [NSEvent]()
 
-            while let event = NSApp.nextEvent(matching: .any, until: nil, inMode: .default, dequeue: true) {
-                events.append(event)
-            }
-
-            for event in events {
-                var handledEvent: NSEvent?
-
-                if !mask.contains(NSEvent.EventTypeMask(rawValue: 1 << event.type.rawValue)) {
-                    handledEvent = event
-                } else if let eventFromHandler = handler(event) {
-                    handledEvent = eventFromHandler
+                while let event = NSApp.nextEvent(matching: .any, until: nil, inMode: .default, dequeue: true) {
+                    events.append(event)
                 }
 
-                guard let handledEvent else {
-                    continue
-                }
+                for event in events {
+                    var handledEvent: NSEvent?
 
-                NSApp.postEvent(handledEvent, atStart: false)
+                    if !mask.contains(NSEvent.EventTypeMask(rawValue: 1 << event.type.rawValue)) {
+                        handledEvent = event
+                    } else if let eventFromHandler = handler(event) {
+                        handledEvent = eventFromHandler
+                    }
+
+                    guard let handledEvent else {
+                        continue
+                    }
+
+                    NSApp.postEvent(handledEvent, atStart: false)
+                }
             }
         }
     }

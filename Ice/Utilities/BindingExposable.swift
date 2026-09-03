@@ -6,6 +6,7 @@
 import SwiftUI
 
 /// A type that exposes its writable properties as bindings.
+@MainActor
 protocol BindingExposable {
     /// A lens that exposes bindings to the writable properties of this type.
     typealias Bindings = ExposedBindings<Self>
@@ -21,6 +22,7 @@ extension BindingExposable {
 }
 
 /// A lens that exposes bindings to the writable properties of a base object.
+@MainActor
 @dynamicMemberLookup
 struct ExposedBindings<Base: BindingExposable> {
     /// The object whose bindings are exposed.

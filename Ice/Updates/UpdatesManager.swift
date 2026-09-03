@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import Combine
 import Sparkle
 import SwiftUI
 

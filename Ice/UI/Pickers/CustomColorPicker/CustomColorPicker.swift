@@ -7,6 +7,7 @@ import Combine
 import SwiftUI
 
 struct CustomColorPicker: NSViewRepresentable {
+    @MainActor
     final class Coordinator {
         @Binding var selection: CGColor
 
@@ -32,9 +33,11 @@ struct CustomColorPicker: NSViewRepresentable {
                 .publisher(for: \.color)
                 .removeDuplicates()
                 .sink { [weak self] color in
-                    DispatchQueue.main.async {
-                        if self?.selection != color.cgColor {
-                            self?.selection = color.cgColor
+                    let cgColor = color.cgColor
+                    // Defer the update to avoid modifying state during a view update.
+                    Task { @MainActor [weak self] in
+                        if self?.selection != cgColor {
+                            self?.selection = cgColor
                         }
                     }
                 }
@@ -113,6 +116,8 @@ struct CustomColorPicker: NSViewRepresentable {
         context: Context
     ) -> CGSize? {
         switch nsView.controlSize {
+        case .extraLarge:
+            CGSize(width: 72, height: 36)
         case .large:
             CGSize(width: 55, height: 30)
         case .regular:

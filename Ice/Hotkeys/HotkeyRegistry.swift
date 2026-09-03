@@ -8,6 +8,7 @@ import Cocoa
 import Combine
 
 /// An object that manages the registration, storage, and unregistration of hotkeys.
+@MainActor
 final class HotkeyRegistry {
     /// The event kinds that a hotkey can be registered for.
     enum EventKind {
@@ -58,7 +59,15 @@ final class HotkeyRegistry {
 
     private var registrations = [UInt32: Registration]()
 
+    private var nextID: UInt32 = 0
+
     private var cancellables = Set<AnyCancellable>()
+
+    /// Creates a hotkey registry.
+    ///
+    /// The registry is nonisolated to create so that it can be stored as a
+    /// nonisolated property, but must be used from the main thread.
+    nonisolated init() { }
 
     /// Installs the global event handler reference, if it isn't already installed.
     private func installIfNeeded() -> OSStatus {
@@ -88,7 +97,10 @@ final class HotkeyRegistry {
                 return OSStatus(eventNotHandledErr)
             }
             let registry = Unmanaged<HotkeyRegistry>.fromOpaque(userData).takeUnretainedValue()
-            return registry.performEventHandler(for: event)
+            // Carbon dispatches hotkey events on the main thread.
+            return MainActor.assumeIsolated {
+                registry.performEventHandler(for: event)
+            }
         }
 
         let eventTypes: [EventTypeSpec] = [
@@ -106,31 +118,22 @@ final class HotkeyRegistry {
         )
     }
 
-    /// Registers the given hotkey for the given event kind and returns the
-    /// identifier of the registration on success.
+    /// Registers the given key combination for the given event kind and
+    /// returns the identifier of the registration on success.
     ///
-    /// The returned identifier can be used to unregister the hotkey using
-    /// the ``unregister(_:)`` function.
+    /// The returned identifier can be used to unregister the key combination
+    /// using the ``unregister(_:)`` function.
     ///
     /// - Parameters:
-    ///   - hotkey: The hotkey to register the handler with.
+    ///   - keyCombination: The key combination to register the handler with.
     ///   - eventKind: The event kind to register the handler with.
-    ///   - handler: The handler to perform when `hotkey` is triggered with
-    ///     the event kind specified by `eventKind`.
+    ///   - handler: The handler to perform when `keyCombination` is triggered
+    ///     with the event kind specified by `eventKind`.
     ///
     /// - Returns: The registration's identifier on success, `nil` on failure.
-    func register(hotkey: Hotkey, eventKind: EventKind, handler: @escaping () -> Void) -> UInt32? {
-        enum Context {
-            static var currentID: UInt32 = 0
-        }
-
+    func register(keyCombination: KeyCombination, eventKind: EventKind, handler: @escaping () -> Void) -> UInt32? {
         defer {
-            Context.currentID += 1
-        }
-
-        guard let keyCombination = hotkey.keyCombination else {
-            Logger.hotkeyRegistry.error("Hotkey does not have a valid key combination")
-            return nil
+            nextID += 1
         }
 
         var status = installIfNeeded()
@@ -140,7 +143,7 @@ final class HotkeyRegistry {
             return nil
         }
 
-        let id = Context.currentID
+        let id = nextID
 
         guard registrations[id] == nil else {
             Logger.hotkeyRegistry.error("Hotkey already registered for id \(id)")
@@ -199,7 +202,7 @@ final class HotkeyRegistry {
     /// Unregisters the key combination with the given identifier.
     ///
     /// - Parameter id: An identifier returned from a call to the
-    ///   ``register(hotkey:eventKind:handler:)`` function.
+    ///   ``register(keyCombination:eventKind:handler:)`` function.
     func unregister(_ id: UInt32) {
         retainedUnregister(id)
         registrations.removeValue(forKey: id)

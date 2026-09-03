@@ -61,11 +61,11 @@ struct CustomGradient: View {
     ///
     /// - Parameter stops: An array of color stops to sort and
     ///   assign as the gradient's color stops.
-    init(unsortedStops stops: [ColorStop]) {
+    nonisolated init(unsortedStops stops: [ColorStop]) {
         self.stops = stops.sorted { $0.location < $1.location }
     }
 
-    init() {
+    nonisolated init() {
         self.init(unsortedStops: [])
     }
 
@@ -99,7 +99,7 @@ struct CustomGradient: View {
 
 extension CustomGradient {
     /// The default menu bar tint gradient.
-    static let defaultMenuBarTint = CustomGradient(
+    nonisolated static let defaultMenuBarTint = CustomGradient(
         unsortedStops: [
             ColorStop(
                 color: CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1),

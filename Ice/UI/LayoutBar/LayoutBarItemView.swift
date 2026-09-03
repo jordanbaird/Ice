@@ -224,7 +224,7 @@ extension LayoutBarItemView: NSDraggingSource {
     }
 }
 
-extension LayoutBarItemView: NSAccessibilityLayoutItem { }
+extension LayoutBarItemView: @preconcurrency NSAccessibilityLayoutItem { }
 
 // MARK: Layout Bar Item Pasteboard Type
 extension NSPasteboard.PasteboardType {

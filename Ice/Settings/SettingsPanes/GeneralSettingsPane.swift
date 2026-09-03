@@ -5,6 +5,7 @@
 
 import LaunchAtLogin
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct GeneralSettingsPane: View {
     @EnvironmentObject var appState: AppState

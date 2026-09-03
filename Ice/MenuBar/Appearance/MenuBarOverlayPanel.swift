@@ -36,7 +36,7 @@ final class MenuBarOverlayPanel: NSPanel {
         ///   - flag: The update flag to set the task for.
         ///   - timeout: The timeout of the task.
         ///   - operation: The operation for the task to perform.
-        func setTask(for flag: UpdateFlag, timeout: Duration, operation: @escaping () async throws -> Void) {
+        func setTask(for flag: UpdateFlag, timeout: Duration, operation: @escaping @MainActor @Sendable () async throws -> Void) {
             cancelTask(for: flag)
             tasks[flag] = Task.detached(timeout: timeout) {
                 try await operation()

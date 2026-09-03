@@ -16,17 +16,17 @@ struct SettingsView: View {
     private var sidebarWidth: CGFloat {
         if #available(macOS 26.0, *) {
             switch sidebarRowSize {
-            case .small: 200
-            case .medium: 220
-            case .large: 240
-            @unknown default: 220
+            case .small: 240
+            case .medium: 260
+            case .large: 280
+            @unknown default: 260
             }
         } else {
             switch sidebarRowSize {
-            case .small: 190
-            case .medium: 215
-            case .large: 230
-            @unknown default: 215
+            case .small: 230
+            case .medium: 255
+            case .large: 270
+            @unknown default: 255
             }
         }
     }
@@ -74,11 +74,19 @@ struct SettingsView: View {
                     sidebarItem(for: identifier)
                 }
             } header: {
-                Text("Ice")
-                    .font(.system(size: sidebarFontSize * 2.67, weight: .medium))
-                    .foregroundStyle(sidebarTextStyle)
-                    .padding(.leading, sidebarPadding)
-                    .padding(.bottom, sidebarFontSize)
+                HStack(spacing: 8) {
+                    if let appIcon = NSImage(named: NSImage.applicationIconName) {
+                        Image(nsImage: appIcon)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: sidebarFontSize * 3, height: sidebarFontSize * 3)
+                    }
+                    Text("Ice")
+                        .font(.system(size: sidebarFontSize * 2.2, weight: .semibold))
+                        .foregroundStyle(sidebarTextStyle)
+                }
+                .padding(.leading, sidebarPadding)
+                .padding(.bottom, sidebarFontSize)
             }
             .collapsible(false)
         }
@@ -92,17 +100,31 @@ struct SettingsView: View {
 
     @ViewBuilder
     private func sidebarItem(for identifier: SettingsNavigationIdentifier) -> some View {
-        Label {
+        HStack(spacing: 8) {
+            SidebarIconTile(
+                icon: identifier.iconResource,
+                color: tileColor(for: identifier),
+                size: sidebarItemHeight - 8
+            )
             Text(identifier.localized)
                 .font(.system(size: sidebarFontSize))
                 .foregroundStyle(sidebarTextStyle)
-        } icon: {
-            identifier.iconResource.view
-                .foregroundStyle(sidebarTextStyle)
-                .padding(sidebarPadding)
         }
+        .padding(.leading, sidebarPadding)
         .frame(height: sidebarItemHeight)
         .tag(identifier)
+    }
+
+    private func tileColor(for identifier: SettingsNavigationIdentifier) -> Color {
+        switch identifier {
+        case .general: .gray
+        case .menuBarLayout: .blue
+        case .menuBarAppearance: .pink
+        case .hotkeys: .orange
+        case .advanced: .indigo
+        case .help: .green
+        case .about: .cyan
+        }
     }
 
     @ToolbarContentBuilder
@@ -139,8 +161,32 @@ struct SettingsView: View {
             HotkeysSettingsPane(settings: appState.settings.hotkeys)
         case .advanced:
             AdvancedSettingsPane(settings: appState.settings.advanced)
+        case .help:
+            HelpSettingsPane()
         case .about:
             AboutSettingsPane(updatesManager: appState.updatesManager)
         }
+    }
+}
+
+/// A colored, rounded icon tile in the style of the System Settings sidebar.
+private struct SidebarIconTile: View {
+    let icon: IconResource
+    let color: Color
+    let size: CGFloat
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+            .fill(color.gradient)
+            .frame(width: size, height: size)
+            .overlay {
+                icon.image
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.white)
+                    .padding(size * 0.2)
+            }
+            .shadow(color: .black.opacity(0.15), radius: 0.5, y: 0.5)
     }
 }

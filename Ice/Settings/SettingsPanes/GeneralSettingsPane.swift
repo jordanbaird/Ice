@@ -27,9 +27,9 @@ struct GeneralSettingsPane: View {
     private var rehideIntervalKey: LocalizedStringKey {
         let formatted = settings.rehideInterval.formatted()
         if settings.rehideInterval == 1 {
-            return LocalizedStringKey(formatted + " second")
+            return LocalizedStringKey("\(formatted) second")
         } else {
-            return LocalizedStringKey(formatted + " seconds")
+            return LocalizedStringKey("\(formatted) seconds")
         }
     }
 
@@ -60,7 +60,7 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var appOptions: some View {
-        LaunchAtLogin.Toggle()
+        LaunchAtLogin.Toggle("Launch at login")
     }
 
     // MARK: Ice Icon Options
@@ -155,7 +155,7 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private func iceIconMenuItem(for imageSet: ControlItemImageSet) -> some View {
         Label {
-            Text(imageSet.name.rawValue)
+            Text(imageSet.name.localized)
         } icon: {
             if let nsImage = imageSet.hidden.nsImage(for: appState) {
                 switch imageSet.name {

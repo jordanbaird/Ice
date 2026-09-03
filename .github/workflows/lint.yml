@@ -15,9 +15,8 @@ jobs:
   swiftlint:
     if: '!github.event.pull_request.merged'
     runs-on: ubuntu-latest
+    container: ghcr.io/realm/swiftlint:0.65.1
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: Run SwiftLint
-        uses: norio-nomura/action-swiftlint@3.2.1
-        with:
-          args: --strict
+        run: swiftlint --strict --reporter github-actions-logging

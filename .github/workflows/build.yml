@@ -1,0 +1,44 @@
+name: Build
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - ".github/workflows/build.yml"
+      - "Ice.xcodeproj/**"
+      - "Ice/**"
+  pull_request:
+    paths:
+      - ".github/workflows/build.yml"
+      - "Ice.xcodeproj/**"
+      - "Ice/**"
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    if: '!github.event.pull_request.merged'
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project Ice.xcodeproj \
+            -scheme Ice \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify --renderer github-actions
+        shell: bash -o pipefail {0}
+      - name: Package app
+        run: ditto -c -k --keepParent DerivedData/Build/Products/Release/Ice.app Ice.zip
+      - name: Upload app
+        uses: actions/upload-artifact@v7
+        with:
+          name: Ice-unsigned
+          path: Ice.zip

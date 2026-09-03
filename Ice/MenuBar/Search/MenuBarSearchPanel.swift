@@ -359,7 +359,7 @@ private struct SettingsButton: View {
         BottomBarButton(action: action) {
             Image(.iceCubeStroke)
                 .resizable()
-                .aspectRatio(contentMode: .fit)
+                .scaledToFit()
                 .frame(width: 18, height: 18)
                 .foregroundStyle(.secondary)
                 .padding(2)
@@ -379,7 +379,7 @@ private struct ShowItemButton: View {
 
                 Image(systemName: "return")
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
                     .frame(width: 11, height: 11)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 7)
@@ -434,7 +434,7 @@ private struct MenuBarSearchItemView: View {
             if let appIcon {
                 Image(nsImage: appIcon)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
                     .frame(width: 24, height: 24)
             }
             Text(item.displayName)

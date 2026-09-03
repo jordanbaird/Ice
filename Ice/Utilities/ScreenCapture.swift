@@ -4,6 +4,7 @@
 //
 
 import CoreGraphics
+import os
 import ScreenCaptureKit
 
 /// A namespace for screen capture operations.
@@ -28,20 +29,20 @@ enum ScreenCapture {
     /// Subsequent calls either return the cached value, or recompute the permissions state before caching
     /// and returning it.
     static func cachedCheckPermissions(reset: Bool = false) -> Bool {
-        enum Context {
-            static var lastCheckResult: Bool?
-        }
-
         if !reset {
-            if let lastCheckResult = Context.lastCheckResult {
+            if let lastCheckResult = lastCheckResult.withLock({ $0 }) {
                 return lastCheckResult
             }
         }
 
         let realResult = checkPermissions()
-        Context.lastCheckResult = realResult
+        lastCheckResult.withLock { $0 = realResult }
         return realResult
     }
+
+    /// The result of the last permissions check, protected by a lock so that
+    /// it can be accessed from any thread.
+    private static let lastCheckResult = OSAllocatedUnfairLock<Bool?>(initialState: nil)
 
     /// Requests screen capture permissions.
     static func requestPermissions() {

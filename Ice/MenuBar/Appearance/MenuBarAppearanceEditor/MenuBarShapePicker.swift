@@ -49,7 +49,7 @@ struct MenuBarShapePicker: View {
     }
 }
 
-private struct MenuBarFullShapeExampleView: View, Equatable {
+private struct MenuBarFullShapeExampleView: View, @preconcurrency Equatable {
     @Binding var info: MenuBarFullShapeInfo
 
     var body: some View {
@@ -188,7 +188,7 @@ private struct MenuBarEndCapExampleView: View {
     }
 }
 
-private struct MenuBarSplitShapeExampleView: View, Equatable {
+private struct MenuBarSplitShapeExampleView: View, @preconcurrency Equatable {
     @Binding var info: MenuBarSplitShapeInfo
 
     var body: some View {

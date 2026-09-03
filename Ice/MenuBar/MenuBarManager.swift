@@ -273,6 +273,9 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
+    /// The system-wide accessibility element, used to inspect the menu bar.
+    private let systemWideElement = SystemWideElement(AXUIElementCreateSystemWide())
+
     /// Returns a Boolean value that indicates whether the given display
     /// has a valid menu bar.
     func hasValidMenuBar(in windows: [WindowInfo], for display: CGDirectDisplayID) -> Bool {

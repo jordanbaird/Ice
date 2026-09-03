@@ -127,12 +127,15 @@ final class ControlItem {
 
     /// Removes the status item without clearing its stored position.
     deinit {
-        // Removing the status item has the unwanted side effect of deleting
-        // the preferredPosition. Cache and restore it.
-        let autosaveName = statusItem.autosaveName as String
-        let cached = StatusItemDefaults[.preferredPosition, autosaveName]
-        NSStatusBar.system.removeStatusItem(statusItem)
-        StatusItemDefaults[.preferredPosition, autosaveName] = cached
+        // Control items are owned and released by main actor isolated code.
+        MainActor.assumeIsolated {
+            // Removing the status item has the unwanted side effect of deleting
+            // the preferredPosition. Cache and restore it.
+            let autosaveName = statusItem.autosaveName as String
+            let cached = StatusItemDefaults[.preferredPosition, autosaveName]
+            NSStatusBar.system.removeStatusItem(statusItem)
+            StatusItemDefaults[.preferredPosition, autosaveName] = cached
+        }
     }
 
     /// Configures the internal observers for the control item.

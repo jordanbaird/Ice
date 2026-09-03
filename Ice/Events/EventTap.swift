@@ -84,7 +84,7 @@ final class EventTap {
 
     private let runLoop = CFRunLoopGetCurrent()
     private let mode: CFRunLoopMode = .commonModes
-    private nonisolated let callback: (EventTap, CGEventTapProxy, CGEventType, CGEvent) -> Unmanaged<CGEvent>?
+    private nonisolated let callback: @MainActor @Sendable (EventTap, CGEventTapProxy, CGEventType, CGEvent) -> Unmanaged<CGEvent>?
 
     private var machPort: CFMachPort?
     private var source: CFRunLoopSource?
@@ -115,7 +115,7 @@ final class EventTap {
         location: Location,
         place: CGEventTapPlacement,
         types: [CGEventType],
-        callback: @MainActor @escaping (_ proxy: Proxy, _ type: CGEventType, _ event: CGEvent) -> CGEvent?
+        callback: @escaping @MainActor @Sendable (_ proxy: Proxy, _ type: CGEventType, _ event: CGEvent) -> CGEvent?
     ) {
         self.label = label
         self.callback = { @MainActor tap, pointer, type, event in
@@ -141,12 +141,15 @@ final class EventTap {
     }
 
     deinit {
-        guard let machPort else {
-            return
+        // Event taps are created and released by main actor isolated code.
+        MainActor.assumeIsolated {
+            guard let machPort else {
+                return
+            }
+            CFRunLoopRemoveSource(runLoop, source, mode)
+            CGEvent.tapEnable(tap: machPort, enable: false)
+            CFMachPortInvalidate(machPort)
         }
-        CFRunLoopRemoveSource(runLoop, source, mode)
-        CGEvent.tapEnable(tap: machPort, enable: false)
-        CFMachPortInvalidate(machPort)
     }
 
     fileprivate nonisolated static func performCallback(
@@ -155,8 +158,18 @@ final class EventTap {
         type: CGEventType,
         event: CGEvent
     ) -> Unmanaged<CGEvent>? {
-        let callback = eventTap.callback
-        return callback(eventTap, proxy, type, event)
+        // Event tap callbacks are delivered on the run loop that the tap's source
+        // was added to. The source is always added to the main run loop (see `init`),
+        // so the callback is guaranteed to be performed on the main thread. The
+        // values that cross into the main actor are Core Graphics types that are
+        // not marked `Sendable`, but they are only used for the duration of the call.
+        nonisolated(unsafe) let proxy = proxy
+        nonisolated(unsafe) let event = event
+        nonisolated(unsafe) var result: Unmanaged<CGEvent>?
+        MainActor.assumeIsolated {
+            result = eventTap.callback(eventTap, proxy, type, event)
+        }
+        return result
     }
 
     private static func createTapMachPort(

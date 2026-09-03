@@ -253,7 +253,7 @@ final class AppState: ObservableObject {
         // Store whether the app has previously activated inside an internal
         // context to keep it isolated.
         enum Context {
-            static let hasActivated = ObjectStorage<Bool>()
+            @MainActor static let hasActivated = ObjectStorage<Bool>()
         }
 
         func activate() {

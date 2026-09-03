@@ -7,6 +7,7 @@ import Combine
 import SwiftUI
 
 private struct WindowReader: NSViewRepresentable {
+    @MainActor
     final class Coordinator: ObservableObject {
         private var cancellable: AnyCancellable?
 

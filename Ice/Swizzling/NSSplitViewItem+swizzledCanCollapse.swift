@@ -20,7 +20,7 @@ extension NSSplitViewItem {
         method_exchangeImplementations(originalCanCollapseMethod, swizzledCanCollapseMethod)
     }()
 
-    @objc private var swizzledCanCollapse: Bool {
+    @objc @MainActor private var swizzledCanCollapse: Bool {
         if
             let window = viewController.view.window,
             window.identifier?.rawValue == Constants.settingsWindowID

@@ -59,19 +59,24 @@ extension Hotkey {
         init?(hotkey: Hotkey, eventKind: HotkeyRegistry.EventKind, appState: AppState?) {
             guard
                 let appState,
-                hotkey.keyCombination != nil
+                let keyCombination = hotkey.keyCombination
             else {
                 return nil
             }
-            let id = appState.hotkeyRegistry.register(
-                hotkey: hotkey,
-                eventKind: eventKind
-            ) { [weak appState] in
-                guard let appState else {
-                    return
-                }
-                Task {
-                    await hotkey.action.perform(appState: appState)
+            let action = hotkey.action
+            // Hotkeys are enabled from the settings interface and the settings
+            // managers, which always run on the main thread.
+            let id = MainActor.assumeIsolated {
+                appState.hotkeyRegistry.register(
+                    keyCombination: keyCombination,
+                    eventKind: eventKind
+                ) { [weak appState] in
+                    guard let appState else {
+                        return
+                    }
+                    Task {
+                        await action.perform(appState: appState)
+                    }
                 }
             }
             guard let id else {
@@ -97,7 +102,11 @@ extension Hotkey {
                 id = nil
             }
             if let id {
-                appState.hotkeyRegistry.unregister(id)
+                // Hotkeys are disabled from the same main thread contexts that
+                // enable them.
+                MainActor.assumeIsolated {
+                    appState.hotkeyRegistry.unregister(id)
+                }
             }
         }
     }

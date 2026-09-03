@@ -7,6 +7,7 @@ import Cocoa
 import Combine
 
 /// Cache for menu bar item images.
+@MainActor
 final class MenuBarItemImageCache: ObservableObject {
     /// The cached item images.
     @Published private(set) var images = [MenuBarItemInfo: CGImage]()
@@ -29,13 +30,11 @@ final class MenuBarItemImageCache: ObservableObject {
     }
 
     /// Sets up the cache.
-    @MainActor
     func performSetup() {
         configureCancellables()
     }
 
     /// Configures the internal observers for the cache.
-    @MainActor
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
@@ -81,7 +80,6 @@ final class MenuBarItemImageCache: ObservableObject {
 
     /// Returns a Boolean value that indicates whether caching menu bar items failed for
     /// the given section.
-    @MainActor
     func cacheFailed(for section: MenuBarSection.Name) -> Bool {
         guard ScreenCapture.cachedCheckPermissions() else {
             return true
@@ -104,12 +102,10 @@ final class MenuBarItemImageCache: ObservableObject {
             return [:]
         }
 
-        let items = await appState.itemManager.itemCache[section]
+        let items = appState.itemManager.itemCache[section]
 
-        var images = [MenuBarItemInfo: CGImage]()
         let backingScaleFactor = screen.backingScaleFactor
         let displayBounds = CGDisplayBounds(screen.displayID)
-        let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
         let defaultItemThickness = NSStatusBar.system.thickness * backingScaleFactor
 
         var itemInfos = [CGWindowID: MenuBarItemInfo]()
@@ -131,6 +127,32 @@ final class MenuBarItemImageCache: ObservableObject {
             windowIDs.append(windowID)
             frame = frame.union(itemFrame)
         }
+
+        return await Self.captureImages(
+            windowIDs: windowIDs,
+            itemInfos: itemInfos,
+            itemFrames: itemFrames,
+            frame: frame,
+            backingScaleFactor: backingScaleFactor,
+            defaultItemThickness: defaultItemThickness
+        )
+    }
+
+    /// Captures the images of the given menu bar item windows and returns a dictionary
+    /// containing the images, keyed by the corresponding menu bar item infos.
+    ///
+    /// This function is nonisolated so that the capture work is performed off the
+    /// main thread.
+    private nonisolated static func captureImages(
+        windowIDs: [CGWindowID],
+        itemInfos: [CGWindowID: MenuBarItemInfo],
+        itemFrames: [CGWindowID: CGRect],
+        frame: CGRect,
+        backingScaleFactor: CGFloat,
+        defaultItemThickness: CGFloat
+    ) async -> [MenuBarItemInfo: CGImage] {
+        let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
+        var images = [MenuBarItemInfo: CGImage]()
 
         if
             let compositeImage = ScreenCapture.captureWindows(windowIDs, option: option),
@@ -201,7 +223,7 @@ final class MenuBarItemImageCache: ObservableObject {
         var newImages = [MenuBarItemInfo: CGImage]()
 
         for section in sections {
-            guard await !appState.itemManager.itemCache[section].isEmpty else {
+            guard !appState.itemManager.itemCache[section].isEmpty else {
                 continue
             }
             let sectionImages = await createImages(for: section, screen: screen)
@@ -212,9 +234,7 @@ final class MenuBarItemImageCache: ObservableObject {
             newImages.merge(sectionImages) { (_, new) in new }
         }
 
-        await MainActor.run { [newImages] in
-            images.merge(newImages) { (_, new) in new }
-        }
+        images.merge(newImages) { (_, new) in new }
 
         self.screen = screen
         self.menuBarHeight = screen.getMenuBarHeight()
@@ -226,30 +246,30 @@ final class MenuBarItemImageCache: ObservableObject {
             return
         }
 
-        let isIceBarPresented = await appState.navigationState.isIceBarPresented
-        let isSearchPresented = await appState.navigationState.isSearchPresented
+        let isIceBarPresented = appState.navigationState.isIceBarPresented
+        let isSearchPresented = appState.navigationState.isSearchPresented
 
         if !isIceBarPresented && !isSearchPresented {
-            guard await appState.navigationState.isAppFrontmost else {
+            guard appState.navigationState.isAppFrontmost else {
                 logSkippingCache(reason: "Ice Bar not visible, app not frontmost")
                 return
             }
-            guard await appState.navigationState.isSettingsPresented else {
+            guard appState.navigationState.isSettingsPresented else {
                 logSkippingCache(reason: "Ice Bar not visible, Settings not visible")
                 return
             }
-            guard case .menuBarLayout = await appState.navigationState.settingsNavigationIdentifier else {
+            guard case .menuBarLayout = appState.navigationState.settingsNavigationIdentifier else {
                 logSkippingCache(reason: "Ice Bar not visible, Settings visible but not on Menu Bar Layout")
                 return
             }
         }
 
-        guard await !appState.itemManager.isMovingItem else {
+        guard !appState.itemManager.isMovingItem else {
             logSkippingCache(reason: "an item is currently being moved")
             return
         }
 
-        guard await !appState.itemManager.itemHasRecentlyMoved else {
+        guard !appState.itemManager.itemHasRecentlyMoved else {
             logSkippingCache(reason: "an item was recently moved")
             return
         }
@@ -263,16 +283,16 @@ final class MenuBarItemImageCache: ObservableObject {
             return
         }
 
-        let isIceBarPresented = await appState.navigationState.isIceBarPresented
-        let isSearchPresented = await appState.navigationState.isSearchPresented
-        let isSettingsPresented = await appState.navigationState.isSettingsPresented
+        let isIceBarPresented = appState.navigationState.isIceBarPresented
+        let isSearchPresented = appState.navigationState.isSearchPresented
+        let isSettingsPresented = appState.navigationState.isSettingsPresented
 
         var sectionsNeedingDisplay = [MenuBarSection.Name]()
         if isSettingsPresented || isSearchPresented {
             sectionsNeedingDisplay = MenuBarSection.Name.allCases
         } else if
             isIceBarPresented,
-            let section = await appState.menuBarManager.iceBarPanel.currentSection
+            let section = appState.menuBarManager.iceBarPanel.currentSection
         {
             sectionsNeedingDisplay.append(section)
         }

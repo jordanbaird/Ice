@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import CompactSlider
 import SwiftUI
 
 struct AdvancedSettingsPane: View {

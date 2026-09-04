@@ -4,6 +4,7 @@
 //
 
 import CoreGraphics
+import Foundation
 import ScreenCaptureKit
 
 /// A namespace for screen capture operations.
@@ -13,7 +14,15 @@ enum ScreenCapture {
 
     /// Returns a Boolean value that indicates whether the app has screen
     /// capture permissions.
+    ///
+    /// Menu bar item windows no longer expose their titles on macOS 26, where
+    /// the system reparents status items under Control Center. The title-based
+    /// heuristic below therefore reports `false` on macOS 26 no matter what the
+    /// user has granted, so we ask ScreenCaptureKit directly instead.
     static func checkPermissions() -> Bool {
+        if #available(macOS 26.0, *) {
+            return SCKPermissions.check()
+        }
         for windowID in Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace]) {
             guard
                 let window = WindowInfo(windowID: windowID),
@@ -90,5 +99,61 @@ enum ScreenCapture {
     ///   - option: Options that specify which parts of the window are captured.
     static func captureWindow(with windowID: CGWindowID, screenBounds: CGRect? = nil, option: CGWindowImageOption = []) -> CGImage? {
         captureWindows(with: [windowID], screenBounds: screenBounds, option: option)
+    }
+}
+
+// MARK: - SCKPermissions
+
+/// Screen recording permission checks for macOS 26 and later, where menu bar
+/// item windows no longer expose titles and the title-based heuristic in
+/// ``ScreenCapture/checkPermissions()`` can never succeed.
+///
+/// ``SCShareableContent`` is the authoritative source: it fails with a TCC
+/// error when the app lacks the permission, and succeeds once it is granted.
+/// It is only available asynchronously, so the result is cached and refreshed
+/// in the background. Callers get the most recent known value immediately.
+@available(macOS 26.0, *)
+private enum SCKPermissions {
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var cachedResult = false
+    nonisolated(unsafe) private static var lastRefresh: Date?
+    nonisolated(unsafe) private static var isRefreshing = false
+
+    /// The shortest interval between two background refreshes.
+    private static let refreshInterval: TimeInterval = 1
+
+    /// Returns the most recently cached permission state, scheduling a
+    /// background refresh if the cached value is stale.
+    static func check() -> Bool {
+        lock.lock()
+        let result = cachedResult
+        let shouldRefresh = !isRefreshing && (lastRefresh.map { Date().timeIntervalSince($0) >= refreshInterval } ?? true)
+        if shouldRefresh {
+            isRefreshing = true
+        }
+        lock.unlock()
+
+        if shouldRefresh {
+            Task.detached(priority: .utility) {
+                let granted = await hasPermission()
+                lock.lock()
+                cachedResult = granted
+                lastRefresh = Date()
+                isRefreshing = false
+                lock.unlock()
+            }
+        }
+
+        return result
+    }
+
+    /// Asks ScreenCaptureKit whether the app can enumerate shareable content.
+    private static func hasPermission() async -> Bool {
+        do {
+            _ = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            return true
+        } catch {
+            return false
+        }
     }
 }

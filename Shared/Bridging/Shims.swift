@@ -97,7 +97,7 @@ func CGSManagedDisplayGetCurrentSpace(
 func CGSSpaceGetType(
     _ cid: CGSConnectionID,
     _ sid: CGSSpaceID
-) -> CGSSpaceType
+) -> UInt32
 
 // MARK: - CGSWindow
 

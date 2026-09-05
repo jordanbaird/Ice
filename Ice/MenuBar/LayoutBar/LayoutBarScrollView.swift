@@ -36,11 +36,16 @@ final class LayoutBarScrollView: NSScrollView {
         self.drawsBackground = false
         self.translatesAutoresizingMaskIntoConstraints = false
 
-        NSLayoutConstraint.activate([
+        var constraints = [
             paddingView.heightAnchor.constraint(equalTo: contentView.heightAnchor),
             paddingView.widthAnchor.constraint(greaterThanOrEqualTo: contentView.widthAnchor),
-            paddingView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-        ])
+        ]
+        if #available(macOS 27.0, *) {
+            constraints.append(paddingView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor))
+        } else {
+            constraints.append(paddingView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor))
+        }
+        NSLayoutConstraint.activate(constraints)
     }
 
     @available(*, unavailable)

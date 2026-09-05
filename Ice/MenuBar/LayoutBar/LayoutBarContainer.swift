@@ -8,6 +8,7 @@ import Combine
 
 /// A container for the items in the menu bar layout interface.
 final class LayoutBarContainer: NSView {
+    static var itemSpacing: CGFloat { if #available(macOS 27.0, *) { 8 } else { 0 } }
     /// Phases for a dragging session.
     enum DraggingPhase {
         case entered, exited, updated, ended
@@ -32,12 +33,6 @@ final class LayoutBarContainer: NSView {
 
     /// The section whose items are represented.
     let section: MenuBarSection.Name
-
-    /// A Boolean value that indicates whether the container should
-    /// animate its next layout pass.
-    ///
-    /// After each layout pass, this value is reset to `true`.
-    var shouldAnimateNextLayoutPass = true
 
     /// A Boolean value that indicates whether the container can
     /// set its arranged views.
@@ -107,16 +102,12 @@ final class LayoutBarContainer: NSView {
     ///
     /// The container removes from its subviews the views that are included
     /// in the `oldViews` array but not in the the current ``arrangedViews``
-    /// array. Views that are found in both arrays, but at different indices
-    /// are animated from their old index to their new index.
+    /// array. Existing views move directly to their new index; Layout is an
+    /// editor and should never add a second animation after a drag completes.
     ///
     /// - Parameter oldViews: The old value of the container's arranged views.
     ///   Pass `nil` to use the current ``arrangedViews`` array.
     private func layoutArrangedViews(oldViews: [LayoutBarItemView]? = nil) {
-        defer {
-            shouldAnimateNextLayoutPass = true
-        }
-
         let oldViews = oldViews ?? arrangedViews
 
         // remove views that are no longer part of the arranged views
@@ -135,27 +126,19 @@ final class LayoutBarContainer: NSView {
             .map { $0.bounds.height }
             .max() ?? 0
 
-        for var view in arrangedViews {
-            if subviews.contains(view) {
-                // view already exists inside the layout view, but may
-                // have moved from its previous location;
-                if shouldAnimateNextLayoutPass {
-                    // replace the view with its animator proxy
-                    view = view.animator()
-                }
-            } else {
+        for view in arrangedViews {
+            if !subviews.contains(view) {
                 // view does not already exist inside the layout view;
                 // add it as a subview
                 addSubview(view)
                 view.hasContainer = true
             }
 
-            // set the view's origin; if the view is an animator proxy,
-            // it will animate to the new position; otherwise, it must
-            // be a newly added view
+            // Apply the new position immediately. NSView's animator proxy was
+            // the source of the unexplained sliding after a completed reorder.
             view.setFrameOrigin(
                 CGPoint(
-                    x: previous.map { $0.frame.maxX } ?? 0,
+                    x: previous.map { $0.frame.maxX + Self.itemSpacing } ?? 0,
                     y: (maxHeight / 2) - view.bounds.midY
                 )
             )
@@ -185,8 +168,11 @@ final class LayoutBarContainer: NSView {
             return
         }
         var newViews = [LayoutBarItemView]()
+        var seenTags = Set<MenuBarItemTag>()
         for item in items {
-            if let existingView = arrangedViews.first(where: { $0.item == item }) {
+            guard seenTags.insert(item.tag).inserted else { continue }
+            if let existingView = arrangedViews.first(where: { $0.item.tag == item.tag }) {
+                existingView.update(item: item)
                 newViews.append(existingView)
             } else {
                 let view = LayoutBarItemView(appState: appState, item: item)
@@ -211,13 +197,14 @@ final class LayoutBarContainer: NSView {
         }
         switch phase {
         case .entered:
-            if !arrangedViews.contains(sourceView) {
-                shouldAnimateNextLayoutPass = false
-            }
             return updateArrangedViewsForDrag(with: draggingInfo, phase: .updated)
         case .exited:
+            // AppKit can deliver one final destination exit after the source
+            // session has already ended. Removing the source at that point
+            // defeats cancelled-drop restoration and makes the tile vanish
+            // until Layout is reopened.
+            guard sourceView.isDragSessionActive else { return .move }
             if let sourceIndex = arrangedViews.firstIndex(of: sourceView) {
-                shouldAnimateNextLayoutPass = false
                 arrangedViews.remove(at: sourceIndex)
             }
             return .move

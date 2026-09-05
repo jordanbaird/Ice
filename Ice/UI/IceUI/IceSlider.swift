@@ -3,20 +3,19 @@
 //  Ice
 //
 
-import CompactSlider
 import SwiftUI
 
-struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View>: View {
+struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View>: View where Value.Stride: BinaryFloatingPoint {
     @Binding private var value: Value
 
     private let bounds: ClosedRange<Value>
-    private let step: Value?
+    private let step: Value.Stride?
     private let valueLabel: ValueLabel
 
     init(
         value: Binding<Value>,
         in bounds: ClosedRange<Value>,
-        step: Value? = nil,
+        step: Value.Stride? = nil,
         @ViewBuilder valueLabel: () -> ValueLabel
     ) {
         self._value = value
@@ -29,7 +28,7 @@ struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View>: View {
         _ valueLabelKey: LocalizedStringKey,
         value: Binding<Value>,
         in bounds: ClosedRange<Value>,
-        step: Value? = nil
+        step: Value.Stride? = nil
     ) where ValueLabel == Text {
         self._value = value
         self.bounds = bounds
@@ -50,22 +49,26 @@ struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View>: View {
     }
 
     var body: some View {
-        CompactSlider(
-            value: $value,
-            in: bounds,
-            step: step ?? 0,
-            handleVisibility: .hovering(width: 0),
-            minHeight: 0,
-            gestureOptions: .default.subtracting([.scrollWheel])
-        ) {
+        ZStack {
+            borderShape
+                .fill(.quaternary)
+
+            Group {
+                if let step {
+                    Slider(value: $value, in: bounds, step: step)
+                } else {
+                    Slider(value: $value, in: bounds)
+                }
+            }
+            .labelsHidden()
+            .controlSize(.small)
+            .padding(.horizontal, 4)
+
             valueLabel
                 .frame(height: height)
+                .allowsHitTesting(false)
         }
-        .compactSliderDisabledHapticFeedback(true)
-        .compactSliderSecondaryColor(
-            progressColor: .accentColor.opacity(0.5),
-            focusedProgressColor: .accentColor.opacity(0.75)
-        )
+        .frame(height: height)
         .clipShape(borderShape)
         .contentShape([.interaction, .focusEffect], borderShape)
     }

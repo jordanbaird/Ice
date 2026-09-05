@@ -64,11 +64,9 @@ final class MenuBarAppearanceManager: ObservableObject {
                     return
                 }
                 while let panel = overlayPanels.popFirst() {
-                    panel.orderOut(self)
+                    panel.close()
                 }
-                if Set(overlayPanels.map { $0.owningScreen }) != Set(NSScreen.screens) {
-                    configureOverlayPanels(with: configuration)
-                }
+                configureOverlayPanels(with: configuration)
             }
             .store(in: &c)
 
@@ -90,11 +88,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                // The overlay panels may not have been configured yet. Since some of the
-                // properties on the manager might call for them, try to configure now.
-                if overlayPanels.isEmpty {
-                    configureOverlayPanels(with: configuration)
-                }
+                configureOverlayPanels(with: configuration)
             }
             .store(in: &c)
 
@@ -131,6 +125,9 @@ final class MenuBarAppearanceManager: ObservableObject {
             }
             return
         }
+        // Existing panels observe appearance changes themselves. Turning all
+        // effects off must still reach the removal path above and stop timers.
+        guard overlayPanels.isEmpty else { return }
 
         var overlayPanels = Set<MenuBarOverlayPanel>()
         for screen in NSScreen.screens {

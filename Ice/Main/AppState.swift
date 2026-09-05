@@ -63,7 +63,9 @@ final class AppState: ObservableObject {
         menuBarManager.performSetup(with: self)
 
         if #available(macOS 26.0, *) {
-            await MenuBarItemService.Connection.shared.start()
+            if #unavailable(macOS 27.0) {
+                await MenuBarItemService.Connection.shared.start()
+            }
         }
 
         appearanceManager.performSetup(with: self)
@@ -113,14 +115,20 @@ final class AppState: ObservableObject {
         //   To account for variations in system timing, we publish a value
         //   immediately upon receipt of the event, then publish another value
         //   after a delay.
-        NSWorkspace.shared.notificationCenter
+        var spaceChanges = NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
             .discardMerge(NSWorkspace.shared.publisher(for: \.frontmostApplication))
-            .discardMerge(EventMonitor.publish(events: .leftMouseDown, scope: .universal).flatMap { _ in
-                let initial = Just(())
-                let delayed = initial.delay(for: 0.1, scheduler: DispatchQueue.main)
-                return Publishers.Merge(initial, delayed)
-            })
+            .eraseToAnyPublisher()
+        if #unavailable(macOS 27.0) {
+            spaceChanges = spaceChanges
+                .discardMerge(EventMonitor.publish(events: .leftMouseDown, scope: .universal).flatMap { _ in
+                    let initial = Just(())
+                    let delayed = initial.delay(for: 0.1, scheduler: DispatchQueue.main)
+                    return Publishers.Merge(initial, delayed)
+                })
+                .eraseToAnyPublisher()
+        }
+        spaceChanges
             .replace { Bridging.getActiveSpaceID() }
             .removeDuplicates()
             .sink { [weak self] spaceID in

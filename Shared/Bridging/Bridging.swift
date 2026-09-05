@@ -204,7 +204,8 @@ extension Bridging {
     /// - Parameter spaceID: An identifier for a space.
     static func isSpaceFullscreen(_ spaceID: CGSSpaceID) -> Bool {
         let type = CGSSpaceGetType(getMainConnection(), spaceID)
-        return type == .fullscreen
+        // This C function returns the raw integer, not a Swift enum case tag.
+        return type == CGSSpaceType.fullscreen.rawValue
     }
 }
 

@@ -25,8 +25,41 @@ struct MenuBarItem: CustomStringConvertible {
     /// The item's window title.
     let title: String?
 
+    /// Live status information published by the item's Accessibility element.
+    /// These values let macOS 27 reproduce status-bar content without falling
+    /// back to the owning application's unrelated app icon.
+    let accessibilityHelp: String?
+    let accessibilityValue: String?
+
     /// A Boolean value that indicates whether the item is on screen.
     let isOnScreen: Bool
+
+    /// Creates a structural item from a non-WindowServer provider.
+    ///
+    /// macOS 27 menu bar items are composited by MenuBarAgent and no longer
+    /// have individual WindowServer windows, so the accessibility provider
+    /// supplies these fields directly.
+    init(
+        tag: MenuBarItemTag,
+        windowID: CGWindowID,
+        ownerPID: pid_t,
+        sourcePID: pid_t?,
+        bounds: CGRect,
+        title: String?,
+        accessibilityHelp: String? = nil,
+        accessibilityValue: String? = nil,
+        isOnScreen: Bool
+    ) {
+        self.tag = tag
+        self.windowID = windowID
+        self.ownerPID = ownerPID
+        self.sourcePID = sourcePID
+        self.bounds = bounds
+        self.title = title
+        self.accessibilityHelp = accessibilityHelp
+        self.accessibilityValue = accessibilityValue
+        self.isOnScreen = isOnScreen
+    }
 
     /// A Boolean value that indicates whether this item can be moved.
     var isMovable: Bool {
@@ -106,6 +139,20 @@ struct MenuBarItem: CustomStringConvertible {
 
         lazy var bestName = sourceName ?? title
 
+        // macOS 27 hosts Spotlight in the `com.apple.campo` process, whose
+        // localized application name is "Siri" on current seeds. Prefer the
+        // button's own AX title so Layout does not label the magnifying-glass
+        // status item as Siri.
+        if sourceApplication.bundleIdentifier == "com.apple.campo" {
+            let normalizedTitle = title.lowercased()
+            if normalizedTitle.contains("spotlight") ||
+                normalizedTitle.contains("search") ||
+                title.contains("搜索")
+            {
+                return title
+            }
+        }
+
         guard !isBentoBox else {
             if tag == .controlCenter {
                 return bestName
@@ -170,6 +217,8 @@ struct MenuBarItem: CustomStringConvertible {
         self.sourcePID = itemWindow.ownerPID
         self.bounds = itemWindow.bounds
         self.title = itemWindow.title
+        self.accessibilityHelp = nil
+        self.accessibilityValue = nil
         self.isOnScreen = itemWindow.isOnScreen
     }
 
@@ -186,6 +235,8 @@ struct MenuBarItem: CustomStringConvertible {
         self.sourcePID = sourcePID
         self.bounds = itemWindow.bounds
         self.title = itemWindow.title
+        self.accessibilityHelp = nil
+        self.accessibilityValue = nil
         self.isOnScreen = itemWindow.isOnScreen
     }
 }
@@ -269,10 +320,14 @@ extension MenuBarItem {
     ///   - option: Options that filter the returned list. Pass an empty option set
     ///     to return all available menu bar items.
     static func getMenuBarItems(on display: CGDirectDisplayID? = nil, option: ListOption) async -> [MenuBarItem] {
-        if #available(macOS 26.0, *) {
-            await getMenuBarItemsExperimental(on: display, option: option)
+        if #available(macOS 27.0, *) {
+            return await Task.detached(priority: .userInitiated) {
+                MacOS27MenuBarItemProvider.menuBarItems(on: display, option: option)
+            }.value
+        } else if #available(macOS 26.0, *) {
+            return await getMenuBarItemsExperimental(on: display, option: option)
         } else {
-            getMenuBarItemsLegacyMethod(on: display, option: option)
+            return getMenuBarItemsLegacyMethod(on: display, option: option)
         }
     }
 }
@@ -286,6 +341,8 @@ extension MenuBarItem: Equatable {
         lhs.sourcePID == rhs.sourcePID &&
         NSStringFromRect(lhs.bounds) == NSStringFromRect(rhs.bounds) &&
         lhs.title == rhs.title &&
+        lhs.accessibilityHelp == rhs.accessibilityHelp &&
+        lhs.accessibilityValue == rhs.accessibilityValue &&
         lhs.isOnScreen == rhs.isOnScreen
     }
 }
@@ -299,6 +356,8 @@ extension MenuBarItem: Hashable {
         hasher.combine(sourcePID)
         hasher.combine(NSStringFromRect(bounds))
         hasher.combine(title)
+        hasher.combine(accessibilityHelp)
+        hasher.combine(accessibilityValue)
         hasher.combine(isOnScreen)
     }
 }
@@ -313,6 +372,7 @@ private extension MenuBarItemTag {
     init(uncheckedItemWindow itemWindow: WindowInfo) {
         self.namespace = Namespace(uncheckedItemWindow: itemWindow)
         self.title = itemWindow.title ?? ""
+        self.instanceIndex = 0
     }
 
     /// Creates a tag without checks.
@@ -324,6 +384,7 @@ private extension MenuBarItemTag {
     init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t?) {
         self.namespace = Namespace(uncheckedItemWindow: itemWindow, sourcePID: sourcePID)
         self.title = itemWindow.title ?? ""
+        self.instanceIndex = 0
     }
 }
 

@@ -27,14 +27,18 @@ struct AdvancedSettingsPane: View {
         IceForm {
             IceSection("Menu Bar Sections") {
                 enableAlwaysHiddenSection
-                showAllSectionsOnUserDrag
-                sectionDividerStyle
+                if #unavailable(macOS 27.0) {
+                    showAllSectionsOnUserDrag
+                    sectionDividerStyle
+                }
             }
-            IceSection("Other") {
-                hideApplicationMenus
-                enableSecondaryContextMenu
-                showOnHoverDelay
-                tempShowInterval
+            if #unavailable(macOS 27.0) {
+                IceSection("Other") {
+                    hideApplicationMenus
+                    enableSecondaryContextMenu
+                    showOnHoverDelay
+                    tempShowInterval
+                }
             }
             IceSection("Permissions") {
                 allPermissions

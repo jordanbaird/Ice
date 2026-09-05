@@ -17,6 +17,12 @@ Ice is a powerful menu bar management tool. While its primary function is hiding
 > [!NOTE]
 > Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
 
+> [!IMPORTANT]
+> This fork's `codex/macos-27` branch adds experimental macOS 27 compatibility.
+> It replaces the removed per-item WindowServer path with Accessibility-based
+> discovery, assignment-backed hiding, and MenuBarAgent-native ordering. See
+> [MACOS27.md](MACOS27.md) for implementation details and current limitations.
+
 <a href="https://www.buymeacoffee.com/jordanbaird" target="_blank">
     <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;">
 </a>

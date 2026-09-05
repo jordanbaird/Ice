@@ -149,6 +149,8 @@ struct IceGradient: Codable, Hashable {
             count += 1
         }
 
+        guard count > 0 else { return nil }
+
         var components: [CGFloat] = [
             totals.red / count,
             totals.green / count,

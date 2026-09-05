@@ -30,6 +30,22 @@ final class AdvancedSettings: ObservableObject {
     /// when the user right-clicks the menu bar.
     @Published var enableSecondaryContextMenu = true
 
+    /// The legacy empty-space menu relies on separate status-item windows.
+    /// macOS 27 hosts items in a composite window, so that hit test can mistake
+    /// another app's item for empty space. Keep the stored preference for older
+    /// macOS versions, but route Ice's menu through its own button on macOS 27.
+    var supportsSecondaryContextMenu: Bool {
+        if #available(macOS 27.0, *) {
+            false
+        } else {
+            true
+        }
+    }
+
+    var isSecondaryContextMenuEnabled: Bool {
+        supportsSecondaryContextMenu && enableSecondaryContextMenu
+    }
+
     /// The delay before showing on hover.
     @Published var showOnHoverDelay: TimeInterval = 0.2
 

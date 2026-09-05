@@ -159,6 +159,7 @@ final class IceBarPanel: NSPanel {
     /// Shows the panel on the given screen, displaying the given
     /// menu bar section.
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {
+        guard #unavailable(macOS 27.0) else { return }
         guard let appState else {
             return
         }

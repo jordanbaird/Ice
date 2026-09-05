@@ -15,13 +15,22 @@ enum HotkeyAction: String, Codable, CaseIterable {
     case enableIceBar = "EnableIceBar"
     case toggleApplicationMenus = "ToggleApplicationMenus"
 
+    var isAvailable: Bool {
+        if #available(macOS 27.0, *) {
+            return self == .toggleHiddenSection || self == .toggleAlwaysHiddenSection
+        }
+        return true
+    }
+
     @MainActor
     func perform(appState: AppState) {
+        guard isAvailable else { return }
         switch self {
         case .toggleHiddenSection:
             guard let section = appState.menuBarManager.section(withName: .hidden) else {
                 return
             }
+            appState.menuBarManager.prepareForControlToggle()
             section.toggle()
             // Prevent the section from automatically rehiding after mouse movement.
             if !section.isHidden {
@@ -31,6 +40,7 @@ enum HotkeyAction: String, Codable, CaseIterable {
             guard let section = appState.menuBarManager.section(withName: .alwaysHidden) else {
                 return
             }
+            appState.menuBarManager.prepareForControlToggle()
             section.toggle()
             // Prevent the section from automatically rehiding after mouse movement.
             if !section.isHidden {

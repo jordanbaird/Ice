@@ -21,6 +21,7 @@ struct LayoutBar: View {
     @ObservedObject var imageCache: MenuBarItemImageCache
 
     let section: MenuBarSection.Name
+    let isEmpty: Bool
 
     private var backgroundShape: some InsettableShape {
         if #available(macOS 26.0, *) {
@@ -31,10 +32,7 @@ struct LayoutBar: View {
     }
 
     var body: some View {
-        mainContent
-            .frame(height: 48)
-            .frame(maxWidth: .infinity)
-            .menuBarItemContainer(appState: appState)
+        barContent
             .containerShape(backgroundShape)
             .clipShape(backgroundShape)
             .contentShape([.interaction, .focusEffect], backgroundShape)
@@ -45,8 +43,32 @@ struct LayoutBar: View {
     }
 
     @ViewBuilder
+    private var barContent: some View {
+        if #available(macOS 27.0, *) {
+            mainContent
+                .frame(height: 88)
+                .frame(maxWidth: .infinity)
+                .background(.primary.opacity(0.025))
+                .overlay(alignment: .leading) {
+                    if isEmpty {
+                        Label("Drop an item here", systemImage: "plus")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.tertiary)
+                            .padding(.leading, 20)
+                            .allowsHitTesting(false)
+                    }
+                }
+        } else {
+            mainContent.frame(height: 48).frame(maxWidth: .infinity)
+                .menuBarItemContainer(appState: appState)
+        }
+    }
+
+    @ViewBuilder
     private var mainContent: some View {
-        if imageCache.cacheFailed(for: section) {
+        if #available(macOS 27.0, *) {
+            Representable(appState: appState, section: section)
+        } else if imageCache.cacheFailed(for: section) {
             Text("Unable to display menu bar items")
                 .font(.body)
         } else {

@@ -50,6 +50,11 @@ final class MenuBarOverlayPanel: NSPanel {
         func cancelTask(for flag: UpdateFlag) {
             tasks.removeValue(forKey: flag)?.cancel()
         }
+
+        func cancelAll() {
+            for task in tasks.values { task.cancel() }
+            tasks.removeAll()
+        }
     }
 
     /// Shared logger for overlay panels.
@@ -79,6 +84,12 @@ final class MenuBarOverlayPanel: NSPanel {
     /// The screen that owns the panel.
     let owningScreen: NSScreen
 
+    private var isOnFullscreenSpace: Bool {
+        // Resolve this display at the point of use. The app-wide active-space
+        // snapshot can still describe the previous space during a transition.
+        (SpaceInfo.currentSpace(for: owningScreen.displayID) ?? .activeSpace()).isFullscreen
+    }
+
     /// Creates an overlay panel with the given app state and owning screen.
     init(appState: AppState, owningScreen: NSScreen) {
         self.appState = appState
@@ -107,12 +118,29 @@ final class MenuBarOverlayPanel: NSPanel {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        // Show the panel on the active space.
+        // Read this display's Space when native workspace state changes.
+        // No polling or input monitoring is needed for appearance updates.
         NSWorkspace.shared.notificationCenter
             .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .debounce(for: 0.1, scheduler: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.needsShow = true
+            .map { _ in () }
+            .merge(with: NSWorkspace.shared.publisher(for: \.frontmostApplication, options: [.new])
+                .map { _ in () })
+            .prepend(())
+            .receive(on: DispatchQueue.main)
+            .map { [displayID = owningScreen.displayID] _ in
+                SpaceInfo.currentSpace(for: displayID) ?? .activeSpace()
+            }
+            .removeDuplicates()
+            .sink { [weak self] space in
+                guard let self else { return }
+                if space.isFullscreen {
+                    needsShow = false
+                    updateTaskContext.cancelAll()
+                    updateFlags.removeAll()
+                    orderOut(nil)
+                } else {
+                    needsShow = true
+                }
             }
             .store(in: &c)
 
@@ -159,12 +187,16 @@ final class MenuBarOverlayPanel: NSPanel {
                         if hasDoneInitialUpdate {
                             try await Task.sleep(for: .seconds(1))
                         } else {
-                            try await Task.sleep(for: .milliseconds(1))
+                            try await Task.sleep(for: .milliseconds(50))
                         }
                         continue
                     }
                     self.insertUpdateFlag(.applicationMenuFrame)
                     hasDoneInitialUpdate = true
+                    // Validation can reject an update in fullscreen or while
+                    // the menu bar is absent. Always yield even if the cached
+                    // frame remains different, rather than spinning on AX.
+                    try await Task.sleep(for: .milliseconds(100))
                 }
             }
             Task {
@@ -177,14 +209,17 @@ final class MenuBarOverlayPanel: NSPanel {
         .store(in: &c)
 
         // Special cases for when the user drags an app onto or clicks into another space.
-        Publishers.Merge(
-            publisher(for: \.isOnActiveSpace)
-                .receive(on: DispatchQueue.main)
-                .replace(with: ()),
-            EventMonitor.publish(events: .leftMouseUp, scope: .universal)
-                .filter { [weak self] _ in self?.isOnActiveSpace ?? false }
-                .replace(with: ())
-        )
+        var spaceChanges = publisher(for: \.isOnActiveSpace)
+            .receive(on: DispatchQueue.main)
+            .replace(with: ())
+            .eraseToAnyPublisher()
+        if #unavailable(macOS 27.0) {
+            spaceChanges = spaceChanges
+                .discardMerge(EventMonitor.publish(events: .leftMouseUp, scope: .universal)
+                    .filter { [weak self] _ in self?.isOnActiveSpace ?? false })
+                .eraseToAnyPublisher()
+        }
+        spaceChanges
         .debounce(for: 0.05, scheduler: DispatchQueue.main)
         .sink { [weak self] in
             self?.insertUpdateFlag(.applicationMenuFrame)
@@ -249,6 +284,7 @@ final class MenuBarOverlayPanel: NSPanel {
 
     /// Inserts the given update flag into the panel's current list of update flags.
     private func insertUpdateFlag(_ flag: UpdateFlag) {
+        guard !isOnFullscreenSpace else { return }
         updateFlags.insert(flag)
     }
 
@@ -267,11 +303,20 @@ final class MenuBarOverlayPanel: NSPanel {
             MenuBarOverlayPanel.logger.debug("Menu bar is hidden by system. \(actionMessage, privacy: .public)")
             return false
         }
-        guard !appState.activeSpace.isFullscreen else {
+        guard !isOnFullscreenSpace else {
             MenuBarOverlayPanel.logger.debug("Active space is fullscreen. \(actionMessage, privacy: .public)")
             return false
         }
-        guard appState.menuBarManager.hasValidMenuBar(in: windows, for: owningScreen.displayID) else {
+        let hasMenuBar: Bool
+        if #available(macOS 27.0, *) {
+            // Hosted macOS 27 bars can hit-test as AXWindow at their origin.
+            // The visible WindowServer menu-bar window is the geometry source;
+            // do not mistake a changed AX role for an absent native menu bar.
+            hasMenuBar = WindowInfo.menuBarWindow(from: windows, for: owningScreen.displayID) != nil
+        } else {
+            hasMenuBar = appState.menuBarManager.hasValidMenuBar(in: windows, for: owningScreen.displayID)
+        }
+        guard hasMenuBar else {
             MenuBarOverlayPanel.logger.debug("No valid menu bar found. \(actionMessage, privacy: .public)")
             return false
         }
@@ -325,16 +370,20 @@ final class MenuBarOverlayPanel: NSPanel {
             return
         }
 
-        guard let menuBarHeight = owningScreen.getMenuBarHeight() else {
+        let windows = WindowInfo.createWindows(option: .onScreen)
+        guard validate(for: .showing, with: windows),
+              let menuBarWindow = WindowInfo.menuBarWindow(from: windows, for: owningScreen.displayID),
+              let newFrame = MenuBarOverlayGeometry.frame(
+                  screen: owningScreen.frame,
+                  menuBarHeight: menuBarWindow.bounds.height,
+                  inset: appState.appearanceManager.menuBarInsetAmount
+              )
+        else {
+            updateTaskContext.cancelAll()
+            updateFlags.removeAll()
+            orderOut(nil)
             return
         }
-
-        let newFrame = CGRect(
-            x: owningScreen.frame.minX,
-            y: (owningScreen.frame.maxY - menuBarHeight) - 5,
-            width: owningScreen.frame.width,
-            height: menuBarHeight + 5
-        )
 
         alphaValue = 0
         setFrame(newFrame, display: false)
@@ -343,8 +392,14 @@ final class MenuBarOverlayPanel: NSPanel {
         updateFlags = [.applicationMenuFrame, .desktopWallpaper]
 
         if !appState.menuBarManager.isMenuBarHiddenBySystem {
-            animator().alphaValue = 1
+            alphaValue = 1
         }
+    }
+
+    override func close() {
+        updateTaskContext.cancelAll()
+        cancellables.removeAll()
+        super.close()
     }
 
     override func isAccessibilityElement() -> Bool {

@@ -15,12 +15,14 @@ struct HotkeysSettingsPane: View {
                 hotkeyRecorder(forSection: .hidden)
                 hotkeyRecorder(forSection: .alwaysHidden)
             }
-            IceSection("Menu Bar Items") {
-                hotkeyRecorder(forAction: .searchMenuBarItems)
-            }
-            IceSection("Other") {
-                hotkeyRecorder(forAction: .enableIceBar)
-                hotkeyRecorder(forAction: .toggleApplicationMenus)
+            if #unavailable(macOS 27.0) {
+                IceSection("Menu Bar Items") {
+                    hotkeyRecorder(forAction: .searchMenuBarItems)
+                }
+                IceSection("Other") {
+                    hotkeyRecorder(forAction: .enableIceBar)
+                    hotkeyRecorder(forAction: .toggleApplicationMenus)
+                }
             }
         }
     }

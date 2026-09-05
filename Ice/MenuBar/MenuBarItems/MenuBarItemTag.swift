@@ -16,6 +16,10 @@ struct MenuBarItemTag: Hashable, CustomStringConvertible {
     /// The title of the item identified by this tag.
     let title: String
 
+    /// A stable positional disambiguator for items from the same application
+    /// that expose the same accessibility identity on macOS 27.
+    let instanceIndex: Int
+
     /// A Boolean value that indicates whether the item identified
     /// by this tag can be moved.
     var isMovable: Bool {
@@ -25,6 +29,7 @@ struct MenuBarItemTag: Hashable, CustomStringConvertible {
     /// A Boolean value that indicates whether the item identified
     /// by this tag can be hidden.
     var canBeHidden: Bool {
+        !MenuBarItemTag.immovableItems.contains(self) &&
         !MenuBarItemTag.nonHideableItems.contains(self) &&
         !(namespace.isUUID && title == "AudioVideoModule")
     }
@@ -32,7 +37,8 @@ struct MenuBarItemTag: Hashable, CustomStringConvertible {
     /// A Boolean value that indicates whether the item identified
     /// by this tag is a control item owned by Ice.
     var isControlItem: Bool {
-        MenuBarItemTag.controlItems.contains(self)
+        MenuBarItemTag.controlItems.contains(self) ||
+            (namespace == .ice && title.hasPrefix("Ice.NativeBoundary."))
     }
 
     /// A Boolean value that indicates whether the item identified
@@ -54,13 +60,22 @@ struct MenuBarItemTag: Hashable, CustomStringConvertible {
         if !title.isEmpty {
             result.append(":\(title)")
         }
+        if instanceIndex > 0 {
+            result.append("#\(instanceIndex)")
+        }
         return result
     }
 
     /// Creates a tag with the given namespace and title.
-    init(namespace: Namespace, title: String) {
+    init(namespace: Namespace, title: String, instanceIndex: Int = 0) {
         self.namespace = namespace
         self.title = title
+        self.instanceIndex = instanceIndex
+    }
+
+    /// A deterministic identifier suitable for persisted macOS 27 layout data.
+    var persistentIdentifier: String {
+        "\(namespace):\(title)#\(instanceIndex)"
     }
 
     /// Creates a tag for the control item with the given identifier.
@@ -108,12 +123,20 @@ extension MenuBarItemTag {
     }()
 
     /// An array of tags for items representing Ice's control items.
-    static let controlItems = ControlItem.Identifier.allCases.map { $0.tag }
+    static let controlItems = ControlItem.Identifier.allCases.map { $0.tag } + [
+        MenuBarItemTag(namespace: .ice, title: "Ice.NativeBoundary.hidden"),
+        MenuBarItemTag(namespace: .ice, title: "Ice.NativeBoundary.alwaysHidden"),
+    ]
 
     // MARK: Control Items
 
     /// The tag for Ice's control item for the "Visible" section.
     static let visibleControlItem = MenuBarItemTag(controlItem: .visible)
+
+    static func nativeBoundary(for section: MenuBarSection.Name) -> MenuBarItemTag {
+        if section == .visible { return .visibleControlItem }
+        return MenuBarItemTag(namespace: .ice, title: "Ice.NativeBoundary.\(section.rawValue).v2")
+    }
 
     /// The tag for Ice's control item for the "Hidden" section.
     static let hiddenControlItem = MenuBarItemTag(controlItem: .hidden)
@@ -125,13 +148,23 @@ extension MenuBarItemTag {
 
     /// The tag for the system item that appears in the menu bar
     /// during screen or audio capture.
-    static let audioVideoModule = MenuBarItemTag(namespace: .controlCenter, title: "AudioVideoModule")
+    static let audioVideoModule = if #available(macOS 27.0, *) {
+        MenuBarItemTag(namespace: .controlCenter, title: "com.apple.menuextra.audiovideo")
+    } else {
+        MenuBarItemTag(namespace: .controlCenter, title: "AudioVideoModule")
+    }
 
     /// The tag for the system "Clock" item.
-    static let clock = MenuBarItemTag(namespace: .controlCenter, title: "Clock")
+    static let clock = if #available(macOS 27.0, *) {
+        MenuBarItemTag(namespace: .controlCenter, title: "com.apple.menuextra.clock")
+    } else {
+        MenuBarItemTag(namespace: .controlCenter, title: "Clock")
+    }
 
     /// The tag for the system "Control Center" item.
-    static let controlCenter = if #available(macOS 26.0, *) {
+    static let controlCenter = if #available(macOS 27.0, *) {
+        MenuBarItemTag(namespace: .controlCenter, title: "com.apple.menuextra.controlcenter")
+    } else if #available(macOS 26.0, *) {
         MenuBarItemTag(namespace: .controlCenter, title: "BentoBox-0")
     } else {
         MenuBarItemTag(namespace: .controlCenter, title: "BentoBox")

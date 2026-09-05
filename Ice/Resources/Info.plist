@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>Ice captures the menu bar to display the exact appearance of its status items in Layout.</string>
 	<key>SUFeedURL</key>
 	<string>https://jordanbaird.github.io/ice-releases/appcast.xml</string>
 	<key>SUPublicEDKey</key>

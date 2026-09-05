@@ -103,6 +103,7 @@ final class MenuBarSearchPanel: NSPanel {
 
     /// Shows the search panel on the given screen.
     func show(on screen: NSScreen? = nil) {
+        guard #unavailable(macOS 27.0) else { return }
         guard let appState else {
             return
         }

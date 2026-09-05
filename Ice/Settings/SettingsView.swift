@@ -57,6 +57,21 @@ struct SettingsView: View {
         navigationState.settingsNavigationIdentifier.localized
     }
 
+    private var sidebarSelection: Binding<SettingsNavigationIdentifier> {
+        Binding(
+            get: { navigationState.settingsNavigationIdentifier },
+            set: { identifier in
+                // AppKit-backed List writes selection during its row update.
+                // Publish outside that render pass to avoid SwiftUI re-entry.
+                guard navigationState.settingsNavigationIdentifier != identifier else { return }
+                DispatchQueue.main.async {
+                    guard navigationState.settingsNavigationIdentifier != identifier else { return }
+                    navigationState.settingsNavigationIdentifier = identifier
+                }
+            }
+        )
+    }
+
     var body: some View {
         NavigationSplitView {
             sidebar
@@ -68,7 +83,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var sidebar: some View {
-        List(selection: $navigationState.settingsNavigationIdentifier) {
+        List(selection: sidebarSelection) {
             Section {
                 ForEach(SettingsNavigationIdentifier.allCases) { identifier in
                     sidebarItem(for: identifier)

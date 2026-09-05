@@ -50,6 +50,13 @@ final class MenuBarManager: ObservableObject {
     /// appearance editor interface
     let appearanceEditorPanel = MenuBarAppearanceEditorPanel()
 
+    /// macOS 27's assignment-backed menu bar compatibility controller.
+    let macOS27Controller = MacOS27MenuBarController()
+    private let nativeHiding = MacOS27NativeMenuBarHiding()
+    private var nativeConcealmentTask: Task<Void, Never>?
+    private var nativeVisibilityGeneration: UInt64 = 0
+    private var nativeDragVisibility = MacOS27NativeDragVisibilityState()
+
     /// The managed sections in the menu bar.
     let sections = [
         MenuBarSection(name: .visible),
@@ -66,6 +73,9 @@ final class MenuBarManager: ObservableObject {
     /// Performs the initial setup of the menu bar manager.
     func performSetup(with appState: AppState) {
         self.appState = appState
+        macOS27Controller.onEditingChanged = { [weak self] in
+            self?.syncNativeVisibility()
+        }
         configureCancellables()
         iceBarPanel.performSetup(with: appState)
         searchPanel.performSetup(with: appState)
@@ -73,6 +83,108 @@ final class MenuBarManager: ObservableObject {
         for section in sections {
             section.performSetup(with: appState)
         }
+        if #available(macOS 27.0, *) {
+            nativeHiding.prepare(section: .hidden, anchorPosition: controlItem(withName: .visible)?.preferredPosition ?? 0)
+        }
+    }
+
+    /// Applies only Ice-owned spacer state. Other status items receive native input.
+    func syncNativeVisibility() {
+        guard #available(macOS 27.0, *), let appState else { return }
+        guard nativeDragVisibility.shouldApplyVisibilityUpdate() else { return }
+        guard let screen = controlItem(withName: .visible)?.screen ?? NSScreen.main else { return }
+        let cache = appState.itemManager.itemCache
+        let controlPosition = controlItem(withName: .visible)?.preferredPosition ?? 0
+        // Physical position, not the previous cache's membership, determines
+        // what gets hidden. The first item can have just been dragged left.
+        let hideHidden = section(withName: .hidden)?.isHidden == true
+        let hideAlwaysHidden = !hideHidden && !cache[.alwaysHidden].isEmpty &&
+            section(withName: .alwaysHidden)?.isEnabled == true &&
+            section(withName: .alwaysHidden)?.isHidden == true
+        let iceBounds = macOS27Controller.knownItemsForReordering()
+            .first(matching: .visibleControlItem)?.bounds
+        let alwaysAnchor = if let leftmostHidden = cache[.hidden].first, let iceBounds {
+            controlPosition + max(0, iceBounds.minX - leftmostHidden.bounds.minX)
+        } else {
+            controlPosition
+        }
+
+        if macOS27Controller.isLayoutEditing {
+            cancelNativeConcealment()
+            if macOS27Controller.isReorderInProgress {
+                nativeHiding.showForLayout(
+                    anchorPosition: controlPosition,
+                    alwaysHiddenAnchor: section(withName: .alwaysHidden)?.isEnabled == true ? alwaysAnchor : nil
+                )
+            } else {
+                nativeHiding.setHidden(false, section: .hidden, anchorPosition: controlPosition, screen: screen)
+                nativeHiding.setHidden(false, section: .alwaysHidden, anchorPosition: alwaysAnchor, screen: screen)
+            }
+            macOS27Controller.isConcealingItems = false
+            return
+        }
+
+        if hideHidden, !nativeHiding.isConcealing(.hidden) {
+            guard nativeConcealmentTask == nil else { return }
+            nativeHiding.prepareForHiding(anchorPosition: controlPosition)
+            let generation = nativeVisibilityGeneration
+            nativeConcealmentTask = Task { [weak self] in
+                guard let self else { return }
+                // No mouse monitor: only an explicit request to hide reaches
+                // this check. Moving our blank boundary leaves every other
+                // app's native input and the user's new order untouched.
+                let aligned = await appState.itemManager.alignNativeHidingBoundary(updatingCache: true, displayID: screen.displayID)
+                guard !Task.isCancelled, generation == nativeVisibilityGeneration else { return }
+                nativeConcealmentTask = nil
+                guard aligned else {
+                    logger.error("Keeping items expanded because Ice's boundary could not be verified")
+                    // The failed attempt published a narrow drag handle. A
+                    // logical state reset alone leaves that empty native slot
+                    // behind; withdraw both handles before reporting expanded.
+                    nativeHiding.setHidden(false, section: .hidden, anchorPosition: controlPosition, screen: screen)
+                    nativeHiding.setHidden(false, section: .alwaysHidden, anchorPosition: alwaysAnchor, screen: screen)
+                    macOS27Controller.isConcealingItems = false
+                    for section in sections { section.controlItem.state = .showSection }
+                    return
+                }
+                nativeHiding.setHidden(false, section: .alwaysHidden, anchorPosition: alwaysAnchor, screen: screen)
+                nativeHiding.setHidden(true, section: .hidden, anchorPosition: controlPosition, screen: screen)
+                macOS27Controller.isConcealingItems = true
+            }
+            return
+        }
+
+        if !hideHidden { cancelNativeConcealment() }
+        nativeHiding.setHidden(hideAlwaysHidden, section: .alwaysHidden, anchorPosition: alwaysAnchor, screen: screen)
+        nativeHiding.setHidden(hideHidden, section: .hidden, anchorPosition: controlPosition, screen: screen)
+        macOS27Controller.isConcealingItems = hideHidden || hideAlwaysHidden
+    }
+
+    private func cancelNativeConcealment() {
+        guard nativeConcealmentTask != nil else { return }
+        nativeVisibilityGeneration &+= 1
+        nativeConcealmentTask?.cancel()
+        nativeConcealmentTask = nil
+    }
+
+    /// Even a third-party-to-third-party drag depends on the current native
+    /// row: withdrawing or resizing Ice's boundary would move its endpoints.
+    /// Pin only the event sequence, not the asynchronous result verification.
+    func beginNativeDrag() {
+        nativeDragVisibility.beginDrag()
+    }
+
+    func endNativeDrag() {
+        if nativeDragVisibility.endDrag() {
+            syncNativeVisibility()
+        }
+    }
+
+    /// A click after Layout toggles the actual, currently expanded bar.
+    func prepareForControlToggle() {
+        guard #available(macOS 27.0, *), macOS27Controller.isLayoutEditing else { return }
+        for section in sections { section.controlItem.state = .showSection }
+        macOS27Controller.endLayoutEditing()
     }
 
     /// Configures the internal observers for the manager.
@@ -114,6 +226,7 @@ final class MenuBarManager: ObservableObject {
         NSWorkspace.shared.publisher(for: \.frontmostApplication)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
+                guard #unavailable(macOS 27.0) else { return }
                 if
                     let self,
                     let appState,
@@ -136,6 +249,23 @@ final class MenuBarManager: ObservableObject {
             }
             .store(in: &c)
 
+        // SwiftUI does not reliably send `onDisappear` when the Settings
+        // window is merely ordered out. End Layout's temporary reveal from the
+        // window lifecycle as well, so closing Layout cannot leave every item
+        // exposed and consume the next Ice click as a state correction.
+        $settingsWindow
+            .removeNil()
+            .flatMap { $0.publisher(for: \.isVisible) }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isVisible in
+                guard let self, !isVisible else { return }
+                if #available(macOS 27.0, *), macOS27Controller.isLayoutEditing {
+                    macOS27Controller.endLayoutEditing()
+                }
+            }
+            .store(in: &c)
+
         $settingsWindow
             .removeNil()
             .flatMap { $0.publisher(for: \.isVisible) }
@@ -150,6 +280,7 @@ final class MenuBarManager: ObservableObject {
         Publishers.MergeMany(sections.map { $0.controlItem.$state })
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
+                guard #unavailable(macOS 27.0) else { return }
                 guard let self, let appState else {
                     return
                 }

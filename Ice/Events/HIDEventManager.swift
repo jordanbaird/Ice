@@ -121,6 +121,9 @@ final class HIDEventManager: ObservableObject {
     /// Sets up the manager.
     func performSetup(with appState: AppState) {
         self.appState = appState
+        // macOS 27 interaction belongs exclusively to Ice's own status item.
+        // Do not even construct global mouse/scroll monitors or event taps.
+        guard #unavailable(macOS 27.0) else { return }
         startAll()
         configureCancellables()
     }
@@ -157,11 +160,13 @@ final class HIDEventManager: ObservableObject {
 
     /// Starts all monitors.
     func startAll() {
+        guard #unavailable(macOS 27.0) else { return }
         isEnabled = enabledStateStack.popLast() ?? true
     }
 
     /// Stops all monitors.
     func stopAll() {
+        guard #unavailable(macOS 27.0) else { return }
         enabledStateStack.append(isEnabled)
         isEnabled = false
     }
@@ -237,10 +242,16 @@ extension HIDEventManager {
         }
 
         let initialSpaceID = Bridging.getActiveSpaceID()
+        let rehideInterval = appState.settings.general.rehideInterval
 
         Task {
-            // Give the window under the mouse a chance to focus.
-            try await Task.sleep(for: .milliseconds(250))
+            // Smart mode still respects the user's configured rehide delay.
+            // The previous fixed 250 ms delay looked like a post-click twitch.
+            do {
+                try await Task.sleep(for: .seconds(rehideInterval))
+            } catch {
+                return
+            }
 
             // Don't bother checking the window if the click caused
             // a space change.
@@ -284,9 +295,16 @@ extension HIDEventManager {
     // MARK: Handle Secondary Context Menu
 
     private func handleSecondaryContextMenu(appState: AppState, screen: NSScreen) {
+        // On macOS 27, only ControlItem's own action may open Ice's menu.
+        // Do not schedule a delayed global popup that can replace another
+        // menu-bar item's native context menu.
+        guard appState.settings.advanced.isSecondaryContextMenuEnabled else {
+            return
+        }
+
         Task {
             guard
-                appState.settings.advanced.enableSecondaryContextMenu,
+                appState.settings.advanced.isSecondaryContextMenuEnabled,
                 isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen),
                 let mouseLocation = MouseHelpers.locationAppKit
             else {

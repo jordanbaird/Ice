@@ -8,54 +8,35 @@ import SwiftUI
 
 struct GeneralSettingsPane: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject var settings: GeneralSettings
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false
     @State private var presentedError: LocalizedErrorWrapper?
-    @State private var isApplyingOffset = false
-    @State private var tempItemSpacingOffset: CGFloat = 0 // Temporary state for the slider
+    @State private var isApplyingItemSpacingOffset = false
+    @State private var tempItemSpacingOffset: CGFloat = 0
 
-    private var manager: GeneralSettingsManager {
-        appState.settingsManager.generalSettingsManager
-    }
-
-    private var itemSpacingOffset: LocalizedStringKey {
-        localizedOffsetString(for: manager.itemSpacingOffset)
-    }
-
-    private func localizedOffsetString(for offset: CGFloat) -> LocalizedStringKey {
-        switch offset {
-        case -16:
-            return LocalizedStringKey("none")
-        case 0:
-            return LocalizedStringKey("default")
-        case 16:
-            return LocalizedStringKey("max")
-        default:
-            return LocalizedStringKey(offset.formatted())
+    private var itemSpacingOffsetKey: LocalizedStringKey {
+        switch tempItemSpacingOffset {
+        case -16: "none"
+        case 0: "default"
+        case 16: "max"
+        default: LocalizedStringKey(tempItemSpacingOffset.formatted())
         }
     }
 
     private var rehideIntervalKey: LocalizedStringKey {
-        let formatted = manager.rehideInterval.formatted()
-        if manager.rehideInterval == 1 {
+        let formatted = settings.rehideInterval.formatted()
+        if settings.rehideInterval == 1 {
             return LocalizedStringKey(formatted + " second")
         } else {
             return LocalizedStringKey(formatted + " seconds")
         }
     }
 
-    private var hasSpacingSliderValueChanged: Bool {
-        tempItemSpacingOffset != manager.itemSpacingOffset
-    }
-
-    private var isActualOffsetDifferentFromDefault: Bool {
-        manager.itemSpacingOffset != 0
-    }
-
     var body: some View {
         IceForm {
             IceSection {
-                launchAtLogin
+                appOptions
             }
             IceSection {
                 iceIconOptions
@@ -64,15 +45,89 @@ struct GeneralSettingsPane: View {
                 iceBarOptions
             }
             IceSection {
-                showOnClick
-                showOnHover
-                showOnScroll
+                showOptions
             }
             IceSection {
-                autoRehideOptions
+                rehideOptions
             }
             IceSection {
                 spacingOptions
+            }
+        }
+    }
+
+    // MARK: App Options
+
+    @ViewBuilder
+    private var appOptions: some View {
+        LaunchAtLogin.Toggle()
+    }
+
+    // MARK: Ice Icon Options
+
+    @ViewBuilder
+    private var iceIconOptions: some View {
+        showIceIcon
+        if settings.showIceIcon {
+            iceIconPicker
+        }
+    }
+
+    @ViewBuilder
+    private var showIceIcon: some View {
+        Toggle("Show Ice icon", isOn: $settings.showIceIcon)
+            .annotation("Click to show hidden menu bar items. Right-click to access Ice's settings.")
+    }
+
+    @ViewBuilder
+    private var iceIconPicker: some View {
+        let labelKey = LocalizedStringKey("Ice icon")
+
+        IceMenu(labelKey) {
+            Picker(labelKey, selection: $settings.iceIcon) {
+                ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
+                    Button {
+                        settings.iceIcon = imageSet
+                    } label: {
+                        iceIconMenuItem(for: imageSet)
+                    }
+                    .tag(imageSet)
+                }
+                if let lastCustomIceIcon = settings.lastCustomIceIcon {
+                    Button {
+                        settings.iceIcon = lastCustomIceIcon
+                    } label: {
+                        iceIconMenuItem(for: lastCustomIceIcon)
+                    }
+                    .tag(lastCustomIceIcon)
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+
+            Divider()
+
+            Button("Choose image…") {
+                isImportingCustomIceIcon = true
+            }
+        } title: {
+            iceIconMenuItem(for: settings.iceIcon)
+        }
+        .annotation("Choose a custom icon to show in the menu bar.")
+        .fileImporter(
+            isPresented: $isImportingCustomIceIcon,
+            allowedContentTypes: [.image]
+        ) { result in
+            do {
+                let url = try result.get()
+                if url.startAccessingSecurityScopedResource() {
+                    defer { url.stopAccessingSecurityScopedResource() }
+                    let data = try Data(contentsOf: url)
+                    settings.iceIcon = ControlItemImageSet(name: .custom, image: .data(data))
+                }
+            } catch {
+                presentedError = LocalizedErrorWrapper(error)
+                isPresentingError = true
             }
         }
         .alert(isPresented: $isPresentingError, error: presentedError) {
@@ -81,15 +136,24 @@ struct GeneralSettingsPane: View {
                 isPresentingError = false
             }
         }
+
+        if case .custom = settings.iceIcon.name {
+            Toggle("Custom icon uses dynamic appearance", isOn: $settings.customIceIconIsTemplate)
+                .annotation {
+                    Text(
+                        """
+                        Display the icon as a monochrome image that dynamically adjusts to match \
+                        the menu bar's appearance. This setting removes all color from the icon, \
+                        but ensures consistent rendering with both light and dark backgrounds.
+                        """
+                    )
+                    .padding(.trailing, 50)
+                }
+        }
     }
 
     @ViewBuilder
-    private var launchAtLogin: some View {
-        LaunchAtLogin.Toggle()
-    }
-
-    @ViewBuilder
-    private func menuItem(for imageSet: ControlItemImageSet) -> some View {
+    private func iceIconMenuItem(for imageSet: ControlItemImageSet) -> some View {
         Label {
             Text(imageSet.name.rawValue)
         } icon: {
@@ -97,10 +161,7 @@ struct GeneralSettingsPane: View {
                 switch imageSet.name {
                 case .custom:
                     Image(size: CGSize(width: 18, height: 18)) { context in
-                        context.draw(
-                            Image(nsImage: nsImage),
-                            in: context.clipBoundingRect
-                        )
+                        context.draw(Image(nsImage: nsImage), in: context.clipBoundingRect)
                     }
                 default:
                     Image(nsImage: nsImage)
@@ -109,153 +170,133 @@ struct GeneralSettingsPane: View {
         }
     }
 
-    @ViewBuilder
-    private var iceIconOptions: some View {
-        Toggle("Show Ice icon", isOn: manager.bindings.showIceIcon)
-            .annotation {
-                if !manager.showIceIcon {
-                    Text("You can still access Ice's settings by right-clicking an empty area in the menu bar")
-                }
-            }
-        if manager.showIceIcon {
-            IceMenu("Ice icon") {
-                Picker("Ice icon", selection: manager.bindings.iceIcon) {
-                    ForEach(ControlItemImageSet.userSelectableIceIcons) { imageSet in
-                        Button {
-                            manager.iceIcon = imageSet
-                        } label: {
-                            menuItem(for: imageSet)
-                        }
-                        .tag(imageSet)
-                    }
-                    if let lastCustomIceIcon = manager.lastCustomIceIcon {
-                        Button {
-                            manager.iceIcon = lastCustomIceIcon
-                        } label: {
-                            menuItem(for: lastCustomIceIcon)
-                        }
-                        .tag(lastCustomIceIcon)
-                    }
-                }
-                .pickerStyle(.inline)
-                .labelsHidden()
-
-                Divider()
-
-                Button("Choose image…") {
-                    isImportingCustomIceIcon = true
-                }
-            } title: {
-                menuItem(for: manager.iceIcon)
-            }
-            .annotation("Choose a custom icon to show in the menu bar")
-            .fileImporter(
-                isPresented: $isImportingCustomIceIcon,
-                allowedContentTypes: [.image]
-            ) { result in
-                do {
-                    let url = try result.get()
-                    if url.startAccessingSecurityScopedResource() {
-                        defer { url.stopAccessingSecurityScopedResource() }
-                        let data = try Data(contentsOf: url)
-                        manager.iceIcon = ControlItemImageSet(name: .custom, image: .data(data))
-                    }
-                } catch {
-                    presentedError = LocalizedErrorWrapper(error)
-                    isPresentingError = true
-                }
-            }
-
-            if case .custom = manager.iceIcon.name {
-                Toggle("Apply system theme to icon", isOn: manager.bindings.customIceIconIsTemplate)
-                    .annotation("Display the icon as a monochrome image matching the system appearance")
-            }
-        }
-    }
+    // MARK: Ice Bar Options
 
     @ViewBuilder
     private var iceBarOptions: some View {
         useIceBar
-        if manager.useIceBar {
+        if settings.useIceBar {
             iceBarLocationPicker
         }
     }
 
     @ViewBuilder
     private var useIceBar: some View {
-        Toggle("Use Ice Bar", isOn: manager.bindings.useIceBar)
-            .annotation("Show hidden menu bar items in a separate bar below the menu bar")
+        Toggle("Use Ice Bar", isOn: $settings.useIceBar)
+            .annotation("Show hidden menu bar items in a separate bar below the menu bar.")
     }
 
     @ViewBuilder
     private var iceBarLocationPicker: some View {
-        IcePicker("Location", selection: manager.bindings.iceBarLocation) {
+        IcePicker("Location", selection: $settings.iceBarLocation) {
             ForEach(IceBarLocation.allCases) { location in
                 Text(location.localized).tag(location)
             }
         }
         .annotation {
-            switch manager.iceBarLocation {
+            switch settings.iceBarLocation {
             case .dynamic:
-                Text("The Ice Bar's location changes based on context")
+                Text("The Ice Bar's location changes based on context.")
             case .mousePointer:
-                Text("The Ice Bar is centered below the mouse pointer")
+                Text("The Ice Bar is centered below the mouse pointer.")
             case .iceIcon:
-                Text("The Ice Bar is centered below the Ice icon")
+                Text("The Ice Bar is centered below the Ice icon.")
             }
         }
     }
 
+    // MARK: Show Options
+
     @ViewBuilder
-    private var showOnClick: some View {
-        Toggle("Show on click", isOn: manager.bindings.showOnClick)
-            .annotation("Click inside an empty area of the menu bar to show hidden menu bar items")
+    private var showOptions: some View {
+        Toggle("Show on click", isOn: $settings.showOnClick)
+            .annotation("Click inside an empty area of the menu bar to show hidden menu bar items.")
+        Toggle("Show on hover", isOn: $settings.showOnHover)
+            .annotation("Hover over an empty area of the menu bar to show hidden menu bar items.")
+        Toggle("Show on scroll", isOn: $settings.showOnScroll)
+            .annotation("Scroll or swipe in the menu bar to show hidden menu bar items.")
+    }
+
+    // MARK: Rehide Options
+
+    @ViewBuilder
+    private var rehideOptions: some View {
+        autoRehide
+        if settings.autoRehide {
+            rehideStrategyPicker
+        }
     }
 
     @ViewBuilder
-    private var showOnHover: some View {
-        Toggle("Show on hover", isOn: manager.bindings.showOnHover)
-            .annotation("Hover over an empty area of the menu bar to show hidden menu bar items")
+    private var autoRehide: some View {
+        Toggle("Automatically rehide", isOn: $settings.autoRehide)
     }
 
     @ViewBuilder
-    private var showOnScroll: some View {
-        Toggle("Show on scroll", isOn: manager.bindings.showOnScroll)
-            .annotation("Scroll or swipe in the menu bar to toggle hidden menu bar items")
+    private var rehideStrategyPicker: some View {
+        VStack {
+            IcePicker("Strategy", selection: $settings.rehideStrategy) {
+                ForEach(RehideStrategy.allCases) { strategy in
+                    Text(strategy.localized).tag(strategy)
+                }
+            }
+            .annotation {
+                switch settings.rehideStrategy {
+                case .smart:
+                    Text("Menu bar items are rehidden using a smart algorithm.")
+                case .timed:
+                    Text("Menu bar items are rehidden after a fixed amount of time.")
+                case .focusedApp:
+                    Text("Menu bar items are rehidden when the focused app changes.")
+                }
+            }
+
+            if case .timed = settings.rehideStrategy {
+                IceSlider(
+                    rehideIntervalKey,
+                    value: $settings.rehideInterval,
+                    in: 0...30,
+                    step: 1
+                )
+            }
+        }
     }
+
+    // MARK: Spacing Options
 
     @ViewBuilder
     private var spacingOptions: some View {
-        IceLabeledContent {
+        LabeledContent {
             IceSlider(
-                localizedOffsetString(for: tempItemSpacingOffset),
+                itemSpacingOffsetKey,
                 value: $tempItemSpacingOffset,
                 in: -16...16,
                 step: 2
             )
-            .disabled(isApplyingOffset)
+            .disabled(isApplyingItemSpacingOffset)
         } label: {
-            IceLabeledContent {
+            LabeledContent {
                 Button("Apply") {
-                    applyOffset()
+                    applyTempItemSpacingOffset()
                 }
                 .help("Apply the current spacing")
-                .disabled(isApplyingOffset || !hasSpacingSliderValueChanged)
+                .disabled(isApplyingItemSpacingOffset || tempItemSpacingOffset == settings.itemSpacingOffset)
 
-                if isApplyingOffset {
+                if isApplyingItemSpacingOffset {
                     ProgressView()
                         .progressViewStyle(.circular)
                         .scaleEffect(0.5)
                         .frame(width: 15, height: 15)
                 } else {
                     Button {
-                        resetOffsetToDefault()
+                        tempItemSpacingOffset = 0
+                        applyTempItemSpacingOffset()
                     } label: {
                         Image(systemName: "arrow.counterclockwise.circle.fill")
                     }
                     .buttonStyle(.borderless)
                     .help("Reset to the default spacing")
-                    .disabled(isApplyingOffset || !isActualOffsetDifferentFromDefault)
+                    .disabled(isApplyingItemSpacingOffset || settings.itemSpacingOffset == 0)
                 }
             } label: {
                 HStack {
@@ -268,64 +309,20 @@ struct GeneralSettingsPane: View {
             "Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.",
             spacing: 2
         )
-        .annotation(spacing: 10, font: .callout.bold()) {
-            IceGroupBox {
-                Label {
-                    Text("Note: You may need to log out and back in for this setting to apply properly.")
-                } icon: {
-                    Image(systemName: "exclamationmark.circle")
-                }
-                .frame(maxWidth: .infinity)
-            }
+        .annotation(spacing: 10) {
+            CalloutBox(
+                "Note: You may need to log out and back in for this setting to apply properly.",
+                systemImage: "exclamationmark.circle"
+            )
         }
         .onAppear {
-            tempItemSpacingOffset = manager.itemSpacingOffset
+            tempItemSpacingOffset = settings.itemSpacingOffset
         }
     }
 
-    @ViewBuilder
-    private var rehideStrategyPicker: some View {
-        IcePicker("Strategy", selection: manager.bindings.rehideStrategy) {
-            ForEach(RehideStrategy.allCases) { strategy in
-                Text(strategy.localized).tag(strategy)
-            }
-        }
-        .annotation {
-            switch manager.rehideStrategy {
-            case .smart:
-                Text("Menu bar items are rehidden using a smart algorithm")
-            case .timed:
-                Text("Menu bar items are rehidden after a fixed amount of time")
-            case .focusedApp:
-                Text("Menu bar items are rehidden when the focused app changes")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var autoRehideOptions: some View {
-        Toggle("Automatically rehide", isOn: manager.bindings.autoRehide)
-        if manager.autoRehide {
-            if case .timed = manager.rehideStrategy {
-                VStack {
-                    rehideStrategyPicker
-                    IceSlider(
-                        rehideIntervalKey,
-                        value: manager.bindings.rehideInterval,
-                        in: 0...30,
-                        step: 1
-                    )
-                }
-            } else {
-                rehideStrategyPicker
-            }
-        }
-    }
-
-    /// Apply menu bar spacing offset.
-    private func applyOffset() {
-        isApplyingOffset = true
-        manager.itemSpacingOffset = tempItemSpacingOffset
+    private func applyTempItemSpacingOffset() {
+        isApplyingItemSpacingOffset = true
+        settings.itemSpacingOffset = tempItemSpacingOffset
         Task {
             do {
                 try await appState.spacingManager.applyOffset()
@@ -333,14 +330,7 @@ struct GeneralSettingsPane: View {
                 let alert = NSAlert(error: error)
                 alert.runModal()
             }
-            isApplyingOffset = false
+            isApplyingItemSpacingOffset = false
         }
-    }
-
-    /// Reset menu bar spacing offset to default.
-    private func resetOffsetToDefault() {
-        tempItemSpacingOffset = 0
-        manager.itemSpacingOffset = tempItemSpacingOffset
-        applyOffset()
     }
 }

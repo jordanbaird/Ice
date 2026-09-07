@@ -7,14 +7,19 @@ import SwiftUI
 
 struct MenuBarLayoutSettingsPane: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject var itemManager: MenuBarItemManager
+
+    private var hasItems: Bool {
+        !itemManager.itemCache.managedItems.isEmpty
+    }
 
     var body: some View {
         if !ScreenCapture.cachedCheckPermissions() {
-            missingScreenRecordingPermission
+            missingScreenRecordingPermissions
         } else if appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults {
             cannotArrange
         } else {
-            IceForm(alignment: .leading, spacing: 20) {
+            IceForm(spacing: 20) {
                 header
                 layoutBars
             }
@@ -23,43 +28,46 @@ struct MenuBarLayoutSettingsPane: View {
 
     @ViewBuilder
     private var header: some View {
-        Text("Drag to arrange your menu bar items")
-            .font(.title2)
-
-        IceGroupBox {
-            AnnotationView(
-                alignment: .center,
-                font: .callout.bold()
-            ) {
-                Label {
-                    Text("Tip: you can also arrange menu bar items by Command + dragging them in the menu bar")
-                } icon: {
-                    Image(systemName: "lightbulb")
-                }
+        IceSection {
+            VStack(spacing: 3) {
+                Text("Drag to arrange your menu bar items into different sections.")
+                    .font(.title3.bold())
+                Text("Items can also be arranged by ⌘ Command + dragging them in the menu bar.")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
             }
+            .padding(15)
         }
     }
 
     @ViewBuilder
     private var layoutBars: some View {
-        VStack(spacing: 25) {
+        VStack(spacing: 20) {
             ForEach(MenuBarSection.Name.allCases, id: \.self) { section in
                 layoutBar(for: section)
+            }
+        }
+        .opacity(hasItems ? 1 : 0.75)
+        .blur(radius: hasItems ? 0 : 5)
+        .allowsHitTesting(hasItems)
+        .overlay {
+            if !hasItems {
+                loadingMenuBarItems
             }
         }
     }
 
     @ViewBuilder
     private var cannotArrange: some View {
-        Text("Ice cannot arrange menu bar items in automatically hidden menu bars")
+        Text("Ice cannot arrange menu bar items in automatically hidden menu bars.")
             .font(.title3)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     @ViewBuilder
-    private var missingScreenRecordingPermission: some View {
+    private var missingScreenRecordingPermissions: some View {
         VStack {
-            Text("Menu bar layout requires screen recording permissions")
+            Text("Menu bar layout requires screen recording permissions.")
                 .font(.title2)
 
             Button {
@@ -72,18 +80,26 @@ struct MenuBarLayoutSettingsPane: View {
     }
 
     @ViewBuilder
-    private func layoutBar(for section: MenuBarSection.Name) -> some View {
+    private var loadingMenuBarItems: some View {
+        VStack {
+            Text("Loading menu bar items…")
+            ProgressView()
+        }
+        .font(.title)
+    }
+
+    @ViewBuilder
+    private func layoutBar(for name: MenuBarSection.Name) -> some View {
         if
-            let section = appState.menuBarManager.section(withName: section),
+            let section = appState.menuBarManager.section(withName: name),
             section.isEnabled
         {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("\(section.name.displayString) Section")
-                    .font(.system(size: 14))
-                    .padding(.leading, 2)
+            VStack(alignment: .leading) {
+                Text(name.localized)
+                    .font(.headline)
+                    .padding(.leading, 8)
 
-                LayoutBar(section: section)
-                    .environmentObject(appState.imageCache)
+                LayoutBar(imageCache: appState.imageCache, section: name)
             }
         }
     }

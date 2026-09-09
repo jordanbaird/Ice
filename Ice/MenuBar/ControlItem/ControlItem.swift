@@ -66,7 +66,10 @@ final class ControlItem {
         guard let window else {
             return nil
         }
-        return CGWindowID(window.windowNumber)
+        // windowNumber can be negative or otherwise out of CGWindowID's range
+        // (observed on macOS 26 for menu bar item windows); CGWindowID(_:)
+        // traps on overflow, so use the failable initializer instead.
+        return CGWindowID(exactly: window.windowNumber)
     }
 
     /// A Boolean value that indicates whether the control item serves as

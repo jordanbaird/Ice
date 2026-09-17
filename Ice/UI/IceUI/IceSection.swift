@@ -26,7 +26,7 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
     private var hasDividers: Bool { options.contains(.hasDividers) }
 
     init(
-        spacing: CGFloat = 10,
+        spacing: CGFloat = .iceSectionDefaultSpacing,
         options: IceSectionOptions = .default,
         @ViewBuilder header: () -> Header,
         @ViewBuilder content: () -> Content,
@@ -40,7 +40,7 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
     }
 
     init(
-        spacing: CGFloat = 10,
+        spacing: CGFloat = .iceSectionDefaultSpacing,
         options: IceSectionOptions = .default,
         @ViewBuilder content: () -> Content,
         @ViewBuilder footer: () -> Footer
@@ -55,7 +55,7 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
     }
 
     init(
-        spacing: CGFloat = 10,
+        spacing: CGFloat = .iceSectionDefaultSpacing,
         options: IceSectionOptions = .default,
         @ViewBuilder header: () -> Header,
         @ViewBuilder content: () -> Content
@@ -70,7 +70,7 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
     }
 
     init(
-        spacing: CGFloat = 10,
+        spacing: CGFloat = .iceSectionDefaultSpacing,
         options: IceSectionOptions = .default,
         @ViewBuilder content: () -> Content
     ) where Header == EmptyView, Footer == EmptyView {
@@ -85,49 +85,61 @@ struct IceSection<Header: View, Content: View, Footer: View>: View {
 
     init(
         _ title: LocalizedStringKey,
-        spacing: CGFloat = 10,
+        spacing: CGFloat = .iceSectionDefaultSpacing,
         options: IceSectionOptions = .default,
         @ViewBuilder content: () -> Content
     ) where Header == Text, Footer == EmptyView {
         self.init(spacing: spacing, options: options) {
-            Text(title)
-                .font(.headline)
+            Text(title).font(.headline)
         } content: {
             content()
         }
     }
 
     var body: some View {
-        if isBordered {
-            IceGroupBox(padding: spacing) {
-                header
-            } content: {
-                dividedContent
-            } footer: {
-                footer
-            }
-        } else {
-            VStack(alignment: .leading) {
-                header
-                dividedContent
-                footer
+        Section {
+            if isBordered {
+                IceGroupBox {
+                    header
+                } content: {
+                    contentLayout
+                } footer: {
+                    footer
+                }
+            } else {
+                VStack(alignment: .leading) {
+                    header
+                        .accessibilityAddTraits(.isHeader)
+                        .padding([.top, .leading], 8)
+                        .padding(.bottom, 2)
+
+                    contentLayout
+
+                    footer
+                        .padding([.bottom, .leading], 8)
+                        .padding(.top, 2)
+                }
+                .focusSection()
+                .accessibilityElement(children: .contain)
             }
         }
+        .focusSection()
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
-    private var dividedContent: some View {
+    private var contentLayout: some View {
         if hasDividers {
             _VariadicView.Tree(IceSectionLayout(spacing: spacing)) {
-                content
-                    .frame(maxWidth: .infinity)
+                content.frame(maxWidth: .infinity)
             }
         } else {
-            content
-                .frame(maxWidth: .infinity)
+            content.frame(maxWidth: .infinity)
         }
     }
 }
+
+// MARK: - IceSectionLayout
 
 private struct IceSectionLayout: _VariadicView_UnaryViewRoot {
     let spacing: CGFloat
@@ -139,9 +151,28 @@ private struct IceSectionLayout: _VariadicView_UnaryViewRoot {
             ForEach(children) { child in
                 child
                 if child.id != last {
-                    Divider()
+                    IceSectionDivider()
                 }
             }
         }
     }
+}
+
+// MARK: - IceSectionDivider
+
+private struct IceSectionDivider: View {
+    var body: some View {
+        if #available(macOS 26.0, *) {
+            Rectangle()
+                .fill(.separator.quinary)
+                .frame(height: 1)
+        } else {
+            Divider()
+        }
+    }
+}
+
+extension CGFloat {
+    /// The default spacing for an ``IceSection``.
+    static let iceSectionDefaultSpacing: CGFloat = if #available(macOS 26.0, *) { 11 } else { 10 }
 }

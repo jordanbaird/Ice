@@ -7,10 +7,7 @@ import SwiftUI
 
 struct HotkeysSettingsPane: View {
     @EnvironmentObject var appState: AppState
-
-    private var hotkeySettingsManager: HotkeySettingsManager {
-        appState.settingsManager.hotkeySettingsManager
-    }
+    @ObservedObject var settings: HotkeysSettings
 
     var body: some View {
         IceForm {
@@ -18,20 +15,21 @@ struct HotkeysSettingsPane: View {
                 hotkeyRecorder(forSection: .hidden)
                 hotkeyRecorder(forSection: .alwaysHidden)
             }
-            IceSection("Menu Bar Items") {
-                hotkeyRecorder(forAction: .searchMenuBarItems)
-            }
-            IceSection("Other") {
-                hotkeyRecorder(forAction: .enableIceBar)
-                hotkeyRecorder(forAction: .showSectionDividers)
-                hotkeyRecorder(forAction: .toggleApplicationMenus)
+            if #unavailable(macOS 27.0) {
+                IceSection("Menu Bar Items") {
+                    hotkeyRecorder(forAction: .searchMenuBarItems)
+                }
+                IceSection("Other") {
+                    hotkeyRecorder(forAction: .enableIceBar)
+                    hotkeyRecorder(forAction: .toggleApplicationMenus)
+                }
             }
         }
     }
 
     @ViewBuilder
     private func hotkeyRecorder(forAction action: HotkeyAction) -> some View {
-        if let hotkey = hotkeySettingsManager.hotkey(withAction: action) {
+        if let hotkey = settings.hotkey(withAction: action) {
             HotkeyRecorder(hotkey: hotkey) {
                 switch action {
                 case .toggleHiddenSection:
@@ -42,8 +40,6 @@ struct HotkeysSettingsPane: View {
                     Text("Search menu bar items")
                 case .enableIceBar:
                     Text("Enable the Ice Bar")
-                case .showSectionDividers:
-                    Text("Show section dividers")
                 case .toggleApplicationMenus:
                     Text("Toggle application menus")
                 }

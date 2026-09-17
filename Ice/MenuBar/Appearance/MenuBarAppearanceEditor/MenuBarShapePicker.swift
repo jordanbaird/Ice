@@ -6,50 +6,45 @@
 import SwiftUI
 
 struct MenuBarShapePicker: View {
-    @EnvironmentObject var appearanceManager: MenuBarAppearanceManager
     @Environment(\.colorScheme) private var colorScheme
+    @Binding var configuration: MenuBarAppearanceConfigurationV2
 
     var body: some View {
-        shapeKindPicker
-        exampleView
+        VStack {
+            shapeKindPicker
+            shapePicker
+                .foregroundStyle(colorScheme == .dark ? .primary : .secondary)
+        }
+        if configuration.shapeKind == .noShape {
+            Text("No shape kind selected")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
     }
 
     @ViewBuilder
     private var shapeKindPicker: some View {
-        IcePicker("Shape Kind", selection: appearanceManager.bindings.configuration.shapeKind) {
-            ForEach(MenuBarShapeKind.allCases, id: \.self) { shape in
-                switch shape {
-                case .none:
-                    Text("None").tag(shape)
-                case .full:
-                    Text("Full").tag(shape)
-                case .split:
-                    Text("Split").tag(shape)
-                }
+        IcePicker("Shape Kind", selection: $configuration.shapeKind) {
+            ForEach(MenuBarShapeKind.allCases) { shapeKind in
+                Text(shapeKind.localized).tag(shapeKind)
             }
         }
     }
 
     @ViewBuilder
-    private var exampleView: some View {
-        switch appearanceManager.configuration.shapeKind {
-        case .none:
-            Text("No shape kind selected")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
+    private var shapePicker: some View {
+        switch configuration.shapeKind {
+        case .noShape:
+            EmptyView()
         case .full:
-            MenuBarFullShapeExampleView(info: appearanceManager.bindings.configuration.fullShapeInfo)
-                .equatable()
-                .foregroundStyle(colorScheme == .dark ? .primary : .secondary)
+            MenuBarFullShapePicker(info: $configuration.fullShapeInfo).equatable()
         case .split:
-            MenuBarSplitShapeExampleView(info: appearanceManager.bindings.configuration.splitShapeInfo)
-                .equatable()
-                .foregroundStyle(colorScheme == .dark ? .primary : .secondary)
+            MenuBarSplitShapePicker(info: $configuration.splitShapeInfo).equatable()
         }
     }
 }
 
-private struct MenuBarFullShapeExampleView: View, Equatable {
+private struct MenuBarFullShapePicker: View, Equatable {
     @Binding var info: MenuBarFullShapeInfo
 
     var body: some View {
@@ -153,6 +148,22 @@ private struct MenuBarFullShapeExampleView: View, Equatable {
     }
 }
 
+private struct MenuBarSplitShapePicker: View, Equatable {
+    @Binding var info: MenuBarSplitShapeInfo
+
+    var body: some View {
+        HStack {
+            MenuBarFullShapePicker(info: $info.leading).equatable()
+            Divider()
+            MenuBarFullShapePicker(info: $info.trailing).equatable()
+        }
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.info == rhs.info
+    }
+}
+
 private struct MenuBarEndCapExampleView: View {
     @State private var radius: CGFloat = 0
 
@@ -185,24 +196,5 @@ private struct MenuBarEndCapExampleView: View {
                 }
             }
         }
-    }
-}
-
-private struct MenuBarSplitShapeExampleView: View, Equatable {
-    @Binding var info: MenuBarSplitShapeInfo
-
-    var body: some View {
-        HStack {
-            MenuBarFullShapeExampleView(info: $info.leading)
-                .equatable()
-            Divider()
-                .padding(.horizontal)
-            MenuBarFullShapeExampleView(info: $info.trailing)
-                .equatable()
-        }
-    }
-
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.info == rhs.info
     }
 }

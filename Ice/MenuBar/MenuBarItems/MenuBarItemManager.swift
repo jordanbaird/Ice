@@ -5,192 +5,111 @@
 
 import Cocoa
 import Combine
+import OSLog
+import Semaphore
 
 /// Manager for menu bar items.
 @MainActor
 final class MenuBarItemManager: ObservableObject {
-    /// Cache for menu bar items.
-    struct ItemCache: Hashable {
-        /// All cached menu bar items, keyed by section.
-        private var items = [MenuBarSection.Name: [MenuBarItem]]()
+    /// The current cache of menu bar items.
+    @Published private(set) var itemCache = ItemCache(displayID: nil)
 
-        /// All cached menu bar items.
-        var allItems: [MenuBarItem] {
-            MenuBarSection.Name.allCases.reduce(into: []) { result, section in
-                result.append(contentsOf: self[section])
-            }
-        }
+    /// Logger for the menu bar item manager.
+    private nonisolated let logger = Logger.menuBarItemManager
 
-        /// The cached menu bar items managed by Ice.
-        var managedItems: [MenuBarItem] {
-            MenuBarSection.Name.allCases.reduce(into: []) { result, section in
-                result.append(contentsOf: managedItems(for: section))
-            }
-        }
+    /// Semaphore to prevent overlapping event operations.
+    private nonisolated let eventSemaphore = AsyncSemaphore(value: 1)
 
-        /// Clears the cache.
-        mutating func clear() {
-            items.removeAll()
-        }
+    /// Serializes each complete macOS 27 read/drag/verify transaction. Rapid
+    /// Layout drops must not overlap native Command-drags or verify against an
+    /// intermediate MenuBarAgent order.
+    private let macOS27MoveSemaphore = AsyncSemaphore(value: 1)
 
-        /// Returns the cached menu bar items managed by Ice for the given section.
-        func managedItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
-            self[section].filter { item in
-                // Filter out items that can't be hidden.
-                guard item.canBeHidden else {
-                    return false
-                }
+    /// Actor for managing menu bar item cache operations.
+    private let cacheActor = CacheActor()
 
-                if item.owningApplication == .current {
-                    // Ice icon is the only item owned by Ice that should be included.
-                    guard item.title == ControlItem.Identifier.iceIcon.rawValue else {
-                        return false
-                    }
-                }
+    /// Contexts for temporarily shown menu bar items.
+    private var temporarilyShownItemContexts = [TemporarilyShownItemContext]()
 
-                return true
-            }
-        }
+    /// A timer for rehiding temporarily shown menu bar items.
+    private var rehideTimer: Timer?
 
-        /// Returns the name of the section for the given menu bar item.
-        func section(for item: MenuBarItem) -> MenuBarSection.Name? {
-            for (section, items) in self.items where items.contains(where: { $0.info == item.info }) {
-                return section
-            }
-            return nil
-        }
+    /// Timestamp of the most recent menu bar item move operation.
+    private var lastMoveOperationTimestamp: ContinuousClock.Instant?
 
-        /// Accesses the items in the given section.
-        subscript(section: MenuBarSection.Name) -> [MenuBarItem] {
-            get { items[section, default: []] }
-            set { items[section] = newValue }
-        }
-    }
+    /// The exact Layout order requested by the in-flight macOS 27 move.
+    ///
+    /// A complete AX cache walk can already be running when the user drops an
+    /// item. Keep that stale walk useful for controller snapshots, but never
+    /// let it republish the pre-move order over Layout while the physical
+    /// transaction is still being read and verified.
+    private var macOS27ProjectedCache: ItemCache?
 
-    /// Context for a temporarily shown menu bar item.
-    private struct TempShownItemContext {
-        /// The information associated with the item.
-        let info: MenuBarItemInfo
+    /// The latest complete Layout order requested by the user.
+    ///
+    /// Layout can accept another drag while MenuBarAgent is still settling the
+    /// previous native Command-drag. Keep only this final state on screen and
+    /// reconcile the physical menu bar toward it; never replay every
+    /// intermediate drop as an independent transaction.
+    private var macOS27DesiredCache: ItemCache?
 
-        /// The destination to return the item to.
-        let returnDestination: MoveDestination
+    /// Source items that can affect the latest desired order. A newer request
+    /// for the same item replaces its older generation in place.
+    private var macOS27PendingMoveOrder = [MenuBarItemTag]()
+    private var macOS27PendingMoveGenerations = [MenuBarItemTag: UInt64]()
+    private var macOS27TouchedMoveTags = Set<MenuBarItemTag>()
+    private var macOS27DesiredGeneration: UInt64 = 0
 
-        /// The window of the item's shown interface.
-        let shownInterfaceWindow: WindowInfo?
+    /// The single worker that turns the latest Layout state into physical menu
+    /// bar order. Unlike the move semaphore, this also coalesces queued intent.
+    private var macOS27ReorderTask: Task<Void, Never>?
 
-        /// A Boolean value that indicates whether the menu bar item's interface is showing.
-        var isShowingInterface: Bool {
-            guard let currentWindow = shownInterfaceWindow.flatMap({ WindowInfo(windowID: $0.windowID) }) else {
-                return false
-            }
-            return if
-                currentWindow.layer != CGWindowLevelForKey(.popUpMenuWindow),
-                let owningApplication = currentWindow.owningApplication
-            {
-                owningApplication.isActive && currentWindow.isOnScreen
-            } else {
-                currentWindow.isOnScreen
-            }
-        }
-    }
-
-    /// The manager's menu bar item cache.
-    @Published private(set) var itemCache = ItemCache()
-
-    /// The shared app state.
-    private(set) weak var appState: AppState?
+    /// Cached timeouts for move operations.
+    private var moveOperationTimeouts = [MenuBarItemTag: Duration]()
 
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
-    /// Cached window identifiers for the most recent items.
-    private var cachedItemWindowIDs = [CGWindowID]()
-
-    /// Context values for the current temporarily shown items.
-    private var tempShownItemContexts = [TempShownItemContext]()
-
-    /// A timer that determines when to rehide the temporarily shown items.
-    private var tempShownItemsTimer: Timer?
-
-    /// The last time a menu bar item was moved.
-    private var lastItemMoveStartDate: Date?
-
-    /// The last time the mouse was moved.
-    private var lastMouseMoveStartDate: Date?
-
-    /// Counter to determine if a menu bar item, or group of menu bar
-    /// items is being moved.
-    private var itemMoveCount = 0
-
-    /// A Boolean value that indicates whether a mouse button is down.
-    private var isMouseButtonDown = false
-
-    /// Event type mask for tracking mouse events.
-    private let mouseTrackingMask: NSEvent.EventTypeMask = [
-        .mouseMoved,
-        .leftMouseDown,
-        .rightMouseDown,
-        .otherMouseDown,
-        .leftMouseUp,
-        .rightMouseUp,
-        .otherMouseUp,
-    ]
-
-    /// A Boolean value that indicates whether a menu bar item, or
-    /// group of menu bar items is being moved.
-    var isMovingItem: Bool {
-        itemMoveCount > 0
-    }
-
-    /// A Boolean value that indicates whether a menu bar item has
-    /// recently moved.
-    var itemHasRecentlyMoved: Bool {
-        guard let lastItemMoveStartDate else {
-            return false
-        }
-        return Date.now.timeIntervalSince(lastItemMoveStartDate) <= 1
-    }
-
-    /// A Boolean value that indicates whether the mouse has recently moved.
-    var mouseHasRecentlyMoved: Bool {
-        guard let lastMouseMoveStartDate else {
-            return false
-        }
-        return Date.now.timeIntervalSince(lastMouseMoveStartDate) <= 1
-    }
-
-    /// Creates a manager with the given app state.
-    init(appState: AppState) {
-        self.appState = appState
-    }
+    /// The shared app state.
+    private(set) weak var appState: AppState?
 
     /// Sets up the manager.
-    func performSetup() {
-        configureCancellables()
+    func performSetup(with appState: AppState) async {
+        self.appState = appState
+        await cacheItemsRegardless()
+        configureCancellables(with: appState)
     }
 
     /// Configures the internal observers for the manager.
-    private func configureCancellables() {
+    private func configureCancellables(with appState: AppState) {
         var c = Set<AnyCancellable>()
-
-        Timer.publish(every: 5, on: .main, in: .default)
-            .autoconnect()
-            .merge(with: Just(.now))
-            .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                Task {
-                    await self.cacheItemsIfNeeded()
-                }
-            }
-            .store(in: &c)
 
         NSWorkspace.shared.publisher(for: \.runningApplications)
             .delay(for: 0.25, scheduler: DispatchQueue.main)
-            .sink { [weak self] _ in
+            .handleEvents(receiveOutput: { [weak appState] applications in
+                if #available(macOS 27.0, *) {
+                    appState?.menuBarManager.macOS27Controller.runningApplicationsChanged(applications)
+                }
+            })
+            .discardMerge(Timer.publish(every: 5, on: .main, in: .default).autoconnect())
+            .debounce(for: 1, scheduler: DispatchQueue.main)
+            .sink { [weak self, weak appState] in
                 guard let self else {
                     return
+                }
+                if #available(macOS 27.0, *), let appState {
+                    // A complete accessibility walk blocks Ice's own interface
+                    // for as long as the slowest app takes to answer. Nothing
+                    // outside Layout and the Ice Bar shows the items, so don't
+                    // pay that while the user is in another settings pane.
+                    let navigation = appState.navigationState
+                    if
+                        navigation.isSettingsPresented,
+                        navigation.settingsNavigationIdentifier != .menuBarLayout,
+                        !navigation.isIceBarPresented
+                    {
+                        return
+                    }
                 }
                 Task {
                     await self.cacheItemsIfNeeded()
@@ -198,378 +117,1025 @@ final class MenuBarItemManager: ObservableObject {
             }
             .store(in: &c)
 
-        Publishers.Merge(
-            UniversalEventMonitor.publisher(for: mouseTrackingMask),
-            RunLoopLocalEventMonitor.publisher(for: mouseTrackingMask, mode: .eventTracking)
-        )
-        .removeDuplicates()
-        .sink { [weak self] event in
-            guard let self else {
-                return
+        appState.navigationState.$settingsNavigationIdentifier
+            .sink { [weak self] identifier in
+                guard let self else { return }
+                if #available(macOS 27.0, *) {
+                    if identifier == .menuBarLayout {
+                        // Mark Layout editing before its navigation-triggered
+                        // cache task starts. Otherwise that task performs a
+                        // complete AX walk and can hold the provider lock while
+                        // the user has already begun dragging.
+                        appState.menuBarManager.macOS27Controller.beginLayoutEditing()
+                    } else if appState.menuBarManager.macOS27Controller.isLayoutEditing {
+                        // A restored Settings window can change panes without
+                        // constructing the old Layout view long enough for its
+                        // `onDisappear` callback to run.
+                        appState.menuBarManager.macOS27Controller.endLayoutEditing()
+                    }
+                }
+                guard identifier == .menuBarLayout else { return }
+                Task {
+                    await self.cacheItemsRegardless()
+                }
             }
-            switch event.type {
-            case .mouseMoved:
-                lastMouseMoveStartDate = .now
-            case .leftMouseDown, .rightMouseDown, .otherMouseDown:
-                isMouseButtonDown = true
-            case .leftMouseUp, .rightMouseUp, .otherMouseUp:
-                isMouseButtonDown = false
-            default:
-                break
-            }
-        }
-        .store(in: &c)
+            .store(in: &c)
 
         cancellables = c
     }
+
+    /// Returns a Boolean value that indicates whether the most recent
+    /// menu bar item move operation occurred within the given duration.
+    func lastMoveOperationOccurred(within duration: Duration) -> Bool {
+        guard let timestamp = lastMoveOperationTimestamp else {
+            return false
+        }
+        return timestamp.duration(to: .now) <= duration
+    }
 }
 
-// MARK: - Cache Items
+// MARK: - Item Cache
 
 extension MenuBarItemManager {
-    /// Logs a warning that the given menu bar item was not added to the cache.
-    private func logNotCachedWarning(for item: MenuBarItem) {
-        Logger.itemManager.warning("\(item.logString) was not cached")
-    }
+    /// An actor that manages menu bar item cache operations.
+    private final actor CacheActor {
+        /// Stored task for the current cache operation.
+        private var cacheTask: Task<Void, Never>?
 
-    /// Logs a reason for skipping the cache.
-    private func logSkippingCache(reason: String) {
-        Logger.itemManager.debug("Skipping menu bar item cache as \(reason)")
-    }
+        /// A list of the menu bar item window identifiers at the time
+        /// of the previous cache.
+        private(set) var cachedItemWindowIDs = [CGWindowID]()
 
-    /// Caches the given menu bar items, without checking whether the control
-    /// items are in the correct order.
-    private func uncheckedCacheItems(
-        hiddenControlItem: MenuBarItem,
-        alwaysHiddenControlItem: MenuBarItem?,
-        otherItems: [MenuBarItem]
-    ) {
-        Logger.itemManager.debug("Caching menu bar items")
-
-        let predicates = Predicates.sectionPredicates(
-            hiddenControlItem: hiddenControlItem,
-            alwaysHiddenControlItem: alwaysHiddenControlItem
-        )
-
-        var cache = ItemCache()
-        var tempShownItems = [(MenuBarItem, MoveDestination)]()
-
-        for item in otherItems {
-            if let context = tempShownItemContexts.first(where: { $0.info == item.info }) {
-                // Keep track of temporarily shown items and their return destinations separately.
-                // We want to cache them as if they were in their original locations. Once all other
-                // items are cached, use the return destinations to insert the items into the cache
-                // at the correct position.
-                tempShownItems.append((item, context.returnDestination))
-            } else if predicates.isInVisibleSection(item) {
-                cache[.visible].append(item)
-            } else if predicates.isInHiddenSection(item) {
-                cache[.hidden].append(item)
-            } else if predicates.isInAlwaysHiddenSection(item) {
-                cache[.alwaysHidden].append(item)
-            } else {
-                logNotCachedWarning(for: item)
+        /// Runs the given async closure as a task and waits for it to
+        /// complete before returning.
+        ///
+        /// If a task from a previous call to this method is currently
+        /// running, that task is cancelled and replaced.
+        func runCacheTask(_ operation: @escaping () async -> Void) async {
+            cacheTask.take()?.cancel()
+            let task = Task(operation: operation)
+            cacheTask = task
+            await withTaskCancellationHandler {
+                await task.value
+            } onCancel: {
+                task.cancel()
             }
         }
 
-        for (item, destination) in tempShownItems {
-            switch destination {
-            case .leftOfItem(let targetItem):
-                switch targetItem.info {
-                case .hiddenControlItem:
-                    cache[.hidden].append(item)
-                case .alwaysHiddenControlItem:
-                    cache[.alwaysHidden].append(item)
-                default:
-                    if
-                        let section = cache.section(for: targetItem),
-                        let index = cache[section].firstIndex(matching: targetItem.info)
-                    {
-                        let clampedIndex = index.clamped(to: cache[section].startIndex...cache[section].endIndex)
-                        cache[section].insert(item, at: clampedIndex)
-                    }
-                }
-            case .rightOfItem(let targetItem):
-                switch targetItem.info {
-                case .hiddenControlItem:
-                    cache[.visible].insert(item, at: 0)
-                case .alwaysHiddenControlItem:
-                    cache[.hidden].insert(item, at: 0)
-                default:
-                    if
-                        let section = cache.section(for: targetItem),
-                        let index = cache[section].firstIndex(matching: targetItem.info)
-                    {
-                        let clampedIndex = (index - 1).clamped(to: cache[section].startIndex...cache[section].endIndex)
-                        cache[section].insert(item, at: clampedIndex)
-                    }
-                }
-            }
-        }
-
-        itemCache = cache
-    }
-
-    /// Caches the current menu bar items if needed, ensuring that the control
-    /// items are in the correct order.
-    func cacheItemsIfNeeded() async {
-        do {
-            try await waitForItemsToStopMoving(timeout: .seconds(1))
-        } catch is TaskTimeoutError {
-            logSkippingCache(reason: "an item is currently being moved")
-            return
-        } catch {
-            guard !itemHasRecentlyMoved else {
-                logSkippingCache(reason: "an item was recently moved")
-                return
-            }
-        }
-
-        let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
-        if cachedItemWindowIDs == itemWindowIDs {
-            logSkippingCache(reason: "item windows have not changed")
-            return
-        } else {
+        /// Updates the list of cached menu bar item window identifiers.
+        func updateCachedItemWindowIDs(_ itemWindowIDs: [CGWindowID]) {
             cachedItemWindowIDs = itemWindowIDs
         }
 
-        var items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
-
-        let hiddenControlItem = items.firstIndex(matching: .hiddenControlItem).map { items.remove(at: $0) }
-        let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map { items.remove(at: $0) }
-
-        guard let hiddenControlItem else {
-            Logger.itemManager.warning("Missing control item for hidden section")
-            Logger.itemManager.debug("Clearing menu bar item cache")
-            itemCache.clear()
-            return
-        }
-
-        do {
-            if let alwaysHiddenControlItem {
-                try await enforceControlItemOrder(
-                    hiddenControlItem: hiddenControlItem,
-                    alwaysHiddenControlItem: alwaysHiddenControlItem
-                )
-            }
-            uncheckedCacheItems(
-                hiddenControlItem: hiddenControlItem,
-                alwaysHiddenControlItem: alwaysHiddenControlItem,
-                otherItems: items
-            )
-        } catch {
-            Logger.itemManager.error("Error enforcing control item order: \(error)")
-            Logger.itemManager.debug("Clearing menu bar item cache")
-            itemCache.clear()
+        /// Clears the list of cached menu bar item window identifiers.
+        func clearCachedItemWindowIDs() {
+            cachedItemWindowIDs.removeAll()
         }
     }
-}
 
-// MARK: - Menu Bar Item Events -
+    /// Cache for menu bar items.
+    struct ItemCache: Hashable {
+        /// Storage for cached menu bar items, keyed by section.
+        private var storage = [MenuBarSection.Name: [MenuBarItem]]()
 
-extension MenuBarItemManager {
-    /// An error that can occur during menu bar item event operations.
-    struct EventError: Error, CustomStringConvertible, LocalizedError {
-        /// Error codes within the domain of menu bar item event errors.
-        enum ErrorCode: Int, CustomStringConvertible {
-            /// An operation could not be completed.
-            case couldNotComplete
+        /// The identifier of the display with the active menu bar at
+        /// the time this cache was created.
+        let displayID: CGDirectDisplayID?
 
-            /// The creation of a menu bar item event failed.
-            case eventCreationFailure
-
-            /// The shared app state is invalid or could not be found.
-            case invalidAppState
-
-            /// An event source could not be created or is otherwise invalid.
-            case invalidEventSource
-
-            /// The location of the mouse cursor is invalid or could not be found.
-            case invalidCursorLocation
-
-            /// A menu bar item is invalid.
-            case invalidItem
-
-            /// A menu bar item cannot be moved.
-            case notMovable
-
-            /// A menu bar item event operation timed out.
-            case eventOperationTimeout
-
-            /// A menu bar item frame check timed out.
-            case frameCheckTimeout
-
-            /// An operation timed out.
-            case otherTimeout
-
-            /// Description of the code for debugging purposes.
-            var description: String {
-                switch self {
-                case .couldNotComplete: "couldNotComplete"
-                case .eventCreationFailure: "eventCreationFailure"
-                case .invalidAppState: "invalidAppState"
-                case .invalidEventSource: "invalidEventSource"
-                case .invalidCursorLocation: "invalidCursorLocation"
-                case .invalidItem: "invalidItem"
-                case .notMovable: "notMovable"
-                case .eventOperationTimeout: "eventOperationTimeout"
-                case .frameCheckTimeout: "frameCheckTimeout"
-                case .otherTimeout: "otherTimeout"
+        /// The cached menu bar items as an array.
+        var managedItems: [MenuBarItem] {
+            MenuBarSection.Name.allCases.reduce(into: []) { result, section in
+                guard let items = storage[section] else {
+                    return
                 }
-            }
-
-            /// A string to use for logging purposes.
-            var logString: String {
-                "\(self) (rawValue: \(rawValue))"
+                result.append(contentsOf: items)
             }
         }
 
-        /// The error code of this error.
-        let code: ErrorCode
-
-        /// The error's menu bar item.
-        let item: MenuBarItem
-
-        /// The message associated with this error.
-        var message: String {
-            switch code {
-            case .couldNotComplete:
-                "Could not complete event operation for \"\(item.displayName)\""
-            case .eventCreationFailure:
-                "Failed to create event for \"\(item.displayName)\""
-            case .invalidAppState:
-                "Invalid app state for \"\(item.displayName)\""
-            case .invalidEventSource:
-                "Invalid event source for \"\(item.displayName)\""
-            case .invalidCursorLocation:
-                "Invalid cursor location for \"\(item.displayName)\""
-            case .invalidItem:
-                "\"\(item.displayName)\" is invalid"
-            case .notMovable:
-                "\"\(item.displayName)\" is not movable"
-            case .eventOperationTimeout:
-                "Event operation timed out for \"\(item.displayName)\""
-            case .frameCheckTimeout:
-                "Frame check timed out for \"\(item.displayName)\""
-            case .otherTimeout:
-                "Operation timed out for \"\(item.displayName)\""
-            }
+        /// Creates a cache with the given display identifier.
+        init(displayID: CGDirectDisplayID?) {
+            self.displayID = displayID
         }
 
-        /// Description of the error for debugging purposes.
-        var description: String {
-            var parameters = [String]()
-            parameters.append("code: \(code.logString)")
-            parameters.append("item: \(item.logString)")
-            return "\(Self.self)(\(parameters.joined(separator: ", ")))"
+        // TODO: This is redundant now, so remove it.
+        /// Returns the managed menu bar items for the given section.
+        func managedItems(for section: MenuBarSection.Name) -> [MenuBarItem] {
+            self[section]
         }
 
-        /// Description of the error for display purposes.
-        var errorDescription: String? {
-            message
-        }
-
-        /// Suggestion for recovery from the error.
-        var recoverySuggestion: String? {
-            "Please try again. If the error persists, please file a bug report."
-        }
-    }
-}
-
-// MARK: - Async Waiters
-
-extension MenuBarItemManager {
-    /// Waits asynchronously for the given operation to complete.
-    /// 
-    /// - Parameters:
-    ///   - timeout: Amount of time to wait before throwing an error.
-    ///   - operation: The operation to perform.
-    private func waitWithTask(timeout: Duration?, operation: @escaping @Sendable () async throws -> Void) async throws {
-        let task = if let timeout {
-            Task(timeout: timeout, operation: operation)
-        } else {
-            Task(operation: operation)
-        }
-        try await task.value
-    }
-
-    /// Waits asynchronously for all menu bar items to stop moving.
-    ///
-    /// - Parameter timeout: Amount of time to wait before throwing an error.
-    func waitForItemsToStopMoving(timeout: Duration? = nil) async throws {
-        try await waitWithTask(timeout: timeout) { [weak self] in
-            guard let self else {
-                return
-            }
-            while await isMovingItem {
-                try Task.checkCancellation()
-                try await Task.sleep(for: .milliseconds(10))
-            }
-        }
-    }
-
-    /// Waits asynchronously for the mouse to stop moving.
-    ///
-    /// - Parameters:
-    ///   - threshold: A threshold to use to determine whether the mouse has stopped moving.
-    ///   - timeout: Amount of time to wait before throwing an error.
-    func waitForMouseToStopMoving(threshold: TimeInterval = 0.1, timeout: Duration? = nil) async throws {
-        try await waitWithTask(timeout: timeout) { [weak self] in
-            guard let self else {
-                return
-            }
-            while true {
-                try Task.checkCancellation()
-                guard let date = await lastMouseMoveStartDate else {
-                    break
+        /// Returns the address for the menu bar item with the given tag,
+        /// if it exists in the cache.
+        func address(for tag: MenuBarItemTag) -> (section: MenuBarSection.Name, index: Int)? {
+            for (section, items) in storage {
+                guard let index = items.firstIndex(matching: tag) else {
+                    continue
                 }
-                if Date.now.timeIntervalSince(date) > threshold {
-                    break
-                }
-                try await Task.sleep(for: .milliseconds(10))
+                return (section, index)
             }
+            return nil
         }
-    }
 
-    /// Waits asynchronously until no modifier keys are pressed.
-    ///
-    /// - Parameter timeout: Amount of time to wait before throwing an error.
-    func waitForNoModifiersPressed(timeout: Duration? = nil) async throws {
-        try await waitWithTask(timeout: timeout) {
-            // Return early if no flags are pressed.
-            if NSEvent.modifierFlags.isEmpty {
+        /// Inserts the given menu bar item into the cache at the specified
+        /// destination.
+        mutating func insert(_ item: MenuBarItem, at destination: MoveDestination) {
+            let targetTag = destination.targetItem.tag
+
+            if targetTag == .hiddenControlItem {
+                switch destination {
+                case .leftOfItem:
+                    self[.hidden].append(item)
+                case .rightOfItem:
+                    self[.visible].insert(item, at: 0)
+                }
                 return
             }
 
-            var cancellable: AnyCancellable?
+            if targetTag == .alwaysHiddenControlItem {
+                switch destination {
+                case .leftOfItem:
+                    self[.alwaysHidden].append(item)
+                case .rightOfItem:
+                    self[.hidden].insert(item, at: 0)
+                }
+                return
+            }
 
-            await withCheckedContinuation { continuation in
-                cancellable = Publishers.Merge(
-                    UniversalEventMonitor.publisher(for: .flagsChanged),
-                    RunLoopLocalEventMonitor.publisher(for: .flagsChanged, mode: .eventTracking)
-                )
-                .removeDuplicates()
-                .sink { _ in
-                    if NSEvent.modifierFlags.isEmpty {
-                        cancellable?.cancel()
-                        continuation.resume()
+            guard case (let section, var index)? = address(for: targetTag) else {
+                return
+            }
+
+            if case .rightOfItem = destination {
+                let range = self[section].startIndex...self[section].endIndex
+                index = (index + 1).clamped(to: range)
+            }
+
+            self[section].insert(item, at: index)
+        }
+
+        /// Accesses the items in the given section.
+        subscript(section: MenuBarSection.Name) -> [MenuBarItem] {
+            get { storage[section, default: []] }
+            set { storage[section] = newValue }
+        }
+    }
+
+    /// A pair of control items, taken from a list of menu bar items
+    /// during a menu bar item cache operation.
+    private struct ControlItemPair {
+        let hidden: MenuBarItem
+        let alwaysHidden: MenuBarItem?
+
+        init?(items: inout [MenuBarItem]) {
+            guard let hidden = items.removeFirst(matching: .hiddenControlItem) else {
+                return nil
+            }
+            self.hidden = hidden
+            self.alwaysHidden = items.removeFirst(matching: .alwaysHiddenControlItem)
+        }
+    }
+
+    /// Context maintained during a menu bar item cache operation.
+    private struct CacheContext {
+        let controlItems: ControlItemPair
+
+        var cache: ItemCache
+        var temporarilyShownItems = [(MenuBarItem, MoveDestination)]()
+        var shouldClearCachedItemWindowIDs = false
+
+        private(set) lazy var hiddenControlItemBounds = bestBounds(for: controlItems.hidden)
+        private(set) lazy var alwaysHiddenControlItemBounds = controlItems.alwaysHidden.map(bestBounds)
+
+        init(controlItems: ControlItemPair, displayID: CGDirectDisplayID?) {
+            self.controlItems = controlItems
+            self.cache = ItemCache(displayID: displayID)
+        }
+
+        func bestBounds(for item: MenuBarItem) -> CGRect {
+            Bridging.getWindowBounds(for: item.windowID) ?? item.bounds
+        }
+
+        func isValidForCaching(_ item: MenuBarItem) -> Bool {
+            if !item.canBeHidden {
+                return false
+            }
+            if item.isSystemClone {
+                return false
+            }
+            if item.isControlItem, item.tag != .visibleControlItem {
+                return false
+            }
+            return true
+        }
+
+        mutating func findSection(for item: MenuBarItem) -> MenuBarSection.Name? {
+            lazy var itemBounds = bestBounds(for: item)
+            return MenuBarSection.Name.allCases.first { section in
+                switch section {
+                case .visible:
+                    return itemBounds.minX >= hiddenControlItemBounds.maxX
+                case .hidden:
+                    if let alwaysHiddenControlItemBounds {
+                        return itemBounds.maxX <= hiddenControlItemBounds.minX &&
+                        itemBounds.minX >= alwaysHiddenControlItemBounds.maxX
+                    } else {
+                        return itemBounds.maxX <= hiddenControlItemBounds.minX
+                    }
+                case .alwaysHidden:
+                    if let alwaysHiddenControlItemBounds {
+                        return itemBounds.maxX <= alwaysHiddenControlItemBounds.minX
+                    } else {
+                        return false
                     }
                 }
             }
         }
     }
+
+    /// Caches the given menu bar items, without ensuring that the provided
+    /// control items are correctly ordered.
+    private func uncheckedCacheItems(
+        items: [MenuBarItem],
+        controlItems: ControlItemPair,
+        displayID: CGDirectDisplayID?
+    ) async {
+        var context = CacheContext(controlItems: controlItems, displayID: displayID)
+
+        for item in items where context.isValidForCaching(item) {
+            if item.sourcePID == nil {
+                logger.warning("Missing sourcePID for \(item.logString, privacy: .public)")
+                context.shouldClearCachedItemWindowIDs = true
+            }
+
+            if let temp = temporarilyShownItemContexts.first(where: { $0.tag == item.tag }) {
+                // Cache temporarily shown items as if they were in their original locations.
+                // Keep track of them separately and use their return destinations to insert
+                // them into the cache once all other items have been handled.
+                context.temporarilyShownItems.append((item, temp.returnDestination))
+                continue
+            }
+
+            if let section = context.findSection(for: item) {
+                context.cache[section].append(item)
+                continue
+            }
+
+            logger.warning("Couldn't find section for caching \(item.logString, privacy: .public)")
+            context.shouldClearCachedItemWindowIDs = true
+        }
+
+        for (item, destination) in context.temporarilyShownItems {
+            context.cache.insert(item, at: destination)
+        }
+
+        if context.shouldClearCachedItemWindowIDs {
+            logger.info("Clearing cached menu bar item windowIDs")
+            await cacheActor.clearCachedItemWindowIDs() // Ensure next cache isn't skipped.
+        }
+
+        guard itemCache != context.cache else {
+            logger.debug("Not updating menu bar item cache, as items haven't changed")
+            return
+        }
+
+        itemCache = context.cache
+        logger.debug("Updated menu bar item cache")
+    }
+
+    /// Accept a user's native Command-drag before hiding. Ice's visible button
+    /// is the sole divider: repair only our own blank item if the user dropped
+    /// between the pair, then read membership from the expanded physical order.
+    @available(macOS 27.0, *)
+    func alignNativeHidingBoundary(
+        updatingCache: Bool,
+        displayID: CGDirectDisplayID? = nil,
+        allowingDrag: Bool = true
+    ) async -> Bool {
+        guard let appState else { return false }
+        let controller = appState.menuBarManager.macOS27Controller
+        // An ordinary click does not need a fixed settling delay or an AX
+        // walk through other applications when our native pair is already
+        // ready. Never use saved positions or retained frames for this check.
+        if
+            let displayID,
+            !controller.isLayoutEditing,
+            !appState.settings.advanced.enableAlwaysHiddenSection,
+            !Task.isCancelled
+        {
+            // Normally ready in this event turn. A freshly hosted scene may
+            // need one or two display frames, not an unconditional 200 ms.
+            for attempt in 0 ..< 3 {
+                if attempt > 0 {
+                    do { try await Task.sleep(for: .milliseconds(16)) } catch { return false }
+                }
+                guard !Task.isCancelled else { return false }
+                if nativeHidingBoundaryIsReady(on: displayID) {
+                    logger.notice("Ice's boundary is ready beside its button")
+                    return true
+                }
+            }
+        }
+        // Reinsertion changes native hit regions before AX updates all owners.
+        // Let that one layout transaction finish before resolving a drag.
+        do { try await Task.sleep(for: .milliseconds(200)) } catch { return false }
+        var snapshot = await currentMacOS27ReorderSnapshot(appState: appState)
+        // A withdrawn boundary takes a short native layout pass to reappear.
+        // Never substitute a retained (possibly concealed) frame for this read.
+        for _ in 0 ..< 6 where snapshot.first(matching: .nativeBoundary(for: .hidden)) == nil {
+            do { try await Task.sleep(for: .milliseconds(35)) } catch { return false }
+            snapshot = await currentMacOS27ReorderSnapshot(appState: appState)
+        }
+        guard !Task.isCancelled else { return false }
+        guard
+            let ice = snapshot.first(matching: .visibleControlItem),
+            let boundary = snapshot.first(matching: .nativeBoundary(for: .hidden))
+        else {
+            let iceFound = snapshot.first(matching: .visibleControlItem) != nil
+            let boundaryFound = snapshot.first(matching: .nativeBoundary(for: .hidden)) != nil
+            logger.error("Can't find Ice's items in \(snapshot.count) menu bar items (button: \(iceFound), boundary: \(boundaryFound))")
+            return false
+        }
+
+        let destination = MoveDestination.leftOfItem(ice)
+        let order = snapshot.sorted { $0.bounds.minX < $1.bounds.minX }.map(\.tag)
+        logger.notice("Preparing native boundary \(boundary.bounds.debugDescription, privacy: .public) beside Ice \(ice.bounds.debugDescription, privacy: .public)")
+        if !MacOS27NativeBoundary.isImmediatelyBefore(boundary.tag, ice.tag, in: order) {
+            // Never take over the pointer without an explicit user action.
+            guard allowingDrag else {
+                logger.notice("Not dragging Ice's boundary without a user action")
+                return false
+            }
+            guard await performMacOS27NativeMove(
+                item: boundary,
+                destination: destination,
+                contextItems: snapshot,
+                appState: appState
+            ) else { return false }
+            snapshot = await currentMacOS27ReorderSnapshot(appState: appState)
+        }
+        guard
+            !Task.isCancelled,
+            let currentIce = snapshot.first(matching: .visibleControlItem),
+            let currentBoundary = snapshot.first(matching: .nativeBoundary(for: .hidden)),
+            MacOS27NativeBoundary.side(of: currentBoundary.bounds, relativeTo: currentIce.bounds) == .left,
+            MacOS27NativeBoundary.isImmediatelyBefore(
+                currentBoundary.tag,
+                currentIce.tag,
+                in: snapshot.sorted { $0.bounds.minX < $1.bounds.minX }.map(\.tag)
+            )
+        else {
+            return false
+        }
+        guard updatingCache else { return true }
+        let liveItems = snapshot.filter { $0.canBeHidden && !$0.isSystemClone && !$0.isControlItem }
+        let refreshed = controller.makeCache(
+            liveItems: liveItems,
+            sourceItems: snapshot,
+            displayID: Bridging.getActiveMenuBarDisplayID()
+        )
+        if itemCache != refreshed { itemCache = refreshed }
+        return true
+    }
+
+    @available(macOS 27.0, *)
+    private func nativeHidingBoundaryIsReady(on displayID: CGDirectDisplayID) -> Bool {
+        let items = MacOS27MenuBarItemProvider.ownMenuBarItems()
+        let boundaryTag = MenuBarItemTag.nativeBoundary(for: .hidden)
+        guard
+            NSScreen.screens.contains(where: { $0.displayID == displayID }),
+            let boundary = items.first(matching: boundaryTag),
+            let ice = items.first(matching: .visibleControlItem),
+            MacOS27NativeBoundary.canCheckImmediateHide(
+                boundary: boundary.bounds, control: ice.bounds, display: CGDisplayBounds(displayID)
+            )
+        else {
+            return false
+        }
+        // This path only resizes our own status item; it sends no input. The
+        // system-wide hit map can still describe the previous native layout
+        // after our owner geometry has settled, so it must not gate a resize.
+        // Actual drag operations continue to verify their input targets.
+        let checked = MacOS27MenuBarItemProvider.ownMenuBarItems()
+        return checked.first(matching: boundaryTag)?.bounds == boundary.bounds &&
+            checked.first(matching: .visibleControlItem)?.bounds == ice.bounds
+    }
+
+    /// Caches the current menu bar items, regardless of whether the
+    /// items have changed since the previous cache.
+    ///
+    /// Before caching, this method ensures that the control items for
+    /// the hidden and always-hidden sections are correctly ordered,
+    /// arranging them into valid positions if needed.
+    func cacheItemsRegardless(
+        _ currentItemWindowIDs: [CGWindowID]? = nil,
+        ignoringRecentMovement: Bool = false,
+        refreshingAllOwners: Bool = false
+    ) async {
+        await cacheActor.runCacheTask { [weak self] in
+            guard let self else {
+                return
+            }
+
+            guard
+                ignoringRecentMovement ||
+                    !lastMoveOperationOccurred(within: .seconds(1))
+            else {
+                logger.debug("Skipping menu bar item cache due to recent item movement")
+                return
+            }
+
+            let displayID = Bridging.getActiveMenuBarDisplayID()
+            var items: [MenuBarItem]
+            if
+                #available(macOS 27.0, *),
+                let controller = appState?.menuBarManager.macOS27Controller,
+                controller.isLayoutEditing,
+                !refreshingAllOwners
+            {
+                // Refresh only this Layout session's owners while editing instead
+                // of rescanning every running process every five seconds. A
+                // complete scan can occupy the serialized AX provider for tens
+                // of seconds and make a drop look as though it failed.
+                // The session keeps zero-item hosts for later republishing;
+                // entering the pane still performs one explicit full scan.
+                let knownItems = controller.knownItemsForReordering()
+                let (sourcePIDs, namespaces) = controller.ownersForLayoutRefresh()
+                if sourcePIDs.isEmpty && namespaces.isEmpty {
+                    // Settings can restore directly into Layout at launch.
+                    items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+                } else {
+                    let targetedItems = await Task.detached(priority: .userInitiated) {
+                        MacOS27MenuBarItemProvider.menuBarItems(
+                            sourcePIDs: sourcePIDs,
+                            namespaces: namespaces
+                        )
+                    }.value
+                    items = targetedItems.isEmpty ? knownItems : targetedItems
+                }
+            } else {
+                items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+            }
+
+            guard !Task.isCancelled else { return }
+            let itemWindowIDs = currentItemWindowIDs ?? items.reversed().map { $0.windowID }
+            await cacheActor.updateCachedItemWindowIDs(itemWindowIDs)
+            guard !Task.isCancelled else { return }
+
+            if #available(macOS 27.0, *) {
+                let managedItems = items.filter { item in
+                    guard item.canBeHidden, !item.isSystemClone else { return false }
+                    return !item.isControlItem
+                }
+                let updatedCache = appState?.menuBarManager.macOS27Controller.makeCache(
+                    liveItems: managedItems,
+                    sourceItems: items,
+                    displayID: displayID
+                ) ?? ItemCache(displayID: displayID)
+                let cacheToPublish = macOS27DesiredCache ?? macOS27ProjectedCache ?? updatedCache
+                if itemCache != cacheToPublish {
+                    itemCache = cacheToPublish
+                    logger.debug("Updated macOS 27 assignment-backed menu bar item cache")
+                }
+                appState?.menuBarManager.syncNativeVisibility()
+                return
+            }
+
+            guard let controlItems = ControlItemPair(items: &items) else {
+                // ???: Is clearing the cache the best thing to do here?
+                logger.warning("Missing control item for hidden section, clearing menu bar item cache")
+                itemCache = ItemCache(displayID: nil)
+                return
+            }
+
+            await enforceControlItemOrder(controlItems: controlItems)
+            await uncheckedCacheItems(items: items, controlItems: controlItems, displayID: displayID)
+        }
+    }
+
+    /// Caches the current menu bar items, if the items have changed
+    /// since the previous cache.
+    ///
+    /// Before caching, this method ensures that the control items for
+    /// the hidden and always-hidden sections are correctly ordered,
+    /// arranging them into valid positions if needed.
+    func cacheItemsIfNeeded() async {
+        if #available(macOS 27.0, *) {
+            await cacheItemsRegardless()
+            return
+        }
+        let itemWindowIDs = Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace])
+        if await cacheActor.cachedItemWindowIDs != itemWindowIDs {
+            await cacheItemsRegardless(itemWindowIDs)
+        }
+    }
 }
 
-// MARK: - Move Items
+// MARK: - Event Helpers
 
 extension MenuBarItemManager {
-    /// A destination that a menu bar item can be moved to.
-    enum MoveDestination {
-        /// The menu bar item will be moved to the left of the given menu bar item.
-        case leftOfItem(MenuBarItem)
+    /// An error that can occur during menu bar item event operations.
+    enum EventError: CustomStringConvertible, LocalizedError {
+        /// A generic indication of a failure.
+        case cannotComplete
+        /// An event source cannot be created or is otherwise invalid.
+        case invalidEventSource
+        /// The location of the mouse cannot be found.
+        case missingMouseLocation
+        /// A failure during the creation of an event.
+        case eventCreationFailure(MenuBarItem)
+        /// A timeout during an event operation.
+        case eventOperationTimeout(MenuBarItem)
+        /// A menu bar item is not movable.
+        case itemNotMovable(MenuBarItem)
+        /// A timeout waiting for a menu bar item to respond to an event.
+        case itemResponseTimeout(MenuBarItem)
+        /// A menu bar item's bounds cannot be found.
+        case missingItemBounds(MenuBarItem)
 
-        /// The menu bar item will be moved to the right of the given menu bar item.
+        var description: String {
+            switch self {
+            case .cannotComplete:
+                "\(Self.self).cannotComplete"
+            case .invalidEventSource:
+                "\(Self.self).invalidEventSource"
+            case .missingMouseLocation:
+                "\(Self.self).missingMouseLocation"
+            case .eventCreationFailure(let item):
+                "\(Self.self).eventCreationFailure(item: \(item.tag))"
+            case .eventOperationTimeout(let item):
+                "\(Self.self).eventOperationTimeout(item: \(item.tag))"
+            case .itemNotMovable(let item):
+                "\(Self.self).itemNotMovable(item: \(item.tag))"
+            case .itemResponseTimeout(let item):
+                "\(Self.self).itemResponseTimeout(item: \(item.tag))"
+            case .missingItemBounds(let item):
+                "\(Self.self).missingItemBounds(item: \(item.tag))"
+            }
+        }
+
+        var errorDescription: String? {
+            switch self {
+            case .cannotComplete:
+                "Operation could not be completed"
+            case .invalidEventSource:
+                "Invalid event source"
+            case .missingMouseLocation:
+                "Missing mouse location"
+            case .eventCreationFailure(let item):
+                "Could not create event for \"\(item.displayName)\""
+            case .eventOperationTimeout(let item):
+                "Event operation timed out for \"\(item.displayName)\""
+            case .itemNotMovable(let item):
+                "\"\(item.displayName)\" is not movable"
+            case .itemResponseTimeout(let item):
+                "\"\(item.displayName)\" took too long to respond"
+            case .missingItemBounds(let item):
+                "Missing bounds rectangle for \"\(item.displayName)\""
+            }
+        }
+
+        var recoverySuggestion: String? {
+            if case .itemNotMovable = self { return nil }
+            return "Please try again. If the error persists, please file a bug report."
+        }
+    }
+
+    /// Returns a Boolean value that indicates whether the user has
+    /// paused input for at least the given duration.
+    ///
+    /// - Parameter duration: The duration that certain types of input
+    ///   events must not have occured within in order to return `true`.
+    private nonisolated func hasUserPausedInput(for duration: Duration) -> Bool {
+        NSEvent.modifierFlags.isEmpty &&
+        !MouseHelpers.lastMovementOccurred(within: duration) &&
+        !MouseHelpers.lastScrollWheelOccurred(within: duration) &&
+        !MouseHelpers.isButtonPressed()
+    }
+
+    /// Waits asynchronously for the user to pause input.
+    private nonisolated func waitForUserToPauseInput() async throws {
+        let waitTask = Task {
+            while true {
+                try Task.checkCancellation()
+                if hasUserPausedInput(for: .milliseconds(50)) {
+                    break
+                }
+                try await Task.sleep(for: .milliseconds(250))
+            }
+        }
+        do {
+            try await waitTask.value
+        } catch {
+            throw EventError.cannotComplete
+        }
+    }
+
+    /// Waits between move operations for a dynamic amount of time,
+    /// based on the timestamp of the last move operation.
+    private nonisolated func waitForMoveOperationBuffer() async throws {
+        if let timestamp = await lastMoveOperationTimestamp {
+            let buffer = max(.milliseconds(25) - timestamp.duration(to: .now), .zero)
+            logger.debug("Move operation buffer: \(buffer)")
+            do {
+                try await Task.sleep(for: buffer)
+            } catch {
+                throw EventError.cannotComplete
+            }
+        }
+    }
+
+    /// Waits for the given duration between event operations.
+    ///
+    /// Since most event operations must perform cleanup or otherwise
+    /// run to completion, this method ignores task cancellation.
+    private nonisolated func eventSleep(for duration: Duration = .milliseconds(25)) async {
+        let task = Task {
+            try? await Task.sleep(for: duration)
+        }
+        await task.value
+    }
+
+    /// Returns the current bounds for the given item.
+    private nonisolated func getCurrentBounds(for item: MenuBarItem) async throws -> CGRect {
+        if #available(macOS 27.0, *) {
+            let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+            return items.first(where: { $0.tag == item.tag })?.bounds ?? item.bounds
+        }
+        let task = Task.detached(priority: .userInitiated) {
+            guard let bounds = Bridging.getWindowBounds(for: item.windowID) else {
+                throw EventError.missingItemBounds(item)
+            }
+            return bounds
+        }
+        return try await task.value
+    }
+
+    /// Returns the current mouse location.
+    private nonisolated func getMouseLocation() throws -> CGPoint {
+        guard let location = MouseHelpers.locationCoreGraphics else {
+            throw EventError.missingMouseLocation
+        }
+        return location
+    }
+
+    /// Returns the process identifier that can be used to create
+    /// and post a menu bar item event.
+    private nonisolated func getEventPID(for item: MenuBarItem) -> pid_t {
+        item.sourcePID ?? item.ownerPID
+    }
+
+    /// Returns an event source for a menu bar item event operation.
+    private nonisolated func getEventSource(
+        with stateID: CGEventSourceStateID = .hidSystemState
+    ) throws -> CGEventSource {
+        enum Context {
+            static var cache = [CGEventSourceStateID: CGEventSource]()
+        }
+        if let source = Context.cache[stateID] {
+            return source
+        }
+        guard let source = CGEventSource(stateID: stateID) else {
+            throw EventError.invalidEventSource
+        }
+        Context.cache[stateID] = source
+        return source
+    }
+
+    /// Prevents local events from being suppressed.
+    private nonisolated func permitLocalEvents() throws {
+        let source = try getEventSource(with: .combinedSessionState)
+        let states: [CGEventSuppressionState] = [
+            .eventSuppressionStateRemoteMouseDrag,
+            .eventSuppressionStateSuppressionInterval,
+        ]
+        for state in states {
+            source.setLocalEventsFilterDuringSuppressionState(.permitAllEvents, state: state)
+        }
+        source.localEventsSuppressionInterval = 0
+    }
+
+    /// Suppresses local keyboard events for a short interval after each
+    /// event posted from the given source. Local mouse events stay permitted,
+    /// matching the input state that native drags were validated with.
+    private nonisolated func suppressLocalKeyboardEvents(for source: CGEventSource) {
+        let states: [CGEventSuppressionState] = [
+            .eventSuppressionStateRemoteMouseDrag,
+            .eventSuppressionStateSuppressionInterval,
+        ]
+        for state in states {
+            source.setLocalEventsFilterDuringSuppressionState(
+                [.permitLocalMouseEvents, .permitSystemDefinedEvents],
+                state: state
+            )
+        }
+        source.localEventsSuppressionInterval = 0.25
+    }
+
+    /// Waits for the user to stop typing and holding modifiers or buttons
+    /// before a native Command-drag, giving up after a timeout.
+    ///
+    /// Pointer movement is allowed: local input is suppressed during the
+    /// drag, and Layout drags start while the user is still pointing.
+    @available(macOS 27.0, *)
+    private nonisolated func waitForUserToPauseInputForNativeDrag() async throws {
+        let deadline = ContinuousClock.now + .seconds(5)
+        while true {
+            try Task.checkCancellation()
+            let modifiers = NSEvent.modifierFlags.intersection([.command, .option, .control, .shift])
+            let isButtonPressed = MouseHelpers.isButtonPressed()
+            let secondsSinceKeyDown = CGEventSource.secondsSinceLastEventType(
+                .combinedSessionState,
+                eventType: .keyDown
+            )
+            if modifiers.isEmpty, !isButtonPressed, secondsSinceKeyDown >= 0.5 {
+                return
+            }
+            guard ContinuousClock.now < deadline else {
+                logger.notice("Skipping native drag: modifiers=\(modifiers.rawValue), button=\(isButtonPressed), secondsSinceKeyDown=\(secondsSinceKeyDown)")
+                throw EventError.cannotComplete
+            }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+    }
+
+    /// Posts an event to the given menu bar item and waits until
+    /// it is received before returning.
+    ///
+    /// - Parameters:
+    ///   - event: The event to post.
+    ///   - item: The menu bar item that the event targets.
+    ///   - timeout: The base duration to wait before throwing an error.
+    ///     The value of this parameter is multiplied by `count` to
+    ///     produce the actual timeout duration.
+    ///   - count: The number of times to repeat the operation. As it
+    ///     is considerably more efficient, prefer increasing this value
+    ///     over repeatedly calling `postEventWithBarrier`.
+    private nonisolated func postEventWithBarrier(
+        _ event: CGEvent,
+        to item: MenuBarItem,
+        timeout: Duration,
+        repeating count: Int = 1
+    ) async throws {
+        MouseHelpers.hideCursor()
+        defer {
+            MouseHelpers.showCursor()
+        }
+
+        guard
+            let entryEvent = CGEvent.uniqueNullEvent(),
+            let exitEvent = CGEvent.uniqueNullEvent()
+        else {
+            throw EventError.eventCreationFailure(item)
+        }
+
+        let pid = getEventPID(for: item)
+        event.setTargetPID(pid)
+
+        let firstLocation = EventTap.Location.pid(pid)
+        let secondLocation = EventTap.Location.sessionEventTap
+
+        var count = count
+        var eventTaps = [EventTap]()
+
+        let timeoutTask = Task(timeout: timeout * count) {
+            try await withCheckedThrowingContinuation { continuation in
+                // Listen for the following events at the first location
+                // and perform the following actions:
+                //
+                // - Entry event: Decrement the count and post the real
+                //   event to the second location (handled in EventTap 2).
+                // - Exit event: Resume the continuation.
+                //
+                // These events serve as start (or continue) and stop
+                // signals, and are discarded.
+                let eventTap1 = EventTap(
+                    label: "EventTap 1",
+                    type: .null,
+                    location: firstLocation,
+                    placement: .headInsertEventTap,
+                    option: .defaultTap
+                ) { tap, rEvent in
+                    if rEvent.matches(entryEvent, byIntegerFields: [.eventSourceUserData]) {
+                        count -= 1
+                        event.post(to: secondLocation)
+                        return nil
+                    }
+                    if rEvent.matches(exitEvent, byIntegerFields: [.eventSourceUserData]) {
+                        tap.disable()
+                        continuation.resume()
+                        return nil
+                    }
+                    return rEvent
+                }
+
+                // Listen for the real event at the second location and,
+                // depending on the count, post either the entry or exit
+                // event to the first location (handled in EventTap 1).
+                let eventTap2 = EventTap(
+                    label: "EventTap 2",
+                    type: event.type,
+                    location: secondLocation,
+                    placement: .tailAppendEventTap,
+                    option: .listenOnly
+                ) { tap, rEvent in
+                    guard rEvent.matches(event, byIntegerFields: CGEventField.menuBarItemEventFields) else {
+                        return rEvent
+                    }
+                    if count <= 0 {
+                        tap.disable()
+                        exitEvent.post(to: firstLocation)
+                    } else {
+                        entryEvent.post(to: firstLocation)
+                    }
+                    rEvent.setTargetPID(pid)
+                    return rEvent
+                }
+
+                // Keep the taps alive.
+                eventTaps.append(eventTap1)
+                eventTaps.append(eventTap2)
+
+                Task {
+                    await withTaskCancellationHandler {
+                        eventTap1.enable()
+                        eventTap2.enable()
+                        entryEvent.post(to: firstLocation)
+                    } onCancel: {
+                        eventTap1.disable()
+                        eventTap2.disable()
+                        continuation.resume(throwing: CancellationError())
+                    }
+                }
+            }
+        }
+        do {
+            try await timeoutTask.value
+        } catch is TaskTimeoutError {
+            throw EventError.eventOperationTimeout(item)
+        } catch {
+            throw EventError.cannotComplete
+        }
+    }
+
+    /// Casts forbidden magic to make a menu bar item receive and
+    /// respond to an event during a move operation.
+    ///
+    /// - Parameters:
+    ///   - event: The event to post.
+    ///   - item: The menu bar item that the event targets.
+    ///   - timeout: The base duration to wait before throwing an error.
+    ///     The value of this parameter is multiplied by `count` to
+    ///     produce the actual timeout duration.
+    ///   - count: The number of times to repeat the operation. As it
+    ///     is considerably more efficient, prefer increasing this value
+    ///     over repeatedly calling `scrombleEvent`.
+    private nonisolated func scrombleEvent(
+        _ event: CGEvent,
+        item: MenuBarItem,
+        timeout: Duration,
+        repeating count: Int = 1
+    ) async throws {
+        MouseHelpers.hideCursor()
+        defer {
+            MouseHelpers.showCursor()
+        }
+
+        guard
+            let entryEvent = CGEvent.uniqueNullEvent(),
+            let exitEvent = CGEvent.uniqueNullEvent()
+        else {
+            throw EventError.eventCreationFailure(item)
+        }
+
+        let pid = getEventPID(for: item)
+        event.setTargetPID(pid)
+
+        let firstLocation = EventTap.Location.pid(pid)
+        let secondLocation = EventTap.Location.sessionEventTap
+
+        var count = count
+        var eventTaps = [EventTap]()
+
+        let timeoutTask = Task(timeout: timeout * count) {
+            try await withCheckedThrowingContinuation { continuation in
+                // Listen for the following events at the first location
+                // and perform the following actions:
+                //
+                // - Entry event: Decrement the count and post the real
+                //   event to the second location (handled in EventTap 2).
+                // - Exit event: Resume the continuation.
+                //
+                // These events serve as start (or continue) and stop
+                // signals, and are discarded.
+                let eventTap1 = EventTap(
+                    label: "EventTap 1",
+                    type: .null,
+                    location: firstLocation,
+                    placement: .headInsertEventTap,
+                    option: .defaultTap
+                ) { tap, rEvent in
+                    if rEvent.matches(entryEvent, byIntegerFields: [.eventSourceUserData]) {
+                        count -= 1
+                        event.post(to: secondLocation)
+                        return nil
+                    }
+                    if rEvent.matches(exitEvent, byIntegerFields: [.eventSourceUserData]) {
+                        tap.disable()
+                        continuation.resume()
+                        return nil
+                    }
+                    return rEvent
+                }
+
+                // Listen for the real event at the second location and
+                // post the real event to the first location (handled in
+                // EventTap 3).
+                let eventTap2 = EventTap(
+                    label: "EventTap 2",
+                    type: event.type,
+                    location: secondLocation,
+                    placement: .tailAppendEventTap,
+                    option: .listenOnly
+                ) { tap, rEvent in
+                    guard rEvent.matches(event, byIntegerFields: CGEventField.menuBarItemEventFields) else {
+                        return rEvent
+                    }
+                    if count <= 0 {
+                        tap.disable()
+                    }
+                    event.post(to: firstLocation)
+                    rEvent.setTargetPID(pid)
+                    return rEvent
+                }
+
+                // Listen for the real event at the first location and,
+                // depending on the count, post either the entry or exit
+                // event to the first location (handled in EventTap 1).
+                let eventTap3 = EventTap(
+                    label: "EventTap 3",
+                    type: event.type,
+                    location: firstLocation,
+                    placement: .headInsertEventTap,
+                    option: .listenOnly
+                ) { tap, rEvent in
+                    guard rEvent.matches(event, byIntegerFields: CGEventField.menuBarItemEventFields) else {
+                        return rEvent
+                    }
+                    if count <= 0 {
+                        tap.disable()
+                        exitEvent.post(to: firstLocation)
+                    } else {
+                        entryEvent.post(to: firstLocation)
+                    }
+                    rEvent.setTargetPID(pid)
+                    return rEvent
+                }
+
+                // Keep the taps alive.
+                eventTaps.append(eventTap1)
+                eventTaps.append(eventTap2)
+                eventTaps.append(eventTap3)
+
+                Task {
+                    await withTaskCancellationHandler {
+                        eventTap1.enable()
+                        eventTap2.enable()
+                        eventTap3.enable()
+                        entryEvent.post(to: firstLocation)
+                    } onCancel: {
+                        eventTap1.disable()
+                        eventTap2.disable()
+                        eventTap3.disable()
+                        continuation.resume(throwing: CancellationError())
+                    }
+                }
+            }
+        }
+        do {
+            try await timeoutTask.value
+        } catch is TaskTimeoutError {
+            throw EventError.eventOperationTimeout(item)
+        } catch {
+            throw EventError.cannotComplete
+        }
+    }
+}
+
+// MARK: - Moving Items
+
+extension MenuBarItemManager {
+    /// Destinations for menu bar item move operations.
+    enum MoveDestination {
+        /// The destination to the left of the given target item.
+        case leftOfItem(MenuBarItem)
+        /// The destination to the right of the given target item.
         case rightOfItem(MenuBarItem)
+
+        /// The destination's target item.
+        var targetItem: MenuBarItem {
+            switch self {
+            case .leftOfItem(let item), .rightOfItem(let item): item
+            }
+        }
 
         /// A string to use for logging purposes.
         var logString: String {
@@ -580,967 +1146,2022 @@ extension MenuBarItemManager {
         }
     }
 
-    /// Returns the current frame for the given item.
-    ///
-    /// - Parameter item: The item to return the current frame for.
-    private func getCurrentFrame(for item: MenuBarItem) -> CGRect? {
-        guard let frame = Bridging.getWindowFrame(for: item.window.windowID) else {
-            Logger.itemManager.error("Couldn't get current frame for \(item.logString)")
-            return nil
+    /// Returns the default timeout for move operations associated
+    /// with the given item.
+    private func getDefaultMoveOperationTimeout(for item: MenuBarItem) -> Duration {
+        if item.isBentoBox {
+            // Bento Boxes (i.e. Control Center groups) generally
+            // take a little longer to respond.
+            return .milliseconds(100)
         }
-        return frame
+        return .milliseconds(50)
     }
 
-    /// Returns the end point for moving an item to the given destination.
-    ///
-    /// - Parameter destination: The destination to return the end point for.
-    private func getEndPoint(for destination: MoveDestination) throws -> CGPoint {
+    /// Returns the cached timeout for move operations associated
+    /// with the given item.
+    private func getMoveOperationTimeout(for item: MenuBarItem) -> Duration {
+        if let timeout = moveOperationTimeouts[item.tag] {
+            return timeout
+        }
+        return getDefaultMoveOperationTimeout(for: item)
+    }
+
+    /// Updates the cached timeout for move operations associated
+    /// with the given item.
+    private func updateMoveOperationTimeout(_ timeout: Duration, for item: MenuBarItem) {
+        let current = getMoveOperationTimeout(for: item)
+        let average = (timeout + current) / 2
+        let clamped = average.clamped(min: .milliseconds(25), max: .milliseconds(150))
+        moveOperationTimeouts[item.tag] = clamped
+    }
+
+    /// Returns the target points for creating the events needed to
+    /// move a menu bar item to the given destination.
+    private nonisolated func getTargetPoints(
+        forMoving item: MenuBarItem,
+        to destination: MoveDestination
+    ) async throws -> (start: CGPoint, end: CGPoint) {
+        let itemBounds = try await getCurrentBounds(for: item)
+        let targetBounds = try await getCurrentBounds(for: destination.targetItem)
         switch destination {
-        case .leftOfItem(let targetItem):
-            guard let currentFrame = getCurrentFrame(for: targetItem) else {
-                throw EventError(code: .invalidItem, item: targetItem)
+        case .leftOfItem:
+            var start = CGPoint(x: targetBounds.minX, y: targetBounds.minY)
+            var end = start
+            if itemBounds.maxX <= targetBounds.minX {
+                // Direction of movement: ->
+                end.x -= itemBounds.width
+            } else {
+                // Direction of movement: <-
+                start.x -= 1
             }
-            return CGPoint(x: currentFrame.minX, y: currentFrame.midY)
-        case .rightOfItem(let targetItem):
-            guard let currentFrame = getCurrentFrame(for: targetItem) else {
-                throw EventError(code: .invalidItem, item: targetItem)
+            return (start, end)
+        case .rightOfItem:
+            var start = CGPoint(x: targetBounds.maxX, y: targetBounds.minY)
+            var end = start
+            if itemBounds.minX <= targetBounds.maxX {
+                // Direction of movement: ->
+                end.x -= itemBounds.width
+            } else {
+                // Direction of movement: <-
+                start.x += 1
             }
-            return CGPoint(x: currentFrame.maxX, y: currentFrame.midY)
+            return (start, end)
         }
     }
 
-    /// Returns the fallback point for returning the given item to its original
-    /// position if a move fails.
-    ///
-    /// - Parameter item: The item to return the fallback point for.
-    private func getFallbackPoint(for item: MenuBarItem) throws -> CGPoint {
-        guard let currentFrame = getCurrentFrame(for: item) else {
-            throw EventError(code: .invalidItem, item: item)
-        }
-        return CGPoint(x: currentFrame.midX, y: currentFrame.midY)
-    }
-
-    /// Returns the target item for the given destination.
-    ///
-    /// - Parameter destination: The destination to get the target item from.
-    private func getTargetItem(for destination: MoveDestination) -> MenuBarItem {
-        switch destination {
-        case .leftOfItem(let targetItem), .rightOfItem(let targetItem): targetItem
+    /// Returns a Boolean value that indicates whether the given menu bar
+    /// item has the correct position, relative to the given destination.
+    private nonisolated func itemHasCorrectPosition(
+        item: MenuBarItem,
+        for destination: MoveDestination
+    ) async throws -> Bool {
+        let itemBounds = try await getCurrentBounds(for: item)
+        let targetBounds = try await getCurrentBounds(for: destination.targetItem)
+        return switch destination {
+        case .leftOfItem: itemBounds.maxX == targetBounds.minX
+        case .rightOfItem: itemBounds.minX == targetBounds.maxX
         }
     }
 
-    /// Returns a Boolean value that indicates whether the given item is in the
-    /// correct position for the given destination.
-    ///
-    /// - Parameters:
-    ///   - item: The item to check the position of.
-    ///   - destination: The destination to compare the item's position against.
-    private func itemHasCorrectPosition(item: MenuBarItem, for destination: MoveDestination) throws -> Bool {
-        guard let currentFrame = getCurrentFrame(for: item) else {
-            throw EventError(code: .invalidItem, item: item)
-        }
-        switch destination {
-        case .leftOfItem(let targetItem):
-            guard let currentTargetFrame = getCurrentFrame(for: targetItem) else {
-                throw EventError(code: .invalidItem, item: targetItem)
-            }
-            return currentFrame.maxX == currentTargetFrame.minX
-        case .rightOfItem(let targetItem):
-            guard let currentTargetFrame = getCurrentFrame(for: targetItem) else {
-                throw EventError(code: .invalidItem, item: targetItem)
-            }
-            return currentFrame.minX == currentTargetFrame.maxX
-        }
-    }
+    /// Checks a hosted macOS 27 menu bar move using a supplied targeted AX
+    /// snapshot. Comparing ordinal adjacency avoids another full menu-bar walk.
+    @available(macOS 27.0, *)
+    private nonisolated func macOS27ItemHasCorrectPosition(
+        item: MenuBarItem,
+        for destination: MoveDestination,
+        among snapshot: [MenuBarItem],
+        requiredSection: MenuBarSection.Name? = nil
+    ) -> Bool {
+        let items = snapshot.sorted { $0.bounds.minX < $1.bounds.minX }
 
-    /// Returns a Boolean value that indicates whether the given events have the
-    /// same values for each integer value field.
-    ///
-    /// - Parameters:
-    ///   - events: The events to compare.
-    ///   - integerFields: An array of integer value fields to compare on each event.
-    private nonisolated func eventsMatch(_ events: [CGEvent], by integerFields: [CGEventField]) -> Bool {
-        var fieldValues = Set<[Int64]>()
-        for event in events {
-            let values = integerFields.map(event.getIntegerValueField)
-            fieldValues.insert(values)
-            if fieldValues.count != 1 {
-                return false
-            }
+        func index(of needle: MenuBarItem) -> Int? {
+            items.firstIndex { $0.windowID == needle.windowID }
+                ?? items.firstIndex(matching: needle.tag)
         }
-        return true
-    }
 
-    /// Posts an event to the given event tap location.
-    ///
-    /// - Parameters:
-    ///   - event: The event to post.
-    ///   - location: The event tap location to post the event to.
-    private nonisolated func postEvent(_ event: CGEvent, to location: EventTap.Location) {
-        Logger.itemManager.debug("Posting \(event.type.logString) to \(location.logString)")
-        switch location {
-        case .hidEventTap:
-            event.post(tap: .cghidEventTap)
-        case .sessionEventTap:
-            event.post(tap: .cgSessionEventTap)
-        case .annotatedSessionEventTap:
-            event.post(tap: .cgAnnotatedSessionEventTap)
-        case .pid(let pid):
-            event.postToPid(pid)
+        guard
+            let itemIndex = index(of: item),
+            let targetIndex = index(of: destination.targetItem)
+        else {
+            return false
+        }
+        let hasRequestedAdjacency = switch destination {
+        case .leftOfItem: itemIndex == targetIndex - 1
+        case .rightOfItem: itemIndex == targetIndex + 1
+        }
+        guard hasRequestedAdjacency, let requiredSection else {
+            return hasRequestedAdjacency
+        }
+
+        // A cross-section Layout drop is complete only after the item is on
+        // the requested side of Ice. Relative adjacency alone can already be
+        // true in a stale hosted snapshot while both items are still on the
+        // opposite side of the section boundary.
+        guard let iceIndex = items.firstIndex(matching: .nativeBoundary(for: requiredSection)) else {
+            return false
+        }
+        return switch requiredSection {
+        case .visible: itemIndex > iceIndex
+        case .hidden, .alwaysHidden: itemIndex < iceIndex
         }
     }
 
-    /// Posts an event to the given event tap location and waits until it is
-    /// received before returning.
-    ///
-    /// - Parameters:
-    ///   - event: The event to post.
-    ///   - location: The event tap location to post the event to.
-    ///   - item: The menu bar item that the event affects.
-    private func postEventAndWaitToReceive(
-        _ event: CGEvent,
-        to location: EventTap.Location,
-        item: MenuBarItem
-    ) async throws {
-        return try await withCheckedThrowingContinuation { continuation in
-            let eventTap = EventTap(
-                options: .listenOnly,
-                location: location,
-                place: .tailAppendEventTap,
-                types: [event.type]
-            ) { [weak self] proxy, type, rEvent in
-                guard let self else {
-                    proxy.disable()
-                    return nil
+    /// Refreshes every owner in the transaction snapshot so long-move
+    /// verification observes the complete physical permutation.
+    @available(macOS 27.0, *)
+    private nonisolated func targetedMacOS27Items(
+        item: MenuBarItem,
+        destination: MoveDestination,
+        contextItems: [MenuBarItem],
+        additionallyRequiring additionalTags: Set<MenuBarItemTag> = []
+    ) async -> [MenuBarItem] {
+        let target = destination.targetItem
+        let ordered = contextItems.sorted { $0.bounds.minX < $1.bounds.minX }
+        var relevantItems = [item, target]
+
+        if
+            let itemIndex = ordered.firstIndex(matching: item.tag),
+            let targetIndex = ordered.firstIndex(matching: target.tag)
+        {
+            let lowerBound = min(itemIndex, targetIndex)
+            let upperBound = max(itemIndex, targetIndex)
+            relevantItems.append(contentsOf: ordered[lowerBound ... upperBound])
+
+            // Include the item beyond the requested insertion edge. Without
+            // it, an overshoot could look like valid adjacency in a targeted
+            // snapshot that omitted the intervening owner.
+            let withoutMovedItem = ordered.filter { $0.tag != item.tag }
+            if let refreshedTargetIndex = withoutMovedItem.firstIndex(matching: target.tag) {
+                let farIndex: Int? = switch destination {
+                case .leftOfItem:
+                    refreshedTargetIndex > withoutMovedItem.startIndex
+                        ? refreshedTargetIndex - 1
+                        : nil
+                case .rightOfItem:
+                    refreshedTargetIndex + 1 < withoutMovedItem.endIndex
+                        ? refreshedTargetIndex + 1
+                        : nil
                 }
-
-                // Reenable the tap if disabled by the system.
-                if type == .tapDisabledByUserInput || type == .tapDisabledByTimeout {
-                    proxy.enable()
-                    return nil
+                if let farIndex {
+                    relevantItems.append(withoutMovedItem[farIndex])
                 }
-
-                // Verify that the received event was the sent event.
-                guard eventsMatch([rEvent, event], by: CGEventField.menuBarItemEventFields) else {
-                    return nil
-                }
-
-                // Ensure the tap is enabled, preventing multiple calls to resume().
-                guard proxy.isEnabled else {
-                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled (item: \(item.logString))")
-                    return nil
-                }
-
-                Logger.itemManager.debug("Received \(type.logString) at \(location.logString) (item: \(item.logString))")
-
-                // Disable the tap and resume the continuation.
-                proxy.disable()
-                continuation.resume()
-
-                return nil
             }
-
-            eventTap.enable(timeout: .milliseconds(50)) {
-                Logger.itemManager.error("Event tap \"\(eventTap.label)\" timed out (item: \(item.logString))")
-                eventTap.disable()
-                continuation.resume(throwing: EventError(code: .eventOperationTimeout, item: item))
-            }
-
-            // Post the event to the location.
-            postEvent(event, to: location)
         }
+        relevantItems.append(contentsOf: ordered.filter { additionalTags.contains($0.tag) })
+
+        let sourcePIDs = Set(relevantItems.map {
+            $0.sourcePID ?? $0.ownerPID
+        })
+        let namespaces = Set(relevantItems.map(\.tag.namespace))
+        return await Task.detached(priority: .userInitiated) {
+            MacOS27MenuBarItemProvider.menuBarItems(
+                sourcePIDs: sourcePIDs,
+                namespaces: namespaces
+            )
+        }.value
     }
 
-    /// Does a lot of weird magic to make a menu bar item receive an event.
-    ///
-    /// - Parameters:
-    ///   - event: The event to send.
-    ///   - firstLocation: The first location to send the event to.
-    ///   - secondLocation: The second location to send the event to.
-    ///   - item: The menu bar item that the event affects.
-    private func scrombleEvent(
-        _ event: CGEvent,
-        from firstLocation: EventTap.Location,
-        to secondLocation: EventTap.Location,
-        item: MenuBarItem
-    ) async throws {
-        // Create a null event and assign it unique user data.
-        guard let nullEvent = CGEvent(source: nil) else {
-            throw EventError(code: .eventCreationFailure, item: item)
+    /// Refreshes the physical range touched by a user-initiated move and merges
+    /// it into the controller's complete snapshot. Rewalking every known owner
+    /// before every drag made a two-icon move wait on unrelated applications.
+    /// The affected range plus its far-edge guard is sufficient for the native
+    /// adjacent-swap transaction; a full walk remains the endpoint fallback.
+    @available(macOS 27.0, *)
+    private nonisolated func currentMacOS27Items(
+        knownItems: [MenuBarItem],
+        item: MenuBarItem,
+        destination: MoveDestination,
+        requiring requiredTags: Set<MenuBarItemTag>
+    ) async -> [MenuBarItem] {
+        let targeted = await targetedMacOS27Items(
+            item: item,
+            destination: destination,
+            contextItems: knownItems,
+            additionallyRequiring: requiredTags
+        )
+        let targetedTags = Set(targeted.map(\.tag))
+        if requiredTags.isSubset(of: targetedTags) {
+            return Array(
+                Dictionary(
+                    (knownItems + targeted).map { ($0.tag, $0) },
+                    uniquingKeysWith: { _, refreshed in refreshed }
+                ).values
+            )
         }
-        let nullUserData = Int64(truncatingIfNeeded: Int(bitPattern: ObjectIdentifier(nullEvent)))
-        nullEvent.setIntegerValueField(.eventSourceUserData, value: nullUserData)
 
-        return try await withCheckedThrowingContinuation { continuation in
-            // Create an event tap for the null event at the first location.
-            // This tap throws away all events it receives.
-            let eventTap1 = EventTap(
-                label: "EventTap 1",
-                options: .defaultTap,
-                location: firstLocation,
-                place: .tailAppendEventTap,
-                types: [nullEvent.type]
-            ) { [weak self] proxy, type, rEvent in
-                guard let self else {
-                    proxy.disable()
-                    return nil
-                }
-
-                // Reenable the tap if disabled by the system.
-                if type == .tapDisabledByUserInput || type == .tapDisabledByTimeout {
-                    proxy.enable()
-                    return nil
-                }
-
-                // Verify that this is the null event.
-                guard rEvent.getIntegerValueField(.eventSourceUserData) == nullUserData else {
-                    return nil
-                }
-
-                // Disable the tap and post the real event to the second location.
-                proxy.disable()
-                postEvent(event, to: secondLocation)
-
-                return nil
-            }
-
-            // Create an event tap for the real event at the second location.
-            // This tap can listen for events, but cannot alter or discard them.
-            let eventTap2 = EventTap(
-                label: "EventTap 2",
-                options: .listenOnly,
-                location: secondLocation,
-                place: .tailAppendEventTap,
-                types: [event.type]
-            ) { [weak self] proxy, type, rEvent in
-                guard let self else {
-                    proxy.disable()
-                    return nil
-                }
-
-                // Reenable the tap if disabled by the system.
-                if type == .tapDisabledByUserInput || type == .tapDisabledByTimeout {
-                    proxy.enable()
-                    return nil
-                }
-
-                // Verify that the received event was the sent event.
-                guard eventsMatch([rEvent, event], by: CGEventField.menuBarItemEventFields) else {
-                    return nil
-                }
-
-                // Ensure the tap is enabled, preventing multiple calls to resume().
-                guard proxy.isEnabled else {
-                    Logger.itemManager.debug("Event tap \"\(proxy.label)\" is disabled (item: \(item.logString))")
-                    return nil
-                }
-
-                // Disable the tap, post the event to the first location, and resume
-                // the continuation.
-                proxy.disable()
-                postEvent(event, to: firstLocation)
-                continuation.resume()
-
-                return nil
-            }
-
-            // Enable both taps, with a timeout on the second tap.
-            eventTap1.enable()
-            eventTap2.enable(timeout: .milliseconds(50)) {
-                Logger.itemManager.error("Event tap \"\(eventTap2.label)\" timed out (item: \(item.logString))")
-                eventTap1.disable()
-                eventTap2.disable()
-                continuation.resume(throwing: EventError(code: .eventOperationTimeout, item: item))
-            }
-
-            // Post the null event to the first location.
-            postEvent(nullEvent, to: firstLocation)
-        }
+        // A just-launched owner may not have reached the controller snapshot
+        // yet. Fall back to one complete walk only when a required endpoint is
+        // genuinely absent from the fast path.
+        return await Task.detached(priority: .userInitiated) {
+            MacOS27MenuBarItemProvider.menuBarItems(on: nil, option: .activeSpace)
+        }.value
     }
 
-    /// Does a lot of weird magic to make a menu bar item receive an event, then
-    /// waits for the frame of the given menu bar item to change before returning.
+    /// Clicks an item that is concealed for the Ice Bar on macOS 27.
     ///
-    /// - Parameters:
-    ///   - event: The event to send.
-    ///   - firstLocation: The first location to send the event to.
-    ///   - secondLocation: The second location to send the event to.
-    ///   - item: The item whose frame should be observed.
-    private func scrombleEvent(
-        _ event: CGEvent,
-        from firstLocation: EventTap.Location,
-        to secondLocation: EventTap.Location,
-        waitingForFrameChangeOf item: MenuBarItem
-    ) async throws {
-        guard let currentFrame = getCurrentFrame(for: item) else {
-            try await scrombleEvent(event, from: firstLocation, to: secondLocation, item: item)
-            Logger.itemManager.warning("Couldn't get menu bar item frame for \(item.logString), so using fixed delay")
-            // This will be slow, but subsequent events will have a better chance of succeeding.
-            try await Task.sleep(for: .milliseconds(50))
+    /// The item is pressed through Accessibility, which works while it isn't
+    /// drawn. If that isn't possible, the hidden items are revealed, the item
+    /// is clicked where MenuBarAgent draws it, and the items are concealed
+    /// again once the menu or window the click opened has closed.
+    @available(macOS 27.0, *)
+    func clickConcealedItem(_ item: MenuBarItem, with mouseButton: CGMouseButton) async {
+        guard let appState else {
             return
         }
-        try await scrombleEvent(event, from: firstLocation, to: secondLocation, item: item)
-        try await waitForFrameChange(of: item, initialFrame: currentFrame, timeout: .milliseconds(50))
+        // Press the item through Accessibility where possible, so the hidden
+        // items stay out of the menu bar. Reveal and click only as a fallback.
+        if MacOS27MenuBarItemProvider.pressItem(item, showingMenu: mouseButton == .right) {
+            return
+        }
+        let menuBarManager = appState.menuBarManager
+        menuBarManager.beginIceBarReveal()
+        defer {
+            menuBarManager.endIceBarReveal()
+        }
+
+        let clickPoint: CGPoint
+        var ownerPIDs: Set<pid_t>
+        if let revealedItem = await waitForRevealedItem(item) {
+            clickPoint = revealedItem.bounds.center
+            ownerPIDs = Set([revealedItem.ownerPID, revealedItem.sourcePID].compactMap { $0 })
+        } else if let overflowFrame = MacOS27MenuBarItemProvider.overflowControlFrames.first {
+            // The menu bar has no room for the item even with the hidden items
+            // revealed, so macOS keeps it in its own overflow. Open that
+            // instead, where the item can be clicked.
+            logger.notice("\(item.logString, privacy: .public) is in the system overflow; opening it instead")
+            clickPoint = overflowFrame.center
+            ownerPIDs = Set(
+                NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.MenuBarAgent")
+                    .map(\.processIdentifier)
+            )
+        } else {
+            logger.error("\(item.logString, privacy: .public) didn't appear in the menu bar after revealing hidden items")
+            return
+        }
+
+        let windowsBeforeClick = Self.onScreenWindowIDs(ownedBy: ownerPIDs)
+        do {
+            try await postMacOS27Click(at: clickPoint, with: mouseButton)
+        } catch {
+            logger.error("Clicking \(item.logString, privacy: .public) failed: \(error, privacy: .public)")
+            return
+        }
+        logger.notice("Clicked \(item.logString, privacy: .public) at \(clickPoint.debugDescription, privacy: .public)")
+
+        // The items are visible now, so refresh the Ice Bar's images.
+        Task {
+            await appState.imageCache.captureMacOS27Images(for: .hidden, onlyIfMissing: false)
+        }
+
+        // Keep the items revealed while the menu or window the click opened is
+        // on screen. If nothing opens, conceal them again after a moment.
+        let deadline = ContinuousClock.now + .seconds(120)
+        var sawWindow = false
+        var samplesWithoutWindow = 0
+        while ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(200))
+            let newWindows = Self.onScreenWindowIDs(ownedBy: ownerPIDs).subtracting(windowsBeforeClick)
+            if newWindows.isEmpty {
+                samplesWithoutWindow += 1
+                if samplesWithoutWindow >= (sawWindow ? 2 : 6) {
+                    break
+                }
+            } else {
+                sawWindow = true
+                samplesWithoutWindow = 0
+            }
+        }
     }
 
-    /// Waits for a menu bar item's frame to change from an initial frame.
+    /// Waits for a revealed item to settle at a frame in the menu bar.
+    @available(macOS 27.0, *)
+    private func waitForRevealedItem(_ item: MenuBarItem) async -> MenuBarItem? {
+        let sourcePIDs: Set<pid_t> = [item.sourcePID ?? item.ownerPID]
+        let namespaces: Set<MenuBarItemTag.Namespace> = [item.tag.namespace]
+        var previousBounds: CGRect?
+        for _ in 0 ..< 20 {
+            try? await Task.sleep(for: .milliseconds(100))
+            let items = await Task.detached(priority: .userInitiated) {
+                MacOS27MenuBarItemProvider.menuBarItems(sourcePIDs: sourcePIDs, namespaces: namespaces)
+            }.value
+            guard
+                let current = items.first(matching: item.tag),
+                current.isOnScreen,
+                NSScreen.screens.contains(where: {
+                    let display = CGDisplayBounds($0.displayID)
+                    let strip = CGRect(x: display.minX, y: display.minY, width: display.width, height: 40)
+                    return strip.contains(current.bounds)
+                })
+            else {
+                previousBounds = nil
+                continue
+            }
+            if current.bounds == previousBounds {
+                return current
+            }
+            previousBounds = current.bounds
+        }
+        return nil
+    }
+
+    /// Posts a click at a point in the menu bar, then returns the pointer.
+    @available(macOS 27.0, *)
+    private nonisolated func postMacOS27Click(at point: CGPoint, with mouseButton: CGMouseButton) async throws {
+        try await waitForUserToPauseInputForNativeDrag()
+        let source = try getEventSource(with: .combinedSessionState)
+        let originalMouseLocation = try getMouseLocation()
+        let (downType, upType): (CGEventType, CGEventType) = switch mouseButton {
+        case .right: (.rightMouseDown, .rightMouseUp)
+        default: (.leftMouseDown, .leftMouseUp)
+        }
+        guard
+            let mouseDown = CGEvent(
+                mouseEventSource: source,
+                mouseType: downType,
+                mouseCursorPosition: point,
+                mouseButton: mouseButton
+            ),
+            let mouseUp = CGEvent(
+                mouseEventSource: source,
+                mouseType: upType,
+                mouseCursorPosition: point,
+                mouseButton: mouseButton
+            )
+        else {
+            throw EventError.cannotComplete
+        }
+        MouseHelpers.warpCursor(to: point)
+        await eventSleep(for: .milliseconds(20))
+        mouseDown.post(tap: .cghidEventTap)
+        await eventSleep(for: .milliseconds(40))
+        mouseUp.post(tap: .cghidEventTap)
+        await eventSleep(for: .milliseconds(40))
+        MouseHelpers.warpCursor(to: originalMouseLocation)
+    }
+
+    /// Returns the identifiers of the on-screen windows owned by the given processes.
+    private nonisolated static func onScreenWindowIDs(ownedBy pids: Set<pid_t>) -> Set<CGWindowID> {
+        guard
+            let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]]
+        else {
+            return []
+        }
+        return Set(windows.compactMap { window in
+            guard
+                let pid = window[kCGWindowOwnerPID as String] as? pid_t,
+                pids.contains(pid),
+                let windowID = window[kCGWindowNumber as String] as? CGWindowID
+            else {
+                return nil
+            }
+            return windowID
+        })
+    }
+
+    /// Posts the native Command-drag that MenuBarAgent uses for macOS 27
+    /// status-item reordering, for Layout or alignment of Ice's own boundary.
+    @available(macOS 27.0, *)
+    private nonisolated func postMacOS27CommandDrag(
+        item: MenuBarItem,
+        destination: MoveDestination
+    ) async throws {
+        try Task.checkCancellation()
+        try await waitForUserToPauseInputForNativeDrag()
+        let itemBounds = item.bounds
+        let targetBounds = destination.targetItem.bounds
+        let start = itemBounds.center
+        let endX = switch destination {
+        case .leftOfItem: targetBounds.minX - 3
+        case .rightOfItem: targetBounds.maxX + 3
+        }
+        let end = CGPoint(
+            x: endX,
+            y: targetBounds.midY
+        )
+        let originalMouseLocation = try getMouseLocation()
+        let source = try getEventSource(with: .combinedSessionState)
+
+        guard
+            let commandDown = CGEvent(
+                keyboardEventSource: source,
+                virtualKey: 0x37,
+                keyDown: true
+            ),
+            let commandUp = CGEvent(
+                keyboardEventSource: source,
+                virtualKey: 0x37,
+                keyDown: false
+            )
+        else {
+            throw EventError.eventCreationFailure(item)
+        }
+        commandDown.flags = .maskCommand
+        var commandIsDown = false
+        var mouseIsDown = false
+
+        func event(_ type: CGEventType, at point: CGPoint) throws -> CGEvent {
+            guard let event = CGEvent(
+                mouseEventSource: source,
+                mouseType: type,
+                mouseCursorPosition: point,
+                mouseButton: .left
+            ) else {
+                throw EventError.eventCreationFailure(item)
+            }
+            // Long moves need one non-coalesced sample for every crossed
+            // insertion boundary so crossing several neighbors is one drag.
+            event.flags = [.maskCommand, .maskNonCoalesced]
+            return event
+        }
+
+        let mouseUp = try event(.leftMouseUp, at: end)
+        // Suppress the user's own keyboard input while the synthetic Command
+        // key is down, so a keystroke can't become a Command shortcut.
+        suppressLocalKeyboardEvents(for: source)
+        MouseHelpers.hideCursor()
+        defer {
+            if mouseIsDown { mouseUp.post(tap: .cghidEventTap) }
+            if commandIsDown {
+                commandUp.post(tap: .cghidEventTap)
+            }
+            MouseHelpers.warpCursor(to: originalMouseLocation)
+            MouseHelpers.showCursor()
+            try? permitLocalEvents()
+        }
+
+        MouseHelpers.warpCursor(to: start)
+        commandDown.post(tap: .cghidEventTap)
+        commandIsDown = true
+        await eventSleep(for: .milliseconds(24))
+        // Before mouse-down a cancelled request can still stop safely. Once
+        // pressed, finish the drag and release both inputs before unpinning.
+        try Task.checkCancellation()
+        try event(.leftMouseDown, at: start).post(tap: .cghidEventTap)
+        mouseIsDown = true
+        await eventSleep(for: .milliseconds(55))
+
+        let distance = abs(end.x - start.x)
+        let steps = max(12, min(42, Int(ceil(distance / 6))))
+        for index in 1 ... steps {
+            let progress = CGFloat(index) / CGFloat(steps)
+            let point = CGPoint(
+                x: start.x + (end.x - start.x) * progress,
+                y: start.y + (end.y - start.y) * progress
+            )
+            try event(.leftMouseDragged, at: point).post(tap: .cghidEventTap)
+            await eventSleep(for: .milliseconds(5))
+        }
+        await eventSleep(for: .milliseconds(28))
+        mouseUp.post(tap: .cghidEventTap)
+        mouseIsDown = false
+        commandUp.post(tap: .cghidEventTap)
+        commandIsDown = false
+    }
+
+    /// Layout sends a native drag, then observes the actual settled result.
+    /// Never rewrite preference guesses or freeze the system compositor.
+    @available(macOS 27.0, *)
+    private func performMacOS27NativeMove(
+        item: MenuBarItem,
+        destination: MoveDestination,
+        contextItems: [MenuBarItem],
+        appState: AppState,
+        requiredSection: MenuBarSection.Name? = nil
+    ) async -> Bool {
+        let isOwnBoundaryAlignment: Bool
+        if case .leftOfItem(let target) = destination {
+            isOwnBoundaryAlignment = item.tag == .nativeBoundary(for: .hidden) && target.tag == .visibleControlItem
+        } else {
+            isOwnBoundaryAlignment = false
+        }
+        guard appState.menuBarManager.macOS27Controller.isLayoutEditing || isOwnBoundaryAlignment else { return false }
+        do {
+            try await eventSemaphore.waitUnlessCancelled()
+        } catch {
+            return false
+        }
+        defer { eventSemaphore.signal() }
+
+        var snapshot = contextItems
+        for _ in 0 ..< 2 {
+            guard
+                !Task.isCancelled,
+                let liveItem = snapshot.first(matching: item.tag),
+                let liveTarget = snapshot.first(matching: destination.targetItem.tag)
+            else {
+                return false
+            }
+            guard NSScreen.screens.contains(where: {
+                MacOS27NativeBoundary.canDrag(
+                    from: liveItem.bounds, to: liveTarget.bounds, on: CGDisplayBounds($0.displayID)
+                )
+            }) else { return false }
+            if isOwnBoundaryAlignment {
+                let center = liveItem.bounds.center
+                let hitElement = AXHelpers.element(at: center)
+                let hitIdentifier = hitElement.flatMap { AXHelpers.identifier(for: $0) }
+                if hitIdentifier != liveItem.tag.title {
+                    let hitFrame = hitElement.flatMap { AXHelpers.frame(for: $0) }
+                    let hitDescription = hitElement.map { element in
+                        let role = AXHelpers.role(for: element).map { "\($0)" } ?? "?"
+                        let pid = (try? element.pid()).map { "\($0)" } ?? "?"
+                        let frame = hitFrame?.debugDescription ?? "?"
+                        return "\(hitIdentifier ?? "no identifier") role=\(role) pid=\(pid) frame=\(frame)"
+                    } ?? "none"
+                    // On macOS 27, system-wide hit testing returns MenuBarAgent's
+                    // unidentified host element for a status item, or nothing at
+                    // all. Fall back to geometry: the hit element, if any, must
+                    // have exactly the boundary's frame, Ice's own fresh frame must
+                    // still match, and no other item's frame may contain the start.
+                    let hitFrameMatches = hitFrame.map { frame in
+                        abs(frame.minX - liveItem.bounds.minX) <= 1 &&
+                            abs(frame.maxX - liveItem.bounds.maxX) <= 1 &&
+                            abs(frame.midY - liveItem.bounds.midY) <= 1
+                    }
+                    let ownBoundary = MacOS27MenuBarItemProvider.ownMenuBarItems().first(matching: liveItem.tag)
+                    let overlappingItems = snapshot.filter {
+                        $0.tag != liveItem.tag && $0.bounds.insetBy(dx: -1, dy: 0).contains(center)
+                    }
+                    guard
+                        hitIdentifier == nil,
+                        hitFrameMatches ?? true,
+                        ownBoundary?.bounds == liveItem.bounds,
+                        overlappingItems.isEmpty
+                    else {
+                        let ownDescription = ownBoundary?.bounds.debugDescription ?? "missing"
+                        let overlapDescription = overlappingItems.map { "\($0.tag)" }.joined(separator: ", ")
+                        logger.error("Refusing boundary drag at \(liveItem.bounds.debugDescription, privacy: .public): hit target \(hitDescription, privacy: .public), own frame \(ownDescription, privacy: .public), overlapping [\(overlapDescription, privacy: .public)]")
+                        return false
+                    }
+                    logger.notice("Hit test found \(hitDescription, privacy: .public) at Ice's boundary; accepting it by frame")
+                }
+            }
+            let requested: MoveDestination = switch destination {
+            case .leftOfItem: .leftOfItem(liveTarget)
+            case .rightOfItem: .rightOfItem(liveTarget)
+            }
+            do {
+                appState.menuBarManager.beginNativeDrag()
+                defer { appState.menuBarManager.endNativeDrag() }
+                lastMoveOperationTimestamp = .now
+                try await postMacOS27CommandDrag(item: liveItem, destination: requested)
+                lastMoveOperationTimestamp = .now
+            } catch is CancellationError {
+                return false
+            } catch {
+                logger.error("Native Layout drag failed: \(error, privacy: .public)")
+                return false
+            }
+
+            var verifiedSamples = 0
+            for _ in 0 ..< 12 {
+                try? await Task.sleep(for: .milliseconds(80))
+                guard !Task.isCancelled else { return false }
+                snapshot = await currentMacOS27ReorderSnapshot(appState: appState)
+                guard
+                    let moved = snapshot.first(matching: item.tag),
+                    let target = snapshot.first(matching: destination.targetItem.tag)
+                else {
+                    continue
+                }
+                let refreshed: MoveDestination = switch destination {
+                case .leftOfItem: .leftOfItem(target)
+                case .rightOfItem: .rightOfItem(target)
+                }
+                if macOS27ItemHasCorrectPosition(
+                    item: moved,
+                    for: refreshed,
+                    among: snapshot,
+                    requiredSection: requiredSection
+                ) {
+                    verifiedSamples += 1
+                    if verifiedSamples == 2 { return true }
+                } else {
+                    verifiedSamples = 0
+                }
+            }
+            let finalBounds = snapshot.first(matching: item.tag)?.bounds.debugDescription ?? "missing"
+            let finalTargetBounds = snapshot.first(matching: destination.targetItem.tag)?.bounds.debugDescription ?? "missing"
+            logger.warning("Native drag from \(liveItem.bounds.debugDescription, privacy: .public) toward \(liveTarget.bounds.debugDescription, privacy: .public) left the item at \(finalBounds, privacy: .public) with target at \(finalTargetBounds, privacy: .public)")
+        }
+        return false
+    }
+
+    /// Waits for a menu bar item to respond to a series of previously
+    /// posted move events.
     ///
     /// - Parameters:
-    ///   - item: The item whose frame should be observed.
-    ///   - initialFrame: An initial frame to compare the item's frame against.
-    ///   - timeout: The amount of time to wait before throwing a timeout error.
-    private func waitForFrameChange(of item: MenuBarItem, initialFrame: CGRect, timeout: Duration) async throws {
-        struct FrameCheckCancellationError: Error { }
-
-        let frameCheckTask = Task(timeout: timeout) {
+    ///   - item: The item to check for a response.
+    ///   - initialOrigin: The origin of the item before the events were posted.
+    ///   - timeout: The duration to wait before throwing an error.
+    private nonisolated func waitForMoveEventResponse(
+        from item: MenuBarItem,
+        initialOrigin: CGPoint,
+        timeout: Duration
+    ) async throws -> CGPoint {
+        MouseHelpers.hideCursor()
+        defer {
+            MouseHelpers.showCursor()
+        }
+        let responseTask = Task.detached {
             while true {
                 try Task.checkCancellation()
-                guard let currentFrame = await self.getCurrentFrame(for: item) else {
-                    throw FrameCheckCancellationError()
+                let origin = try await self.getCurrentBounds(for: item).origin
+                if origin != initialOrigin {
+                    return origin
                 }
-                if currentFrame != initialFrame {
-                    Logger.itemManager.debug("Menu bar item frame for \(item.logString) has changed to \(NSStringFromRect(currentFrame))")
-                    return
-                }
+                // Give the target application time to process the move and,
+                // on macOS 27, avoid hammering the serialized AX item scan.
+                try await Task.sleep(for: .milliseconds(10))
+            }
+        }
+        let timeoutTask = Task(timeout: timeout) {
+            try await withTaskCancellationHandler {
+                try await responseTask.value
+            } onCancel: {
+                responseTask.cancel()
             }
         }
         do {
-            try await frameCheckTask.value
-        } catch is FrameCheckCancellationError {
-            Logger.itemManager.warning("Menu bar item frame check for \(item.logString) was cancelled, so using fixed delay")
-            // This will be slow, but subsequent events will have a better chance of succeeding.
-            try await Task.sleep(for: .milliseconds(50))
-        } catch is TaskTimeoutError {
-            throw EventError(code: .frameCheckTimeout, item: item)
-        }
-    }
-
-    /// Permits all events for an event source during the given suppression states,
-    /// suppressing local events for the given interval.
-    private func permitAllEvents(
-        for stateID: CGEventSourceStateID,
-        during states: [CGEventSuppressionState],
-        suppressionInterval: TimeInterval,
-        item: MenuBarItem
-    ) throws {
-        guard let source = CGEventSource(stateID: stateID) else {
-            throw EventError(code: .invalidEventSource, item: item)
-        }
-        for state in states {
-            source.setLocalEventsFilterDuringSuppressionState(.permitAllEvents, state: state)
-        }
-        source.localEventsSuppressionInterval = suppressionInterval
-    }
-
-    /// Tries to wake up the given item if it is not responding to events.
-    private func wakeUpItem(_ item: MenuBarItem) async throws {
-        Logger.itemManager.debug("Attempting to wake up \(item.logString)")
-
-        guard let source = CGEventSource(stateID: .hidSystemState) else {
-            throw EventError(code: .invalidEventSource, item: item)
-        }
-        guard let currentFrame = getCurrentFrame(for: item) else {
-            throw EventError(code: .invalidItem, item: item)
-        }
-
-        guard
-            let mouseDownEvent = CGEvent.menuBarItemEvent(
-                type: .move(.leftMouseDown),
-                location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
-                item: item,
-                pid: item.ownerPID,
-                source: source
-            ),
-            let mouseUpEvent = CGEvent.menuBarItemEvent(
-                type: .move(.leftMouseUp),
-                location: CGPoint(x: currentFrame.midX, y: currentFrame.midY),
-                item: item,
-                pid: item.ownerPID,
-                source: source
+            let origin = try await timeoutTask.value
+            logger.debug(
+                """
+                Item responded to events with new origin: \
+                \(String(describing: origin), privacy: .public)
+                """
             )
-        else {
-            throw EventError(code: .eventCreationFailure, item: item)
+            return origin
+        } catch let error as EventError {
+            throw error
+        } catch is TaskTimeoutError {
+            throw EventError.itemResponseTimeout(item)
+        } catch {
+            throw EventError.cannotComplete
         }
-
-        try await scrombleEvent(
-            mouseDownEvent,
-            from: .pid(item.ownerPID),
-            to: .sessionEventTap,
-            item: item
-        )
-        try await scrombleEvent(
-            mouseUpEvent,
-            from: .pid(item.ownerPID),
-            to: .sessionEventTap,
-            item: item
-        )
     }
 
-    /// Moves a menu bar item to the given destination, without restoring the mouse
-    /// pointer to its initial location.
+    /// Creates and posts a series of events to move a menu bar item
+    /// to the given destination.
     ///
     /// - Parameters:
-    ///   - item: A menu bar item to move.
-    ///   - destination: A destination to move the menu bar item.
-    private func moveItemWithoutRestoringMouseLocation(_ item: MenuBarItem, to destination: MoveDestination) async throws {
-        itemMoveCount += 1
+    ///   - item: The menu bar item to move.
+    ///   - destination: The destination to move the menu bar item.
+    private func postMoveEvents(
+        item: MenuBarItem,
+        destination: MoveDestination,
+        hostedByMenuBarAgent: Bool = false
+    ) async throws {
+        try await eventSemaphore.waitUnlessCancelled()
         defer {
-            itemMoveCount -= 1
+            eventSemaphore.signal()
         }
 
-        guard item.isMovable else {
-            throw EventError(code: .notMovable, item: item)
+        var itemOrigin = try await getCurrentBounds(for: item).origin
+        let targetPoints: (start: CGPoint, end: CGPoint)
+        if hostedByMenuBarAgent {
+            let targetBounds = try await getCurrentBounds(for: destination.targetItem)
+            // macOS 27's hosted status items respond to a press/release at the
+            // destination edge with the moved item's window ID stamped on the
+            // press. A conventional drag gesture is ignored by MenuBarAgent.
+            let point = switch destination {
+            case .leftOfItem: CGPoint(x: targetBounds.minX, y: targetBounds.minY)
+            case .rightOfItem: CGPoint(x: targetBounds.maxX, y: targetBounds.minY)
+            }
+            targetPoints = (point, point)
+        } else {
+            targetPoints = try await getTargetPoints(forMoving: item, to: destination)
         }
-        guard let source = CGEventSource(stateID: .hidSystemState) else {
-            throw EventError(code: .invalidEventSource, item: item)
-        }
+        let mouseLocation = try getMouseLocation()
+        let source = try getEventSource()
 
-        let startPoint = CGPoint(x: 20_000, y: 20_000)
-        let endPoint = try getEndPoint(for: destination)
-        let fallbackPoint = try getFallbackPoint(for: item)
-        let targetItem = getTargetItem(for: destination)
+        try permitLocalEvents()
 
         guard
-            let mouseDownEvent = CGEvent.menuBarItemEvent(
-                type: .move(.leftMouseDown),
-                location: startPoint,
+            let mouseDown = CGEvent.menuBarItemEvent(
                 item: item,
-                pid: item.ownerPID,
-                source: source
+                source: source,
+                type: .move(.mouseDown),
+                location: targetPoints.start
             ),
-            let mouseUpEvent = CGEvent.menuBarItemEvent(
-                type: .move(.leftMouseUp),
-                location: endPoint,
-                item: targetItem,
-                pid: item.ownerPID,
-                source: source
-            ),
-            let fallbackEvent = CGEvent.menuBarItemEvent(
-                type: .move(.leftMouseUp),
-                location: fallbackPoint,
-                item: item,
-                pid: item.ownerPID,
-                source: source
+            let mouseUp = CGEvent.menuBarItemEvent(
+                item: destination.targetItem,
+                source: source,
+                type: .move(.mouseUp),
+                location: targetPoints.end
             )
         else {
-            throw EventError(code: .eventCreationFailure, item: item)
+            throw EventError.eventCreationFailure(item)
         }
 
-        try permitAllEvents(
-            for: .combinedSessionState,
-            during: [
-                .eventSuppressionStateRemoteMouseDrag,
-                .eventSuppressionStateSuppressionInterval,
-            ],
-            suppressionInterval: 0,
-            item: item
-        )
+        var timeout = getMoveOperationTimeout(for: item)
+        if hostedByMenuBarAgent {
+            // Hosted items need noticeably longer than legacy WindowServer
+            // items when MenuBarAgent is recomposing the bar.
+            timeout = max(timeout, .milliseconds(350))
+            MouseHelpers.warpCursor(to: targetPoints.start)
+            await eventSleep(for: .milliseconds(20))
+        }
+        logger.debug("Move operation timeout: \(timeout)")
 
-        lastItemMoveStartDate = .now
+        lastMoveOperationTimestamp = .now
+        MouseHelpers.hideCursor()
+        defer {
+            MouseHelpers.warpCursor(to: mouseLocation)
+            MouseHelpers.showCursor()
+            lastMoveOperationTimestamp = .now
+            updateMoveOperationTimeout(timeout, for: item)
+        }
 
         do {
             try await scrombleEvent(
-                mouseDownEvent,
-                from: .pid(item.ownerPID),
-                to: .sessionEventTap,
-                waitingForFrameChangeOf: item
+                mouseDown,
+                item: item,
+                timeout: timeout
+            )
+            itemOrigin = try await waitForMoveEventResponse(
+                from: item,
+                initialOrigin: itemOrigin,
+                timeout: timeout
             )
             try await scrombleEvent(
-                mouseUpEvent,
-                from: .pid(item.ownerPID),
-                to: .sessionEventTap,
-                waitingForFrameChangeOf: item
+                mouseUp,
+                item: item,
+                timeout: timeout,
+                repeating: 2 // Double mouse up prevents invalid item state.
             )
+            itemOrigin = try await waitForMoveEventResponse(
+                from: item,
+                initialOrigin: itemOrigin,
+                timeout: timeout
+            )
+            timeout -= timeout / 4
         } catch {
             do {
-                Logger.itemManager.debug("Posting fallback event for moving \(item.logString)")
-                // Catch this, as we still want to throw the existing error if the fallback fails.
-                try await postEventAndWaitToReceive(
-                    fallbackEvent,
-                    to: .sessionEventTap,
-                    item: item
+                logger.warning("Move events failed, posting fallback")
+                try await scrombleEvent(
+                    mouseUp,
+                    item: item,
+                    timeout: .milliseconds(100), // Fixed timeout for fallback.
+                    repeating: 2 // Double mouse up prevents invalid item state.
                 )
             } catch {
-                Logger.itemManager.error("Failed to post fallback event for moving \(item.logString)")
+                // Catch this for logging purposes only. We want to propagate
+                // the original error.
+                logger.error("Fallback failed with error: \(error, privacy: .public)")
             }
+            timeout += timeout / 2
             throw error
+        }
+    }
+
+    @available(macOS 27.0, *)
+    private struct MacOS27MoveInstruction {
+        let item: MenuBarItem
+        let destination: MoveDestination
+        let requiredSection: MenuBarSection.Name
+    }
+
+    @available(macOS 27.0, *)
+    private enum MacOS27DesiredOrderStatus {
+        case converged
+        case incomplete
+        case needsMove(MenuBarItemTag)
+    }
+
+    @available(macOS 27.0, *)
+    private enum MacOS27ReorderError: Error {
+        case endpointUnavailable
+    }
+
+    /// Records one Layout edit in the desired cache and returns immediately.
+    /// The shared worker consumes only the newest complete order.
+    @available(macOS 27.0, *)
+    private func enqueueMacOS27Move(
+        item: MenuBarItem,
+        to destination: MoveDestination,
+        requiredSection: MenuBarSection.Name?
+    ) {
+        let previousDesired = macOS27DesiredCache ?? itemCache
+        var desired = previousDesired
+        for section in MenuBarSection.Name.allCases {
+            desired[section].removeAll { $0.tag == item.tag }
+        }
+        desired.insert(item, at: destination)
+
+        // A cross-section AppKit drop already knows its destination container.
+        // If its neighbor vanished between the drop and this run-loop turn,
+        // preserve the section request instead of silently reinserting the item
+        // into the target's stale section.
+        if
+            let requiredSection,
+            desired.address(for: item.tag)?.section != requiredSection
+        {
+            for section in MenuBarSection.Name.allCases {
+                desired[section].removeAll { $0.tag == item.tag }
+            }
+            if requiredSection == .visible {
+                desired[requiredSection].insert(item, at: 0)
+            } else {
+                desired[requiredSection].append(item)
+            }
+        }
+
+        var touchedTags = macOS27ChangedTags(from: previousDesired, to: desired)
+        touchedTags.formUnion([item.tag, destination.targetItem.tag])
+        enqueueMacOS27DesiredCache(
+            desired,
+            sourceTag: item.tag,
+            touchedTags: touchedTags
+        )
+    }
+
+    /// Records a move into an otherwise empty Layout section.
+    @available(macOS 27.0, *)
+    private func enqueueMacOS27Move(
+        item: MenuBarItem,
+        toSection section: MenuBarSection.Name
+    ) {
+        let previousDesired = macOS27DesiredCache ?? itemCache
+        var desired = previousDesired
+        for existingSection in MenuBarSection.Name.allCases {
+            desired[existingSection].removeAll { $0.tag == item.tag }
+        }
+        if section == .visible {
+            desired[section].insert(item, at: 0)
+        } else {
+            desired[section].append(item)
+        }
+        var touchedTags = macOS27ChangedTags(from: previousDesired, to: desired)
+        touchedTags.insert(item.tag)
+        enqueueMacOS27DesiredCache(
+            desired,
+            sourceTag: item.tag,
+            touchedTags: touchedTags
+        )
+    }
+
+    @available(macOS 27.0, *)
+    private func macOS27ChangedTags(
+        from oldCache: ItemCache,
+        to newCache: ItemCache
+    ) -> Set<MenuBarItemTag> {
+        let tags = Set((oldCache.managedItems + newCache.managedItems).map(\.tag))
+        return Set(tags.filter { tag in
+            let oldAddress = oldCache.address(for: tag)
+            let newAddress = newCache.address(for: tag)
+            return oldAddress?.section != newAddress?.section ||
+                oldAddress?.index != newAddress?.index
+        })
+    }
+
+    @available(macOS 27.0, *)
+    private func enqueueMacOS27DesiredCache(
+        _ desired: ItemCache,
+        sourceTag: MenuBarItemTag,
+        touchedTags: Set<MenuBarItemTag>
+    ) {
+        macOS27DesiredGeneration &+= 1
+        let generation = macOS27DesiredGeneration
+        macOS27DesiredCache = desired
+        macOS27TouchedMoveTags.formUnion(touchedTags)
+        appState?.menuBarManager.macOS27Controller.beginReordering()
+        macOS27PendingMoveGenerations[sourceTag] = generation
+        macOS27PendingMoveOrder.removeAll { $0 == sourceTag }
+        macOS27PendingMoveOrder.append(sourceTag)
+
+        // This is the editor preview, not an animation. It remains the only
+        // order Layout publishes until the real menu bar has converged.
+        if itemCache != desired {
+            itemCache = desired
+        }
+
+        logger.debug("Queued macOS 27 desired menu bar order generation \(generation, privacy: .public)")
+        startMacOS27ReorderWorkerIfNeeded()
+    }
+
+    @available(macOS 27.0, *)
+    private func startMacOS27ReorderWorkerIfNeeded() {
+        guard macOS27ReorderTask == nil else { return }
+        macOS27ReorderTask = Task { @MainActor [weak self] in
+            await self?.runMacOS27ReorderWorker()
+        }
+    }
+
+    /// Waits for a short input quiet period. A single drag still begins quickly,
+    /// while several drops in the same gesture burst become one final order.
+    @available(macOS 27.0, *)
+    private func waitForMacOS27DesiredOrderToSettle() async -> Bool {
+        while !Task.isCancelled {
+            let generation = macOS27DesiredGeneration
+            do {
+                try await Task.sleep(for: .milliseconds(180))
+            } catch {
+                return false
+            }
+            if generation == macOS27DesiredGeneration {
+                return true
+            }
+        }
+        return false
+    }
+
+    @available(macOS 27.0, *)
+    private func macOS27MoveInstruction(
+        for tag: MenuBarItemTag,
+        desiredCache: ItemCache,
+        appState: AppState
+    ) -> MacOS27MoveInstruction? {
+        guard let address = desiredCache.address(for: tag) else { return nil }
+        let items = desiredCache[address.section]
+        guard items.indices.contains(address.index) else { return nil }
+        let item = items[address.index]
+
+        if items.indices.contains(address.index + 1) {
+            return MacOS27MoveInstruction(
+                item: item,
+                destination: .leftOfItem(items[address.index + 1]),
+                requiredSection: address.section
+            )
+        }
+        if items.indices.contains(address.index - 1) {
+            return MacOS27MoveInstruction(
+                item: item,
+                destination: .rightOfItem(items[address.index - 1]),
+                requiredSection: address.section
+            )
+        }
+
+        guard
+            let iceItem = appState.menuBarManager.macOS27Controller
+                .knownItemsForReordering()
+                .first(matching: .nativeBoundary(for: address.section))
+        else {
+            return nil
+        }
+        return MacOS27MoveInstruction(
+            item: item,
+            destination: address.section == .visible
+                ? .rightOfItem(iceItem)
+                : .leftOfItem(iceItem),
+            requiredSection: address.section
+        )
+    }
+
+    /// Reads every currently managed owner once for final-order verification.
+    /// Stale retained snapshots are deliberately not merged into a nonempty
+    /// result: an absent hosted child must settle before a batch can pass.
+    @available(macOS 27.0, *)
+    private func currentMacOS27ReorderSnapshot(appState: AppState) async -> [MenuBarItem] {
+        let knownItems = appState.menuBarManager.macOS27Controller.knownItemsForReordering()
+        let sourcePIDs = Set(knownItems.map { $0.sourcePID ?? $0.ownerPID }).union([ProcessInfo.processInfo.processIdentifier])
+        let namespaces = Set(knownItems.map(\.tag.namespace)).union([.ice])
+        let refreshed = await Task.detached(priority: .userInitiated) {
+            MacOS27MenuBarItemProvider.menuBarItems(
+                sourcePIDs: sourcePIDs,
+                namespaces: namespaces
+            )
+        }.value
+        return refreshed
+    }
+
+    /// Compares the complete affected model, including the Ice boundary, rather
+    /// than accepting one source/target pair that happened to be adjacent in a
+    /// transient AX snapshot.
+    @available(macOS 27.0, *)
+    private func macOS27DesiredOrderStatus(
+        desiredCache: ItemCache,
+        appState: AppState
+    ) async -> MacOS27DesiredOrderStatus {
+        let physicalSections: [MenuBarSection.Name] = [
+            .alwaysHidden,
+            .hidden,
+            .visible,
+        ]
+        var seenTags = Set<MenuBarItemTag>()
+        let desiredTags: [MenuBarItemTag] = physicalSections.flatMap { section -> [MenuBarItemTag] in
+            desiredCache[section].compactMap { item -> MenuBarItemTag? in
+                guard macOS27TouchedMoveTags.contains(item.tag) else {
+                    return nil
+                }
+                return seenTags.insert(item.tag).inserted
+                    ? item.tag
+                    : nil
+            }
+        }
+        guard !desiredTags.isEmpty else { return .converged }
+
+        let snapshot = await currentMacOS27ReorderSnapshot(appState: appState)
+        let desiredTagSet = Set(desiredTags)
+        let ordered = snapshot.sorted { $0.bounds.minX < $1.bounds.minX }
+        let liveTags = ordered.compactMap { item in
+            desiredTagSet.contains(item.tag) ? item.tag : nil
+        }
+        guard liveTags.count == desiredTags.count else { return .incomplete }
+
+        if liveTags != desiredTags {
+            for index in desiredTags.indices where desiredTags[index] != liveTags[index] {
+                return .needsMove(desiredTags[index])
+            }
+            return .incomplete
+        }
+
+        for section in physicalSections {
+            guard let boundaryIndex = ordered.firstIndex(matching: .nativeBoundary(for: section)) else {
+                if desiredCache[section].isEmpty { continue }
+                return .incomplete
+            }
+            for item in desiredCache[section] {
+                guard macOS27TouchedMoveTags.contains(item.tag) else { continue }
+                guard let itemIndex = ordered.firstIndex(matching: item.tag) else { return .incomplete }
+                // Native hosted hit areas can overlap by a few points (notably
+                // Text Input). Use the same ordinal contract as the drag step.
+                let isOnCorrectSide = section == .visible
+                    ? itemIndex > boundaryIndex
+                    : itemIndex < boundaryIndex
+                if !isOnCorrectSide {
+                    return .needsMove(item.tag)
+                }
+            }
+        }
+        return .converged
+    }
+
+    @available(macOS 27.0, *)
+    private func runMacOS27ReorderWorker() async {
+        guard let appState else {
+            macOS27ReorderTask = nil
+            return
+        }
+        guard await waitForMacOS27DesiredOrderToSettle() else {
+            macOS27ReorderTask = nil
+            return
+        }
+        // Layout's idle state has no blank slots. Expose and align our own
+        // boundary only for this explicit edit, without replacing its preview.
+        guard await alignNativeHidingBoundary(updatingCache: false) else {
+            await failMacOS27DesiredOrder(
+                generation: macOS27DesiredGeneration, appState: appState, presentsAlert: false
+            )
+            return
+        }
+
+        var failedAttempts = 0
+        var workerGeneration = macOS27DesiredGeneration
+        var correctionAttempts = [MenuBarItemTag: Int]()
+
+        while !Task.isCancelled {
+            guard let desiredCache = macOS27DesiredCache else {
+                macOS27ReorderTask = nil
+                return
+            }
+
+            if workerGeneration != macOS27DesiredGeneration {
+                workerGeneration = macOS27DesiredGeneration
+                failedAttempts = 0
+                correctionAttempts.removeAll()
+                guard await waitForMacOS27DesiredOrderToSettle() else {
+                    macOS27ReorderTask = nil
+                    return
+                }
+                continue
+            }
+
+            if let sourceTag = macOS27PendingMoveOrder.first {
+                let sourceGeneration = macOS27PendingMoveGenerations[sourceTag]
+                guard
+                    let instruction = macOS27MoveInstruction(
+                        for: sourceTag,
+                        desiredCache: desiredCache,
+                        appState: appState
+                    )
+                else {
+                    macOS27PendingMoveOrder.removeFirst()
+                    macOS27PendingMoveGenerations[sourceTag] = nil
+                    continue
+                }
+
+                do {
+                    try await move(
+                        item: instruction.item,
+                        to: instruction.destination,
+                        requiredSection: instruction.requiredSection,
+                        coordinateMacOS27Move: false
+                    )
+                    if macOS27PendingMoveGenerations[sourceTag] == sourceGeneration {
+                        macOS27PendingMoveOrder.removeAll { $0 == sourceTag }
+                        macOS27PendingMoveGenerations[sourceTag] = nil
+                    }
+                    failedAttempts = 0
+                } catch {
+                    // A newer Layout edit makes this operation obsolete. Keep
+                    // reconciling the latest desired state without surfacing an
+                    // error for the discarded intermediate request.
+                    if workerGeneration != macOS27DesiredGeneration {
+                        continue
+                    }
+                    failedAttempts += 1
+                    logger.warning(
+                        "macOS 27 desired-order step failed (attempt \(failedAttempts, privacy: .public)): \(error, privacy: .public)"
+                    )
+                    if failedAttempts < 3 {
+                        try? await Task.sleep(for: .milliseconds(180))
+                        continue
+                    }
+                    await failMacOS27DesiredOrder(
+                        generation: workerGeneration,
+                        appState: appState,
+                        presentsAlert: !(error is MacOS27ReorderError)
+                    )
+                    return
+                }
+                continue
+            }
+
+            let firstStatus = await macOS27DesiredOrderStatus(
+                desiredCache: desiredCache,
+                appState: appState
+            )
+            if workerGeneration != macOS27DesiredGeneration {
+                continue
+            }
+
+            switch firstStatus {
+            case .needsMove(let tag):
+                correctionAttempts[tag, default: 0] += 1
+                guard correctionAttempts[tag, default: 0] <= 3 else {
+                    await failMacOS27DesiredOrder(
+                        generation: workerGeneration, appState: appState, presentsAlert: false
+                    )
+                    return
+                }
+                macOS27PendingMoveGenerations[tag] = workerGeneration
+                macOS27PendingMoveOrder.append(tag)
+                continue
+            case .incomplete:
+                failedAttempts += 1
+                if failedAttempts < 4 {
+                    try? await Task.sleep(for: .milliseconds(180))
+                    continue
+                }
+                await failMacOS27DesiredOrder(
+                    generation: workerGeneration,
+                    appState: appState,
+                    presentsAlert: false
+                )
+                return
+            case .converged:
+                try? await Task.sleep(for: .milliseconds(140))
+                guard workerGeneration == macOS27DesiredGeneration else { continue }
+                let secondStatus = await macOS27DesiredOrderStatus(
+                    desiredCache: desiredCache,
+                    appState: appState
+                )
+                guard workerGeneration == macOS27DesiredGeneration else { continue }
+                switch secondStatus {
+                case .converged:
+                    await completeMacOS27DesiredOrder(
+                        generation: workerGeneration,
+                        appState: appState
+                    )
+                    return
+                case .needsMove(let tag):
+                    correctionAttempts[tag, default: 0] += 1
+                    guard correctionAttempts[tag, default: 0] <= 3 else {
+                        await failMacOS27DesiredOrder(
+                            generation: workerGeneration, appState: appState, presentsAlert: false
+                        )
+                        return
+                    }
+                    macOS27PendingMoveGenerations[tag] = workerGeneration
+                    macOS27PendingMoveOrder.append(tag)
+                case .incomplete:
+                    failedAttempts += 1
+                }
+            }
+        }
+
+        macOS27ReorderTask = nil
+    }
+
+    @available(macOS 27.0, *)
+    private func completeMacOS27DesiredOrder(
+        generation: UInt64,
+        appState: AppState
+    ) async {
+        guard generation == macOS27DesiredGeneration else { return }
+        logger.notice("Committed macOS 27 desired menu bar order generation \(generation, privacy: .public)")
+        macOS27PendingMoveOrder.removeAll()
+        macOS27PendingMoveGenerations.removeAll()
+        macOS27TouchedMoveTags.removeAll()
+        macOS27DesiredCache = nil
+        macOS27ProjectedCache = nil
+        let controller = appState.menuBarManager.macOS27Controller
+        controller.completePendingMove()
+        controller.endReordering()
+        macOS27ReorderTask = nil
+        await cacheItemsRegardless(ignoringRecentMovement: true)
+    }
+
+    @available(macOS 27.0, *)
+    private func failMacOS27DesiredOrder(
+        generation: UInt64,
+        appState: AppState,
+        presentsAlert: Bool
+    ) async {
+        guard generation == macOS27DesiredGeneration else { return }
+        logger.error("Could not reconcile macOS 27 with the final desired Layout order")
+        macOS27PendingMoveOrder.removeAll()
+        macOS27PendingMoveGenerations.removeAll()
+        macOS27TouchedMoveTags.removeAll()
+        macOS27DesiredCache = nil
+        macOS27ProjectedCache = nil
+        let controller = appState.menuBarManager.macOS27Controller
+        controller.completePendingMove()
+        controller.endReordering()
+        macOS27ReorderTask = nil
+        await cacheItemsRegardless(ignoringRecentMovement: true)
+        guard
+            presentsAlert,
+            generation == macOS27DesiredGeneration,
+            macOS27DesiredCache == nil
+        else {
+            return
+        }
+        NSAlert(error: EventError.cannotComplete).runModal()
+    }
+
+    @available(macOS 27.0, *)
+    private func projectMacOS27CacheMove(
+        item: MenuBarItem,
+        to destination: MoveDestination
+    ) {
+        var projected = macOS27DesiredCache ?? itemCache
+        for section in MenuBarSection.Name.allCases {
+            projected[section].removeAll { $0.tag == item.tag }
+        }
+        projected.insert(item, at: destination)
+        macOS27ProjectedCache = projected
+        let cacheToDisplay = macOS27DesiredCache ?? projected
+        if cacheToDisplay != itemCache {
+            itemCache = cacheToDisplay
         }
     }
 
     /// Moves a menu bar item to the given destination.
     ///
     /// - Parameters:
-    ///   - item: A menu bar item to move.
-    ///   - destination: A destination to move the menu bar item.
-    func move(item: MenuBarItem, to destination: MoveDestination) async throws {
-        if try itemHasCorrectPosition(item: item, for: destination) {
-            Logger.itemManager.debug("\(item.logString) is already in the correct position")
+    ///   - item: The menu bar item to move.
+    ///   - destination: The destination to move the item to.
+    func move(
+        item: MenuBarItem,
+        to destination: MoveDestination,
+        requiredSection: MenuBarSection.Name? = nil,
+        coordinateMacOS27Move: Bool = true
+    ) async throws {
+        guard item.tag != destination.targetItem.tag else {
+            logger.debug("Ignoring a menu bar move whose item and target are identical")
+            return
+        }
+        guard item.isMovable else {
+            throw EventError.itemNotMovable(item)
+        }
+        guard let appState else {
+            throw EventError.cannotComplete
+        }
+
+        if #available(macOS 27.0, *), coordinateMacOS27Move {
+            enqueueMacOS27Move(
+                item: item,
+                to: destination,
+                requiredSection: requiredSection
+            )
             return
         }
 
-        do {
-            // Order of these waiters matters, as the modifiers could be released
-            // while the mouse is still moving.
-            try await waitForNoModifiersPressed()
-            try await waitForMouseToStopMoving()
-        } catch {
-            throw EventError(code: .couldNotComplete, item: item)
+        if #available(macOS 27.0, *) {
+            try await macOS27MoveSemaphore.waitUnlessCancelled()
+            defer { macOS27MoveSemaphore.signal() }
+
+            // Reflect the requested order immediately while the physical move
+            // is applied and verified. Layout has no animation, and a failed
+            // or cancelled transaction restores this cache atomically.
+            let cacheBeforeMove = itemCache
+            projectMacOS27CacheMove(item: item, to: destination)
+            var shouldRestoreProjectedCache = true
+            defer {
+                macOS27ProjectedCache = nil
+                if
+                    shouldRestoreProjectedCache,
+                    macOS27DesiredCache == nil,
+                    itemCache != cacheBeforeMove
+                {
+                    itemCache = cacheBeforeMove
+                }
+            }
+
+            logger.log(
+                "Assigning \(item.logString, privacy: .public) to \(destination.logString, privacy: .public) on macOS 27"
+            )
+            let knownItems = appState.menuBarManager.macOS27Controller.knownItemsForReordering()
+            var requiredTags: Set<MenuBarItemTag> = [item.tag, destination.targetItem.tag]
+            if requiredSection != nil {
+                requiredTags.insert(.visibleControlItem)
+                requiredTags.insert(.nativeBoundary(for: requiredSection ?? .visible))
+            }
+            let liveItems = await currentMacOS27Items(
+                knownItems: knownItems,
+                item: item,
+                destination: destination,
+                requiring: requiredTags
+            )
+            guard
+                let liveItem = liveItems.first(where: { $0.tag == item.tag }),
+                let liveTarget = liveItems.first(where: {
+                    $0.tag == destination.targetItem.tag
+                })
+            else {
+                // Hosted items such as Spotlight can disappear for one AX
+                // sample while MenuBarAgent republishes them. Let the desired-
+                // order worker retry against a stable snapshot instead of
+                // treating an obsolete intermediate request as successful.
+                logger.notice("macOS 27 move endpoint is temporarily unavailable")
+                throw MacOS27ReorderError.endpointUnavailable
+            }
+            func resolvedDestination(for target: MenuBarItem) -> MoveDestination {
+                switch destination {
+                case .leftOfItem: .leftOfItem(target)
+                case .rightOfItem: .rightOfItem(target)
+                }
+            }
+            let liveDestination = resolvedDestination(for: liveTarget)
+            var didMove = macOS27ItemHasCorrectPosition(
+                item: liveItem,
+                for: liveDestination,
+                among: liveItems,
+                requiredSection: requiredSection
+            )
+
+            // Drag directly to the requested native neighbor. Do not insert
+            // a preference-write or boundary-only move before the real move.
+            if !didMove {
+                var moveItems = liveItems
+                var moveItem = liveItem
+                var moveDestination = liveDestination
+
+                if requiredSection != nil {
+                    // A preceding section move can still be republishing its
+                    // hosted scenes after releasing the move semaphore. Take
+                    // one targeted boundary snapshot for cross-section work;
+                    // same-section adjustments keep the single-scan fast path.
+                    let refreshedItems = await currentMacOS27Items(
+                        knownItems: knownItems,
+                        item: liveItem,
+                        destination: liveDestination,
+                        requiring: requiredTags
+                    )
+                    if
+                        let refreshedItem = refreshedItems.first(where: { $0.tag == item.tag }),
+                        let refreshedTarget = refreshedItems.first(where: {
+                            $0.tag == destination.targetItem.tag
+                        })
+                    {
+                        moveItems = refreshedItems
+                        moveItem = refreshedItem
+                        moveDestination = resolvedDestination(for: refreshedTarget)
+                        didMove = macOS27ItemHasCorrectPosition(
+                            item: moveItem,
+                            for: moveDestination,
+                            among: moveItems,
+                            requiredSection: requiredSection
+                        )
+                    }
+                }
+
+                if !didMove {
+                    didMove = await performMacOS27NativeMove(
+                        item: moveItem,
+                        destination: moveDestination,
+                        contextItems: moveItems,
+                        appState: appState,
+                        requiredSection: requiredSection
+                    )
+                }
+            }
+
+            guard didMove else {
+                logger.warning("Could not verify the requested macOS 27 reorder")
+                throw EventError.cannotComplete
+            }
+
+            // Persist and project only after the real AX order agrees. This
+            // prevents Layout from displaying an optimistic permutation that
+            // snaps back on its deferred cache refresh.
+            let resolvedSection = appState.menuBarManager.macOS27Controller.move(
+                item: liveItem,
+                to: liveDestination,
+                currentCache: cacheBeforeMove,
+                requiredSection: requiredSection
+            )
+            if let requiredSection, resolvedSection != requiredSection {
+                logger.error("macOS 27 move resolved to an unexpected Layout section")
+            }
+            projectMacOS27CacheMove(item: liveItem, to: liveDestination)
+            macOS27ProjectedCache = nil
+            shouldRestoreProjectedCache = false
+            return
         }
 
-        Logger.itemManager.info("Moving \(item.logString) to \(destination.logString)")
+        try await waitForUserToPauseInput()
 
-        guard let appState else {
-            throw EventError(code: .invalidAppState, item: item)
-        }
-        guard let cursorLocation = MouseCursor.locationCoreGraphics else {
-            throw EventError(code: .invalidCursorLocation, item: item)
-        }
-        guard let initialFrame = getCurrentFrame(for: item) else {
-            throw EventError(code: .invalidItem, item: item)
-        }
-
-        appState.eventManager.stopAll()
+        appState.hidEventManager.stopAll()
         defer {
-            appState.eventManager.startAll()
+            appState.hidEventManager.startAll()
         }
 
-        MouseCursor.hide()
+        try await waitForMoveOperationBuffer()
 
+        logger.log(
+            """
+            Moving \(item.logString, privacy: .public) to \
+            \(destination.logString, privacy: .public)
+            """
+        )
+
+        guard try await !itemHasCorrectPosition(item: item, for: destination) else {
+            logger.debug("Item has correct position, cancelling move")
+            return
+        }
+
+        MouseHelpers.hideCursor()
         defer {
-            MouseCursor.warp(to: cursorLocation)
-            MouseCursor.show()
+            MouseHelpers.showCursor()
         }
 
-        // Item movement can occasionally fail. Retry up to a total of 5 attempts,
-        // throwing the last attempt's error if it fails.
-        for n in 1...5 {
+        let maxAttempts = 8
+        for n in 1...maxAttempts {
+            guard !Task.isCancelled else {
+                throw EventError.cannotComplete
+            }
             do {
-                try await moveItemWithoutRestoringMouseLocation(item, to: destination)
-                guard let newFrame = getCurrentFrame(for: item) else {
-                    throw EventError(code: .invalidItem, item: item)
+                if try await itemHasCorrectPosition(item: item, for: destination) {
+                    logger.debug("Item has correct position, finished with move")
+                    return
                 }
-                if newFrame != initialFrame {
-                    Logger.itemManager.info("Successfully moved \(item.logString)")
-                    break
-                } else {
-                    throw EventError(code: .couldNotComplete, item: item)
+                try await postMoveEvents(item: item, destination: destination)
+                logger.debug("Attempt \(n, privacy: .public) succeeded, finished with move")
+                return
+            } catch {
+                logger.debug("Attempt \(n, privacy: .public) failed: \(error, privacy: .public)")
+                if n < maxAttempts {
+                    try await waitForMoveOperationBuffer()
+                    continue
                 }
-            } catch where n < 5 {
-                Logger.itemManager.warning("Attempt \(n) to move \(item.logString) failed (error: \(error))")
-                try await wakeUpItem(item)
-                Logger.itemManager.info("Retrying move of \(item.logString)")
-                continue
+                if error is EventError {
+                    throw error
+                }
+                throw EventError.cannotComplete
             }
         }
     }
 
-    /// Moves a menu bar item to the given destination and waits until the move
-    /// completes before returning.
-    /// 
-    /// - Parameters:
-    ///   - item: A menu bar item to move.
-    ///   - destination: A destination to move the menu bar item.
-    ///   - timeout: Amount of time to wait before throwing an error.
-    func slowMove(item: MenuBarItem, to destination: MoveDestination, timeout: Duration = .seconds(1)) async throws {
-        itemMoveCount += 1
-        defer {
-            itemMoveCount -= 1
+    /// Moves an item into a section that currently has no other item to use as
+    /// a Layout drag destination.
+    func move(item: MenuBarItem, toSection section: MenuBarSection.Name) async throws {
+        guard #available(macOS 27.0, *), appState != nil else {
+            throw EventError.cannotComplete
         }
-        try await move(item: item, to: destination)
-        let waitTask = Task(timeout: timeout) {
-            while true {
-                try Task.checkCancellation()
-                if try await self.itemHasCorrectPosition(item: item, for: destination) {
-                    return
-                }
-            }
+        guard item.isMovable else {
+            throw EventError.itemNotMovable(item)
         }
-        do {
-            try await waitTask.value
-        } catch is TaskTimeoutError {
-            throw EventError(code: .otherTimeout, item: item)
-        }
+        enqueueMacOS27Move(item: item, toSection: section)
     }
 }
 
-// MARK: - Click Items
+// MARK: - Clicking Items
 
 extension MenuBarItemManager {
-    /// Clicks the given menu bar item with the given mouse button.
-    func click(item: MenuBarItem, with mouseButton: CGMouseButton) async throws {
-        guard let source = CGEventSource(stateID: .hidSystemState) else {
-            throw EventError(code: .invalidEventSource, item: item)
+    /// Returns the equivalent event subtypes for clicking a menu bar
+    /// item with the given mouse button.
+    private nonisolated func getClickSubtypes(
+        for mouseButton: CGMouseButton
+    ) -> (down: MenuBarItemEventType.ClickSubtype, up: MenuBarItemEventType.ClickSubtype) {
+        switch mouseButton {
+        case .left: (.leftMouseDown, .leftMouseUp)
+        case .right: (.rightMouseDown, .rightMouseUp)
+        default: (.otherMouseDown, .otherMouseUp)
         }
-        guard let cursorLocation = MouseCursor.locationCoreGraphics else {
-            throw EventError(code: .invalidCursorLocation, item: item)
-        }
-        guard let currentFrame = getCurrentFrame(for: item) else {
-            throw EventError(code: .invalidItem, item: item)
+    }
+
+    /// Creates and posts a series of events to click a menu bar item.
+    ///
+    /// - Parameters:
+    ///   - item: The menu bar item to click.
+    ///   - mouseButton: The mouse button to click the item with.
+    private func postClickEvents(item: MenuBarItem, mouseButton: CGMouseButton) async throws {
+        try await eventSemaphore.waitUnlessCancelled()
+        defer {
+            eventSemaphore.signal()
         }
 
-        let buttonStates = mouseButton.buttonStates
-        let clickPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
+        let clickPoint = try await getCurrentBounds(for: item).center
+        let mouseLocation = try getMouseLocation()
+        let source = try getEventSource()
+
+        try permitLocalEvents()
+
+        let clickTypes = getClickSubtypes(for: mouseButton)
+        let timeout = Duration.milliseconds(250)
 
         guard
-            let mouseDownEvent = CGEvent.menuBarItemEvent(
-                type: .click(buttonStates.down),
-                location: clickPoint,
+            let mouseDown = CGEvent.menuBarItemEvent(
                 item: item,
-                pid: item.ownerPID,
-                source: source
+                source: source,
+                type: .click(clickTypes.down),
+                location: clickPoint
             ),
-            let mouseUpEvent = CGEvent.menuBarItemEvent(
-                type: .click(buttonStates.up),
-                location: clickPoint,
+            let mouseUp = CGEvent.menuBarItemEvent(
                 item: item,
-                pid: item.ownerPID,
-                source: source
-            ),
-            let fallbackEvent = CGEvent.menuBarItemEvent(
-                type: .click(buttonStates.up),
-                location: clickPoint,
-                item: item,
-                pid: item.ownerPID,
-                source: source
+                source: source,
+                type: .click(clickTypes.up),
+                location: clickPoint
             )
         else {
-            throw EventError(code: .eventCreationFailure, item: item)
+            throw EventError.eventCreationFailure(item)
         }
 
-        try permitAllEvents(
-            for: .combinedSessionState,
-            during: [
-                .eventSuppressionStateRemoteMouseDrag,
-                .eventSuppressionStateSuppressionInterval,
-            ],
-            suppressionInterval: 0,
-            item: item
-        )
-
-        MouseCursor.hide()
-
+        MouseHelpers.hideCursor()
         defer {
-            MouseCursor.warp(to: cursorLocation)
-            MouseCursor.show()
+            MouseHelpers.warpCursor(to: mouseLocation)
+            MouseHelpers.showCursor()
         }
 
         do {
-            Logger.itemManager.info("Clicking \(item.logString) with \(mouseButton.logString)")
-            try await postEventAndWaitToReceive(
-                mouseDownEvent,
-                to: .sessionEventTap,
-                item: item
+            try await postEventWithBarrier(
+                mouseDown,
+                to: item,
+                timeout: timeout
             )
-            try await postEventAndWaitToReceive(
-                mouseUpEvent,
-                to: .sessionEventTap,
-                item: item
+            try await postEventWithBarrier(
+                mouseUp,
+                to: item,
+                timeout: timeout,
+                repeating: 2 // Double mouse up prevents invalid item state.
             )
         } catch {
             do {
-                Logger.itemManager.debug("Posting fallback event for clicking \(item.logString)")
-                // Catch this, as we still want to throw the existing error if the fallback fails.
-                try await postEventAndWaitToReceive(
-                    fallbackEvent,
-                    to: .sessionEventTap,
-                    item: item
+                logger.warning("Click events failed, posting fallback")
+                try await postEventWithBarrier(
+                    mouseUp,
+                    to: item,
+                    timeout: timeout,
+                    repeating: 2 // Double mouse up prevents invalid item state.
                 )
             } catch {
-                Logger.itemManager.error("Failed to post fallback event for clicking \(item.logString)")
+                // Catch this for logging purposes only. We want to propagate
+                // the original error.
+                logger.error("Fallback failed with error: \(error, privacy: .public)")
             }
             throw error
         }
     }
+
+    /// Clicks a menu bar item with the given mouse button.
+    ///
+    /// - Parameters:
+    ///   - item: The menu bar item to click.
+    ///   - mouseButton: The mouse button to click the item with.
+    func click(item: MenuBarItem, with mouseButton: CGMouseButton) async throws {
+        guard #unavailable(macOS 27.0) else { throw EventError.cannotComplete }
+        guard let appState else {
+            throw EventError.cannotComplete
+        }
+
+        try await waitForUserToPauseInput()
+
+        logger.log(
+            """
+            Clicking \(item.logString, privacy: .public) with \
+            \(mouseButton.logString, privacy: .public)
+            """
+        )
+
+        appState.hidEventManager.stopAll()
+        defer {
+            appState.hidEventManager.startAll()
+        }
+
+        let maxAttempts = 4
+        for n in 1...maxAttempts {
+            guard !Task.isCancelled else {
+                throw EventError.cannotComplete
+            }
+            do {
+                try await postClickEvents(item: item, mouseButton: mouseButton)
+                logger.debug("Attempt \(n, privacy: .public) succeeded, finished with click")
+                return
+            } catch {
+                logger.debug("Attempt \(n, privacy: .public) failed: \(error, privacy: .public)")
+                if n < maxAttempts {
+                    await eventSleep()
+                    continue
+                }
+                if error is EventError {
+                    throw error
+                }
+                throw EventError.cannotComplete
+            }
+        }
+    }
 }
 
-// MARK: - Temporarily Show Items
+// MARK: - Temporarily Showing Items
 
 extension MenuBarItemManager {
-    /// Gets the destination to return the given item to after it is temporarily shown.
-    private func getReturnDestination(for item: MenuBarItem, in items: [MenuBarItem]) -> MoveDestination? {
-        let info = item.info
-        if let index = items.firstIndex(where: { $0.info == info }) {
-            if items.indices.contains(index + 1) {
-                return .leftOfItem(items[index + 1])
-            } else if items.indices.contains(index - 1) {
-                return .rightOfItem(items[index - 1])
+    /// Context for a temporarily shown menu bar item.
+    private final class TemporarilyShownItemContext {
+        /// The tag associated with the item.
+        let tag: MenuBarItemTag
+
+        /// The destination to return the item to.
+        let returnDestination: MoveDestination
+
+        /// The window of the item's shown interface.
+        var shownInterfaceWindow: WindowInfo?
+
+        /// The number of attempts that have been made to rehide the item.
+        var rehideAttempts = 0
+
+        /// A Boolean value that indicates whether the menu bar item's
+        /// interface is showing.
+        var isShowingInterface: Bool {
+            guard
+                let window = shownInterfaceWindow,
+                let current = WindowInfo(windowID: window.windowID)
+            else {
+                // Window no longer exists, so assume closed.
+                return false
             }
+            if
+                current.layer != CGWindowLevelForKey(.popUpMenuWindow),
+                current.layer != CGWindowLevelForKey(.popUpMenuWindow) - 1,
+                current.layer != CGWindowLevelForKey(.statusWindow),
+                current.layer != CGWindowLevelForKey(.mainMenuWindow),
+                let app = current.owningApplication
+            {
+                return app.isActive && current.isOnScreen
+            }
+            return current.isOnScreen
+        }
+
+        init(tag: MenuBarItemTag, returnDestination: MoveDestination) {
+            self.tag = tag
+            self.returnDestination = returnDestination
+        }
+    }
+
+    /// Gets the destination to return the given item to after it is
+    /// temporarily shown.
+    private func getReturnDestination(for item: MenuBarItem, in items: [MenuBarItem]) -> MoveDestination? {
+        guard let index = items.firstIndex(matching: item.tag) else {
+            return nil
+        }
+        if items.indices.contains(index + 1) {
+            return .leftOfItem(items[index + 1])
+        }
+        if items.indices.contains(index - 1) {
+            return .rightOfItem(items[index - 1])
         }
         return nil
     }
 
-    /// Schedules a timer for the given interval, attempting to rehide the current
-    /// temporarily shown items when the timer fires.
-    private func runTempShownItemTimer(for interval: TimeInterval) {
-        Logger.itemManager.debug("Running rehide timer for temporarily shown items with interval: \(interval)")
-        tempShownItemsTimer?.invalidate()
-        tempShownItemsTimer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
+    /// Schedules a timer for the given interval that rehides the
+    /// temporarily shown items when fired.
+    private func runRehideTimer(for interval: TimeInterval? = nil) {
+        guard let appState else {
+            return
+        }
+        let interval = interval ?? appState.settings.advanced.tempShowInterval
+        logger.debug("Running rehide timer for interval: \(interval, format: .fixed, privacy: .public)")
+        rehideTimer?.invalidate()
+        rehideTimer = .scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] timer in
             guard let self else {
                 timer.invalidate()
                 return
             }
-            Logger.itemManager.debug("Rehide timer fired")
+            logger.debug("Rehide timer fired")
             Task {
-                await self.rehideTempShownItems()
+                await self.rehideTemporarilyShownItems()
             }
         }
     }
 
     /// Temporarily shows the given item.
     ///
-    /// The item is cached alongside a destination that it will be automatically returned
-    /// to. If `true` is passed to the `clickWhenFinished` parameter, the item is clicked
-    /// once movement is finished.
+    /// The item is cached and returned to its original location after the
+    /// time interval specified by ``AdvancedSettings/tempShowInterval``.
     ///
     /// - Parameters:
-    ///   - item: An item to show.
-    ///   - clickWhenFinished: A Boolean value that indicates whether the item should be
-    ///     clicked once movement is finished.
-    ///   - mouseButton: The mouse button of the click.
-    func tempShowItem(_ item: MenuBarItem, clickWhenFinished: Bool, mouseButton: CGMouseButton) {
-        if
-            let latest = MenuBarItem(windowID: item.windowID),
-            latest.isOnScreen
-        {
-            if clickWhenFinished {
-                Task {
-                    do {
-                        try await click(item: latest, with: mouseButton)
-                    } catch {
-                        Logger.itemManager.error("ERROR: \(error)")
-                    }
-                }
-            }
+    ///   - item: The item to temporarily show.
+    ///   - mouseButton: The mouse button to click the item with.
+    func temporarilyShow(item: MenuBarItem, clickingWith mouseButton: CGMouseButton) async {
+        guard let appState else {
+            logger.error("Missing AppState, so not showing \(item.logString, privacy: .public)")
             return
         }
 
-        guard
-            let appState,
-            let screen = NSScreen.main,
-            let applicationMenuFrame = appState.menuBarManager.getApplicationMenuFrame(for: screen.displayID)
-        else {
-            Logger.itemManager.warning("No application menu frame, so not showing \(item.logString)")
+        if #available(macOS 27.0, *) {
+            // Native menu items are operated in the menu bar, never proxied
+            // through Ice's Search/Ice Bar interfaces on macOS 27.
+            return
+        }
+        guard let screen = NSScreen.screenWithActiveMenuBar else {
+            logger.error("No active menu bar screen, so not showing \(item.logString, privacy: .public)")
             return
         }
 
-        Logger.itemManager.info("Temporarily showing \(item.logString)")
+        guard let applicationMenuFrame = screen.getApplicationMenuFrame() else {
+            logger.error("No application menu frame, so not showing \(item.logString, privacy: .public)")
+            return
+        }
 
-        var items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
+        var items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
 
         guard let destination = getReturnDestination(for: item, in: items) else {
-            Logger.itemManager.warning("No return destination for \(item.logString)")
+            logger.error("No return destination for \(item.logString, privacy: .public)")
             return
         }
 
-        // Remove all items up to the hidden control item.
-        items.trimPrefix { $0.info != .hiddenControlItem }
-        // Remove the hidden control item.
-        items.removeFirst()
-        // Remove all offscreen items.
-        items.trimPrefix { !$0.isOnScreen }
-
-        let maxX = if let rightArea = screen.auxiliaryTopRightArea {
-            max(rightArea.minX + 20, applicationMenuFrame.maxX)
-        } else {
-            applicationMenuFrame.maxX
+        // Remove all items up to and including the hidden control item.
+        if let index = items.firstIndex(matching: .hiddenControlItem) {
+            items.removeSubrange(...index)
         }
 
+        let maxX: CGFloat = {
+            var maxX = applicationMenuFrame.maxX
+            if let frameOfNotch = screen.frameOfNotch {
+                maxX = max(maxX, frameOfNotch.maxX + 30)
+            }
+            return maxX + item.bounds.width
+        }()
+
         // Remove items until we have enough room to show this item.
-        items.trimPrefix { $0.frame.minX - item.frame.width <= maxX }
+        items.trimPrefix { item in
+            if item.isOnScreen && item.canBeHidden {
+                return item.bounds.minX <= maxX
+            }
+            return true
+        }
 
         guard let targetItem = items.first else {
+            logger.warning("Not enough room to show \(item.logString, privacy: .public)")
             let alert = NSAlert()
             alert.messageText = "Not enough room to show \"\(item.displayName)\""
             alert.runModal()
             return
         }
 
-        let initialWindows = WindowInfo.getOnScreenWindows()
+        appState.hidEventManager.stopAll()
+        defer {
+            appState.hidEventManager.startAll()
+        }
 
-        Task {
-            if clickWhenFinished {
-                do {
-                    try await slowMove(item: item, to: .leftOfItem(targetItem))
-                    try await click(item: item, with: mouseButton)
-                } catch {
-                    Logger.itemManager.error("ERROR: \(error)")
-                }
-            } else {
-                do {
-                    try await move(item: item, to: .leftOfItem(targetItem))
-                } catch {
-                    Logger.itemManager.error("ERROR: \(error)")
-                }
-            }
+        logger.debug("Temporarily showing \(item.logString, privacy: .public)")
 
-            try? await Task.sleep(for: .milliseconds(100))
+        do {
+            try await move(item: item, to: .leftOfItem(targetItem))
+        } catch {
+            logger.error("Error showing item: \(error, privacy: .public)")
+            return
+        }
 
-            let currentWindows = WindowInfo.getOnScreenWindows()
+        let context = TemporarilyShownItemContext(tag: item.tag, returnDestination: destination)
+        temporarilyShownItemContexts.append(context)
 
-            let shownInterfaceWindow = currentWindows.first { currentWindow in
-                currentWindow.ownerPID == item.ownerPID &&
-                !initialWindows.contains { initialWindow in
-                    currentWindow.windowID == initialWindow.windowID
-                }
-            }
+        rehideTimer?.invalidate()
+        defer {
+            runRehideTimer()
+        }
 
-            let context = TempShownItemContext(
-                info: item.info,
-                returnDestination: destination,
-                shownInterfaceWindow: shownInterfaceWindow
-            )
-            tempShownItemContexts.append(context)
-            runTempShownItemTimer(for: appState.settingsManager.advancedSettingsManager.tempShowInterval)
+        await eventSleep(for: .milliseconds(100))
+        let idsBeforeClick = Set(Bridging.getWindowList(option: .onScreen))
+
+        do {
+            try await click(item: item, with: mouseButton)
+        } catch {
+            logger.error("Error clicking item: \(error, privacy: .public)")
+            return
+        }
+
+        await eventSleep(for: .milliseconds(250))
+        let windowsAfterClick = WindowInfo.createWindows(option: .onScreen)
+
+        context.shownInterfaceWindow = windowsAfterClick.first { window in
+            window.ownerPID == item.sourcePID && !idsBeforeClick.contains(window.windowID)
         }
     }
 
     /// Rehides all temporarily shown items.
     ///
-    /// If an item is currently showing its interface, this method waits for the
-    /// interface to close before hiding the items.
-    func rehideTempShownItems() async {
-        itemMoveCount += 1
+    /// If an item is currently showing its interface, this method waits
+    /// for the interface to close before hiding the items.
+    func rehideTemporarilyShownItems() async {
+        guard let appState else {
+            logger.error("Missing AppState, so not rehiding")
+            return
+        }
+        guard !temporarilyShownItemContexts.isEmpty else {
+            return
+        }
+        guard !temporarilyShownItemContexts.contains(where: { $0.isShowingInterface }) else {
+            logger.debug("Menu bar item interface is shown, so waiting to rehide")
+            runRehideTimer(for: 3)
+            return
+        }
+        guard hasUserPausedInput(for: .milliseconds(250)) else {
+            logger.debug("Found recent user input, so waiting to rehide")
+            runRehideTimer(for: 1)
+            return
+        }
+
+        var currentContexts = temporarilyShownItemContexts
+        temporarilyShownItemContexts.removeAll()
+
+        let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+        var failedContexts = [TemporarilyShownItemContext]()
+
+        appState.hidEventManager.stopAll()
         defer {
-            itemMoveCount -= 1
+            appState.hidEventManager.startAll()
         }
 
-        guard !tempShownItemContexts.isEmpty else {
-            return
-        }
+        await eventSleep(for: .milliseconds(250))
 
-        guard !isMouseButtonDown else {
-            Logger.itemManager.debug("Mouse button is down, so waiting to rehide")
-            runTempShownItemTimer(for: 3)
-            return
-        }
-        guard !tempShownItemContexts.contains(where: { $0.isShowingInterface }) else {
-            Logger.itemManager.debug("Menu bar item interface is shown, so waiting to rehide")
-            runTempShownItemTimer(for: 3)
-            return
-        }
+        logger.debug("Rehiding temporarily shown items")
 
-        Logger.itemManager.info("Rehiding temporarily shown items")
-
-        var failedContexts = [TempShownItemContext]()
-
-        let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
-
-        MouseCursor.hide()
-
+        MouseHelpers.hideCursor()
         defer {
-            MouseCursor.show()
+            MouseHelpers.showCursor()
         }
 
-        while let context = tempShownItemContexts.popLast() {
-            guard let item = items.first(where: { $0.info == context.info }) else {
+        while let context = currentContexts.popLast() {
+            guard let item = items.first(matching: context.tag) else {
                 continue
             }
             do {
                 try await move(item: item, to: context.returnDestination)
             } catch {
-                Logger.itemManager.error("Failed to rehide \(item.logString) (error: \(error))")
-                failedContexts.append(context)
+                context.rehideAttempts += 1
+                logger.warning(
+                    """
+                    Attempt \(context.rehideAttempts, privacy: .public) to rehide \
+                    \(item.logString, privacy: .public) failed with error: \
+                    \(error, privacy: .public)
+                    """
+                )
+                if context.rehideAttempts < 3 {
+                    currentContexts.append(context) // Try again.
+                } else {
+                    // Failed contexts are ultimately added back to the array
+                    // and rehidden after a longer delay, so reset the count.
+                    context.rehideAttempts = 0
+                    failedContexts.append(context)
+                }
             }
         }
 
         if failedContexts.isEmpty {
-            tempShownItemsTimer?.invalidate()
-            tempShownItemsTimer = nil
+            logger.debug("All items were successfully rehidden")
         } else {
-            tempShownItemContexts = failedContexts
-            Logger.itemManager.warning("Some items failed to rehide")
-            runTempShownItemTimer(for: 3)
+            logger.error(
+                """
+                Some items failed to rehide: \
+                \(failedContexts.map { $0.tag }, privacy: .public)
+                """
+            )
+            temporarilyShownItemContexts.append(contentsOf: failedContexts.reversed())
+            runRehideTimer(for: 3)
         }
     }
 
-    /// Removes a temporarily shown item from the cache.
-    ///
-    /// This ensures that the item will _not_ be returned to its previous location.
-    func removeTempShownItemFromCache(with info: MenuBarItemInfo) {
-        tempShownItemContexts.removeAll { $0.info == info }
+    /// Removes a temporarily shown item from the cache, ensuring that
+    /// the item is _not_ returned to its original location.
+    func removeTemporarilyShownItemFromCache(with tag: MenuBarItemTag) {
+        while let index = temporarilyShownItemContexts.firstIndex(where: { $0.tag == tag }) {
+            logger.debug(
+                """
+                Removing temporarily shown item from cache: \
+                \(tag, privacy: .public)
+                """
+            )
+            temporarilyShownItemContexts.remove(at: index)
+        }
     }
 }
 
-// MARK: - Arrange Items
+// MARK: - Control Item Order
 
 extension MenuBarItemManager {
-    /// Enforces the order of the given control items, ensuring that the always-hidden
-    /// control item stays to the left of the hidden control item.
-    ///
-    /// - Parameters:
-    ///   - hiddenControlItem: A menu bar item that represents the control item for the
-    ///     hidden section.
-    ///   - alwaysHiddenControlItem: A menu bar item that represents the control item
-    ///     for the always-hidden section.
-    func enforceControlItemOrder(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem) async throws {
-        guard !isMouseButtonDown else {
-            Logger.itemManager.debug("Mouse button is down, so will not enforce control item order")
+    /// Enforces the order of the given control items, ensuring that the
+    /// control item for the always-hidden section is positioned to the
+    /// left of control item for the hidden section.
+    private func enforceControlItemOrder(controlItems: ControlItemPair) async {
+        let hidden = controlItems.hidden
+
+        guard
+            let alwaysHidden = controlItems.alwaysHidden,
+            hidden.bounds.maxX <= alwaysHidden.bounds.minX
+        else {
             return
         }
-        guard !mouseHasRecentlyMoved else {
-            Logger.itemManager.debug("Mouse has recently moved, so will not enforce control item order")
-            return
-        }
-        if hiddenControlItem.frame.maxX <= alwaysHiddenControlItem.frame.minX {
-            Logger.itemManager.info("Arranging menu bar items")
-            try await slowMove(item: alwaysHiddenControlItem, to: .leftOfItem(hiddenControlItem))
+
+        do {
+            logger.debug("Control items have incorrect order")
+            try await move(item: alwaysHidden, to: .leftOfItem(hidden))
+        } catch {
+            logger.error("Error enforcing control item order: \(error, privacy: .public)")
         }
     }
 }
 
-// MARK: - Menu Bar Item Event Helper Types
-
-/// Button states for menu bar item events.
-private enum MenuBarItemEventButtonState {
-    case leftMouseDown
-    case leftMouseUp
-    case rightMouseDown
-    case rightMouseUp
-    case otherMouseDown
-    case otherMouseUp
-}
+// MARK: - MenuBarItemEventType
 
 /// Event types for menu bar item events.
 private enum MenuBarItemEventType {
     /// The event type for moving a menu bar item.
-    case move(MenuBarItemEventButtonState)
-
+    case move(MoveSubtype)
     /// The event type for clicking a menu bar item.
-    case click(MenuBarItemEventButtonState)
+    case click(ClickSubtype)
 
-    /// The button state of this event type.
-    var buttonState: MenuBarItemEventButtonState {
-        switch self {
-        case .move(let state), .click(let state): state
-        }
-    }
-
-    /// This event type's equivalent CGEventType.
     var cgEventType: CGEventType {
-        switch buttonState {
-        case .leftMouseDown: .leftMouseDown
-        case .leftMouseUp: .leftMouseUp
-        case .rightMouseDown: .rightMouseDown
-        case .rightMouseUp: .rightMouseUp
-        case .otherMouseDown: .otherMouseDown
-        case .otherMouseUp: .otherMouseUp
+        switch self {
+        case .move(let subtype): subtype.cgEventType
+        case .click(let subtype): subtype.cgEventType
         }
     }
 
-    /// The event flags for this event type.
     var cgEventFlags: CGEventFlags {
         switch self {
-        case .move(.leftMouseDown): .maskCommand
+        case .move(.mouseDown): .maskCommand
         case .move, .click: []
         }
     }
 
-    /// The mouse button for this event type.
-    var mouseButton: CGMouseButton {
-        switch buttonState {
-        case .leftMouseDown, .leftMouseUp: .left
-        case .rightMouseDown, .rightMouseUp: .right
-        case .otherMouseDown, .otherMouseUp: .center
+    var cgMouseButton: CGMouseButton {
+        switch self {
+        case .move: .left
+        case .click(let subtype): subtype.cgMouseButton
+        }
+    }
+
+    // MARK: Subtypes
+
+    /// Subtype for menu bar item move events.
+    enum MoveSubtype {
+        case mouseDown
+        case mouseUp
+
+        var cgEventType: CGEventType {
+            switch self {
+            case .mouseDown: .leftMouseDown
+            case .mouseUp: .leftMouseUp
+            }
+        }
+    }
+
+    /// Subtype for menu bar item click events.
+    enum ClickSubtype {
+        case leftMouseDown
+        case leftMouseUp
+        case rightMouseDown
+        case rightMouseUp
+        case otherMouseDown
+        case otherMouseUp
+
+        var cgEventType: CGEventType {
+            switch self {
+            case .leftMouseDown: .leftMouseDown
+            case .leftMouseUp: .leftMouseUp
+            case .rightMouseDown: .rightMouseDown
+            case .rightMouseUp: .rightMouseUp
+            case .otherMouseDown: .otherMouseDown
+            case .otherMouseUp: .otherMouseUp
+            }
+        }
+
+        var cgMouseButton: CGMouseButton {
+            switch self {
+            case .leftMouseDown, .leftMouseUp: .left
+            case .rightMouseDown, .rightMouseUp: .right
+            case .otherMouseDown, .otherMouseUp: .center
+            }
+        }
+
+        var clickState: Int64 {
+            switch self {
+            case .leftMouseDown, .rightMouseDown, .otherMouseDown: 1
+            case .leftMouseUp, .rightMouseUp, .otherMouseUp: 0
+            }
         }
     }
 }
@@ -1551,7 +3172,7 @@ private extension CGEventField {
     /// Key to access a field that contains the event's window identifier.
     static let windowID = CGEventField(rawValue: 0x33)! // swiftlint:disable:this force_unwrapping
 
-    /// An array of integer event fields that can be used to compare menu bar item events.
+    /// Fields that can be used to compare menu bar item events.
     static let menuBarItemEventFields: [CGEventField] = [
         .eventSourceUserData,
         .mouseEventWindowUnderMousePointer,
@@ -1613,59 +3234,116 @@ private extension CGMouseButton {
         @unknown default: "unknown mouse button"
         }
     }
-
-    /// The equivalent down and up button states for menu bar item click events.
-    var buttonStates: (down: MenuBarItemEventButtonState, up: MenuBarItemEventButtonState) {
-        switch self {
-        case .left: (.leftMouseDown, .leftMouseUp)
-        case .right: (.rightMouseDown, .rightMouseUp)
-        default: (.otherMouseDown, .otherMouseUp)
-        }
-    }
 }
 
-// MARK: - CGEvent Constructor
+// MARK: - CGEvent Helpers
 
 private extension CGEvent {
-    /// Returns an event that can be sent to the given menu bar item.
+    /// Returns an event that can be sent to a menu bar item.
     ///
     /// - Parameters:
-    ///   - type: The type of the event.
-    ///   - location: The location of the event. Does not need to be within the bounds of the item.
-    ///   - item: The target item of the event.
-    ///   - pid: The target process identifier of the event. Does not need to be the item's `ownerPID`.
-    ///   - source: The source of the event.
-    class func menuBarItemEvent(type: MenuBarItemEventType, location: CGPoint, item: MenuBarItem, pid: pid_t, source: CGEventSource) -> CGEvent? {
-        let mouseType = type.cgEventType
-        let mouseButton = type.mouseButton
-
-        guard let event = CGEvent(mouseEventSource: source, mouseType: mouseType, mouseCursorPosition: location, mouseButton: mouseButton) else {
+    ///   - item: The event's target item.
+    ///   - source: The event's source.
+    ///   - type: The event's specialized type.
+    ///   - location: The event's location. Does not need to be
+    ///     within the bounds of the item.
+    static func menuBarItemEvent(
+        item: MenuBarItem,
+        source: CGEventSource,
+        type: MenuBarItemEventType,
+        location: CGPoint
+    ) -> CGEvent? {
+        guard let event = CGEvent(
+            mouseEventSource: source,
+            mouseType: type.cgEventType,
+            mouseCursorPosition: location,
+            mouseButton: type.cgMouseButton
+        ) else {
             return nil
         }
-
-        event.flags = type.cgEventFlags
-
-        let targetPID = Int64(pid)
-        let userData = Int64(truncatingIfNeeded: Int(bitPattern: ObjectIdentifier(event)))
-        let windowID = Int64(item.windowID)
-
-        event.setIntegerValueField(.eventTargetUnixProcessID, value: targetPID)
-        event.setIntegerValueField(.eventSourceUserData, value: userData)
-        event.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: windowID)
-        event.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: windowID)
-        event.setIntegerValueField(.windowID, value: windowID)
-
-        if case .click = type {
-            event.setIntegerValueField(.mouseEventClickState, value: 1)
-        }
-
+        event.setFlags(for: type)
+        event.setUserData(ObjectIdentifier(event))
+        event.setWindowID(item.windowID, for: type)
+        event.setClickState(for: type)
         return event
+    }
+
+    /// Returns a null event with unique user data.
+    static func uniqueNullEvent() -> CGEvent? {
+        guard let event = CGEvent(source: nil) else {
+            return nil
+        }
+        event.setUserData(ObjectIdentifier(event))
+        return event
+    }
+
+    /// Posts the event to the given event tap location.
+    ///
+    /// - Parameter location: The event tap location to post the event to.
+    func post(to location: EventTap.Location) {
+        let type = self.type
+        Logger.menuBarItemManager.debug(
+            """
+            Posting \(type.logString, privacy: .public) \
+            to \(location.logString, privacy: .public)
+            """
+        )
+        switch location {
+        case .hidEventTap: post(tap: .cghidEventTap)
+        case .sessionEventTap: post(tap: .cgSessionEventTap)
+        case .annotatedSessionEventTap: post(tap: .cgAnnotatedSessionEventTap)
+        case .pid(let pid): postToPid(pid)
+        }
+    }
+
+    /// Returns a Boolean value that indicates whether the given integer
+    /// fields from this event are equivalent to the same integer fields
+    /// from the specified event.
+    ///
+    /// - Parameters:
+    ///   - other: The event to compare with this event.
+    ///   - fields: The integer fields to check.
+    func matches(_ other: CGEvent, byIntegerFields fields: [CGEventField]) -> Bool {
+        fields.allSatisfy { field in
+            getIntegerValueField(field) == other.getIntegerValueField(field)
+        }
+    }
+
+    func setTargetPID(_ pid: pid_t) {
+        let targetPID = Int64(pid)
+        setIntegerValueField(.eventTargetUnixProcessID, value: targetPID)
+    }
+
+    private func setFlags(for type: MenuBarItemEventType) {
+        flags = type.cgEventFlags
+    }
+
+    private func setUserData(_ bitPattern: ObjectIdentifier) {
+        let userData = Int64(Int(bitPattern: bitPattern))
+        setIntegerValueField(.eventSourceUserData, value: userData)
+    }
+
+    private func setWindowID(_ windowID: CGWindowID, for type: MenuBarItemEventType) {
+        let windowID = Int64(windowID)
+
+        setIntegerValueField(.mouseEventWindowUnderMousePointer, value: windowID)
+        setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: windowID)
+
+        if case .move = type {
+            setIntegerValueField(.windowID, value: windowID)
+        }
+    }
+
+    private func setClickState(for type: MenuBarItemEventType) {
+        if case .click(let subtype) = type {
+            setIntegerValueField(.mouseEventClickState, value: subtype.clickState)
+        }
     }
 }
 
-// MARK: - Logger
+// MARK: - Logger Helpers
 
 private extension Logger {
-    /// The logger to use for the menu bar item manager.
-    static let itemManager = Logger(category: "MenuBarItemManager")
+    /// Logger for the menu bar item manager.
+    static let menuBarItemManager = Logger(category: "MenuBarItemManager")
 }

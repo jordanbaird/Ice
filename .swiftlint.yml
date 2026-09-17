@@ -53,7 +53,7 @@ custom_rules:
     regex: ^\t
 
 file_header:
-  required_pattern: |
+  required_pattern: |-
     //
     //  SWIFTLINT_CURRENT_FILENAME
     //  Ice

@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import OSLog
 import UserNotifications
 
 /// Manager for user notifications.
@@ -14,14 +15,9 @@ final class UserNotificationManager: NSObject {
     /// The current notification center.
     var notificationCenter: UNUserNotificationCenter { .current() }
 
-    /// Creates a user notification manager with the given app state.
-    init(appState: AppState) {
+    /// Performs the initial setup of the manager.
+    func performSetup(with appState: AppState) {
         self.appState = appState
-        super.init()
-    }
-
-    /// Sets up the manager.
-    func performSetup() {
         notificationCenter.delegate = self
     }
 
@@ -31,7 +27,7 @@ final class UserNotificationManager: NSObject {
             do {
                 try await notificationCenter.requestAuthorization(options: [.badge, .alert, .sound])
             } catch {
-                Logger.userNotifications.error("Failed to request authorization for notifications: \(error)")
+                Logger.default.error("Failed to request notification authorization: \(error)")
             }
         }
     }
@@ -82,9 +78,4 @@ extension UserNotificationManager: @preconcurrency UNUserNotificationCenterDeleg
             break
         }
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let userNotifications = Logger(category: "UserNotifications")
 }

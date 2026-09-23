@@ -36,7 +36,7 @@ struct AboutSettingsPane: View {
         if let date = updatesManager.lastUpdateCheckDate {
             date.formatted(date: .abbreviated, time: .standard)
         } else {
-            "Never"
+            String(localized: "Never")
         }
     }
 

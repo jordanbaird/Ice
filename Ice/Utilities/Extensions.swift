@@ -159,7 +159,7 @@ extension CGImage {
     // MARK: Trim Transparent Pixels
 
     /// A context for handling transparency data in an image.
-    private struct TransparencyContext: ~Copyable {
+    private final class TransparencyContext {
         private let image: CGImage
         private let maxAlpha: UInt8
         private let cgContext: CGContext

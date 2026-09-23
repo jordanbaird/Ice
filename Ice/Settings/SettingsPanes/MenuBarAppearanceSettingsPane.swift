@@ -14,7 +14,9 @@ struct MenuBarAppearanceSettingsPane: View {
     }
 }
 
+#if compiler(>=6.0)
 #Preview {
     MenuBarAppearanceSettingsPane()
         .environmentObject(AppState())
 }
+#endif

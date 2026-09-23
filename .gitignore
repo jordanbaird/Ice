@@ -1,3 +1,6 @@
 .DS_Store
 build/
 xcuserdata/
+.build/
+.swiftpm/
+Ice.app/

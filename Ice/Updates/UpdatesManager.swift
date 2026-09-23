@@ -77,7 +77,7 @@ final class UpdatesManager: NSObject, ObservableObject {
         #if DEBUG
         // Checking for updates hangs in debug mode.
         let alert = NSAlert()
-        alert.messageText = "Checking for updates is not supported in debug mode."
+        alert.messageText = String(localized: "Checking for updates is not supported in debug mode.")
         alert.runModal()
         #else
         guard let appState else {
@@ -92,7 +92,7 @@ final class UpdatesManager: NSObject, ObservableObject {
 }
 
 // MARK: UpdatesManager: SPUUpdaterDelegate
-extension UpdatesManager: @preconcurrency SPUUpdaterDelegate {
+extension UpdatesManager: SPUUpdaterDelegate {
     func updater(_ updater: SPUUpdater, willScheduleUpdateCheckAfterDelay delay: TimeInterval) {
         guard let appState else {
             return
@@ -102,7 +102,7 @@ extension UpdatesManager: @preconcurrency SPUUpdaterDelegate {
 }
 
 // MARK: UpdatesManager: SPUStandardUserDriverDelegate
-extension UpdatesManager: @preconcurrency SPUStandardUserDriverDelegate {
+extension UpdatesManager: SPUStandardUserDriverDelegate {
     var supportsGentleScheduledUpdateReminders: Bool { true }
 
     func standardUserDriverShouldHandleShowingScheduledUpdate(
@@ -127,8 +127,8 @@ extension UpdatesManager: @preconcurrency SPUStandardUserDriverDelegate {
         if !state.userInitiated {
             appState.userNotificationManager.addRequest(
                 with: .updateCheck,
-                title: "A new update is available",
-                body: "Version \(update.displayVersionString) is now available"
+                title: String(localized: "A new update is available"),
+                body: String(localized: "Version \(update.displayVersionString) is now available")
             )
         }
     }

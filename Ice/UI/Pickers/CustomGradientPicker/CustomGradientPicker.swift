@@ -439,8 +439,10 @@ private struct CustomGradientPickerPreview: View {
     }
 }
 
+#if compiler(>=6.0)
 #Preview {
     CustomGradientPickerPreview()
         .padding()
 }
+#endif
 #endif

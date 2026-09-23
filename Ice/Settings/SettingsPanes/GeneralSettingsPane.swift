@@ -11,6 +11,8 @@ struct GeneralSettingsPane: View {
     @State private var isImportingCustomIceIcon = false
     @State private var isPresentingError = false
     @State private var presentedError: LocalizedErrorWrapper?
+    @State private var selectedLanguage: AppLanguage = .system
+    @State private var isPresentingRestartAlert = false
     @State private var isApplyingOffset = false
     @State private var tempItemSpacingOffset: CGFloat = 0 // Temporary state for the slider
 
@@ -38,9 +40,9 @@ struct GeneralSettingsPane: View {
     private var rehideIntervalKey: LocalizedStringKey {
         let formatted = manager.rehideInterval.formatted()
         if manager.rehideInterval == 1 {
-            return LocalizedStringKey(formatted + " second")
+            return "\(formatted) second"
         } else {
-            return LocalizedStringKey(formatted + " seconds")
+            return "\(formatted) seconds"
         }
     }
 
@@ -54,6 +56,9 @@ struct GeneralSettingsPane: View {
 
     var body: some View {
         IceForm {
+            IceSection {
+                languageOptions
+            }
             IceSection {
                 launchAtLogin
             }
@@ -85,13 +90,43 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var launchAtLogin: some View {
-        LaunchAtLogin.Toggle()
+        LaunchAtLogin.Toggle {
+            Text("Launch at Login")
+        }
+    }
+
+    @ViewBuilder
+    private var languageOptions: some View {
+        IcePicker("Language", selection: $selectedLanguage) {
+            ForEach(AppLanguage.allCases) { language in
+                Text(verbatim: language.displayName).tag(language)
+            }
+        }
+        .annotation("Choose the language Ice uses. \"Follow System\" uses your system language.")
+        .onAppear {
+            selectedLanguage = AppLanguage.current
+        }
+        .onChange(of: selectedLanguage) { _ in
+            selectedLanguage.apply()
+            isPresentingRestartAlert = true
+        }
+        .alert(
+            String(localized: "Restart required"),
+            isPresented: $isPresentingRestartAlert
+        ) {
+            Button("Restart Now") {
+                AppLanguage.relaunch()
+            }
+            Button("Later", role: .cancel) {}
+        } message: {
+            Text("Ice needs to restart to apply the new language.")
+        }
     }
 
     @ViewBuilder
     private func menuItem(for imageSet: ControlItemImageSet) -> some View {
         Label {
-            Text(imageSet.name.rawValue)
+            Text(LocalizedStringKey(imageSet.name.rawValue))
         } icon: {
             if let nsImage = imageSet.hidden.nsImage(for: appState) {
                 switch imageSet.name {

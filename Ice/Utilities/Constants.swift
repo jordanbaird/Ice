@@ -30,5 +30,5 @@ enum Constants {
     static let settingsWindowTitle = "Ice"
 
     /// The title for the permissions window.
-    static let permissionsWindowTitle = "Permissions"
+    static let permissionsWindowTitle = String(localized: "Permissions")
 }

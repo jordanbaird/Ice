@@ -11,6 +11,7 @@ extension View {
     /// - Note: The view this modifier is applied to must be transparent, or the style
     ///   will be drawn incorrectly.
     @ViewBuilder
+    @MainActor
     func layoutBarStyle(appState: AppState, averageColorInfo: MenuBarAverageColorInfo?) -> some View {
         background {
             if appState.isActiveSpaceFullscreen {

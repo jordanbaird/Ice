@@ -401,6 +401,17 @@ private final class MenuBarOverlayPanelContentView: NSView {
                     }
                     .store(in: &c)
 
+                if #available(macOS 27.0, *) {
+                    // Ice's control items stay collapsed on macOS 27, so their frames never
+                    // change. Redraw whenever the items are read again instead.
+                    appState.itemManager.$itemCache
+                        .receive(on: DispatchQueue.main)
+                        .sink { [weak self] _ in
+                            self?.needsDisplay = true
+                        }
+                        .store(in: &c)
+                }
+
                 for section in appState.menuBarManager.sections {
                     // Redraw whenever the window frame of a control item changes.
                     //
@@ -556,12 +567,22 @@ private final class MenuBarOverlayPanelContentView: NSView {
             return CGRect(x: rect.minX, y: rect.minY, width: maxX, height: rect.height)
         }()
         let trailingPathBounds: CGRect = {
-            let itemWindows = MenuBarItem.getMenuBarItemWindows(on: screen.displayID, option: .onScreen)
-            guard !itemWindows.isEmpty else {
-                return .zero
-            }
-            let totalWidth = itemWindows.reduce(into: 0) { width, item in
-                width += item.bounds.width
+            let totalWidth: CGFloat
+            if #available(macOS 27.0, *) {
+                // Items are no longer windows on macOS 27; they run from the leftmost
+                // drawn item to the edge of the display.
+                guard let leftEdge = MenuBarItemProvider27.leftEdge(for: screen.displayID) else {
+                    return .zero
+                }
+                totalWidth = CGDisplayBounds(screen.displayID).maxX - leftEdge
+            } else {
+                let itemWindows = MenuBarItem.getMenuBarItemWindows(on: screen.displayID, option: .onScreen)
+                guard !itemWindows.isEmpty else {
+                    return .zero
+                }
+                totalWidth = itemWindows.reduce(into: 0) { width, item in
+                    width += item.bounds.width
+                }
             }
             var position = rect.maxX - totalWidth
             if shouldInset {

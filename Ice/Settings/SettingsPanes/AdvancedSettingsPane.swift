@@ -28,13 +28,22 @@ struct AdvancedSettingsPane: View {
             IceSection("Menu Bar Sections") {
                 enableAlwaysHiddenSection
                 showAllSectionsOnUserDrag
-                sectionDividerStyle
+                // Ice's dividers are collapsed on macOS 27, so they have no style.
+                if #unavailable(macOS 27.0) {
+                    sectionDividerStyle
+                }
             }
             IceSection("Other") {
-                hideApplicationMenus
+                // macOS 27 folds the items that do not fit behind its own overflow button,
+                // and opens hidden items without moving them, so neither option applies.
+                if #unavailable(macOS 27.0) {
+                    hideApplicationMenus
+                }
                 enableSecondaryContextMenu
                 showOnHoverDelay
-                tempShowInterval
+                if #unavailable(macOS 27.0) {
+                    tempShowInterval
+                }
             }
             if #available(macOS 27.0, *) {
                 IceSection("Hiding on macOS 27") {

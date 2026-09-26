@@ -217,7 +217,7 @@ final class IceBarPanel: NSPanel {
         if #available(macOS 27.0, *) {
             let elapsed = (ContinuousClock.now - requestedAt).components
             let milliseconds = Double(elapsed.seconds) * 1000 + Double(elapsed.attoseconds) / 1e15
-            Logger.default.notice("Ice Bar shown \(milliseconds, privacy: .public) ms after it was requested")
+            Logger.default.debug("Ice Bar shown \(milliseconds, privacy: .public) ms after it was requested")
         }
     }
 

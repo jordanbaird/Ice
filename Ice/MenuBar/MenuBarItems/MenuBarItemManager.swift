@@ -1144,6 +1144,10 @@ extension MenuBarItemManager {
     ///   - item: The menu bar item to move.
     ///   - destination: The destination to move the item to.
     func move(item: MenuBarItem, to destination: MoveDestination) async throws {
+        if #available(macOS 27.0, *) {
+            // macOS 27 ignores the drag events a move is made of.
+            throw EventError.cannotComplete
+        }
         guard item.isMovable else {
             throw EventError.itemNotMovable(item)
         }
@@ -1433,6 +1437,11 @@ extension MenuBarItemManager {
     func temporarilyShow(item: MenuBarItem, clickingWith mouseButton: CGMouseButton) async {
         guard let appState else {
             logger.error("Missing AppState, so not showing \(item.logString, privacy: .public)")
+            return
+        }
+        if #available(macOS 27.0, *) {
+            // Moving an item into view is not possible on macOS 27; use ItemClicker27.
+            logger.error("Cannot temporarily show \(item.logString, privacy: .public) on macOS 27")
             return
         }
         guard let screen = NSScreen.screenWithActiveMenuBar else {

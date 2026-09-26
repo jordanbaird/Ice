@@ -165,7 +165,7 @@ private final class MenuBarSearchHostingView: NSHostingView<AnyView> {
         panel: MenuBarSearchPanel
     ) {
         super.init(
-            rootView: MenuBarSearchContentView { [weak panel] in panel?.close() }
+            rootView: MenuBarSearchContentView(displayID: displayID) { [weak panel] in panel?.close() }
                 .environmentObject(appState)
                 .environmentObject(appState.itemManager)
                 .environmentObject(appState.imageCache)
@@ -192,6 +192,7 @@ private struct MenuBarSearchContentView: View {
     @EnvironmentObject var model: MenuBarSearchModel
     @FocusState private var searchFieldIsFocused: Bool
 
+    let displayID: CGDirectDisplayID
     let closePanel: () -> Void
 
     private var hasItems: Bool {
@@ -377,6 +378,12 @@ private struct MenuBarSearchContentView: View {
         closePanel()
         Task {
             try await Task.sleep(for: .milliseconds(25))
+            // Ice cannot move an item into view on macOS 27, so the item is clicked
+            // the way the Ice Bar clicks it.
+            if #available(macOS 27.0, *), let appState = itemManager.appState {
+                await ItemClicker27.click(item: item, mouseButton: .left, iceBarDisplayID: displayID, appState: appState)
+                return
+            }
             if Bridging.isWindowOnScreen(item.windowID) {
                 try await itemManager.click(item: item, with: .left)
             } else {

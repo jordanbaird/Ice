@@ -17,6 +17,15 @@ final class IceBarPanel: NSPanel {
 
     private var cancellables = Set<AnyCancellable>()
 
+    private var presentationID = UUID()
+    private var fadeTask: Task<Void, Never>?
+    private var isClosing = false
+
+    private var shouldAnimate: Bool {
+        appState?.settingsManager.generalSettingsManager.animateIceBar == true &&
+        !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    }
+
     init(appState: AppState) {
         super.init(
             contentRect: .zero,
@@ -25,7 +34,7 @@ final class IceBarPanel: NSPanel {
             defer: false
         )
         self.appState = appState
-        self.title = "Ice Bar"
+        self.title = String(localized: "Ice Bar")
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = true
         self.allowsToolTipsWhenApplicationIsInactive = true
@@ -50,9 +59,33 @@ final class IceBarPanel: NSPanel {
             NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
         )
         .sink { [weak self] _ in
-            self?.close()
+            self?.closeImmediately()
         }
         .store(in: &c)
+
+        if let settings = appState?.settingsManager.generalSettingsManager {
+            settings.$useIceBar
+                .removeDuplicates()
+                .dropFirst()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.closeImmediately()
+                }
+                .store(in: &c)
+
+            settings.$animateIceBar
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] enabled in
+                    guard let self, !enabled else { return }
+                    fadeTask?.cancel()
+                    if isClosing {
+                        finishClosing()
+                    } else {
+                        alphaValue = 1
+                    }
+                }
+                .store(in: &c)
+        }
 
         if
             let section = appState?.menuBarManager.section(withName: .hidden),
@@ -67,7 +100,10 @@ final class IceBarPanel: NSPanel {
                         // Only continue if the menu bar is automatically hidden, as Ice
                         // can't currently display its menu bar items.
                         appState.menuBarManager.isMenuBarHiddenBySystemUserDefaults,
-                        let info = window.flatMap({ WindowInfo(windowID: CGWindowID($0.windowNumber)) }),
+                        let window,
+                        let windowID = CGWindowID(exactly: window.windowNumber),
+                        windowID != kCGNullWindowID,
+                        let info = WindowInfo(windowID: windowID),
                         // Window being offscreen means the menu bar is currently hidden.
                         // Close the bar, as things will start to look weird if we don't.
                         !info.isOnScreen
@@ -151,20 +187,40 @@ final class IceBarPanel: NSPanel {
         setFrameOrigin(getOrigin(for: appState.settingsManager.generalSettingsManager.iceBarLocation))
     }
 
-    func show(section: MenuBarSection.Name, on screen: NSScreen) async {
+    @discardableResult
+    func show(section: MenuBarSection.Name, on screen: NSScreen) async -> Bool {
         guard let appState else {
-            return
+            return false
         }
+
+        let requestID = UUID()
+        presentationID = requestID
+        fadeTask?.cancel()
+        isClosing = false
+        ignoresMouseEvents = false
 
         // Important that we set the navigation state and current section before updating the cache.
         appState.navigationState.isIceBarPresented = true
         currentSection = section
 
         await appState.itemManager.cacheItemsIfNeeded()
+        guard presentationID == requestID else { return false }
 
         if ScreenCapture.cachedCheckPermissions() {
-            await appState.imageCache.updateCache()
+            // 首次展开允许短暂补抓，不能将部分截图直接当成完整结果。
+            for attempt in 0..<3 {
+                guard presentationID == requestID else { return false }
+                await appState.imageCache.updateCacheWithoutChecks(sections: [section], on: screen)
+                if appState.imageCache.hasImages(for: section) { break }
+                if attempt < 2 {
+                    do { try await Task.sleep(for: .milliseconds(100)) } catch { return false }
+                    guard presentationID == requestID else { return false }
+                    await appState.itemManager.cacheItemsIfNeeded()
+                }
+            }
         }
+        // 收起或切换区域后，丢弃尚未完成的旧请求。
+        guard presentationID == requestID else { return false }
 
         contentView = IceBarHostingView(appState: appState, colorManager: colorManager, screen: screen, section: section) { [weak self] in
             self?.close()
@@ -178,14 +234,75 @@ final class IceBarPanel: NSPanel {
         // need to update manually once before showing the panel to prevent the color from flashing.
         colorManager.updateAllProperties(with: frame, screen: screen)
 
+        if !isVisible {
+            alphaValue = shouldAnimate ? 0 : 1
+        }
         orderFrontRegardless()
+        fade(to: 1)
+        return true
     }
 
     override func close() {
-        super.close()
-        contentView = nil
+        presentationID = UUID()
         currentSection = nil
         appState?.navigationState.isIceBarPresented = false
+        ignoresMouseEvents = true
+        guard shouldAnimate, isVisible else {
+            finishClosing()
+            return
+        }
+        guard !isClosing else { return }
+        isClosing = true
+        fade(to: 0) { [weak self] in
+            self?.finishClosing()
+        }
+    }
+
+    private func closeImmediately() {
+        presentationID = UUID()
+        currentSection = nil
+        appState?.navigationState.isIceBarPresented = false
+        finishClosing()
+    }
+
+    private func finishClosing() {
+        fadeTask?.cancel()
+        fadeTask = nil
+        super.close()
+        contentView = nil
+        alphaValue = 1
+        ignoresMouseEvents = false
+        isClosing = false
+    }
+
+    private func fade(to target: CGFloat, completion: @escaping () -> Void = {}) {
+        fadeTask?.cancel()
+        guard shouldAnimate else {
+            alphaValue = target
+            completion()
+            return
+        }
+        let initial = alphaValue
+        let start = ContinuousClock.now
+        // 用可取消任务驱动透明度，快速反向操作从当前透明度衔接。
+        fadeTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                let elapsed = start.duration(to: .now)
+                let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+                let progress = min(seconds / 0.18, 1)
+                let eased = progress * progress * (3 - 2 * progress)
+                self?.alphaValue = initial + (target - initial) * CGFloat(eased)
+                if progress >= 1 {
+                    completion()
+                    return
+                }
+                do {
+                    try await Task.sleep(for: .milliseconds(16))
+                } catch {
+                    return
+                }
+            }
+        }
     }
 }
 
@@ -384,7 +501,7 @@ private struct IceBarItemView: View {
 
     private var image: NSImage? {
         guard
-            let image = imageCache.images[item.info],
+            let image = imageCache.images[item.windowID],
             let screen = imageCache.screen
         else {
             return nil

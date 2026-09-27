@@ -81,5 +81,5 @@ struct TaskTimeoutError: Error, CustomStringConvertible {
 
 // MARK: TaskTimeoutError: LocalizedError
 extension TaskTimeoutError: LocalizedError {
-    var errorDescription: String? { description }
+    var errorDescription: String? { String(localized: "Task timed out before completion") }
 }

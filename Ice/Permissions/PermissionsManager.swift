@@ -47,18 +47,18 @@ final class PermissionsManager: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        Publishers.Merge(
-            accessibilityPermission.$hasPermission.mapToVoid(),
-            screenRecordingPermission.$hasPermission.mapToVoid()
+        Publishers.CombineLatest(
+            accessibilityPermission.$hasPermission,
+            screenRecordingPermission.$hasPermission
         )
         .receive(on: DispatchQueue.main)
-        .sink { [weak self] in
+        .sink { [weak self] accessibility, screenRecording in
             guard let self else {
                 return
             }
-            if allPermissions.allSatisfy({ $0.hasPermission }) {
+            if accessibility && screenRecording {
                 permissionsState = .hasAllPermissions
-            } else if requiredPermissions.allSatisfy({ $0.hasPermission }) {
+            } else if accessibility {
                 permissionsState = .hasRequiredPermissions
             } else {
                 permissionsState = .missingPermissions
@@ -69,7 +69,20 @@ final class PermissionsManager: ObservableObject {
         cancellables = c
     }
 
-    /// Stops running all permissions checks.
+    /// 进入授权页时恢复检查。
+    func startAllChecks() {
+        for permission in allPermissions {
+            permission.startCheck()
+        }
+    }
+
+    func refreshAll() {
+        for permission in allPermissions {
+            permission.refresh()
+        }
+    }
+
+    /// 停止权限检查。
     func stopAllChecks() {
         for permission in allPermissions {
             permission.stopCheck()

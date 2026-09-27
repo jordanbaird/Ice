@@ -8,8 +8,8 @@ import Combine
 
 /// Cache for menu bar item images.
 final class MenuBarItemImageCache: ObservableObject {
-    /// The cached item images.
-    @Published private(set) var images = [MenuBarItemInfo: CGImage]()
+    /// 按真实窗口编号缓存，避免托管图标同名时互相覆盖。
+    @Published private(set) var images = [CGWindowID: CGImage]()
 
     /// The screen of the cached item images.
     private(set) var screen: NSScreen?
@@ -57,7 +57,7 @@ final class MenuBarItemImageCache: ObservableObject {
                     appState.itemManager.$itemCache.removeDuplicates().mapToVoid()
                 )
             )
-            .throttle(for: 0.5, scheduler: DispatchQueue.main, latest: false)
+            .throttle(for: 0.5, scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] in
                 guard let self else {
                     return
@@ -91,28 +91,35 @@ final class MenuBarItemImageCache: ObservableObject {
             return false
         }
         let keys = Set(images.keys)
-        for item in items where keys.contains(item.info) {
+        for item in items where keys.contains(item.windowID) {
             return false
         }
         return true
     }
 
-    /// Captures the images of the current menu bar items and returns a dictionary containing
-    /// the images, keyed by the current menu bar item infos.
-    func createImages(for section: MenuBarSection.Name, screen: NSScreen) async -> [MenuBarItemInfo: CGImage] {
+    /// 检查全部待显示项目，而不是只检查是否抓到任意一张图片。
+    @MainActor
+    func hasImages(for section: MenuBarSection.Name) -> Bool {
+        guard let items = appState?.itemManager.itemCache.managedItems(for: section), !items.isEmpty else {
+            return false
+        }
+        return items.allSatisfy { images[$0.windowID] != nil }
+    }
+
+    /// 抓取菜单栏图标，并以真实窗口编号索引。
+    func createImages(for section: MenuBarSection.Name, screen: NSScreen) async -> [CGWindowID: CGImage] {
         guard let appState else {
             return [:]
         }
 
         let items = await appState.itemManager.itemCache[section]
 
-        var images = [MenuBarItemInfo: CGImage]()
+        var images = [CGWindowID: CGImage]()
         let backingScaleFactor = screen.backingScaleFactor
         let displayBounds = CGDisplayBounds(screen.displayID)
         let option: CGWindowImageOption = [.boundsIgnoreFraming, .bestResolution]
         let defaultItemThickness = NSStatusBar.system.thickness * backingScaleFactor
 
-        var itemInfos = [CGWindowID: MenuBarItemInfo]()
         var itemFrames = [CGWindowID: CGRect]()
         var windowIDs = [CGWindowID]()
         var frame = CGRect.null
@@ -122,23 +129,28 @@ final class MenuBarItemImageCache: ObservableObject {
             guard
                 // Use the most up-to-date window frame.
                 let itemFrame = Bridging.getWindowFrame(for: windowID),
-                itemFrame.minY == displayBounds.minY
+                itemFrame.minY >= displayBounds.minY,
+                itemFrame.minY < displayBounds.minY + (screen.getMenuBarHeight() ?? NSStatusBar.system.thickness),
+                itemFrame.width > 0, itemFrame.height > 0
             else {
                 continue
             }
-            itemInfos[windowID] = item.info
             itemFrames[windowID] = itemFrame
             windowIDs.append(windowID)
             frame = frame.union(itemFrame)
         }
 
-        if
+        guard !windowIDs.isEmpty else { return [:] }
+
+        // Tahoe 的离屏托管窗口逐项抓取，避免合成图只包含部分项目。
+        let useComposite: Bool
+        if #available(macOS 26.0, *) { useComposite = false } else { useComposite = true }
+        if useComposite,
             let compositeImage = ScreenCapture.captureWindows(windowIDs, option: option),
             CGFloat(compositeImage.width) == frame.width * backingScaleFactor
         {
             for windowID in windowIDs {
                 guard
-                    let itemInfo = itemInfos[windowID],
                     let itemFrame = itemFrames[windowID]
                 else {
                     continue
@@ -155,50 +167,34 @@ final class MenuBarItemImageCache: ObservableObject {
                     continue
                 }
 
-                images[itemInfo] = itemImage
+                images[windowID] = itemImage
             }
-        } else {
-            Logger.imageCache.warning("Composite image capture failed. Attempting to capturing items individually.")
+        }
 
-            for windowID in windowIDs {
-                guard
-                    let itemInfo = itemInfos[windowID],
-                    let itemFrame = itemFrames[windowID]
-                else {
-                    continue
-                }
-
-                let frame = CGRect(
-                    x: 0,
-                    y: ((itemFrame.height * backingScaleFactor) / 2) - (defaultItemThickness / 2),
-                    width: itemFrame.width * backingScaleFactor,
-                    height: defaultItemThickness
-                )
-
-                guard
-                    let itemImage = ScreenCapture.captureWindow(windowID, option: option),
-                    let croppedImage = itemImage.cropping(to: frame)
-                else {
-                    continue
-                }
-
-                images[itemInfo] = croppedImage
-            }
+        // 合成图裁剪失败的单个项目也需要补抓。
+        for windowID in windowIDs where images[windowID] == nil {
+            guard let itemImage = ScreenCapture.captureWindow(windowID, option: option) else { continue }
+            let height = min(CGFloat(itemImage.height), defaultItemThickness)
+            let crop = CGRect(
+                x: 0, y: (CGFloat(itemImage.height) - height) / 2,
+                width: CGFloat(itemImage.width), height: height
+            )
+            images[windowID] = itemImage.cropping(to: crop)
         }
 
         return images
     }
 
     /// Updates the cache for the given sections, without checking whether caching is necessary.
-    func updateCacheWithoutChecks(sections: [MenuBarSection.Name]) async {
+    func updateCacheWithoutChecks(sections: [MenuBarSection.Name], on targetScreen: NSScreen? = nil) async {
         guard
             let appState,
-            let screen = NSScreen.main
+            let screen = targetScreen ?? NSScreen.main
         else {
             return
         }
 
-        var newImages = [MenuBarItemInfo: CGImage]()
+        var newImages = [CGWindowID: CGImage]()
 
         for section in sections {
             guard await !appState.itemManager.itemCache[section].isEmpty else {
@@ -213,11 +209,13 @@ final class MenuBarItemImageCache: ObservableObject {
         }
 
         await MainActor.run { [newImages] in
-            images.merge(newImages) { (_, new) in new }
+            let activeWindowIDs = Set(appState.itemManager.itemCache.allItems.map(\.windowID))
+            var updatedImages = images.filter { activeWindowIDs.contains($0.key) }
+            updatedImages.merge(newImages.filter { activeWindowIDs.contains($0.key) }) { (_, new) in new }
+            self.screen = screen
+            self.menuBarHeight = screen.getMenuBarHeight()
+            images = updatedImages
         }
-
-        self.screen = screen
-        self.menuBarHeight = screen.getMenuBarHeight()
     }
 
     /// Updates the cache for the given sections, if necessary.

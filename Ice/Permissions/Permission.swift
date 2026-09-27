@@ -33,8 +33,6 @@ class Permission: ObservableObject, Identifiable {
 
     /// Observer that runs on a timer to check permissions.
     private var timerCancellable: AnyCancellable?
-    /// Observer that observes the ``hasPermission`` property.
-    private var hasPermissionCancellable: AnyCancellable?
 
     /// Creates a permission.
     ///
@@ -59,48 +57,50 @@ class Permission: ObservableObject, Identifiable {
         self.settingsURL = settingsURL
         self.check = check
         self.request = request
-        self.hasPermission = check()
-        configureCancellables()
+        if AppLanguage.hasCompletedSetup {
+            startCheck()
+        }
     }
 
     /// Sets up the internal observers for the permission.
     private func configureCancellables() {
-        timerCancellable = Timer.publish(every: 1, on: .main, in: .default)
+        timerCancellable = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
             .merge(with: Just(.now))
+            .merge(with: NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification).map { _ in Date.now })
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                guard let self else {
-                    return
-                }
-                hasPermission = check()
+                self?.refresh()
             }
+    }
+
+    func refresh() {
+        guard AppLanguage.hasCompletedSetup else {
+            return
+        }
+        let granted = check()
+        if granted != hasPermission {
+            hasPermission = granted
+        }
+    }
+
+    func startCheck() {
+        guard AppLanguage.hasCompletedSetup else {
+            return
+        }
+        refresh()
+        configureCancellables()
     }
 
     /// Performs the request and opens the System Settings app to the appropriate pane.
     func performRequest() {
+        guard AppLanguage.hasCompletedSetup else {
+            return
+        }
+        startCheck()
         request()
         if let settingsURL {
             NSWorkspace.shared.open(settingsURL)
-        }
-    }
-
-    /// Asynchronously waits for the app to be granted this permission.
-    func waitForPermission() async {
-        configureCancellables()
-        guard !hasPermission else {
-            return
-        }
-        return await withCheckedContinuation { continuation in
-            hasPermissionCancellable = $hasPermission.sink { [weak self] hasPermission in
-                guard let self else {
-                    continuation.resume()
-                    return
-                }
-                if hasPermission {
-                    hasPermissionCancellable?.cancel()
-                    continuation.resume()
-                }
-            }
         }
     }
 
@@ -108,8 +108,6 @@ class Permission: ObservableObject, Identifiable {
     func stopCheck() {
         timerCancellable?.cancel()
         timerCancellable = nil
-        hasPermissionCancellable?.cancel()
-        hasPermissionCancellable = nil
     }
 }
 
@@ -118,13 +116,13 @@ class Permission: ObservableObject, Identifiable {
 final class AccessibilityPermission: Permission {
     init() {
         super.init(
-            title: "Accessibility",
+            title: String(localized: "Accessibility"),
             details: [
-                "Get real-time information about the menu bar.",
-                "Arrange menu bar items.",
+                String(localized: "Get real-time information about the menu bar."),
+                String(localized: "Arrange menu bar items."),
             ],
             isRequired: true,
-            settingsURL: nil,
+            settingsURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"),
             check: {
                 checkIsProcessTrusted()
             },
@@ -140,10 +138,10 @@ final class AccessibilityPermission: Permission {
 final class ScreenRecordingPermission: Permission {
     init() {
         super.init(
-            title: "Screen Recording",
+            title: String(localized: "Screen Recording"),
             details: [
-                "Edit the menu bar's appearance.",
-                "Display images of individual menu bar items.",
+                String(localized: "Edit the menu bar's appearance."),
+                String(localized: "Display images of individual menu bar items."),
             ],
             isRequired: false,
             settingsURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"),

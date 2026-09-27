@@ -34,9 +34,10 @@ struct AboutSettingsPane: View {
 
     private var lastUpdateCheckString: String {
         if let date = updatesManager.lastUpdateCheckDate {
-            date.formatted(date: .abbreviated, time: .standard)
+            date.formatted(Date.FormatStyle(date: .abbreviated, time: .standard)
+                .locale(Locale(identifier: AppLanguage.current().resolvedIdentifier)))
         } else {
-            "Never"
+            String(localized: "Never")
         }
     }
 

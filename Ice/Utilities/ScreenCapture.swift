@@ -10,16 +10,20 @@ import ScreenCaptureKit
 enum ScreenCapture {
     /// Returns a Boolean value that indicates whether the app has been granted screen capture permissions.
     static func checkPermissions() -> Bool {
+        if CGPreflightScreenCaptureAccess() {
+            return true
+        }
+        // 检查全部外部项目，避免首个无标题项目造成误判。
         for item in MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true) {
             // Don't check items owned by Ice.
             if item.owningApplication == .current {
                 continue
             }
-            return item.title != nil
+            if let title = item.title, !title.isEmpty {
+                return true
+            }
         }
-        // CGPreflightScreenCaptureAccess() only returns an initial value for whether the app
-        // has permissions, but we can use it as a fallback.
-        return CGPreflightScreenCaptureAccess()
+        return false
     }
 
     /// Returns a Boolean value that indicates whether the app has been granted screen capture permissions.
@@ -62,6 +66,7 @@ enum ScreenCapture {
     ///   - option: Options that specify the image to be captured.
     static func captureWindows(_ windowIDs: [CGWindowID], screenBounds: CGRect? = nil, option: CGWindowImageOption = []) -> CGImage? {
         let pointer = UnsafeMutablePointer<UnsafeRawPointer?>.allocate(capacity: windowIDs.count)
+        defer { pointer.deallocate() }
         for (index, windowID) in windowIDs.enumerated() {
             pointer[index] = UnsafeRawPointer(bitPattern: UInt(windowID))
         }

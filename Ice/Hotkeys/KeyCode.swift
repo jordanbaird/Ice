@@ -4,6 +4,7 @@
 //
 
 import Carbon.HIToolbox
+import Foundation
 
 /// Representation of a physical key on a keyboard.
 struct KeyCode: Codable, Hashable, RawRepresentable {
@@ -194,7 +195,7 @@ extension KeyCode {
 // MARK: Custom String Mappings
 private let customStringMappings = [
     // standard keys
-    KeyCode.space: "Space",
+    KeyCode.space: String(localized: "Space"),
     KeyCode.tab: "⇥",
     KeyCode.return: "⏎",
     KeyCode.delete: "⌫",

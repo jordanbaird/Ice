@@ -38,9 +38,9 @@ struct GeneralSettingsPane: View {
     private var rehideIntervalKey: LocalizedStringKey {
         let formatted = manager.rehideInterval.formatted()
         if manager.rehideInterval == 1 {
-            return LocalizedStringKey(formatted + " second")
+            return LocalizedStringKey("\(formatted) second")
         } else {
-            return LocalizedStringKey(formatted + " seconds")
+            return LocalizedStringKey("\(formatted) seconds")
         }
     }
 
@@ -55,6 +55,8 @@ struct GeneralSettingsPane: View {
     var body: some View {
         IceForm {
             IceSection {
+                LanguagePicker()
+                    .annotation("Changing the language requires restarting Ice")
                 launchAtLogin
             }
             IceSection {
@@ -85,13 +87,13 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var launchAtLogin: some View {
-        LaunchAtLogin.Toggle()
+        LaunchAtLogin.Toggle { Text("Launch at login") }
     }
 
     @ViewBuilder
     private func menuItem(for imageSet: ControlItemImageSet) -> some View {
         Label {
-            Text(imageSet.name.rawValue)
+            Text(LocalizedStringKey(imageSet.name.rawValue))
         } icon: {
             if let nsImage = imageSet.hidden.nsImage(for: appState) {
                 switch imageSet.name {
@@ -178,6 +180,8 @@ struct GeneralSettingsPane: View {
         useIceBar
         if manager.useIceBar {
             iceBarLocationPicker
+            Toggle("Fade Ice Bar in and out", isOn: manager.bindings.animateIceBar)
+                .annotation("Animate the Ice Bar when expanding and collapsing. Respects Reduce Motion in System Settings.")
         }
     }
 

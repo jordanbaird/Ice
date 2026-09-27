@@ -141,6 +141,7 @@ final class AppState: ObservableObject {
         .sink { [weak self] shouldUpdate in
             guard
                 let self,
+                AppLanguage.hasCompletedSetup,
                 shouldUpdate
             else {
                 return
@@ -177,8 +178,12 @@ final class AppState: ObservableObject {
         cancellables = c
     }
 
+    private var hasPerformedSetup = false
+
     /// Sets up the app state.
     func performSetup() {
+        guard !hasPerformedSetup else { return }
+        hasPerformedSetup = true
         configureCancellables()
         permissionsManager.stopAllChecks()
         menuBarManager.performSetup()

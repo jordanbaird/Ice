@@ -17,9 +17,9 @@ final class MenuBarSection {
         /// A string to show in the interface.
         var displayString: String {
             switch self {
-            case .visible: "Visible"
-            case .hidden: "Hidden"
-            case .alwaysHidden: "Always-Hidden"
+            case .visible: String(localized: "Visible")
+            case .hidden: String(localized: "Hidden")
+            case .alwaysHidden: String(localized: "Always-Hidden")
             }
         }
 
@@ -143,8 +143,9 @@ final class MenuBarSection {
         switch name {
         case .visible where useIceBar, .hidden where useIceBar:
             Task {
-                if let screenForIceBar {
-                    await iceBarPanel?.show(section: .hidden, on: screenForIceBar)
+                guard let screenForIceBar, let iceBarPanel,
+                      await iceBarPanel.show(section: .hidden, on: screenForIceBar) else {
+                    return
                 }
                 for section in appState.menuBarManager.sections {
                     section.controlItem.state = .hideItems
@@ -152,8 +153,9 @@ final class MenuBarSection {
             }
         case .alwaysHidden where useIceBar:
             Task {
-                if let screenForIceBar {
-                    await iceBarPanel?.show(section: .alwaysHidden, on: screenForIceBar)
+                guard let screenForIceBar, let iceBarPanel,
+                      await iceBarPanel.show(section: .alwaysHidden, on: screenForIceBar) else {
+                    return
                 }
                 for section in appState.menuBarManager.sections {
                     section.controlItem.state = .hideItems
@@ -240,8 +242,7 @@ final class MenuBarSection {
 
     /// Starts running checks to determine when to rehide the section.
     private func startRehideChecks() {
-        rehideTimer?.invalidate()
-        rehideMonitor?.stop()
+        stopRehideChecks()
 
         guard
             let appState,

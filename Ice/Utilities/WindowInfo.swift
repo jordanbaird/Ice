@@ -59,7 +59,12 @@ struct WindowInfo {
     /// A Boolean value that indicates whether the window represents a
     /// menu bar item.
     var isMenuBarItem: Bool {
-        layer == kCGStatusWindowLevel
+        if #available(macOS 26.0, *) {
+            // Tahoe 的托管图标不再保证使用旧窗口层级。
+            return layer != kCGMainMenuWindowLevel &&
+                Bridging.getWindowList(option: .menuBarItems).contains(windowID)
+        }
+        return layer == kCGStatusWindowLevel
     }
 
     /// A Boolean value that indicates whether the window belongs to the
@@ -81,13 +86,7 @@ struct WindowInfo {
             let boundsDict = info[kCGWindowBounds] as? NSDictionary,
             let frame = CGRect(dictionaryRepresentation: boundsDict),
             let layer = info[kCGWindowLayer] as? Int,
-            let alpha = info[kCGWindowAlpha] as? Double,
-            let ownerPID = info[kCGWindowOwnerPID] as? pid_t,
-            let rawSharingState = info[kCGWindowSharingState] as? UInt32,
-            let rawBackingStoreType = info[kCGWindowStoreType] as? UInt32,
-            let sharingState = CGWindowSharingType(rawValue: rawSharingState),
-            let backingStoreType = CGWindowBackingType(rawValue: rawBackingStoreType),
-            let memoryUsage = info[kCGWindowMemoryUsage] as? Double
+            let ownerPID = info[kCGWindowOwnerPID] as? pid_t
         else {
             return nil
         }
@@ -95,12 +94,13 @@ struct WindowInfo {
         self.frame = frame
         self.title = info[kCGWindowName] as? String
         self.layer = layer
-        self.alpha = alpha
+        // 托管窗口可能不提供这些非必要属性，不应因此丢弃图标。
+        self.alpha = info[kCGWindowAlpha] as? Double ?? 1
         self.ownerPID = ownerPID
         self.ownerName = info[kCGWindowOwnerName] as? String
-        self.sharingState = sharingState
-        self.backingStoreType = backingStoreType
-        self.memoryUsage = Measurement(value: memoryUsage, unit: .bytes)
+        self.sharingState = CGWindowSharingType(rawValue: info[kCGWindowSharingState] as? UInt32 ?? 0) ?? .none
+        self.backingStoreType = CGWindowBackingType(rawValue: info[kCGWindowStoreType] as? UInt32 ?? 2) ?? .backingStoreBuffered
+        self.memoryUsage = Measurement(value: info[kCGWindowMemoryUsage] as? Double ?? 0, unit: .bytes)
         self.isOnScreen = info[kCGWindowIsOnscreen] as? Bool ?? false
         self.isBackedByVideoMemory = info[kCGWindowBackingLocationVideoMemory] as? Bool ?? false
     }

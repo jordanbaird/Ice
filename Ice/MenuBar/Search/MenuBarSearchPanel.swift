@@ -374,7 +374,7 @@ private struct ShowItemButton: View {
     var body: some View {
         BottomBarButton(action: action) {
             HStack {
-                Text(item.isOnScreen ? "Click item" : "Show item")
+                Text(item.isOnScreen ? LocalizedStringKey("Click item") : LocalizedStringKey("Show item"))
                     .padding(.horizontal, 5)
 
                 Image(systemName: "return")
@@ -409,7 +409,7 @@ private struct MenuBarSearchItemView: View {
 
     private var image: NSImage? {
         guard
-            let image = imageCache.images[item.info]?.trimmingTransparentPixels(around: [.minXEdge, .maxXEdge]),
+            let image = imageCache.images[item.windowID]?.trimmingTransparentPixels(around: [.minXEdge, .maxXEdge]),
             let screen = imageCache.screen
         else {
             return nil

@@ -330,7 +330,7 @@ final class MenuBarManager: ObservableObject {
         let menu = NSMenu(title: "Ice")
 
         let editItem = NSMenuItem(
-            title: "Edit Menu Bar Appearance…",
+            title: String(localized: "Edit Menu Bar Appearance…"),
             action: #selector(showAppearanceEditorPopover),
             keyEquivalent: ""
         )
@@ -340,11 +340,12 @@ final class MenuBarManager: ObservableObject {
         menu.addItem(.separator())
 
         let settingsItem = NSMenuItem(
-            title: "Ice Settings…",
+            title: String(localized: "Ice Settings…"),
             action: #selector(AppDelegate.openSettingsWindow),
             keyEquivalent: ","
         )
         menu.addItem(settingsItem)
+        menu.addItem(LanguageManager.shared.makeMenuItem())
 
         menu.popUp(positioning: nil, at: point, in: nil)
     }

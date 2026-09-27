@@ -326,11 +326,11 @@ extension MenuBarItemManager {
         }
 
         let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
-        if cachedItemWindowIDs == itemWindowIDs {
-            logSkippingCache(reason: "item windows have not changed")
-            return
-        } else {
-            cachedItemWindowIDs = itemWindowIDs
+        if #unavailable(macOS 26.0) {
+            if cachedItemWindowIDs == itemWindowIDs {
+                logSkippingCache(reason: "item windows have not changed")
+                return
+            }
         }
 
         var items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
@@ -357,6 +357,8 @@ extension MenuBarItemManager {
                 alwaysHiddenControlItem: alwaysHiddenControlItem,
                 otherItems: items
             )
+            // 成功后才记录，避免初始化失败后永久跳过重试。
+            cachedItemWindowIDs = itemWindowIDs
         } catch {
             Logger.itemManager.error("Error enforcing control item order: \(error)")
             Logger.itemManager.debug("Clearing menu bar item cache")
@@ -434,25 +436,25 @@ extension MenuBarItemManager {
         var message: String {
             switch code {
             case .couldNotComplete:
-                "Could not complete event operation for \"\(item.displayName)\""
+                String(localized: "Could not complete event operation for \"\(item.displayName)\"")
             case .eventCreationFailure:
-                "Failed to create event for \"\(item.displayName)\""
+                String(localized: "Failed to create event for \"\(item.displayName)\"")
             case .invalidAppState:
-                "Invalid app state for \"\(item.displayName)\""
+                String(localized: "Invalid app state for \"\(item.displayName)\"")
             case .invalidEventSource:
-                "Invalid event source for \"\(item.displayName)\""
+                String(localized: "Invalid event source for \"\(item.displayName)\"")
             case .invalidCursorLocation:
-                "Invalid cursor location for \"\(item.displayName)\""
+                String(localized: "Invalid cursor location for \"\(item.displayName)\"")
             case .invalidItem:
-                "\"\(item.displayName)\" is invalid"
+                String(localized: "\"\(item.displayName)\" is invalid")
             case .notMovable:
-                "\"\(item.displayName)\" is not movable"
+                String(localized: "\"\(item.displayName)\" is not movable")
             case .eventOperationTimeout:
-                "Event operation timed out for \"\(item.displayName)\""
+                String(localized: "Event operation timed out for \"\(item.displayName)\"")
             case .frameCheckTimeout:
-                "Frame check timed out for \"\(item.displayName)\""
+                String(localized: "Frame check timed out for \"\(item.displayName)\"")
             case .otherTimeout:
-                "Operation timed out for \"\(item.displayName)\""
+                String(localized: "Operation timed out for \"\(item.displayName)\"")
             }
         }
 
@@ -471,7 +473,7 @@ extension MenuBarItemManager {
 
         /// Suggestion for recovery from the error.
         var recoverySuggestion: String? {
-            "Please try again. If the error persists, please file a bug report."
+            String(localized: "Please try again. If the error persists, please file a bug report.")
         }
     }
 }
@@ -1350,7 +1352,7 @@ extension MenuBarItemManager {
 
         guard let targetItem = items.first else {
             let alert = NSAlert()
-            alert.messageText = "Not enough room to show \"\(item.displayName)\""
+            alert.messageText = String(localized: "Not enough room to show \"\(item.displayName)\"")
             alert.runModal()
             return
         }

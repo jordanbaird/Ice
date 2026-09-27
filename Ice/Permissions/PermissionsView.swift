@@ -7,7 +7,7 @@ import SwiftUI
 
 struct PermissionsView: View {
     @EnvironmentObject var permissionsManager: PermissionsManager
-    @Environment(\.openWindow) private var openWindow
+    @State private var requestedPermission: Permission?
 
     private var continueButtonText: LocalizedStringKey {
         if case .hasRequiredPermissions = permissionsManager.permissionsState {
@@ -33,11 +33,25 @@ struct PermissionsView: View {
             explanationView
             permissionsGroupStack
 
+            permissionHelp
+                .padding(.top, 12)
+
             footerView
                 .padding(.vertical)
         }
         .padding(.horizontal)
         .fixedSize()
+        .onAppear {
+            permissionsManager.startAllChecks()
+        }
+        .onReceive(permissionsManager.$permissionsState) { _ in
+            guard requestedPermission?.hasPermission == true else { return }
+            requestedPermission = nil
+            permissionsManager.appState?.activate(withPolicy: .regular)
+        }
+        .onDisappear {
+            requestedPermission = nil
+        }
         .readWindow { window in
             guard let window else {
                 return
@@ -53,6 +67,32 @@ struct PermissionsView: View {
                 }
             }
         }
+    }
+
+    private var permissionHelp: some View {
+        VStack(spacing: 8) {
+            if permissionsManager.permissionsState == .missingPermissions {
+                Text("Accessibility permission is required to continue. Screen Recording is a separate permission.")
+                    .foregroundStyle(.orange)
+            }
+            Text("Already enabled? Restart Ice. If it still shows as denied, remove the old Ice entry in System Settings and add this copy again.")
+                .foregroundStyle(.secondary)
+            HStack {
+                Button("Refresh Permissions") {
+                    permissionsManager.refreshAll()
+                }
+                Button("Restart Ice") {
+                    LanguageManager.shared.restart()
+                }
+                Button("Show This App in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+                }
+            }
+        }
+        .font(.caption)
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: 450)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     @ViewBuilder
@@ -154,15 +194,8 @@ struct PermissionsView: View {
                 }
 
                 Button {
-                    guard let appState = permissionsManager.appState else {
-                        return
-                    }
+                    requestedPermission = permission
                     permission.performRequest()
-                    Task {
-                        await permission.waitForPermission()
-                        appState.activate(withPolicy: .regular)
-                        openWindow(id: Constants.permissionsWindowID)
-                    }
                 } label: {
                     if permission.hasPermission {
                         Text("Permission Granted")

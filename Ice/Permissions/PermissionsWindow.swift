@@ -7,10 +7,18 @@ import SwiftUI
 
 struct PermissionsWindow: Scene {
     @ObservedObject var appState: AppState
+    @AppStorage(AppLanguage.setupCompletedKey) private var hasSelectedLanguage = false
 
     var body: some Scene {
         Window(Constants.permissionsWindowTitle, id: Constants.permissionsWindowID) {
-            PermissionsView()
+            Group {
+                if hasSelectedLanguage {
+                    PermissionsView()
+                        .environmentObject(appState.permissionsManager)
+                } else {
+                    InitialLanguageView()
+                }
+            }
                 .readWindow { window in
                     guard let window else {
                         return
@@ -20,6 +28,5 @@ struct PermissionsWindow: Scene {
         }
         .windowResizability(.contentSize)
         .windowStyle(.hiddenTitleBar)
-        .environmentObject(appState.permissionsManager)
     }
 }

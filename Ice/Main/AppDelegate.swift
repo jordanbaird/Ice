@@ -47,6 +47,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard !appState.isPreview else {
                 return
             }
+            guard AppLanguage.hasCompletedSetup else {
+                appState.activate(withPolicy: .regular)
+                appState.openPermissionsWindow()
+                return
+            }
             // If we have the required permissions, set up the shared app state.
             // Otherwise, open the permissions window.
             switch appState.permissionsManager.permissionsState {

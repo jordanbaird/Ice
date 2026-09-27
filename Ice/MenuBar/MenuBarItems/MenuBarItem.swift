@@ -197,7 +197,13 @@ extension MenuBarItem {
         return Bridging.getWindowList(option: option).lazy
             .filter(boundsPredicate)
             .compactMap { windowID in
-                MenuBarItem(windowID: windowID)
+                guard let window = WindowInfo(windowID: windowID) else { return nil }
+                if #available(macOS 26.0, *) {
+                    // 列表已经限定菜单栏窗口，仅排除菜单栏背景。
+                    guard window.layer != kCGMainMenuWindowLevel else { return nil }
+                    return MenuBarItem(uncheckedItemWindow: window)
+                }
+                return MenuBarItem(itemWindow: window)
             }
             .filter(titlePredicate)
             .sortedByOrderInMenuBar()
@@ -226,7 +232,13 @@ private extension MenuBarItemInfo {
     /// it is a valid menu bar item window. Only call this initializer if you are
     /// certain that the window is valid.
     init(uncheckedItemWindow itemWindow: WindowInfo) {
-        if let bundleIdentifier = itemWindow.owningApplication?.bundleIdentifier {
+        if #available(macOS 26.0, *),
+           itemWindow.owningApplication?.bundleIdentifier == "com.apple.controlcenter",
+           let title = itemWindow.title,
+           ["SItem", "HItem", "AHItem"].contains(title) {
+            // 控制中心托管后，仍以 Ice 的固定自动保存名称识别分隔项。
+            self.namespace = .ice
+        } else if let bundleIdentifier = itemWindow.owningApplication?.bundleIdentifier {
             self.namespace = Namespace(bundleIdentifier)
         } else {
             self.namespace = .null

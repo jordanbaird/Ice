@@ -3,10 +3,8 @@
 //  Ice
 //
 
-import AXSwift
 import Combine
 import Cocoa
-import ScreenCaptureKit
 
 // MARK: - Permission
 
@@ -19,22 +17,28 @@ class Permission: ObservableObject, Identifiable {
 
     /// The title of the permission.
     let title: String
+
     /// Descriptive details for the permission.
     let details: [String]
+
     /// A Boolean value that indicates if the app can work without this permission.
     let isRequired: Bool
 
     /// The URL of the settings pane to open.
     private let settingsURL: URL?
+
     /// The function that checks permissions.
     private let check: () -> Bool
+
     /// The function that requests permissions.
     private let request: () -> Void
 
     /// Observer that runs on a timer to check permissions.
     private var timerCancellable: AnyCancellable?
-    /// Observer that observes the ``hasPermission`` property.
-    private var hasPermissionCancellable: AnyCancellable?
+
+    /// Continuations for the tasks that wait for the app to be granted
+    /// this permission.
+    private var continuations = [CheckedContinuation<Bool, Never>]()
 
     /// Creates a permission.
     ///
@@ -72,8 +76,25 @@ class Permission: ObservableObject, Identifiable {
                 guard let self else {
                     return
                 }
-                hasPermission = check()
+                let hasPermission = check()
+                // Assigning the same value would still notify observers.
+                if self.hasPermission != hasPermission {
+                    self.hasPermission = hasPermission
+                }
+                if hasPermission {
+                    resumeContinuations(hasPermission: true)
+                }
             }
+    }
+
+    /// Resumes the tasks that wait for the app to be granted this
+    /// permission.
+    private func resumeContinuations(hasPermission: Bool) {
+        let continuations = continuations
+        self.continuations.removeAll()
+        for continuation in continuations {
+            continuation.resume(returning: hasPermission)
+        }
     }
 
     /// Performs the request and opens the System Settings app to the appropriate pane.
@@ -85,22 +106,17 @@ class Permission: ObservableObject, Identifiable {
     }
 
     /// Asynchronously waits for the app to be granted this permission.
-    func waitForPermission() async {
+    ///
+    /// - Returns: `true` if the app was granted this permission, or `false`
+    ///   if the check stopped first.
+    @discardableResult
+    func waitForPermission() async -> Bool {
         configureCancellables()
         guard !hasPermission else {
-            return
+            return true
         }
         return await withCheckedContinuation { continuation in
-            hasPermissionCancellable = $hasPermission.sink { [weak self] hasPermission in
-                guard let self else {
-                    continuation.resume()
-                    return
-                }
-                if hasPermission {
-                    hasPermissionCancellable?.cancel()
-                    continuation.resume()
-                }
-            }
+            continuations.append(continuation)
         }
     }
 
@@ -108,8 +124,7 @@ class Permission: ObservableObject, Identifiable {
     func stopCheck() {
         timerCancellable?.cancel()
         timerCancellable = nil
-        hasPermissionCancellable?.cancel()
-        hasPermissionCancellable = nil
+        resumeContinuations(hasPermission: hasPermission)
     }
 }
 
@@ -126,10 +141,10 @@ final class AccessibilityPermission: Permission {
             isRequired: true,
             settingsURL: nil,
             check: {
-                checkIsProcessTrusted()
+                AXHelpers.isProcessTrusted()
             },
             request: {
-                checkIsProcessTrusted(prompt: true)
+                AXHelpers.isProcessTrusted(prompt: true)
             }
         )
     }
@@ -142,7 +157,7 @@ final class ScreenRecordingPermission: Permission {
         super.init(
             title: "Screen Recording",
             details: [
-                "Edit the menu bar's appearance.",
+                "Change the menu bar's appearance.",
                 "Display images of individual menu bar items.",
             ],
             isRequired: false,

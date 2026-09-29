@@ -6,6 +6,7 @@
 import Carbon.HIToolbox
 import Cocoa
 import Combine
+import OSLog
 
 /// An object that manages the registration, storage, and unregistration of hotkeys.
 final class HotkeyRegistry {
@@ -59,6 +60,19 @@ final class HotkeyRegistry {
     private var registrations = [UInt32: Registration]()
 
     private var cancellables = Set<AnyCancellable>()
+
+    deinit {
+        // The event handler holds an unretained pointer to the registry,
+        // so it must not outlive it.
+        for registration in registrations.values {
+            if let hotKeyRef = registration.hotKeyRef {
+                UnregisterEventHotKey(hotKeyRef)
+            }
+        }
+        if let eventHandlerRef {
+            RemoveEventHandler(eventHandlerRef)
+        }
+    }
 
     /// Installs the global event handler reference, if it isn't already installed.
     private func installIfNeeded() -> OSStatus {
@@ -119,6 +133,7 @@ final class HotkeyRegistry {
     ///     the event kind specified by `eventKind`.
     ///
     /// - Returns: The registration's identifier on success, `nil` on failure.
+    @MainActor
     func register(hotkey: Hotkey, eventKind: EventKind, handler: @escaping () -> Void) -> UInt32? {
         enum Context {
             static var currentID: UInt32 = 0
@@ -129,21 +144,21 @@ final class HotkeyRegistry {
         }
 
         guard let keyCombination = hotkey.keyCombination else {
-            Logger.hotkeyRegistry.error("Hotkey does not have a valid key combination")
+            Logger.hotkeys.error("Hotkey does not have a valid key combination")
             return nil
         }
 
         var status = installIfNeeded()
 
         guard status == noErr else {
-            Logger.hotkeyRegistry.error("Hotkey event handler installation failed with status \(status)")
+            Logger.hotkeys.error("Hotkey event handler installation failed with status \(status, privacy: .public)")
             return nil
         }
 
         let id = Context.currentID
 
         guard registrations[id] == nil else {
-            Logger.hotkeyRegistry.error("Hotkey already registered for id \(id)")
+            Logger.hotkeys.error("Hotkey already registered for id \(id, privacy: .public)")
             return nil
         }
 
@@ -159,12 +174,12 @@ final class HotkeyRegistry {
         )
 
         guard status == noErr else {
-            Logger.hotkeyRegistry.error("Hotkey registration failed with status \(status)")
+            Logger.hotkeys.error("Hotkey registration failed with status \(status, privacy: .public)")
             return nil
         }
 
         guard let hotKeyRef else {
-            Logger.hotkeyRegistry.error("Hotkey registration failed due to invalid EventHotKeyRef")
+            Logger.hotkeys.error("Hotkey registration failed due to invalid EventHotKeyRef")
             return nil
         }
 
@@ -185,12 +200,12 @@ final class HotkeyRegistry {
     /// its registration in an inactive state.
     private func retainedUnregister(_ id: UInt32) {
         guard let registration = registrations[id] else {
-            Logger.hotkeyRegistry.error("No registered key combination for id \(id)")
+            Logger.hotkeys.error("No registered key combination for id \(id, privacy: .public)")
             return
         }
         let status = UnregisterEventHotKey(registration.hotKeyRef)
         guard status == noErr else {
-            Logger.hotkeyRegistry.error("Hotkey unregistration failed with status \(status)")
+            Logger.hotkeys.error("Hotkey unregistration failed with status \(status, privacy: .public)")
             return
         }
         registration.hotKeyRef = nil
@@ -236,7 +251,7 @@ final class HotkeyRegistry {
                 let hotKeyRef
             else {
                 registrations.removeValue(forKey: registration.hotKeyID.id)
-                Logger.hotkeyRegistry.error("Hotkey registration failed with status \(status)")
+                Logger.hotkeys.error("Hotkey registration failed with status \(status, privacy: .public)")
                 continue
             }
 
@@ -283,9 +298,4 @@ final class HotkeyRegistry {
 
         return noErr
     }
-}
-
-// MARK: - Logger
-private extension Logger {
-    static let hotkeyRegistry = Logger(category: "HotkeyRegistry")
 }

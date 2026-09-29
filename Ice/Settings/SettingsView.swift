@@ -6,15 +6,28 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @EnvironmentObject var navigationState: AppNavigationState
-    @Environment(\.sidebarRowSize) var sidebarRowSize
+    @EnvironmentObject var appState: AppState
+    @ObservedObject var navigationState: AppNavigationState
+    @Environment(\.appearsActive) private var appearsActive
+    @Environment(\.sidebarRowSize) private var sidebarRowSize
+
+    private let sidebarPadding: CGFloat = 3
 
     private var sidebarWidth: CGFloat {
-        switch sidebarRowSize {
-        case .small: 190
-        case .medium: 210
-        case .large: 230
-        @unknown default: 210
+        if #available(macOS 26.0, *) {
+            switch sidebarRowSize {
+            case .small: 200
+            case .medium: 220
+            case .large: 240
+            @unknown default: 220
+            }
+        } else {
+            switch sidebarRowSize {
+            case .small: 190
+            case .medium: 215
+            case .large: 230
+            @unknown default: 215
+            }
         }
     }
 
@@ -27,7 +40,7 @@ struct SettingsView: View {
         }
     }
 
-    private var sidebarItemFontSize: CGFloat {
+    private var sidebarFontSize: CGFloat {
         switch sidebarRowSize {
         case .small: 13
         case .medium: 15
@@ -36,73 +49,98 @@ struct SettingsView: View {
         }
     }
 
+    private var sidebarTextStyle: some ShapeStyle {
+        appearsActive ? .primary : .secondary
+    }
+
+    private var navigationTitle: LocalizedStringKey {
+        navigationState.settingsNavigationIdentifier.localized
+    }
+
     var body: some View {
         NavigationSplitView {
             sidebar
         } detail: {
             detailView
         }
-        .navigationTitle(navigationState.settingsNavigationIdentifier.localized)
+        .navigationTitle(navigationTitle)
     }
 
     @ViewBuilder
     private var sidebar: some View {
         List(selection: $navigationState.settingsNavigationIdentifier) {
             Section {
-                ForEach(SettingsNavigationIdentifier.allCases, id: \.self) { identifier in
+                ForEach(SettingsNavigationIdentifier.allCases) { identifier in
                     sidebarItem(for: identifier)
                 }
             } header: {
                 Text("Ice")
-                    .font(.system(size: 36, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .padding(.vertical, 5)
+                    .font(.system(size: sidebarFontSize * 2.67, weight: .medium))
+                    .foregroundStyle(sidebarTextStyle)
+                    .padding(.leading, sidebarPadding)
+                    .padding(.bottom, sidebarFontSize)
             }
             .collapsible(false)
         }
         .scrollDisabled(true)
-        .removeSidebarToggle()
-        .navigationSplitViewColumnWidth(sidebarWidth)
-    }
-
-    @ViewBuilder
-    private var detailView: some View {
-        switch navigationState.settingsNavigationIdentifier {
-        case .general:
-            GeneralSettingsPane()
-        case .menuBarLayout:
-            MenuBarLayoutSettingsPane()
-        case .menuBarAppearance:
-            MenuBarAppearanceSettingsPane()
-        case .hotkeys:
-            HotkeysSettingsPane()
-        case .advanced:
-            AdvancedSettingsPane()
-        case .about:
-            AboutSettingsPane()
+        .toolbar(removing: .sidebarToggle)
+        .toolbar {
+            sidebarToolbarSpacer
         }
+        .navigationSplitViewColumnWidth(sidebarWidth)
     }
 
     @ViewBuilder
     private func sidebarItem(for identifier: SettingsNavigationIdentifier) -> some View {
         Label {
             Text(identifier.localized)
-                .font(.system(size: sidebarItemFontSize))
-                .padding(.leading, 2)
+                .font(.system(size: sidebarFontSize))
+                .foregroundStyle(sidebarTextStyle)
         } icon: {
-            icon(for: identifier).view
+            identifier.iconResource.view
+                .foregroundStyle(sidebarTextStyle)
+                .padding(sidebarPadding)
         }
         .frame(height: sidebarItemHeight)
+        .tag(identifier)
     }
 
-    private func icon(for identifier: SettingsNavigationIdentifier) -> IconResource {
-        switch identifier {
-        case .general: .systemSymbol("gearshape")
-        case .menuBarLayout: .systemSymbol("rectangle.topthird.inset.filled")
-        case .menuBarAppearance: .systemSymbol("swatchpalette")
-        case .hotkeys: .systemSymbol("keyboard")
-        case .advanced: .systemSymbol("gearshape.2")
-        case .about: .assetCatalog(.iceCubeStroke)
+    @ToolbarContentBuilder
+    private var sidebarToolbarSpacer: some ToolbarContent {
+        if #available(macOS 26.0, *) {
+            ToolbarSpacer(.flexible)
+        } else {
+            ToolbarItem {
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var detailView: some View {
+        if #available(macOS 26.0, *) {
+            settingsPane
+                .scrollEdgeEffectStyle(.hard, for: .top)
+        } else {
+            settingsPane
+        }
+    }
+
+    @ViewBuilder
+    private var settingsPane: some View {
+        switch navigationState.settingsNavigationIdentifier {
+        case .general:
+            GeneralSettingsPane(settings: appState.settings.general)
+        case .menuBarLayout:
+            MenuBarLayoutSettingsPane(itemManager: appState.itemManager)
+        case .menuBarAppearance:
+            MenuBarAppearanceSettingsPane(appearanceManager: appState.appearanceManager)
+        case .hotkeys:
+            HotkeysSettingsPane(settings: appState.settings.hotkeys)
+        case .advanced:
+            AdvancedSettingsPane(settings: appState.settings.advanced)
+        case .about:
+            AboutSettingsPane(updatesManager: appState.updatesManager)
         }
     }
 }

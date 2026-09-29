@@ -5,6 +5,7 @@
 
 import Cocoa
 import Combine
+import OSLog
 
 /// A manager for the appearance of the menu bar.
 @MainActor
@@ -31,15 +32,11 @@ final class MenuBarAppearanceManager: ObservableObject {
     private(set) var overlayPanels = Set<MenuBarOverlayPanel>()
 
     /// The amount to inset the menu bar if called for by the configuration.
-    let menuBarInsetAmount: CGFloat = 5
-
-    /// Creates a manager with the given app state.
-    init(appState: AppState) {
-        self.appState = appState
-    }
+    let menuBarInsetAmount: CGFloat = if #available(macOS 26.0, *) { 3.5 } else { 5 }
 
     /// Performs initial setup of the manager.
-    func performSetup() {
+    func performSetup(with appState: AppState) {
+        self.appState = appState
         loadInitialState()
         configureCancellables()
     }
@@ -51,7 +48,7 @@ final class MenuBarAppearanceManager: ObservableObject {
                 configuration = try decoder.decode(MenuBarAppearanceConfigurationV2.self, from: data)
             }
         } catch {
-            Logger.appearanceManager.error("Error decoding configuration: \(error)")
+            Logger.serialization.error("Error decoding menu bar appearance configuration: \(error)")
         }
     }
 
@@ -66,24 +63,31 @@ final class MenuBarAppearanceManager: ObservableObject {
                 guard let self else {
                     return
                 }
-                while let panel = overlayPanels.popFirst() {
-                    panel.orderOut(self)
-                }
-                if Set(overlayPanels.map { $0.owningScreen }) != Set(NSScreen.screens) {
-                    configureOverlayPanels(with: configuration)
-                }
+                // Rebuild the panels for the new screens. This also closes the
+                // existing panels, which would otherwise keep their update loops
+                // running while ordered out.
+                configureOverlayPanels(with: configuration)
             }
             .store(in: &c)
 
+        // Debounce saving, as the configuration changes continuously while
+        // the user drags a slider or color picker.
         $configuration
-            .encode(encoder: encoder)
-            .receive(on: DispatchQueue.main)
-            .sink { completion in
-                if case .failure(let error) = completion {
-                    Logger.appearanceManager.error("Error encoding configuration: \(error)")
+            .debounce(for: 0.3, scheduler: DispatchQueue.main)
+            .sink { [weak self] configuration in
+                self?.saveConfiguration(configuration)
+            }
+            .store(in: &c)
+
+        // Save the latest configuration in case the app terminates before
+        // the debounce interval elapses.
+        NotificationCenter.default
+            .publisher(for: NSApplication.willTerminateNotification)
+            .sink { [weak self] _ in
+                guard let self else {
+                    return
                 }
-            } receiveValue: { data in
-                Defaults.set(data, forKey: .menuBarAppearanceConfigurationV2)
+                saveConfiguration(configuration)
             }
             .store(in: &c)
 
@@ -95,13 +99,25 @@ final class MenuBarAppearanceManager: ObservableObject {
                 }
                 // The overlay panels may not have been configured yet. Since some of the
                 // properties on the manager might call for them, try to configure now.
-                if overlayPanels.isEmpty {
+                // If they are no longer called for, close them, so they stop their
+                // timers, monitors, and wallpaper captures.
+                if overlayPanels.isEmpty == needsOverlayPanels(for: configuration) {
                     configureOverlayPanels(with: configuration)
                 }
             }
             .store(in: &c)
 
         cancellables = c
+    }
+
+    /// Encodes the given configuration and saves it to UserDefaults.
+    private func saveConfiguration(_ configuration: MenuBarAppearanceConfigurationV2) {
+        do {
+            let data = try encoder.encode(configuration)
+            Defaults.set(data, forKey: .menuBarAppearanceConfigurationV2)
+        } catch {
+            Logger.serialization.error("Error encoding menu bar appearance configuration: \(error)")
+        }
     }
 
     /// Returns a Boolean value that indicates whether a set of overlay panels
@@ -114,10 +130,10 @@ final class MenuBarAppearanceManager: ObservableObject {
         if current.hasBorder {
             return true
         }
-        if configuration.shapeKind != .none {
+        if configuration.shapeKind != .noShape {
             return true
         }
-        if current.tintKind != .none {
+        if current.tintKind != .noTint {
             return true
         }
         return false
@@ -135,6 +151,20 @@ final class MenuBarAppearanceManager: ObservableObject {
             return
         }
 
+        // Close the panels being replaced before building their successors.
+        //
+        // A visible NSWindow is retained by AppKit, so dropping the last Swift
+        // reference to it does not close it. Reassigning `overlayPanels` therefore
+        // left the previous set alive and on screen, each panel still running its
+        // own update loops. This function runs on every screen-parameter change,
+        // so attaching and detaching a display accumulated a full set of live
+        // panels per display each time, all competing to own the menu bar's
+        // appearance. The not-needed path above already closes them; this one did
+        // not.
+        while let panel = overlayPanels.popFirst() {
+            panel.close()
+        }
+
         var overlayPanels = Set<MenuBarOverlayPanel>()
         for screen in NSScreen.screens {
             let panel = MenuBarOverlayPanel(appState: appState, owningScreen: screen)
@@ -144,21 +174,4 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         self.overlayPanels = overlayPanels
     }
-
-    /// Sets the value of ``MenuBarOverlayPanel/isDraggingMenuBarItem`` for each
-    /// of the manager's overlay panels.
-    func setIsDraggingMenuBarItem(_ isDragging: Bool) {
-        for panel in overlayPanels {
-            panel.isDraggingMenuBarItem = isDragging
-        }
-    }
-}
-
-// MARK: MenuBarAppearanceManager: BindingExposable
-extension MenuBarAppearanceManager: BindingExposable { }
-
-// MARK: - Logger
-private extension Logger {
-    /// The logger to use for the menu bar appearance manager.
-    static let appearanceManager = Logger(category: "MenuBarAppearanceManager")
 }

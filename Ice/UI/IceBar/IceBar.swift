@@ -678,6 +678,7 @@ private struct IceBarContentView: View {
     /// Scans up to 3 times, ~0.8s apart: on macOS 27 the menubar layout needs
     /// time for the dividers to settle after showing a section; the first scan
     /// may hit the garbage frame of a parking spacer.
+    @MainActor
     private func loadAXRows() async {
         guard !isLoadingAXRows else {
             return
@@ -702,6 +703,7 @@ private struct IceBarContentView: View {
     }
 
     /// One AX scan: lists items, filters by section, builds rows.
+    @MainActor
     private func scanAXRowsOnce(attempt: Int) async {
         // NSWorkspace must be read on main; heavy discovery runs in the background. Divider
         // positions are also looked up in the background via AX (same coordinate space as axFrame).

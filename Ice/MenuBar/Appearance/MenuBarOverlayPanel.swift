@@ -351,9 +351,11 @@ final class MenuBarOverlayPanelContentView: NSView {
     /// Nil when nothing has been measured yet — callers show everything as before.
     static func currentTrailingVisibleWidth(for display: CGDirectDisplayID) -> CGFloat? {
         loadPersistedTrailingWidths()
+        trailingStateLock.lock()
         let width = displayedTrailingWidth[display]
             ?? predictiveTarget[display]
             ?? trailingWidthCache[display]?.width
+        trailingStateLock.unlock()
         guard let width, width > 0 else {
             return nil
         }
@@ -370,6 +372,13 @@ final class MenuBarOverlayPanelContentView: NSView {
     /// The Accessibility fallback scan blocks in cross-process IPC, so it must
     /// never run inside `draw(_:)`. Draws read this cache (main thread only);
     /// stale entries trigger a background rescan that redisplays on completion.
+    ///
+    /// The caches below are also touched off-main — `applyQuickLeadingEdge` runs
+    /// on a background queue and `currentTrailingVisibleWidth` is called from
+    /// nonisolated async code — so concurrent `Dictionary` mutation could corrupt
+    /// their storage. `NSLock` mirrors the guard in `ScreenCapture`. Not
+    /// reentrant: every call site takes it once, never nested.
+    private static let trailingStateLock = NSLock()
     private static var trailingWidthCache = [CGDirectDisplayID: (width: CGFloat, date: Date)]()
 
     /// Displays with a background trailing-width rescan in flight.
@@ -475,13 +484,18 @@ final class MenuBarOverlayPanelContentView: NSView {
     /// entries load as stale (`.distantPast`) so the first draw paints the
     /// remembered pill instantly while a background rescan re-validates it.
     private static func loadPersistedTrailingWidths() {
+        trailingStateLock.lock()
         guard !trailingWidthsLoaded else {
+            trailingStateLock.unlock()
             return
         }
         trailingWidthsLoaded = true
+        trailingStateLock.unlock()
         guard let dict = UserDefaults.standard.dictionary(forKey: trailingWidthsDefaultsKey) as? [String: Double] else {
             return
         }
+        trailingStateLock.lock()
+        defer { trailingStateLock.unlock() }
         for (key, value) in dict {
             let parts = key.split(separator: ".")
             guard
@@ -511,6 +525,8 @@ final class MenuBarOverlayPanelContentView: NSView {
 
     /// Persists the learned trailing widths for the next launch.
     private static func persistTrailingWidths() {
+        trailingStateLock.lock()
+        defer { trailingStateLock.unlock() }
         var dict = [String: Double]()
         for (display, width) in settledConcealedWidth {
             dict["\(display).concealed"] = Double(width)
@@ -529,6 +545,8 @@ final class MenuBarOverlayPanelContentView: NSView {
     /// Falls back to the opposite end when only one is known (fresh install,
     /// first toggle): a slightly wrong pill beats a missing one.
     private static func settledWidth(for display: CGDirectDisplayID, concealed: Bool?) -> CGFloat? {
+        trailingStateLock.lock()
+        defer { trailingStateLock.unlock() }
         guard let concealed else {
             return settledConcealedWidth[display] ?? settledRevealedWidth[display]
         }
@@ -546,10 +564,17 @@ final class MenuBarOverlayPanelContentView: NSView {
         // $isVisible + $windowFrame for every control item (5+ calls), which
         // was 5 overlapping AX walks for the same answer.
         let now = Date()
-        guard Self.trailingQuickRanAt[display].map({ now.timeIntervalSince($0) > 0.2 }) ?? true else {
+        // Check + stamp in one critical section; otherwise two walks started
+        // microseconds apart both pass the gate.
+        Self.trailingStateLock.lock()
+        let allowed = Self.trailingQuickRanAt[display].map({ now.timeIntervalSince($0) > 0.2 }) ?? true
+        if allowed {
+            Self.trailingQuickRanAt[display] = now
+        }
+        Self.trailingStateLock.unlock()
+        guard allowed else {
             return
         }
-        Self.trailingQuickRanAt[display] = now
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let quickWidth = Self.quickLeadingEdgeWidth(for: display, verdict: verdict) else {
                 Logger.overlayPanel.debug("Quick edge \(display): verdict=\(verdict) -> nil")

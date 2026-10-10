@@ -63,6 +63,9 @@ final class MenuBarSection {
     /// Whether state changes currently represent a durable user choice.
     private var persistsStateChanges = true
 
+    /// Changes even for transient updates, so temporary reveals cannot undo a newer choice.
+    private(set) var stateRevision = 0
+
     /// An event monitor that handles starting the rehide timer when the mouse
     /// is outside of the menu bar.
     private var rehideMonitor: UniversalEventMonitor?
@@ -140,7 +143,11 @@ final class MenuBarSection {
         controlItem.state = Self.initialState(for: shownDefaultsKey)
         controlItem.$state
             .sink { [weak self] state in
-                guard let self, self.persistsStateChanges else {
+                guard let self else {
+                    return
+                }
+                stateRevision += 1
+                guard persistsStateChanges else {
                     return
                 }
                 Defaults.set(state == .showItems, forKey: shownDefaultsKey)
@@ -253,7 +260,7 @@ final class MenuBarSection {
     }
 
     /// Updates this section's state with an explicit persistence intent.
-    private func setState(_ state: ControlItem.HidingState, persist: Bool) {
+    func setState(_ state: ControlItem.HidingState, persist: Bool) {
         let previousPersistence = persistsStateChanges
         persistsStateChanges = persist
         controlItem.state = state
@@ -267,6 +274,7 @@ final class MenuBarSection {
     ///   replace an explicit reveal from a later launch.
     func hide(persistState: Bool = true) {
         guard
+            persistState || iceBarPanel?.isActivatingAXItem != true,
             let appState,
             !isHidden
         else {
@@ -323,8 +331,9 @@ final class MenuBarSection {
     }
 
     /// Starts running checks to determine when to rehide the section.
-    private func startRehideChecks() {
+    func startRehideChecks() {
         rehideTimer?.invalidate()
+        rehideTimer = nil
         rehideMonitor?.stop()
 
         guard

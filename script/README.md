@@ -17,6 +17,33 @@ Local dev and release helpers. Run from the repository root.
 
 Install SwiftLint first if needed: `brew install swiftlint`.
 
+## Ice Bar regression checks
+
+```bash
+swift script/tests/item-discovery.swift
+swift script/tests/ice-bar-position.swift
+swift script/tests/ax-item-press.swift
+swift script/tests/ax-activation.swift
+```
+
+These checks compile and execute the cache/positioning methods from the current
+source with controlled WindowServer and screen inputs. They cover missing
+dividers, retries with unchanged window IDs, and positioning without a window
+ID. They need Xcode's Swift toolchain, but no privacy grants or running Ice app.
+They do not replace testing Accessibility discovery and icon clicks in the app.
+
+The AX check executes the discovery and press implementation against an in-memory
+Accessibility tree. It verifies selection for anonymous or identically named
+siblings, changing titles, stale elements, and denied permission without clicking
+the real menu bar.
+
+The activation check runs the Ice Bar click handler and temporary-reveal lifecycle
+against a controlled menu server: originals must be shown before pressing, menus
+must remain visible until closed, and cleanup must preserve newer user choices.
+It also executes the section's hide/start/stop-rehide methods to check compact
+popups, submenu dismissal, automatic rehide suppression and restart after a fired
+timer, and explicit hiding while activation is in progress.
+
 ## After installing a build
 
 ```bash

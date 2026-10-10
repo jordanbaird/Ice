@@ -6,6 +6,7 @@
 import ApplicationServices
 import Carbon.HIToolbox
 import Cocoa
+import OSLog
 
 /// Lists menu bar items via Accessibility (`AXExtrasMenuBar`).
 ///
@@ -15,6 +16,9 @@ import Cocoa
 enum MenuBarItemAXDiscovery {
     /// A menu bar item read via Accessibility.
     struct AXMenuBarItem: Hashable {
+        /// Exact click target; identifiers and titles can be missing or shared by siblings.
+        let element: AXUIElement
+
         /// Process identifier of the app owning the item. Used to fetch the app icon.
         let pid: pid_t
 
@@ -189,7 +193,7 @@ enum MenuBarItemAXDiscovery {
         }
     }
 
-    /// Presses (AXPress) the menu bar item matching the given pid/identifier/title.
+    /// Presses (AXPress) the exact menu bar item retained during discovery.
     ///
     /// Used for the Ice Bar on macOS 27: with no CGS window left for temp-show +
     /// click, press directly via Accessibility and let the system open the menu.
@@ -197,99 +201,19 @@ enum MenuBarItemAXDiscovery {
     /// so the Ice Bar shares one action for both. Runs in the background (each app may
     /// block up to ~1s per the messaging timeout); returns true once pressed.
     ///
-    /// When nothing matches the identifier/title (a nameless item), presses the app's first
-    /// item — good enough for a first pass, with less error than an empty bar.
-    static func press(pid: pid_t, identifier: String?, title: String?) -> Bool {
+    /// If the element has become invalid, fail without pressing another item from its app.
+    static func press(_ item: AXMenuBarItem) -> Bool {
         guard isTrusted() else {
             return false
         }
-        let axApp = AXUIElementCreateApplication(pid)
-        // ponytail: short timeout per app — one hung app must not block
-        // the whole press (the system default waits up to 6s).
-        AXUIElementSetMessagingTimeout(axApp, 1)
-
-        var bar: AnyObject?
-        guard
-            AXUIElementCopyAttributeValue(axApp, "AXExtrasMenuBar" as CFString, &bar) == .success,
-            let bar,
-            CFGetTypeID(bar) == AXUIElementGetTypeID()
-        else {
-            return false
-        }
-        // swiftlint:disable:next force_cast
-        let barElement = bar as! AXUIElement
-        var visited = 0
-        return pressFirstMatch(from: barElement, identifier: identifier, title: title, depth: maxWalkDepth, visited: &visited)
-    }
-
-    /// Walks the AX tree and presses the first item matching identifier/title.
-    ///
-    /// Mirrors `collectItems`: skips the whole `AXMenu`/`AXMenuItem` tree (dropdown
-    /// contents); presses a matching `AXMenuBarItem` immediately without descending;
-    /// only tries pressing a wrapper element when nothing inside is pressable.
-    private static func pressFirstMatch(
-        from element: AXUIElement,
-        identifier: String?,
-        title: String?,
-        depth: Int,
-        visited: inout Int
-    ) -> Bool {
-        guard depth > 0, visited < maxElementsVisited else {
-            return false
-        }
-        visited += 1
-
-        let role = stringAttribute(kAXRoleAttribute as CFString, of: element)
-
-        guard role != "AXMenu", role != "AXMenuItem" else {
-            return false
-        }
-
-        if role == "AXMenuBarItem" {
-            guard matches(element, identifier: identifier, title: title) else {
-                return false
-            }
-            return AXUIElementPerformAction(element, kAXPressAction as CFString) == .success
-        }
-
-        var children: AnyObject?
-        if
-            AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &children) == .success,
-            let elements = children as? [AXUIElement],
-            !elements.isEmpty
-        {
-            for child in elements {
-                let pressed = pressFirstMatch(from: child, identifier: identifier, title: title, depth: depth - 1, visited: &visited)
-                if pressed {
-                    return true
-                }
-            }
-        }
-
-        // No child was pressable → try this element itself when it has a matching identity
-        // (mirrors `record` with recordNameless: false).
-        guard matches(element, identifier: identifier, title: title, requireIdentity: true) else {
-            return false
-        }
-        return AXUIElementPerformAction(element, kAXPressAction as CFString) == .success
-    }
-
-    /// True when the element matches the given identifier/title (nil = unconstrained).
-    private static func matches(_ element: AXUIElement, identifier: String?, title: String?, requireIdentity: Bool = false) -> Bool {
-        let candidateID = stringAttribute("AXIdentifier" as CFString, of: element)
-        let candidateTitle = stringAttribute(kAXTitleAttribute as CFString, of: element)
-            ?? stringAttribute(kAXDescriptionAttribute as CFString, of: element)
-            ?? stringAttribute(kAXHelpAttribute as CFString, of: element)
-        if requireIdentity, candidateID == nil, candidateTitle == nil {
-            return false
-        }
-        if let identifier, candidateID != identifier {
-            return false
-        }
-        if let title, candidateTitle != title {
-            return false
-        }
-        return true
+        AXUIElementSetMessagingTimeout(item.element, 1)
+        let currentFrame = frame(of: item.element)
+        os.Logger(subsystem: "com.jordanbaird.Ice", category: "AXDiscovery")
+            .info("axPress geometry pid=\(item.pid) original=\(String(describing: item.axFrame), privacy: .public) current=\(String(describing: currentFrame), privacy: .public)")
+        let result = AXUIElementPerformAction(item.element, kAXPressAction as CFString)
+        os.Logger(subsystem: "com.jordanbaird.Ice", category: "AXDiscovery")
+            .info("axPress result pid=\(item.pid) element=\(CFHash(item.element)) code=\(result.rawValue)")
+        return result == .success
     }
 
     /// Frames (in AX coordinates, same system as `AXMenuBarItem.axFrame`) of Ice's
@@ -492,6 +416,7 @@ enum MenuBarItemAXDiscovery {
         }
         result.append(
             AXMenuBarItem(
+                element: element,
                 pid: pid,
                 appName: appName,
                 bundleID: bundleID,

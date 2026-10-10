@@ -97,13 +97,11 @@ final class MenuBarItemManager: ObservableObject {
     /// The manager's menu bar item cache.
     @Published private(set) var itemCache = ItemCache()
 
-    /// A Boolean value that indicates whether menu bar item discovery is
-    /// unavailable on this system.
+    /// Whether window-based menu bar item discovery is currently unavailable.
     ///
-    /// On macOS 27, `CGSGetProcessMenuBarWindowList` returns only the Menubar
-    /// itself — per-item windows are no longer vended — so not even Ice's own
-    /// control items can be found. The Menu Bar Layout interface observes this
-    /// flag to explain the situation instead of showing empty sections.
+    /// Without the hidden divider, window-based items cannot be assigned to
+    /// sections. The Ice Bar uses Accessibility until discovery recovers,
+    /// regardless of how many other windows the server still returns.
     @Published private(set) var isItemDiscoveryUnavailable = false
 
     /// The shared app state.
@@ -112,8 +110,8 @@ final class MenuBarItemManager: ObservableObject {
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
-    /// Cached window identifiers for the most recent items.
-    private var cachedItemWindowIDs = [CGWindowID]()
+    /// Window identifiers for the last successful cache update. Nil forces a retry.
+    private var cachedItemWindowIDs: [CGWindowID]?
 
     /// Context values for the current temporarily shown items.
     private var tempShownItemContexts = [TempShownItemContext]()
@@ -355,9 +353,10 @@ extension MenuBarItemManager {
         if !force, cachedItemWindowIDs == itemWindowIDs {
             logSkippingCache(reason: "item windows have not changed")
             return
-        } else {
-            cachedItemWindowIDs = itemWindowIDs
         }
+        // A failed scan must be retried even when the IDs do not change:
+        // window metadata can become available after the windows themselves.
+        cachedItemWindowIDs = nil
 
         var items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
 
@@ -365,18 +364,10 @@ extension MenuBarItemManager {
         let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map { items.remove(at: $0) }
 
         guard let hiddenControlItem else {
-            if Bridging.getWindowList(option: [.menuBarItems]).count <= 1 {
-                // Systemic failure, not a transient move: the window server
-                // no longer vends per-item windows (macOS 27). Flag it for
-                // the UI instead of silently showing empty sections.
-                if !isItemDiscoveryUnavailable {
-                    Logger.itemManager.error("Menu bar item discovery is unavailable on this macOS version; Menu Bar Layout is disabled")
-                }
-                isItemDiscoveryUnavailable = true
-            } else {
-                isItemDiscoveryUnavailable = false
-                Logger.itemManager.warning("Missing control item for hidden section")
+            if !isItemDiscoveryUnavailable {
+                Logger.itemManager.warning("Missing control item for hidden section; using Accessibility discovery")
             }
+            isItemDiscoveryUnavailable = true
             Logger.itemManager.debug("Clearing menu bar item cache")
             itemCache.clear()
             return
@@ -395,6 +386,7 @@ extension MenuBarItemManager {
                 alwaysHiddenControlItem: alwaysHiddenControlItem,
                 otherItems: items
             )
+            cachedItemWindowIDs = itemWindowIDs
         } catch {
             Logger.itemManager.error("Error enforcing control item order: \(error)")
             Logger.itemManager.debug("Clearing menu bar item cache")

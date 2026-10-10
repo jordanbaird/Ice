@@ -17,6 +17,11 @@ final class IceBarPanel: NSPanel {
 
     private var cancellables = Set<AnyCancellable>()
 
+    private var axActivationTask: Task<Void, Never>?
+
+    /// Automatic rehide must not collapse originals while their menu is in use.
+    private(set) var isActivatingAXItem = false
+
     init(appState: AppState) {
         super.init(
             contentRect: .zero,
@@ -139,10 +144,11 @@ final class IceBarPanel: NSPanel {
                 guard
                     lowerBound <= upperBound,
                     let section = appState.menuBarManager.section(withName: .visible),
-                    let windowID = section.controlItem.windowID,
                     // Bridging.getWindowFrame is more reliable than ControlItem.windowFrame,
-                    // i.e. if the control item is offscreen.
-                    let itemFrame = Bridging.getWindowFrame(for: windowID)
+                    // i.e. if the control item is offscreen. Fall back to our own window's
+                    // frame when the system no longer exposes a per-item window ID.
+                    let itemFrame = section.controlItem.windowID.flatMap({ Bridging.getWindowFrame(for: $0) })
+                        ?? section.controlItem.windowFrame
                 else {
                     return originForRightOfScreen
                 }
@@ -152,6 +158,84 @@ final class IceBarPanel: NSPanel {
         }
 
         setFrameOrigin(getOrigin(for: appState.settingsManager.generalSettingsManager.iceBarLocation))
+    }
+
+    /// Restores hidden originals before AXPress; parked status items may acknowledge a press
+    /// without opening anything. Only transient state is changed, and menus stay revealed
+    /// until they close. A later activation waits for the previous reveal to clean up.
+    func activateAXItem(_ item: MenuBarItemAXDiscovery.AXMenuBarItem) {
+        guard let appState else {
+            return
+        }
+        close()
+        let previous = axActivationTask
+        previous?.cancel()
+        axActivationTask = Task { @MainActor in
+            await previous?.value
+            guard !Task.isCancelled else {
+                return
+            }
+
+            isActivatingAXItem = true
+            let sections = appState.menuBarManager.sections.filter {
+                $0.isEnabled && $0.controlItem.state == .hideItems
+            }
+            let revealed = sections.map { section in
+                section.setState(.showItems, persist: false)
+                return (section: section, revision: section.stateRevision)
+            }
+            defer {
+                for entry in revealed where entry.section.stateRevision == entry.revision {
+                    entry.section.setState(.hideItems, persist: false)
+                }
+                isActivatingAXItem = false
+                for section in appState.menuBarManager.sections where !section.isHidden {
+                    section.startRehideChecks()
+                }
+            }
+
+            do {
+                // Match the native section toggle's animation interval before pressing.
+                try await Task.sleep(for: .milliseconds(250))
+                let previousWindows = Set(WindowInfo.getOnScreenWindows().map(\.windowID))
+                let acknowledged = await Task.detached(priority: .userInitiated) {
+                    MenuBarItemAXDiscovery.press(item)
+                }.value
+
+                // AX success alone is not evidence of a menu. Conversely, a modal menu
+                // can open while the request times out, so check even after an AX error.
+                func hasOpenMenu() -> Bool {
+                    WindowInfo.getOnScreenWindows().contains { window in
+                        !previousWindows.contains(window.windowID) &&
+                        !window.frame.isEmpty && !window.isMenuBarItem &&
+                        window.layer >= CGWindowLevelForKey(.mainMenuWindow) &&
+                        (window.ownerPID == item.pid ||
+                            NSRunningApplication(processIdentifier: window.ownerPID)?.bundleIdentifier == "com.apple.controlcenter")
+                    }
+                }
+                var observedMenu = false
+                for _ in 0..<10 {
+                    try Task.checkCancellation()
+                    if hasOpenMenu() {
+                        observedMenu = true
+                        break
+                    }
+                    try await Task.sleep(for: .milliseconds(100))
+                }
+                guard observedMenu else {
+                    Logger.iceBar.error("axActivation no visible menu pid=\(item.pid) acknowledged=\(acknowledged)")
+                    return
+                }
+                Logger.iceBar.info("axActivation observed menu pid=\(item.pid)")
+                // Keep the reveal while any popup remains, including a parent whose
+                // frontmost submenu closed or a replacement popup with a new window ID.
+                while hasOpenMenu() {
+                    try await Task.sleep(for: .milliseconds(150))
+                }
+            } catch {
+                // Cancellation restores the reveal through defer without another click.
+            }
+        }
     }
 
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {
@@ -485,8 +569,7 @@ private struct IceBarContentView: View {
         /// Stable ID across scans (not a random UUID) so
         /// SwiftUI diffs smoothly.
         let id: String
-        let pid: pid_t
-        let identifier: String?
+        let item: MenuBarItemAXDiscovery.AXMenuBarItem
         let title: String?
         let displayName: String
         let systemImage: String?
@@ -681,8 +764,7 @@ private struct IceBarContentView: View {
             rows.append(
                 AXRowItem(
                     id: stableID(for: "ax:\(item.pid):\(item.bundleID ?? ""):\(item.identifier ?? ""):\(item.title ?? "")"),
-                    pid: item.pid,
-                    identifier: item.identifier,
+                    item: item,
                     title: item.title,
                     displayName: item.displayName,
                     systemImage: systemImage,
@@ -704,17 +786,13 @@ private struct IceBarContentView: View {
             rows.removeAll { ($0.midX ?? .greatestFiniteMagnitude) >= visibleMinX - 4 }
         }
         axRows = rows
-        Logger.iceBar.debug("axScan done wanted=\(wantedSection) attempt=\(attempt) rows=\(rows.count)")
+        Logger.iceBar.info("axScan done wanted=\(wantedSection) attempt=\(attempt) found=\(found.count) rows=\(rows.count) dividersMissing=\(dividersMissing)")
     }
 
-    /// Closes the bar first, then presses the item via AX (mirror CGS path: close → wait 25ms
-    /// → click). Runs in the background since each app can block for up to ~1s.
+    /// The panel owns the activation task after closing and releasing this view.
     private func press(_ row: AXRowItem) {
-        closePanel()
-        Task.detached(priority: .userInitiated) {
-            try? await Task.sleep(for: .milliseconds(25))
-            _ = MenuBarItemAXDiscovery.press(pid: row.pid, identifier: row.identifier, title: row.title)
-        }
+        Logger.iceBar.info("axPress requested pid=\(row.item.pid) element=\(CFHash(row.item.element)) hasIdentifier=\(row.item.identifier != nil) hasTitle=\(row.item.title != nil)")
+        menuBarManager.iceBarPanel.activateAXItem(row.item)
     }
 }
 

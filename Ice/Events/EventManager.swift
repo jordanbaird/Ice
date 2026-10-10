@@ -461,7 +461,7 @@ extension EventManager {
                 guard self.isMouseInsideEmptyMenuBarSpace else {
                     return
                 }
-                hiddenSection.show()
+                hiddenSection.show(persistState: false)
             } else {
                 guard
                     !self.isMouseInsideMenuBar,

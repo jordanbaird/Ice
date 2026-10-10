@@ -199,7 +199,10 @@ final class MenuBarSection {
     }
 
     /// Shows the section.
-    func show() {
+    ///
+    /// - Parameter persistState: Whether this is an explicit visibility choice.
+    ///   Automatic hover reveals must not change the next-launch preference.
+    func show(persistState: Bool = true) {
         guard
             let appState,
             isHidden
@@ -235,15 +238,15 @@ final class MenuBarSection {
             guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
                 return
             }
-            setState(.showItems, persist: true)
-            hiddenSection.setState(.showItems, persist: true)
+            setState(.showItems, persist: persistState)
+            hiddenSection.setState(.showItems, persist: persistState)
         case .hidden:
             iceBarPanel?.close()
             guard let visibleSection = appState.menuBarManager.section(withName: .visible) else {
                 return
             }
-            setState(.showItems, persist: true)
-            visibleSection.setState(.showItems, persist: true)
+            setState(.showItems, persist: persistState)
+            visibleSection.setState(.showItems, persist: persistState)
         case .alwaysHidden:
             iceBarPanel?.close()
             guard
@@ -252,9 +255,9 @@ final class MenuBarSection {
             else {
                 return
             }
-            setState(.showItems, persist: true)
-            hiddenSection.setState(.showItems, persist: true)
-            visibleSection.setState(.showItems, persist: true)
+            setState(.showItems, persist: persistState)
+            hiddenSection.setState(.showItems, persist: persistState)
+            visibleSection.setState(.showItems, persist: persistState)
         }
         startRehideChecks()
     }

@@ -29,6 +29,8 @@ func sectionMethod(_ signature: String) -> String {
 }
 let startRehideMethod = sectionMethod("    func startRehideChecks()")
 let stopRehideMethod = sectionMethod("    private func stopRehideChecks()")
+let showMethod = sectionMethod("    func show(")
+let isHiddenProperty = sectionMethod("    var isHidden: Bool")
 let eventSource = try String(contentsOfFile: repo + "/Ice/Events/EventManager.swift", encoding: .utf8)
 func eventMethod(_ signature: String) -> String {
     let start = eventSource.range(of: signature)!.lowerBound
@@ -78,6 +80,7 @@ final class SettingsManager {
 final class ControlItem {
     enum HidingState { case hideItems, showItems }
     var state = HidingState.hideItems
+    var isAddedToMenuBar = true
 }
 final class MenuBarSection {
     enum Name: CaseIterable { case visible, hidden, alwaysHidden }
@@ -86,19 +89,21 @@ final class MenuBarSection {
     weak var appState: AppState?
     var iceBarPanel: IceBarPanel? { appState?.menuBarManager.iceBarPanel }
     var useIceBar = true
+    var screenForIceBar: TestScreen? { .main }
     let controlItem = ControlItem()
     var stateRevision = 0
     var isEnabled = true
     var persistedWrites = 0
+    var persistedState = ControlItem.HidingState.hideItems
     var onStateChange: (() -> Void)?
     var rehideTimer: TestTimer?
     var rehideMonitor: UniversalEventMonitor?
-    var isHidden: Bool { controlItem.state == .hideItems }
-    func show() { setState(.showItems, persist: true) }
+    // PRODUCTION_IS_HIDDEN
+    // PRODUCTION_SHOW_METHOD
     func setState(_ state: ControlItem.HidingState, persist: Bool) {
         controlItem.state = state
         stateRevision += 1
-        if persist { persistedWrites += 1 }
+        if persist { persistedWrites += 1; persistedState = state }
         server.update {
             $0.visibility[name] = state == .showItems
             if state == .hideItems && $0.menuOpen { $0.hidesWhileOpen += 1 }
@@ -218,7 +223,9 @@ struct WindowInfo {
         set { activating = newValue }
     }
     var closed = false
-    func close() { closed = true }
+    var currentSection: MenuBarSection.Name?
+    func close() { closed = true; currentSection = nil }
+    func show(section: MenuBarSection.Name, on screen: TestScreen) async { currentSection = section }
 """#
 let middle = #"""
 }
@@ -375,6 +382,41 @@ let tests = #"""
     await until("idle hover recheck") { idleHover.outsideChecks >= 2 }
     expect("hover exit outside activation hides transiently", idleApp.menuBarManager.sections.allSatisfy { $0.controlItem.state == .hideItems && $0.persistedWrites == 0 })
 
+    let (nativeApp, _, _) = setup()
+    for section in nativeApp.menuBarManager.sections { section.useIceBar = false }
+    let nativeHover = EventManager()
+    nativeHover.appState = nativeApp
+    nativeHover.isMouseInsideEmptyMenuBarSpace = true
+    nativeHover.isMouseInsideMenuBar = true
+    nativeHover.handleShowOnHover()
+    await until("native hover reveal") { nativeApp.menuBarManager.sections[1].controlItem.state == .showItems }
+    expect("native hover reveal is transient", nativeApp.menuBarManager.sections.allSatisfy { $0.persistedWrites == 0 })
+    nativeHover.isMouseInsideEmptyMenuBarSpace = false
+    nativeHover.isMouseInsideMenuBar = false
+    nativeHover.lastHoverCheck = .distantPast
+    nativeHover.handleShowOnHover()
+    await until("native hover exit recheck") { nativeHover.outsideChecks >= 2 }
+    expect("native hover round trip preserves next-launch hidden preferences", nativeApp.menuBarManager.sections.allSatisfy { $0.controlItem.state == .hideItems && $0.persistedState == .hideItems && $0.persistedWrites == 0 })
+
+    for name in MenuBarSection.Name.allCases {
+        let (showApp, _, _) = setup()
+        for section in showApp.menuBarManager.sections { section.useIceBar = false }
+        showApp.menuBarManager.section(withName: name)?.show()
+        let expectedNames: Set<MenuBarSection.Name> = name == .alwaysHidden ? [.visible, .hidden, .alwaysHidden] : [.visible, .hidden]
+        expect("explicit native \(name) show still persists", showApp.menuBarManager.sections.allSatisfy {
+            $0.persistedWrites == (expectedNames.contains($0.name) ? 1 : 0) &&
+            $0.persistedState == (expectedNames.contains($0.name) ? .showItems : .hideItems)
+        })
+    }
+
+    let (scrollShowApp, _, _) = setup()
+    for section in scrollShowApp.menuBarManager.sections { section.useIceBar = false }
+    let scrollShow = EventManager()
+    scrollShow.appState = scrollShowApp
+    scrollShow.isMouseInsideMenuBar = true
+    scrollShow.handleShowOnScroll(with: ScrollEvent(scrollingDeltaX: 10, scrollingDeltaY: 10))
+    expect("explicit scroll show still persists", scrollShowApp.menuBarManager.sections[1].persistedState == .showItems && scrollShowApp.menuBarManager.sections[1].persistedWrites == 1)
+
     let (insideApp, _, _) = setup()
     for section in insideApp.menuBarManager.sections { section.setState(.showItems, persist: false) }
     let insideHover = EventManager()
@@ -430,6 +472,8 @@ let directory = FileManager.default.temporaryDirectory.appendingPathComponent("i
 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 let generated = directory.appendingPathComponent("activation.swift")
 let productionFixtures = fixtures
+    .replacingOccurrences(of: "    // PRODUCTION_IS_HIDDEN", with: isHiddenProperty)
+    .replacingOccurrences(of: "    // PRODUCTION_SHOW_METHOD", with: showMethod)
     .replacingOccurrences(of: "    // PRODUCTION_HIDE_METHOD", with: hideMethod)
     .replacingOccurrences(of: "    // PRODUCTION_START_REHIDE", with: startRehideMethod)
     .replacingOccurrences(of: "    // PRODUCTION_STOP_REHIDE", with: stopRehideMethod)

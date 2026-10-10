@@ -53,6 +53,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 appState.activate(withPolicy: .regular)
                 appState.openPermissionsWindow()
             }
+            // Ask for a GitHub star, but only once per updated version and
+            // never on a fresh install. Delay it past the menu bar's first
+            // paint and the activation hack in `AppState.activate` so the
+            // alert cannot land before the app is frontmost.
+            if appState.permissionsManager.permissionsState != .missingPermissions {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    StarRequestPrompt.presentIfNeeded(appState: appState)
+                }
+            }
         }
     }
 

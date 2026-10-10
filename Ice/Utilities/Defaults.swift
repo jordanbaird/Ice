@@ -180,6 +180,11 @@ extension Defaults {
         case iceBarLocation = "IceBarLocation"
         case iceBarPinnedLocation = "IceBarPinnedLocation"
 
+        // MARK: Star Request
+
+        case starRequestVersion = "StarRequestVersion"
+        case hasDeclinedStarRequest = "HasDeclinedStarRequest"
+
         // MARK: Migration
 
         case hasMigrated0_8_0 = "hasMigrated0_8_0"

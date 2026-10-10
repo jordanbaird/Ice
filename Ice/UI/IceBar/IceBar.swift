@@ -197,43 +197,49 @@ final class IceBarPanel: NSPanel {
             do {
                 // Match the native section toggle's animation interval before pressing.
                 try await Task.sleep(for: .milliseconds(250))
-                let previousWindows = Set(WindowInfo.getOnScreenWindows().map(\.windowID))
-                let acknowledged = await Task.detached(priority: .userInitiated) {
-                    MenuBarItemAXDiscovery.press(item)
-                }.value
+                try Task.checkCancellation()
 
-                // AX success alone is not evidence of a menu. Conversely, a modal menu
-                // can open while the request times out, so check even after an AX error.
-                func hasOpenMenu() -> Bool {
-                    WindowInfo.getOnScreenWindows().contains { window in
-                        !previousWindows.contains(window.windowID) &&
-                        !window.frame.isEmpty && !window.isMenuBarItem &&
-                        window.layer >= CGWindowLevelForKey(.mainMenuWindow) &&
-                        (window.ownerPID == item.pid ||
-                            NSRunningApplication(processIdentifier: window.ownerPID)?.bundleIdentifier == "com.apple.controlcenter")
+                // Once a press is committed, cancellation must not restore the originals
+                // beneath its popup. This unstructured task owns the press and menu lifetime;
+                // cancelling the outer task only supersedes a request still waiting to press.
+                try await Task { @MainActor in
+                    let previousWindows = Set(WindowInfo.getOnScreenWindows().map(\.windowID))
+                    let acknowledged = await Task.detached(priority: .userInitiated) {
+                        MenuBarItemAXDiscovery.press(item)
+                    }.value
+
+                    // AX success alone is not evidence of a menu. Conversely, a modal menu
+                    // can open while the request times out, so check even after an AX error.
+                    func hasOpenMenu() -> Bool {
+                        WindowInfo.getOnScreenWindows().contains { window in
+                            !previousWindows.contains(window.windowID) &&
+                            !window.frame.isEmpty && !window.isMenuBarItem &&
+                            window.layer >= CGWindowLevelForKey(.mainMenuWindow) &&
+                            (window.ownerPID == item.pid ||
+                                NSRunningApplication(processIdentifier: window.ownerPID)?.bundleIdentifier == "com.apple.controlcenter")
+                        }
                     }
-                }
-                var observedMenu = false
-                for _ in 0..<10 {
-                    try Task.checkCancellation()
-                    if hasOpenMenu() {
-                        observedMenu = true
-                        break
+                    var observedMenu = false
+                    for _ in 0..<10 {
+                        if hasOpenMenu() {
+                            observedMenu = true
+                            break
+                        }
+                        try await Task.sleep(for: .milliseconds(100))
                     }
-                    try await Task.sleep(for: .milliseconds(100))
-                }
-                guard observedMenu else {
-                    Logger.iceBar.error("axActivation no visible menu pid=\(item.pid) acknowledged=\(acknowledged)")
-                    return
-                }
-                Logger.iceBar.info("axActivation observed menu pid=\(item.pid)")
-                // Keep the reveal while any popup remains, including a parent whose
-                // frontmost submenu closed or a replacement popup with a new window ID.
-                while hasOpenMenu() {
-                    try await Task.sleep(for: .milliseconds(150))
-                }
+                    guard observedMenu else {
+                        Logger.iceBar.error("axActivation no visible menu pid=\(item.pid) acknowledged=\(acknowledged)")
+                        return
+                    }
+                    Logger.iceBar.info("axActivation observed menu pid=\(item.pid)")
+                    // Keep the reveal while any popup remains, including a parent whose
+                    // frontmost submenu closed or a replacement popup with a new window ID.
+                    while hasOpenMenu() {
+                        try await Task.sleep(for: .milliseconds(150))
+                    }
+                }.value
             } catch {
-                // Cancellation restores the reveal through defer without another click.
+                // Cancellation before the press restores the reveal without clicking.
             }
         }
     }
@@ -728,7 +734,8 @@ private struct IceBarContentView: View {
         func kind(centerX: CGFloat?) -> MenuBarItemAXDiscovery.SectionKind {
             MenuBarItemAXDiscovery.classify(centerX: centerX, hiddenDividerX: hiddenX, alwaysHiddenDividerX: alwaysHiddenX)
         }
-        let dividersMissing = hiddenX == nil && alwaysHiddenX == nil
+        // The always-hidden divider alone cannot separate hidden from visible items.
+        let hiddenBoundaryMissing = hiddenX == nil
 
         // Stable IDs across scans so SwiftUI doesn't redraw the whole list.
         var idCounts = [String: Int]()
@@ -748,7 +755,7 @@ private struct IceBarContentView: View {
             // The bar currently merges hidden + alwaysHidden (excluding visible): dividers
             // while the spacer is expanding aren't reliable enough to split the 2 sections,
             // and the user intent is a single bar for all hidden apps.
-            if !dividersMissing, kind(centerX: item.axFrame?.midX) == .visible {
+            if !hiddenBoundaryMissing, kind(centerX: item.axFrame?.midX) == .visible {
                 continue
             }
             // Same icon selection as Menu Bar Layout: familiar system extras
@@ -775,9 +782,9 @@ private struct IceBarContentView: View {
         }
         // Expanding spacer (garbage divider frames): drop items already visible in the
         // trailing pill region — the user already sees them on the menubar. Only filter
-        // when both dividers are missing; when a divider is still usable, classify by section
-        // as before. Skip fullscreen (pill isn't drawn, width is stale).
-        if dividersMissing,
+        // when the hidden/visible boundary is missing, even if always-hidden is readable.
+        // Skip fullscreen (pill isn't drawn, width is stale).
+        if hiddenBoundaryMissing,
            !appState.isActiveSpaceFullscreen,
            let trailingWidth = MenuBarOverlayPanelContentView.currentTrailingVisibleWidth(for: screen.displayID),
            trailingWidth > 0, trailingWidth < screen.frame.width
@@ -786,7 +793,7 @@ private struct IceBarContentView: View {
             rows.removeAll { ($0.midX ?? .greatestFiniteMagnitude) >= visibleMinX - 4 }
         }
         axRows = rows
-        Logger.iceBar.info("axScan done wanted=\(wantedSection) attempt=\(attempt) found=\(found.count) rows=\(rows.count) dividersMissing=\(dividersMissing)")
+        Logger.iceBar.info("axScan done wanted=\(wantedSection) attempt=\(attempt) found=\(found.count) rows=\(rows.count) hiddenBoundaryMissing=\(hiddenBoundaryMissing)")
     }
 
     /// The panel owns the activation task after closing and releasing this view.

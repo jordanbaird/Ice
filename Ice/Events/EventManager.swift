@@ -477,7 +477,7 @@ extension EventManager {
                 else {
                     return
                 }
-                hiddenSection.hide()
+                hiddenSection.hide(persistState: false)
             }
         }
     }

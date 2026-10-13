@@ -32,7 +32,18 @@ final class Concealer27: ObservableObject {
     private static let settleAfterChange = Duration.milliseconds(400)
 
     /// Applications shown for a moment, with the number of callers showing each.
-    private var temporarilyShown = [String: Int]()
+    private var temporarilyShown = [String: Int]() {
+        didSet {
+            isShowingTemporarily = !temporarilyShown.isEmpty
+        }
+    }
+
+    /// Whether any application is shown for a moment right now — to be clicked, or photographed.
+    ///
+    /// An item shown this way is drawn at the left end of the run, which is where Ice's own
+    /// camera and microphone indicator stands, so the indicator gets out of the way while it
+    /// lasts: it was drawn over the item, and the menu that opened from it came up underneath.
+    @Published private(set) var isShowingTemporarily = false
     private var cancellables = Set<AnyCancellable>()
     private var runningApplicationsObservation: NSKeyValueObservation?
 
@@ -133,7 +144,7 @@ final class Concealer27: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-        appState.captureIndicatorPanel27.performSetup(watcher: appState.captureWatcher27)
+        appState.captureIndicatorPanel27.performSetup(watcher: appState.captureWatcher27, concealer: self)
         update()
     }
 

@@ -69,12 +69,23 @@ final class CaptureIndicatorPanel27: NSPanel {
     ///
     /// The watcher reads the devices every couple of seconds and republishes either way, so the
     /// indicator follows the items along the bar as they come and go without a timer of its own.
-    func performSetup(watcher: CaptureWatcher27) {
+    func performSetup(watcher: CaptureWatcher27, concealer: Concealer27) {
         watcher.$kind
             .receive(on: DispatchQueue.main)
             .sink { [weak self] kind in
                 MainActor.assumeIsolated {
                     self?.update(kind: kind)
+                }
+            }
+            .store(in: &cancellables)
+        // An item shown for a moment appears where the indicator stands, so the indicator leaves
+        // at once rather than on the watcher's next reading.
+        concealer.$isShowingTemporarily
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self, weak watcher] _ in
+                MainActor.assumeIsolated {
+                    self?.update(kind: watcher?.kind)
                 }
             }
             .store(in: &cancellables)
@@ -87,6 +98,9 @@ final class CaptureIndicatorPanel27: NSPanel {
             let appState,
             appState.settings.advanced.showCaptureIndicator,
             appState.concealer27.isConcealing,
+            // Out of the way while an item is shown for a moment: that item is drawn where the
+            // indicator stands, and a click meant for it would land on the indicator instead.
+            !appState.concealer27.isShowingTemporarily,
             let screen = NSScreen.screenWithActiveMenuBar,
             let menuBarHeight = screen.getMenuBarHeight()
         else {

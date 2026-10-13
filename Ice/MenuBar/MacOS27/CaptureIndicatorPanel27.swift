@@ -27,6 +27,12 @@ final class CaptureIndicatorPanel27: NSPanel {
     private var cancellables = Set<AnyCancellable>()
     private var hostingView: NSHostingView<CaptureIndicatorView>?
 
+    /// Whether the items were read for this placement, rather than remembered from before.
+    private var hasFreshItems = false
+
+    /// Counts the placements asked for, so one overtaken by a later one is dropped.
+    private var placementGeneration = 0
+
     /// How wide the indicator is drawn.
     private static let width: CGFloat = 36
 
@@ -116,6 +122,25 @@ final class CaptureIndicatorPanel27: NSPanel {
             Task { [weak self] in
                 try? await Task.sleep(for: remaining + .milliseconds(50))
                 self?.update(kind: kind)
+            }
+            return
+        }
+        if !hasFreshItems {
+            // Where the items begin is remembered from the last read of the bar, and the read
+            // that followed an item being shown and hidden again has not necessarily happened
+            // yet. Coming back on that answer put the indicator where the bar used to begin,
+            // further left, and it stepped into place a moment later. Ask for the items first and
+            // appear in the right spot.
+            placementGeneration += 1
+            let generation = placementGeneration
+            Task { [weak self] in
+                _ = await MenuBarItemProvider27.items()
+                guard let self, generation == placementGeneration else {
+                    return
+                }
+                hasFreshItems = true
+                defer { hasFreshItems = false }
+                update(kind: kind)
             }
             return
         }

@@ -17,6 +17,9 @@ final class MenuBarItemImageCache: ObservableObject {
         /// The scale factor of the image at the time of capture.
         let scale: CGFloat
 
+        /// Whether the image substitutes an app icon for an unavailable capture.
+        var isFallback = false
+
         /// The image's size, applying ``scale``.
         var scaledSize: CGSize {
             CGSize(
@@ -172,14 +175,25 @@ final class MenuBarItemImageCache: ObservableObject {
         var result = CaptureResult()
 
         for item in items {
-            guard
-                let image = ScreenCapture.captureWindow(with: item.windowID, option: captureOption),
-                !image.isTransparent()
-            else {
-                result.excluded.append(item)
+            let captured: CGImage?
+            if #available(macOS 26.0, *), !item.isOnScreen {
+                captured = nil
+            } else {
+                captured = ScreenCapture.captureWindow(with: item.windowID, option: captureOption)
+            }
+            if let image = captured, !image.isTransparent() {
+                result.images[item.tag] = CapturedImage(cgImage: image, scale: scale)
                 continue
             }
-            result.images[item.tag] = CapturedImage(cgImage: image, scale: scale)
+            // ponytail: use the source app icon until its status window can be captured.
+            if #available(macOS 26.0, *),
+               let icon = item.sourceApplication?.icon,
+               let image = icon.resized(to: CGSize(width: 20 * scale, height: 20 * scale))
+                .cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                result.images[item.tag] = CapturedImage(cgImage: image, scale: scale, isFallback: true)
+                continue
+            }
+            result.excluded.append(item)
         }
 
         return result
@@ -265,7 +279,7 @@ final class MenuBarItemImageCache: ObservableObject {
         }
 
         await MainActor.run { [newImages] in
-            images.merge(newImages) { (_, new) in new }
+            images.merge(newImages) { old, new in new.isFallback ? old : new }
         }
     }
 

@@ -17,6 +17,9 @@ final class MenuBarItemImageCache: ObservableObject {
         /// The scale factor of the image at the time of capture.
         let scale: CGFloat
 
+        /// Whether the image substitutes an app icon for an unavailable capture.
+        var isFallback = false
+
         /// The image's size, applying ``scale``.
         var scaledSize: CGSize {
             CGSize(
@@ -28,6 +31,30 @@ final class MenuBarItemImageCache: ObservableObject {
         /// The base image, converted to an `NSImage` and applying ``scale``.
         var nsImage: NSImage {
             NSImage(cgImage: cgImage, size: scaledSize)
+        }
+
+        /// Draws an app icon into a bitmap with an explicit pixel size.
+        static func fallback(icon: NSImage, scale: CGFloat) -> Self? {
+            let pixelSize = Int(20 * scale)
+            guard let context = CGContext(
+                data: nil,
+                width: pixelSize,
+                height: pixelSize,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else {
+                return nil
+            }
+            NSGraphicsContext.saveGraphicsState()
+            defer { NSGraphicsContext.restoreGraphicsState() }
+            NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+            icon.draw(in: CGRect(x: 0, y: 0, width: pixelSize, height: pixelSize))
+            guard let image = context.makeImage() else {
+                return nil
+            }
+            return Self(cgImage: image, scale: scale, isFallback: true)
         }
     }
 
@@ -172,14 +199,24 @@ final class MenuBarItemImageCache: ObservableObject {
         var result = CaptureResult()
 
         for item in items {
-            guard
-                let image = ScreenCapture.captureWindow(with: item.windowID, option: captureOption),
-                !image.isTransparent()
-            else {
-                result.excluded.append(item)
+            let captured: CGImage?
+            if #available(macOS 26.0, *), !item.isOnScreen {
+                captured = nil
+            } else {
+                captured = ScreenCapture.captureWindow(with: item.windowID, option: captureOption)
+            }
+            if let image = captured, !image.isTransparent() {
+                result.images[item.tag] = CapturedImage(cgImage: image, scale: scale)
                 continue
             }
-            result.images[item.tag] = CapturedImage(cgImage: image, scale: scale)
+            // ponytail: use the source app icon until its status window can be captured.
+            if #available(macOS 26.0, *),
+               let icon = item.sourceApplication?.icon,
+               let image = CapturedImage.fallback(icon: icon, scale: scale) {
+                result.images[item.tag] = image
+                continue
+            }
+            result.excluded.append(item)
         }
 
         return result
@@ -265,7 +302,7 @@ final class MenuBarItemImageCache: ObservableObject {
         }
 
         await MainActor.run { [newImages] in
-            images.merge(newImages) { (_, new) in new }
+            images.merge(newImages) { old, new in new.isFallback ? old : new }
         }
     }
 

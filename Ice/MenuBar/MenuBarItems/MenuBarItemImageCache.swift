@@ -32,6 +32,30 @@ final class MenuBarItemImageCache: ObservableObject {
         var nsImage: NSImage {
             NSImage(cgImage: cgImage, size: scaledSize)
         }
+
+        /// Draws an app icon into a bitmap with an explicit pixel size.
+        static func fallback(icon: NSImage, scale: CGFloat) -> Self? {
+            let pixelSize = Int(20 * scale)
+            guard let context = CGContext(
+                data: nil,
+                width: pixelSize,
+                height: pixelSize,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else {
+                return nil
+            }
+            NSGraphicsContext.saveGraphicsState()
+            defer { NSGraphicsContext.restoreGraphicsState() }
+            NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+            icon.draw(in: CGRect(x: 0, y: 0, width: pixelSize, height: pixelSize))
+            guard let image = context.makeImage() else {
+                return nil
+            }
+            return Self(cgImage: image, scale: scale, isFallback: true)
+        }
     }
 
     /// The result of an image capture operation.
@@ -188,9 +212,8 @@ final class MenuBarItemImageCache: ObservableObject {
             // ponytail: use the source app icon until its status window can be captured.
             if #available(macOS 26.0, *),
                let icon = item.sourceApplication?.icon,
-               let image = icon.resized(to: CGSize(width: 20 * scale, height: 20 * scale))
-                .cgImage(forProposedRect: nil, context: nil, hints: nil) {
-                result.images[item.tag] = CapturedImage(cgImage: image, scale: scale, isFallback: true)
+               let image = CapturedImage.fallback(icon: icon, scale: scale) {
+                result.images[item.tag] = image
                 continue
             }
             result.excluded.append(item)

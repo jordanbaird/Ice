@@ -132,12 +132,16 @@ final class MenuBarItemImageCache: ObservableObject {
 
         guard
             let compositeImage = ScreenCapture.captureWindows(with: windowIDs, option: captureOption),
-            CGFloat(compositeImage.width) == boundsUnion.width * scale, // Safety check.
+            boundsUnion.width > 0,
             !compositeImage.isTransparent()
         else {
             result.excluded = items // Exclude all items.
             return result
         }
+
+        // The items may live on a different display than the one `scale`
+        // came from, so measure the scale of the image that was captured.
+        let scale = CGFloat(compositeImage.width) / boundsUnion.width
 
         // Crop out each item from the composite.
         for windowID in windowIDs {
@@ -179,6 +183,9 @@ final class MenuBarItemImageCache: ObservableObject {
                 result.excluded.append(item)
                 continue
             }
+            // Measure the captured image's scale, as above.
+            let bounds = Bridging.getWindowBounds(for: item.windowID)
+            let scale = bounds.map { $0.width > 0 ? CGFloat(image.width) / $0.width : scale } ?? scale
             result.images[item.tag] = CapturedImage(cgImage: image, scale: scale)
         }
 

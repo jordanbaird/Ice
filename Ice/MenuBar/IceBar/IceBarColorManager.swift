@@ -13,6 +13,9 @@ final class IceBarColorManager: ObservableObject {
 
     private var windowImage: CGImage?
 
+    /// The display that ``windowImage`` was captured from.
+    private var windowImageDisplayID: CGDirectDisplayID?
+
     private var cancellables = Set<AnyCancellable>()
 
     func performSetup(with iceBarPanel: IceBarPanel) {
@@ -29,8 +32,7 @@ final class IceBarColorManager: ObservableObject {
                 .sink { [weak self] screen in
                     guard
                         let self,
-                        let screen,
-                        screen == .main
+                        let screen
                     else {
                         return
                     }
@@ -45,8 +47,7 @@ final class IceBarColorManager: ObservableObject {
                         let self,
                         let iceBarPanel,
                         let screen = iceBarPanel.screen,
-                        isVisible,
-                        screen == .main
+                        isVisible
                     else {
                         return
                     }
@@ -61,8 +62,7 @@ final class IceBarColorManager: ObservableObject {
                         let self,
                         let iceBarPanel,
                         let screen = iceBarPanel.screen,
-                        iceBarPanel.isVisible,
-                        screen == .main
+                        iceBarPanel.isVisible
                     else {
                         return
                     }
@@ -91,8 +91,7 @@ final class IceBarColorManager: ObservableObject {
                 guard
                     let self,
                     let iceBarPanel,
-                    let screen = iceBarPanel.screen,
-                    screen == .main
+                    let screen = iceBarPanel.screen
                 else {
                     return
                 }
@@ -113,15 +112,21 @@ final class IceBarColorManager: ObservableObject {
         let windows = WindowInfo.createWindows(option: .onScreen)
         let displayID = screen.displayID
 
-        guard
-            let menuBarWindow = WindowInfo.menuBarWindow(from: windows, for: displayID),
-            let wallpaperWindow = WindowInfo.wallpaperWindow(from: windows, for: displayID)
-        else {
+        // Clear the previous image first, so a failed capture never leaves
+        // another display's colors behind.
+        windowImage = nil
+        windowImageDisplayID = nil
+
+        guard let wallpaperWindow = WindowInfo.wallpaperWindow(from: windows, for: displayID) else {
             return
         }
 
+        // The menu bar window may be missing on inactive displays, so fall
+        // back to sampling the wallpaper alone.
+        let windowIDs = [WindowInfo.menuBarWindow(from: windows, for: displayID)?.windowID, wallpaperWindow.windowID].compactMap { $0 }
+
         guard let image = ScreenCapture.captureWindows(
-            with: [menuBarWindow.windowID, wallpaperWindow.windowID],
+            with: windowIDs,
             screenBounds: withMutableCopy(of: wallpaperWindow.bounds) { $0.size.height = 1 },
             option: .nominalResolution
         ) else {
@@ -129,10 +134,12 @@ final class IceBarColorManager: ObservableObject {
         }
 
         windowImage = image
+        windowImageDisplayID = displayID
     }
 
     private func updateColorInfo(with frame: CGRect, screen: NSScreen) {
-        guard let image = windowImage else {
+        guard let image = windowImage, windowImageDisplayID == screen.displayID else {
+            colorInfo = nil
             return
         }
 
@@ -162,3 +169,4 @@ final class IceBarColorManager: ObservableObject {
         updateColorInfo(with: frame, screen: screen)
     }
 }
+

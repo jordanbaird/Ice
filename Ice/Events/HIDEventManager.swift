@@ -413,6 +413,11 @@ extension HIDEventManager {
             return nil
         }
         let concealer = appState.concealer27
+        // With the native switch the system items keep taking their clicks while applications
+        // are hidden (measured on macOS 27.0.1, 2026-10-22), so there is nothing to bridge.
+        guard concealer.needsClickLift else {
+            return event
+        }
         // The frames of the display the click landed on, so the clock of the display whose bar
         // is not active is recognised as well.
         let clickedDisplay = NSScreen.screens.first { CGDisplayBounds($0.displayID).contains(event.location) }?.displayID

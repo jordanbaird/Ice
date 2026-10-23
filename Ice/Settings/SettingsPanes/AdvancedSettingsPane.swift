@@ -37,12 +37,43 @@ struct AdvancedSettingsPane: View {
                 tempShowInterval
             }
             if #available(macOS 27.0, *) {
-                IceSection("Menu Bar Indicators") {
-                    showCaptureIndicator
+                IceSection("Hiding on macOS 27") {
+                    macOS27HidingMethod
+                }
+                // The native method leaves macOS's own indicators on the bar, so Ice's are only
+                // offered with assessment mode, which takes them away.
+                if settings.macOS27HidingMethod == .assessmentMode {
+                    IceSection("Menu Bar Indicators") {
+                        showCaptureIndicator
+                    }
                 }
             }
             IceSection("Permissions") {
                 allPermissions
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var macOS27HidingMethod: some View {
+        IcePicker("Hiding method", selection: $settings.macOS27HidingMethod) {
+            ForEach(MacOS27HidingMethod.allCases) { method in
+                Text(method.localized).tag(method)
+            }
+        }
+        .annotation {
+            switch settings.macOS27HidingMethod {
+            case .nativeAllowList:
+                Text(
+                    "Uses macOS's own Allow in the Menu Bar switch for each hidden app. System items stay "
+                        + "native, including Focus and the camera indicator, and clicks on them need no reveal. "
+                        + "While hidden, those apps show as not allowed in System Settings > Control Center."
+                )
+            case .assessmentMode:
+                Text(
+                    "Uses assessment mode, which also removes Control Centre's modules and needs a brief "
+                        + "reveal to pass clicks to system items. Only for systems where the native switch does not work."
+                )
             }
         }
     }

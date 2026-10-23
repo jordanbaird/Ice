@@ -12,12 +12,42 @@ import OSLog
 /// On macOS 27 the section of each application comes from a saved layout, first
 /// taken from the user's Ice layout: MenuBarAgent reorders items on its own, so their
 /// order on the bar no longer says which section they belong to. The concealer hides
-/// applications through `MenuBarAssessmentAssertion27`, following that layout and the
-/// state of Ice's sections.
+/// applications following that layout and the state of Ice's sections, by one of two methods
+/// (see ``MacOS27HidingMethod``):
+///
+/// - macOS's own "Allow in the Menu Bar" switch, through `NativeAllowListConcealer27`. The
+///   default since 2026-10-22, when it was measured to hide an application's items within about
+///   250 ms with nothing else on the bar affected: Control Centre's modules stay, and clicks on
+///   system items reach them without a lift.
+/// - Assessment mode, through `MenuBarAssessmentAssertion27`. It takes Control Centre's modules
+///   with it and stops clicks on system items, so Ice draws its own capture indicator and lifts
+///   concealment around such clicks. Kept for systems where the switch does not work,
+///   and used whenever the switch cannot be read.
 @available(macOS 27.0, *)
 @MainActor
 final class Concealer27: ObservableObject {
+    /// The two ways of hiding, as the concealer applies them.
+    private enum Backend {
+        case native
+        case assessment
+    }
+
     private let controller = ConcealmentController27(backend: MenuBarAssessmentAssertion27())
+    private let native = NativeAllowListConcealer27()
+
+    /// Whether the native switch can be read and written, checked once at setup.
+    private var nativeIsAvailable = false
+
+    /// Set when the native switch failed in a way that will not mend itself in this run, so
+    /// concealment falls back to assessment mode rather than leave everything shown.
+    private var nativeFailed = false
+
+    /// The method in force since the last ``update()``.
+    private var backend = Backend.assessment
+
+    /// Applications meant to be concealed that MenuBarAgent did not track at the last native
+    /// apply, so there was no switch to turn off yet (see ``reapplyWhileLaunching(bundleID:)``).
+    private var untrackedConcealed = Set<String>()
     private let logger = Logger(category: "Concealer27")
     private weak var appState: AppState?
     private var observers = [NSObjectProtocol]()
@@ -59,10 +89,34 @@ final class Concealer27: ObservableObject {
         return stored.compactMapValues(MacOS27Section.init(rawValue:))
     }
 
+    /// Whether a click on a system item has to lift concealment to reach it.
+    ///
+    /// Only under assessment mode, which has MenuBarAgent ignore those clicks. With the native
+    /// switch the system items are untouched and take their clicks as they would without Ice.
+    var needsClickLift: Bool {
+        backend == .assessment
+    }
+
+    /// The method to apply, from the setting and what this system allows.
+    private func resolvedBackend(_ appState: AppState) -> Backend {
+        guard
+            appState.settings.advanced.macOS27HidingMethod == .nativeAllowList,
+            nativeIsAvailable,
+            !nativeFailed
+        else {
+            return .assessment
+        }
+        return .native
+    }
+
     func performSetup(with appState: AppState) {
         self.appState = appState
-        guard MenuBarAssessmentAssertion27.isAvailable else {
-            logger.error("MenuBarClientCore assertions are unavailable, so items will not be hidden")
+        nativeIsAvailable = NativeAllowListConcealer27.isAvailable
+        if !nativeIsAvailable {
+            logger.notice("The native Allow in the Menu Bar switch cannot be read, so assessment mode is used")
+        }
+        guard nativeIsAvailable || MenuBarAssessmentAssertion27.isAvailable else {
+            logger.error("Neither the native switch nor MenuBarClientCore assertions are available, so items will not be hidden")
             return
         }
         let workspaceCenter = NSWorkspace.shared.notificationCenter
@@ -105,7 +159,11 @@ final class Concealer27: ObservableObject {
             }
             Task { @MainActor in
                 for (bundleID, pid) in launched {
-                    self?.showWhileLaunching(bundleID: bundleID, pid: pid)
+                    if self?.backend == .native {
+                        self?.reapplyWhileLaunching(bundleID: bundleID)
+                    } else {
+                        self?.showWhileLaunching(bundleID: bundleID, pid: pid)
+                    }
                 }
             }
         }
@@ -145,14 +203,37 @@ final class Concealer27: ObservableObject {
             }
             .store(in: &cancellables)
         appState.captureIndicatorPanel27.performSetup(watcher: appState.captureWatcher27, concealer: self)
+        // Changing the method releases the old one in full before the new one is applied (see
+        // `update`). Received on the main queue, so the setting already holds the new value.
+        appState.settings.advanced.$macOS27HidingMethod
+            .removeDuplicates()
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] method in
+                MainActor.assumeIsolated {
+                    guard let self else {
+                        return
+                    }
+                    self.logger.notice("Hiding method changed to \(method.rawValue, privacy: .public)")
+                    // A lift in progress belongs to assessment mode; the new method starts clean.
+                    self.suspendedUntil = nil
+                    self.update()
+                }
+            }
+            .store(in: &cancellables)
         update()
     }
 
     /// Derives what to conceal from Ice's sections and applies it.
     func update() {
-        guard let appState, MenuBarAssessmentAssertion27.isAvailable else {
+        guard let appState else {
             return
         }
+        let backend = resolvedBackend(appState)
+        guard backend == .native || MenuBarAssessmentAssertion27.isAvailable else {
+            return
+        }
+        self.backend = backend
         if let suspendedUntil, ContinuousClock.now < suspendedUntil {
             return
         }
@@ -169,6 +250,10 @@ final class Concealer27: ObservableObject {
         // The devices are only worth asking about while something is hidden: macOS draws its own
         // camera and microphone indicator the rest of the time.
         appState.captureWatcher27.setWatching(isConcealing && appState.settings.advanced.showCaptureIndicator)
+        // camera and microphone indicator the rest of the time — and all the time with the native
+        // switch, which leaves Control Centre's modules alone.
+        let drawsOwnIndicators = isConcealing && backend == .assessment
+        appState.captureWatcher27.setWatching(drawsOwnIndicators && appState.settings.advanced.showCaptureIndicator)
         defer { MenuBarItemProvider27.setConcealedPIDs(concealedPIDs) }
         concealedPIDs = Set(applications.compactMap { application in
             guard let bundleID = application.bundleIdentifier, concealed.contains(bundleID) else {
@@ -178,12 +263,38 @@ final class Concealer27: ObservableObject {
         })
         lastChangeAt = .now
         let previous = applyTask
-        let task = Task { [controller, logger] in
+        // Each method releases whatever the other holds before applying its own, so a change of
+        // method never leaves both hiding at once, nor anything hidden by the one given up.
+        let task = Task { [weak self, controller, native, logger] in
             await previous?.value
-            do {
-                try await controller.apply(target: target, running: running)
-            } catch {
-                logger.error("Could not apply concealment: \(error, privacy: .public)")
+            switch backend {
+            case .native:
+                if controller.isActive {
+                    controller.releaseAll()
+                }
+                do {
+                    let untracked = try native.apply(concealed: concealed)
+                    self?.untrackedConcealed = untracked
+                } catch {
+                    logger.error("Could not apply concealment through the native switch: \(error, privacy: .public)")
+                    // A switch that cannot be found or read now will not be in a moment either, so
+                    // assessment mode takes over for the rest of the run. A write that did not
+                    // synchronize is tried again at the next change.
+                    switch error as? NativeAllowListConcealer27.Failure {
+                    case .unavailable, .unreadable:
+                        self?.nativeFailed = true
+                        self?.update()
+                    default:
+                        break
+                    }
+                }
+            case .assessment:
+                native.releaseAll()
+                do {
+                    try await controller.apply(target: target, running: running)
+                } catch {
+                    logger.error("Could not apply concealment: \(error, privacy: .public)")
+                }
             }
         }
         applyTask = task
@@ -195,6 +306,26 @@ final class Concealer27: ObservableObject {
             try? await Task.sleep(for: .milliseconds(400))
             await self?.appState?.itemManager.cacheItemsIfNeeded()
             await self?.checkStuckOverflow()
+        }
+    }
+
+    /// Applies the native switch again while a hidden application launches.
+    ///
+    /// MenuBarAgent consults the switch when an item is created, so an application that is
+    /// already tracked needs nothing here: it is simply not drawn. One it has never seen has no
+    /// switch until its first item exists, and is turned off once it does.
+    private func reapplyWhileLaunching(bundleID: String) {
+        guard let section = savedLayout[bundleID], section != .visible else {
+            return
+        }
+        Task { [weak self] in
+            for delay in [1, 3, 8] {
+                try? await Task.sleep(for: .seconds(delay))
+                guard let self, backend == .native, untrackedConcealed.contains(bundleID) else {
+                    return
+                }
+                update()
+            }
         }
     }
 
@@ -228,6 +359,16 @@ final class Concealer27: ObservableObject {
     /// That is the case that matters — the display being worked on is usually the other one, and
     /// with only the active bar's geometry to go by this watched the wrong display for two days.
     private func checkStuckOverflow() async {
+        guard backend == .assessment else {
+            // Folded items with no way back were an artefact of assessment mode: the native
+            // switch gives the room back as MenuBarAgent lays the bar out, so there is nothing
+            // to watch for, and a notice left over from the other method goes with it.
+            stuckDisagreements = 0
+            if isOverflowStuck {
+                isOverflowStuck = false
+            }
+            return
+        }
         guard isConcealing else {
             // With nothing concealed every item is on the bar, so a notched one folds what does
             // not fit and there is nothing to tell. This is also when the user is most likely to
@@ -357,7 +498,12 @@ final class Concealer27: ObservableObject {
     }
 
     /// Releases every assertion for a moment, so a click can reach a system item.
+    ///
+    /// Does nothing with the native switch, where clicks reach system items anyway.
     func suspend(for duration: Duration) {
+        guard needsClickLift else {
+            return
+        }
         lastChangeAt = .now
         suspendedUntil = .now + duration
         isConcealing = false
@@ -392,6 +538,9 @@ final class Concealer27: ObservableObject {
     /// still live, and MenuBarAgent ignores those — which is why a click on the clock sometimes
     /// did nothing and worked on the second try.
     func suspendReleased(for duration: Duration) async {
+        guard needsClickLift else {
+            return
+        }
         lastChangeAt = .now
         suspendedUntil = .now + duration
         isConcealing = false
@@ -491,6 +640,10 @@ final class Concealer27: ObservableObject {
     /// grows back, not even after Ice quits; only relaunching the application without Ice fixes
     /// it. Items of a fixed length, Amphetamine's for one, are not affected (measured on
     /// macOS 27.0.1, 2026-10-01). Reported as jordanbaird/Ice#1007.
+    ///
+    /// Assessment mode only: the native switch is consulted as the item is created, so an
+    /// application launched while hidden is not drawn at all rather than squashed (measured on
+    /// macOS 27.0.1, 2026-10-22).
     private func showWhileLaunching(bundleID: String, pid: pid_t) {
         guard
             let section = savedLayout[bundleID],

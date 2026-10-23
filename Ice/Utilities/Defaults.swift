@@ -174,6 +174,8 @@ extension Defaults {
         case macOS27MenuOwner = "MacOS27MenuOwner"
         case macOS27ClickRestoreDelay = "MacOS27ClickRestoreDelay"
         case macOS27IceBarWaitsForRefresh = "MacOS27IceBarWaitsForRefresh"
+        case macOS27HidingMethod = "MacOS27HidingMethod"
+        case macOS27NativeDisallowed = "MacOS27NativeDisallowed"
 
         // MARK: Migration
         case hasMigrated0_8_0 = "hasMigrated0_8_0"

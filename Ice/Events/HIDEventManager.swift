@@ -28,16 +28,30 @@ final class HIDEventManager: ObservableObject {
     /// The last empty menu bar spot hovered on each display (see `ItemClicker27`).
     private var lastEmptyMenuBarPoints = [CGDirectDisplayID: CGPoint]()
 
-    /// Until when the release of a held-back click is held back as well (see
-    /// `handleSystemItemClick27`). The deadline keeps a release that never comes from
-    /// swallowing an unrelated one later.
-    private var heldBackReleaseUntil: ContinuousClock.Instant?
+    /// What the click tap reads and writes. The tap runs on a thread of its own (see
+    /// `systemItemClickTap`), so this lives behind a lock rather than on the main actor.
+    private struct ClickTapState {
+        /// Mirrors ``HIDEventManager/isEnabled``.
+        var isEnabled = false
+
+        /// Until when the release of a held-back click is held back as well. The deadline
+        /// keeps a release that never comes from swallowing an unrelated one later.
+        var heldBackReleaseUntil: ContinuousClock.Instant?
+
+        /// The event number of the press held back. A press and its release share one, so
+        /// only that release is held back — never the release of a click that was let through.
+        var heldBackPressNumber: Int64?
+    }
+
+    private nonisolated let clickTapState = OSAllocatedUnfairLock(initialState: ClickTapState())
 
 
 
     /// A Boolean value that indicates whether the manager is enabled.
     private var isEnabled = false {
         didSet {
+            let isEnabled = isEnabled
+            clickTapState.withLock { $0.isEnabled = isEnabled }
             if isEnabled {
                 for monitor in allMonitors {
                     monitor.start()
@@ -125,19 +139,35 @@ final class HIDEventManager: ObservableObject {
     /// While an assessment-mode assertion is live, MenuBarAgent ignores clicks on the
     /// clock (measured on macOS 27.0). The tap holds such a click back, releases the
     /// assertions for a moment, and replays the click.
+    ///
+    /// Every left click on the system waits on this tap's callback, so it runs on a thread of
+    /// its own. On the main thread each click waited for whatever else Ice was doing there,
+    /// and macOS disabled the tap for timing out (seen seconds after launch, 2026-10-03). A
+    /// press held up while the pointer moved on reached apps as a drag — the random window
+    /// drags that stopped whenever Ice quit. The callback reads only lock-protected state
+    /// and hands the bridging itself to the main thread.
     private(set) lazy var systemItemClickTap = EventTap(
         types: [.leftMouseDown, .leftMouseUp],
         location: .hidEventTap,
         placement: .headInsertEventTap,
-        option: .defaultTap
-    ) { [weak self] _, event in
-        guard let self, isEnabled, let appState else {
+        option: .defaultTap,
+        onOwnThread: true
+    ) { @Sendable [weak self, state = clickTapState] _, event in
+        // `CGEvent.timestamp` is in `mach_absolute_time` ticks, not nanoseconds: on Apple
+        // silicon a tick is 125/3 ns, so treating it as nanoseconds was off by hours.
+        let lag = HIDEventManager.milliseconds(since: event.timestamp)
+        if lag > 100 {
+            HIDEventManager.bridgeLogger.notice("Click tap: \(event.type == .leftMouseDown ? "press" : "release", privacy: .public) reached the tap \(lag, privacy: .public) ms late")
+        }
+        guard #available(macOS 27.0, *) else {
             return event
         }
-        if #available(macOS 27.0, *) {
-            return handleSystemItemClick27(event, appState: appState)
+        let manager = self
+        return HIDEventManager.filterSystemItemClick27(event, state: state) { location in
+            Task { @MainActor in
+                manager?.bridgeSystemItemClick27(at: location)
+            }
         }
-        return event
     }
 
     // MARK: All Monitors
@@ -369,11 +399,19 @@ extension HIDEventManager {
 
     // MARK: Handle System Item Clicks (macOS 27)
 
+    /// Milliseconds from an event's timestamp (in `mach_absolute_time` ticks) until now.
+    private nonisolated static func milliseconds(since timestamp: CGEventTimestamp) -> Int64 {
+        var timebase = mach_timebase_info_data_t()
+        mach_timebase_info(&timebase)
+        let ticks = Int64(mach_absolute_time()) - Int64(timestamp)
+        return ticks * Int64(timebase.numer) / Int64(timebase.denom) / 1_000_000
+    }
+
     /// Marks the clicks Ice replays, so the tap lets them through.
-    private static let replayedClickMarker: Int64 = 0x1CE_27_C1C
+    private nonisolated static let replayedClickMarker: Int64 = 0x1CE_27_C1C
 
     /// Times the steps of a bridged click, which happen on both opening and closing a panel.
-    private static let bridgeLogger = Logger(subsystem: "com.jordanbaird.Ice", category: "ClickBridge27")
+    private nonisolated static let bridgeLogger = Logger(subsystem: "com.jordanbaird.Ice", category: "ClickBridge27")
 
     /// Marks Ice's click that makes a display's menu bar active before an item is pressed.
     static let menuBarActivationMarker: Int64 = 0x1CE_27_BA2
@@ -396,40 +434,92 @@ extension HIDEventManager {
     /// understood as the click that dismisses it.
     private nonisolated(unsafe) static var itemShowingPanel: String?
 
+    /// Decides, on the tap's own thread, whether a click is one the bridge takes over.
+    ///
+    /// Reads only lock-protected state. A click that is taken over is held back, and
+    /// `bridge` is told where it landed so the main thread can do the rest.
     @available(macOS 27.0, *)
-    private func handleSystemItemClick27(_ event: CGEvent, appState: AppState) -> CGEvent? {
-        guard event.getIntegerValueField(.eventSourceUserData) != Self.replayedClickMarker else {
+    private nonisolated static func filterSystemItemClick27(
+        _ event: CGEvent,
+        state: OSAllocatedUnfairLock<ClickTapState>,
+        bridge: @Sendable (CGPoint) -> Void
+    ) -> CGEvent? {
+        guard
+            event.getIntegerValueField(.eventSourceUserData) != replayedClickMarker,
+            state.withLock({ $0.isEnabled })
+        else {
             return event
         }
+        let number = event.getIntegerValueField(.mouseEventNumber)
         if event.type == .leftMouseUp {
             // A press Ice holds back has its release held back with it. MenuBarAgent would
             // otherwise be handed a release with no press behind it, moments before the
-            // replayed click that carries both.
-            guard let until = heldBackReleaseUntil, ContinuousClock.now < until else {
-                heldBackReleaseUntil = nil
-                return event
+            // replayed click that carries both. Only the held press's own release, though:
+            // swallowing the release of a click that was let through leaves the window server
+            // believing the button is still down, and the next movement drags whatever is
+            // under the pointer — a window, text, a file.
+            enum Release { case notHeld, ofAnotherPress(Int64?), ofHeldPress }
+            let release: Release = state.withLock { state in
+                guard let until = state.heldBackReleaseUntil, ContinuousClock.now < until else {
+                    state.heldBackReleaseUntil = nil
+                    state.heldBackPressNumber = nil
+                    return .notHeld
+                }
+                guard number == state.heldBackPressNumber else {
+                    return .ofAnotherPress(state.heldBackPressNumber)
+                }
+                state.heldBackReleaseUntil = nil
+                state.heldBackPressNumber = nil
+                return .ofHeldPress
             }
-            heldBackReleaseUntil = nil
-            return nil
+            switch release {
+            case .notHeld:
+                return event
+            case .ofAnotherPress(let held):
+                bridgeLogger.notice("Click bridge: let through release #\(number, privacy: .public), not the held press's #\(held ?? -1, privacy: .public)")
+                return event
+            case .ofHeldPress:
+                bridgeLogger.notice("Click bridge: held back release #\(number, privacy: .public)")
+                return nil
+            }
         }
-        let concealer = appState.concealer27
         // With the native switch the system items keep taking their clicks while applications
         // are hidden (measured on macOS 27.0.1, 2026-10-22), so there is nothing to bridge.
-        guard concealer.needsClickLift else {
-            return event
-        }
-        // The frames of the display the click landed on, so the clock of the display whose bar
-        // is not active is recognised as well.
-        let clickedDisplay = NSScreen.screens.first { CGDisplayBounds($0.displayID).contains(event.location) }?.displayID
-        let framesOnDisplay = clickedDisplay.map { MenuBarItemProvider27.systemItemFrames(for: $0) } ?? []
-        guard ClockBridgeZone27.shouldBridge(
-            click: event.location,
-            systemItemFrames: framesOnDisplay.isEmpty ? MenuBarItemProvider27.systemItemFrames() : framesOnDisplay,
-            isConcealing: concealer.isConcealing
-        ) else {
+        guard Concealer27.needsClickLiftSnapshot.withLock({ $0 }) else {
             return event
         }
         let location = event.location
+        // The frames of the display the click landed on, so the clock of the display whose bar
+        // is not active is recognised as well. Found through Core Graphics, as `NSScreen`
+        // belongs to the main thread.
+        var displayID = CGDirectDisplayID()
+        var displayCount: UInt32 = 0
+        let foundDisplay = CGGetDisplaysWithPoint(location, 1, &displayID, &displayCount) == .success && displayCount > 0
+        let framesOnDisplay = foundDisplay ? MenuBarItemProvider27.systemItemFrames(for: displayID) : []
+        guard ClockBridgeZone27.shouldBridge(
+            click: location,
+            systemItemFrames: framesOnDisplay.isEmpty ? MenuBarItemProvider27.systemItemFrames() : framesOnDisplay,
+            isConcealing: Concealer27.isConcealingSnapshot.withLock { $0 }
+        ) else {
+            return event
+        }
+        state.withLock {
+            $0.heldBackReleaseUntil = .now + .seconds(1)
+            $0.heldBackPressNumber = number
+        }
+        bridgeLogger.notice("Click bridge: held back press #\(number, privacy: .public)")
+        bridge(location)
+        return nil
+    }
+
+    /// Takes a held-back click on a system item the rest of the way, on the main actor: opens
+    /// its panel by an Accessibility press, or lifts concealment and replays the click.
+    @available(macOS 27.0, *)
+    private func bridgeSystemItemClick27(at location: CGPoint) {
+        guard let appState else {
+            return
+        }
+        let concealer = appState.concealer27
         // Control Centre opens from an Accessibility press even while items are concealed
         // (measured on macOS 27.0: its panel appears after about 177 ms). The clock, the
         // battery and Wi-Fi ignore the press, so for those the concealment is lifted and the
@@ -486,8 +576,6 @@ extension HIDEventManager {
             Self.itemShowingPanel = systemItem?.identifier
             Self.bridgeLogger.debug("Click bridge: lifted in \(released, privacy: .public) ms, click replayed")
         }
-        heldBackReleaseUntil = .now + .seconds(1)
-        return nil
     }
 
     /// How long concealment stays lifted around a replayed click.

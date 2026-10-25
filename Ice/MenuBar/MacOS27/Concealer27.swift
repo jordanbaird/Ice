@@ -43,7 +43,15 @@ final class Concealer27: ObservableObject {
     private var nativeFailed = false
 
     /// The method in force since the last ``update()``.
-    private var backend = Backend.assessment
+    private var backend = Backend.assessment {
+        didSet {
+            let needsClickLift = needsClickLift
+            Self.needsClickLiftSnapshot.withLock { $0 = needsClickLift }
+        }
+    }
+
+    /// ``needsClickLift``, for the click tap, which runs off the main thread.
+    nonisolated static let needsClickLiftSnapshot = OSAllocatedUnfairLock(initialState: true)
 
     /// Applications meant to be concealed that MenuBarAgent did not track at the last native
     /// apply, so there was no switch to turn off yet (see ``reapplyWhileLaunching(bundleID:)``).
@@ -88,7 +96,16 @@ final class Concealer27: ObservableObject {
     private var runningApplicationsObservation: NSKeyValueObservation?
 
     /// Whether any application is meant to be concealed right now.
-    private(set) var isConcealing = false
+    private(set) var isConcealing = false {
+        didSet {
+            let isConcealing = isConcealing
+            Self.isConcealingSnapshot.withLock { $0 = isConcealing }
+        }
+    }
+
+    /// ``isConcealing``, for the click tap, which runs off the main thread so that a busy main
+    /// thread never holds up the system's clicks.
+    nonisolated static let isConcealingSnapshot = OSAllocatedUnfairLock(initialState: false)
 
     /// Process identifiers of the applications meant to be concealed right now.
     private(set) var concealedPIDs = Set<pid_t>()

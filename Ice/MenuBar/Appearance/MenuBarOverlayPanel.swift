@@ -398,16 +398,72 @@ final class MenuBarOverlayPanelContentView: NSView {
     /// instead of jumping on the TTL.
     private static var trailingBurstUntil = [CGDirectDisplayID: Date]()
 
-    /// Settled trailing widths remembered per display: concealed (hidden
-    /// section put away) vs revealed. Toggles alternate between these two
-    /// values, so a hide/show can start gliding toward the remembered
-    /// opposite end instantly — ~1s before the AX rescan lands to confirm.
-    private static var settledConcealedWidth = [CGDirectDisplayID: CGFloat]()
-    private static var settledRevealedWidth = [CGDirectDisplayID: CGFloat]()
+    /// Which sections are open. Each level shows a different set of icons,
+    /// so each gets its own remembered width.
+    ///
+    /// The levels nest: opening always-hidden also opens hidden, and closing
+    /// hidden also closes always-hidden.
+    private enum RevealLevel: Int, CaseIterable, Comparable {
+        /// Hidden section put away (always-hidden with it).
+        case concealed
+        /// Hidden section open, always-hidden put away.
+        case revealed
+        /// Hidden and always-hidden sections both open.
+        case alwaysHiddenRevealed
 
-    /// Predictive target per display. Draws snap to this instead of the stale
-    /// cache while a toggle burst (or cold boot) is resolving; cleared when
-    /// the rescan confirms the real width.
+        /// Suffix of the persisted widths key.
+        var defaultsKey: String {
+            switch self {
+            case .concealed: "concealed"
+            case .revealed: "revealed"
+            case .alwaysHiddenRevealed: "alwaysHiddenRevealed"
+            }
+        }
+
+        static func < (lhs: Self, rhs: Self) -> Bool {
+            lhs.rawValue < rhs.rawValue
+        }
+    }
+
+    /// Settled trailing widths remembered per display and reveal level.
+    ///
+    /// A toggle moves between two of these, so the pill can start gliding
+    /// toward the destination instantly — ~1s before the AX rescan lands.
+    /// Concealed/revealed alone was not enough: with always-hidden enabled,
+    /// "hidden open" and "both open" shared one slot, so every always-hidden
+    /// toggle predicted the previous width (empty pill strip on close, icons
+    /// outside the pill on open).
+    private static var settledWidths = [CGDirectDisplayID: [RevealLevel: CGFloat]]()
+
+    /// Reveal level last seen per display, to tell a toggle apart from the
+    /// repeated control-item publishes that follow it.
+    private static var lastRevealLevel = [CGDirectDisplayID: RevealLevel]()
+
+    /// Until when a predicted toggle's icon slide may still be in flight.
+    ///
+    /// A sweep started before this measured the icons mid-slide (or the
+    /// pre-toggle layout); applying it would yank the pill off a correct
+    /// prediction, so its width is dropped and the sweep reruns.
+    private static var slideSettlesAt = [CGDirectDisplayID: Date]()
+
+    /// How long a toggle's native icon slide is given to land, including
+    /// the round trip to the menu bar server.
+    private static let slideDuration: TimeInterval = 0.4
+
+    /// Displays with a post-slide rescan already scheduled.
+    private static var slideRefreshPending = Set<CGDirectDisplayID>()
+
+    /// Width the pill was headed for right before a predicted toggle.
+    ///
+    /// AX can keep reporting the old layout after the icons have moved
+    /// (seen under screen-capture load). A rescan that lands nearer this
+    /// than the prediction is treated as stale while the burst lasts, so the
+    /// pill doesn't bounce back to where it came from.
+    private static var toggleOriginWidth = [CGDirectDisplayID: CGFloat]()
+
+    /// Predictive target per display. Draws glide to this instead of the
+    /// stale cache while a toggle (or cold boot) is resolving; cleared when
+    /// a rescan measures the real width.
     private static var predictiveTarget = [CGDirectDisplayID: CGFloat]()
 
     /// When the last local (quick) leading-edge measure ran per display.
@@ -417,21 +473,26 @@ final class MenuBarOverlayPanelContentView: NSView {
 
     /// Currently drawn trailing width per display.
     ///
-    /// Expands snap to the target instantly, but collapses ease toward it
-    /// (see `trailingCollapsePointsPerSecond`), so the pill glides shut with
-    /// the sliding icons instead of blinking to its final size.
+    /// Eases toward the target in both directions, so the pill glides with
+    /// the sliding icons instead of jumping to its final size.
     private static var displayedTrailingWidth = [CGDirectDisplayID: CGFloat]()
 
-    /// Collapse speed of the trailing pill, in points per second.
+    /// Time constant of the ease when the pill grows, in seconds.
     ///
-    /// ~900pt/s closes a typical 300pt cluster in a third of a second —
-    /// close to the native icon slide, deliberately slower than the instant
-    /// snap used before. Raise to retract faster, lower for a lazier close.
-    private static let trailingCollapsePointsPerSecond: CGFloat = 900
+    /// Exponential ease-out covers ~95% of the distance in 3τ (~0.1s here):
+    /// quick enough that revealed icons don't sit outside the pill.
+    private static let trailingExpandTimeConstant: CFTimeInterval = 0.035
 
-    /// 60Hz driver that advances the collapse animation. Created on demand,
-    /// stopped as soon as every width lands — never a perpetual redraw.
-    private var trailingEaseTimer: Timer?
+    /// Time constant of the ease when the pill shrinks, in seconds (~0.18s
+    /// to 95%), close to the icons sliding away.
+    private static let trailingCollapseTimeConstant: CFTimeInterval = 0.06
+
+    /// Display-synced driver that advances the ease. Created on demand,
+    /// stopped as soon as the width lands — never a perpetual redraw.
+    private var trailingEaseLink: CADisplayLink?
+
+    /// Target time of the previous ease frame, for frame-rate-independent steps.
+    private var trailingEaseLastTimestamp: CFTimeInterval?
 
     /// Whether persisted trailing widths have been loaded this launch.
     private static var trailingWidthsLoaded = false
@@ -480,9 +541,9 @@ final class MenuBarOverlayPanelContentView: NSView {
 
     /// Loads persisted trailing widths once per launch.
     ///
-    /// Stored as `"<displayID>.concealed|revealed|cache": Double`. Cached
-    /// entries load as stale (`.distantPast`) so the first draw paints the
-    /// remembered pill instantly while a background rescan re-validates it.
+    /// Stored as `"<displayID>.<RevealLevel.defaultsKey>|cache": Double`.
+    /// Cached entries load as stale (`.distantPast`) so the first draw paints
+    /// the remembered pill instantly while a background rescan re-validates it.
     private static func loadPersistedTrailingWidths() {
         trailingStateLock.lock()
         guard !trailingWidthsLoaded else {
@@ -508,17 +569,13 @@ final class MenuBarOverlayPanelContentView: NSView {
             guard width > 0, width < 2000 else {
                 continue
             }
-            switch parts[1] {
-            case "concealed":
-                settledConcealedWidth[display] = width
-            case "revealed":
-                settledRevealedWidth[display] = width
-            case "cache":
+            let suffix = String(parts[1])
+            if suffix == "cache" {
                 if trailingWidthCache[display] == nil {
                     trailingWidthCache[display] = (width, .distantPast)
                 }
-            default:
-                break
+            } else if let level = RevealLevel.allCases.first(where: { $0.defaultsKey == suffix }) {
+                settledWidths[display, default: [:]][level] = width
             }
         }
     }
@@ -528,11 +585,10 @@ final class MenuBarOverlayPanelContentView: NSView {
         trailingStateLock.lock()
         defer { trailingStateLock.unlock() }
         var dict = [String: Double]()
-        for (display, width) in settledConcealedWidth {
-            dict["\(display).concealed"] = Double(width)
-        }
-        for (display, width) in settledRevealedWidth {
-            dict["\(display).revealed"] = Double(width)
+        for (display, widths) in settledWidths {
+            for (level, width) in widths {
+                dict["\(display).\(level.defaultsKey)"] = Double(width)
+            }
         }
         for (display, entry) in trailingWidthCache where entry.width > 0 {
             dict["\(display).cache"] = Double(entry.width)
@@ -540,18 +596,59 @@ final class MenuBarOverlayPanelContentView: NSView {
         UserDefaults.standard.set(dict, forKey: trailingWidthsDefaultsKey)
     }
 
-    /// Returns the remembered settled width for the display.
+    /// Returns the remembered settled width for the display and level.
     ///
-    /// Falls back to the opposite end when only one is known (fresh install,
-    /// first toggle): a slightly wrong pill beats a missing one.
-    private static func settledWidth(for display: CGDirectDisplayID, concealed: Bool?) -> CGFloat? {
+    /// - Parameter exact: when `false`, falls back to the nearest learned
+    ///   level (fresh install, cold boot): a slightly wrong pill beats a
+    ///   missing one. Toggle predictions pass `true`, because another
+    ///   level's width is simply the wrong destination.
+    private static func settledWidth(for display: CGDirectDisplayID, level: RevealLevel?, exact: Bool = false) -> CGFloat? {
         trailingStateLock.lock()
         defer { trailingStateLock.unlock() }
-        guard let concealed else {
-            return settledConcealedWidth[display] ?? settledRevealedWidth[display]
+        guard let widths = settledWidths[display] else {
+            return nil
         }
-        let width = concealed ? settledConcealedWidth[display] : settledRevealedWidth[display]
-        return width ?? (concealed ? settledRevealedWidth[display] : settledConcealedWidth[display])
+        if let level, let width = widths[level] {
+            return width
+        }
+        guard !exact else {
+            return nil
+        }
+        let fallbackOrder: [RevealLevel] = switch level {
+        case .concealed: [.revealed, .alwaysHiddenRevealed]
+        case .revealed: [.concealed, .alwaysHiddenRevealed]
+        case .alwaysHiddenRevealed: [.revealed, .concealed]
+        case nil: RevealLevel.allCases
+        }
+        return fallbackOrder.lazy.compactMap { widths[$0] }.first
+    }
+
+    /// Remembers the settled width for the display and level.
+    private static func setSettledWidth(_ width: CGFloat, for display: CGDirectDisplayID, level: RevealLevel) {
+        trailingStateLock.lock()
+        settledWidths[display, default: [:]][level] = width
+        trailingStateLock.unlock()
+    }
+
+    /// Sets (or clears) the predictive target. Locked: the Ice Bar reads it
+    /// off the main thread via `currentTrailingVisibleWidth`.
+    private static func setPredictiveTarget(_ width: CGFloat?, for display: CGDirectDisplayID) {
+        trailingStateLock.lock()
+        predictiveTarget[display] = width
+        trailingStateLock.unlock()
+    }
+
+    /// Sets the drawn width. Locked for the same reason as the target; it
+    /// changes every frame while the pill glides.
+    private static func setDisplayedTrailingWidth(_ width: CGFloat, for display: CGDirectDisplayID) {
+        trailingStateLock.lock()
+        displayedTrailingWidth[display] = width
+        trailingStateLock.unlock()
+    }
+
+    /// The width the pill is gliding toward.
+    private static func trailingTarget(for display: CGDirectDisplayID) -> CGFloat {
+        predictiveTarget[display] ?? trailingWidthCache[display]?.width ?? 0
     }
 
     /// Measures the leading edge locally and applies it as the drawn width.
@@ -591,29 +688,79 @@ final class MenuBarOverlayPanelContentView: NSView {
         }
     }
 
-    /// Whether the hidden section is currently concealed, if known.
-    private func isConcealed() -> Bool? {
+    /// Which sections are currently open, if known.
+    private func revealLevel() -> RevealLevel? {
         guard
-            let hiddenSection = overlayPanel?.appState?.menuBarManager.section(withName: .hidden)
+            let menuBarManager = overlayPanel?.appState?.menuBarManager,
+            let hiddenSection = menuBarManager.section(withName: .hidden)
         else {
             return nil
         }
-        return hiddenSection.controlItem.state == .hideItems
+        if hiddenSection.controlItem.state == .hideItems {
+            return .concealed
+        }
+        if
+            let alwaysHiddenSection = menuBarManager.section(withName: .alwaysHidden),
+            alwaysHiddenSection.isEnabled,
+            alwaysHiddenSection.controlItem.state == .showItems
+        {
+            return .alwaysHiddenRevealed
+        }
+        return .revealed
     }
 
-    /// Seeds the predictive target from remembered widths when empty, so the
-    /// first draw after boot/recreation opens at the right size, not 0.
+    /// Seeds the predictive target from remembered widths, so the first
+    /// draw after boot opens at the right size, not 0.
+    ///
+    /// Only until the first live measurement lands. This runs on every
+    /// draw, and re-seeding whenever the target was empty put the remembered
+    /// width straight back after each rescan cleared it, so the pill ignored
+    /// real measurements until the scan burst settled (1.5s+ per toggle).
     private func seedPredictionIfNeeded(for display: CGDirectDisplayID) {
         Self.loadPersistedTrailingWidths()
-        guard Self.predictiveTarget[display] == nil else {
+        guard
+            Self.predictiveTarget[display] == nil,
+            Self.trailingWidthCache[display].map({ $0.date == .distantPast }) ?? true
+        else {
             return
         }
         if
-            let remembered = Self.settledWidth(for: display, concealed: isConcealed()),
+            let remembered = Self.settledWidth(for: display, level: revealLevel()),
             remembered > 0
         {
-            Self.predictiveTarget[display] = remembered
+            Self.setPredictiveTarget(remembered, for: display)
         }
+    }
+
+    /// Predicts the trailing width after a toggle from one level to another.
+    ///
+    /// Applies the learned difference between the two levels to the width
+    /// in use now, so changes that hit every level alike (clock text, a newly
+    /// launched app's icon) don't skew it. Returns `nil` when the destination
+    /// was never measured.
+    private func predictedWidth(for display: CGDirectDisplayID, from origin: RevealLevel, to destination: RevealLevel) -> CGFloat? {
+        guard
+            let destinationWidth = Self.settledWidth(for: display, level: destination, exact: true),
+            destinationWidth > 0
+        else {
+            return nil
+        }
+        guard
+            let originWidth = Self.settledWidth(for: display, level: origin, exact: true),
+            let current = Self.predictiveTarget[display] ?? Self.trailingWidthCache[display]?.width,
+            current > 0,
+            abs(current - originWidth) < 150
+        else {
+            // No usable base (or one far off the learned origin, i.e.
+            // stale): the absolute destination is the safer bet.
+            return destinationWidth
+        }
+        let predicted = current + (destinationWidth - originWidth)
+        let screenWidth = CGDisplayBounds(display).width
+        guard predicted > 0, screenWidth <= 0 || predicted < screenWidth else {
+            return destinationWidth
+        }
+        return predicted
     }
 
     /// Frosted-glass blur of the live background, masked to the pills.
@@ -668,9 +815,8 @@ final class MenuBarOverlayPanelContentView: NSView {
         super.viewDidMoveToWindow()
         configureCancellables()
         guard let panel = overlayPanel else {
-            // Detached: stop the collapse driver, if running.
-            trailingEaseTimer?.invalidate()
-            trailingEaseTimer = nil
+            // Detached: stop the ease driver, if running.
+            stopTrailingEase()
             return
         }
         // Warm the shared trailing cache immediately so the first draw (and
@@ -1102,105 +1248,127 @@ final class MenuBarOverlayPanelContentView: NSView {
         return NSBezierPath()
     }
 
-    /// Returns the last-known trailing status width for the display without
-    /// blocking. Kicks off a background rescan when the cached value is stale;
-    /// the view redisplays when the rescan completes.
-    /// ponytail: no per-frame easing here — the old 0.22/frame glide re-armed
-    /// needsDisplay from inside draw() (~60fps redraw storm per toggle/scan).
-    /// Draws now snap to the cached/predicted target; the background rescan
-    /// corrects it once AX lands.
+    /// Returns the trailing width to draw for the display without blocking.
+    /// Kicks off a background rescan when the cached value is stale; the view
+    /// redisplays when the rescan completes.
+    ///
+    /// Never animates from inside `draw()` (that re-armed needsDisplay into a
+    /// redraw storm): when the drawn width is off target, the display-synced
+    /// driver glides it there.
     private func cachedTrailingStatusWidth(for display: CGDirectDisplayID) -> CGFloat {
         seedPredictionIfNeeded(for: display)
         refreshTrailingStatusWidth(for: display, force: false)
-        let target = Self.predictiveTarget[display] ?? Self.trailingWidthCache[display]?.width ?? 0
-        guard let current = Self.displayedTrailingWidth[display] else {
+        let target = Self.trailingTarget(for: display)
+        guard let current = Self.displayedTrailingWidth[display], current > 0 else {
             // First draw after boot/recreation: snap, never grow from 0.
-            Self.displayedTrailingWidth[display] = target
+            Self.setDisplayedTrailingWidth(target, for: display)
             return target
         }
-        if target >= current {
-            // Expanding (show): snap, as before.
-            Self.displayedTrailingWidth[display] = target
-            return target
+        if current != target {
+            startTrailingEaseIfNeeded()
         }
-        // Collapsing (hide): hold the current frame and let the 60Hz driver
-        // glide it down to the target.
-        startTrailingEaseIfNeeded()
         return current
     }
 
-    /// Starts the 60Hz collapse driver, unless already running.
+    /// Starts the display-synced ease driver, unless already running.
     private func startTrailingEaseIfNeeded() {
-        guard trailingEaseTimer == nil else {
+        guard trailingEaseLink == nil else {
             return
         }
-        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
-            self?.stepTrailingEase()
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        trailingEaseTimer = timer
+        let link = displayLink(target: self, selector: #selector(stepTrailingEase(_:)))
+        // ProMotion: ask for the panel's full refresh rate.
+        link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
+        link.add(to: .main, forMode: .common)
+        trailingEaseLink = link
+        trailingEaseLastTimestamp = nil
     }
 
-    /// Advances the collapse animation one frame toward its target.
-    private func stepTrailingEase() {
+    /// Stops the ease driver.
+    private func stopTrailingEase() {
+        trailingEaseLink?.invalidate()
+        trailingEaseLink = nil
+        trailingEaseLastTimestamp = nil
+    }
+
+    /// Advances the ease one frame toward the current target.
+    ///
+    /// Exponential ease-out: each frame closes a time-based fraction of the
+    /// remaining distance, so a target that moves mid-glide (a rescan
+    /// correcting the prediction) bends the motion instead of restarting it.
+    @objc private func stepTrailingEase(_ link: CADisplayLink) {
         guard let panel = overlayPanel else {
-            trailingEaseTimer?.invalidate()
-            trailingEaseTimer = nil
+            stopTrailingEase()
             return
         }
         let display = panel.owningScreen.displayID
-        let target = Self.predictiveTarget[display] ?? Self.trailingWidthCache[display]?.width ?? 0
+        let target = Self.trailingTarget(for: display)
         let current = Self.displayedTrailingWidth[display] ?? target
-        let next: CGFloat = if target >= current {
-            target
-        } else {
-            max(target, current - Self.trailingCollapsePointsPerSecond / 60.0)
+        let frameTime = link.targetTimestamp
+        let elapsed = trailingEaseLastTimestamp.map { frameTime - $0 } ?? (link.targetTimestamp - link.timestamp)
+        trailingEaseLastTimestamp = frameTime
+        let timeConstant = target > current ? Self.trailingExpandTimeConstant : Self.trailingCollapseTimeConstant
+        let fraction = 1 - exp(-min(max(elapsed, 0), 0.1) / timeConstant)
+        var next = current + (target - current) * CGFloat(fraction)
+        if abs(target - next) < 0.5 {
+            next = target
         }
-        Self.displayedTrailingWidth[display] = next
+        Self.setDisplayedTrailingWidth(next, for: display)
         if next == target {
-            trailingEaseTimer?.invalidate()
-            trailingEaseTimer = nil
+            stopTrailingEase()
         }
         needsDisplay = true
     }
 
     /// A control item moved or toggled: redraw now and keep chaining scans
-    /// briefly so the rescan confirms (and corrects) the prediction mid-slide.
+    /// briefly so the rescans confirm (and correct) the prediction.
     private func noteControlItemMoved() {
         needsDisplay = true
         guard let panel = overlayPanel else {
             return
         }
         let display = panel.owningScreen.displayID
-        // Toggles alternate concealed <-> revealed: predict the destination
-        // now instead of waiting ~1s for the AX rescan. Hide => shrink toward
-        // the remembered concealed width; show => expand toward revealed.
-        // Falls back to the opposite end when only one is known, so even the
-        // very first toggle glides instead of jumping from 0.
-        let concealed = isConcealed()
-        if
-            let remembered = Self.settledWidth(for: display, concealed: concealed),
-            remembered > 0
-        {
-            Self.predictiveTarget[display] = remembered
-        }
         Self.trailingBurstUntil[display] = Date().addingTimeInterval(1.5)
-        if let current = Self.displayedTrailingWidth[display] {
-            let edgeX = CGDisplayBounds(display).maxX - current
-            if concealed == true {
-                // Hiding: the remembered width may be stale (learned while a
-                // share/record pill was up). Re-measure right of the drawn edge
-                // immediately instead of holding the old width for the burst.
-                refreshTrailingStatusWidth(for: display, force: true, quick: .removed(edgeX: edgeX))
-            } else {
-                // Revealing: the divider + the section's icons land just left of
-                // the drawn edge. Probe outward from it now — waiting for the
-                // full sweep left the pill ~1s behind the icons appearing.
-                refreshTrailingStatusWidth(for: display, force: true, quick: .added(hitX: edgeX))
-            }
-        } else {
-            refreshTrailingStatusWidth(for: display, force: true)
+        let level = revealLevel()
+        let previousLevel = Self.lastRevealLevel[display]
+        if let level {
+            Self.lastRevealLevel[display] = level
         }
+        guard
+            let level,
+            let previousLevel,
+            level != previousLevel
+        else {
+            // Not a toggle: the first publish after launch, a repeat publish
+            // for a toggle already handled, or an icon/setting change.
+            refreshTrailingStatusWidth(for: display, force: true)
+            return
+        }
+        let predicted = predictedWidth(for: display, from: previousLevel, to: level)
+        Logger.overlayPanel.debug("Toggle \(previousLevel) -> \(level): drawn=\(Self.displayedTrailingWidth[display] ?? -1) predicted=\(predicted ?? -1)")
+        if let predicted {
+            // Start gliding toward the destination with the icons, instead
+            // of waiting ~1s for the AX rescan. Rescans that would measure
+            // the slide mid-flight are held back until it lands.
+            Self.toggleOriginWidth[display] = Self.trailingTarget(for: display)
+            Self.setPredictiveTarget(predicted, for: display)
+            Self.slideSettlesAt[display] = Date().addingTimeInterval(Self.slideDuration)
+            needsDisplay = true
+            refreshTrailingStatusWidth(for: display, force: true)
+            return
+        }
+        // Destination never measured (first toggle into this level): let
+        // every measurement through, starting with a quick local walk from
+        // the drawn edge in the direction the icons move.
+        Self.setPredictiveTarget(nil, for: display)
+        Self.slideSettlesAt.removeValue(forKey: display)
+        Self.toggleOriginWidth.removeValue(forKey: display)
+        guard let current = Self.displayedTrailingWidth[display], current > 0 else {
+            refreshTrailingStatusWidth(for: display, force: true)
+            return
+        }
+        let edgeX = CGDisplayBounds(display).maxX - current
+        let verdict: EdgeVerdict = level > previousLevel ? .added(hitX: edgeX) : .removed(edgeX: edgeX)
+        refreshTrailingStatusWidth(for: display, force: true, quick: verdict)
     }
 
     /// Kicks off a background trailing-width rescan unless one is already in
@@ -1217,6 +1385,13 @@ final class MenuBarOverlayPanelContentView: NSView {
         guard isStale else {
             return
         }
+        if let settlesAt = Self.slideSettlesAt[display], settlesAt > Date() {
+            // A predicted toggle's icons are still sliding: a sweep now would
+            // only measure them mid-flight (and compete with the animation for
+            // WindowServer). Measure once they rest.
+            scheduleRefreshAfterSlide(for: display, at: settlesAt)
+            return
+        }
         guard !Self.trailingWidthScanInFlight.contains(display) else {
             // A sweep is already running, but the cheap local measure is
             // independent of it: skipping it here is what made the pill lag
@@ -1227,10 +1402,11 @@ final class MenuBarOverlayPanelContentView: NSView {
             return
         }
         Self.trailingWidthScanInFlight.insert(display)
-        let concealed = isConcealed()
+        let levelAtStart = revealLevel()
+        let startedAt = Date()
         // Never collapse to 0 while a stale-but-sane value exists: a
         // slightly wrong pill is far less jarring than a disappearing one.
-        let previous = cached?.width ?? Self.settledWidth(for: display, concealed: concealed) ?? 0
+        let previous = cached?.width ?? Self.settledWidth(for: display, level: levelAtStart) ?? 0
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             if let verdict {
                 // Fast local re-measure ahead of the full sweep. Main-queue
@@ -1254,42 +1430,82 @@ final class MenuBarOverlayPanelContentView: NSView {
                     self?.needsDisplay = true
                     return
                 }
+                if let settlesAt = Self.slideSettlesAt[display], startedAt < settlesAt {
+                    // Started before a predicted toggle's icons came to rest
+                    // (it was already running when the toggle hit): a stale
+                    // or mid-flight snapshot. Keep the prediction and measure
+                    // again once they rest.
+                    Logger.overlayPanel.debug("Scan dropped (mid-slide): measured=\(width) predictive=\(Self.predictiveTarget[display] ?? -1)")
+                    self?.refreshTrailingStatusWidth(for: display, force: true)
+                    return
+                }
+                let burstActive = Self.trailingBurstUntil[display].map { Date() < $0 } ?? false
+                if
+                    burstActive,
+                    result != nil,
+                    let origin = Self.toggleOriginWidth[display],
+                    let predicted = Self.predictiveTarget[display],
+                    abs(predicted - origin) > 20,
+                    abs(width - origin) < abs(width - predicted)
+                {
+                    // AX still shows the pre-toggle layout. Hold the
+                    // prediction and look again; once the burst ends the
+                    // measurement wins regardless.
+                    Logger.overlayPanel.debug("Scan dropped (stale): measured=\(width) origin=\(origin) predictive=\(predicted)")
+                    self?.refreshTrailingStatusWidth(for: display, force: true)
+                    return
+                }
+                if result != nil {
+                    Self.toggleOriginWidth.removeValue(forKey: display)
+                }
                 Self.trailingWidthCache[display] = (width, Date())
                 guard let self else {
                     return
                 }
                 self.needsDisplay = true
-                Logger.overlayPanel.debug("Scan land: measured=\(width) drawn=\(Self.displayedTrailingWidth[display] ?? -1) predictive=\(Self.predictiveTarget[display] ?? -1) concealed=\(self.isConcealed() ?? true)")
-                if let result {
-                    // A real measurement outranks any prediction. Leaving
-                    // `predictiveTarget` in place for the rest of the burst
-                    // pinned the pill at the pre-toggle width forever once a
-                    // mid-transition scan had set it (measured 413 / drawn 524).
-                    Self.predictiveTarget.removeValue(forKey: display)
+                Logger.overlayPanel.debug("Scan land: measured=\(width) drawn=\(Self.displayedTrailingWidth[display] ?? -1) predictive=\(Self.predictiveTarget[display] ?? -1) level=\(self.revealLevel().map { "\($0)" } ?? "?")")
+                if result != nil {
+                    // A real measurement outranks any prediction.
+                    Self.setPredictiveTarget(nil, for: display)
                 }
                 if let until = Self.trailingBurstUntil[display], Date() < until {
                     self.refreshTrailingStatusWidth(for: display, force: true)
                 } else {
                     Self.trailingBurstUntil.removeValue(forKey: display)
+                    Self.slideSettlesAt.removeValue(forKey: display)
+                    Self.toggleOriginWidth.removeValue(forKey: display)
                     // Burst settled: this is the real end position. Remember
-                    // it so the next toggle (and next launch) can predict
-                    // instantly, and drop the prediction it was gliding toward.
-                    // Re-read: the toggle may have flipped again mid-scan.
-                    // ponytail: learn only from a real sweep — the `previous`
-                    // fallback re-learned the stale value it was supposed to
-                    // correct, which is how a wrong width became permanent.
-                    if width > 0, result != nil {
-                        let fresh = self.isConcealed() ?? concealed
-                        if fresh ?? true {
-                            Self.settledConcealedWidth[display] = width
-                        } else {
-                            Self.settledRevealedWidth[display] = width
-                        }
+                    // it for this level so the next toggle (and next launch)
+                    // can predict instantly. Learn only from a real sweep (the
+                    // `previous` fallback would re-learn the stale value it was
+                    // supposed to correct), and only if no toggle happened
+                    // while it ran.
+                    if
+                        width > 0,
+                        result != nil,
+                        let level = self.revealLevel(),
+                        level == levelAtStart
+                    {
+                        Self.setSettledWidth(width, for: display, level: level)
                         Self.persistTrailingWidths()
                     }
-                    Self.predictiveTarget.removeValue(forKey: display)
                 }
             }
+        }
+    }
+
+    /// Runs one forced rescan for the display once the slide lands.
+    ///
+    /// Draws call `refreshTrailingStatusWidth` every frame while the pill
+    /// glides, so pending requests are coalesced instead of piling up.
+    private func scheduleRefreshAfterSlide(for display: CGDirectDisplayID, at date: Date) {
+        guard Self.slideRefreshPending.insert(display).inserted else {
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + max(0, date.timeIntervalSinceNow)) { [weak self] in
+            Self.slideRefreshPending.remove(display)
+            // Re-checks the window: a newer toggle may have pushed it out.
+            self?.refreshTrailingStatusWidth(for: display, force: true)
         }
     }
 
@@ -1604,7 +1820,7 @@ final class MenuBarOverlayPanelContentView: NSView {
         }
         let expected = Self.predictiveTarget[display]
             ?? Self.trailingWidthCache[display]?.width
-            ?? Self.settledWidth(for: display, concealed: isConcealed())
+            ?? Self.settledWidth(for: display, level: revealLevel())
             ?? 0
         guard expected > 0 else {
             refreshTrailingStatusWidth(for: display, force: false)
@@ -1645,7 +1861,7 @@ final class MenuBarOverlayPanelContentView: NSView {
                             currentWidth: expected
                         ) {
                             Self.trailingWidthCache[display] = (grown, Date())
-                            Self.predictiveTarget[display] = grown
+                            Self.setPredictiveTarget(grown, for: display)
                         }
                     }
                     self.refreshTrailingStatusWidth(for: display, force: true)
@@ -1919,8 +2135,14 @@ final class MenuBarOverlayPanelContentView: NSView {
             || isEmpty
             || (configuration.tintKind != .none && configuration.tintOpacity >= 1)
         blurView.alphaValue = configuration.blurAmount
+        // The mask is a standalone layer, so Core Animation would give each
+        // change an implicit 0.25s animation: the blur edge trailed the tint
+        // edge on every toggle. The glide is already driven frame by frame.
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
         blurMask.frame = blurView.bounds
         blurMask.path = shapePath.cgPath
+        CATransaction.commit()
         tintView.shapePath = shapePath
         tintView.fillRect = fillRect
         tintView.shapeKind = shapeKind

@@ -40,8 +40,7 @@ enum ControlItemImage: Codable, Hashable {
             return originalImage.resized(to: newSize)
         case .data(let data):
             let image = NSImage(data: data)
-            let generalSettingsManager = appState.settingsManager.generalSettingsManager
-            image?.isTemplate = generalSettingsManager.customIceIconIsTemplate
+            image?.isTemplate = appState.settings.general.customIceIconIsTemplate
             return image
         }
     }

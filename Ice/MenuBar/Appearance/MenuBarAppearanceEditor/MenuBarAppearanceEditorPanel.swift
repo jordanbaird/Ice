@@ -6,110 +6,126 @@
 import Combine
 import SwiftUI
 
-// MARK: - MenuBarAppearanceEditorPanel
-
-/// A panel that manages the appearance editor popover.
+/// A panel that contains a portable version of the menu bar
+/// appearance editor interface.
 final class MenuBarAppearanceEditorPanel: NSPanel {
+    /// The default screen to show the panel on.
+    static var defaultScreen: NSScreen? {
+        NSScreen.screenWithMouse ?? NSScreen.main
+    }
+
     /// The shared app state.
     private weak var appState: AppState?
 
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
-    init(appState: AppState) {
+    /// Overridden to always be `true`.
+    override var canBecomeKey: Bool { true }
+
+    /// Creates a menu bar appearance editor panel.
+    init() {
         super.init(
-            contentRect: CGRect(x: 0, y: 0, width: 1, height: 1),
-            styleMask: [.borderless, .nonactivatingPanel],
+            contentRect: .zero,
+            styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        self.appState = appState
+        self.title = "Menu Bar Appearance"
+        self.titlebarAppearsTransparent = true
+        self.allowsToolTipsWhenApplicationIsInactive = true
         self.isFloatingPanel = true
-        self.backgroundColor = .clear
+        self.hidesOnDeactivate = false
+        self.isMovableByWindowBackground = false
+        self.collectionBehavior = [.fullScreenAuxiliary, .moveToActiveSpace]
+    }
+
+    /// Sets up the panel.
+    func performSetup(with appState: AppState) {
+        self.appState = appState
+        configureContentView(with: appState)
         configureCancellables()
     }
 
+    /// Configures the panel's content view.
+    private func configureContentView(with appState: AppState) {
+        let hostingView = MenuBarAppearanceEditorHostingView(appState: appState)
+        setFrame(hostingView.frame, display: true)
+        contentView = hostingView
+    }
+
+    /// Configures the internal observers for the panel.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
-        NSWorkspace.shared.notificationCenter
-            .publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .sink { [weak self] _ in
-                self?.orderOut(self)
-                NSColorPanel.shared.close()
-                NSColorPanel.shared.hidesOnDeactivate = true
+        // Make sure the panel takes on the app's appearance.
+        NSApp.publisher(for: \.effectiveAppearance)
+            .sink { [weak self] effectiveAppearance in
+                self?.appearance = effectiveAppearance
+            }
+            .store(in: &c)
+
+        publisher(for: \.isVisible)
+            .sink { isVisible in
+                if isVisible {
+                    NSColorPanel.shared.hidesOnDeactivate = false
+                } else {
+                    NSColorPanel.shared.hidesOnDeactivate = true
+                    NSColorPanel.shared.close()
+                }
             }
             .store(in: &c)
 
         cancellables = c
     }
 
-    /// Shows the appearance editor popover.
-    func showAppearanceEditorPopover() {
-        guard
-            let appState,
-            let contentView,
-            let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }),
-            let menuBarHeight = NSApp.mainMenu?.menuBarHeight
-        else {
-            return
-        }
-        setFrameOrigin(CGPoint(x: screen.frame.midX - frame.width / 2, y: screen.frame.maxY - menuBarHeight))
-        let popover = MenuBarAppearanceEditorPopover(appState: appState)
-        popover.delegate = self
-        popover.show(relativeTo: .zero, of: contentView, preferredEdge: .minY)
-        popover.contentViewController?.view.window?.makeKey()
-        NSColorPanel.shared.hidesOnDeactivate = false
+    /// Updates the panel's position for display on the given screen.
+    private func updatePosition(for screen: NSScreen) {
+        let originX = screen.visibleFrame.midX - frame.width / 2
+        let originY = screen.visibleFrame.maxY
+        setFrameTopLeftPoint(CGPoint(x: originX, y: originY))
+    }
+
+    /// Shows the panel on the given screen.
+    func show(on screen: NSScreen) {
+        updatePosition(for: screen)
+        makeKeyAndOrderFront(nil)
     }
 }
 
-// MARK: MenuBarAppearanceEditorPanel: NSPopoverDelegate
-extension MenuBarAppearanceEditorPanel: NSPopoverDelegate {
-    func popoverDidClose(_ notification: Notification) {
-        if let popover = notification.object as? MenuBarAppearanceEditorPopover {
-            popover.mouseDownMonitor.stop()
-            orderOut(popover)
-            NSColorPanel.shared.close()
-            NSColorPanel.shared.hidesOnDeactivate = true
-        }
-    }
-}
+// MARK: - MenuBarAppearanceEditorHostingView
 
-// MARK: - MenuBarAppearanceEditorPopover
-
-/// A popover that displays the menu bar appearance editor
-/// at a centered location under the menu bar.
-private final class MenuBarAppearanceEditorPopover: NSPopover {
-    private weak var appState: AppState?
-
-    private(set) lazy var mouseDownMonitor = GlobalEventMonitor(mask: .leftMouseDown) { [weak self] _ in
-        self?.performClose(self)
-    }
-
-    @ViewBuilder
-    private var contentView: some View {
-        if let appState {
-            MenuBarAppearanceEditor(
-                location: .popover(closePopover: { [weak self] in
-                    self?.performClose(self)
-                })
-            )
-            .environmentObject(appState)
-            .environmentObject(appState.appearanceManager)
-        }
+private final class MenuBarAppearanceEditorHostingView: NSHostingView<MenuBarAppearanceEditorContentView> {
+    override var intrinsicContentSize: CGSize {
+        CGSize(width: 550, height: 600)
     }
 
     init(appState: AppState) {
-        super.init()
-        self.appState = appState
-        self.contentViewController = NSHostingController(rootView: contentView)
-        self.contentSize = CGSize(width: 550, height: 600)
-        self.behavior = .applicationDefined
-        self.mouseDownMonitor.start()
+        super.init(rootView: MenuBarAppearanceEditorContentView(appState: appState))
+        setFrameSize(intrinsicContentSize)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    @available(*, unavailable)
+    required init(rootView: MenuBarAppearanceEditorContentView) {
+        fatalError("init(rootView:) has not been implemented")
+    }
+}
+
+// MARK: - MenuBarAppearanceEditorContentView
+
+private struct MenuBarAppearanceEditorContentView: View {
+    @ObservedObject var appState: AppState
+
+    var body: some View {
+        MenuBarAppearanceEditor(
+            appearanceManager: appState.appearanceManager,
+            location: .panel
+        )
+        .environmentObject(appState)
     }
 }

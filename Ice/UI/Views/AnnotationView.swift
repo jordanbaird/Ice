@@ -25,7 +25,7 @@ struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>:
     ///   - content: The content view of the annotation.
     init(
         alignment: HorizontalAlignment = .leading,
-        spacing: CGFloat = 0,
+        spacing: CGFloat = .annotationDefaultSpacing,
         font: Font? = .subheadline,
         foregroundStyle: ForegroundStyle = .secondary,
         @ViewBuilder parent: () -> Parent,
@@ -51,7 +51,7 @@ struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>:
     init(
         _ titleKey: LocalizedStringKey,
         alignment: HorizontalAlignment = .leading,
-        spacing: CGFloat = 0,
+        spacing: CGFloat = .annotationDefaultSpacing,
         font: Font? = .subheadline,
         foregroundStyle: ForegroundStyle = .secondary,
         @ViewBuilder parent: () -> Parent
@@ -78,7 +78,7 @@ struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>:
     ///   - content: The content view of the annotation.
     init(
         alignment: HorizontalAlignment = .leading,
-        spacing: CGFloat = 0,
+        spacing: CGFloat = .annotationDefaultSpacing,
         font: Font? = .subheadline,
         foregroundStyle: ForegroundStyle = .secondary,
         @ViewBuilder content: () -> Content
@@ -106,7 +106,7 @@ struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>:
     init(
         _ titleKey: LocalizedStringKey,
         alignment: HorizontalAlignment = .leading,
-        spacing: CGFloat = 0,
+        spacing: CGFloat = .annotationDefaultSpacing,
         font: Font? = .subheadline,
         foregroundStyle: ForegroundStyle = .secondary
     ) where Parent == EmptyView, Content == Text {
@@ -129,6 +129,7 @@ struct AnnotationView<Parent: View, Content: View, ForegroundStyle: ShapeStyle>:
                 .foregroundStyle(foregroundStyle)
         }
         .frame(maxWidth: .infinity, alignment: Alignment(horizontal: alignment, vertical: .center))
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -143,7 +144,7 @@ extension View {
     ///   - content: A view builder that creates the annotation content.
     func annotation<Content: View, ForegroundStyle: ShapeStyle>(
         alignment: HorizontalAlignment = .leading,
-        spacing: CGFloat = 0,
+        spacing: CGFloat = .annotationDefaultSpacing,
         font: Font? = .subheadline,
         foregroundStyle: ForegroundStyle = .secondary,
         @ViewBuilder content: () -> Content
@@ -171,7 +172,7 @@ extension View {
     func annotation<ForegroundStyle: ShapeStyle>(
         _ titleKey: LocalizedStringKey,
         alignment: HorizontalAlignment = .leading,
-        spacing: CGFloat = 0,
+        spacing: CGFloat = .annotationDefaultSpacing,
         font: Font? = .subheadline,
         foregroundStyle: ForegroundStyle = .secondary
     ) -> some View {
@@ -185,4 +186,9 @@ extension View {
             self
         }
     }
+}
+
+extension CGFloat {
+    /// The default spacing for an ``IceForm``.
+    static let annotationDefaultSpacing: CGFloat = 2
 }

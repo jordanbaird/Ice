@@ -247,11 +247,9 @@ final class Concealer27: ObservableObject {
         )
         let concealed = ConcealmentPlanner27.effectivelyConcealed(sets: target)
         isConcealing = !target.isEmpty
-        // The devices are only worth asking about while something is hidden: macOS draws its own
-        // camera and microphone indicator the rest of the time.
-        appState.captureWatcher27.setWatching(isConcealing && appState.settings.advanced.showCaptureIndicator)
-        // camera and microphone indicator the rest of the time — and all the time with the native
-        // switch, which leaves Control Centre's modules alone.
+        // The devices are only worth asking about while Ice's own indicator would be drawn: while
+        // something is hidden, and only under assessment mode. With the native switch macOS keeps
+        // drawing its own, and a second one beside it is exactly what the user saw.
         let drawsOwnIndicators = isConcealing && backend == .assessment
         appState.captureWatcher27.setWatching(drawsOwnIndicators && appState.settings.advanced.showCaptureIndicator)
         defer { MenuBarItemProvider27.setConcealedPIDs(concealedPIDs) }

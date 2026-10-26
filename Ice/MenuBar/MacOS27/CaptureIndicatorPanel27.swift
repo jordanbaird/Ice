@@ -104,6 +104,9 @@ final class CaptureIndicatorPanel27: NSPanel {
             let appState,
             appState.settings.advanced.showCaptureIndicator,
             appState.concealer27.isConcealing,
+            // Only where the hiding takes macOS's own indicator away. With the native switch it
+            // stays on the bar, and Ice's would stand beside it.
+            appState.concealer27.needsClickLift,
             // Out of the way while an item is shown for a moment: that item is drawn where the
             // indicator stands, and a click meant for it would land on the indicator instead.
             !appState.concealer27.isShowingTemporarily,

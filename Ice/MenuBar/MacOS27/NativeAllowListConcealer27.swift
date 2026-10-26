@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import AppKit
 import Foundation
 import OSLog
 
@@ -62,9 +63,15 @@ final class NativeAllowListConcealer27 {
     func apply(concealed: Set<String>) throws -> Set<String> {
         var array = try Preferences.read()
         let states = TrackedApplications27.allowedStates(in: array)
+        // What macOS keeps a switch for is not always what owns the item (see
+        // `EnclosingApplication27`), so each identifier is looked up the way macOS files it.
+        let switches = Dictionary(uniqueKeysWithValues: concealed.map {
+            ($0, Self.switchIdentifier(for: $0, amongst: states))
+        })
+        let concealedSwitches = Set(switches.values)
         let recorded = Self.recorded
-        let toDisallow = Set(concealed.filter { states[$0] == true })
-        let toAllow = recorded.subtracting(concealed)
+        let toDisallow = Set(concealedSwitches.filter { states[$0] == true })
+        let toAllow = recorded.subtracting(concealedSwitches)
         // Recorded before the write: should Ice die between the two, the next launch turns these
         // back on, and every one of them was on a moment ago.
         Self.recorded = recorded.union(toDisallow)
@@ -84,8 +91,32 @@ final class NativeAllowListConcealer27 {
         // System Settings meanwhile is turned off again above, since it is still meant to be
         // hidden; one MenuBarAgent forgot is no longer Ice's to restore.
         let final = TrackedApplications27.allowedStates(in: array)
-        Self.recorded = Self.recorded.intersection(concealed).filter { final[$0] == false }
-        return concealed.filter { states[$0] == nil }
+        Self.recorded = Self.recorded.intersection(concealedSwitches).filter { final[$0] == false }
+        // Answered in the identifiers the caller asked about, which is what it watches launching.
+        return concealed.filter { states[switches[$0] ?? $0] == nil }
+    }
+
+    /// The identifier macOS keeps the menu bar switch under for the application that owns the
+    /// item of the given identifier.
+    ///
+    /// Its own, when there is a switch for it. Otherwise the application its process lives
+    /// inside: Docker Desktop's item comes from a helper within `Docker.app`, and the switch
+    /// belongs to the application.
+    private static func switchIdentifier(for bundleID: String, amongst states: [String: Bool]) -> String {
+        guard states[bundleID] == nil else {
+            return bundleID
+        }
+        guard
+            let application = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first,
+            let path = application.bundleURL?.path,
+            let enclosing = EnclosingApplication27.outermostApplicationPath(of: path),
+            let plist = NSDictionary(contentsOfFile: enclosing + "/Contents/Info.plist"),
+            let enclosingID = plist["CFBundleIdentifier"] as? String,
+            states[enclosingID] != nil
+        else {
+            return bundleID
+        }
+        return enclosingID
     }
 
     /// Turns back on every application Ice turned off, in this run or an earlier one.

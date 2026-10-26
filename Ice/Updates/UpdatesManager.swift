@@ -93,6 +93,14 @@ final class UpdatesManager: NSObject, ObservableObject {
 
 // MARK: UpdatesManager: SPUUpdaterDelegate
 extension UpdatesManager: @preconcurrency SPUUpdaterDelegate {
+    func updaterShouldPromptForPermissionToCheckForUpdates(_ updater: SPUUpdater) -> Bool {
+        // Ice is an LSUIElement app. Sparkle's permission prompt needs the app to
+        // be a regular app so its buttons can receive input reliably.
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
+        return true
+    }
+
     func updater(_ updater: SPUUpdater, willScheduleUpdateCheckAfterDelay delay: TimeInterval) {
         guard let appState else {
             return

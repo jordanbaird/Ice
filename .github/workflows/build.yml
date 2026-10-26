@@ -1,0 +1,48 @@
+name: Build macOS App
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/build.yml"
+      - "Ice/**"
+      - "Ice.xcodeproj/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build app
+        run: |
+          xcodebuild \
+            -project Ice.xcodeproj \
+            -scheme Ice \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/IceDerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package app
+        run: |
+          app_path="$RUNNER_TEMP/IceDerivedData/Build/Products/Release/Ice.app"
+          test -d "$app_path"
+          ditto -c -k --sequesterRsrc --keepParent "$app_path" "$RUNNER_TEMP/Ice-macOS.zip"
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ice-macOS-${{ github.sha }}
+          path: ${{ runner.temp }}/Ice-macOS.zip
+          if-no-files-found: error
+          retention-days: 30

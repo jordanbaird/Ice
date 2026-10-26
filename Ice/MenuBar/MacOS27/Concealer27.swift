@@ -74,6 +74,16 @@ final class Concealer27: ObservableObject {
     /// camera and microphone indicator stands, so the indicator gets out of the way while it
     /// lasts: it was drawn over the item, and the menu that opened from it came up underneath.
     @Published private(set) var isShowingTemporarily = false
+
+    /// Whether Ice's dividers can leave the bar.
+    ///
+    /// Through the native switch nothing restricts the bar, so MenuBarAgent keeps Ice's own items
+    /// on it, and each divider — two points wide and drawing nothing — still gets the spacing
+    /// MenuBarAgent puts between any two items: about 50 points of empty bar between visible icons
+    /// on the built-in display (measured 2026-10-26). Under assessment mode MenuBarAgent dropped
+    /// them on its own. Sections come from the saved layout on 27, so once that layout has been
+    /// read off the bar the dividers have nothing left to mark.
+    @Published private(set) var dividersMayStandAside = false
     private var cancellables = Set<AnyCancellable>()
     private var runningApplicationsObservation: NSKeyValueObservation?
 
@@ -234,6 +244,10 @@ final class Concealer27: ObservableObject {
             return
         }
         self.backend = backend
+        let mayStandAside = backend == .native && Defaults.bool(forKey: .macOS27LayoutSeeded)
+        if dividersMayStandAside != mayStandAside {
+            dividersMayStandAside = mayStandAside
+        }
         if let suspendedUntil, ContinuousClock.now < suspendedUntil {
             return
         }
@@ -749,6 +763,8 @@ final class Concealer27: ObservableObject {
             alwaysHiddenControlItem: alwaysHiddenControlItem?.bounds
         ) else {
             logger.notice("The bar's order says nothing about sections, so the macOS 27 layout stays empty")
+            // Seeded all the same, so the dividers are free to leave the bar.
+            update()
             return
         }
         Defaults.set(seeded.mapValues(\.rawValue), forKey: .macOS27Layout)

@@ -65,15 +65,13 @@ final class MenuBarSection {
     }
 
     /// The best screen to show the Ice Bar on.
+    /// Uses the screen under the mouse so Ice Bar appears on the correct
+    /// display when using multiple monitors (e.g. external monitor).
     private weak var screenForIceBar: NSScreen? {
-        guard let appState else {
+        guard appState != nil else {
             return nil
         }
-        if appState.activeSpace.isFullscreen {
-            return NSScreen.screenWithMouse ?? NSScreen.main
-        } else {
-            return NSScreen.main
-        }
+        return NSScreen.screenWithMouse ?? NSScreen.main
     }
 
     /// A Boolean value that indicates whether the section is hidden.
@@ -186,6 +184,7 @@ final class MenuBarSection {
                 }
             }
 
+            updateConcealment27()
             return // We're done.
         }
 
@@ -205,6 +204,7 @@ final class MenuBarSection {
         }
 
         startRehideChecks()
+        updateConcealment27()
     }
 
     /// Hides the section.
@@ -226,11 +226,19 @@ final class MenuBarSection {
         }
 
         stopRehideChecks()
+        updateConcealment27()
     }
 
     /// Toggles the visibility of the section.
     func toggle() {
         if isHidden { show() } else { hide() }
+    }
+
+    /// Lets the macOS 27 concealer follow the new state of the sections.
+    private func updateConcealment27() {
+        if #available(macOS 27.0, *) {
+            appState?.concealer27.update()
+        }
     }
 
     /// Starts running checks to determine when to rehide the section.
@@ -249,7 +257,7 @@ final class MenuBarSection {
         rehideMonitor = EventMonitor.universal(for: .mouseMoved) { [weak self] event in
             guard
                 let self,
-                let screen = NSScreen.main
+                let screen = NSScreen.screenWithMouse ?? NSScreen.main
             else {
                 return event
             }
@@ -261,7 +269,7 @@ final class MenuBarSection {
                     ) { [weak self] _ in
                         guard
                             let self,
-                            let screen = NSScreen.main
+                            let screen = NSScreen.screenWithMouse ?? NSScreen.main
                         else {
                             return
                         }

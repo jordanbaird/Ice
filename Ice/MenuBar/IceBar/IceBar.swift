@@ -159,6 +159,7 @@ final class IceBarPanel: NSPanel {
     /// Shows the panel on the given screen, displaying the given
     /// menu bar section.
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {
+        let requestedAt = ContinuousClock.now
         guard let appState else {
             return
         }
@@ -168,15 +169,28 @@ final class IceBarPanel: NSPanel {
         appState.navigationState.isIceBarPresented = true
         currentSection = section
 
-        let cacheTask = Task(timeout: .seconds(1)) {
-            await appState.itemManager.cacheItemsIfNeeded()
-            await appState.imageCache.updateCache()
-        }
+        if #available(macOS 27.0, *), !Defaults.bool(forKey: .macOS27IceBarWaitsForRefresh) {
+            // Waiting for this refresh cannot help the bar that is about to open on macOS 27:
+            // the hidden items are concealed, so they can be neither read nor photographed,
+            // and the bar shows the images stored while they were drawn. The wait only held
+            // the bar back by a scan of every process and a capture of the display. The
+            // refresh runs alongside instead, for the visible items and any still missing.
+            // The `MacOS27IceBarWaitsForRefresh` default brings the wait back, for measuring.
+            Task {
+                await appState.itemManager.cacheItemsIfNeeded()
+                await appState.imageCache.updateCache()
+            }
+        } else {
+            let cacheTask = Task(timeout: .seconds(1)) {
+                await appState.itemManager.cacheItemsIfNeeded()
+                await appState.imageCache.updateCache()
+            }
 
-        do {
-            try await cacheTask.value
-        } catch {
-            Logger.default.error("Cache update failed when showing IceBarPanel - \(error)")
+            do {
+                try await cacheTask.value
+            } catch {
+                Logger.default.error("Cache update failed when showing IceBarPanel - \(error)")
+            }
         }
 
         contentView = IceBarHostingView(
@@ -195,8 +209,16 @@ final class IceBarPanel: NSPanel {
         // the main queue, so we need to update manually once before showing
         // the panel to prevent the color from flashing.
         colorManager.updateAllProperties(with: frame, screen: screen)
+        if #available(macOS 27.0, *) {
+            colorManager.setColor27()
+        }
 
         orderFrontRegardless()
+        if #available(macOS 27.0, *) {
+            let elapsed = (ContinuousClock.now - requestedAt).components
+            let milliseconds = Double(elapsed.seconds) * 1000 + Double(elapsed.attoseconds) / 1e15
+            Logger.default.notice("Ice Bar shown \(milliseconds, privacy: .public) ms after it was requested")
+        }
     }
 
     /// Hides the panel.
@@ -410,9 +432,14 @@ private struct IceBarItemView: View {
             guard let itemManager, let menuBarManager else {
                 return
             }
+            let iceBarDisplayID = menuBarManager.iceBarPanel.screen?.displayID
             menuBarManager.section(withName: section)?.hide()
             Task {
                 try await Task.sleep(for: .milliseconds(25))
+                if #available(macOS 27.0, *), let appState = itemManager.appState {
+                    await ItemClicker27.click(item: item, mouseButton: .left, iceBarDisplayID: iceBarDisplayID, appState: appState)
+                    return
+                }
                 if Bridging.isWindowOnScreen(item.windowID) {
                     try await itemManager.click(item: item, with: .left)
                 } else {
@@ -427,9 +454,14 @@ private struct IceBarItemView: View {
             guard let itemManager, let menuBarManager else {
                 return
             }
+            let iceBarDisplayID = menuBarManager.iceBarPanel.screen?.displayID
             menuBarManager.section(withName: section)?.hide()
             Task {
                 try await Task.sleep(for: .milliseconds(25))
+                if #available(macOS 27.0, *), let appState = itemManager.appState {
+                    await ItemClicker27.click(item: item, mouseButton: .right, iceBarDisplayID: iceBarDisplayID, appState: appState)
+                    return
+                }
                 if Bridging.isWindowOnScreen(item.windowID) {
                     try await itemManager.click(item: item, with: .right)
                 } else {

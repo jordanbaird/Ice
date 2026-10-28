@@ -269,10 +269,17 @@ extension MenuBarItem {
     ///   - option: Options that filter the returned list. Pass an empty option set
     ///     to return all available menu bar items.
     static func getMenuBarItems(on display: CGDirectDisplayID? = nil, option: ListOption) async -> [MenuBarItem] {
-        if #available(macOS 26.0, *) {
-            await getMenuBarItemsExperimental(on: display, option: option)
+        if #available(macOS 27.0, *) {
+            // Accessibility only describes the display with the active menu bar.
+            if let display, display != Bridging.getActiveMenuBarDisplayID() {
+                return []
+            }
+            let items = await MenuBarItemProvider27.items()
+            return option.contains(.onScreen) ? items.filter(\.isOnScreen) : items
+        } else if #available(macOS 26.0, *) {
+            return await getMenuBarItemsExperimental(on: display, option: option)
         } else {
-            getMenuBarItemsLegacyMethod(on: display, option: option)
+            return getMenuBarItemsLegacyMethod(on: display, option: option)
         }
     }
 }

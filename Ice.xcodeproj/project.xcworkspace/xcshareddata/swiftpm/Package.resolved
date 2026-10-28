@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/buh/CompactSlider",
       "state" : {
-        "revision" : "e5219ff353613b6493bfe5a3333c3bfa2d1e4d57",
-        "version" : "1.2.1"
+        "revision" : "52a01bd09156152881c53ba235c862e3bf5690b1",
+        "version" : "2.1.0"
       }
     },
     {

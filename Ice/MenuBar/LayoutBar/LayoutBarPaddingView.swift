@@ -73,6 +73,15 @@ final class LayoutBarPaddingView: NSView {
             return false
         }
 
+        if #available(macOS 27.0, *), let appState = container.appState {
+            // On macOS 27 the saved layout decides sections and macOS orders the items within
+            // one, so a drop only moves the item's application to this section.
+            if !draggingSource.item.isControlItem, let bundleID = draggingSource.item.sourceApplication?.bundleIdentifier {
+                appState.concealer27.setSection(MacOS27Section(container.section), for: bundleID)
+            }
+            return true
+        }
+
         if let index = arrangedViews.firstIndex(of: draggingSource) {
             if arrangedViews.count == 1 {
                 Task {

@@ -77,6 +77,24 @@ final class MenuBarItemManager: ObservableObject {
             }
             .store(in: &c)
 
+        if #available(macOS 27.0, *) {
+            // Accessibility reports frames only for the active menu bar, so read the
+            // items again soon after it moves to another display.
+            NSWorkspace.shared.notificationCenter
+                .publisher(for: NSWorkspace.didActivateApplicationNotification)
+                // The menu bar takes about a second to move (measured).
+                .debounce(for: 1.5, scheduler: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    guard let self else {
+                        return
+                    }
+                    Task {
+                        await self.cacheItemsIfNeeded()
+                    }
+                }
+                .store(in: &c)
+        }
+
         cancellables = c
     }
 
@@ -356,6 +374,28 @@ extension MenuBarItemManager {
             let itemWindowIDs = currentItemWindowIDs ?? items.reversed().map { $0.windowID }
             await cacheActor.updateCachedItemWindowIDs(itemWindowIDs)
 
+            if #available(macOS 27.0, *), let appState {
+                // On macOS 27 the saved layout, not the order on the bar, places items in sections,
+                // so Ice's dividers are not needed. Accessibility reports them only on the display
+                // Ice launched on, and requiring them emptied the cache on the other display.
+                // An upgrade from an earlier macOS arrives with its sections in the bar's order and
+                // nowhere else, so the first readable bar is where they come from.
+                appState.concealer27.seedLayoutIfNeeded(items: items)
+                let cache = appState.concealer27.cacheFromSavedLayout(items: items, displayID: displayID)
+                if itemCache != cache {
+                    itemCache = cache
+                    logger.info(
+                        """
+                        macOS 27 cache: \
+                        visible=\(cache[.visible].map(\.tag.namespace.description).joined(separator: ","), privacy: .public) \
+                        hidden=\(cache[.hidden].map(\.tag.namespace.description).joined(separator: ","), privacy: .public) \
+                        alwaysHidden=\(cache[.alwaysHidden].map(\.tag.namespace.description).joined(separator: ","), privacy: .public)
+                        """
+                    )
+                }
+                return
+            }
+
             guard let controlItems = ControlItemPair(items: &items) else {
                 // ???: Is clearing the cache the best thing to do here?
                 logger.warning("Missing control item for hidden section, clearing menu bar item cache")
@@ -363,7 +403,11 @@ extension MenuBarItemManager {
                 return
             }
 
-            await enforceControlItemOrder(controlItems: controlItems)
+            // Moving items is not supported on macOS 27 yet (plan 2), so the dividers
+            // stay where macOS placed them.
+            if #unavailable(macOS 27.0) {
+                await enforceControlItemOrder(controlItems: controlItems)
+            }
             await uncheckedCacheItems(items: items, controlItems: controlItems, displayID: displayID)
         }
     }
@@ -375,6 +419,16 @@ extension MenuBarItemManager {
     /// the hidden and always-hidden sections are correctly ordered,
     /// arranging them into valid positions if needed.
     func cacheItemsIfNeeded() async {
+        if #available(macOS 27.0, *) {
+            // There is no item window list on macOS 27. A reorder keeps the synthetic
+            // identifiers, so the signature also carries each item's position.
+            let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
+            let signature = items.map { $0.windowID &+ UInt32(truncatingIfNeeded: Int($0.bounds.minX)) }
+            if await cacheActor.cachedItemWindowIDs != signature {
+                await cacheItemsRegardless(signature)
+            }
+            return
+        }
         let itemWindowIDs = Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace])
         if await cacheActor.cachedItemWindowIDs != itemWindowIDs {
             await cacheItemsRegardless(itemWindowIDs)
@@ -914,6 +968,17 @@ extension MenuBarItemManager {
         }
     }
 
+    /// The tolerance used when checking whether an item has reached its
+    /// destination.
+    ///
+    /// Window bounds come from the window server and carry sub-point values on a
+    /// scaled display, so two items that are visually flush can report edges that
+    /// differ by a fraction. Comparing them exactly made a move that had in fact
+    /// succeeded look like a failure, sending it around the retry loop again — up
+    /// to `maxAttempts` times, each with its own wait. A tolerance well under the
+    /// width of the narrowest menu bar item cannot accept a wrong position.
+    private nonisolated static let positionTolerance: CGFloat = 2
+
     /// Returns a Boolean value that indicates whether the given menu bar
     /// item has the correct position, relative to the given destination.
     private nonisolated func itemHasCorrectPosition(
@@ -922,9 +987,10 @@ extension MenuBarItemManager {
     ) async throws -> Bool {
         let itemBounds = try await getCurrentBounds(for: item)
         let targetBounds = try await getCurrentBounds(for: destination.targetItem)
+        let tolerance = Self.positionTolerance
         return switch destination {
-        case .leftOfItem: itemBounds.maxX == targetBounds.minX
-        case .rightOfItem: itemBounds.minX == targetBounds.maxX
+        case .leftOfItem: abs(itemBounds.maxX - targetBounds.minX) <= tolerance
+        case .rightOfItem: abs(itemBounds.minX - targetBounds.maxX) <= tolerance
         }
     }
 

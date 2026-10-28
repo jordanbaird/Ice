@@ -25,7 +25,11 @@ struct MenuBarItemTag: Hashable, CustomStringConvertible {
     /// A Boolean value that indicates whether the item identified
     /// by this tag can be hidden.
     var canBeHidden: Bool {
-        !MenuBarItemTag.nonHideableItems.contains(self) &&
+        if #available(macOS 27.0, *), namespace == .menuBarAgent {
+            // Ice's assessment-mode assertion always keeps the numbered system items.
+            return false
+        }
+        return !MenuBarItemTag.nonHideableItems.contains(self) &&
         !(namespace.isUUID && title == "AudioVideoModule")
     }
 
@@ -128,10 +132,16 @@ extension MenuBarItemTag {
     static let audioVideoModule = MenuBarItemTag(namespace: .controlCenter, title: "AudioVideoModule")
 
     /// The tag for the system "Clock" item.
-    static let clock = MenuBarItemTag(namespace: .controlCenter, title: "Clock")
+    static let clock = if #available(macOS 27.0, *) {
+        MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.clock")
+    } else {
+        MenuBarItemTag(namespace: .controlCenter, title: "Clock")
+    }
 
     /// The tag for the system "Control Center" item.
-    static let controlCenter = if #available(macOS 26.0, *) {
+    static let controlCenter = if #available(macOS 27.0, *) {
+        MenuBarItemTag(namespace: .menuBarAgent, title: "com.apple.menuextra.controlcenter")
+    } else if #available(macOS 26.0, *) {
         MenuBarItemTag(namespace: .controlCenter, title: "BentoBox-0")
     } else {
         MenuBarItemTag(namespace: .controlCenter, title: "BentoBox")
@@ -227,6 +237,9 @@ extension MenuBarItemTag.Namespace {
 
     /// The namespace for the "Control Center" process.
     static let controlCenter = string("com.apple.controlcenter")
+
+    /// The namespace for the "MenuBarAgent" process, which hosts the system items on macOS 27.
+    static let menuBarAgent = string("com.apple.MenuBarAgent")
 
     /// The namespace for the "PasswordsMenuBarExtra" process.
     static let passwords = string("com.apple.Passwords.MenuBarExtra")

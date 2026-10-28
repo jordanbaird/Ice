@@ -211,10 +211,19 @@ extension Bridging {
 // MARK: - CGSWindow
 
 extension Bridging {
+    /// Supplies bounds for identifiers that are not WindowServer windows.
+    ///
+    /// On macOS 27, menu bar items read through Accessibility carry synthetic
+    /// identifiers with the top bit set.
+    nonisolated(unsafe) static var syntheticWindowBoundsProvider: ((CGWindowID) -> CGRect?)?
+
     /// Returns the bounds for the given window.
     ///
     /// - Parameter windowID: An identifier for a window.
     static func getWindowBounds(for windowID: CGWindowID) -> CGRect? {
+        if windowID & 0x8000_0000 != 0, let syntheticWindowBoundsProvider {
+            return syntheticWindowBoundsProvider(windowID)
+        }
         var bounds = CGRect.zero
         let result = CGSGetScreenRectForWindow(getConnectionForThread(), windowID, &bounds)
         guard result == .success else {

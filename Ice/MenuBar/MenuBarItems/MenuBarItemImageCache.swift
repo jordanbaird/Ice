@@ -32,12 +32,48 @@ final class MenuBarItemImageCache: ObservableObject {
     }
 
     /// The result of an image capture operation.
-    private struct CaptureResult {
+    ///
+    /// Marked `@unchecked Sendable` so it can be returned from the capture queue
+    /// below. The images it holds are immutable once captured.
+    private struct CaptureResult: @unchecked Sendable {
         /// The successfully captured images.
         var images = [MenuBarItemTag: CapturedImage]()
 
         /// The menu bar items excluded from the capture.
         var excluded = [MenuBarItem]()
+    }
+
+    /// The queue the blocking window-server capture calls run on.
+    ///
+    /// Capturing a window is a synchronous call that can block indefinitely: on
+    /// macOS 26 the per-window path is proxied through ScreenCaptureKit, and a
+    /// capture of an item that is off the edge of the menu bar never returns.
+    ///
+    /// Running those calls on the Swift concurrency pool is what froze the app.
+    /// Every cooperative thread ended up parked inside one — a sample showed all
+    /// ten of them in `SLSWindowListCreateImageFromArrayProxying` — so no further
+    /// task could be scheduled, while the main thread sat idle in its run loop.
+    /// The app looked hung but was merely unable to run any work.
+    ///
+    /// Wrapping the call in `Task.withTimeout` does not help, and did not: the
+    /// task is abandoned, but the thread it left behind stays blocked forever.
+    /// The only remedy is to keep these calls off the cooperative pool entirely.
+    /// The queue is serial, so a stuck capture costs one thread rather than one
+    /// per item.
+    private static let captureQueue = DispatchQueue(
+        label: "com.jordanbaird.Ice.ImageCapture",
+        qos: .userInitiated
+    )
+
+    /// Runs a blocking capture off the Swift concurrency pool.
+    private nonisolated func onCaptureQueue(
+        _ work: @escaping @Sendable () -> CaptureResult
+    ) async -> CaptureResult {
+        await withCheckedContinuation { continuation in
+            Self.captureQueue.async {
+                continuation.resume(returning: work())
+            }
+        }
     }
 
     /// The cached item images, keyed by their corresponding tags.
@@ -132,10 +168,30 @@ final class MenuBarItemImageCache: ObservableObject {
 
         guard
             let compositeImage = ScreenCapture.captureWindows(with: windowIDs, option: captureOption),
-            CGFloat(compositeImage.width) == boundsUnion.width * scale, // Safety check.
-            !compositeImage.isTransparent()
+            !compositeImage.isTransparent(),
+            boundsUnion.width > 0
         else {
             result.excluded = items // Exclude all items.
+            return result
+        }
+
+        // Derive the scale from the capture rather than trusting the one passed in.
+        //
+        // The caller's scale comes from whichever display the item cache last
+        // recorded, and that briefly disagrees with reality when the active menu
+        // bar moves between displays of different densities: the pixels are the
+        // new display's, the recorded scale is still the old one's.
+        //
+        // This used to be an exact equality check — `compositeImage.width ==
+        // boundsUnion.width * scale` — which failed on that disagreement and
+        // excluded *every* item, sending them all into the individual capture path
+        // that blocks. So the same mismatch produced both symptoms: items drawn at
+        // twice or half their size, and the freeze. Deriving the scale removes the
+        // disagreement instead of detecting it.
+        let actualScale = CGFloat(compositeImage.width) / boundsUnion.width
+        guard actualScale >= 0.5, actualScale <= 4 else {
+            logger.warning("Implausible capture scale \(actualScale, privacy: .public); excluding items")
+            result.excluded = items
             return result
         }
 
@@ -146,10 +202,10 @@ final class MenuBarItemImageCache: ObservableObject {
             }
 
             let cropRect = CGRect(
-                x: (bounds.origin.x - boundsUnion.origin.x) * scale,
-                y: (bounds.origin.y - boundsUnion.origin.y) * scale,
-                width: bounds.width * scale,
-                height: bounds.height * scale
+                x: (bounds.origin.x - boundsUnion.origin.x) * actualScale,
+                y: (bounds.origin.y - boundsUnion.origin.y) * actualScale,
+                width: bounds.width * actualScale,
+                height: bounds.height * actualScale
             )
 
             guard
@@ -160,7 +216,7 @@ final class MenuBarItemImageCache: ObservableObject {
                 continue
             }
 
-            result.images[item.tag] = CapturedImage(cgImage: image, scale: scale)
+            result.images[item.tag] = CapturedImage(cgImage: image, scale: actualScale)
         }
 
         return result
@@ -172,14 +228,23 @@ final class MenuBarItemImageCache: ObservableObject {
         var result = CaptureResult()
 
         for item in items {
+            // Live bounds, not `item.bounds`: the cached ones can name the display
+            // the item was on a moment ago.
             guard
+                let bounds = Bridging.getWindowBounds(for: item.windowID),
+                bounds.width > 0,
                 let image = ScreenCapture.captureWindow(with: item.windowID, option: captureOption),
                 !image.isTransparent()
             else {
                 result.excluded.append(item)
                 continue
             }
-            result.images[item.tag] = CapturedImage(cgImage: image, scale: scale)
+            // Derived, for the same reason as in the composite path above.
+            let actualScale = CGFloat(image.width) / bounds.width
+            result.images[item.tag] = CapturedImage(
+                cgImage: image,
+                scale: (actualScale >= 0.5 && actualScale <= 4) ? actualScale : scale
+            )
         }
 
         return result
@@ -191,10 +256,10 @@ final class MenuBarItemImageCache: ObservableObject {
         // doesn't account for overlapping items.
         if await appState.itemManager.lastMoveOperationOccurred(within: .seconds(2)) {
             logger.debug("Capturing individually due to recent item movement")
-            return individualCapture(items, scale: scale)
+            return await onCaptureQueue { [self] in individualCapture(items, scale: scale) }
         }
 
-        let compositeResult = compositeCapture(items, scale: scale)
+        let compositeResult = await onCaptureQueue { [self] in compositeCapture(items, scale: scale) }
 
         if compositeResult.excluded.isEmpty {
             return compositeResult // All items captured successfully.
@@ -207,7 +272,8 @@ final class MenuBarItemImageCache: ObservableObject {
             """
         )
 
-        var individualResult = individualCapture(compositeResult.excluded, scale: scale)
+        let excluded = compositeResult.excluded
+        var individualResult = await onCaptureQueue { [self] in individualCapture(excluded, scale: scale) }
 
         // Merge the successfully captured images from each result. Keep excluded
         // items as part of the result, so they can be logged elsewhere.
@@ -236,6 +302,27 @@ final class MenuBarItemImageCache: ObservableObject {
             let appState,
             await appState.hasPermission(.screenRecording)
         else {
+            return
+        }
+
+        if #available(macOS 27.0, *) {
+            // There are no item windows to capture on macOS 27. See `ItemImageStore27`.
+            var items = [MenuBarItem]()
+            for section in sections {
+                items += await appState.itemManager.itemCache.managedItems(for: section)
+            }
+            let store = await appState.itemImageStore27
+            await store.captureActiveMenuBar(appState: appState)
+            await store.photographMissing(items: items, appState: appState)
+            var newImages = [MenuBarItemTag: CapturedImage]()
+            for item in items {
+                if let image = await store.image(for: item) {
+                    newImages[item.tag] = image
+                }
+            }
+            await MainActor.run { [newImages] in
+                images.merge(newImages) { (_, new) in new }
+            }
             return
         }
 

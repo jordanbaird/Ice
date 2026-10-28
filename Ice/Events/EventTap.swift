@@ -50,6 +50,9 @@ final class EventTap {
         let unretained: EventTap = Unmanaged.fromOpaque(refcon).takeUnretainedValue()
         return withExtendedLifetime(unretained) { tap in
             if type == .tapDisabledByUserInput || type == .tapDisabledByTimeout {
+                // While a tap is disabled events skip it, so a click it was holding can lose its
+                // other half. Recorded at notice level so it outlives the session.
+                EventTap.logger.notice(#"Event tap "\#(tap.label, privacy: .public)" was disabled by \#(type == .tapDisabledByTimeout ? "timeout" : "user input", privacy: .public); re-enabling"#)
                 tap.enable()
                 return nil
             }
@@ -61,6 +64,30 @@ final class EventTap {
             }
         }
     }
+
+    /// The run loop of the thread that taps created with `onOwnThread` run on.
+    ///
+    /// The thread is started on first use and runs for the life of the app.
+    private static let ownThreadRunLoop: CFRunLoop = {
+        final class Box: @unchecked Sendable {
+            var runLoop: CFRunLoop?
+        }
+        let box = Box()
+        let ready = DispatchSemaphore(value: 0)
+        let thread = Thread {
+            box.runLoop = CFRunLoopGetCurrent()
+            // A run loop with no input source returns at once; the port keeps it running
+            // while no tap is enabled.
+            RunLoop.current.add(NSMachPort(), forMode: .default)
+            ready.signal()
+            RunLoop.current.run()
+        }
+        thread.name = "com.jordanbaird.Ice.EventTap"
+        thread.qualityOfService = .userInteractive
+        thread.start()
+        ready.wait()
+        return box.runLoop ?? CFRunLoopGetMain()
+    }()
 
     private var machPort: CFMachPort?
     private var source: CFRunLoopSource?
@@ -107,6 +134,11 @@ final class EventTap {
     ///     at `location`.
     ///   - option: An option that specifies whether the tap is an
     ///     active filter or a passive listener.
+    ///   - onOwnThread: Whether the callback runs on a thread of its own
+    ///     rather than the main thread. An active filter holds every event
+    ///     it filters until the callback returns, so one on the main thread
+    ///     delays those events for as long as the main thread is busy. The
+    ///     callback must then be safe to call off the main thread.
     ///   - callback: A closure the tap calls to handle received events.
     init(
         label: String = #function,
@@ -114,11 +146,12 @@ final class EventTap {
         location: Location,
         placement: CGEventTapPlacement,
         option: CGEventTapOptions,
+        onOwnThread: Bool = false,
         callback: @escaping (_ tap: EventTap, _ event: CGEvent) -> CGEvent?
     ) {
         self.label = label
         self.callback = callback
-        self.runLoop = CFRunLoopGetMain()
+        self.runLoop = onOwnThread ? EventTap.ownThreadRunLoop : CFRunLoopGetMain()
 
         guard
             let machPort = EventTap.createMachPort(

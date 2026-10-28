@@ -553,10 +553,7 @@ extension NSScreen {
     func getApplicationMenuFrame() -> CGRect? {
         let displayBounds = CGDisplayBounds(displayID)
 
-        guard
-            let menuBar = AXHelpers.element(at: displayBounds.origin),
-            AXHelpers.role(for: menuBar) == .menuBar
-        else {
+        guard let menuBar = AXHelpers.applicationMenuBar(at: displayBounds.origin) else {
             return nil
         }
 
@@ -570,18 +567,29 @@ extension NSScreen {
             return nil
         }
 
-        // FIXME: The Accessibility API always returns the menu bar for the main screen.
-        // This can cause issues if one of the screens has a notch, since long app menus
-        // can display items the trailing side of the notch. This causes the frame to be
-        // invalid for all other screens. For now, we're working around this by checking
-        // the app menu's frame on inactive screens, and returning `nil` if it overlaps
-        // with the notch.
+        // The Accessibility API answers with the menu bar of whichever display has the menus, so
+        // the frame that comes back for another display is in the wrong coordinates. On macOS 27
+        // it is read from the application that owns the menu bar and corrected for the display
+        // being asked about — notch and all — by `ApplicationMenuArea27`, so the frame is kept.
+        if #available(macOS 27.0, *) {
+            return applicationMenuFrame
+        }
+
+        // Before that, a long menu bar carrying on past a notch made the frame useless for every
+        // other display, and there was nothing to correct it with, so it was refused.
+        //
+        // The measure is how much room there is beside the notch, which is that area's width. It
+        // used to be compared against the area's `maxX`, which is the same number only on a
+        // display whose left edge is zero: with the notched display to the left of the main one,
+        // at negative coordinates, `maxX` was -848.5 and every menu bar counted as too long. No
+        // display but the main one had an application menu at all then, so hovering the menus of
+        // the other one revealed the hidden items (measured 2026-10-08).
         if
             let mainScreen = NSScreen.main,
             self != mainScreen,
             let notchedScreen = NSScreen.screens.first(where: { $0.hasNotch }),
             let leftArea = notchedScreen.auxiliaryTopLeftArea,
-            applicationMenuFrame.width >= leftArea.maxX
+            applicationMenuFrame.width >= leftArea.width
         {
             return nil
         }

@@ -40,6 +40,9 @@ struct MenuBarLayoutSettingsPane: View {
     /// Generation for the missing-icon retry: a new scan bumps it to cancel
     /// the previous retry, so only the latest scan keeps retrying.
     @State private var iconRetryGeneration = 0
+    /// Why the last move didn't happen, shown under the header so a failed
+    /// drag no longer just snaps back without a word.
+    @State private var moveMessage: String?
 
     private var totalCount: Int {
         sections.values.reduce(0) { $0 + $1.count }
@@ -85,6 +88,13 @@ struct MenuBarLayoutSettingsPane: View {
                 .disabled(isRefreshing)
             }
 
+            if let moveMessage {
+                Label(moveMessage, systemImage: "exclamationmark.triangle")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             if sections.isEmpty {
                 if !hasAccessibilityPermission {
                     accessibilityPrompt
@@ -123,6 +133,13 @@ struct MenuBarLayoutSettingsPane: View {
             // opening the tab shows icons right away, no Refresh tap needed.
             applySnapshotFromCache()
             await refresh()
+            if #available(macOS 27, *) {
+                // Opening this pane reveals every section (MenuBarManager's
+                // layout editing); scan again once the icons have settled so
+                // hidden ones show real positions.
+                try? await Task.sleep(for: .milliseconds(800))
+                await refresh()
+            }
         }
         .onReceive(appState.itemManager.$itemCache) { _ in
             // When the cache changes (background timer, newly opened app,
@@ -314,15 +331,16 @@ struct MenuBarLayoutSettingsPane: View {
             return
         }
         isMoving = true
+        moveMessage = nil
         pendingMoves.insert(itemID)
         defer {
             pendingMoves.remove(itemID)
             isMoving = false
         }
         for _ in 0..<3 {
-            // Force bypasses the windowIDs equality skip so frames are re-read.
-            await appState.itemManager.cacheItemsIfNeeded(force: true)
-            applySnapshotFromCache()
+            // Live positions, not the last scan: on macOS 27 the item cache
+            // is empty and the stored frames go stale as soon as anything moves.
+            await rescanLive()
             let snapshotBeforeDrag = sections
             guard let (item, fromKind) = removeItem(id: itemID) else {
                 await refresh()
@@ -342,7 +360,15 @@ struct MenuBarLayoutSettingsPane: View {
                 let sourceFrame = item.quartzFrame
             else {
                 // No drop target known — re-scan for the real positions.
+                sections = snapshotBeforeDrag
+                moveMessage = "Couldn't find Ice's section dividers in the menu bar. Make sure they're enabled, then try again."
                 await refresh()
+                return
+            }
+            guard await isReachable(item) else {
+                sections = snapshotBeforeDrag
+                moveMessage = unreachableMessage(for: item)
+                await refreshAfterDrop()
                 return
             }
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -353,7 +379,7 @@ struct MenuBarLayoutSettingsPane: View {
                 to: destination
             )
             sections = snapshotBeforeDrag
-            await rescanAfterDrag()
+            await rescanLive()
             if sections[kind]?.contains(where: { $0.id == itemID }) == true {
                 // Landed — but the frame right after a drag can still be
                 // settling, so always do one settled re-scan instead of
@@ -368,6 +394,7 @@ struct MenuBarLayoutSettingsPane: View {
         }
         pendingMoves.remove(itemID)
         isMoving = false
+        moveMessage = "macOS didn't accept the move. Try ⌘-dragging the icon in the menu bar instead."
         await refreshAfterDrop()
     }
 
@@ -406,6 +433,7 @@ struct MenuBarLayoutSettingsPane: View {
             return
         }
         isMoving = true
+        moveMessage = nil
         pendingMoves.insert(itemID)
         defer {
             pendingMoves.remove(itemID)
@@ -413,8 +441,7 @@ struct MenuBarLayoutSettingsPane: View {
             dropTargetID = nil
         }
         for _ in 0..<3 {
-            await appState.itemManager.cacheItemsIfNeeded(force: true)
-            applySnapshotFromCache()
+            await rescanLive()
             guard
                 let (item, fromKind, fromIndex) = findItem(id: itemID),
                 let target = findItem(id: targetID),
@@ -426,6 +453,11 @@ struct MenuBarLayoutSettingsPane: View {
             let toKind = target.kind
             if fromKind == toKind, isImmediatelyBefore(itemID: itemID, targetID: targetID, in: toKind) {
                 // Already in position — no drag needed.
+                return
+            }
+            guard await isReachable(item) else {
+                moveMessage = unreachableMessage(for: item)
+                await refreshAfterDrop()
                 return
             }
             let snapshotBeforeDrag = sections
@@ -455,7 +487,7 @@ struct MenuBarLayoutSettingsPane: View {
                 to: destination
             )
             sections = snapshotBeforeDrag
-            await rescanAfterDrag()
+            await rescanLive()
             if hasLanded(itemID: itemID, targetID: targetID, fromKind: fromKind, toKind: toKind) {
                 // Same as section drops: one settled re-scan after landing,
                 // don't trust the immediate post-drag snapshot.
@@ -470,7 +502,56 @@ struct MenuBarLayoutSettingsPane: View {
         pendingMoves.remove(itemID)
         isMoving = false
         dropTargetID = nil
+        moveMessage = "macOS didn't accept the move. Try ⌘-dragging the icon in the menu bar instead."
         await refreshAfterDrop()
+    }
+
+    /// Whether a drag can start on the item: its frame must be a real spot
+    /// on a menu bar, and that spot must actually show this app's item.
+    ///
+    /// On a crowded notched screen macOS parks icons that don't fit in
+    /// overflow, where Accessibility still reports a frame on top of other
+    /// icons. A hit test tells them apart.
+    private func isReachable(_ item: RowItem) async -> Bool {
+        guard let frame = item.quartzFrame, frame.width > 0, frame.height > 0 else {
+            return false
+        }
+        let center = CGPoint(x: frame.midX, y: frame.midY)
+        guard let screen = NSScreen.screens.first(where: { screen in
+            let bounds = CGDisplayBounds(screen.displayID)
+            return bounds.contains(center) && center.y - bounds.minY < 50
+        }) else {
+            return false
+        }
+        if let rightArea = screen.auxiliaryTopRightArea, center.x < rightArea.minX {
+            // Status items only live right of the notch.
+            return false
+        }
+        guard let pid = item.pid else {
+            return true
+        }
+        // Off the main thread: if the point lands on one of Ice's own items,
+        // the request is answered by this process.
+        let hitPID: pid_t? = await Task.detached(priority: .userInitiated) {
+            let systemWide = AXUIElementCreateSystemWide()
+            AXUIElementSetMessagingTimeout(systemWide, 1)
+            var element: AXUIElement?
+            let result = AXUIElementCopyElementAtPosition(systemWide, Float(center.x), Float(center.y), &element)
+            guard result == .success, let element else {
+                return nil
+            }
+            var hitPID: pid_t = 0
+            AXUIElementGetPid(element, &hitPID)
+            return hitPID
+        }.value
+        // No answer is not proof of absence; let the drag try.
+        return hitPID.map { $0 == pid } ?? true
+    }
+
+    /// Explains why an icon can't be dragged right now.
+    private func unreachableMessage(for item: RowItem) -> String {
+        "“\(item.title)” isn't visible in the menu bar right now (it may be hidden behind the notch), "
+            + "so it can't be dragged. Make room by quitting an app with a menu bar icon, then try again."
     }
 
     /// True when the item already sits immediately before the target in its group.
@@ -563,9 +644,12 @@ struct MenuBarLayoutSettingsPane: View {
     }
 
     /// Command-drag drop point for the destination group (Quartz coordinates,
-    /// top-left origin, same system as `CGEvent`): inside that group's region,
-    /// offset from the divider so it doesn't land in the divider's hitbox. The
-    /// Hidden group sits between two dividers, so drop at the midpoint to be safe.
+    /// top-left origin, same system as `CGEvent`).
+    ///
+    /// Hidden groups drop just left of their divider's edge: that slot is in
+    /// the group whether it is empty or not. Dropping halfway to the next
+    /// divider used to hit the middle of the always-hidden chevron when the
+    /// Hidden group was empty, and 24pt out could hit bare menu bar.
     private func destinationPoint(for kind: MenuBarItemAXDiscovery.SectionKind) -> CGPoint? {
         switch kind {
         case .visible:
@@ -577,15 +661,12 @@ struct MenuBarLayoutSettingsPane: View {
             guard let x = hiddenDividerX else {
                 return nil
             }
-            if let ahX = alwaysHiddenDividerX, ahX < x {
-                return CGPoint(x: (ahX + x) / 2, y: anchorY)
-            }
-            return CGPoint(x: x - 24, y: anchorY)
+            return CGPoint(x: x - 4, y: anchorY)
         case .alwaysHidden:
             guard let x = alwaysHiddenDividerX else {
                 return nil
             }
-            return CGPoint(x: x - 24, y: anchorY)
+            return CGPoint(x: x - 4, y: anchorY)
         }
     }
 
@@ -671,11 +752,13 @@ struct MenuBarLayoutSettingsPane: View {
         }
     }
 
-    /// Rebuild post-drag truth without trusting the optimistic SwiftUI state.
+    /// Rebuild live truth without trusting the optimistic SwiftUI state.
     ///
-    /// macOS 27 clears the CGS item cache because per-item windows are gone,
-    /// so an AX scan is the only real source of fresh frames and membership.
-    private func rescanAfterDrag() async {
+    /// Runs before every drag (to start from where the icon really is) and
+    /// after it (to verify the landing). macOS 27 clears the CGS item cache
+    /// because per-item windows are gone, so an AX scan is the only real
+    /// source of fresh frames and membership.
+    private func rescanLive() async {
         await appState.itemManager.cacheItemsIfNeeded(force: true)
         let (hiddenX, alwaysHiddenX) = resolveDividers()
         hiddenDividerX = hiddenX
@@ -800,7 +883,8 @@ struct MenuBarLayoutSettingsPane: View {
                         systemImage: systemImage,
                         appIcon: appIcon,
                         isSystem: bundleID?.hasPrefix("com.apple.") == true,
-                        quartzFrame: item.frame
+                        quartzFrame: item.frame,
+                        pid: item.ownerPID
                     )
                 )
             }
@@ -832,7 +916,8 @@ struct MenuBarLayoutSettingsPane: View {
                         systemImage: systemImage,
                         appIcon: appIcon,
                         isSystem: item.bundleID?.hasPrefix("com.apple.") == true,
-                        quartzFrame: item.axFrame
+                        quartzFrame: item.axFrame,
+                        pid: item.pid
                     )
                 )
             }
@@ -1010,6 +1095,8 @@ private struct RowItem: Identifiable {
     /// Frame in Quartz coordinates (top-left origin, same system as `CGEvent`),
     /// used as the start point for a Command-drag.
     let quartzFrame: CGRect?
+    /// Process that owns the item, used to confirm it is really on screen.
+    let pid: pid_t?
 }
 
 private struct SectionMeta {

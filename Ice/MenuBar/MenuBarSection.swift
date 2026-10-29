@@ -278,6 +278,9 @@ final class MenuBarSection {
     func hide(persistState: Bool = true) {
         guard
             persistState || iceBarPanel?.isActivatingAXItem != true,
+            // Automatic rehides wait while the Layout pane is editing; an
+            // explicit hide (click, hotkey) still goes through.
+            persistState || appState?.menuBarManager.isLayoutEditing != true,
             let appState,
             !isHidden
         else {

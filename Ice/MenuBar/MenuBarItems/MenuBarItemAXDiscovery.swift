@@ -230,8 +230,18 @@ enum MenuBarItemAXDiscovery {
     ///   the bottom of the screen). Always filter via ``isSettledDividerFrame(_:)`` before
     ///   using `minX` for classification.
     static func dividerFrames() -> (hidden: CGRect?, alwaysHidden: CGRect?) {
+        let found = ownElementFrames()
+        return (found["IceHiddenDivider"], found["IceAlwaysHiddenDivider"])
+    }
+
+    /// Frames (AX coordinates) of Ice's own menu bar elements, keyed by their
+    /// `accessibilityIdentifier` (dividers and spacer extensions).
+    ///
+    /// Reads only our own process; call it off the main thread, since an
+    /// Accessibility request into our own app is answered on the main thread.
+    static func ownElementFrames() -> [String: CGRect] {
         guard isTrusted() else {
-            return (nil, nil)
+            return [:]
         }
         let axApp = AXUIElementCreateApplication(NSRunningApplication.current.processIdentifier)
         AXUIElementSetMessagingTimeout(axApp, 1)
@@ -242,14 +252,14 @@ enum MenuBarItemAXDiscovery {
             let bar,
             CFGetTypeID(bar) == AXUIElementGetTypeID()
         else {
-            return (nil, nil)
+            return [:]
         }
         // swiftlint:disable:next force_cast
         let barElement = bar as! AXUIElement
         var visited = 0
         var found = [String: CGRect]()
         collectDividerFrames(from: barElement, depth: maxWalkDepth, visited: &visited, into: &found)
-        return (found["IceHiddenDivider"], found["IceAlwaysHiddenDivider"])
+        return found
     }
 
     /// Whether an AX frame looks like a real divider in the menubar.
@@ -287,7 +297,7 @@ enum MenuBarItemAXDiscovery {
 
         if
             let identifier = stringAttribute("AXIdentifier" as CFString, of: element),
-            identifier == "IceHiddenDivider" || identifier == "IceAlwaysHiddenDivider",
+            identifier.hasPrefix("Ice"),
             result[identifier] == nil,
             let frame = frame(of: element)
         {

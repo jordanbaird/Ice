@@ -404,14 +404,24 @@ extension EventManager {
         // Notify each overlay panel that a menu bar item is being dragged.
         appState.appearanceManager.setIsDraggingMenuBarItem(true)
 
-        // Don't continue if the setting to show the sections is disabled.
-        guard appState.settingsManager.advancedSettingsManager.showAllSectionsOnUserDrag else {
+        // Don't continue if the setting to show the sections is disabled, or
+        // while the Layout pane is editing: everything is already shown, and
+        // drawing collapsed dividers mid-drag would shift the icons under it.
+        guard
+            appState.settingsManager.advancedSettingsManager.showAllSectionsOnUserDrag,
+            !appState.menuBarManager.isLayoutEditing
+        else {
             return
         }
 
-        // Show all items, including section dividers.
+        // Show all items, including section dividers. A drag reveal is
+        // temporary, so it must not overwrite the saved show/hide choice.
+        // Already-shown sections are left alone so their state revision only
+        // moves on a real change (layout editing relies on it).
         for section in appState.menuBarManager.sections {
-            section.controlItem.state = .showItems
+            if section.controlItem.state != .showItems {
+                section.setState(.showItems, persist: false)
+            }
             guard
                 section.controlItem.isSectionDivider,
                 !section.controlItem.isVisible
@@ -625,8 +635,10 @@ extension EventManager {
     /// `AXMenuBarItem`/`AXButton`/`AXImage` cover third-party extras, excluding
     /// the frontmost app's own menus. An open menu over the bar (`AXMenu` /
     /// `AXMenuItem`) also counts: the user is interacting with it, so the spot
-    /// is not empty space. Anything without AX permission, or any other role
-    /// (bare `AXMenuBar` background, wallpaper, …), reads as empty.
+    /// is not empty space. A bare `AXMenuBar` reads as empty unless it belongs
+    /// to another app's icon on a secondary display (see
+    /// ``isOtherAppsMenuBar(_:at:)``). Anything without AX permission, or any
+    /// other role (wallpaper, …), reads as empty.
     private func isMouseInsideAXMenuBarItem(at point: CGPoint) -> Bool {
         guard
             let element = try? systemWideElement.elementAtPosition(Float(point.x), Float(point.y)),
@@ -644,10 +656,42 @@ extension EventManager {
                 // mid-interaction collapse.
                 return true
             }
+            if pid == ProcessInfo.processInfo.processIdentifier {
+                // On a wide screen part of Ice's hiding spacer stays on
+                // screen as a blank strip; clicks there are empty space.
+                let identifier: String? = try? element.attribute("AXIdentifier")
+                let frame: CGRect? = try? element.attribute("AXFrame")
+                if identifier?.hasPrefix(ControlItem.spacerExtensionIdentifier) == true || (frame?.width ?? 0) > 200 {
+                    return false
+                }
+            }
             return pid != NSWorkspace.shared.frontmostApplication?.processIdentifier
+        case "AXMenuBar":
+            return isOtherAppsMenuBar(element, at: point)
         default:
             return false
         }
+    }
+
+    /// Whether a bare `AXMenuBar` hit is really another app's status icon.
+    ///
+    /// On a display other than the primary one, a third-party icon reports
+    /// its app's whole menu bar instead of an item: apps only know where their
+    /// items sit on the primary display. Empty space there reports the menu
+    /// bar of the app whose menus that display shows, so a menu bar from any
+    /// other app is an icon. Ice's own is its blank spacer: empty space.
+    private func isOtherAppsMenuBar(_ element: UIElement, at point: CGPoint) -> Bool {
+        guard
+            let appState,
+            let pid: pid_t = try? element.pid(),
+            pid != ProcessInfo.processInfo.processIdentifier,
+            let screen = NSScreen.screens.first(where: { CGDisplayBounds($0.displayID).contains(point) }),
+            let owner = appState.menuBarManager.menuBarElement(for: screen.displayID),
+            let ownerPID: pid_t = try? owner.pid()
+        else {
+            return false
+        }
+        return pid != ownerPID
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within

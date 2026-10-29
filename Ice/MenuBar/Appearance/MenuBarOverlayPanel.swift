@@ -1553,6 +1553,55 @@ final class MenuBarOverlayPanelContentView: NSView {
         return false
     }
 
+    /// Whether a bare `AXMenuBar` hit is really another app's status item.
+    ///
+    /// On a display whose menu bar isn't active, a third-party item reports
+    /// its app's whole menu bar instead of an item: apps only know where their
+    /// items sit on the active display. Read as empty bar, those items fell
+    /// outside the pill there. Empty bar reports the menu bar of the app whose
+    /// menus that display shows, so any other app's menu bar is one of its
+    /// items. Ice's own is its blank spacer.
+    private static func isOtherAppsMenuBar(pid: pid_t?, appMenuPid: pid_t?) -> Bool {
+        guard let pid, let appMenuPid else {
+            return false
+        }
+        return pid != appMenuPid && pid != ProcessInfo.processInfo.processIdentifier
+    }
+
+    /// Measures another app's item on an inactive display, whose element
+    /// carries no usable frame, by probing outwards while the same app
+    /// answers.
+    private static func probedItemFrame(
+        around x: CGFloat,
+        y: Float,
+        pid: pid_t?,
+        displayBounds: CGRect
+    ) -> CGRect? {
+        func isSameItem(at probeX: CGFloat) -> Bool {
+            guard
+                probeX > displayBounds.minX,
+                probeX < displayBounds.maxX,
+                let element = try? systemWideElement.elementAtPosition(Float(probeX), y)
+            else {
+                return false
+            }
+            let role: String? = try? element.attribute("AXRole")
+            return role == "AXMenuBar" && (try? element.pid()) == pid
+        }
+        // Icons are a few dozen points wide; 2pt steps, bounded either way.
+        let step: CGFloat = 2
+        let reach: CGFloat = 120
+        var minX = x
+        var maxX = x
+        while minX - step > x - reach, isSameItem(at: minX - step) {
+            minX -= step
+        }
+        while maxX + step < x + reach, isSameItem(at: maxX + step) {
+            maxX += step
+        }
+        return CGRect(x: minX, y: displayBounds.minY + 4, width: maxX - minX + 1, height: 22)
+    }
+
     /// Returns the frame of the status element at the given point, or `nil`
     /// when there is nothing status-like there.
     private static func statusFrameAt(
@@ -1565,11 +1614,14 @@ final class MenuBarOverlayPanelContentView: NSView {
             return nil
         }
         let role: String? = try? element.attribute("AXRole")
+        let pid: pid_t? = try? element.pid()
         if role == "AXMenuBar" {
-            return nil
+            guard isOtherAppsMenuBar(pid: pid, appMenuPid: appMenuPid) else {
+                return nil
+            }
+            return probedItemFrame(around: x, y: y, pid: pid, displayBounds: displayBounds)
         }
         let frame: CGRect? = try? element.attribute("AXFrame")
-        let pid: pid_t? = try? element.pid()
         guard
             isTrailingStatusElement(role: role, pid: pid, appMenuPid: appMenuPid),
             let frame,
@@ -1752,10 +1804,15 @@ final class MenuBarOverlayPanelContentView: NSView {
                 if role == "AXMenu" || role == "AXMenuItem" {
                     return .valid
                 }
+                let pid: pid_t? = try? element.pid()
                 if role == "AXMenuBar" {
+                    // Another app's item on an inactive display.
+                    if isOtherAppsMenuBar(pid: pid, appMenuPid: appMenuPid) {
+                        insideHit = true
+                        break outer
+                    }
                     continue
                 }
-                let pid: pid_t? = try? element.pid()
                 guard isTrailingStatusElement(role: role, pid: pid, appMenuPid: appMenuPid) else {
                     continue
                 }

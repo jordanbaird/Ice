@@ -103,6 +103,14 @@ brew uninstall --cask --zap cavaldos/tap/ice
 
 Contributions are welcome! Please read the [contribution guidelines](./Resources/document/CONTRIBUTING.md) before submitting a pull request.
 
+## Contributors
+
+Thanks to everyone who has contributed to this fork:
+
+<a href="https://github.com/cavaldos"><img src="https://github.com/cavaldos.png?size=64" width="64" height="64" alt="cavaldos" title="cavaldos" style="border-radius:50%"></a>
+<a href="https://github.com/pythongod"><img src="https://github.com/pythongod.png?size=64" width="64" height="64" alt="pythongod" title="pythongod" style="border-radius:50%"></a>
+<a href="https://github.com/WuColin-1"><img src="https://github.com/WuColin-1.png?size=64" width="64" height="64" alt="WuColin-1" title="WuColin-1" style="border-radius:50%"></a>
+
 ## Support
 
 <a href="https://ko-fi.com/calvados" target="_blank">

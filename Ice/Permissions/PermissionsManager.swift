@@ -62,17 +62,29 @@ final class PermissionsManager: ObservableObject {
                 permissionsState = .hasRequiredPermissions
             } else {
                 permissionsState = .missingPermissions
+                return
             }
+            // If the app has all required permissions, stop the periodic checks.
+            // This is important for performance, as the periodic checks can be expensive.
+            stopTimerChecks()
         }
         .store(in: &c)
 
         cancellables = c
     }
 
-    /// Stops running all permissions checks.
-    func stopAllChecks() {
-        for permission in allPermissions {
-            permission.stopCheck()
+    /// Stops the periodic permission checks, keeping one-shot observers alive.
+    ///
+    /// Only required permissions are stopped. Optional ones keep polling: the
+    /// user can grant them at any point from System Settings, and nothing else
+    /// re-checks them, so freezing them here left the app reporting a
+    /// permission as missing for the rest of the session even after it had
+    /// been granted (issue #22). Each check is rate limited inside
+    /// `ScreenCapture`, so a poll costs at most one check per couple of seconds
+    /// rather than one per tick.
+    func stopTimerChecks() {
+        for permission in requiredPermissions {
+            permission.stopTimerCheck()
         }
     }
 }

@@ -7,7 +7,6 @@ import SwiftUI
 
 struct IceForm<Content: View>: View {
     @Environment(\.isScrollEnabled) private var isScrollEnabled
-    @State private var contentFrame = CGRect.zero
 
     private let alignment: HorizontalAlignment
     private let padding: EdgeInsets
@@ -42,17 +41,17 @@ struct IceForm<Content: View>: View {
     }
 
     var body: some View {
+        // ponytail: always scroll when allowed — switching ScrollView on/off
+        // from a measured height feedback-loops: content measures differently
+        // bounded vs unbounded and can straddle the threshold forever (pegged
+        // main at 100% opening Menu Bar Appearance). Overlay scrollers
+        // auto-hide, so always-scroll looks identical when content fits.
         if isScrollEnabled {
-            GeometryReader { geometry in
-                if contentFrame.height > geometry.size.height {
-                    ScrollView {
-                        contentStack
-                    }
-                    .scrollContentBackground(.hidden)
-                } else {
-                    contentStack
-                }
+            ScrollView {
+                contentStack
             }
+            .scrollContentBackground(.hidden)
+            .scrollIndicators(.hidden)
         } else {
             contentStack
         }
@@ -63,9 +62,9 @@ struct IceForm<Content: View>: View {
         VStack(alignment: alignment, spacing: spacing) {
             content
                 .toggleStyle(IceFormToggleStyle())
+                .buttonStyle(IceButtonStyle())
         }
         .padding(padding)
-        .onFrameChange(update: $contentFrame)
     }
 }
 

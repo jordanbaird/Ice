@@ -1,3 +1,6 @@
 .DS_Store
 build/
 xcuserdata/
+skills-lock.json
+release/
+*.pem

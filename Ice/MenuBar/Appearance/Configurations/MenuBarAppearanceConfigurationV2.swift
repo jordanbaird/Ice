@@ -13,6 +13,9 @@ struct MenuBarAppearanceConfigurationV2: Hashable {
     var shapeKind: MenuBarShapeKind
     var fullShapeInfo: MenuBarFullShapeInfo
     var splitShapeInfo: MenuBarSplitShapeInfo
+    /// Corner radius factor for rounded end caps, in the range `0...1`.
+    /// `1` is a fully round pill (radius = height / 2), `0` is square.
+    var cornerRadius: Double
     var isInset: Bool
     var isDynamic: Bool
 
@@ -42,11 +45,12 @@ extension MenuBarAppearanceConfigurationV2 {
         lightModeConfiguration: .defaultConfiguration,
         darkModeConfiguration: .defaultConfiguration,
         staticConfiguration: .defaultConfiguration,
-        shapeKind: .none,
+        shapeKind: .split,
         fullShapeInfo: .default,
         splitShapeInfo: .default,
+        cornerRadius: 1,
         isInset: true,
-        isDynamic: false
+        isDynamic: true
     )
 }
 
@@ -58,6 +62,7 @@ extension MenuBarAppearanceConfigurationV2: Codable {
         case shapeKind
         case fullShapeInfo
         case splitShapeInfo
+        case cornerRadius
         case isInset
         case isDynamic
     }
@@ -71,6 +76,7 @@ extension MenuBarAppearanceConfigurationV2: Codable {
             shapeKind: container.decodeIfPresent(MenuBarShapeKind.self, forKey: .shapeKind) ?? Self.defaultConfiguration.shapeKind,
             fullShapeInfo: container.decodeIfPresent(MenuBarFullShapeInfo.self, forKey: .fullShapeInfo) ?? Self.defaultConfiguration.fullShapeInfo,
             splitShapeInfo: container.decodeIfPresent(MenuBarSplitShapeInfo.self, forKey: .splitShapeInfo) ?? Self.defaultConfiguration.splitShapeInfo,
+            cornerRadius: container.decodeIfPresent(Double.self, forKey: .cornerRadius) ?? Self.defaultConfiguration.cornerRadius,
             isInset: container.decodeIfPresent(Bool.self, forKey: .isInset) ?? Self.defaultConfiguration.isInset,
             isDynamic: container.decodeIfPresent(Bool.self, forKey: .isDynamic) ?? Self.defaultConfiguration.isDynamic
         )
@@ -84,6 +90,7 @@ extension MenuBarAppearanceConfigurationV2: Codable {
         try container.encode(shapeKind, forKey: .shapeKind)
         try container.encode(fullShapeInfo, forKey: .fullShapeInfo)
         try container.encode(splitShapeInfo, forKey: .splitShapeInfo)
+        try container.encode(cornerRadius, forKey: .cornerRadius)
         try container.encode(isInset, forKey: .isInset)
         try container.encode(isDynamic, forKey: .isDynamic)
     }
@@ -96,6 +103,11 @@ struct MenuBarAppearancePartialConfiguration: Hashable {
     var hasBorder: Bool
     var borderColor: CGColor
     var borderWidth: Double
+    /// The tint opacity, in the range `0...1`. `1` draws the tint fully solid.
+    var tintOpacity: Double
+    /// The frosted-glass blur strength over the live background, in the range
+    /// `0...1`. `0` disables the blur.
+    var blurAmount: Double
     var tintKind: MenuBarTintKind
     var tintColor: CGColor
     var tintGradient: CustomGradient
@@ -108,7 +120,9 @@ extension MenuBarAppearancePartialConfiguration {
         hasBorder: false,
         borderColor: .black,
         borderWidth: 1,
-        tintKind: .none,
+        tintOpacity: 0.3,
+        blurAmount: 0.7,
+        tintKind: .solid,
         tintColor: .black,
         tintGradient: .defaultMenuBarTint
     )
@@ -121,6 +135,10 @@ extension MenuBarAppearancePartialConfiguration: Codable {
         case hasBorder
         case borderColor
         case borderWidth
+        case tintOpacity
+        case blurAmount
+        // Legacy blur toggle, migrated into `blurAmount` on decode.
+        case hasBlur
         case shapeKind
         case fullShapeInfo
         case splitShapeInfo
@@ -131,11 +149,15 @@ extension MenuBarAppearancePartialConfiguration: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        // The blur toggle predates the blur amount slider.
+        let legacyBlur = try container.decodeIfPresent(Bool.self, forKey: .hasBlur) ?? false
         try self.init(
             hasShadow: container.decodeIfPresent(Bool.self, forKey: .hasShadow) ?? Self.defaultConfiguration.hasShadow,
             hasBorder: container.decodeIfPresent(Bool.self, forKey: .hasBorder) ?? Self.defaultConfiguration.hasBorder,
             borderColor: container.decodeIfPresent(CodableColor.self, forKey: .borderColor)?.cgColor ?? Self.defaultConfiguration.borderColor,
             borderWidth: container.decodeIfPresent(Double.self, forKey: .borderWidth) ?? Self.defaultConfiguration.borderWidth,
+            tintOpacity: container.decodeIfPresent(Double.self, forKey: .tintOpacity) ?? Self.defaultConfiguration.tintOpacity,
+            blurAmount: container.decodeIfPresent(Double.self, forKey: .blurAmount) ?? (legacyBlur ? 1 : Self.defaultConfiguration.blurAmount),
             tintKind: container.decodeIfPresent(MenuBarTintKind.self, forKey: .tintKind) ?? Self.defaultConfiguration.tintKind,
             tintColor: container.decodeIfPresent(CodableColor.self, forKey: .tintColor)?.cgColor ?? Self.defaultConfiguration.tintColor,
             tintGradient: container.decodeIfPresent(CustomGradient.self, forKey: .tintGradient) ?? Self.defaultConfiguration.tintGradient
@@ -148,6 +170,8 @@ extension MenuBarAppearancePartialConfiguration: Codable {
         try container.encode(hasBorder, forKey: .hasBorder)
         try container.encode(CodableColor(cgColor: borderColor), forKey: .borderColor)
         try container.encode(borderWidth, forKey: .borderWidth)
+        try container.encode(tintOpacity, forKey: .tintOpacity)
+        try container.encode(blurAmount, forKey: .blurAmount)
         try container.encode(tintKind, forKey: .tintKind)
         try container.encode(CodableColor(cgColor: tintColor), forKey: .tintColor)
         try container.encode(tintGradient, forKey: .tintGradient)

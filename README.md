@@ -1,112 +1,136 @@
 <div align="center">
     <img src="Ice/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width=200 height=200>
-    <h1>Ice</h1>
+    <h1>Ice — Free & Open-Source Menu Bar Manager for macOS</h1>
+    <p>Hide and organize menu bar icons on your Mac. The best <strong>free Bartender alternative</strong> — also a great <strong>Hidden Bar</strong> and <strong>Vanilla alternative</strong> — focused on stability and a smooth, distraction-free experience.<br>✅ <strong>Fully supports macOS 27</strong></p>
 </div>
 
-Ice is a powerful menu bar management tool. While its primary function is hiding and showing menu bar items, it aims to cover a wide variety of additional features to make it one of the most versatile menu bar tools available.
+![Ice menu bar manager for macOS — hide and organize menu bar icons](./Resources/Image/banner.png)
 
-![Banner](https://github.com/user-attachments/assets/4423085c-4e4b-4f3d-ad0f-90a217c03470)
+<div align="center">
 
-[![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
+[![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/cavaldos/Ice/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/cavaldos/Ice/total?style=flat-square)](https://github.com/cavaldos/Ice/releases)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
 ![Requirements](https://img.shields.io/badge/requirements-macOS%2014%2B-fa4e49?style=flat-square)
-[![Sponsor](https://img.shields.io/badge/Sponsor%20%E2%9D%A4%EF%B8%8F-8A2BE2?style=flat-square)](https://github.com/sponsors/jordanbaird)
+![macOS 27](https://img.shields.io/badge/macOS_27-fully_supported-brightgreen?style=flat-square)
+[![GitHub stars](https://img.shields.io/github/stars/cavaldos/Ice?style=flat-square)](https://github.com/cavaldos/Ice/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/cavaldos/Ice?style=flat-square)](https://github.com/cavaldos/Ice/network/members)
 [![Website](https://img.shields.io/badge/Website-015FBA?style=flat-square)](https://icemenubar.app)
-[![License](https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/github/license/cavaldos/Ice?style=flat-square)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/Sponsor%20%E2%9D%A4%EF%B8%8F-8A2BE2?style=flat-square)](https://ko-fi.com/calvados)
+
+<br>
+
+<a href="https://ko-fi.com/calvados" target="_blank">
+    <img src="https://storage.ko-fi.com/cdn/kofi5.png?v=6" alt="Support me on Ko-fi" style="height: 60px !important;width: 217px !important;">
+</a>
+
+</div>
 
 > [!NOTE]
-> Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
+> Ice is in active development. Grab the latest build from the [releases page](https://github.com/cavaldos/Ice/releases/latest).
 
-<a href="https://www.buymeacoffee.com/jordanbaird" target="_blank">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;">
-</a>
+> [!TIP]
+> ✅ **Fully supports macOS 27** — tested and ready for the latest macOS, all the way back to macOS 14 Sonoma.
 
 ## Install
 
-### Manual Installation
+**Homebrew** (recommended — updates with `brew upgrade`):
 
-Download the "Ice.zip" file from the [latest release](https://github.com/jordanbaird/Ice/releases/latest) and move the unzipped app into your `Applications` folder.
-
-### Homebrew
-
-Install Ice using the following command:
-
-```sh
-brew install --cask jordanbaird-ice
+```bash
+brew tap cavaldos/tap
+brew install cavaldos/tap/ice
 ```
 
-## Features/Roadmap
+**Manual:**
 
-### Menu bar item management
+1. Download `Ice.zip` from the [latest release](https://github.com/cavaldos/Ice/releases/latest).
+2. Unzip it and move `Ice.app` into `/Applications`.
+3. Clear the quarantine flag — releases are ad-hoc signed and not notarized, so Gatekeeper would otherwise block the first launch:
 
-- [x] Hide menu bar items
-- [x] "Always-hidden" menu bar section
-- [x] Show hidden menu bar items when hovering over the menu bar
-- [x] Show hidden menu bar items when an empty area in the menu bar is clicked
-- [x] Show hidden menu bar items by scrolling or swiping in the menu bar
-- [x] Automatically rehide menu bar items
-- [x] Hide application menus when they overlap with shown menu bar items
-- [x] Drag and drop interface to arrange individual menu bar items
-- [x] Display hidden menu bar items in a separate bar (e.g. for MacBooks with the notch)
-- [x] Search menu bar items
-- [x] Menu bar item spacing (BETA)
-- [ ] Profiles for menu bar layout
-- [ ] Individual spacer items
-- [ ] Menu bar item groups
-- [ ] Show menu bar items when trigger conditions are met
+```bash
+xattr -d com.apple.quarantine /Applications/Ice.app
+```
 
-### Menu bar appearance
+Then open Ice and grant **Accessibility** and **Screen Recording** in System Settings (see [Permissions](#permissions)).
 
-- [x] Menu bar tint (solid and gradient)
-- [x] Menu bar shadow
-- [x] Menu bar border
-- [x] Custom menu bar shapes (rounded and/or split)
-- [ ] Remove background behind menu bar
-- [ ] Rounded screen corners
-- [ ] Different settings for light/dark mode
+For local development, see [script/README.md](script/README.md).
 
-### Hotkeys
+## Uninstall
 
-- [x] Toggle individual menu bar sections
-- [x] Show the search panel
-- [x] Enable/disable the Ice Bar
-- [x] Show/hide section divider icons
-- [x] Toggle application menus
-- [ ] Enable/disable auto rehide
-- [ ] Temporarily show individual menu bar items
+**Homebrew:**
 
-### Other
+```bash
+brew uninstall --cask cavaldos/tap/ice
+```
 
-- [x] Launch at login
-- [x] Automatic updates
-- [ ] Menu bar widgets
 
-## Why does Ice only support macOS 14 and later?
+```bash
+brew uninstall --cask --zap cavaldos/tap/ice
+```
 
-Ice uses a number of system APIs that are available starting in macOS 14. As such, there are no plans to support earlier versions of macOS.
+**Manual:** quit Ice, then drag `Ice.app` out of `/Applications` to the Trash. To also remove preferences, delete `~/Library/Preferences/com.jordanbaird.Ice.plist`.
+
 
 ## Gallery
 
-#### Show hidden menu bar items below the menu bar
+**Always-Hidden section demo — hide menu bar icons and reveal on hover**
 
-![Ice Bar](https://github.com/user-attachments/assets/f1429589-6186-4e1b-8aef-592219d49b9b)
+![Demo of Ice always-hidden menu bar section on macOS](Resources/vid/demo-ah.gif)
 
-#### Drag-and-drop interface to arrange menu bar items
+**Show and hide menu bar icons demo**
 
-![Menu Bar Layout](https://github.com/user-attachments/assets/095442ba-f2d0-4bb4-9632-91e26ef8d45b)
+![Demo showing and hiding Mac menu bar icons with Ice](Resources/vid/demo.gif)
 
-#### Customize the menu bar's appearance
+**Fullscreen settings**
 
-![Menu Bar Appearance](https://github.com/user-attachments/assets/8c22c185-c3d2-49bb-971e-e1fc17df04b3)
+![Ice fullscreen settings window on macOS](Resources/Image/fullscreen.png)
 
-#### Menu bar item search
 
-![Menu Bar Item Search](https://github.com/user-attachments/assets/d1a7df3a-4989-4077-a0b1-8e7d5a1ba5b8)
+| Ice Bar — second menu bar for notched MacBooks                                                   | Drag-and-drop menu bar layout                                                                   |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| ![Ice Bar second menu bar for MacBook notch](https://github.com/user-attachments/assets/f1429589-6186-4e1b-8aef-592219d49b9b) | ![Drag and drop menu bar layout editor](./Resources/Image/MenuBarLayout.png) |
 
-#### Custom menu bar item spacing
+| Menu bar appearance and theme settings                                                                  | Menu bar item spacing                                                                                       |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| ![Menu bar appearance theme settings](./Resources/Image/MenuBarAppearance.png) | ![Menu bar icon spacing settings](https://github.com/user-attachments/assets/b196aa7e-184a-4d4c-b040-502f4aae40a6) |
 
-![Menu Bar Item Spacing](https://github.com/user-attachments/assets/b196aa7e-184a-4d4c-b040-502f4aae40a6)
+
+> ✅ **macOS 27 fully supported** — works on macOS 14 Sonoma and later, including Sequoia, Tahoe, and macOS 27. If you need a similar tool for macOS 13 Ventura or earlier, check out [Ice 0.11.x](https://github.com/jordanbaird/Ice/releases).
+
+
+## Contributing
+
+Contributions are welcome! Please read the [contribution guidelines](./Resources/document/CONTRIBUTING.md) before submitting a pull request.
+
+## Contributors
+
+Thanks to everyone who has contributed to this fork:
+
+<a href="https://github.com/cavaldos"><img src="https://github.com/cavaldos.png?size=64" width="64" height="64" alt="cavaldos" title="cavaldos" style="border-radius:50%"></a>
+<a href="https://github.com/pythongod"><img src="https://github.com/pythongod.png?size=64" width="64" height="64" alt="pythongod" title="pythongod" style="border-radius:50%"></a>
+<a href="https://github.com/WuColin-1"><img src="https://github.com/WuColin-1.png?size=64" width="64" height="64" alt="WuColin-1" title="WuColin-1" style="border-radius:50%"></a>
+
+## Support
+
+<a href="https://ko-fi.com/calvados" target="_blank">
+    <img src="https://storage.ko-fi.com/cdn/kofi5.png?v=6" alt="Support me on Ko-fi" style="height: 36px !important;width: 130px !important;">
+</a>
+
+<a href="https://www.paypal.com/paypalme/nnkhanh29" target="_blank">
+    <img src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/PP_logo_h_200x51.png" alt="Donate with PayPal" style="height: 36px !important;">
+</a>
+
+## Acknowledgments
+
+A fork of [Ice](https://github.com/jordanbaird/Ice) by [Jordan Baird](https://github.com/jordanbaird) — huge thanks for the original work this project builds on.
 
 ## License
 
-Ice is available under the [GPL-3.0 license](LICENSE).
+[GPL-3.0](LICENSE) — Ice is and will always remain open-source and free.
+
+## Star History
+
+<a href="https://star-history.com/#cavaldos/Ice&Date">
+    <img src="https://api.star-history.com/svg?repos=cavaldos/Ice&type=Date" alt="Star History Chart" width="500">
+</a>

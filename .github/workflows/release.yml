@@ -1,0 +1,128 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    # Liquid Glass is gated on the link SDK, not the run-time OS: building
+    # with Xcode <=16 keeps the legacy appearance even on Tahoe, so CI must
+    # build with the Xcode 26+ SDK like local builds do. macos-14 runners
+    # (Xcode 16 max) are deprecated.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26 SDK
+        run: |
+          ls -d /Applications/Xcode*.app
+          PINNED="/Applications/Xcode_26.6.app"
+          if [ -d "$PINNED" ]; then
+            XCODE="$PINNED"
+          else
+            XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          fi
+          if [ -z "${XCODE:-}" ]; then
+            echo "No Xcode 26+ found on runner"
+            exit 1
+          fi
+          echo "Selecting $XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          echo "macOS SDK: $(xcrun --show-sdk-version --sdk macosx)"
+      - name: Derive version from tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag '$TAG' must look like vX.Y.Z (e.g. v0.11.13)"
+            exit 1
+          fi
+          # Sparkle requires the build number to keep increasing and it must
+          # stay above 1117 (the last build released upstream).
+          BUILD_NUMBER=$((1117 + GITHUB_RUN_NUMBER))
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "Building version $VERSION ($BUILD_NUMBER)"
+      - name: Build app
+        run: |
+          xcodebuild -project Ice.xcodeproj -scheme Ice -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            clean build
+          BUILD_DIR=$(xcodebuild -project Ice.xcodeproj -scheme Ice -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            -showBuildSettings 2>/dev/null \
+            | sed -n 's/^ *BUILT_PRODUCTS_DIR *= *//p' | head -1)
+          echo "APP_PATH=$BUILD_DIR/Ice.app" >> $GITHUB_ENV
+          echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+      - name: Zip and publish to GitHub Release
+        run: |
+          codesign --force --deep --sign - "$APP_PATH"
+          ditto -c -k --keepParent "$APP_PATH" Ice.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: Ice.zip
+          generate_release_notes: true
+  update-homebrew:
+    needs: release
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.ref, '-') }} # Skip for pre-releases
+    steps:
+      - name: Derive version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+      - name: Get SHA256 from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "SHA256=$(gh api repos/cavaldos/Ice/releases/tags/$GITHUB_REF_NAME \
+            --jq '.assets[] | select(.name == "Ice.zip") | .digest' \
+            | sed 's/sha256://')" >> $GITHUB_ENV
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: cavaldos/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+      - name: Update cask
+        run: |
+          cat > homebrew-tap/Casks/ice.rb << 'EOF'
+          cask "ice" do
+            version "${{ env.VERSION }}"
+            sha256 "${{ env.SHA256 }}"
+
+            url "https://github.com/cavaldos/Ice/releases/download/v#{version}/Ice.zip"
+            name "Ice"
+            desc "Free and open-source menu bar manager for macOS"
+            homepage "https://icemenubar.app"
+
+            depends_on macos: :sonoma
+            conflicts_with cask: "jordanbaird-ice"
+
+            app "Ice.app"
+
+            zap trash: [
+              "~/Library/Preferences/com.jordanbaird.Ice.plist",
+            ]
+
+            caveats <<~EOS
+              Ice is ad-hoc signed. On first launch, right-click the app and choose Open.
+              After every update, re-grant Accessibility and Screen Recording in
+              System Settings > Privacy & Security (see https://github.com/cavaldos/Ice#permissions).
+            EOS
+          end
+          EOF
+      - name: Commit and push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/ice.rb
+          git diff --cached --quiet || git commit -m "ice ${{ env.VERSION }}"
+          git push
+# After the Release finishes, publish the appcast so installed apps see it:
+#   ./script/update-appcast.sh <tag> --key <private-key.pem>
+# (pushes appcast.xml to the ice-releases repo; SUFeedURL https://cavaldos.github.io/ice-releases/appcast.xml)
+# ponytail: ad-hoc signing is for internal testing only, public releases need Developer ID + notarization

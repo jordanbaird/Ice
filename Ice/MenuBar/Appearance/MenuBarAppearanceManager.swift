@@ -89,14 +89,21 @@ final class MenuBarAppearanceManager: ObservableObject {
 
         $configuration
             .throttle(for: 0.1, scheduler: DispatchQueue.main, latest: true)
-            .sink { [weak self] configuration in
+            .sink { [weak self] _ in
                 guard let self else {
                     return
                 }
                 // The overlay panels may not have been configured yet. Since some of the
                 // properties on the manager might call for them, try to configure now.
+                // ponytail: defer past boot — panel init + orderFront + AX validate
+                // contends with control-item creation at login. 1s lets the bar settle.
                 if overlayPanels.isEmpty {
-                    configureOverlayPanels(with: configuration)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                        guard let self else { return }
+                        if self.overlayPanels.isEmpty {
+                            self.configureOverlayPanels(with: self.configuration)
+                        }
+                    }
                 }
             }
             .store(in: &c)

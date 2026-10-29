@@ -41,20 +41,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Perform setup after a small delay to ensure that the settings window
-        // has been assigned.
+        // Always set up so the app launches straight in; if permissions are
+        // missing, open an extra non-blocking permissions window — the user
+        // can Skip and grant later in Settings.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             guard !appState.isPreview else {
                 return
             }
-            // If we have the required permissions, set up the shared app state.
-            // Otherwise, open the permissions window.
-            switch appState.permissionsManager.permissionsState {
-            case .hasAllPermissions, .hasRequiredPermissions:
-                appState.performSetup()
-            case .missingPermissions:
+            appState.performSetup()
+            if case .missingPermissions = appState.permissionsManager.permissionsState {
                 appState.activate(withPolicy: .regular)
                 appState.openPermissionsWindow()
+            }
+            // Ask for a GitHub star, but only once per updated version and
+            // never on a fresh install. Delay it past the menu bar's first
+            // paint and the activation hack in `AppState.activate` so the
+            // alert cannot land before the app is frontmost.
+            if appState.permissionsManager.permissionsState != .missingPermissions {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    StarRequestPrompt.presentIfNeeded(appState: appState)
+                }
             }
         }
     }

@@ -6,6 +6,15 @@
 import Cocoa
 import Combine
 
+/// A type that monitors for local events in a specific run loop mode.
+///
+/// - WARNING: The observer drains the event queue and reposts every event.
+///   When running inside a modal tracking loop (e.g. `.eventTracking`), this
+///   breaks button-cell and resize tracking on macOS 27: traffic lights and
+///   window edges stop responding to clicks. Do NOT use this to observe mouse
+///   events for the lifetime of the app; prefer `UniversalEventMonitor`.
+///   Short-lived uses (e.g. waiting for modifier flags during an operation)
+///   are acceptable.
 final class RunLoopLocalEventMonitor {
     private let runLoop = CFRunLoopGetCurrent()
     private let mode: RunLoop.Mode

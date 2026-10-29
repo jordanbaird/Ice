@@ -37,8 +37,17 @@ final class MenuBarManager: ObservableObject {
     /// The panel that contains the Ice Bar interface.
     let iceBarPanel: IceBarPanel
 
-    /// The panel that contains the menu bar search interface.
-    let searchPanel: MenuBarSearchPanel
+    /// Whether the Menu Bar Layout pane is on screen (macOS 27).
+    ///
+    /// While editing, every section is revealed so Accessibility reports
+    /// real positions for each icon and divider, and automatic rehiding is
+    /// paused so the bar does not collapse under a drag.
+    private(set) var isLayoutEditing = false
+
+    /// Section states to put back when layout editing ends, with the state
+    /// revision right after the reveal: a section the user toggled since is
+    /// left as the user set it.
+    private var layoutEditingRestore = [MenuBarSection.Name: (state: ControlItem.HidingState, revision: Int)]()
 
     /// A Boolean value that indicates whether the manager can update its stored
     /// information for the menu bar's average color.
@@ -49,15 +58,20 @@ final class MenuBarManager: ObservableObject {
     /// Initializes a new menu bar manager instance.
     init(appState: AppState) {
         self.iceBarPanel = IceBarPanel(appState: appState)
-        self.searchPanel = MenuBarSearchPanel(appState: appState)
         self.appState = appState
     }
+
+    /// Hides sections on macOS 27 while a display without a notch is attached.
+    let concealer = MenuBarConcealer()
 
     /// Performs the initial setup of the menu bar manager.
     func performSetup() {
         initializeSections()
         configureCancellables()
         iceBarPanel.performSetup()
+        if let appState {
+            concealer.performSetup(with: appState)
+        }
     }
 
     /// Performs the initial setup of the menu bar manager's sections.
@@ -127,8 +141,8 @@ final class MenuBarManager: ObservableObject {
                     !appState.eventManager.isMouseInsideMenuBar
                 {
                     Task {
-                        try await Task.sleep(for: .seconds(0.1))
-                        hiddenSection.hide()
+                        try? await Task.sleep(for: .seconds(0.1))
+                        hiddenSection.hide(persistState: false)
                     }
                 }
             }
@@ -140,6 +154,23 @@ final class MenuBarManager: ObservableObject {
                 self?.updateAverageColorInfo()
             }
             .store(in: &c)
+
+        if let navigationState = appState?.navigationState {
+            Publishers.CombineLatest(navigationState.$isSettingsPresented, navigationState.$settingsNavigationIdentifier)
+                .map { isPresented, identifier in
+                    isPresented && identifier == .menuBarLayout
+                }
+                .removeDuplicates()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] isEditing in
+                    if isEditing {
+                        self?.beginLayoutEditing()
+                    } else {
+                        self?.endLayoutEditing()
+                    }
+                }
+                .store(in: &c)
+        }
 
         Timer.publish(every: 5, on: .main, in: .default)
             .autoconnect()
@@ -273,29 +304,43 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
+    /// Returns the Accessibility menu bar element for the given display.
+    ///
+    /// On macOS 27 the exact top-left point can hit the WindowManager glass
+    /// container instead of the menu bar, so probe a few points inside the bar.
+    func menuBarElement(for displayID: CGDirectDisplayID) -> UIElement? {
+        let displayBounds = CGDisplayBounds(displayID)
+        let candidates: [CGPoint] = [
+            CGPoint(x: displayBounds.origin.x + 2, y: displayBounds.origin.y + 2),
+            CGPoint(x: displayBounds.origin.x + 5, y: displayBounds.origin.y + 5),
+            CGPoint(x: displayBounds.origin.x + 1, y: displayBounds.origin.y + 1),
+            CGPoint(x: displayBounds.origin.x, y: displayBounds.origin.y),
+        ]
+        for point in candidates {
+            if
+                let element = try? systemWideElement.elementAtPosition(Float(point.x), Float(point.y)),
+                let role = try? element.role(),
+                role == .menuBar
+            {
+                return element
+            }
+        }
+        return nil
+    }
+
     /// Returns a Boolean value that indicates whether the given display
     /// has a valid menu bar.
     func hasValidMenuBar(in windows: [WindowInfo], for display: CGDirectDisplayID) -> Bool {
-        guard let menuBarWindow = WindowInfo.getMenuBarWindow(from: windows, for: display) else {
+        guard WindowInfo.getMenuBarWindow(from: windows, for: display) != nil else {
             return false
         }
-        let position = menuBarWindow.frame.origin
-        do {
-            let uiElement = try systemWideElement.elementAtPosition(Float(position.x), Float(position.y))
-            return try uiElement?.role() == .menuBar
-        } catch {
-            return false
-        }
+        return menuBarElement(for: display) != nil
     }
 
     /// Returns the frame of the application menu for the given display.
     func getApplicationMenuFrame(for displayID: CGDirectDisplayID) -> CGRect? {
-        let displayBounds = CGDisplayBounds(displayID)
-
         guard
-            let menuBar = try? systemWideElement.elementAtPosition(Float(displayBounds.origin.x), Float(displayBounds.origin.y)),
-            let role = try? menuBar.role(),
-            role == .menuBar,
+            let menuBar = menuBarElement(for: displayID),
             let items: [UIElement] = try? menuBar.arrayAttribute(.children)?.filter({ (try? $0.attribute(.enabled)) == true })
         else {
             return nil
@@ -394,6 +439,55 @@ final class MenuBarManager: ObservableObject {
     /// Returns the menu bar section with the given name.
     func section(withName name: MenuBarSection.Name) -> MenuBarSection? {
         sections.first { $0.name == name }
+    }
+
+    /// Reveals every section while the Menu Bar Layout pane is open.
+    ///
+    /// On macOS 27 a hidden icon has no usable position: it sits in overflow
+    /// and Accessibility reports a made-up frame. Dragging it, or dropping
+    /// next to a collapsed divider, missed and the icon snapped back
+    /// (issues #17, #24). The reveal is temporary and never saved.
+    private func beginLayoutEditing() {
+        guard #available(macOS 27, *), !isLayoutEditing else {
+            return
+        }
+        isLayoutEditing = true
+        var restore = [MenuBarSection.Name: (state: ControlItem.HidingState, revision: Int)]()
+        for section in sections {
+            let previous = section.controlItem.state
+            if previous != .showItems {
+                section.setState(.showItems, persist: false)
+            }
+            // Dividers keep the user's style: a collapsed divider still has a
+            // position to drop next to, and drawing it would take room that
+            // pushes icons behind the notch on a crowded bar.
+            restore[section.name] = (previous, section.stateRevision)
+        }
+        layoutEditingRestore = restore
+        Logger.menuBarManager.info("Layout editing began; revealed all sections")
+    }
+
+    /// Puts the sections back the way they were before layout editing.
+    private func endLayoutEditing() {
+        guard isLayoutEditing else {
+            return
+        }
+        isLayoutEditing = false
+        let restore = layoutEditingRestore
+        layoutEditingRestore.removeAll()
+        // Dividers first, so the visible section's icon reflects the result.
+        for name in [MenuBarSection.Name.alwaysHidden, .hidden, .visible] {
+            guard
+                let section = section(withName: name),
+                let entry = restore[name],
+                section.stateRevision == entry.revision,
+                section.controlItem.state != entry.state
+            else {
+                continue
+            }
+            section.setState(entry.state, persist: false)
+        }
+        Logger.menuBarManager.info("Layout editing ended; restored section states")
     }
 }
 

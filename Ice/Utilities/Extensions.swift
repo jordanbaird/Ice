@@ -144,6 +144,12 @@ extension CGImage {
             }
         }
 
+        // Every pixel was below the alpha threshold, so there's no color to
+        // average. Dividing by a zero pixel count would produce NaN components.
+        guard includedPixelCount > 0 else {
+            return nil
+        }
+
         // Multiply the included pixel count by 255 to convert the components
         // to their corresponding floating point values.
         let adjustedPixelCount = CGFloat(includedPixelCount * 255)

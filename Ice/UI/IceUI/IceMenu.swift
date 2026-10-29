@@ -56,7 +56,12 @@ struct IceMenu<Title: View, Label: View, Content: View>: View {
                 title
             }
             .menuStyle(.button)
-            .buttonStyle(.bordered)
+            .buttonStyle(.plain)
+            .tint(.primary)
+            .font(.callout)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             .labelsHidden()
             .fixedSize()
         } label: {

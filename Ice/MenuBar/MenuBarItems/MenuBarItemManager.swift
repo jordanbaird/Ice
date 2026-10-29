@@ -97,14 +97,21 @@ final class MenuBarItemManager: ObservableObject {
     /// The manager's menu bar item cache.
     @Published private(set) var itemCache = ItemCache()
 
+    /// Whether window-based menu bar item discovery is currently unavailable.
+    ///
+    /// Without the hidden divider, window-based items cannot be assigned to
+    /// sections. The Ice Bar uses Accessibility until discovery recovers,
+    /// regardless of how many other windows the server still returns.
+    @Published private(set) var isItemDiscoveryUnavailable = false
+
     /// The shared app state.
     private(set) weak var appState: AppState?
 
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
-    /// Cached window identifiers for the most recent items.
-    private var cachedItemWindowIDs = [CGWindowID]()
+    /// Window identifiers for the last successful cache update. Nil forces a retry.
+    private var cachedItemWindowIDs: [CGWindowID]?
 
     /// Context values for the current temporarily shown items.
     private var tempShownItemContexts = [TempShownItemContext]()
@@ -173,9 +180,12 @@ final class MenuBarItemManager: ObservableObject {
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
 
+        // ponytail: no Just(.now) — a full CGS+AX item walk the instant control
+        // items are created (while WindowServer is busiest at login) blocks first
+        // paint and usually gets cleared/re-scanned 5s later anyway. First prime
+        // is deferred 2s past boot; steady state stays on the 5s timer.
         Timer.publish(every: 5, on: .main, in: .default)
             .autoconnect()
-            .merge(with: Just(.now))
             .sink { [weak self] _ in
                 guard let self else {
                     return
@@ -185,6 +195,12 @@ final class MenuBarItemManager: ObservableObject {
                 }
             }
             .store(in: &c)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            Task { [weak self] in
+                await self?.cacheItemsIfNeeded()
+            }
+        }
 
         NSWorkspace.shared.publisher(for: \.runningApplications)
             .delay(for: 0.25, scheduler: DispatchQueue.main)
@@ -198,10 +214,13 @@ final class MenuBarItemManager: ObservableObject {
             }
             .store(in: &c)
 
-        Publishers.Merge(
-            UniversalEventMonitor.publisher(for: mouseTrackingMask),
-            RunLoopLocalEventMonitor.publisher(for: mouseTrackingMask, mode: .eventTracking)
-        )
+        // NOTE: Do not observe these events in the eventTracking mode (see
+        // RunLoopLocalEventMonitor). Draining and reposting the event queue
+        // from inside modal tracking loops breaks button and resize tracking
+        // on macOS 27 (traffic lights and window edges stop responding).
+        // The default-mode monitor below still sees 99% of events; the guards
+        // that read isMouseButtonDown degrade gracefully during modal loops.
+        UniversalEventMonitor.publisher(for: mouseTrackingMask)
         .removeDuplicates()
         .sink { [weak self] event in
             guard let self else {
@@ -312,7 +331,12 @@ extension MenuBarItemManager {
 
     /// Caches the current menu bar items if needed, ensuring that the control
     /// items are in the correct order.
-    func cacheItemsIfNeeded() async {
+    ///
+    /// - Parameter force: When true, re-reads item frames even if the window
+    ///   ID list is unchanged. Needed after a drag: moving an icon changes no
+    ///   window IDs, so without this the post-drag reconcile would classify
+    ///   pre-drag frames and the icon would look like it "snapped back".
+    func cacheItemsIfNeeded(force: Bool = false) async {
         do {
             try await waitForItemsToStopMoving(timeout: .seconds(1))
         } catch is TaskTimeoutError {
@@ -326,12 +350,13 @@ extension MenuBarItemManager {
         }
 
         let itemWindowIDs = Bridging.getWindowList(option: [.menuBarItems, .activeSpace])
-        if cachedItemWindowIDs == itemWindowIDs {
+        if !force, cachedItemWindowIDs == itemWindowIDs {
             logSkippingCache(reason: "item windows have not changed")
             return
-        } else {
-            cachedItemWindowIDs = itemWindowIDs
         }
+        // A failed scan must be retried even when the IDs do not change:
+        // window metadata can become available after the windows themselves.
+        cachedItemWindowIDs = nil
 
         var items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
 
@@ -339,11 +364,15 @@ extension MenuBarItemManager {
         let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map { items.remove(at: $0) }
 
         guard let hiddenControlItem else {
-            Logger.itemManager.warning("Missing control item for hidden section")
+            if !isItemDiscoveryUnavailable {
+                Logger.itemManager.warning("Missing control item for hidden section; using Accessibility discovery")
+            }
+            isItemDiscoveryUnavailable = true
             Logger.itemManager.debug("Clearing menu bar item cache")
             itemCache.clear()
             return
         }
+        isItemDiscoveryUnavailable = false
 
         do {
             if let alwaysHiddenControlItem {
@@ -357,6 +386,7 @@ extension MenuBarItemManager {
                 alwaysHiddenControlItem: alwaysHiddenControlItem,
                 otherItems: items
             )
+            cachedItemWindowIDs = itemWindowIDs
         } catch {
             Logger.itemManager.error("Error enforcing control item order: \(error)")
             Logger.itemManager.debug("Clearing menu bar item cache")
@@ -902,6 +932,8 @@ extension MenuBarItemManager {
                     Logger.itemManager.debug("Menu bar item frame for \(item.logString) has changed to \(NSStringFromRect(currentFrame))")
                     return
                 }
+                // ponytail: 1ms pause cuts WindowServer IPC from thousands to ~50 per move; +1ms detect delay is negligible vs 50ms timeout.
+                try await Task.sleep(for: .milliseconds(1))
             }
         }
         do {

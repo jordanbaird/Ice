@@ -12,6 +12,7 @@ struct GeneralSettingsPane: View {
     @State private var isPresentingError = false
     @State private var presentedError: LocalizedErrorWrapper?
     @State private var isApplyingOffset = false
+    @State private var isPresentingLogoutPrompt = false
     @State private var tempItemSpacingOffset: CGFloat = 0 // Temporary state for the slider
 
     private var manager: GeneralSettingsManager {
@@ -52,6 +53,39 @@ struct GeneralSettingsPane: View {
         manager.itemSpacingOffset != 0
     }
 
+    /// Rightmost menu bar icons for the spacing demo, deduplicated by app.
+    private var previewIcons: [MenuBarSpacingPreview.PreviewIcon] {
+        let ownBundleID = Bundle.main.bundleIdentifier
+        var seen = Set<String>()
+        let images = appState.itemManager.itemCache.allItems
+            .filter { $0.owningApplication?.bundleIdentifier != ownBundleID }
+            .sorted { $0.frame.minX < $1.frame.minX }
+            .compactMap { item -> NSImage? in
+                guard
+                    let app = item.owningApplication,
+                    let icon = app.icon
+                else {
+                    return nil
+                }
+                let key = app.bundleIdentifier ?? item.displayName
+                guard seen.insert(key).inserted else {
+                    return nil
+                }
+                return icon
+            }
+            .suffix(8)
+        let icons = images.map { MenuBarSpacingPreview.PreviewIcon.image($0) }
+        return icons.isEmpty ? MenuBarSpacingPreview.fallbackIcons : Array(icons)
+    }
+
+    /// Average menu bar color for the demo background, when known.
+    private var previewBarColor: Color? {
+        guard let cgColor = appState.menuBarManager.averageColorInfo?.color else {
+            return nil
+        }
+        return Color(cgColor: cgColor)
+    }
+
     var body: some View {
         IceForm {
             IceSection {
@@ -81,6 +115,14 @@ struct GeneralSettingsPane: View {
                 isPresentingError = false
             }
         }
+        .alert("Spacing saved", isPresented: $isPresentingLogoutPrompt) {
+            Button("Log Out Now") {
+                logOut()
+            }
+            Button("Later", role: .cancel) { }
+        } message: {
+            Text("Menu bar spacing takes effect after you log out and back in.")
+        }
     }
 
     @ViewBuilder
@@ -93,7 +135,8 @@ struct GeneralSettingsPane: View {
         Label {
             Text(imageSet.name.rawValue)
         } icon: {
-            if let nsImage = imageSet.hidden.nsImage(for: appState) {
+            let image = manager.reverseIceIcon ? imageSet.hidden : imageSet.visible
+            if let nsImage = image.nsImage(for: appState) {
                 switch imageSet.name {
                 case .custom:
                     Image(size: CGSize(width: 18, height: 18)) { context in
@@ -140,8 +183,6 @@ struct GeneralSettingsPane: View {
                 .pickerStyle(.inline)
                 .labelsHidden()
 
-                Divider()
-
                 Button("Choose image…") {
                     isImportingCustomIceIcon = true
                 }
@@ -166,6 +207,9 @@ struct GeneralSettingsPane: View {
                 }
             }
 
+            Toggle("Reverse Ice icon", isOn: manager.bindings.reverseIceIcon)
+                .annotation("Point the arrow the opposite way when hidden")
+
             if case .custom = manager.iceIcon.name {
                 Toggle("Apply system theme to icon", isOn: manager.bindings.customIceIconIsTemplate)
                     .annotation("Display the icon as a monochrome image matching the system appearance")
@@ -183,7 +227,12 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var useIceBar: some View {
-        Toggle("Use Ice Bar", isOn: manager.bindings.useIceBar)
+        Toggle(isOn: manager.bindings.useIceBar) {
+            HStack {
+                Text("Use Ice Bar")
+                BetaBadge()
+            }
+        }
             .annotation("Show hidden menu bar items in a separate bar below the menu bar")
     }
 
@@ -226,52 +275,62 @@ struct GeneralSettingsPane: View {
 
     @ViewBuilder
     private var spacingOptions: some View {
-        IceLabeledContent {
-            IceSlider(
-                localizedOffsetString(for: tempItemSpacingOffset),
-                value: $tempItemSpacingOffset,
-                in: -16...16,
-                step: 2
+        VStack(alignment: .leading, spacing: 8) {
+            MenuBarSpacingPreview(
+                icons: previewIcons,
+                spacing: 16 + tempItemSpacingOffset,
+                barColor: previewBarColor
             )
-            .disabled(isApplyingOffset)
-        } label: {
             IceLabeledContent {
-                Button("Apply") {
-                    applyOffset()
-                }
-                .help("Apply the current spacing")
-                .disabled(isApplyingOffset || !hasSpacingSliderValueChanged)
-
-                if isApplyingOffset {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .scaleEffect(0.5)
-                        .frame(width: 15, height: 15)
-                } else {
-                    Button {
-                        resetOffsetToDefault()
-                    } label: {
-                        Image(systemName: "arrow.counterclockwise.circle.fill")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Reset to the default spacing")
-                    .disabled(isApplyingOffset || !isActualOffsetDifferentFromDefault)
-                }
+                IceSlider(
+                    localizedOffsetString(for: tempItemSpacingOffset),
+                    value: $tempItemSpacingOffset,
+                    in: -16...16,
+                    step: 2
+                )
+                .disabled(isApplyingOffset)
             } label: {
-                HStack {
+                IceLabeledContent {
+                    Button("Apply") {
+                        applyOffset()
+                    }
+                    .help("Apply the current spacing")
+                    .disabled(isApplyingOffset || !hasSpacingSliderValueChanged)
+
+                    if isApplyingOffset {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .scaleEffect(0.5)
+                            .frame(width: 15, height: 15)
+                    } else {
+                        Button {
+                            resetOffsetToDefault()
+                        } label: {
+                            Image(systemName: "arrow.counterclockwise.circle.fill")
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Reset to the default spacing")
+                        .disabled(isApplyingOffset || !isActualOffsetDifferentFromDefault)
+                    }
+                } label: {
                     Text("Menu bar item spacing")
-                    BetaBadge()
                 }
             }
         }
         .annotation(
-            "Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.",
+            MenuBarItemSpacingManager.requiresLogoutToApply
+                ? "Applying this setting saves the new spacing. Nothing restarts — log out and back in to see it."
+                : "Applying this setting will relaunch all apps with menu bar items. Some apps may need to be manually relaunched.",
             spacing: 2
         )
         .annotation(spacing: 10, font: .callout.bold()) {
             IceGroupBox {
                 Label {
-                    Text("Note: You may need to log out and back in for this setting to apply properly.")
+                    Text(
+                        MenuBarItemSpacingManager.requiresLogoutToApply
+                            ? "Note: On this macOS version, menu bar spacing only takes effect after you log out and back in."
+                            : "Note: You may need to log out and back in for this setting to apply properly."
+                    )
                 } icon: {
                     Image(systemName: "exclamationmark.circle")
                 }
@@ -280,6 +339,12 @@ struct GeneralSettingsPane: View {
         }
         .onAppear {
             tempItemSpacingOffset = manager.itemSpacingOffset
+        }
+        .onChange(of: manager.itemSpacingOffset) { _, newValue in
+            // Keep the slider in sync if the offset changes elsewhere.
+            if !isApplyingOffset {
+                tempItemSpacingOffset = newValue
+            }
         }
     }
 
@@ -325,11 +390,31 @@ struct GeneralSettingsPane: View {
     /// Apply menu bar spacing offset.
     private func applyOffset() {
         isApplyingOffset = true
-        manager.itemSpacingOffset = tempItemSpacingOffset
+        let previousOffset = manager.itemSpacingOffset
+        let newOffset = tempItemSpacingOffset
+        manager.itemSpacingOffset = newOffset
+        // Sync synchronously: the Combine sink that mirrors this value onto
+        // spacingManager.offset runs async, so without this line the Task
+        // below can read (and write to the system) a stale offset while the
+        // UI already shows the new one — Apply then looks "broken".
+        appState.spacingManager.offset = Int(newOffset)
         Task {
             do {
                 try await appState.spacingManager.applyOffset()
+                // macOS 26+: prefs are login-time only, so offer logout right away.
+                if MenuBarItemSpacingManager.requiresLogoutToApply {
+                    isPresentingLogoutPrompt = true
+                }
             } catch {
+                // Relaunch failed but `defaults write` already succeeded, so keep
+                // the new value (it matches the system). Only revert when the
+                // defaults write itself failed.
+                if error is MenuBarItemSpacingManager.GroupedRelaunchError {
+                    tempItemSpacingOffset = newOffset
+                } else {
+                    manager.itemSpacingOffset = previousOffset
+                    tempItemSpacingOffset = previousOffset
+                }
                 let alert = NSAlert(error: error)
                 alert.runModal()
             }
@@ -337,10 +422,22 @@ struct GeneralSettingsPane: View {
         }
     }
 
+    /// Ask the system to log out (shows the standard confirmation dialog).
+    private func logOut() {
+        // ponytail: osascript instead of NSAppleScript/ScriptingBridge — no new
+        // entitlement, no API to maintain; confirmation dialog keeps it safe.
+        Task.detached {
+            let process = Process()
+            process.executableURL = URL(filePath: "/usr/bin/osascript")
+            process.arguments = ["-e", "tell application \"System Events\" to log out"]
+            try? process.run()
+            process.waitUntilExit()
+        }
+    }
+
     /// Reset menu bar spacing offset to default.
     private func resetOffsetToDefault() {
         tempItemSpacingOffset = 0
-        manager.itemSpacingOffset = tempItemSpacingOffset
         applyOffset()
     }
 }

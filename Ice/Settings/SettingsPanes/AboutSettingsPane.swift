@@ -19,8 +19,7 @@ struct AboutSettingsPane: View {
     }
 
     private var contributeURL: URL {
-        // swiftlint:disable:next force_unwrapping
-        URL(string: "https://github.com/jordanbaird/Ice")!
+        URL(string: "https://github.com/cavaldos/Ice") ?? URL(fileURLWithPath: "/")
     }
 
     private var issuesURL: URL {
@@ -28,8 +27,7 @@ struct AboutSettingsPane: View {
     }
 
     private var donateURL: URL {
-        // swiftlint:disable:next force_unwrapping
-        URL(string: "https://icemenubar.app/Donate")!
+        URL(string: "https://ko-fi.com/calvados") ?? URL(fileURLWithPath: "/")
     }
 
     private var lastUpdateCheckString: String {
@@ -73,7 +71,7 @@ struct AboutSettingsPane: View {
                 if let nsImage = NSImage(named: NSImage.applicationIconName) {
                     Image(nsImage: nsImage)
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
+                        .scaledToFit()
                         .frame(width: 225)
                 }
 
@@ -96,7 +94,7 @@ struct AboutSettingsPane: View {
 
     @ViewBuilder
     private var updatesSection: some View {
-        IceSection(options: .hasDividers) {
+        IceSection(options: .plain) {
             automaticallyCheckForUpdates
             automaticallyDownloadUpdates
             if updatesManager.canCheckForUpdates {
@@ -120,6 +118,12 @@ struct AboutSettingsPane: View {
             "Automatically download updates",
             isOn: updatesManager.bindings.automaticallyDownloadsUpdates
         )
+        .disabled(!updatesManager.automaticallyChecksForUpdates)
+        .annotation {
+            if !updatesManager.automaticallyChecksForUpdates {
+                Text("Turn on automatic checks to enable automatic downloads")
+            }
+        }
     }
 
     @ViewBuilder

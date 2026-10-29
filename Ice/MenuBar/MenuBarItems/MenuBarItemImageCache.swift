@@ -41,8 +41,9 @@ final class MenuBarItemImageCache: ObservableObject {
 
         if let appState {
             Publishers.Merge3(
-                // Update every 3 seconds at minimum.
-                Timer.publish(every: 3, on: .main, in: .default).autoconnect().mapToVoid(),
+                // Update every 5 seconds at minimum (was 3s: each tick did a
+                // full menu-bar CG walk even when the Ice Bar was hidden).
+                Timer.publish(every: 5, on: .main, in: .default).autoconnect().mapToVoid(),
 
                 // Update when the active space or screen parameters change.
                 Publishers.Merge(
@@ -62,10 +63,10 @@ final class MenuBarItemImageCache: ObservableObject {
                 guard let self else {
                     return
                 }
+                // ponytail: updateCache() gates on Ice Bar/settings visibility
+                // first; only then does it pay for the ScreenCapture permission scan.
                 Task.detached {
-                    if ScreenCapture.cachedCheckPermissions() {
-                        await self.updateCache()
-                    }
+                    await self.updateCache()
                 }
             }
             .store(in: &c)
@@ -227,9 +228,8 @@ final class MenuBarItemImageCache: ObservableObject {
         }
 
         let isIceBarPresented = await appState.navigationState.isIceBarPresented
-        let isSearchPresented = await appState.navigationState.isSearchPresented
 
-        if !isIceBarPresented && !isSearchPresented {
+        if !isIceBarPresented {
             guard await appState.navigationState.isAppFrontmost else {
                 logSkippingCache(reason: "Ice Bar not visible, app not frontmost")
                 return
@@ -254,6 +254,11 @@ final class MenuBarItemImageCache: ObservableObject {
             return
         }
 
+        guard ScreenCapture.cachedCheckPermissions() else {
+            logSkippingCache(reason: "missing Screen Recording permission")
+            return
+        }
+
         await updateCacheWithoutChecks(sections: sections)
     }
 
@@ -264,11 +269,10 @@ final class MenuBarItemImageCache: ObservableObject {
         }
 
         let isIceBarPresented = await appState.navigationState.isIceBarPresented
-        let isSearchPresented = await appState.navigationState.isSearchPresented
         let isSettingsPresented = await appState.navigationState.isSettingsPresented
 
         var sectionsNeedingDisplay = [MenuBarSection.Name]()
-        if isSettingsPresented || isSearchPresented {
+        if isSettingsPresented {
             sectionsNeedingDisplay = MenuBarSection.Name.allCases
         } else if
             isIceBarPresented,

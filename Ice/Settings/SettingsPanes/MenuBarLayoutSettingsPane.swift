@@ -36,8 +36,13 @@ struct MenuBarLayoutSettingsPane: View {
                 Text("Drag to arrange your menu bar items into different sections.")
                     .font(.title3.bold())
                 Group {
+                    // macOS 27 does order the items itself when it lays the bar out, but ⌘
+                    // dragging in the bar overrides it and the new order holds — measured
+                    // 2026-11-04, by hand and through a synthetic drag. What is different
+                    // there is that a concealed item is off the bar altogether, so it has to
+                    // be showing before it can be dragged.
                     if #available(macOS 27.0, *) {
-                        Text("macOS orders the items within each section.")
+                        Text("Items can also be arranged by ⌘ Command + dragging them in the menu bar, while their section is showing.")
                     } else {
                         Text("Items can also be arranged by ⌘ Command + dragging them in the menu bar.")
                     }

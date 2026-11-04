@@ -403,8 +403,12 @@ extension MenuBarItemManager {
                 return
             }
 
-            // Moving items is not supported on macOS 27 yet (plan 2), so the dividers
-            // stay where macOS placed them.
+            // Items can be moved on macOS 27 — a ⌘ drag works there, by hand and through a
+            // synthetic one (measured 2026-11-04). Ice does not do it of its own accord:
+            // the move is a gesture with the real pointer, and taking the pointer from the
+            // user to tidy the bar behind their back is not worth what it buys. So the
+            // dividers stay where macOS placed them, and on macOS 27 they are off the bar
+            // in any case (see `Concealer27.dividersMayStandAside`).
             if #unavailable(macOS 27.0) {
                 await enforceControlItemOrder(controlItems: controlItems)
             }

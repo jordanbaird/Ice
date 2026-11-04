@@ -158,6 +158,10 @@ final class MenuBarItemSpacingManager {
 
         try? await Task.sleep(for: .milliseconds(100))
 
+        // On macOS 27 this lists only the applications that publish an item, so an application
+        // whose item is concealed is not here and is not relaunched: its items keep the old
+        // spacing until it is restarted for some other reason. Decided 2026-11-04 — force
+        // quitting a hidden Slack or Telegram costs the user more than an even bar does.
         let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
         let pids = Set(items.map { $0.sourcePID ?? $0.ownerPID })
 
@@ -170,7 +174,12 @@ final class MenuBarItemSpacingManager {
                     app.bundleIdentifier != "com.apple.controlcenter", // ControlCenter handles its own relaunch, so skip it.
                     app != .current
                 else {
-                    break
+                    // `continue`, not `break`: `pids` is a `Set`, so the order is unspecified,
+                    // and breaking out here stopped the whole walk at whichever position Control
+                    // Center or Ice happened to take. The applications after them were never
+                    // relaunched and kept the old spacing, which on macOS 27 is every time —
+                    // Ice's own item is always in the list there.
+                    continue
                 }
                 group.addTask { @MainActor in
                     do {

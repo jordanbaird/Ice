@@ -61,9 +61,13 @@ Automated releases so users get Sparkle update notifications — no manual versi
 # 1. Commit your code, then create + push the tag (lints/builds first, version comes from the tag name)
 ./script/release.sh vX.Y.Z
 
-# 2. Wait for CI to go green, then publish the appcast (this is what makes users see the update)
+# 2. CI builds the release and publishes the appcast (job `update-appcast`).
+#    Only if that job fails or the secrets are missing, publish it by hand:
 ./script/update-appcast.sh vX.Y.Z
 ```
+
+The `update-appcast` CI job needs two repo secrets: `SPARKLE_PRIVATE_KEY` (contents of
+`~/.sparkle/sparkle-priv.pem`) and `ICE_RELEASES_TOKEN` (token with contents:write on `cavaldos/ice-releases`).
 
 After step 2, open `https://cavaldos.github.io/ice-releases/appcast.xml` — if the new tag is listed, you're done.
 

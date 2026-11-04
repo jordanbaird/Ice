@@ -26,7 +26,8 @@ fi
 command -v gh >/dev/null || { echo "missing gh — brew install gh"; exit 1; }
 command -v generate_appcast >/dev/null || { echo "missing generate_appcast — download Sparkle tools (see header)"; exit 1; }
 [ -z "$KEY" ] || [ -f "$KEY" ] || { echo "private key not found: '$KEY'"; exit 1; }
-[ -n "$KEY" ] && KEY_ARG=(-f "$KEY") || KEY_ARG=()
+# --ed-key-file, not -f: -f is for legacy DSA keys and rejects the EdDSA key.
+[ -n "$KEY" ] && KEY_ARG=(--ed-key-file "$KEY") || KEY_ARG=()
 PREFIX="${DOWNLOAD_URL_PREFIX:-https://github.com/cavaldos/Ice/releases/download/$TAG/}"
 
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
@@ -40,7 +41,9 @@ gh release download "$TAG" -R cavaldos/Ice -p 'Ice.zip' -D "$WORK"
 generate_appcast "${KEY_ARG[@]}" --download-url-prefix "$PREFIX" "$WORK"
 cp "$WORK/appcast.xml" "$CHECKOUT/appcast.xml"
 git -C "$CHECKOUT" add appcast.xml
-git -C "$CHECKOUT" -c user.name="$(git config user.name)" -c user.email="$(git config user.email)" \
+GIT_NAME="$(git config user.name || echo github-actions[bot])"
+GIT_EMAIL="$(git config user.email || echo github-actions[bot]@users.noreply.github.com)"
+git -C "$CHECKOUT" -c user.name="$GIT_NAME" -c user.email="$GIT_EMAIL" \
   commit -m "appcast: $TAG" >/dev/null && git -C "$CHECKOUT" push origin HEAD || echo "(nothing new to push)"
 
 echo "done — verify: https://cavaldos.github.io/ice-releases/appcast.xml contains $TAG"

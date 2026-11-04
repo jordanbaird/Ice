@@ -122,7 +122,39 @@ jobs:
           git add Casks/ice.rb
           git diff --cached --quiet || git commit -m "ice ${{ env.VERSION }}"
           git push
-# After the Release finishes, publish the appcast so installed apps see it:
-#   ./script/update-appcast.sh <tag> --key <private-key.pem>
-# (pushes appcast.xml to the ice-releases repo; SUFeedURL https://cavaldos.github.io/ice-releases/appcast.xml)
+  # Publish appcast.xml so installed apps see the update. Without this step
+  # "Check for Updates" keeps saying "You're up to date" (cavaldos/Ice#28).
+  # Needs two repo secrets:
+  #   SPARKLE_PRIVATE_KEY  contents of the EdDSA key matching SUPublicEDKey
+  #   ICE_RELEASES_TOKEN   token with contents:write on cavaldos/ice-releases
+  # Manual fallback: ./script/update-appcast.sh <tag> --key <private-key.pem>
+  update-appcast:
+    needs: release
+    runs-on: macos-26
+    if: ${{ !contains(github.ref, '-') }} # Skip for pre-releases
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Sparkle tools
+        env:
+          SPARKLE_VERSION: "2.9.6" # keep in sync with Package.resolved
+        run: |
+          mkdir -p "$RUNNER_TEMP/sparkle"
+          curl -fsSL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz" \
+            | tar -xJ -C "$RUNNER_TEMP/sparkle"
+          echo "$RUNNER_TEMP/sparkle/bin" >> $GITHUB_PATH
+      - name: Publish appcast
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          RELEASES_TOKEN: ${{ secrets.ICE_RELEASES_TOKEN }}
+        run: |
+          if [ -z "$SPARKLE_KEY" ] || [ -z "$RELEASES_TOKEN" ]; then
+            echo "::error::Set the SPARKLE_PRIVATE_KEY and ICE_RELEASES_TOKEN secrets, or run ./script/update-appcast.sh $GITHUB_REF_NAME by hand"
+            exit 1
+          fi
+          KEY_FILE="$RUNNER_TEMP/sparkle-priv.pem"
+          printf '%s' "$SPARKLE_KEY" > "$KEY_FILE"
+          ICE_RELEASES_REPO="https://x-access-token:${RELEASES_TOKEN}@github.com/cavaldos/ice-releases.git" \
+            ./script/update-appcast.sh "$GITHUB_REF_NAME" --key "$KEY_FILE"
+          rm -f "$KEY_FILE"
 # ponytail: ad-hoc signing is for internal testing only, public releases need Developer ID + notarization

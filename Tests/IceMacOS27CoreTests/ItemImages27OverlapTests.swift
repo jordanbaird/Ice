@@ -16,6 +16,17 @@ struct ItemImages27OverlapTests {
         #expect(tags == [mos.0, stats.0])
     }
 
+    /// Measured 2026-11-04: Pritunl at 1271 w=34 ends at 1305 and Docker Desktop begins at
+    /// 1303. Neighbours on a real bar touch, and rounding puts them a point or two into each
+    /// other; that is not a stale frame, and refusing both left the hidden section with no
+    /// glyphs at all.
+    @Test("Neighbours that touch by a point or two are not in conflict")
+    func touchingNeighbours() {
+        let pritunl = ("com.electron.pritunl:Item-0", CGRect(x: 1271, y: 2, width: 34, height: 24))
+        let docker = ("com.electron.dockerdesktop:Item-0", CGRect(x: 1303, y: 2, width: 45, height: 24))
+        #expect(ItemImages27.overlappingTags(frames: [pritunl.0: pritunl.1, docker.0: docker.1]).isEmpty)
+    }
+
     @Test("Items side by side are nobody's overlap")
     func neighboursAreFine() {
         let left = ("a", CGRect(x: 100, y: 2, width: 30, height: 24))

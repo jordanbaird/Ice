@@ -537,11 +537,22 @@ extension ItemImages27 {
     /// Stats' glyph — in the Ice Bar, Mos then showed a memory reading. Nothing already here
     /// catches it: `settledTags` asks whether a frame moved between two reads, and a stale
     /// frame is perfectly still.
-    static func overlappingTags(frames: [String: CGRect]) -> Set<String> {
+    /// How far two items may reach into each other and still be neighbours.
+    ///
+    /// Items on a real bar touch, and rounding between two reads puts them a point or two
+    /// over: measured 2026-11-04, Pritunl ended at 1305 and Docker Desktop began at 1303.
+    /// A stale frame is nothing like that close — Mos's lay 22 points inside a Stats module.
+    static let neighbourTolerance: CGFloat = 8
+
+    static func overlappingTags(frames: [String: CGRect], tolerance: CGFloat = neighbourTolerance) -> Set<String> {
         var overlapping = Set<String>()
         let entries = Array(frames)
         for (index, entry) in entries.enumerated() {
-            for other in entries[(index + 1)...] where entry.value.intersects(other.value) {
+            for other in entries[(index + 1)...] {
+                let shared = entry.value.intersection(other.value)
+                guard !shared.isNull, shared.width > tolerance else {
+                    continue
+                }
                 overlapping.insert(entry.key)
                 overlapping.insert(other.key)
             }

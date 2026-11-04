@@ -3,6 +3,7 @@
 //  Ice
 //
 
+import Carbon.HIToolbox
 import Cocoa
 
 /// Moves a menu bar item by simulating the user's Command-drag.
@@ -53,11 +54,28 @@ enum MenuBarItemAXMover {
                 event.post(tap: .cghidEventTap)
             }
 
+            // A mouse event can't be a flagsChanged event (creating one returns
+            // nil), so Command goes down and up as the real key.
+            func postCommand(down: Bool) {
+                guard
+                    let event = CGEvent(
+                        keyboardEventSource: eventSource,
+                        virtualKey: CGKeyCode(kVK_Command),
+                        keyDown: down
+                    )
+                else {
+                    return
+                }
+                event.type = .flagsChanged
+                event.flags = down ? .maskCommand : []
+                event.post(tap: .cghidEventTap)
+            }
+
             // Release Command on exit no matter what happens below.
             var didPressCommand = false
             defer {
                 if didPressCommand {
-                    post(.flagsChanged, at: destination, flags: [])
+                    postCommand(down: false)
                 }
             }
 
@@ -65,8 +83,8 @@ enum MenuBarItemAXMover {
             post(.mouseMoved, at: source, flags: [])
             try? await Task.sleep(for: .milliseconds(120))
 
-            // Press Command (flagsChanged) as if the user is holding the key.
-            post(.flagsChanged, at: source, flags: .maskCommand)
+            // Hold Command, as the user would.
+            postCommand(down: true)
             didPressCommand = true
             try? await Task.sleep(for: .milliseconds(80))
 
@@ -91,7 +109,7 @@ enum MenuBarItemAXMover {
 
             // Release Command and wait for the system to commit the new position
             // before restoring the cursor.
-            post(.flagsChanged, at: destination, flags: [])
+            postCommand(down: false)
             didPressCommand = false
             try? await Task.sleep(for: .milliseconds(350))
         }.value

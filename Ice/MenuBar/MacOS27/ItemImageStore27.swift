@@ -251,9 +251,14 @@ final class ItemImageStore27 {
         // mid-fade instead: the concealment applies behind them were still landing a second
         // and a half later, long after the capture judged the bar settled.
         for bundleID in bundleIDs.sorted().prefix(Self.photographsPerPass) {
-            appState.concealer27.showTemporarily(bundleID: bundleID)
-            // A shown item is drawn 0.4–0.6 s after its application is allowed (measured).
-            try? await Task.sleep(for: .milliseconds(600))
+            // Waits for the item itself rather than a fixed time: under the native switch it
+            // is taken off the bar while concealed and comes back only once MenuBarAgent has
+            // laid the bar out (see `Concealer27.showTemporarily(bundleID:untilDrawn:)`).
+            if await appState.concealer27.showTemporarily(bundleID: bundleID, untilDrawn: nil) != nil {
+                // Drawn is not yet still: the item fades in, and a tile caught mid-fade is
+                // refused for the bar left behind the glyph.
+                try? await Task.sleep(for: .milliseconds(250))
+            }
             // Forced: this capture is the point of having shown the application at all, so it
             // must not be answered by one taken before the item appeared.
             await captureActiveMenuBar(appState: appState, force: true)

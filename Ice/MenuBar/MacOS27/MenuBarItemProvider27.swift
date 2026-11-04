@@ -18,11 +18,32 @@ enum MenuBarItemProvider27 {
     /// The bundle identifier of the process that hosts the system items.
     static let menuBarAgentBundleID = "com.apple.MenuBarAgent"
 
+    /// The Accessibility identifier MenuBarAgent gives its overflow control while the overflow
+    /// is collapsed, and the one it gives the same control while it is expanded.
+    ///
+    /// Stable, unlike the control's description, which is in the user's language: "Show Hidden
+    /// Menu Bar Items" collapsed, "Hide Menu Bar Items" expanded.
+    static let overflowIndicatorIdentifier = "menu-bar-overflow-indicator"
+    static let expandedOverflowIndicatorIdentifier = "menu-bar-overflow-indicator-expanded"
+
     private struct Entry {
         let element: AXUIElement
         let bundleID: String
         let identifier: String
         let frame: CGRect
+    }
+
+    /// The system overflow control ("<<" / ">>") of one display's menu bar.
+    ///
+    /// MenuBarAgent publishes it as an `AXButton` with the identifier
+    /// ``overflowIndicatorIdentifier``, both among the children of `AXExtrasMenuBar` and,
+    /// which is what Ice reads, among the children of that display's bar window — there it
+    /// is published for the display whose menu bar is not active too (measured 2026-11-04).
+    /// It answers `AXPress`, and the press expands the overflow.
+    struct OverflowIndicator {
+        let element: AXUIElement
+        let frame: CGRect
+        let isExpanded: Bool
     }
 
     private struct RawItem {
@@ -44,6 +65,8 @@ enum MenuBarItemProvider27 {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var entries = [CGWindowID: Entry]()
     nonisolated(unsafe) private static var lastOverflowButtonFrame: CGRect?
+    /// The system overflow control of each display's bar, from the last read.
+    nonisolated(unsafe) private static var lastOverflowIndicators = [CGDirectDisplayID: OverflowIndicator]()
     nonisolated(unsafe) private static var lastSystemItemFrames = [CGRect]()
     /// System item frames per display. MenuBarAgent describes the bars of both displays in its
     /// windows, unlike other applications, whose items only have frames on the active one.
@@ -185,10 +208,43 @@ enum MenuBarItemProvider27 {
         lock.withLock { lastOverflowButtonFrame }
     }
 
+    /// The system overflow control of the given display's bar, from the last read, in the
+    /// state asked for, or `nil` if that bar has no such control.
+    static func overflowIndicator(for displayID: CGDirectDisplayID?, expanded: Bool) -> OverflowIndicator? {
+        guard let displayID else {
+            return nil
+        }
+        return lock.withLock { lastOverflowIndicators[displayID] }.flatMap { $0.isExpanded == expanded ? $0 : nil }
+    }
+
     /// The Accessibility element of the item with the given synthetic identifier, from the
     /// last read. Items drawn on another display are included (see `ItemDrawing27`).
     static func element(forWindowID windowID: CGWindowID) -> AXUIElement? {
         lock.withLock { entries[windowID]?.element }
+    }
+
+    /// The same, waiting for the item to be published if it is not there yet.
+    ///
+    /// An application the native switch has just allowed publishes its item only once
+    /// MenuBarAgent has laid the bar out again, which is not the moment the item is drawn: where
+    /// there is no room left beside the notch it is never drawn at all. Looking once was enough
+    /// while the caller had waited for the item to be drawn, and is not enough now that it gives
+    /// up on that early (measured 2026-11-04: clicks on Docker Desktop's item from the built-in
+    /// display ended in "neither drawn nor reachable through Accessibility" 1.5 s after it was
+    /// allowed).
+    static func element(forWindowID windowID: CGWindowID, waitingUpTo deadline: Duration) async -> AXUIElement? {
+        let started = ContinuousClock.now
+        while true {
+            if let element = element(forWindowID: windowID) {
+                return element
+            }
+            guard ContinuousClock.now - started < deadline else {
+                logger.notice("No item \(windowID, privacy: .public) was published within \(deadline, privacy: .public)")
+                return nil
+            }
+            try? await Task.sleep(for: .milliseconds(120))
+            _ = await items()
+        }
     }
 
     // MARK: Reading
@@ -209,6 +265,8 @@ enum MenuBarItemProvider27 {
         // is repeated once when the menu bar moves during the read.
         let activeDisplayID = Bridging.getActiveMenuBarDisplayID()
         let activeDisplayBounds = activeDisplayID.map(CGDisplayBounds)
+        // An item the bar lays out across the notch is drawn on nothing. See `NotchGeometry27`.
+        let notchXRange = NotchGeometry27.notchXRange(for: activeDisplayID)
 
         // MenuBarAgent comes first, and its frames are published before the other
         // processes are asked: a click on the clock needs them, and right after launch
@@ -290,6 +348,7 @@ enum MenuBarItemProvider27 {
                 // whichever display happens to contain the origin.
                 var framesByDisplay = [CGDirectDisplayID: [CGRect]]()
                 var entriesByDisplay = [CGDirectDisplayID: Int]()
+                var indicatorsByDisplay = [CGDirectDisplayID: OverflowIndicator]()
                 for window in elements(application, kAXWindowsAttribute) ?? [] {
                     guard let windowFrame = frame(of: window) else {
                         continue
@@ -300,10 +359,25 @@ enum MenuBarItemProvider27 {
                     guard matches > 0 else {
                         continue
                     }
+                    let windowChildren = elements(window, kAXChildrenAttribute) ?? []
                     // An entry the bar lists without geometry answers no position at all, so a
                     // missing frame is kept as an empty one: the entry is what counts.
-                    let childFrames = (elements(window, kAXChildrenAttribute) ?? []).map { child in
+                    let childFrames = windowChildren.map { child in
                         frame(of: elements(child, kAXChildrenAttribute)?.first ?? child) ?? .zero
+                    }
+                    for indicator in windowChildren {
+                        let identifier = string(indicator, kAXIdentifierAttribute)
+                        guard
+                            identifier == overflowIndicatorIdentifier || identifier == expandedOverflowIndicatorIdentifier,
+                            let indicatorFrame = frame(of: indicator)
+                        else {
+                            continue
+                        }
+                        indicatorsByDisplay[display] = OverflowIndicator(
+                            element: indicator,
+                            frame: indicatorFrame,
+                            isExpanded: identifier == expandedOverflowIndicatorIdentifier
+                        )
                     }
                     // Added to, not replaced: one window per display is what macOS 27.0 has, but
                     // a second one would otherwise take the first one's entries away with it.
@@ -327,6 +401,7 @@ enum MenuBarItemProvider27 {
                     lastSystemFramesByDisplay = perDisplay
                     lastBarFramesByDisplay = framesByDisplay
                     lastApplicationEntriesByDisplay = entriesByDisplay
+                    lastOverflowIndicators = indicatorsByDisplay
                 }
                 let systemFrames = rawItems
                     .filter { $0.bundleID == menuBarAgentBundleID && (activeDisplayBounds?.intersects($0.frame) ?? true) }
@@ -355,7 +430,12 @@ enum MenuBarItemProvider27 {
                 ownerPID: raw.pid,
                 bounds: raw.frame,
                 title: raw.title,
-                isOnScreen: ItemDrawing27.isDrawn(itemFrame: raw.frame, activeDisplayBounds: activeDisplayBounds, chevronFrame: chevronFrame)
+                isOnScreen: ItemDrawing27.isDrawn(
+                    itemFrame: raw.frame,
+                    activeDisplayBounds: activeDisplayBounds,
+                    notchXRange: notchXRange,
+                    chevronFrame: chevronFrame
+                )
             ))
         }
         // Where the items' own run of the bar begins, for hover hit-testing. Only what is

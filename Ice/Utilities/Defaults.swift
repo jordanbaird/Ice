@@ -176,6 +176,7 @@ extension Defaults {
         case macOS27IceBarWaitsForRefresh = "MacOS27IceBarWaitsForRefresh"
         case macOS27HidingMethod = "MacOS27HidingMethod"
         case macOS27NativeDisallowed = "MacOS27NativeDisallowed"
+        case macOS27RememberedItems = "MacOS27RememberedItems"
 
         // MARK: Migration
         case hasMigrated0_8_0 = "hasMigrated0_8_0"

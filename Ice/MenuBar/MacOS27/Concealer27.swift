@@ -110,6 +110,31 @@ final class Concealer27: ObservableObject {
     /// Process identifiers of the applications meant to be concealed right now.
     private(set) var concealedPIDs = Set<pid_t>()
 
+    /// Bundle identifiers of the applications meant to be concealed right now.
+    private(set) var concealedBundleIDs = Set<String>()
+
+    /// Whether Ice has read the bar once since it started.
+    ///
+    /// What Ice has not seen before it hides it, it cannot list afterwards: hiding takes the
+    /// application out of Accessibility, so a launch that concealed before its first read left
+    /// the Ice Bar with two items of eleven (seen 2026-11-04, 600 ms between Ice starting and
+    /// the first concealment). The first concealment waits for that read.
+    private var hasSeenBar = false
+
+    /// The read the first concealment is waiting for.
+    private var firstReadTask: Task<Void, Never>?
+
+    /// The items each application had when it was last seen on the bar.
+    ///
+    /// The native switch takes a concealed application out of Accessibility altogether: it
+    /// publishes no `AXExtrasMenuBar` at all while its switch is off (measured 2026-11-03), so
+    /// its items are missing from every read and Ice's cache dropped them. The Ice Bar then had
+    /// nothing to show and nothing to click, though the tiles for those very items were on disk
+    /// (seen 2026-11-04, with `hidden=` empty in the cache while eleven applications were
+    /// hidden). What Ice has hidden it still has to list, so the last account of each
+    /// application's items is kept and put back while the application is concealed.
+    private var rememberedItems = [String: [MenuBarItem]]()
+
     /// The section of each application. Applications missing from it are visible.
     private var savedLayout: [String: MacOS27Section] {
         let stored = Defaults.dictionary(forKey: .macOS27Layout) as? [String: Int] ?? [:]
@@ -146,6 +171,8 @@ final class Concealer27: ObservableObject {
             logger.error("Neither the native switch nor MenuBarClientCore assertions are available, so items will not be hidden")
             return
         }
+        NotchGeometry27.refresh()
+        loadRememberedItems()
         let workspaceCenter = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
             observers.append(workspaceCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
@@ -164,6 +191,7 @@ final class Concealer27: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
+                NotchGeometry27.refresh()
                 self?.update()
             }
         })
@@ -186,10 +214,9 @@ final class Concealer27: ObservableObject {
             }
             Task { @MainActor in
                 for (bundleID, pid) in launched {
+                    self?.showWhileLaunching(bundleID: bundleID, pid: pid)
                     if self?.backend == .native {
                         self?.reapplyWhileLaunching(bundleID: bundleID)
-                    } else {
-                        self?.showWhileLaunching(bundleID: bundleID, pid: pid)
                     }
                 }
             }
@@ -268,6 +295,25 @@ final class Concealer27: ObservableObject {
         if let suspendedUntil, ContinuousClock.now < suspendedUntil {
             return
         }
+        guard hasSeenBar || barIsKnown else {
+            // One read of the bar before anything is hidden, so that what is hidden can still
+            // be listed afterwards (see ``hasSeenBar``). A read that comes back with nothing
+            // counts too: it is the bar Ice was given, and waiting for a better one would
+            // leave the items shown.
+            if firstReadTask == nil {
+                firstReadTask = Task { [weak self] in
+                    let items = await MenuBarItemProvider27.items()
+                    guard let self else {
+                        return
+                    }
+                    remember(items: items)
+                    hasSeenBar = true
+                    firstReadTask = nil
+                    update()
+                }
+            }
+            return
+        }
         let applications = NSWorkspace.shared.runningApplications
         let running = Set(applications.compactMap(\.bundleIdentifier))
         let layout = SectionLayout27.effectiveLayout(observed: [:], saved: savedLayout, running: running)
@@ -277,6 +323,7 @@ final class Concealer27: ObservableObject {
             temporarilyShown: Set(temporarilyShown.keys)
         )
         let concealed = ConcealmentPlanner27.effectivelyConcealed(sets: target)
+        concealedBundleIDs = concealed
         isConcealing = !target.isEmpty
         // The devices are only worth asking about while Ice's own indicator would be drawn: while
         // something is hidden, and only under assessment mode. With the native switch macOS keeps
@@ -653,6 +700,148 @@ final class Concealer27: ObservableObject {
         endTemporaryShow(bundleIDs: CollectionOfOne(bundleID))
     }
 
+    /// The shortest wait before a shown item counts as drawn.
+    ///
+    /// Assessment mode leaves a concealed item in Accessibility's account of the bar, at the
+    /// frame it last had, so the moment the application is shown it reads as drawn whether it
+    /// has been laid out or not. The floor is what keeps a caller from acting on that stale
+    /// frame: an item is drawn 0.4–0.6 s after its application is allowed (measured).
+    private static let drawFloor = Duration.milliseconds(500)
+
+    /// The longest ``showTemporarily(bundleID:untilDrawn:)`` waits beyond that.
+    ///
+    /// Not every item comes back drawn. Docker Desktop's and Pritunl's are put back on the bar
+    /// where MenuBarAgent last had them, which on the built-in display is beside the notch where
+    /// nothing is drawn, and they stay undrawn however long Ice waits (measured 2026-11-04:
+    /// 4.8 s and 5.1 s, both the whole wait). Waiting past this only delays the caller's own
+    /// answer to that — expanding the system overflow and clicking what it unfolds, a press
+    /// through Accessibility, or no tile for a photograph.
+    private static let drawTimeout = Duration.milliseconds(1500)
+
+    /// When an item missing from Accessibility altogether counts as folded into the system
+    /// overflow rather than merely slow to arrive.
+    ///
+    /// An item folded into the overflow is published by nobody: its application answers no
+    /// item of its own for as long as it stays folded (measured 2026-11-04 on Docker Desktop,
+    /// `kAXErrorNoValue` through a 4.5 s wait). So absence, once an item would have arrived,
+    /// says where it is — and the caller can act on that instead of waiting out ``drawTimeout``.
+    /// The floor is what tells absence from not yet: an item that does fit was published 0.52
+    /// to 0.61 s after its application was allowed (measured 2026-11-04 over five clicks).
+    private static let foldedVerdict = Duration.milliseconds(900)
+
+    /// Shows an application and waits for its item to be drawn, for a caller about to click or
+    /// photograph it. Answers the item, or `nil` if it never appeared. Balanced by
+    /// ``endTemporaryShow(bundleID:)`` like the plain show.
+    ///
+    /// Ice waited a fixed 600 ms before, which is what an item takes to be drawn once assessment
+    /// mode stops hiding it. The native switch takes the item off the bar altogether: while an
+    /// application is concealed Accessibility reports no `AXExtrasMenuBar` for it at all
+    /// (measured 2026-11-03: ten of twelve concealed applications answered `kAXErrorNoValue`),
+    /// and the item is published again only once MenuBarAgent has laid the bar out afresh. That
+    /// took longer than the fixed wait, so a click on a hidden item ended in "neither drawn nor
+    /// reachable through Accessibility" and Ice concealed the application again while the user
+    /// watched its item appear and go.
+    ///
+    /// - Parameter windowID: The item to wait for. Any item of the application when `nil`.
+    func showTemporarily(bundleID: String, untilDrawn windowID: CGWindowID?) async -> MenuBarItem? {
+        showTemporarily(bundleID: bundleID)
+        return await drawnItem(bundleID: bundleID, windowID: windowID, floor: Self.drawFloor, timeout: Self.drawTimeout)
+    }
+
+    /// Waits for a shown application's item to be drawn, without showing it: the caller has
+    /// done that already.
+    ///
+    /// Called a second time after the system overflow is expanded, where neither wait applies
+    /// as it does to a freshly shown application — the item is published the moment it is
+    /// unfolded, so there is no floor, and it either arrives at once or not at all.
+    /// - Parameter acrossNotchIsFinal: Whether an item laid out across the notch means the wait
+    ///   is over. It does for a freshly shown application, which is put back where MenuBarAgent
+    ///   last had it and stays there. It does not after the overflow is expanded, where that is
+    ///   just where the item was while it was folded: it is laid out afresh a moment later
+    ///   (measured 2026-11-04: 0.17 s, from x=-834 across the notch to x=-1084 beside it).
+    func drawnItem(
+        bundleID: String,
+        windowID: CGWindowID?,
+        floor: Duration,
+        timeout: Duration,
+        acrossNotchIsFinal: Bool = true
+    ) async -> MenuBarItem? {
+        let started = ContinuousClock.now
+        func isWanted(_ item: MenuBarItem) -> Bool {
+            if let windowID {
+                return item.windowID == windowID
+            }
+            return item.sourceApplication?.bundleIdentifier == bundleID
+        }
+        while true {
+            let items = await MenuBarItemProvider27.items()
+            let elapsed = ContinuousClock.now - started
+            if elapsed >= floor {
+                if let drawn = items.first(where: { isWanted($0) && $0.isOnScreen && $0.bounds.width > 4 }) {
+                    logger.notice("\(bundleID, privacy: .public) drawn \(elapsed, privacy: .public) after it was shown")
+                    return drawn
+                }
+                let activeDisplayID = Bridging.getActiveMenuBarDisplayID()
+                // Nothing of the application is published, and the bar shows its overflow
+                // control: the item is folded away behind it. Expanding the overflow is the
+                // only way to reach it, and the caller can be told so now. The control is
+                // published under another identifier once expanded, so this cannot fire on
+                // the wait that follows an expansion.
+                if
+                    elapsed >= Self.foldedVerdict,
+                    !items.contains(where: isWanted),
+                    let indicator = MenuBarItemProvider27.overflowIndicator(for: activeDisplayID, expanded: false)
+                {
+                    logger.notice(
+                        """
+                        \(bundleID, privacy: .public) is folded into the system overflow at \
+                        x=\(indicator.frame.minX, privacy: .public): Accessibility has no item of it \
+                        \(elapsed, privacy: .public) after it was shown
+                        """
+                    )
+                    return nil
+                }
+                // An item the bar has laid out across the notch has arrived: it simply has
+                // nowhere to be drawn, and waiting out the timeout would only hold the caller
+                // up. See `NotchGeometry27`.
+                if
+                    acrossNotchIsFinal,
+                    let notchXRange = NotchGeometry27.notchXRange(for: activeDisplayID),
+                    let activeBounds = activeDisplayID.map(CGDisplayBounds),
+                    let acrossNotch = items.first(where: { item in
+                        isWanted(item) && item.bounds.width > 4
+                            && item.bounds.minX < notchXRange.upperBound
+                            && item.bounds.maxX > notchXRange.lowerBound
+                            && activeBounds.intersects(item.bounds)
+                    })
+                {
+                    logger.notice(
+                        """
+                        \(bundleID, privacy: .public) was laid out across the notch \
+                        at x=\(acrossNotch.bounds.minX, privacy: .public): \
+                        there is no room for it beside the notch
+                        """
+                    )
+                    return nil
+                }
+                if elapsed >= timeout {
+                    let seen = items.filter(isWanted).map { item in
+                        String(format: "[x=%.0f w=%.0f]", item.bounds.minX, item.bounds.width)
+                    }
+                    logger.notice(
+                        """
+                        \(bundleID, privacy: .public) was not drawn within \(timeout, privacy: .public); \
+                        Accessibility reports \(seen.isEmpty ? "no item of it" : seen.joined(separator: " "), privacy: .public), \
+                        system overflow button at \(MenuBarItemProvider27.overflowButtonFrame().map { String(format: "x=%.0f w=%.0f", $0.minX, $0.width) } ?? "none", privacy: .public)
+                        """
+                    )
+                    return nil
+                }
+            }
+            try? await Task.sleep(for: .milliseconds(120))
+        }
+    }
+
     /// The longest a launching application is shown while Ice waits for its item.
     private static let launchGrace = Duration.seconds(8)
 
@@ -670,9 +859,15 @@ final class Concealer27: ObservableObject {
     /// it. Items of a fixed length, Amphetamine's for one, are not affected (measured on
     /// macOS 27.0.1, 2026-10-01). Reported as jordanbaird/Ice#1007.
     ///
-    /// Assessment mode only: the native switch is consulted as the item is created, so an
-    /// application launched while hidden is not drawn at all rather than squashed (measured on
-    /// macOS 27.0.1, 2026-10-22).
+    /// The native switch spares the item that fate — MenuBarAgent consults the switch as the
+    /// item is created, so an application launched while hidden is simply not drawn (measured on
+    /// macOS 27.0.1, 2026-10-22) — but leaves a worse one in its place: an item created while
+    /// its switch is off is never published through Accessibility afterwards, not even once the
+    /// switch goes back on. Ice then has nothing to click and nothing to photograph for the Ice
+    /// Bar, and the item is only reachable by relaunching the application. Measured 2026-11-04
+    /// on Docker Desktop: its process answered `kAXErrorNoValue` through two whole reveals while
+    /// its item was plainly on the bar. So both methods show an application while it creates
+    /// its item.
     private func showWhileLaunching(bundleID: String, pid: pid_t) {
         guard
             let section = savedLayout[bundleID],
@@ -795,9 +990,11 @@ final class Concealer27: ObservableObject {
 
     /// Builds the item cache from the saved layout rather than the order on the bar.
     func cacheFromSavedLayout(items: [MenuBarItem], displayID: CGDirectDisplayID?) -> MenuBarItemManager.ItemCache {
+        remember(items: items)
         var cache = MenuBarItemManager.ItemCache(displayID: displayID)
         let layout = savedLayout
-        for item in items.sorted(by: { $0.bounds.minX < $1.bounds.minX }) where item.canBeHidden && !item.isSystemClone {
+        let all = items + concealedItemsMissing(from: items)
+        for item in all.sorted(by: { $0.bounds.minX < $1.bounds.minX }) where item.canBeHidden && !item.isSystemClone {
             if item.isControlItem {
                 if item.tag == .visibleControlItem {
                     cache[.visible].append(item)
@@ -811,6 +1008,130 @@ final class Concealer27: ObservableObject {
             }
         }
         return cache
+    }
+
+    /// Keeps the latest account of the items of every application that reported any.
+    ///
+    /// An application that reports nothing keeps the account it had: that is the concealed one
+    /// whose items are to be remembered. One whose process is gone is forgotten, so a restarted
+    /// application is never remembered by the identifiers of the process it replaced.
+    private func remember(items: [MenuBarItem]) {
+        var reported = [String: [MenuBarItem]]()
+        for item in items where !item.isControlItem && !item.isSystemClone && item.canBeHidden {
+            guard let bundleID = item.sourceApplication?.bundleIdentifier else {
+                continue
+            }
+            reported[bundleID, default: []].append(item)
+        }
+        rememberedItems.merge(reported) { _, new in new }
+        rememberedItems = rememberedItems.filter { _, items in
+            items.allSatisfy { NSRunningApplication(processIdentifier: $0.ownerPID) != nil }
+        }
+        saveRememberedItems()
+    }
+
+    /// Whether what every concealed application in the saved layout has on the bar is already
+    /// known, from this run or from the last one.
+    ///
+    /// A concealed application publishes nothing through Accessibility, so Ice can only list its
+    /// items from what it remembers. Reading the bar once before the first concealment is a race
+    /// Ice loses when the read lands before the items are published, and it leaves every item
+    /// shown while the read runs (measured 2026-11-04: 4 s at launch, and one launch in several
+    /// came up with an empty Ice Bar all the same). What was remembered last time settles both.
+    private var barIsKnown: Bool {
+        let running = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
+        return savedLayout
+            .filter { $0.value != .visible && running.contains($0.key) }
+            .keys
+            .allSatisfy { rememberedItems[$0] != nil }
+    }
+
+    /// What the remembered items were when they were last written, so that the bar's constant
+    /// small movements do not write on every read.
+    private var savedItemsSignature: String?
+
+    private func saveRememberedItems() {
+        let signature = rememberedItems
+            .flatMap { bundleID, items in items.map { "\(bundleID)|\($0.tag.title)|\($0.windowID)" } }
+            .sorted()
+            .joined(separator: "\n")
+        guard signature != savedItemsSignature else {
+            return
+        }
+        savedItemsSignature = signature
+        let stored = rememberedItems.mapValues { items in
+            items.map { item -> [String: Any] in
+                var record: [String: Any] = [
+                    "tag": item.tag.title,
+                    "windowID": NSNumber(value: item.windowID),
+                    "x": item.bounds.minX,
+                    "y": item.bounds.minY,
+                    "width": item.bounds.width,
+                    "height": item.bounds.height,
+                ]
+                if let title = item.title {
+                    record["title"] = title
+                }
+                return record
+            }
+        }
+        Defaults.set(stored, forKey: .macOS27RememberedItems)
+    }
+
+    /// Reads back what was remembered, for the applications that are running now.
+    ///
+    /// An application that has gone is dropped, like one that stops while Ice runs, so a
+    /// restarted application is never remembered by the identifiers of the process it replaced.
+    private func loadRememberedItems() {
+        guard let stored = Defaults.dictionary(forKey: .macOS27RememberedItems) as? [String: [[String: Any]]] else {
+            return
+        }
+        var pids = [String: pid_t]()
+        for application in NSWorkspace.shared.runningApplications {
+            guard let bundleID = application.bundleIdentifier else {
+                continue
+            }
+            pids[bundleID] = application.processIdentifier
+        }
+        var loaded = [String: [MenuBarItem]]()
+        for (bundleID, records) in stored {
+            guard let pid = pids[bundleID] else {
+                continue
+            }
+            let items = records.compactMap { record -> MenuBarItem? in
+                guard
+                    let tagTitle = record["tag"] as? String,
+                    let windowID = (record["windowID"] as? NSNumber)?.uint32Value,
+                    let x = record["x"] as? CGFloat,
+                    let y = record["y"] as? CGFloat,
+                    let width = record["width"] as? CGFloat,
+                    let height = record["height"] as? CGFloat
+                else {
+                    return nil
+                }
+                return MenuBarItem(
+                    tag: MenuBarItemTag(namespace: .string(bundleID), title: tagTitle),
+                    syntheticWindowID: windowID,
+                    ownerPID: pid,
+                    bounds: CGRect(x: x, y: y, width: width, height: height),
+                    title: record["title"] as? String,
+                    isOnScreen: false
+                )
+            }
+            if !items.isEmpty {
+                loaded[bundleID] = items
+            }
+        }
+        rememberedItems = loaded
+        logger.notice("Remembered \(loaded.count, privacy: .public) applications' items from the last run")
+    }
+
+    /// The remembered items of the concealed applications that this read has no account of.
+    private func concealedItemsMissing(from items: [MenuBarItem]) -> [MenuBarItem] {
+        let reported = Set(items.compactMap { $0.sourceApplication?.bundleIdentifier })
+        return rememberedItems
+            .filter { bundleID, _ in concealedBundleIDs.contains(bundleID) && !reported.contains(bundleID) }
+            .flatMap(\.value)
     }
 
     // MARK: Private

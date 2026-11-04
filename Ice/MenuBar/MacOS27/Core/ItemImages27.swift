@@ -522,3 +522,30 @@ struct PhotoSchedule27 {
         nextAttempts[bundleID] = now + (stored ? Self.minimumInterval : Self.retryInterval)
     }
 }
+
+extension ItemImages27 {
+    /// The tags of every item whose frame overlaps another item's.
+    ///
+    /// Two items cannot occupy one place on the bar, so an overlap means at least one of the
+    /// two frames is not true — in practice a concealed application's, which keeps reporting
+    /// where its item last was even while nothing of it is drawn. Which of the two is the liar
+    /// cannot be told from the frames, so neither is cropped: a glyph filed under the wrong
+    /// item is worse than no glyph, and the next pass gets it once the positions are honest.
+    ///
+    /// Measured 2026-11-04: after the item spacing moved the whole bar, Mos reported
+    /// x=1487 w=32 while a Stats module was drawn at x=1497 w=33, and Mos was stored with
+    /// Stats' glyph — in the Ice Bar, Mos then showed a memory reading. Nothing already here
+    /// catches it: `settledTags` asks whether a frame moved between two reads, and a stale
+    /// frame is perfectly still.
+    static func overlappingTags(frames: [String: CGRect]) -> Set<String> {
+        var overlapping = Set<String>()
+        let entries = Array(frames)
+        for (index, entry) in entries.enumerated() {
+            for other in entries[(index + 1)...] where entry.value.intersects(other.value) {
+                overlapping.insert(entry.key)
+                overlapping.insert(other.key)
+            }
+        }
+        return overlapping
+    }
+}

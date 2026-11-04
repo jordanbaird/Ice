@@ -192,6 +192,12 @@ final class ItemImageStore27 {
             Dictionary(items.map { ($0.tag.description, $0.bounds) }, uniquingKeysWith: { first, _ in first })
         }
         let settled = ItemImages27.settledTags(before: frames(items), after: frames(await MenuBarItemProvider27.items()))
+        // Two items in one place means one of the frames is a concealed application's stale
+        // one, and neither can say what the pixels under it belong to. See
+        // `ItemImages27.overlappingTags`.
+        let overlapping = ItemImages27.overlappingTags(
+            frames: frames(items.filter { $0.isOnScreen && !concealedPIDs.contains($0.ownerPID) })
+        )
         var skipped = 0
         var stored = 0
         // MenuBarAgent draws every glyph on a bar in one colour, white or black. Deciding which
@@ -201,6 +207,7 @@ final class ItemImageStore27 {
         for item in items where item.isOnScreen && !item.isControlItem && !concealedPIDs.contains(item.ownerPID) {
             guard
                 settled.contains(item.tag.description),
+                !overlapping.contains(item.tag.description),
                 let rect = ItemImages27.cropRect(itemFrame: item.bounds, stripFrame: stripFrame, scale: scale),
                 let crop = strip.cropping(to: rect),
                 let pixels = Self.pixels(of: crop)
@@ -214,6 +221,13 @@ final class ItemImageStore27 {
         let tone: ItemImages27.GlyphTone? = votes.light + votes.dark == 0 ? nil : (votes.light >= votes.dark ? .light : .dark)
         for item in items where item.isOnScreen && !item.isControlItem && !concealedPIDs.contains(item.ownerPID) {
             guard settled.contains(item.tag.description) else {
+                skipped += 1
+                continue
+            }
+            guard !overlapping.contains(item.tag.description) else {
+                logger.notice(
+                    "No glyph for \(item.logString, privacy: .public): another item is drawn over x=\(item.bounds.minX, privacy: .public)"
+                )
                 skipped += 1
                 continue
             }

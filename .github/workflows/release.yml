@@ -121,7 +121,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Casks/ice.rb
           git diff --cached --quiet || git commit -m "ice ${{ env.VERSION }}"
-          git push
+          # GitHub sometimes rejects pushes with a transient 500, so retry.
+          for attempt in 1 2 3 4 5; do
+            git push && exit 0
+            echo "Push failed (attempt $attempt), retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+            git pull --rebase
+          done
+          exit 1
   # Publish appcast.xml so installed apps see the update. Without this step
   # "Check for Updates" keeps saying "You're up to date" (cavaldos/Ice#28).
   # Needs two repo secrets:

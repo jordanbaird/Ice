@@ -43,8 +43,14 @@ cp "$WORK/appcast.xml" "$CHECKOUT/appcast.xml"
 git -C "$CHECKOUT" add appcast.xml
 GIT_NAME="$(git config user.name || echo github-actions[bot])"
 GIT_EMAIL="$(git config user.email || echo github-actions[bot]@users.noreply.github.com)"
-git -C "$CHECKOUT" -c user.name="$GIT_NAME" -c user.email="$GIT_EMAIL" \
-  commit -m "appcast: $TAG" >/dev/null && git -C "$CHECKOUT" push origin HEAD || echo "(nothing new to push)"
+if git -C "$CHECKOUT" diff --cached --quiet; then
+  echo "(nothing new to push)"
+else
+  # A failed push must fail the script, otherwise CI goes green without publishing.
+  git -C "$CHECKOUT" -c user.name="$GIT_NAME" -c user.email="$GIT_EMAIL" \
+    commit -m "appcast: $TAG" >/dev/null
+  git -C "$CHECKOUT" push origin HEAD
+fi
 
 echo "done — verify: https://cavaldos.github.io/ice-releases/appcast.xml contains $TAG"
 echo "note: users only auto-update if 'Automatically check for updates' is ON in About"

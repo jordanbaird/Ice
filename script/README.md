@@ -67,7 +67,7 @@ Automated releases so users get Sparkle update notifications — no manual versi
 ```
 
 The `update-appcast` CI job needs two repo secrets: `SPARKLE_PRIVATE_KEY` (contents of
-`~/.sparkle/sparkle-priv.pem`) and `ICE_RELEASES_TOKEN` (token with contents:write on `cavaldos/ice-releases`).
+`~/.sparkle/sparkle-priv.pem`) and `ICE_RELEASES_DEPLOY_KEY` (private half of a write deploy key on `cavaldos/ice-releases`).
 
 After step 2, open `https://cavaldos.github.io/ice-releases/appcast.xml` — if the new tag is listed, you're done.
 

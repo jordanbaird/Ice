@@ -132,8 +132,8 @@ jobs:
   # Publish appcast.xml so installed apps see the update. Without this step
   # "Check for Updates" keeps saying "You're up to date" (cavaldos/Ice#28).
   # Needs two repo secrets:
-  #   SPARKLE_PRIVATE_KEY  contents of the EdDSA key matching SUPublicEDKey
-  #   ICE_RELEASES_TOKEN   token with contents:write on cavaldos/ice-releases
+  #   SPARKLE_PRIVATE_KEY      contents of the EdDSA key matching SUPublicEDKey
+  #   ICE_RELEASES_DEPLOY_KEY  private SSH key of a write deploy key on cavaldos/ice-releases
   # Manual fallback: ./script/update-appcast.sh <tag> --key <private-key.pem>
   update-appcast:
     needs: release
@@ -153,15 +153,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-          RELEASES_TOKEN: ${{ secrets.ICE_RELEASES_TOKEN }}
+          DEPLOY_KEY: ${{ secrets.ICE_RELEASES_DEPLOY_KEY }}
         run: |
-          if [ -z "$SPARKLE_KEY" ] || [ -z "$RELEASES_TOKEN" ]; then
-            echo "::error::Set the SPARKLE_PRIVATE_KEY and ICE_RELEASES_TOKEN secrets, or run ./script/update-appcast.sh $GITHUB_REF_NAME by hand"
+          if [ -z "$SPARKLE_KEY" ] || [ -z "$DEPLOY_KEY" ]; then
+            echo "::error::Set the SPARKLE_PRIVATE_KEY and ICE_RELEASES_DEPLOY_KEY secrets, or run ./script/update-appcast.sh $GITHUB_REF_NAME by hand"
             exit 1
           fi
           KEY_FILE="$RUNNER_TEMP/sparkle-priv.pem"
+          SSH_KEY="$RUNNER_TEMP/ice-releases-deploy-key"
+          KNOWN_HOSTS="$RUNNER_TEMP/known_hosts"
+          trap 'rm -f "$KEY_FILE" "$SSH_KEY"' EXIT
           printf '%s' "$SPARKLE_KEY" > "$KEY_FILE"
-          ICE_RELEASES_REPO="https://x-access-token:${RELEASES_TOKEN}@github.com/cavaldos/ice-releases.git" \
+          printf '%s\n' "$DEPLOY_KEY" > "$SSH_KEY"
+          chmod 600 "$KEY_FILE" "$SSH_KEY"
+          # Pinned from https://api.github.com/meta
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > "$KNOWN_HOSTS"
+          export GIT_SSH_COMMAND="ssh -i $SSH_KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=$KNOWN_HOSTS"
+          ICE_RELEASES_REPO="git@github.com:cavaldos/ice-releases.git" \
             ./script/update-appcast.sh "$GITHUB_REF_NAME" --key "$KEY_FILE"
-          rm -f "$KEY_FILE"
 # ponytail: ad-hoc signing is for internal testing only, public releases need Developer ID + notarization

@@ -729,6 +729,11 @@ final class Concealer27: ObservableObject {
     /// to 0.61 s after its application was allowed (measured 2026-11-04 over five clicks).
     private static let foldedVerdict = Duration.milliseconds(900)
 
+    /// Below this an item is a sliver, not something the user can see or click. An item that
+    /// sizes itself to the room it is offered can settle there and never grow back
+    /// (jordanbaird/Ice#1007), and a sliver is no good to a caller about to click it.
+    private static let minimumDrawnWidth: CGFloat = 4
+
     /// Shows an application and waits for its item to be drawn, for a caller about to click or
     /// photograph it. Answers the item, or `nil` if it never appeared. Balanced by
     /// ``endTemporaryShow(bundleID:)`` like the plain show.
@@ -775,70 +780,61 @@ final class Concealer27: ObservableObject {
         }
         while true {
             let items = await MenuBarItemProvider27.items()
+            let wanted = items.filter(isWanted)
+            // Kept side by side with the frames handed to the verdict, so the item the
+            // verdict names comes back by index rather than by looking a frame up again.
+            let drawn = wanted.filter(\.isOnScreen)
+            let undrawn = wanted.filter { !$0.isOnScreen }
+            let activeDisplayID = Bridging.getActiveMenuBarDisplayID()
+            let indicator = MenuBarItemProvider27.overflowIndicator(for: activeDisplayID, expanded: false)
             let elapsed = ContinuousClock.now - started
-            if elapsed >= floor {
-                if let drawn = items.first(where: { isWanted($0) && $0.isOnScreen && $0.bounds.width > 4 }) {
-                    logger.notice("\(bundleID, privacy: .public) drawn \(elapsed, privacy: .public) after it was shown")
-                    return drawn
-                }
-                let activeDisplayID = Bridging.getActiveMenuBarDisplayID()
-                // Nothing of the application is published, and the bar shows its overflow
-                // control: the item is folded away behind it. Expanding the overflow is the
-                // only way to reach it, and the caller can be told so now. The control is
-                // published under another identifier once expanded, so this cannot fire on
-                // the wait that follows an expansion.
-                if
-                    elapsed >= Self.foldedVerdict,
-                    !items.contains(where: isWanted),
-                    let indicator = MenuBarItemProvider27.overflowIndicator(for: activeDisplayID, expanded: false)
-                {
-                    logger.notice(
-                        """
-                        \(bundleID, privacy: .public) is folded into the system overflow at \
-                        x=\(indicator.frame.minX, privacy: .public): Accessibility has no item of it \
-                        \(elapsed, privacy: .public) after it was shown
-                        """
-                    )
-                    return nil
-                }
-                // An item the bar has laid out across the notch has arrived: it simply has
-                // nowhere to be drawn, and waiting out the timeout would only hold the caller
-                // up. See `NotchGeometry27`.
-                if
-                    acrossNotchIsFinal,
-                    let notchXRange = NotchGeometry27.notchXRange(for: activeDisplayID),
-                    let activeBounds = activeDisplayID.map(CGDisplayBounds),
-                    let acrossNotch = items.first(where: { item in
-                        isWanted(item) && item.bounds.width > 4
-                            && item.bounds.minX < notchXRange.upperBound
-                            && item.bounds.maxX > notchXRange.lowerBound
-                            && activeBounds.intersects(item.bounds)
-                    })
-                {
-                    logger.notice(
-                        """
-                        \(bundleID, privacy: .public) was laid out across the notch \
-                        at x=\(acrossNotch.bounds.minX, privacy: .public): \
-                        there is no room for it beside the notch
-                        """
-                    )
-                    return nil
-                }
-                if elapsed >= timeout {
-                    let seen = items.filter(isWanted).map { item in
-                        String(format: "[x=%.0f w=%.0f]", item.bounds.minX, item.bounds.width)
-                    }
-                    logger.notice(
-                        """
-                        \(bundleID, privacy: .public) was not drawn within \(timeout, privacy: .public); \
-                        Accessibility reports \(seen.isEmpty ? "no item of it" : seen.joined(separator: " "), privacy: .public), \
-                        system overflow button at \(MenuBarItemProvider27.overflowButtonFrame().map { String(format: "x=%.0f w=%.0f", $0.minX, $0.width) } ?? "none", privacy: .public)
-                        """
-                    )
-                    return nil
-                }
+            let verdict = DrawWait27.verdict(DrawWait27.Input(
+                elapsed: elapsed,
+                floor: floor,
+                timeout: timeout,
+                foldedVerdict: Self.foldedVerdict,
+                drawnFrames: drawn.map(\.bounds),
+                undrawnFrames: undrawn.map(\.bounds),
+                minimumWidth: Self.minimumDrawnWidth,
+                notchXRange: NotchGeometry27.notchXRange(for: activeDisplayID),
+                activeDisplayBounds: activeDisplayID.map(CGDisplayBounds),
+                hasCollapsedOverflow: indicator != nil,
+                acrossNotchIsFinal: acrossNotchIsFinal
+            ))
+            switch verdict {
+            case .keepWaiting:
+                try? await Task.sleep(for: .milliseconds(120))
+            case .drawn(let index):
+                logger.notice("\(bundleID, privacy: .public) drawn \(elapsed, privacy: .public) after it was shown")
+                return drawn[index]
+            case .folded:
+                logger.notice(
+                    """
+                    \(bundleID, privacy: .public) is folded into the system overflow at \
+                    x=\(indicator?.frame.minX ?? 0, privacy: .public): Accessibility has no item of it \
+                    \(elapsed, privacy: .public) after it was shown
+                    """
+                )
+                return nil
+            case .acrossNotch(let frame):
+                logger.notice(
+                    """
+                    \(bundleID, privacy: .public) was laid out across the notch \
+                    at x=\(frame.minX, privacy: .public): there is no room for it beside the notch
+                    """
+                )
+                return nil
+            case .timedOut:
+                let seen = wanted.map { String(format: "[x=%.0f w=%.0f]", $0.bounds.minX, $0.bounds.width) }
+                logger.notice(
+                    """
+                    \(bundleID, privacy: .public) was not drawn within \(timeout, privacy: .public); \
+                    Accessibility reports \(seen.isEmpty ? "no item of it" : seen.joined(separator: " "), privacy: .public), \
+                    system overflow button at \(MenuBarItemProvider27.overflowButtonFrame().map { String(format: "x=%.0f w=%.0f", $0.minX, $0.width) } ?? "none", privacy: .public)
+                    """
+                )
+                return nil
             }
-            try? await Task.sleep(for: .milliseconds(120))
         }
     }
 

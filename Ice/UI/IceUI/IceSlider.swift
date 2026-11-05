@@ -3,10 +3,9 @@
 //  Ice
 //
 
-import CompactSlider
 import SwiftUI
 
-struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View>: View {
+struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View>: View where Value.Stride: BinaryFloatingPoint {
     @Binding private var value: Value
 
     private let bounds: ClosedRange<Value>
@@ -37,36 +36,20 @@ struct IceSlider<Value: BinaryFloatingPoint, ValueLabel: View>: View {
         self.valueLabel = Text(valueLabelKey)
     }
 
-    private var borderShape: some InsettableShape {
-        if #available(macOS 26.0, *) {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-        } else {
-            RoundedRectangle(cornerRadius: 5, style: .circular)
-        }
-    }
-
-    private var height: CGFloat {
-        if #available(macOS 26.0, *) { 24 } else { 22 }
-    }
-
     var body: some View {
-        CompactSlider(
-            value: $value,
-            in: bounds,
-            step: step ?? 0,
-            handleVisibility: .hovering(width: 0),
-            minHeight: 0,
-            gestureOptions: .default.subtracting([.scrollWheel])
-        ) {
+        HStack {
+            slider
             valueLabel
-                .frame(height: height)
+                .foregroundStyle(.secondary)
         }
-        .compactSliderDisabledHapticFeedback(true)
-        .compactSliderSecondaryColor(
-            progressColor: .accentColor.opacity(0.5),
-            focusedProgressColor: .accentColor.opacity(0.75)
-        )
-        .clipShape(borderShape)
-        .contentShape([.interaction, .focusEffect], borderShape)
+    }
+
+    @ViewBuilder
+    private var slider: some View {
+        if let step, step > 0 {
+            Slider(value: $value, in: bounds, step: Value.Stride(step))
+        } else {
+            Slider(value: $value, in: bounds)
+        }
     }
 }

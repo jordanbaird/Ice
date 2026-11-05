@@ -1,5 +1,5 @@
 {
-  "originHash" : "977d7500481760b6dc046c9b6e7def6420058990c9c91809fa741c67a8f83c48",
+  "originHash" : "5673ef9120e0c080bfd79f2a3ed603fe4a0dcfcd81c5c797900218f4a88fd2c0",
   "pins" : [
     {
       "identity" : "axswift",
@@ -8,15 +8,6 @@
       "state" : {
         "revision" : "81dcc36aced905d6464cc25e35f8d13184bbf21c",
         "version" : "0.3.2"
-      }
-    },
-    {
-      "identity" : "compactslider",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/buh/CompactSlider",
-      "state" : {
-        "revision" : "e5219ff353613b6493bfe5a3333c3bfa2d1e4d57",
-        "version" : "1.2.1"
       }
     },
     {

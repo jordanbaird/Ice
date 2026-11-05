@@ -133,7 +133,7 @@ final class Concealer27: ObservableObject {
     /// (seen 2026-11-04, with `hidden=` empty in the cache while eleven applications were
     /// hidden). What Ice has hidden it still has to list, so the last account of each
     /// application's items is kept and put back while the application is concealed.
-    private var rememberedItems = [String: [MenuBarItem]]()
+    private let rememberedItemStore = RememberedItemStore27()
 
     /// The section of each application. Applications missing from it are visible.
     private var savedLayout: [String: MacOS27Section] {
@@ -172,7 +172,7 @@ final class Concealer27: ObservableObject {
             return
         }
         NotchGeometry27.refresh()
-        loadRememberedItems()
+        rememberedItemStore.load()
         let workspaceCenter = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
             observers.append(workspaceCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
@@ -1032,18 +1032,7 @@ final class Concealer27: ObservableObject {
     /// whose items are to be remembered. One whose process is gone is forgotten, so a restarted
     /// application is never remembered by the identifiers of the process it replaced.
     private func remember(items: [MenuBarItem]) {
-        var reported = [String: [MenuBarItem]]()
-        for item in items where !item.isControlItem && !item.isSystemClone && item.canBeHidden {
-            guard let bundleID = item.sourceApplication?.bundleIdentifier else {
-                continue
-            }
-            reported[bundleID, default: []].append(item)
-        }
-        rememberedItems.merge(reported) { _, new in new }
-        rememberedItems = rememberedItems.filter { _, items in
-            items.allSatisfy { NSRunningApplication(processIdentifier: $0.ownerPID) != nil }
-        }
-        saveRememberedItems()
+        rememberedItemStore.remember(items)
     }
 
     /// Whether what every concealed application in the saved layout has on the bar is already
@@ -1056,98 +1045,14 @@ final class Concealer27: ObservableObject {
     /// came up with an empty Ice Bar all the same). What was remembered last time settles both.
     private var barIsKnown: Bool {
         let running = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
-        return savedLayout
-            .filter { $0.value != .visible && running.contains($0.key) }
-            .keys
-            .allSatisfy { rememberedItems[$0] != nil }
-    }
-
-    /// What the remembered items were when they were last written, so that the bar's constant
-    /// small movements do not write on every read.
-    private var savedItemsSignature: String?
-
-    private func saveRememberedItems() {
-        let signature = rememberedItems
-            .flatMap { bundleID, items in items.map { "\(bundleID)|\($0.tag.title)|\($0.windowID)" } }
-            .sorted()
-            .joined(separator: "\n")
-        guard signature != savedItemsSignature else {
-            return
-        }
-        savedItemsSignature = signature
-        let stored = rememberedItems.mapValues { items in
-            items.map { item -> [String: Any] in
-                var record: [String: Any] = [
-                    "tag": item.tag.title,
-                    "windowID": NSNumber(value: item.windowID),
-                    "x": item.bounds.minX,
-                    "y": item.bounds.minY,
-                    "width": item.bounds.width,
-                    "height": item.bounds.height,
-                ]
-                if let title = item.title {
-                    record["title"] = title
-                }
-                return record
-            }
-        }
-        Defaults.set(stored, forKey: .macOS27RememberedItems)
-    }
-
-    /// Reads back what was remembered, for the applications that are running now.
-    ///
-    /// An application that has gone is dropped, like one that stops while Ice runs, so a
-    /// restarted application is never remembered by the identifiers of the process it replaced.
-    private func loadRememberedItems() {
-        guard let stored = Defaults.dictionary(forKey: .macOS27RememberedItems) as? [String: [[String: Any]]] else {
-            return
-        }
-        var pids = [String: pid_t]()
-        for application in NSWorkspace.shared.runningApplications {
-            guard let bundleID = application.bundleIdentifier else {
-                continue
-            }
-            pids[bundleID] = application.processIdentifier
-        }
-        var loaded = [String: [MenuBarItem]]()
-        for (bundleID, records) in stored {
-            guard let pid = pids[bundleID] else {
-                continue
-            }
-            let items = records.compactMap { record -> MenuBarItem? in
-                guard
-                    let tagTitle = record["tag"] as? String,
-                    let windowID = (record["windowID"] as? NSNumber)?.uint32Value,
-                    let x = record["x"] as? CGFloat,
-                    let y = record["y"] as? CGFloat,
-                    let width = record["width"] as? CGFloat,
-                    let height = record["height"] as? CGFloat
-                else {
-                    return nil
-                }
-                return MenuBarItem(
-                    tag: MenuBarItemTag(namespace: .string(bundleID), title: tagTitle),
-                    syntheticWindowID: windowID,
-                    ownerPID: pid,
-                    bounds: CGRect(x: x, y: y, width: width, height: height),
-                    title: record["title"] as? String,
-                    isOnScreen: false
-                )
-            }
-            if !items.isEmpty {
-                loaded[bundleID] = items
-            }
-        }
-        rememberedItems = loaded
-        logger.notice("Remembered \(loaded.count, privacy: .public) applications' items from the last run")
+        return rememberedItemStore.knowsEveryItem(
+            of: savedLayout.filter { $0.value != .visible && running.contains($0.key) }.keys
+        )
     }
 
     /// The remembered items of the concealed applications that this read has no account of.
     private func concealedItemsMissing(from items: [MenuBarItem]) -> [MenuBarItem] {
-        let reported = Set(items.compactMap { $0.sourceApplication?.bundleIdentifier })
-        return rememberedItems
-            .filter { bundleID, _ in concealedBundleIDs.contains(bundleID) && !reported.contains(bundleID) }
-            .flatMap(\.value)
+        rememberedItemStore.items(ofConcealed: concealedBundleIDs, missingFrom: items)
     }
 
     // MARK: Private

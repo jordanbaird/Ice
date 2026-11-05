@@ -97,11 +97,15 @@ extension MenuBarItemService {
                 if let session {
                     return session
                 }
-                // Don't set peer requirement - works with ad-hoc signing
                 let session = try XPCSession(xpcService: name, options: .inactive) { [weak self] error in
-                    guard let self else { return }
+                    guard let self else {
+                        return
+                    }
                     logger.warning("Session was cancelled with error \(error.localizedDescription)")
                     self.session = nil
+                }
+                if CodeSigningInfo.canRequireSameTeam {
+                    session.setPeerRequirement(.isFromSameTeam())
                 }
                 session.setTargetQueue(queue)
                 try session.activate()

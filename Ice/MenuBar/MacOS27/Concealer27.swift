@@ -900,7 +900,27 @@ final class Concealer27: ObservableObject {
                 let items = await MenuBarItemProvider27.items()
                 let now = ContinuousClock.now
                 for (bundleID, entry) in launching {
-                    if let item = items.first(where: { $0.ownerPID == entry.pid && $0.bounds.width > 4 }) {
+                    // The process is looked up afresh on every tick rather than kept from the
+                    // moment the window opened: changing the item spacing quits and relaunches
+                    // every application that has an item, so the application comes back under
+                    // another pid and its new item belongs to that one. Matching on the pid the
+                    // window opened on meant a relaunched application's item was never
+                    // recognised and the window always ran to its full deadline, leaving the
+                    // application shown for eight seconds instead of until its item existed
+                    // (measured 2026-11-04 on Docker Desktop).
+                    //
+                    // An application that is not listed at all keeps the pid it started with and
+                    // keeps its window open until the deadline. Reading "not listed" as "gone"
+                    // and concealing it there broke the bar once already: that gap is the moment
+                    // between the old process dying and the new one appearing, which is the
+                    // middle of a relaunch — exactly when the item being created must not be
+                    // concealed, because an item created while its application is concealed is
+                    // never published afterwards.
+                    let pid = NSRunningApplication
+                        .runningApplications(withBundleIdentifier: bundleID)
+                        .first?
+                        .processIdentifier ?? entry.pid
+                    if let item = items.first(where: { $0.ownerPID == pid && $0.bounds.width > 4 }) {
                         endLaunchGrace(bundleID: bundleID, width: item.bounds.width)
                     } else if now > entry.deadline {
                         endLaunchGrace(bundleID: bundleID, width: 0)

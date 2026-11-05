@@ -50,8 +50,14 @@ struct GeneralSettingsPane: View {
             IceSection {
                 rehideOptions
             }
-            IceSection {
-                spacingOptions
+            if #unavailable(macOS 27.0) {
+                IceSection {
+                    spacingOptions
+                }
+            } else {
+                IceSection {
+                    spacingUnavailable
+                }
             }
         }
     }
@@ -263,6 +269,35 @@ struct GeneralSettingsPane: View {
     }
 
     // MARK: Spacing Options
+
+    /// Says why macOS 27 is not offered the spacing control, rather than leaving a gap where a
+    /// setting used to be.
+    ///
+    /// AppKit reads `NSStatusItemSpacing` as a status item is created and never again, so the
+    /// only way to change the gap is to quit and start every application that has an item.
+    /// Nothing cheaper works: `killall MenuBarAgent` does not re-apply it, although MenuBarAgent
+    /// is what draws the items on macOS 27 (measured 2026-11-04). And a concealed application
+    /// publishes no item at all there, so it is not in the list to relaunch and keeps the old
+    /// spacing until it restarts for some other reason — the bar carries two spacings at once,
+    /// and evening it out would mean force quitting applications the user cannot see. The user's
+    /// call, 2026-11-05: relaunching everything to move the icons two points is not a trade worth
+    /// offering, so the control is gone rather than present and disappointing.
+    ///
+    /// ``MenuBarItemSpacingManager`` stays as it is for macOS 26, where a relaunch reaches every
+    /// application that has an item.
+    @ViewBuilder
+    private var spacingUnavailable: some View {
+        Text("Menu bar item spacing")
+            .annotation(
+                """
+                macOS 27 fixes an item's spacing when its application creates it, so changing it \
+                would mean quitting and starting every application that has one — and an \
+                application whose item is hidden publishes nothing to relaunch, so it would keep \
+                the old spacing regardless. Ice does not offer it here.
+                """,
+                spacing: 2
+            )
+    }
 
     @ViewBuilder
     private var spacingOptions: some View {

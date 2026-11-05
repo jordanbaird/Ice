@@ -75,3 +75,35 @@ enum StuckOverflow27 {
         expectedApplicationItems > 0 && drawnApplicationItems < expectedApplicationItems
     }
 }
+
+extension StuckOverflow27 {
+    /// Counts readings in a row that disagree with the state Ice is showing, and fires once
+    /// when it has seen enough of them.
+    ///
+    /// A single reading is not worth acting on: a read that catches the bar mid-change comes
+    /// back with one item or none, and flipping the warning on that makes it blink at the user
+    /// while nothing is wrong. The threshold the concealer used is two (measured 2026-11-04,
+    /// `Concealer27`), and the run starts over once it fires.
+    struct DisagreementCounter: Equatable {
+        private let threshold: Int
+        private(set) var count = 0
+
+        init(threshold: Int) {
+            self.threshold = threshold
+        }
+
+        /// Returns `true` on the reading that completes a run, and starts over.
+        mutating func record(disagrees: Bool) -> Bool {
+            guard disagrees else {
+                count = 0
+                return false
+            }
+            count += 1
+            guard count >= threshold else {
+                return false
+            }
+            count = 0
+            return true
+        }
+    }
+}

@@ -405,11 +405,11 @@ final class Concealer27: ObservableObject {
         }
     }
 
-    /// How many checks in a row have disagreed with ``isOverflowStuck``.
+    /// How many readings in a row must disagree with what Ice is showing before it flips.
     ///
     /// A single read can catch the bar mid-animation and count wrongly, and the notice flickered
-    /// on and off every few seconds because of it. Two in agreement are needed to change it.
-    private var stuckDisagreements = 0
+    /// on and off every few seconds because of it. See ``StuckOverflow27/DisagreementCounter``.
+    private var stuckDisagreements = StuckOverflow27.DisagreementCounter(threshold: 2)
 
     /// Whether a notched bar looks stuck with items folded away and no way to reach them.
     ///
@@ -439,7 +439,7 @@ final class Concealer27: ObservableObject {
             // Folded items with no way back were an artefact of assessment mode: the native
             // switch gives the room back as MenuBarAgent lays the bar out, so there is nothing
             // to watch for, and a notice left over from the other method goes with it.
-            stuckDisagreements = 0
+            _ = stuckDisagreements.record(disagrees: false)
             if isOverflowStuck {
                 isOverflowStuck = false
             }
@@ -519,15 +519,9 @@ final class Concealer27: ObservableObject {
         if !candidates.isEmpty, candidates.map(\.bundleID) != visibleApplications.map(\.bundleID) {
             visibleApplications = candidates
         }
-        guard stuck != isOverflowStuck else {
-            stuckDisagreements = 0
+        guard stuckDisagreements.record(disagrees: stuck != isOverflowStuck) else {
             return
         }
-        stuckDisagreements += 1
-        guard stuckDisagreements >= 2 else {
-            return
-        }
-        stuckDisagreements = 0
         isOverflowStuck = stuck
         if stuck {
             logger.notice("A notched bar looks stuck: items folded away with no overflow button")

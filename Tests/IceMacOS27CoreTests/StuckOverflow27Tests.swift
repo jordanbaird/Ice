@@ -124,3 +124,37 @@ struct StuckOverflowByCount27Tests {
         #expect(!StuckOverflow27.isStuck(drawnApplicationItems: 0, expectedApplicationItems: 0))
     }
 }
+
+/// Measured behaviour of the counter this replaces (`Concealer27`, 2026-11-04): two readings
+/// in a row that disagree with the state Ice is showing flip it, and the run then starts over.
+@Suite("Stuck overflow disagreement counter")
+struct StuckOverflow27DisagreementCounterTests {
+    @Test("A run shorter than the threshold does not fire")
+    func shortRun() {
+        var counter = StuckOverflow27.DisagreementCounter(threshold: 2)
+        #expect(counter.record(disagrees: true) == false)
+    }
+
+    @Test("The threshold fires once")
+    func thresholdFires() {
+        var counter = StuckOverflow27.DisagreementCounter(threshold: 2)
+        _ = counter.record(disagrees: true)
+        #expect(counter.record(disagrees: true) == true)
+    }
+
+    @Test("Firing starts the run over")
+    func firingResets() {
+        var counter = StuckOverflow27.DisagreementCounter(threshold: 2)
+        _ = counter.record(disagrees: true)
+        _ = counter.record(disagrees: true)
+        #expect(counter.record(disagrees: true) == false)
+    }
+
+    @Test("One agreement clears the run")
+    func agreementClearsTheRun() {
+        var counter = StuckOverflow27.DisagreementCounter(threshold: 2)
+        _ = counter.record(disagrees: true)
+        _ = counter.record(disagrees: false)
+        #expect(counter.record(disagrees: true) == false)
+    }
+}

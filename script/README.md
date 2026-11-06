@@ -72,10 +72,15 @@ Automated releases so users get Sparkle update notifications — no manual versi
 ./script/update-appcast.sh vX.Y.Z
 ```
 
-The `update-appcast` CI job needs two repo secrets: `SPARKLE_PRIVATE_KEY` (contents of
-`~/.sparkle/sparkle-priv.pem`) and `ICE_RELEASES_DEPLOY_KEY` (private half of a write deploy key on `cavaldos/ice-releases`).
+The `update-appcast` CI job needs three repo secrets: `SPARKLE_PRIVATE_KEY` (contents of
+`~/.sparkle/sparkle-priv.pem`), `MACOS_APP_RELEASES_DEPLOY_KEY` (private half of a write deploy key on `cavaldos/macos-app-releases`)
+and `ICE_RELEASES_DEPLOY_KEY` (same for `cavaldos/ice-releases`).
 
-After step 2, open `https://cavaldos.github.io/ice-releases/appcast.xml` — if the new tag is listed, you're done.
+The feed lives in `ice/appcast.xml` of `cavaldos/macos-app-releases`, shared with other apps. Ice v0.11.35 and older
+still read `cavaldos/ice-releases`, so the script mirrors the appcast there. Once most users are on a newer
+version, set `LEGACY_REPO=""` in `update-appcast.sh`, drop `ICE_RELEASES_DEPLOY_KEY` from CI, and delete that repo.
+
+After step 2, open `https://cavaldos.github.io/macos-app-releases/ice/appcast.xml` — if the new tag is listed, you're done.
 
 ## Tag rules
 
@@ -88,7 +93,7 @@ After step 2, open `https://cavaldos.github.io/ice-releases/appcast.xml` — if 
 * `gh` logged in (`gh auth login`) and the `generate_appcast` tool (from the Sparkle 2.x dist).
 * The private key matching `SUPublicEDKey` in `Ice/Info.plist`: uses the Keychain key by default;
   pass `--key ~/.sparkle/sparkle-priv.pem` (or export `SPARKLE_PRIVATE_KEY`) if the key lives in a file.
-* First run only: the `cavaldos/ice-releases` repo must exist with GitHub Pages enabled (already done).
+* Push access to `cavaldos/macos-app-releases` and `cavaldos/ice-releases` (both serve GitHub Pages).
 
 ## No update showing? Check
 

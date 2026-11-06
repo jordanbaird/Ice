@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>SUFeedURL</key>
-	<string>https://cavaldos.github.io/ice-releases/appcast.xml</string>
+	<string>https://cavaldos.github.io/macos-app-releases/ice/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>5giXQMfuJxsXCpuCn1XxL2IFkBoSiNMiP4rNwAanT7A=</string>
 	<key>SUEnableAutomaticChecks</key>

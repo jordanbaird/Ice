@@ -193,6 +193,81 @@ enum MenuBarItemAXDiscovery {
         }
     }
 
+    /// Frames (AX coordinates) of the menu bar items the given processes
+    /// draw, for measuring the bar rather than listing it.
+    ///
+    /// Reads no names, and gives each app a short timeout, so a hung app
+    /// costs a quarter second instead of a full one. Items in overflow report
+    /// no frame and are left out. An item hidden by the concealer's
+    /// assessment mode keeps reporting its old frame, so callers leave those
+    /// apps out of `pids`.
+    static func itemFrames(ofProcesses pids: [pid_t]) -> [(pid: pid_t, frame: CGRect)] {
+        guard isTrusted() else {
+            return []
+        }
+        var result = [(pid: pid_t, frame: CGRect)]()
+        var visited = 0
+        for pid in pids {
+            guard visited < maxElementsVisited else {
+                break
+            }
+            let axApp = AXUIElementCreateApplication(pid)
+            AXUIElementSetMessagingTimeout(axApp, 0.25)
+            var bar: AnyObject?
+            guard
+                AXUIElementCopyAttributeValue(axApp, "AXExtrasMenuBar" as CFString, &bar) == .success,
+                let bar,
+                CFGetTypeID(bar) == AXUIElementGetTypeID()
+            else {
+                continue
+            }
+            // swiftlint:disable:next force_cast
+            let barElement = bar as! AXUIElement
+            collectItemFrames(from: barElement, pid: pid, depth: maxWalkDepth, visited: &visited, into: &result)
+        }
+        return result
+    }
+
+    /// Collects item frames the way `collectItems` collects items: records
+    /// `AXMenuBarItem`s without descending, skips dropdown content, and
+    /// descends wrappers.
+    private static func collectItemFrames(
+        from element: AXUIElement,
+        pid: pid_t,
+        depth: Int,
+        visited: inout Int,
+        into result: inout [(pid: pid_t, frame: CGRect)]
+    ) {
+        guard depth > 0, visited < maxElementsVisited else {
+            return
+        }
+        visited += 1
+
+        let role = stringAttribute(kAXRoleAttribute as CFString, of: element)
+
+        guard role != "AXMenu", role != "AXMenuItem" else {
+            return
+        }
+
+        if role == "AXMenuBarItem" {
+            if let frame = frame(of: element) {
+                result.append((pid, frame))
+            }
+            return
+        }
+
+        var children: AnyObject?
+        guard
+            AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &children) == .success,
+            let elements = children as? [AXUIElement]
+        else {
+            return
+        }
+        for child in elements {
+            collectItemFrames(from: child, pid: pid, depth: depth - 1, visited: &visited, into: &result)
+        }
+    }
+
     /// Presses (AXPress) the exact menu bar item retained during discovery.
     ///
     /// Used for the Ice Bar on macOS 27: with no CGS window left for temp-show +

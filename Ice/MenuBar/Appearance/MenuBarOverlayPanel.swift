@@ -1407,13 +1407,14 @@ final class MenuBarOverlayPanelContentView: NSView {
         // Never collapse to 0 while a stale-but-sane value exists: a
         // slightly wrong pill is far less jarring than a disappearing one.
         let previous = cached?.width ?? Self.settledWidth(for: display, level: levelAtStart) ?? 0
+        let listedPIDs = listedProcessIDs()
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             if let verdict {
                 // Fast local re-measure ahead of the full sweep. Main-queue
                 // FIFO applies this before the sweep's completion below.
                 self?.applyQuickLeadingEdge(for: display, verdict: verdict)
             }
-            let result = Self.trailingStatusWidthFallback(for: display)
+            let result = Self.trailingStatusWidthFallback(for: display, listedPIDs: listedPIDs)
             let width = result?.width ?? previous
             DispatchQueue.main.async { [weak self] in
                 // Shared state first: the result survives even if this view
@@ -1446,10 +1447,10 @@ final class MenuBarOverlayPanelContentView: NSView {
                     let origin = Self.toggleOriginWidth[display],
                     let predicted = Self.predictiveTarget[display],
                     abs(predicted - origin) > 20,
-                    abs(width - origin) < abs(width - predicted)
+                    Self.lagsBehindPrediction(width, origin: origin, predicted: predicted)
                 {
-                    // AX still shows the pre-toggle layout. Hold the
-                    // prediction and look again; once the burst ends the
+                    // AX still shows (part of) the pre-toggle layout. Hold
+                    // the prediction and look again; once the burst ends the
                     // measurement wins regardless.
                     Logger.overlayPanel.debug("Scan dropped (stale): measured=\(width) origin=\(origin) predictive=\(predicted)")
                     self?.refreshTrailingStatusWidth(for: display, force: true)
@@ -1494,6 +1495,40 @@ final class MenuBarOverlayPanelContentView: NSView {
         }
     }
 
+    /// Whether a width measured while a predicted toggle settles still shows
+    /// part of the layout the toggle left.
+    ///
+    /// AX lags the icons. On a collapse, MenuBarAgent keeps reporting a
+    /// hidden item at its old frame for up to ~1s after the item slid away
+    /// (measured on macOS 27.2), so the first sweep after the slide lands
+    /// between the prediction and the origin. Accepting it made the pill
+    /// shrink with the icons, bulge back out by that one icon, then shrink
+    /// again. A width on the origin side of the prediction is held until the
+    /// burst ends; a width past the prediction is real (the prediction was
+    /// short) and is applied at once.
+    private static func lagsBehindPrediction(_ width: CGFloat, origin: CGFloat, predicted: CGFloat) -> Bool {
+        // Narrower than any icon, so rounding and pad noise never count.
+        let tolerance: CGFloat = 8
+        return predicted < origin
+            ? width > predicted + tolerance
+            : width < predicted - tolerance
+    }
+
+    /// Processes whose menu bar items `listedLeadingEdge` may read: every
+    /// running app except the ones the concealer hides, whose items keep
+    /// reporting the frames they had on the bar.
+    ///
+    /// Read here, on the main thread, where both lists live.
+    private func listedProcessIDs() -> [pid_t] {
+        let concealed = overlayPanel?.appState?.menuBarManager.concealer.concealedBundleIDs ?? []
+        return NSWorkspace.shared.runningApplications.compactMap { app in
+            if let bundleID = app.bundleIdentifier, concealed.contains(bundleID) {
+                return nil
+            }
+            return app.processIdentifier
+        }
+    }
+
     /// Runs one forced rescan for the display once the slide lands.
     ///
     /// Draws call `refreshTrailingStatusWidth` every frame while the pill
@@ -1517,6 +1552,12 @@ final class MenuBarOverlayPanelContentView: NSView {
     /// frozen; collapse resumes once focus leaves (panel closed). Steady state
     /// only ever shows the Menubar base and Ice's own overlay here, so both
     /// are excluded.
+    ///
+    /// Only a window that can sit over the icons counts: one ordered below
+    /// the menu bar never takes a probe, and a fully transparent one hangs
+    /// over nothing. Counting them would hold every scan for as long as such
+    /// a window stays up, and a display without a notch has no fallback pill
+    /// to show meanwhile.
     private static func isStripOccluded(display: CGDirectDisplayID) -> Bool {
         let bounds = CGDisplayBounds(display)
         guard bounds.width > 0 else {
@@ -1531,11 +1572,31 @@ final class MenuBarOverlayPanelContentView: NSView {
         }
         let strip = CGRect(x: bounds.minX, y: bounds.minY, width: bounds.width, height: barHeight)
         let ownPID = NSRunningApplication.current.processIdentifier
-        return WindowInfo.getOnScreenWindows(excludeDesktopWindows: true).contains { window in
+        let menuBarLevel = Int(CGWindowLevelForKey(.mainMenuWindow))
+        let occluder = WindowInfo.getOnScreenWindows(excludeDesktopWindows: true).first { window in
             window.ownerPID != ownPID &&
             !window.isWindowServerWindow &&
+            window.layer >= menuBarLevel &&
+            window.alpha > 0 &&
             window.frame.intersects(strip)
         }
+        if let occluder {
+            logOccluderOnce(occluder, display: display)
+        }
+        return occluder != nil
+    }
+
+    /// Owners of strip occluders already logged this launch, per display.
+    private static var occludersLogged = Set<String>()
+
+    /// Logs each app that holds a window over the strip once, so a report
+    /// with a frozen or missing pill names the window behind it.
+    private static func logOccluderOnce(_ window: WindowInfo, display: CGDirectDisplayID) {
+        let owner = window.ownerName ?? "pid \(window.ownerPID)"
+        guard occludersLogged.insert("\(display)|\(owner)").inserted else {
+            return
+        }
+        Logger.overlayPanel.warning("Menu bar strip on display \(display) covered by \(owner) (layer \(window.layer), frame \(NSStringFromRect(window.frame))); trailing scans held while it stays")
     }
 
     /// Whether an AX element at the given role/pid belongs to the trailing
@@ -1602,6 +1663,20 @@ final class MenuBarOverlayPanelContentView: NSView {
         return CGRect(x: minX, y: displayBounds.minY + 4, width: maxX - minX + 1, height: 22)
     }
 
+    /// Whether a frame (AX coordinates) can belong to a status item drawn on
+    /// the display's menu bar.
+    ///
+    /// Anything at least half the display wide is a container, not an icon:
+    /// macOS drops a status item that wide instead of drawing it (see
+    /// `MenuBarSpacerPlan`). Accepting one (the WindowManager glass behind
+    /// the bar, another app's overlay) sends the sweep past the whole
+    /// cluster in one step, and the capped width then reads as unknown.
+    private static func isStatusItemFrame(_ frame: CGRect, displayBounds: CGRect) -> Bool {
+        frame.width > 0 && frame.height > 0 && frame.height <= 50 &&
+        frame.minY <= displayBounds.origin.y + 10 &&
+        frame.width < displayBounds.width / 2
+    }
+
     /// Returns the frame of the status element at the given point, or `nil`
     /// when there is nothing status-like there.
     private static func statusFrameAt(
@@ -1625,8 +1700,7 @@ final class MenuBarOverlayPanelContentView: NSView {
         guard
             isTrailingStatusElement(role: role, pid: pid, appMenuPid: appMenuPid),
             let frame,
-            frame.width > 0, frame.height > 0, frame.height <= 50,
-            frame.minY <= displayBounds.origin.y + 10
+            isStatusItemFrame(frame, displayBounds: displayBounds)
         else {
             return nil
         }
@@ -1817,11 +1891,7 @@ final class MenuBarOverlayPanelContentView: NSView {
                     continue
                 }
                 let frame: CGRect? = try? element.attribute("AXFrame")
-                if
-                    let frame,
-                    frame.width > 0, frame.height > 0, frame.height <= 50,
-                    frame.minY <= displayBounds.origin.y + 10
-                {
+                if let frame, isStatusItemFrame(frame, displayBounds: displayBounds) {
                     insideHit = true
                     break outer
                 }
@@ -2078,11 +2148,16 @@ final class MenuBarOverlayPanelContentView: NSView {
     /// itself, so `MenuBarItem.getMenuBarItems` comes back empty and split
     /// shapes collapse to full. This scans the top strip from right to left
     /// and returns the distance from the right edge to the leftmost status
-    /// element. Returns `nil` when nothing status-like is found.
+    /// element. When the sweep finds no usable edge, the edge is read from
+    /// the items of `listedPIDs` instead (see `listedLeadingEdge`). Returns
+    /// `nil` when neither finds anything status-like.
     ///
     /// - ponytail: O(n) AX scan per call; always call via cachedTrailingStatusWidth
     ///   (background + TTL), never directly from draw.
-    private static func trailingStatusWidthFallback(for display: CGDirectDisplayID) -> (width: CGFloat, fullBleed: Bool, captureActive: Bool)? {
+    private static func trailingStatusWidthFallback(
+        for display: CGDirectDisplayID,
+        listedPIDs: [pid_t]
+    ) -> (width: CGFloat, fullBleed: Bool, captureActive: Bool)? {
         let displayBounds = CGDisplayBounds(display)
         guard displayBounds.width > 0 else {
             return nil
@@ -2120,22 +2195,42 @@ final class MenuBarOverlayPanelContentView: NSView {
             x = min(frame.minX - 2, x - step)
             continue
         }
-        guard let coarseX = leftmostX else {
+        // The sweep only covers the trailing 1100pt. An edge pinned at that
+        // cap means the scan swallowed a glass container (or a cluster wider
+        // than the scan window), which is no edge either.
+        let scanWindow = min(displayBounds.width, 1100)
+        var edge: (x: CGFloat, maxHeight: CGFloat)?
+        if let coarseX = leftmostX {
+            // Fine sweep for a narrow/off-row straggler left of the coarse edge
+            // (e.g. an active screen-sharing pill).
+            let refined = refineLeadingEdge(leftOf: coarseX, displayBounds: displayBounds, appMenuPid: appMenuPid)
+            if displayBounds.maxX - refined.x < scanWindow - 10 {
+                edge = (refined.x, max(maxHeight, refined.maxHeight))
+            }
+        }
+        if edge == nil {
+            edge = listedLeadingEdge(pids: listedPIDs, displayBounds: displayBounds)
+            logSweepMissOnce(
+                for: display,
+                displayBounds: displayBounds,
+                y: y,
+                coarseX: leftmostX,
+                listedX: edge?.x,
+                appMenuPid: appMenuPid
+            )
+        }
+        guard let edge else {
             return nil
         }
-        // Fine sweep for a narrow/off-row straggler left of the coarse edge
-        // (e.g. an active screen-sharing pill), then pad left so the pill
-        // tucks under the leading icon.
-        let refined = refineLeadingEdge(leftOf: coarseX, displayBounds: displayBounds, appMenuPid: appMenuPid)
-        maxHeight = max(maxHeight, refined.maxHeight)
         // A full-bleed system pill (screen sharing/recording) draws taller than a
         // normal icon: go full height (see shapePath). Its wider system paint is
         // unioned in below via `captureIndicatorFrames`.
         let barHeight = NSScreen.screens.first(where: { $0.displayID == display })?.getMenuBarHeight() ?? 26
-        let fullBleed = maxHeight >= barHeight - 4
+        let fullBleed = edge.maxHeight >= barHeight - 4
         let captureActive = hasScreenCaptureIndicator()
+        // Pad left so the pill tucks under the leading icon.
         let pad: CGFloat = (fullBleed || captureActive) ? 4 : 3
-        var axLeft = refined.x
+        var axLeft = edge.x
         // The system share/record paint is WindowServer-drawn and AX-invisible,
         // so the sweep above always anchors at its right-hand neighbour.
         // Union every painted indicator explicitly (3pt margin), or a purple
@@ -2145,24 +2240,93 @@ final class MenuBarOverlayPanelContentView: NSView {
         for indicator in indicators where indicator.maxX >= axLeft - 80 {
             axLeft = min(axLeft, indicator.minX - 3)
         }
-        leftmostX = max(displayBounds.minX, axLeft - pad)
-        guard let leftmostX else {
-            return nil
-        }
-        let width = displayBounds.maxX - leftmostX
+        let width = displayBounds.maxX - max(displayBounds.minX, axLeft - pad)
         guard width > 0 else {
             return nil
         }
-        // The sweep only covers the trailing 1100pt. A width pinned at that
-        // cap means the scan swallowed a glass container (or a cluster wider
-        // than the scan window) — treat it as unknown so split doesn't paint
+        // Same cap once padded: treat it as unknown so split doesn't paint
         // an over-wide pill over the transparent gap.
-        let scanWindow = min(displayBounds.width, 1100)
         guard width < scanWindow - 10 else {
             return nil
         }
-        Logger.overlayPanel.debug("Trailing scan: coarse=\(coarseX) refined=\(refined.x) axLeft=\(axLeft) width=\(width) fullBleed=\(fullBleed) capture=\(captureActive) indicators=\(indicators)")
+        Logger.overlayPanel.debug("Trailing scan: coarse=\(leftmostX ?? -1) edge=\(edge.x) axLeft=\(axLeft) width=\(width) fullBleed=\(fullBleed) capture=\(captureActive) indicators=\(indicators)")
         return (width, fullBleed, captureActive)
+    }
+
+    /// The leftmost status item drawn on the display, read from each app's
+    /// `AXExtrasMenuBar` instead of hit-testing the strip.
+    ///
+    /// The sweep reads whatever sits on top at each probe and needs the
+    /// app-menu pid to tell icons from bare bar, so on some setups it can
+    /// find nothing at all. A display with a notch then binds the pill to its
+    /// auxiliary area; a display without one had nothing to fall back to and
+    /// drew no trailing pill (issue #30). Listing asks the apps directly. It
+    /// can't tell an item the concealer hid from a drawn one, so `pids` must
+    /// leave those apps out.
+    ///
+    /// Warm, a listing costs ~10ms; the first one in a process up to ~1s.
+    private static func listedLeadingEdge(pids: [pid_t], displayBounds: CGRect) -> (x: CGFloat, maxHeight: CGFloat)? {
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let frames = MenuBarItemAXDiscovery.itemFrames(ofProcesses: pids).compactMap { item -> CGRect? in
+            let frame = item.frame
+            // Another app's item reports its spot on the display with focus,
+            // so keep only frames on this display's bar.
+            guard
+                isStatusItemFrame(frame, displayBounds: displayBounds),
+                frame.minY >= displayBounds.minY - 1,
+                frame.minX >= displayBounds.minX - 1,
+                frame.maxX <= displayBounds.maxX + 1
+            else {
+                return nil
+            }
+            // Ice's expanded spacer is a placeholder, not an icon (see `statusFrameAt`).
+            if item.pid == ownPID, frame.width > 200 {
+                return nil
+            }
+            return frame
+        }
+        guard let leftmost = frames.min(by: { $0.minX < $1.minX }) else {
+            return nil
+        }
+        return (leftmost.minX, frames.map(\.height).max() ?? 0)
+    }
+
+    /// Displays whose sweep miss was already logged this launch.
+    private static var sweepMissLogged = Set<CGDirectDisplayID>()
+
+    /// Logs, once per display, what the sweep's probes hit when it found no
+    /// edge, so a report from a machine with no trailing pill shows why.
+    ///
+    /// Warning level keeps it in the persistent log: `log show` reads it
+    /// back later, no live stream needed.
+    private static func logSweepMissOnce(
+        for display: CGDirectDisplayID,
+        displayBounds: CGRect,
+        y: Float,
+        coarseX: CGFloat?,
+        listedX: CGFloat?,
+        appMenuPid: pid_t?
+    ) {
+        trailingStateLock.lock()
+        let isFirst = sweepMissLogged.insert(display).inserted
+        trailingStateLock.unlock()
+        guard isFirst else {
+            return
+        }
+        let samples = [2, 24, 60, 120, 200].map { inset -> String in
+            let x = displayBounds.maxX - CGFloat(inset)
+            guard let element = try? systemWideElement.elementAtPosition(Float(x), y) else {
+                return "\(Int(x)):none"
+            }
+            let role: String? = try? element.attribute("AXRole")
+            let pid: pid_t? = try? element.pid()
+            let frame: CGRect? = try? element.attribute("AXFrame")
+            let frameText = frame.map { "\(Int($0.minX))+\(Int($0.width))x\(Int($0.height))" } ?? "-"
+            return "\(Int(x)):\(role ?? "?")/\(pid.map { "\($0)" } ?? "?")/\(frameText)"
+        }
+        Logger.overlayPanel.warning(
+            "Trailing sweep found no edge on display \(display) (coarse=\(coarseX.map { "\($0)" } ?? "none"), listed=\(listedX.map { "\($0)" } ?? "none"), appMenuPid=\(appMenuPid.map { "\($0)" } ?? "?")): \(samples.joined(separator: " "))"
+        )
     }
 
     /// Returns the bounds that the view's drawn content can occupy.

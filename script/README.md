@@ -24,6 +24,7 @@ swift script/tests/item-discovery.swift
 swift script/tests/ice-bar-position.swift
 swift script/tests/ax-item-press.swift
 swift script/tests/ax-activation.swift
+swift script/tests/trailing-pill.swift
 ```
 
 These checks compile and execute the cache/positioning methods from the current
@@ -43,6 +44,11 @@ must remain visible until closed, and cleanup must preserve newer user choices.
 It also executes the section's hide/start/stop-rehide methods to check compact
 popups, submenu dismissal, automatic rehide suppression and restart after a fired
 timer, and explicit hiding while activation is in progress.
+
+The trailing-pill check runs the split shape's measurement helpers: a sweep
+that still sees a hidden icon right after a collapse must not widen the pill
+again, frames as wide as half the display never count as icons, and the
+item-list fallback reads only icons drawn on the measured display.
 
 ## After installing a build
 

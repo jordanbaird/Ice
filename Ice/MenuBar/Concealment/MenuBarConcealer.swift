@@ -82,6 +82,15 @@ final class MenuBarConcealer {
         live != nil
     }
 
+    /// Bundle identifiers of the applications hidden right now.
+    ///
+    /// Their items leave the bar but keep reporting their old frames through
+    /// Accessibility (measured on macOS 27.2), so anything that measures the
+    /// bar from the items' frames must skip them.
+    var concealedBundleIDs: Set<String> {
+        live?.concealed ?? []
+    }
+
     /// Whether sections are hidden by the concealer rather than by spacers.
     static var isInUse: Bool {
         guard #available(macOS 27, *), AssessmentAssertion.isAvailable else {

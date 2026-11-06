@@ -14,11 +14,15 @@ on:
 jobs:
   swiftlint:
     if: '!github.event.pull_request.merged'
-    runs-on: ubuntu-latest
+    # Pinned: the Linux SwiftLint binary links libxml2.so.2, which newer
+    # runner images no longer ship.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Install SwiftLint 0.65.1
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxml2
           SWIFTLINT_VERSION=0.65.1
           curl -fsSL -o /tmp/swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux_amd64.zip"
           unzip -q -o /tmp/swiftlint.zip -d /tmp/swiftlint

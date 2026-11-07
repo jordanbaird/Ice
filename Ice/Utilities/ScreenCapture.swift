@@ -87,7 +87,9 @@ enum ScreenCapture {
                 return image
             }
         }
-        return SCKCapture.captureWindows(with: windowIDs, screenBounds: screenBounds, option: option)
+        // Never block the caller (this can run on the main thread): return the
+        // last ScreenCaptureKit image, if any, and refresh it in the background.
+        return SCKCapture.cachedImage(windowIDs: windowIDs, screenBounds: screenBounds, option: option)
     }
 
     /// Captures an image of a window.
@@ -106,12 +108,48 @@ enum ScreenCapture {
 
 /// ScreenCaptureKit-based window capture, used where the CGWindowList API
 /// no longer produces images (macOS 26.5 and later).
+///
+/// Captures run in the background, at most a few at a time, with a timeout.
+/// Callers never wait: they get the previous image (or `nil`) right away.
 private enum SCKCapture {
-    /// The longest a synchronous caller waits for a capture.
-    private static let timeout: DispatchTimeInterval = .seconds(2)
+    private struct Request: Hashable {
+        let windowIDs: [CGWindowID]
+        let screenBounds: CGRect?
+        let optionRawValue: UInt32
+    }
 
-    /// Cached shareable content, refreshed when it is stale or when a
-    /// requested window is missing from it.
+    /// The longest a background capture may take.
+    private static let timeout: Duration = .seconds(2)
+
+    private static let cache = BackgroundCaptureCache<Request, CGImageBox>(
+        maxInFlight: 2,
+        maxAge: 0.5,
+        now: { ProcessInfo.processInfo.systemUptime },
+        start: { request, complete in
+            let work = Task.detached(priority: .userInitiated) {
+                let image = await captureWindowsAsync(request)
+                complete(image.map(CGImageBox.init))
+            }
+            // The cache ignores whichever of the two completions comes second.
+            Task.detached(priority: .utility) {
+                try? await Task.sleep(for: timeout)
+                work.cancel()
+                complete(nil)
+            }
+        }
+    )
+
+    private final class CGImageBox: @unchecked Sendable {
+        let image: CGImage
+        init(_ image: CGImage) { self.image = image }
+    }
+
+    static func cachedImage(windowIDs: [CGWindowID], screenBounds: CGRect?, option: CGWindowImageOption) -> CGImage? {
+        cache.value(for: Request(windowIDs: windowIDs, screenBounds: screenBounds, optionRawValue: option.rawValue))?.image
+    }
+
+    // Cached shareable content, refreshed when it is stale or when a
+    // requested window is missing from it.
     private static let contentLock = NSLock()
     nonisolated(unsafe) private static var cachedContent: (content: SCShareableContent, date: Date)?
 
@@ -135,65 +173,46 @@ private enum SCKCapture {
         return content
     }
 
-    /// A box for passing a capture result out of a detached task.
-    private final class ResultBox<T>: @unchecked Sendable {
-        var value: T?
-    }
-
-    /// Runs an async operation and waits for its result, bounded by `timeout`.
-    private static func runBlocking<T: Sendable>(_ operation: @escaping @Sendable () async -> T?) -> T? {
-        let semaphore = DispatchSemaphore(value: 0)
-        let box = ResultBox<T>()
-        Task.detached(priority: .userInitiated) {
-            box.value = await operation()
-            semaphore.signal()
-        }
-        guard semaphore.wait(timeout: .now() + timeout) == .success else {
-            return nil
-        }
-        return box.value
-    }
-
-    static func captureWindows(with windowIDs: [CGWindowID], screenBounds: CGRect?, option: CGWindowImageOption) -> CGImage? {
-        runBlocking {
-            await captureWindowsAsync(with: windowIDs, screenBounds: screenBounds, option: option)
-        }
-    }
-
-    private static func captureWindowsAsync(with windowIDs: [CGWindowID], screenBounds: CGRect?, option: CGWindowImageOption) async -> CGImage? {
-        guard let content = await shareableContent(needing: Set(windowIDs)) else {
+    private static func captureWindowsAsync(_ request: Request) async -> CGImage? {
+        let option = CGWindowImageOption(rawValue: request.optionRawValue)
+        guard let content = await shareableContent(needing: Set(request.windowIDs)) else {
             return nil
         }
         let windowsByID = Dictionary(content.windows.map { ($0.windowID, $0) }) { first, _ in first }
         // Keep the caller's front-to-back order and drop offscreen windows,
         // which ScreenCaptureKit cannot capture.
-        let windows = windowIDs.compactMap { windowsByID[$0] }.filter(\.isOnScreen)
+        let windows = request.windowIDs.compactMap { windowsByID[$0] }.filter(\.isOnScreen)
         guard !windows.isEmpty else {
             return nil
         }
         let unionFrame = windows.reduce(CGRect.null) { $0.union($1.frame) }
-        var rect = screenBounds ?? unionFrame
-        if rect.isNull || rect.isEmpty {
-            rect = unionFrame
+        var globalRect = request.screenBounds ?? unionFrame
+        if globalRect.isNull || globalRect.isEmpty {
+            globalRect = unionFrame
         }
         guard
-            let display = content.displays.first(where: { $0.frame.intersects(rect) }),
+            let display = content.displays.first(where: { $0.frame.intersects(globalRect) }),
             let screen = NSScreen.screens.first(where: { $0.displayID == display.displayID })
         else {
             return nil
         }
-        rect = rect.intersection(display.frame)
-        guard !rect.isNull, rect.width >= 1, rect.height >= 1 else {
+        let nominal = option.contains(.nominalResolution)
+        // `sourceRect` is in the display's own coordinate space, not in global
+        // coordinates (see `SCKGeometry`).
+        guard let geometry = SCKGeometry.sourceRect(
+            forGlobalRect: globalRect,
+            onDisplay: display.frame,
+            scale: nominal ? 1 : screen.backingScaleFactor
+        ) else {
             return nil
         }
-        let scale = option.contains(.nominalResolution) ? 1 : screen.backingScaleFactor
         let filter = SCContentFilter(display: display, including: windows)
         let configuration = SCStreamConfiguration()
-        configuration.sourceRect = rect
-        configuration.width = Int((rect.width * scale).rounded())
-        configuration.height = Int((rect.height * scale).rounded())
+        configuration.sourceRect = geometry.rect
+        configuration.width = Int(geometry.pixelSize.width)
+        configuration.height = Int(geometry.pixelSize.height)
         configuration.showsCursor = false
-        configuration.captureResolution = option.contains(.nominalResolution) ? .nominal : .best
+        configuration.captureResolution = nominal ? .nominal : .best
         configuration.ignoreShadowsDisplay = option.contains(.boundsIgnoreFraming)
         configuration.ignoreGlobalClipDisplay = true
         return try? await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)

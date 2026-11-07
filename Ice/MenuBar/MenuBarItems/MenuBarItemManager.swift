@@ -41,6 +41,10 @@ final class MenuBarItemManager: ObservableObject {
     /// The shared app state.
     private(set) weak var appState: AppState?
 
+    /// Windows whose source process could not be resolved, retried with a
+    /// backoff without invalidating the whole cache.
+    private var pendingPIDs = PendingPIDTracker<CGWindowID>()
+
     /// Sets up the manager.
     func performSetup(with appState: AppState) async {
         self.appState = appState
@@ -51,6 +55,13 @@ final class MenuBarItemManager: ObservableObject {
     /// Configures the internal observers for the manager.
     private func configureCancellables(with appState: AppState) {
         var c = Set<AnyCancellable>()
+
+        // A new or quit app may resolve pending source PIDs right away.
+        NSWorkspace.shared.publisher(for: \.runningApplications)
+            .sink { [weak self] _ in
+                self?.pendingPIDs.appsChanged()
+            }
+            .store(in: &c)
 
         NSWorkspace.shared.publisher(for: \.runningApplications)
             .delay(for: 0.25, scheduler: DispatchQueue.main)
@@ -291,22 +302,18 @@ extension MenuBarItemManager {
         displayID: CGDirectDisplayID?
     ) async {
         var context = CacheContext(controlItems: controlItems, displayID: displayID)
+        pendingPIDs.prune(keeping: items.map(\.windowID))
 
         for item in items where context.isValidForCaching(item) {
             if item.sourcePID == nil {
                 logger.warning("Missing sourcePID for \(item.logString, privacy: .public)")
-                // Intentionally do NOT set shouldClearCachedItemWindowIDs here.
-                // Previously, a nil sourcePID forced a full cache invalidation,
-                // which created a feedback loop for items whose source pid can
-                // never be resolved (e.g., an app that does not expose its
-                // extras menu bar via AX): every cache refresh would re-trigger
-                // another full re-cache, thrash the MenuBarItemService with
-                // repeated expensive AX enumerations, and cause the main app's
-                // IceBar show path to race with an in-progress background cache
-                // operation. SourcePIDCache now throttles retries with a
-                // negative-lookup TTL, so items with a stable UUID-based tag
-                // just stay in the cache until a new running-apps change gives
-                // them another chance to resolve.
+                // Don't invalidate the whole cache for this (that created a
+                // re-cache loop for items whose source can never be resolved).
+                // Remember the window instead; `cacheItemsIfNeeded` retries
+                // just the pending windows, with a backoff.
+                pendingPIDs.recordFailure(item.windowID, now: ProcessInfo.processInfo.systemUptime)
+            } else {
+                pendingPIDs.recordSuccess(item.windowID)
             }
 
             if let temp = temporarilyShownItemContexts.first(where: { $0.tag == item.tag }) {
@@ -387,7 +394,9 @@ extension MenuBarItemManager {
     /// arranging them into valid positions if needed.
     func cacheItemsIfNeeded() async {
         let itemWindowIDs = Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace])
-        if await cacheActor.cachedItemWindowIDs != itemWindowIDs {
+        let hasChanged = await cacheActor.cachedItemWindowIDs != itemWindowIDs
+        let isRetryDue = pendingPIDs.isRetryDue(among: itemWindowIDs, now: ProcessInfo.processInfo.systemUptime)
+        if hasChanged || isRetryDue {
             await cacheItemsRegardless(itemWindowIDs)
         }
     }

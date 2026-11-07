@@ -100,3 +100,13 @@ extension ControlItemImageSet {
         ),
     ]
 }
+
+extension ControlItemImageSet {
+    /// Returns the set to use after loading a stored preference.
+    ///
+    /// Only the legacy Ice cube is replaced (by the Frost Bar). Every other
+    /// choice, including a custom image, is kept exactly as stored.
+    func migratedFromLegacy() -> ControlItemImageSet {
+        name == .iceCube ? .defaultIceIcon : self
+    }
+}

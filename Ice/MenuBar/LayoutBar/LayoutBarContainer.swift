@@ -139,7 +139,7 @@ final class LayoutBarContainer: NSView {
             if subviews.contains(view) {
                 // view already exists inside the layout view, but may
                 // have moved from its previous location;
-                if shouldAnimateNextLayoutPass {
+                if shouldAnimateNextLayoutPass && !Motion.reduceMotion {
                     // replace the view with its animator proxy
                     view = view.animator()
                 }

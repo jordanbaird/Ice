@@ -1509,7 +1509,7 @@ extension MenuBarItemManager {
             logger.warning("Not enough room to show \(item.logString, privacy: .public)")
             // Present the alert after this method returns: the modal loop would
             // otherwise hold the caller (and the main thread) until dismissed.
-            let message = "Not enough room to show \"\(item.displayName)\""
+            let message = String(localized: "Not enough room to show \"\(item.displayName)\"")
             Task { @MainActor in
                 let alert = NSAlert()
                 alert.messageText = message

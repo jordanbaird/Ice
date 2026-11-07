@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6657E8"/><stop offset="1" stop-color="#2A2370"/></linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.26"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.10"/></linearGradient>
+    <linearGradient id="ledge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E9E7FF"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="180%"><feDropShadow dx="0" dy="24" stdDeviation="26" flood-color="#120F3A" flood-opacity="0.55"/></filter>
+    <clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#bg)"/>
+    <!-- barra de menus (faixa de vidro no topo) -->
+    <rect x="100" y="100" width="824" height="188" fill="url(#glass)"/>
+    <rect x="100" y="286" width="824" height="4" fill="#FFFFFF" opacity="0.35"/>
+  </g>
+  <!-- beiral flutuante (Barra do Trincano) -->
+  <g filter="url(#shadow)">
+    <rect x="212" y="376" width="600" height="168" rx="84" fill="url(#ledge)"/>
+  </g>
+  <!-- itens guardados no beiral -->
+  <circle cx="364" cy="460" r="40" fill="#6657E8"/>
+  <circle cx="512" cy="460" r="40" fill="#8A7CF2"/>
+  <circle cx="660" cy="460" r="40" fill="#B6ADFA"/>
+</svg>

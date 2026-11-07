@@ -495,6 +495,7 @@ private struct IceBarItemView: View {
                     )
                 }
                 .accessibilityLabel(item.displayName)
+                .accessibilityAddTraits(.isButton)
                 .accessibilityAction(named: "left click", leftClickAction)
                 .accessibilityAction(named: "right click", rightClickAction)
         }

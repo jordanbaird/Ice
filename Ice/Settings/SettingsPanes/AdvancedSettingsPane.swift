@@ -77,7 +77,7 @@ struct AdvancedSettingsPane: View {
             Text(
                 """
                 Make more room in the menu bar by hiding the current app menus if \
-                needed. macOS requires Ice to make itself visible in the Dock while \
+                needed. macOS requires Trincano to make itself visible in the Dock while \
                 this setting is in effect.
                 """
             )
@@ -95,7 +95,7 @@ struct AdvancedSettingsPane: View {
             Text(
                 """
                 Right-click in an empty area of the menu bar to display a minimal \
-                version of Ice's menu. Disable this setting if you encounter conflicts \
+                version of the Trincano menu. Disable this setting if you encounter conflicts \
                 with other apps.
                 """
             )

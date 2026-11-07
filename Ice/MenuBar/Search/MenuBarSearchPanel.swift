@@ -419,7 +419,7 @@ private struct ShowItemButton: View {
     var body: some View {
         Button(action: action) {
             HStack {
-                Text("\(Bridging.isWindowOnScreen(item.windowID) ? "Click" : "Show") Item")
+                Text(Bridging.isWindowOnScreen(item.windowID) ? String(localized: "Click Item") : String(localized: "Show Item"))
                     .padding(.leading, 5)
 
                 Image(systemName: "return")
@@ -554,6 +554,7 @@ private struct MenuBarSearchItemView: View {
             Image(nsImage: appIcon)
                 .resizable()
                 .scaledToFit()
+                .accessibilityHidden(true)
                 .frame(width: dimension, height: dimension)
         } else {
             RoundedRectangle(cornerRadius: 5)
@@ -576,6 +577,7 @@ private struct MenuBarSearchItemView: View {
     @ViewBuilder
     private var itemView: some View {
         Image(nsImage: itemImage)
+            .accessibilityHidden(true)   // decorative: the row's text already names the item
             .frame(
                 width: item.bounds.width,
                 height: dimension

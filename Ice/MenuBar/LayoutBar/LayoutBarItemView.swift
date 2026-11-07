@@ -71,6 +71,12 @@ final class LayoutBarItemView: NSView {
         self.toolTip = item.displayName
         self.isEnabled = item.isMovable
 
+        // VoiceOver: a named, draggable item.
+        setAccessibilityElement(true)
+        setAccessibilityRole(.button)
+        setAccessibilityLabel(item.displayName)
+        setAccessibilityHelp(String(localized: "Drag to move the item to another section."))
+
         configureCancellables()
     }
 
@@ -99,15 +105,15 @@ final class LayoutBarItemView: NSView {
     /// Provides an alert to display when the item view is disabled.
     func provideAlertForDisabledItem() -> NSAlert {
         let alert = NSAlert()
-        alert.messageText = "Menu bar item is not movable."
-        alert.informativeText = "macOS prohibits \"\(item.displayName)\" from being moved."
+        alert.messageText = String(localized: "Menu bar item is not movable.")
+        alert.informativeText = String(localized: "macOS prohibits \"\(item.displayName)\" from being moved.")
         return alert
     }
 
     /// Provides an alert to display when a menu bar item is unresponsive.
     func provideAlertForUnresponsiveItem() -> NSAlert {
         let alert = provideAlertForDisabledItem()
-        alert.informativeText = "\(item.displayName) is unresponsive. Until it is restarted, it cannot be moved. Movement of other menu bar items may also be affected until this is resolved."
+        alert.informativeText = String(localized: "\(item.displayName) is unresponsive. Until it is restarted, it cannot be moved. Movement of other menu bar items may also be affected until this is resolved.")
         return alert
     }
 

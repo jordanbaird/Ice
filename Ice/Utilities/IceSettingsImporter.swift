@@ -31,14 +31,10 @@ enum IceSettingsImporter {
 
         NSApp.activate()
         let alert = NSAlert()
-        alert.messageText = "Import your settings from Ice?"
-        alert.informativeText = """
-        Trincano found settings from an existing Ice installation. \
-        They will be copied to Trincano; Ice itself is not changed. \
-        Nothing leaves your Mac.
-        """
-        alert.addButton(withTitle: "Import Settings")
-        alert.addButton(withTitle: "Start Fresh")
+        alert.messageText = String(localized: "Import your settings from Ice?")
+        alert.informativeText = String(localized: "Trincano found settings from an existing Ice installation. They will be copied to Trincano; Ice itself is not changed. Nothing leaves your Mac.")
+        alert.addButton(withTitle: String(localized: "Import Settings"))
+        alert.addButton(withTitle: String(localized: "Start Fresh"))
         guard alert.runModal() == .alertFirstButtonReturn else {
             return
         }

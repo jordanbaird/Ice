@@ -125,16 +125,18 @@ private enum SCKCapture {
         maxInFlight: 2,
         maxAge: 0.5,
         now: { ProcessInfo.processInfo.systemUptime },
-        start: { request, complete in
+        start: { request, operation in
+            // The work ends (and frees its slot) only when SCK really returns:
+            // cancellation is cooperative, so a timeout only expires the result.
             let work = Task.detached(priority: .userInitiated) {
                 let image = await captureWindowsAsync(request)
-                complete(image.map(CGImageBox.init))
+                operation.deliver(image.map(CGImageBox.init))
+                operation.finish()
             }
-            // The cache ignores whichever of the two completions comes second.
             Task.detached(priority: .utility) {
                 try? await Task.sleep(for: timeout)
                 work.cancel()
-                complete(nil)
+                operation.deliver(nil)   // ignored if the work already delivered
             }
         }
     )
@@ -175,7 +177,11 @@ private enum SCKCapture {
 
     private static func captureWindowsAsync(_ request: Request) async -> CGImage? {
         let option = CGWindowImageOption(rawValue: request.optionRawValue)
-        guard let content = await shareableContent(needing: Set(request.windowIDs)) else {
+        guard !Task.isCancelled, let content = await shareableContent(needing: Set(request.windowIDs)) else {
+            return nil
+        }
+        // Don't start the next ScreenCaptureKit step for an expired operation.
+        guard !Task.isCancelled else {
             return nil
         }
         let windowsByID = Dictionary(content.windows.map { ($0.windowID, $0) }) { first, _ in first }
@@ -204,6 +210,9 @@ private enum SCKCapture {
             onDisplay: display.frame,
             scale: nominal ? 1 : screen.backingScaleFactor
         ) else {
+            return nil
+        }
+        guard !Task.isCancelled else {
             return nil
         }
         let filter = SCContentFilter(display: display, including: windows)

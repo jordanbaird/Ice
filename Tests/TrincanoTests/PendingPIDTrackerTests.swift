@@ -66,6 +66,28 @@ struct PendingPIDTrackerTests {
         #expect(t.isRetryDue(among: [1], now: 1))
     }
 
+    @Test func appsChangedRestartsTheBackoffFromTheFirstDelay() {
+        var t = tracker()
+        t.recordFailure(1, now: 0)
+        t.recordFailure(1, now: 31)      // second failure: next delay is 60
+        t.appsChanged()
+        t.recordFailure(1, now: 100)     // policy: after an apps change the backoff restarts at 30 s
+        #expect(t.isRetryDue(among: [1], now: 129) == false)
+        #expect(t.isRetryDue(among: [1], now: 131))
+    }
+
+    @Test func pendingNotYetDueNeverTriggersARescan() {
+        var t = tracker()
+        t.recordFailure(1, now: 0)
+        t.recordFailure(2, now: 10)
+        // Polling every second: a rescan (which rebuilds all items) may only be
+        // requested once a pending window is due.
+        for now in 0..<30 {
+            #expect(t.isRetryDue(among: [1, 2, 3], now: Double(now)) == false)
+        }
+        #expect(t.isRetryDue(among: [1, 2, 3], now: 30))
+    }
+
     @Test func onlyPendingIDsStillOnScreenCount() {
         var t = tracker()
         t.recordFailure(1, now: 0)

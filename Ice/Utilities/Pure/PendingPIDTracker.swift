@@ -44,9 +44,12 @@ struct PendingPIDTracker<ID: Hashable> {
     }
 
     /// The running applications changed: every pending lookup may succeed now.
+    ///
+    /// Policy: retry immediately and restart the backoff from the first
+    /// delay, so a new failure waits 30 s (not the old, longer delay).
     mutating func appsChanged() {
         for id in entries.keys {
-            entries[id]?.retryAt = -.infinity
+            entries[id] = Entry(failures: 0, retryAt: -.infinity)
         }
     }
 

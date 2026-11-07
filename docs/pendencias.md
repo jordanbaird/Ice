@@ -32,3 +32,8 @@ Veredito do Lupa: PR #1 (3ff4ef9) pode seguir para **uso pessoal**, **não** est
 ## PendingPIDTracker e varredura do host (Lupa, PR #4 ded226a)
 - `PendingPIDTrackerTests.pendingNotYetDueNeverTriggersARescan` só prova que nenhum item está vencido. Em `MenuBarItemManager.swift:400`, quando outro pendente vence ou os IDs mudam, `cacheItemsRegardless` reconstrói **todos** os itens; e o helper usa TTL próprio de 30 s, não o backoff 60/120/300 s do host.
 - Sugestão: teste de integração com dois pendentes em prazos diferentes contando as consultas AX, ou documentar como otimização futura (consultar só os pendentes vencidos).
+
+## Fase 3 (Lupa, PR #6)
+- Teste do snapshot antigo do poll após troca de espaço/app.
+- Teste de integração: abrir/fechar/trocar seção durante refresh lento.
+- Teste de fiação do `HIDEventManager` (quais chamadas usam `.cached`/`.fresh`) além do `MenuBarHitTester`.

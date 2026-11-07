@@ -103,6 +103,10 @@ final class MenuBarSearchPanel: NSPanel {
 
     /// Shows the search panel on the given screen.
     func show(on screen: NSScreen? = nil) {
+        Signposts.measure("search.show") { performShow(on: screen) }
+    }
+
+    private func performShow(on screen: NSScreen?) {
         guard let appState else {
             return
         }

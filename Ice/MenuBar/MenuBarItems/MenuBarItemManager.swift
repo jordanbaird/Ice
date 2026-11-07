@@ -358,6 +358,10 @@ extension MenuBarItemManager {
     /// the hidden and always-hidden sections are correctly ordered,
     /// arranging them into valid positions if needed.
     func cacheItemsRegardless(_ currentItemWindowIDs: [CGWindowID]? = nil) async {
+        await Signposts.measure("cacheItems") { await performCacheItemsRegardless(currentItemWindowIDs) }
+    }
+
+    private func performCacheItemsRegardless(_ currentItemWindowIDs: [CGWindowID]?) async {
         await cacheActor.runCacheTask { [weak self] in
             guard let self else {
                 return
@@ -372,14 +376,17 @@ extension MenuBarItemManager {
             var items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
 
             let itemWindowIDs = currentItemWindowIDs ?? items.reversed().map { $0.windowID }
-            await cacheActor.updateCachedItemWindowIDs(itemWindowIDs)
 
             guard let controlItems = ControlItemPair(items: &items) else {
-                // ???: Is clearing the cache the best thing to do here?
-                logger.warning("Missing control item for hidden section, clearing menu bar item cache")
+                // At launch the control items' windows may not exist yet. Don't
+                // record these window IDs as cached, so the next poll tries
+                // again instead of waiting for the IDs to change.
+                logger.notice("Missing control item for hidden section, clearing menu bar item cache")
+                await cacheActor.clearCachedItemWindowIDs()
                 itemCache = ItemCache(displayID: nil)
                 return
             }
+            await cacheActor.updateCachedItemWindowIDs(itemWindowIDs)
 
             await enforceControlItemOrder(controlItems: controlItems)
             await uncheckedCacheItems(items: items, controlItems: controlItems, displayID: displayID)
@@ -393,7 +400,14 @@ extension MenuBarItemManager {
     /// the hidden and always-hidden sections are correctly ordered,
     /// arranging them into valid positions if needed.
     func cacheItemsIfNeeded() async {
-        let itemWindowIDs = Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace])
+        Signposts.event("poll.itemWindowList")
+        // The window list is a few milliseconds of WindowServer calls; keep it
+        // off the main thread (this poll runs every few seconds).
+        let itemWindowIDs = await Task.detached(priority: .utility) {
+            Signposts.measure("poll.windowList") {
+                Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace])
+            }
+        }.value
         let hasChanged = await cacheActor.cachedItemWindowIDs != itemWindowIDs
         let isRetryDue = pendingPIDs.isRetryDue(among: itemWindowIDs, now: ProcessInfo.processInfo.systemUptime)
         if hasChanged || isRetryDue {
@@ -1425,9 +1439,14 @@ extension MenuBarItemManager {
 
         guard let targetItem = items.first else {
             logger.warning("Not enough room to show \(item.logString, privacy: .public)")
-            let alert = NSAlert()
-            alert.messageText = "Not enough room to show \"\(item.displayName)\""
-            alert.runModal()
+            // Present the alert after this method returns: the modal loop would
+            // otherwise hold the caller (and the main thread) until dismissed.
+            let message = "Not enough room to show \"\(item.displayName)\""
+            Task { @MainActor in
+                let alert = NSAlert()
+                alert.messageText = message
+                alert.runModal()
+            }
             return
         }
 

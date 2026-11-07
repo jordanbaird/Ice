@@ -21,6 +21,24 @@ final class HIDEventManager: ObservableObject {
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
+    /// Hit testing against the application menu and the menu bar items. It
+    /// caches for mouse movement and reads fresh for clicks (see
+    /// ``MenuBarHitTester``).
+    private let hitTester = MenuBarHitTester(
+        applicationMenuFrame: { displayKey in
+            NSScreen.screens.first { $0.displayID == displayKey }?.getApplicationMenuFrame()
+        },
+        itemBounds: {
+            Bridging.getMenuBarWindowList(option: [.onScreen, .activeSpace, .itemsOnly])
+                .compactMap { Bridging.getWindowBounds(for: $0) }
+        }
+    )
+
+    /// Drops the cached geometry (application, space or screen changed).
+    private func invalidateGeometryCaches() {
+        hitTester.invalidate()
+    }
+
     /// History of the manager's enabled states.
     private var enabledStateStack = [Bool]()
 
@@ -48,16 +66,18 @@ final class HIDEventManager: ObservableObject {
         guard let self, isEnabled, let appState, let screen = bestScreen(appState: appState) else {
             return event
         }
-        switch event.type {
-        case .leftMouseDown:
-            handleShowOnClick(appState: appState, screen: screen)
-            handleSmartRehide(with: event, appState: appState, screen: screen)
-        case .rightMouseDown:
-            handleSecondaryContextMenu(appState: appState, screen: screen)
-        default:
-            return event
+        Signposts.measure("hid.mouseDown") {
+            switch event.type {
+            case .leftMouseDown:
+                self.handleShowOnClick(appState: appState, screen: screen)
+                self.handleSmartRehide(with: event, appState: appState, screen: screen)
+            case .rightMouseDown:
+                self.handleSecondaryContextMenu(appState: appState, screen: screen)
+            default:
+                return
+            }
+            self.handlePreventShowOnHover(with: event, appState: appState, screen: screen)
         }
-        handlePreventShowOnHover(with: event, appState: appState, screen: screen)
         return event
     }
 
@@ -90,7 +110,9 @@ final class HIDEventManager: ObservableObject {
         option: .listenOnly
     ) { [weak self] _, event in
         if let self, isEnabled, let appState, let screen = bestScreen(appState: appState) {
-            handleShowOnHover(appState: appState, screen: screen)
+            Signposts.measure("hid.mouseMoved") {
+                self.handleShowOnHover(appState: appState, screen: screen)
+            }
         }
         return event
     }
@@ -148,7 +170,28 @@ final class HIDEventManager: ObservableObject {
                 }
             }
             .store(in: &c)
+
+            // Items move when sections expand or collapse.
+            hiddenSection.controlItem.$frame
+                .sink { [weak self] _ in
+                    self?.hitTester.invalidateItems()
+                }
+                .store(in: &c)
         }
+
+        let workspaceCenter = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.didActivateApplicationNotification, NSWorkspace.activeSpaceDidChangeNotification] {
+            workspaceCenter.publisher(for: name)
+                .sink { [weak self] _ in
+                    self?.invalidateGeometryCaches()
+                }
+                .store(in: &c)
+        }
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .sink { [weak self] _ in
+                self?.invalidateGeometryCaches()
+            }
+            .store(in: &c)
 
         cancellables = c
     }
@@ -345,13 +388,13 @@ extension HIDEventManager {
         let delay = appState.settings.advanced.showOnHoverDelay
 
         if hiddenSection.isHidden {
-            guard isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen) else {
+            guard isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen, freshness: .cached) else {
                 return
             }
             Task {
                 try await Task.sleep(for: .seconds(delay))
                 // Make sure the mouse is still inside.
-                guard isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen) else {
+                guard isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen, freshness: .cached) else {
                     return
                 }
                 hiddenSection.show()
@@ -476,31 +519,42 @@ extension HIDEventManager {
 
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of the current application menu.
-    func isMouseInsideApplicationMenu(appState: AppState, screen: NSScreen) -> Bool {
-        guard
-            let mouseLocation = MouseHelpers.locationCoreGraphics,
-            var applicationMenuFrame = screen.getApplicationMenuFrame()
-        else {
+    ///
+    /// Pass `.cached` only for mouse *movement*; click decisions read fresh.
+    func isMouseInsideApplicationMenu(
+        appState: AppState,
+        screen: NSScreen,
+        freshness: MenuBarHitTester.Freshness = .fresh
+    ) -> Bool {
+        guard let mouseLocation = MouseHelpers.locationCoreGraphics else {
             return false
         }
-        applicationMenuFrame.size.width += applicationMenuFrame.origin.x - screen.frame.origin.x
-        applicationMenuFrame.origin.x = screen.frame.origin.x
-        return applicationMenuFrame.contains(mouseLocation)
+        return hitTester.isInsideApplicationMenu(
+            mouseLocation,
+            displayKey: screen.displayID,
+            screenMinX: screen.frame.origin.x,
+            now: ProcessInfo.processInfo.systemUptime,
+            freshness: freshness
+        )
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of a menu bar item.
-    func isMouseInsideMenuBarItem(appState: AppState, screen: NSScreen) -> Bool {
+    ///
+    /// Pass `.cached` only for mouse *movement*; click decisions read fresh.
+    func isMouseInsideMenuBarItem(
+        appState: AppState,
+        screen: NSScreen,
+        freshness: MenuBarHitTester.Freshness = .fresh
+    ) -> Bool {
         guard let mouseLocation = MouseHelpers.locationCoreGraphics else {
             return false
         }
-        let windowIDs = Bridging.getMenuBarWindowList(option: [.onScreen, .activeSpace, .itemsOnly])
-        return windowIDs.contains { windowID in
-            guard let bounds = Bridging.getWindowBounds(for: windowID) else {
-                return false
-            }
-            return bounds.contains(mouseLocation)
-        }
+        return hitTester.isInsideItem(
+            mouseLocation,
+            now: ProcessInfo.processInfo.systemUptime,
+            freshness: freshness
+        )
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within
@@ -520,11 +574,16 @@ extension HIDEventManager {
 
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of an empty space in the menu bar.
-    func isMouseInsideEmptyMenuBarSpace(appState: AppState, screen: NSScreen) -> Bool {
+    func isMouseInsideEmptyMenuBarSpace(
+        appState: AppState,
+        screen: NSScreen,
+        freshness: MenuBarHitTester.Freshness = .fresh
+    ) -> Bool {
+        // Cheapest checks first: the last two query the window server / AX.
         isMouseInsideMenuBar(appState: appState, screen: screen) &&
-        !isMouseInsideApplicationMenu(appState: appState, screen: screen) &&
-        !isMouseInsideMenuBarItem(appState: appState, screen: screen) &&
-        !isMouseInsideNotch(appState: appState, screen: screen)
+        !isMouseInsideNotch(appState: appState, screen: screen) &&
+        !isMouseInsideApplicationMenu(appState: appState, screen: screen, freshness: freshness) &&
+        !isMouseInsideMenuBarItem(appState: appState, screen: screen, freshness: freshness)
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within

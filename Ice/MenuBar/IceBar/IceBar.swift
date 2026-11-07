@@ -159,6 +159,10 @@ final class IceBarPanel: NSPanel {
     /// Shows the panel on the given screen, displaying the given
     /// menu bar section.
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {
+        await Signposts.measure("iceBar.show") { await performShow(section: section, on: screen) }
+    }
+
+    private func performShow(section: MenuBarSection.Name, on screen: NSScreen) async {
         guard let appState else {
             return
         }
@@ -173,10 +177,16 @@ final class IceBarPanel: NSPanel {
             await appState.imageCache.updateCache()
         }
 
-        do {
-            try await cacheTask.value
-        } catch {
-            Logger.default.error("Cache update failed when showing IceBarPanel - \(error)")
+        // Appear at once with the cached images when there are any; the view
+        // observes the image cache, so the refresh fills in the rest.
+        let items = appState.itemManager.itemCache[section]
+        let itemsWithImages = items.filter { appState.imageCache.images[$0.tag] != nil }.count
+        if IceBarPresentationPolicy.shouldWaitForRefresh(itemCount: items.count, itemsWithImages: itemsWithImages) {
+            do {
+                try await cacheTask.value
+            } catch {
+                Logger.default.error("Cache update failed when showing IceBarPanel - \(error)")
+            }
         }
 
         contentView = IceBarHostingView(

@@ -151,6 +151,10 @@ final class MenuBarSection {
 
     /// Shows the section.
     func show() {
+        Signposts.measure("section.show") { performShow() }
+    }
+
+    private func performShow() {
         guard let menuBarManager, isHidden else {
             return
         }
@@ -209,6 +213,10 @@ final class MenuBarSection {
 
     /// Hides the section.
     func hide() {
+        Signposts.measure("section.hide") { performHide() }
+    }
+
+    private func performHide() {
         guard let menuBarManager, !isHidden else {
             return
         }

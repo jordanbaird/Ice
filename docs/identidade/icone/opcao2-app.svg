@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F3FDFC"/>
+      <stop offset="1" stop-color="#BFE9E5"/>
+    </linearGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#DDF7F4" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="frost" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="item" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2FB7B1"/>
+      <stop offset="1" stop-color="#157C7A"/>
+    </linearGradient>
+    <linearGradient id="icicle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#8FE6DF" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="0.4" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-20%" width="120%" height="160%">
+      <feGaussianBlur stdDeviation="20"/>
+    </filter>
+    <clipPath id="clipBand">
+      <path d="M245 300 A85 85 0 0 0 160 385 V470 A85 85 0 0 0 245 555 H779 A85 85 0 0 0 864 470 V385 A85 85 0 0 0 779 300 H592 V350 A30 30 0 0 1 562 380 H462 A30 30 0 0 1 432 350 V300 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- tile -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/>
+
+  <!-- band shadow -->
+  <rect x="160" y="330" width="704" height="255" rx="85" fill="#0B3A3C" opacity="0.28" filter="url(#shadow)"/>
+
+  <!-- frozen band with notch bite -->
+  <path d="M245 300 A85 85 0 0 0 160 385 V470 A85 85 0 0 0 245 555 H779 A85 85 0 0 0 864 470 V385 A85 85 0 0 0 779 300 H592 V350 A30 30 0 0 1 562 380 H462 A30 30 0 0 1 432 350 V300 Z" fill="url(#band)"/>
+
+  <!-- items frozen inside -->
+  <g clip-path="url(#clipBand)">
+    <circle cx="262" cy="440" r="34" fill="url(#item)"/>
+    <rect x="330" y="412" width="60" height="56" rx="16" fill="url(#item)"/>
+    <circle cx="668" cy="440" r="34" fill="url(#item)"/>
+    <rect x="730" y="406" width="68" height="68" rx="20" fill="url(#item)"/>
+    <!-- frost sheet creeping over the right side -->
+    <rect x="560" y="300" width="320" height="260" fill="url(#frost)"/>
+    <!-- frost crystals -->
+    <g stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" opacity="0.9">
+      <path d="M740 360 l0 48 M716 384 l48 0 M723 367 l34 34 M757 367 l-34 34"/>
+      <path d="M800 500 l0 30 M785 515 l30 0 M789 504 l22 22 M811 504 l-22 22"/>
+    </g>
+    <!-- band gloss -->
+    <rect x="160" y="300" width="704" height="255" fill="url(#gloss)"/>
+  </g>
+
+  <!-- notch pill (dark) -->
+  <path d="M432 300 V350 A30 30 0 0 0 462 380 H562 A30 30 0 0 0 592 350 V300 Z" fill="#0E1F22"/>
+
+  <!-- icicles hanging from the band -->
+  <path d="M300 555 Q318 640 322 700 Q326 640 344 555 Z" fill="url(#icicle)"/>
+  <path d="M470 555 Q486 620 490 660 Q494 620 510 555 Z" fill="url(#icicle)"/>
+  <path d="M640 555 Q660 660 664 740 Q668 660 688 555 Z" fill="url(#icicle)"/>
+
+  <!-- condensation drop fallen -->
+  <circle cx="664" cy="788" r="20" fill="#8FE6DF" opacity="0.85"/>
+  <circle cx="657" cy="781" r="6" fill="#FFFFFF" opacity="0.9"/>
+</svg>

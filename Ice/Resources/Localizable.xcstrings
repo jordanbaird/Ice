@@ -953,6 +953,23 @@
         }
       }
     },
+    "Frost Bar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frost Bar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra congelada"
+          }
+        }
+      }
+    },
     "Full": {
       "extractionState": "manual",
       "localizations": {

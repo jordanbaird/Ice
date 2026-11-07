@@ -16,7 +16,7 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2376A11C7678244F1948FB1E"
+               BlueprintIdentifier = "266DCAC03FDDBAD352D6DEA7"
                BuildableName = "TrincanoTests.xctest"
                BlueprintName = "TrincanoTests"
                ReferencedContainer = "container:Ice.xcodeproj">

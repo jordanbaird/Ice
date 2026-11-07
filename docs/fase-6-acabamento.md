@@ -26,9 +26,5 @@
 - `extract-strings.py` agora **falha** (código 2) se não extrair nenhuma string (build ausente). `Motion.duration(.reorder)` aplicado ao grupo de animação do layout.
 - Limite honesto: o teste de acessibilidade usa uma `NSView` configurada pela mesma função, não a `LayoutBarItemView` inteira (depende de `AppState`).
 
-## 4. Ícone: 3 propostas do designer (nada implementado ainda)
-O subagente `designer` só propôs; as imagens estão em `docs/identidade/propostas-icone/` (SVG do app 1024, glifos escondido/visível 18 pt e prévias PNG). Todas fogem do cubo de gelo e do visual de apps pagos.
-1. **Trinco** (ferrolho de latão num trilho de vidro; escondido = pino à esquerda, visível = à direita). "Trinco" está no nome. Ressalva: o glifo visível lembra um interruptor.
-2. **Fenda** (silhueta do notch/pílula com uma trinca luminosa; escondido = bloco com fenda, visível = duas metades abertas). Amarra nome, notch e função. Paleta de brasa (#FF7A55), longe do azul do Ice. **Recomendada pelo designer** (e por mim: é a mais distinta e a que lê melhor a 18 pt).
-3. **Trincheira** (barra de vidro com a Barra do Trincano abaixo, como beiral; roxo). Mais colorida; o glifo escondido pode lembrar um menu hambúrguer.
-Para implementar a escolhida: converter os SVG em `AppIcon.appiconset` e em `ControlItemImages/<Nome>Fill/Stroke` (template), trocar `defaultIceIcon` e o uso de `iceCubeStroke` na busca e no Sobre, e (opcional) levar ao Icon Composer para o Liquid Glass real. **Aguarda a escolha do Paulo.**
+## 4. Ícone (substituído)
+As 3 primeiras propostas (Trinco, Fenda, Trincheira) erravam o sentido do nome: **"Trincano" vem de "trincando" (gelado, como cerveja trincando) e da origem no Ice**. Foram removidas. As 3 novas (gelo/gelado + notch/barra de menus) estão em `docs/identidade/propostas-icone-2/` e a escolhida em `docs/identidade/icone/`. Ver `docs/identidade/README.md`.

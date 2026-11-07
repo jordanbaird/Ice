@@ -25,7 +25,7 @@ target.build_configurations.each do |c|
   s = c.build_settings
   s["PRODUCT_BUNDLE_IDENTIFIER"] = "br.com.pilutech.trincano.tests"
   s["PRODUCT_NAME"] = "$(TARGET_NAME)"
-  s["SWIFT_VERSION"] = "5.0"
+  s["SWIFT_VERSION"] = "6.0"
   s["GENERATE_INFOPLIST_FILE"] = "YES"
   s["MACOSX_DEPLOYMENT_TARGET"] = "14.0"
   s["CODE_SIGN_STYLE"] = "Manual"

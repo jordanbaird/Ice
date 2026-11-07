@@ -122,7 +122,7 @@ final class GeneralSettings: ObservableObject {
 
         if let data = Defaults.data(forKey: .iceIcon) {
             do {
-                iceIcon = try decoder.decode(ControlItemImageSet.self, from: data)
+                iceIcon = try decoder.decode(ControlItemImageSet.self, from: data).migratedFromLegacy()
             } catch {
                 Logger.serialization.error("Error decoding Ice icon: \(error, privacy: .public)")
             }

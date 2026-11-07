@@ -7,3 +7,4 @@ xcodebuild -project Ice.xcodeproj -scheme TrincanoTests -destination 'platform=m
   -derivedDataPath build test CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=NO
 scripts/build.sh Release
 scripts/extract-strings.py check
+swiftc -o build/check-icon-bundle scripts/check-icon-bundle.swift && build/check-icon-bundle build/Build/Products/Release/Trincano.app

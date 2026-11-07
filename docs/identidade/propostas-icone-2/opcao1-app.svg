@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#114A50"/>
+      <stop offset="1" stop-color="#061C20"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.42" r="0.5">
+      <stop offset="0" stop-color="#7FE3DA" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7FE3DA" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="crystal" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#EAFFFC"/>
+      <stop offset="0.55" stop-color="#8FE6DF"/>
+      <stop offset="1" stop-color="#37B3AE"/>
+    </linearGradient>
+    <clipPath id="clipCrystal">
+      <path d="M330 300 H432 V330 A25 25 0 0 0 457 355 H567 A25 25 0 0 0 592 330 V300 H694 L740 420 L512 790 L284 420 Z"/>
+    </clipPath>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="28"/>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+
+  <!-- tile -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#halo)"/>
+
+  <!-- drop shadow of the crystal -->
+  <path d="M330 300 H694 L740 420 L512 790 L284 420 Z" fill="#021214" opacity="0.6" transform="translate(0 34)" filter="url(#shadow)"/>
+
+  <!-- crystal body with notch bite -->
+  <path d="M330 300 H432 V330 A25 25 0 0 0 457 355 H567 A25 25 0 0 0 592 330 V300 H694 L740 420 L512 790 L284 420 Z" fill="url(#crystal)"/>
+
+  <!-- facets -->
+  <g clip-path="url(#clipCrystal)">
+    <polygon points="330,300 432,300 512,470" fill="#FFFFFF" opacity="0.28"/>
+    <polygon points="592,300 694,300 512,470" fill="#FFFFFF" opacity="0.12"/>
+    <polygon points="694,300 740,420 512,470" fill="#1C8F8C" opacity="0.35"/>
+    <polygon points="740,420 512,790 512,470" fill="#157C7A" opacity="0.55"/>
+    <polygon points="284,420 512,790 512,470" fill="#58CFC8" opacity="0.35"/>
+    <polygon points="330,300 284,420 512,470" fill="#BFF6F1" opacity="0.4"/>
+    <polygon points="432,300 592,300 512,470" fill="#FFFFFF" opacity="0.18"/>
+    <!-- luminous edges -->
+    <polyline points="330,300 512,470 740,420" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="5" stroke-linejoin="round"/>
+    <polyline points="284,420 512,470 512,790" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="5" stroke-linejoin="round"/>
+    <!-- specular blob -->
+    <ellipse cx="400" cy="380" rx="70" ry="38" fill="#FFFFFF" opacity="0.5" filter="url(#soft)"/>
+  </g>
+
+  <!-- notch rim: thin inner highlight -->
+  <path d="M432 300 V330 A25 25 0 0 0 457 355 H567 A25 25 0 0 0 592 330 V300" fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="6"/>
+
+  <!-- condensation drops -->
+  <circle cx="690" cy="640" r="22" fill="#D9FFFB" opacity="0.55"/>
+  <circle cx="724" cy="596" r="12" fill="#D9FFFB" opacity="0.45"/>
+
+  <!-- tile gloss -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#gloss)"/>
+</svg>

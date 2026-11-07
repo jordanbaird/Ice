@@ -338,6 +338,17 @@ final class ControlItem {
         button.title = ""
         button.image = nil
 
+        // VoiceOver names for the control items.
+        switch identifier {
+        case .visible:
+            button.setAccessibilityLabel(String(localized: "Trincano"))
+            button.setAccessibilityHelp(String(localized: "Shows or hides the hidden menu bar items."))
+        case .hidden:
+            button.setAccessibilityLabel(String(localized: "Hidden section divider"))
+        case .alwaysHidden:
+            button.setAccessibilityLabel(String(localized: "Always-hidden section divider"))
+        }
+
         switch identifier {
         case .visible:
             updateStatusItemVisibility(true)
@@ -503,7 +514,7 @@ final class ControlItem {
         let menu = NSMenu(title: "Trincano")
 
         let settingsItem = NSMenuItem(
-            title: "Trincano Settings…",
+            title: String(localized: "Trincano Settings…"),
             action: #selector(AppDelegate.openSettingsWindow),
             keyEquivalent: ","
         )
@@ -513,7 +524,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let searchItem = NSMenuItem(
-            title: "Search Menu Bar Items",
+            title: String(localized: "Search Menu Bar Items"),
             action: #selector(showSearchPanel),
             keyEquivalent: ""
         )
@@ -538,7 +549,9 @@ final class ControlItem {
                 continue
             }
             let item = NSMenuItem(
-                title: "\(section.isHidden ? "Show" : "Hide") \(name.displayString) Section",
+                title: section.isHidden
+                    ? String(localized: "Show \(name.displayString) Section")
+                    : String(localized: "Hide \(name.displayString) Section"),
                 action: #selector(toggleMenuBarSection),
                 keyEquivalent: ""
             )
@@ -557,7 +570,7 @@ final class ControlItem {
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit Trincano",
+            title: String(localized: "Quit Trincano"),
             action: #selector(NSApp.terminate),
             keyEquivalent: "q"
         )

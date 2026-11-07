@@ -66,7 +66,7 @@ final class IceBarColorManager: ObservableObject {
                     else {
                         return
                     }
-                    withAnimation(.interactiveSpring) {
+                    withAnimation(Motion.animation(.color)) {
                         self.updateColorInfo(with: frame, screen: screen)
                     }
                 }
@@ -98,7 +98,7 @@ final class IceBarColorManager: ObservableObject {
                 }
                 updateWindowImage(for: screen)
                 if iceBarPanel.isVisible {
-                    withAnimation {
+                    withAnimation(Motion.animation(.color)) {
                         self.updateColorInfo(with: iceBarPanel.frame, screen: screen)
                     }
                 }

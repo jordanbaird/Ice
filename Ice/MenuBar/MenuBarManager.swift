@@ -283,7 +283,7 @@ final class MenuBarManager: ObservableObject {
         let menu = NSMenu(title: "Trincano")
 
         let editAppearanceItem = NSMenuItem(
-            title: "Edit Menu Bar Appearance…",
+            title: String(localized: "Edit Menu Bar Appearance…"),
             action: #selector(showAppearanceEditorPanel),
             keyEquivalent: ""
         )
@@ -293,7 +293,7 @@ final class MenuBarManager: ObservableObject {
         menu.addItem(.separator())
 
         let settingsItem = NSMenuItem(
-            title: "Trincano Settings…",
+            title: String(localized: "Trincano Settings…"),
             action: #selector(AppDelegate.openSettingsWindow),
             keyEquivalent: ","
         )

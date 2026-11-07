@@ -90,7 +90,7 @@ final class MenuBarOverlayPanel: NSPanel {
             defer: false
         )
         self.level = .statusBar
-        self.title = "Menu Bar Overlay"
+        self.title = String(localized: "Menu Bar Overlay")
         self.backgroundColor = .clear
         self.hasShadow = false
         self.animationBehavior = .none
@@ -343,7 +343,7 @@ final class MenuBarOverlayPanel: NSPanel {
         updateFlags = [.applicationMenuFrame, .desktopWallpaper]
 
         if !appState.menuBarManager.isMenuBarHiddenBySystem {
-            animator().alphaValue = 1
+            Motion.animate(.fade) { animator().alphaValue = 1 }
         }
     }
 
@@ -393,10 +393,8 @@ private final class MenuBarOverlayPanelContentView: NSView {
                 appState.$isDraggingMenuBarItem
                     .removeDuplicates()
                     .sink { [weak self] isDragging in
-                        if isDragging {
-                            self?.animator().alphaValue = 0
-                        } else {
-                            self?.animator().alphaValue = 1
+                        Motion.animate(.fade) {
+                            self?.animator().alphaValue = isDragging ? 0 : 1
                         }
                     }
                     .store(in: &c)

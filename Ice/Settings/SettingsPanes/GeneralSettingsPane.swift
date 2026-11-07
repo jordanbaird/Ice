@@ -25,12 +25,7 @@ struct GeneralSettingsPane: View {
     }
 
     private var rehideIntervalKey: LocalizedStringKey {
-        let formatted = settings.rehideInterval.formatted()
-        if settings.rehideInterval == 1 {
-            return LocalizedStringKey(formatted + " second")
-        } else {
-            return LocalizedStringKey(formatted + " seconds")
-        }
+        LocalizedStringKey(DurationText.string(seconds: settings.rehideInterval, locale: DurationText.interfaceLocale))
     }
 
     var body: some View {
@@ -155,7 +150,7 @@ struct GeneralSettingsPane: View {
     @ViewBuilder
     private func iceIconMenuItem(for imageSet: ControlItemImageSet) -> some View {
         Label {
-            Text(imageSet.name.rawValue)
+            Text(imageSet.name.localized)
         } icon: {
             if let nsImage = imageSet.hidden.nsImage(for: appState) {
                 switch imageSet.name {

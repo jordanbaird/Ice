@@ -34,7 +34,7 @@ final class IceBarPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
-        self.title = "Trincano Bar"
+        self.title = String(localized: "Trincano Bar")
         self.titlebarAppearsTransparent = true
         self.isMovableByWindowBackground = true
         self.allowsToolTipsWhenApplicationIsInactive = true
@@ -495,6 +495,7 @@ private struct IceBarItemView: View {
                     )
                 }
                 .accessibilityLabel(item.displayName)
+                .accessibilityAddTraits(.isButton)
                 .accessibilityAction(named: "left click", leftClickAction)
                 .accessibilityAction(named: "right click", rightClickAction)
         }

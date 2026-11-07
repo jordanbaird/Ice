@@ -13,9 +13,9 @@ import Foundation
 ///   delivers `nil` and the UI keeps the previous value.
 /// - `finish` reports that the work really ended (or confirmed cancellation).
 ///   Until then the operation keeps occupying its slot.
-struct BackgroundCaptureOperation<Value> {
-    let deliver: (Value?) -> Void
-    let finish: () -> Void
+struct BackgroundCaptureOperation<Value: Sendable>: Sendable {
+    let deliver: @Sendable (Value?) -> Void
+    let finish: @Sendable () -> Void
 }
 
 /// A cache for results that are produced slowly and asynchronously (for
@@ -28,7 +28,7 @@ struct BackgroundCaptureOperation<Value> {
 /// that ignore cancellation after a timeout are still counted and cannot pile
 /// up. Results that arrive after ``invalidate()`` or after their timeout are
 /// discarded, and a failed key is not retried before `maxAge` passes.
-final class BackgroundCaptureCache<Key: Hashable, Value>: @unchecked Sendable {
+final class BackgroundCaptureCache<Key: Hashable & Sendable, Value: Sendable>: @unchecked Sendable {
     private struct Entry {
         let value: Value
         let date: TimeInterval
@@ -38,8 +38,8 @@ final class BackgroundCaptureCache<Key: Hashable, Value>: @unchecked Sendable {
     private let maxInFlight: Int
     private let maxAge: TimeInterval
     private let maxEntries: Int
-    private let now: () -> TimeInterval
-    private let start: (Key, BackgroundCaptureOperation<Value>) -> Void
+    private let now: @Sendable () -> TimeInterval
+    private let start: @Sendable (Key, BackgroundCaptureOperation<Value>) -> Void
 
     private var entries = [Key: Entry]()
     /// Operations whose physical work has not finished, with their tokens.
@@ -68,8 +68,8 @@ final class BackgroundCaptureCache<Key: Hashable, Value>: @unchecked Sendable {
         maxInFlight: Int,
         maxAge: TimeInterval,
         maxEntries: Int = 16,
-        now: @escaping () -> TimeInterval,
-        start: @escaping (Key, BackgroundCaptureOperation<Value>) -> Void
+        now: @escaping @Sendable () -> TimeInterval,
+        start: @escaping @Sendable (Key, BackgroundCaptureOperation<Value>) -> Void
     ) {
         self.maxInFlight = maxInFlight
         self.maxAge = maxAge

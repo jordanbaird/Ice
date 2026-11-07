@@ -44,7 +44,7 @@ struct MenuBarShapePicker: View {
     }
 }
 
-private struct MenuBarFullShapePicker: View, Equatable {
+private struct MenuBarFullShapePicker: View, @MainActor Equatable {
     @Binding var info: MenuBarFullShapeInfo
 
     var body: some View {
@@ -148,7 +148,7 @@ private struct MenuBarFullShapePicker: View, Equatable {
     }
 }
 
-private struct MenuBarSplitShapePicker: View, Equatable {
+private struct MenuBarSplitShapePicker: View, @MainActor Equatable {
     @Binding var info: MenuBarSplitShapeInfo
 
     var body: some View {

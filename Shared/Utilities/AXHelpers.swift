@@ -7,6 +7,10 @@ import AXSwift
 import Cocoa
 
 enum AXHelpers {
+    /// The system-wide element, used only from within ``queue``. (AXSwift's own
+    /// `systemWideElement` global is mutable shared state; this is our own.)
+    private nonisolated(unsafe) static let systemWide = AXUIElementCreateSystemWide()
+
     private static let queue = DispatchQueue.targetingGlobal(
         label: "AXHelpers.queue",
         qos: .userInteractive,
@@ -19,7 +23,14 @@ enum AXHelpers {
     }
 
     static func element(at point: CGPoint) -> UIElement? {
-        queue.sync { try? systemWideElement.elementAtPosition(Float(point.x), Float(point.y)) }
+        queue.sync {
+            var element: AXUIElement?
+            let error = AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &element)
+            guard error == .success, let element else {
+                return nil
+            }
+            return UIElement(element)
+        }
     }
 
     static func application(for runningApp: NSRunningApplication) -> Application? {

@@ -37,9 +37,11 @@ enum Predicates<Input> {
 // MARK: - Control Item Predicates
 
 extension Predicates where Input == NSLayoutConstraint {
+    @MainActor
     static func controlItemConstraint(button: NSStatusBarButton) -> NonThrowingPredicate {
-        predicate { constraint in
-            constraint.secondItem === button.superview
+        let superview = button.superview
+        return predicate { constraint in
+            constraint.secondItem === superview
         }
     }
 }

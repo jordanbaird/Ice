@@ -33,7 +33,7 @@ extension Task {
         _ timeout: C.Instant.Duration,
         tolerance: C.Instant.Duration?,
         clock: C,
-        operation: sending @escaping @isolated(any) () async throws -> Success
+        operation: @escaping @Sendable @isolated(any) () async throws -> Success
     ) async throws -> Success {
         try await withThrowingTaskGroup(of: Success.self) { group in
             group.addTask {
@@ -74,7 +74,7 @@ extension Task where Failure == any Error {
         name: String? = nil,
         priority: TaskPriority? = nil,
         @_inheritActorContext @_implicitSelfCapture
-        operation: sending @escaping @isolated(any) () async throws -> Success
+        operation: @escaping @Sendable @isolated(any) () async throws -> Success
     ) {
         self.init(name: name, priority: priority) {
             try await Task.withTimeout(timeout, tolerance: tolerance, clock: clock, operation: operation)
@@ -103,9 +103,9 @@ extension Task where Failure == any Error {
         clock: C = .continuous,
         name: String? = nil,
         priority: TaskPriority? = nil,
-        operation: sending @escaping @isolated(any) () async throws -> Success
+        operation: @escaping @Sendable @isolated(any) () async throws -> Success
     ) -> Task<Success, Failure> {
-        detached(name: name, priority: priority) {
+        return detached(name: name, priority: priority) {
             try await withTimeout(timeout, tolerance: tolerance, clock: clock, operation: operation)
         }
     }

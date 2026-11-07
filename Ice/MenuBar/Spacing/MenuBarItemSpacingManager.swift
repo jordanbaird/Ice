@@ -144,6 +144,47 @@ final class MenuBarItemSpacingManager {
         }
     }
 
+    /// Returns a Boolean value that indicates whether the app with the given
+    /// process identifier should be relaunched.
+    private static func shouldRelaunchApp(withPID pid: pid_t) -> Bool {
+        guard
+            let app = NSRunningApplication(processIdentifier: pid),
+            app.bundleIdentifier != "com.apple.controlcenter", // ControlCenter handles its own relaunch, so skip it.
+            app != .current
+        else {
+            return false
+        }
+        return true
+    }
+
+    /// Relaunches the app with the given process identifier and returns its name
+    /// if the relaunch failed. The app is looked up here because
+    /// `NSRunningApplication` is not `Sendable`.
+    private func relaunchFailure(forPID pid: pid_t) async -> String? {
+        guard let app = NSRunningApplication(processIdentifier: pid) else {
+            return nil
+        }
+        do {
+            try await relaunchApp(app)
+            return nil
+        } catch {
+            guard let name = app.localizedName else {
+                return nil
+            }
+            if app.bundleIdentifier == "com.apple.Spotlight" {
+                // Spotlight automatically relaunches, so only consider it a failure if it never quit.
+                if
+                    let latestSpotlightInstance = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Spotlight").first,
+                    latestSpotlightInstance.processIdentifier == app.processIdentifier
+                {
+                    return name
+                }
+                return nil
+            }
+            return name
+        }
+    }
+
     /// Applies the current ``offset``.
     ///
     /// - Note: Calling this restarts all apps with a menu bar item.
@@ -161,39 +202,25 @@ final class MenuBarItemSpacingManager {
         let items = await MenuBarItem.getMenuBarItems(option: .activeSpace)
         let pids = Set(items.map { $0.sourcePID ?? $0.ownerPID })
 
-        var failedApps = [String]()
-
-        await withTaskGroup(of: Void.self) { group in
+        // Each task reports the name of the app that failed to relaunch, if any.
+        let groupFailures = await withTaskGroup(of: String?.self) { group in
             for pid in pids {
-                guard
-                    let app = NSRunningApplication(processIdentifier: pid),
-                    app.bundleIdentifier != "com.apple.controlcenter", // ControlCenter handles its own relaunch, so skip it.
-                    app != .current
-                else {
+                guard Self.shouldRelaunchApp(withPID: pid) else {
                     break
                 }
-                group.addTask { @MainActor in
-                    do {
-                        try await self.relaunchApp(app)
-                    } catch {
-                        guard let name = app.localizedName else {
-                            return
-                        }
-                        if app.bundleIdentifier == "com.apple.Spotlight" {
-                            // Spotlight automatically relaunches, so only consider it a failure if it never quit.
-                            if
-                                let latestSpotlightInstance = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Spotlight").first,
-                                latestSpotlightInstance.processIdentifier == app.processIdentifier
-                            {
-                                failedApps.append(name)
-                            }
-                        } else {
-                            failedApps.append(name)
-                        }
-                    }
+                group.addTask {
+                    await self.relaunchFailure(forPID: pid)
                 }
             }
+            var names = [String]()
+            for await name in group {
+                if let name {
+                    names.append(name)
+                }
+            }
+            return names
         }
+        var failedApps = groupFailures
 
         try? await Task.sleep(for: .milliseconds(100))
 

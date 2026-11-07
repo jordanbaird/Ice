@@ -21,7 +21,8 @@ import os
 /// Accessibility are thread blocking, we do most of the heavy lifting
 /// in a dedicated XPC service, which we then call asynchronously from
 /// the main app.
-final class SourcePIDCache {
+// State is protected by `state`'s lock.
+final class SourcePIDCache: @unchecked Sendable {
     /// An object that contains a running application and provides an
     /// interface to access relevant information, such as its process
     /// identifier and extras menu bar.
@@ -79,7 +80,8 @@ final class SourcePIDCache {
     }
 
     /// State for the cache.
-    private struct State {
+    // @unchecked Sendable: guarda NSRunningApplication/AXUIElement, só acessados sob o lock do cache.
+    private struct State: @unchecked Sendable {
         /// Minimum time that must pass before retrying a previously
         /// failed source-PID lookup. Prevents a feedback loop where
         /// items that can never be resolved (e.g., items whose owning

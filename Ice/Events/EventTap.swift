@@ -6,9 +6,16 @@
 import Cocoa
 import OSLog
 
+// @unchecked Sendable: CGEvent e CGEventSource são CFTypes que só são postados e
+// lidos (nunca mutados em paralelo) pelas operações de evento.
+extension CGEvent: @retroactive @unchecked Sendable { }
+extension CGEventSource: @retroactive @unchecked Sendable { }
+
+// @unchecked Sendable: as propriedades só são atribuídas no init, enable/disable
+// só chamam APIs de CGEvent/CFRunLoop thread-safe e o callback roda no run loop principal.
 /// An object that receives events from a defined point in
 /// the event stream.
-final class EventTap {
+final class EventTap: @unchecked Sendable {
     /// Constants that specify the possible insertion points
     /// for event taps.
     enum Location {

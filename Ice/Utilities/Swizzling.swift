@@ -20,11 +20,9 @@ extension NSSplitViewItem {
         method_exchangeImplementations(originalCanCollapseMethod, swizzledCanCollapseMethod)
     }()
 
-    @objc private var swizzledCanCollapse: Bool {
-        if
-            let window = viewController.view.window,
-            window.identifier?.rawValue == IceWindowIdentifier.settings.rawValue
-        {
+    // AppKit only asks this on the main thread; the isolation is checked at runtime.
+    @MainActor @objc private var swizzledCanCollapse: Bool {
+        if viewController.view.window?.identifier?.rawValue == IceWindowIdentifier.settings.rawValue {
             return false
         }
         return self.swizzledCanCollapse

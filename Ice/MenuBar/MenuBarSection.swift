@@ -107,7 +107,7 @@ final class MenuBarSection {
         if name == .alwaysHidden {
             sections.append(.alwaysHidden)
         }
-        notchSession.begin(
+        _ = notchSession.begin(
             isEnabled: appState.settings.general.autoBarOnNotch,
             rightSafeAreaWidth: screen?.notchGeometry.map { Double($0.rightSafeArea.width) },
             obscuredCount: { screen.map { appState.itemManager.notchObscuredItems(on: $0).count } ?? 0 },
@@ -366,27 +366,30 @@ final class MenuBarSection {
                         withTimeInterval: appState.settings.general.rehideInterval,
                         repeats: false
                     ) { [weak self] _ in
-                        guard let self else {
-                            return
-                        }
-                        guard let screen = rehideScreen else {
-                            // The pinned display disconnected.
-                            Task {
-                                await self.hide()
+                        // Timer agendado no run loop principal: o bloco sempre roda na main thread.
+                        MainActor.assumeIsolated {
+                            guard let self else {
+                                return
                             }
-                            return
-                        }
-                        if RehideGeometry.isPointerOutsideMenuBar(
-                            pointer: NSEvent.mouseLocation,
-                            screenFrame: screen.frame,
-                            visibleFrame: screen.visibleFrame
-                        ) {
-                            Task {
-                                await self.hide()
+                            guard let screen = self.rehideScreen else {
+                                // The pinned display disconnected.
+                                Task {
+                                    self.hide()
+                                }
+                                return
                             }
-                        } else {
-                            Task {
-                                self.session.rearmIfActive()
+                            if RehideGeometry.isPointerOutsideMenuBar(
+                                pointer: NSEvent.mouseLocation,
+                                screenFrame: screen.frame,
+                                visibleFrame: screen.visibleFrame
+                            ) {
+                                Task {
+                                    self.hide()
+                                }
+                            } else {
+                                Task {
+                                    self.session.rearmIfActive()
+                                }
                             }
                         }
                     }

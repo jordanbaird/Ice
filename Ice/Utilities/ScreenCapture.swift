@@ -5,6 +5,7 @@
 
 import AppKit
 import CoreGraphics
+import os
 import ScreenCaptureKit
 
 /// A namespace for screen capture operations.
@@ -35,15 +36,14 @@ enum ScreenCapture {
     /// This function caches its initial result and returns it on subsequent
     /// calls. Pass `true` to the `reset` parameter to replace the cached
     /// result with a newly computed value.
+    private static let cachedPermissionResult = OSAllocatedUnfairLock<Bool?>(initialState: nil)
+
     static func cachedCheckPermissions(reset: Bool = false) -> Bool {
-        enum Context {
-            static var cachedResult: Bool?
-        }
-        if !reset, let result = Context.cachedResult {
+        if !reset, let result = cachedPermissionResult.withLock({ $0 }) {
             return result
         }
         let result = checkPermissions()
-        Context.cachedResult = result
+        cachedPermissionResult.withLock { $0 = result }
         return result
     }
 
@@ -161,10 +161,20 @@ private enum SCKCapture {
     private static let contentLock = NSLock()
     nonisolated(unsafe) private static var cachedContent: (content: SCShareableContent, date: Date)?
 
-    private static func shareableContent(needing windowIDs: Set<CGWindowID>) async -> SCShareableContent? {
+    private static func readCachedContent() -> (content: SCShareableContent, date: Date)? {
         contentLock.lock()
-        let cached = cachedContent
-        contentLock.unlock()
+        defer { contentLock.unlock() }
+        return cachedContent
+    }
+
+    private static func writeCachedContent(_ content: SCShareableContent) {
+        contentLock.lock()
+        defer { contentLock.unlock() }
+        cachedContent = (content, Date())
+    }
+
+    private static func shareableContent(needing windowIDs: Set<CGWindowID>) async -> SCShareableContent? {
+        let cached = readCachedContent()
         if
             let cached,
             Date().timeIntervalSince(cached.date) < 0.5,
@@ -175,9 +185,7 @@ private enum SCKCapture {
         guard let content = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true) else {
             return nil
         }
-        contentLock.lock()
-        cachedContent = (content, Date())
-        contentLock.unlock()
+        writeCachedContent(content)
         return content
     }
 

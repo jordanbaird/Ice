@@ -54,9 +54,38 @@ final class MenuBarSection {
     /// is outside of the menu bar.
     private var rehideMonitor: EventMonitor?
 
-    /// A Boolean value that indicates whether the Ice Bar should be used.
+    /// A Boolean value that indicates whether the Ice Bar should be used:
+    /// the user's choice, or automatically on a screen with a notch when the
+    /// items would end up behind it.
     private var useIceBar: Bool {
-        appState?.settings.general.useIceBar ?? false
+        guard let appState else {
+            return false
+        }
+        return appState.settings.general.useIceBar || shouldUseBarForNotch(appState: appState)
+    }
+
+    /// A Boolean value that indicates whether the notch forces the Trincano Bar
+    /// (see ``NotchBarPolicy``).
+    private func shouldUseBarForNotch(appState: AppState) -> Bool {
+        guard
+            appState.settings.general.autoBarOnNotch,
+            let screen = screenForIceBar,
+            let notch = screen.notchGeometry
+        else {
+            return false
+        }
+        let cache = appState.itemManager.itemCache
+        var sections: [MenuBarSection.Name] = [.visible, .hidden]
+        if name == .alwaysHidden {
+            sections.append(.alwaysHidden)
+        }
+        let widths = sections.flatMap { cache[$0].map { Double($0.bounds.width) } }
+        return NotchBarPolicy.shouldUseBar(
+            isEnabled: true,
+            rightSafeAreaWidth: Double(notch.rightSafeArea.width),
+            obscuredCount: appState.itemManager.notchObscuredCount,
+            expandedItemWidths: widths
+        )
     }
 
     /// A weak reference to the menu bar manager.
@@ -234,6 +263,26 @@ final class MenuBarSection {
         }
 
         stopRehideChecks()
+    }
+
+    /// Shows the section in the Trincano Bar on the given screen, even when
+    /// the bar isn't the user's chosen mode (used by the notch click).
+    func showInBar(on screen: NSScreen) {
+        guard let menuBarManager, controlItem.isAddedToMenuBar else {
+            return
+        }
+        for section in menuBarManager.sections {
+            switch section.name {
+            case .visible:
+                section.controlItem.state = .showSection
+            case .hidden, .alwaysHidden:
+                section.controlItem.state = .hideSection
+            }
+        }
+        Task {
+            await menuBarManager.iceBarPanel.show(section: .hidden, on: screen)
+            startRehideChecks()
+        }
     }
 
     /// Toggles the visibility of the section.

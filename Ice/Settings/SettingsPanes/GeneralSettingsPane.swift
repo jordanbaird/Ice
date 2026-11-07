@@ -178,6 +178,17 @@ struct GeneralSettingsPane: View {
         if settings.useIceBar {
             iceBarLocationPicker
         }
+        if NSScreen.screens.contains(where: \.hasNotch) {
+            notchOptions
+        }
+    }
+
+    @ViewBuilder
+    private var notchOptions: some View {
+        Toggle("Use the Trincano Bar for items behind the notch", isOn: $settings.autoBarOnNotch)
+            .annotation("On a screen with a notch, items that would end up behind the notch are shown in the Trincano Bar.")
+        Toggle("Click the notch to open the Trincano Bar", isOn: $settings.showBarOnNotchClick)
+            .annotation("Clicking the notch shows or hides the Trincano Bar.")
     }
 
     @ViewBuilder

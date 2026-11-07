@@ -217,6 +217,15 @@ extension HIDEventManager {
     // MARK: Handle Show On Click
 
     private func handleShowOnClick(appState: AppState, screen: NSScreen) {
+        if NotchClickPolicy.shouldToggleBar(
+            isEnabled: appState.settings.general.showBarOnNotchClick,
+            hasNotch: screen.hasNotch,
+            clickIsInsideNotch: isMouseInsideNotch(appState: appState, screen: screen)
+        ) {
+            toggleBarFromNotch(appState: appState, screen: screen)
+            return
+        }
+
         guard
             appState.settings.general.showOnClick,
             isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen)
@@ -321,6 +330,18 @@ extension HIDEventManager {
             for section in appState.menuBarManager.sections {
                 section.hide()
             }
+        }
+    }
+
+    /// Shows or hides the Trincano Bar when the notch is clicked.
+    private func toggleBarFromNotch(appState: AppState, screen: NSScreen) {
+        guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
+            return
+        }
+        if appState.menuBarManager.iceBarPanel.isVisible {
+            hiddenSection.hide()
+        } else {
+            hiddenSection.showInBar(on: screen)
         }
     }
 
@@ -564,12 +585,11 @@ extension HIDEventManager {
     func isMouseInsideNotch(appState: AppState, screen: NSScreen) -> Bool {
         guard
             let mouseLocation = MouseHelpers.locationAppKit,
-            var frameOfNotch = screen.frameOfNotch
+            let notch = screen.notchGeometry
         else {
             return false
         }
-        frameOfNotch.size.height += 1
-        return frameOfNotch.contains(mouseLocation)
+        return notch.contains(mouseLocation)
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within

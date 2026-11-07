@@ -14,6 +14,10 @@ final class MenuBarItemManager: ObservableObject {
     /// The current cache of menu bar items.
     @Published private(set) var itemCache = ItemCache(displayID: nil)
 
+    /// The number of visible items the system pushed behind the notch of the
+    /// screen with the active menu bar. Zero on a screen without a notch.
+    @Published private(set) var notchObscuredCount = 0
+
     /// Logger for the menu bar item manager.
     private nonisolated let logger = Logger.menuBarItemManager
 
@@ -234,6 +238,16 @@ extension MenuBarItemManager {
             return sectionItems
         }
 
+        let existingWindowIDs = Set(sectionItems.map(\.windowID))
+        let obscuredItems = notchObscuredItems(on: screen)
+            .filter { !existingWindowIDs.contains($0.windowID) }
+
+        return sectionItems + obscuredItems
+    }
+
+    /// Returns the visible items that the system pushed behind the notch of
+    /// the given screen (empty for a screen without a notch).
+    func notchObscuredItems(on screen: NSScreen) -> [MenuBarItem] {
         let visibleItems = itemCache[.visible]
         let excludedIndices = Set(visibleItems.indices.filter { visibleItems[$0].isControlItem })
         let itemBounds = visibleItems.map { Bridging.getWindowBounds(for: $0.windowID) }
@@ -241,14 +255,25 @@ extension MenuBarItemManager {
             itemBounds: itemBounds,
             excluding: excludedIndices,
             screenBounds: CGDisplayBounds(screen.displayID),
-            rightSafeArea: screen.auxiliaryTopRightArea
+            rightSafeArea: screen.notchGeometry?.rightSafeArea
         )
-        let existingWindowIDs = Set(sectionItems.map(\.windowID))
-        let obscuredItems = obscuredIndices
-            .map { visibleItems[$0] }
-            .filter { !existingWindowIDs.contains($0.windowID) }
+        return obscuredIndices.map { visibleItems[$0] }
+    }
 
-        return sectionItems + obscuredItems
+    /// Updates ``notchObscuredCount`` for the screen the cache was made for.
+    private func updateNotchObscuredCount() {
+        guard
+            let displayID = itemCache.displayID,
+            let screen = NSScreen.screens.first(where: { $0.displayID == displayID })
+        else {
+            notchObscuredCount = 0
+            return
+        }
+        let count = notchObscuredItems(on: screen).count
+        if count != notchObscuredCount {
+            logger.notice("Items behind the notch: \(count, privacy: .public)")
+            notchObscuredCount = count
+        }
     }
 
     /// A pair of control items, taken from a list of menu bar items
@@ -372,11 +397,14 @@ extension MenuBarItemManager {
         }
 
         guard itemCache != context.cache else {
+            // Items may have shifted behind the notch without the set changing.
+            updateNotchObscuredCount()
             logger.debug("Not updating menu bar item cache, as items haven't changed")
             return
         }
 
         itemCache = context.cache
+        updateNotchObscuredCount()
         logger.debug("Updated menu bar item cache")
     }
 

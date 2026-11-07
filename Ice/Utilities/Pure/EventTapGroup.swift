@@ -20,13 +20,18 @@ final class EventCounter: @unchecked Sendable {
 }
 
 /// Owns the event taps of one operation until it ends.
-final class EventTapGroup<Tap: AnyObject>: @unchecked Sendable {
-    // @unchecked Sendable: adopted once during setup and torn down once at the end, on the main actor.
-    private var taps = [Tap]()
-    private let disable: (Tap) -> Void
+///
+/// Everything that touches the taps (adopting, disabling, releasing) is
+/// isolated to the main actor: the callbacks run on the main run loop, so the
+/// taps must not be turned off or freed from another thread.
+@MainActor
+final class EventTapGroup<Tap: AnyObject> {
+    // Read from the (nonisolated) deinit only to find out whether cleanup was missed.
+    private nonisolated(unsafe) var taps = [Tap]()
+    private let disable: @MainActor (Tap) -> Void
 
     /// - Parameter disable: Turns a tap off (stops its event delivery).
-    init(disable: @escaping (Tap) -> Void) {
+    nonisolated init(disable: @escaping @MainActor (Tap) -> Void) {
         self.disable = disable
     }
 
@@ -35,7 +40,7 @@ final class EventTapGroup<Tap: AnyObject>: @unchecked Sendable {
         self.taps.append(contentsOf: taps)
     }
 
-    /// Releases the taps. Idempotent.
+    /// Disables and releases the taps. Idempotent.
     func tearDown() {
         let owned = taps
         taps.removeAll()
@@ -44,7 +49,29 @@ final class EventTapGroup<Tap: AnyObject>: @unchecked Sendable {
         }
     }
 
+    /// Runs `body` with a new group and tears the group down, on the main
+    /// actor, when `body` returns, throws or is cancelled. Callers `await` the
+    /// whole call, so the cleanup has finished when it returns.
+    static func withGroup<R: Sendable>(
+        disable: @escaping @MainActor (Tap) -> Void,
+        body: @MainActor (EventTapGroup<Tap>) async throws -> R
+    ) async rethrows -> R {
+        let group = EventTapGroup<Tap>(disable: disable)
+        defer { group.tearDown() }
+        return try await body(group)
+    }
+
+    // A deinit can't do main-actor work. If a group was dropped without
+    // `tearDown()` (a bug), still turn the taps off, on the main actor.
     deinit {
-        tearDown()
+        guard !taps.isEmpty else {
+            return
+        }
+        assertionFailure("EventTapGroup deallocated without tearDown()")
+        nonisolated(unsafe) let leftover = taps
+        let disable = self.disable
+        Task { @MainActor in
+            leftover.forEach(disable)
+        }
     }
 }

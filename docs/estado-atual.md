@@ -12,9 +12,7 @@ Fork do Ice (GPL-3.0) para o Mac do Paulo (MacBook Air M4 com notch, macOS 26 Ta
 | 4 | Notch: `NotchGeometry`, Barra automática em tela com notch, itens atrás do notch na Barra, clique no notch | #7 |
 | 5 | Telas: perfis por UUID de display, display ativo pelo ponteiro, rehide por tela-alvo, topologia ao conectar/desconectar | #8 |
 | 6 | PT-BR/inglês (String Catalog, "Barra do Trincano"), movimento reduzido 150-300 ms, VoiceOver, ícone "Barra congelada" | #9, #11 |
-| 7 | Swift 6 e concorrência estrita (zero avisos), `EventTapGroup`/`SignalWait` (taps e espera dos eventos de mover itens) | #12 |
-
-> Nota: ao escrever este documento o PR #12 (fase 7) aparecia **aberto** no GitHub (a `main` ainda sem `SWIFT_VERSION = 6.0`), embora o Lupa tenha informado o merge. Conferir `git log origin/main` e `grep SWIFT_VERSION Ice.xcodeproj/project.pbxproj`.
+| 7 | Swift 6 e concorrência estrita (zero avisos), `EventTapGroup`/`SignalWait` (taps e espera dos eventos de mover itens). **Entrou na `main`** | #12 |
 
 Cada PR passou pelo Lupa; cada correção importante tem teste (vermelho comportamental quando era bug). Documentos por fase: `fase-2-tahoe.md` … `fase-6-acabamento.md`, `decisoes.md`, `assinatura.md`, `identidade/README.md`.
 

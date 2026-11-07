@@ -3,7 +3,7 @@
 Fork do [Ice](https://github.com/jordanbaird/Ice) (jordanbaird, GPL-3.0) com suporte ao macOS 26 e foco em Macs com notch. Base: `upstream/macos-26`. Remoto `origin` = PiluVitu/trincano (público), `upstream` = jordanbaird/Ice. PRs só contra a `main` do fork, nunca contra o upstream.
 
 ## Estado
-O plano das 7 fases foi concluído (a fase 7, Swift 6, está no PR #12; confira se já entrou na `main`); veja [docs/estado-atual.md](docs/estado-atual.md) (resumo, números de referência e a lista de **pendências abertas**). Uso pessoal; não distribuir (sem Developer ID/notarização).
+O plano das 7 fases foi concluído (a fase 7, Swift 6, entrou pelo PR #12); veja [docs/estado-atual.md](docs/estado-atual.md) (resumo, números de referência e a lista de **pendências abertas**). Uso pessoal; não distribuir (sem Developer ID/notarização).
 
 ## Índice de documentação (`docs/`)
 - [docs/estado-atual.md](docs/estado-atual.md): estado final, fases e PRs, pendências abertas.
@@ -27,5 +27,5 @@ O plano das 7 fases foi concluído (a fase 7, Swift 6, está no PR #12; confira 
 - Manter LICENSE, cabeçalhos e créditos ao Ice; código-fonte público; sem telemetria e **sem rede** (Sparkle removido).
 - Nome/IDs: `Trincano`, `br.com.pilutech.trincano`. Alvo e módulo Swift seguem `Ice`; tipos mantêm prefixo `Ice` (cherry-pick limpo, use `git cherry-pick -x`).
 - XPC: nunca desligar a checagem de peer; ver `XPCPeerPolicy`.
-- Swift 6 com concorrência estrita (zero avisos; vale quando o PR #12 estiver na `main`); `@unchecked Sendable`/`nonisolated(unsafe)`/`assumeIsolated` só com a invariante comentada. Interface em PT-BR e en (String Catalog); texto novo entra no catálogo.
+- Swift 6 com concorrência estrita (zero avisos); `@unchecked Sendable`/`nonisolated(unsafe)`/`assumeIsolated` só com a invariante comentada. Interface em PT-BR e en (String Catalog); texto novo entra no catálogo.
 - Bug: teste que falha primeiro. Lint limpo. Atualizar este arquivo e o `AGENTS.md` (idêntico) a cada fluxo novo.

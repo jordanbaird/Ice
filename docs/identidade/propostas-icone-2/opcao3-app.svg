@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0F2F35"/>
+      <stop offset="1" stop-color="#061418"/>
+    </linearGradient>
+    <radialGradient id="glowTop" cx="0.5" cy="0.12" r="0.55">
+      <stop offset="0" stop-color="#9FF5EC" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#9FF5EC" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="frostEdge" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="0.35" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="drop" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#F0FFFD"/>
+      <stop offset="0.6" stop-color="#8FE6DF"/>
+      <stop offset="1" stop-color="#2FB7B1"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="bigglow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="40"/>
+    </filter>
+    <clipPath id="clipTile">
+      <rect x="100" y="100" width="824" height="824" rx="185"/>
+    </clipPath>
+  </defs>
+
+  <!-- tile = the ice block -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#glowTop)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#frostEdge)"/>
+
+  <g clip-path="url(#clipTile)">
+    <!-- diffuse light bleeding from cracks -->
+    <g stroke="#7FE3DA" stroke-width="40" stroke-linecap="round" fill="none" opacity="0.5" filter="url(#bigglow)">
+      <polyline points="412,170 360,300 300,380 260,560"/>
+      <polyline points="612,170 690,290 700,440 790,600"/>
+      <polyline points="512,172 500,330 560,470 540,700 600,840"/>
+    </g>
+
+    <!-- luminous cracks, tapering -->
+    <g stroke="#DDFFFA" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#glow)">
+      <polyline points="412,170 360,300 300,380 260,560" stroke-width="9"/>
+      <polyline points="300,380 220,420" stroke-width="5"/>
+      <polyline points="260,560 200,610" stroke-width="4"/>
+      <polyline points="612,170 690,290 700,440 790,600" stroke-width="9"/>
+      <polyline points="700,440 780,420" stroke-width="5"/>
+      <polyline points="790,600 850,640" stroke-width="4"/>
+      <polyline points="512,172 500,330 560,470 540,700" stroke-width="11"/>
+      <polyline points="540,700 600,840" stroke-width="6"/>
+      <polyline points="560,470 640,520" stroke-width="5"/>
+      <polyline points="500,330 430,360" stroke-width="5"/>
+      <polyline points="540,700 470,760" stroke-width="4"/>
+    </g>
+    <!-- bright cores -->
+    <g stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <polyline points="412,170 360,300 300,380" stroke-width="3"/>
+      <polyline points="612,170 690,290 700,440" stroke-width="3"/>
+      <polyline points="512,172 500,330 560,470" stroke-width="4"/>
+    </g>
+  </g>
+
+  <!-- notch pill at the top edge -->
+  <path d="M412 100 V140 A30 30 0 0 0 442 170 H582 A30 30 0 0 0 612 140 V100 Z" fill="#02080A"/>
+  <path d="M442 170 H582" stroke="#9FF5EC" stroke-width="3" stroke-opacity="0.8" stroke-linecap="round"/>
+
+  <!-- condensation drop -->
+  <path d="M720 560 C720 560 630 680 630 740 A90 90 0 0 0 810 740 C810 680 720 560 720 560 Z" fill="url(#drop)"/>
+  <ellipse cx="690" cy="730" rx="22" ry="34" fill="#FFFFFF" opacity="0.7" transform="rotate(-20 690 730)"/>
+  <circle cx="770" cy="690" r="8" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="600" cy="640" r="12" fill="#C9FFF8" opacity="0.7"/>
+  <circle cx="860" cy="780" r="9" fill="#C9FFF8" opacity="0.6"/>
+</svg>

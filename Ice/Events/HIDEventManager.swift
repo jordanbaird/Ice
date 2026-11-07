@@ -63,7 +63,13 @@ final class HIDEventManager: ObservableObject {
     private(set) lazy var mouseDownMonitor = EventMonitor.universal(
         for: [.leftMouseDown, .rightMouseDown]
     ) { [weak self] event in
-        guard let self, isEnabled, let appState, let screen = bestScreen(appState: appState) else {
+        guard let self, isEnabled, let appState else {
+            return event
+        }
+        // The notch click is resolved from the click point (not from
+        // `NSScreen.main`, the keyboard-focus screen), before anything else.
+        self.handleNotchClick(event: event, appState: appState)
+        guard let screen = bestScreen(appState: appState) else {
             return event
         }
         Signposts.measure("hid.mouseDown") {
@@ -217,15 +223,6 @@ extension HIDEventManager {
     // MARK: Handle Show On Click
 
     private func handleShowOnClick(appState: AppState, screen: NSScreen) {
-        if NotchClickPolicy.shouldToggleBar(
-            isEnabled: appState.settings.general.showBarOnNotchClick,
-            hasNotch: screen.hasNotch,
-            clickIsInsideNotch: isMouseInsideNotch(appState: appState, screen: screen)
-        ) {
-            toggleBarFromNotch(appState: appState, screen: screen)
-            return
-        }
-
         guard
             appState.settings.general.showOnClick,
             isMouseInsideEmptyMenuBarSpace(appState: appState, screen: screen)
@@ -333,7 +330,24 @@ extension HIDEventManager {
         }
     }
 
-    /// Shows or hides the Trincano Bar when the notch is clicked.
+    /// Shows or hides the Trincano Bar when a notch is clicked (see
+    /// ``NotchClickResolver``).
+    private func handleNotchClick(event: NSEvent, appState: AppState) {
+        guard event.type == .leftMouseDown || event.type == .rightMouseDown else {
+            return
+        }
+        let screens = NSScreen.screens
+        let decision = NotchClickResolver.resolve(
+            point: NSEvent.mouseLocation,
+            screens: screens.map { NotchClickResolver.Screen(frame: $0.frame, notch: $0.notchGeometry) },
+            isEnabled: appState.settings.general.showBarOnNotchClick,
+            isLeftButton: event.type == .leftMouseDown
+        )
+        if case .toggleBar(let index) = decision {
+            toggleBarFromNotch(appState: appState, screen: screens[index])
+        }
+    }
+
     private func toggleBarFromNotch(appState: AppState, screen: NSScreen) {
         guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
             return

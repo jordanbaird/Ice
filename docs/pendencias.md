@@ -37,3 +37,6 @@ Veredito do Lupa: PR #1 (3ff4ef9) pode seguir para **uso pessoal**, **não** est
 - Teste do snapshot antigo do poll após troca de espaço/app.
 - Teste de integração: abrir/fechar/trocar seção durante refresh lento.
 - Teste de fiação do `HIDEventManager` (quais chamadas usam `.cached`/`.fresh`) além do `MenuBarHitTester`.
+
+## Wakeups (fase 4, Lupa PR #7)
+- Comparação pareada (mesmo build base/depois, mesmas opções e timers) e contagem de recaches/consultas por tela com os signposts; só então decidir sobre os timers de 5 s (poll e `IceBarColorManager`). Causa não afirmada.

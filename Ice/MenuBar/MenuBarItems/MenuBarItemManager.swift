@@ -255,9 +255,20 @@ extension MenuBarItemManager {
             itemBounds: itemBounds,
             excluding: excludedIndices,
             screenBounds: CGDisplayBounds(screen.displayID),
-            rightSafeArea: screen.notchGeometry?.rightSafeArea
+            rightSafeArea: screen.notchGeometry?.rightSafeArea,
+            menuBarHeight: screen.notchGeometry?.frame.height ?? 0
         )
         return obscuredIndices.map { visibleItems[$0] }
+    }
+
+    /// Returns the current widths of the items in the given sections, measured
+    /// now (a dynamic item can change width while keeping its window ID).
+    func liveItemWidths(in sections: [MenuBarSection.Name]) -> [Double] {
+        sections.flatMap { section in
+            itemCache[section].map { item in
+                Double(Bridging.getWindowBounds(for: item.windowID)?.width ?? item.bounds.width)
+            }
+        }
     }
 
     /// Updates ``notchObscuredCount`` for the screen the cache was made for.

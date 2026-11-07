@@ -54,37 +54,29 @@ final class MenuBarSection {
     /// is outside of the menu bar.
     private var rehideMonitor: EventMonitor?
 
+    /// The notch decision for the current show-to-hide cycle.
+    private var notchSession = NotchBarSession()
+
     /// A Boolean value that indicates whether the Ice Bar should be used:
-    /// the user's choice, or automatically on a screen with a notch when the
-    /// items would end up behind it.
+    /// the user's choice, or, on a screen with a notch, the decision taken
+    /// when the section was shown (see ``NotchBarSession``).
     private var useIceBar: Bool {
-        guard let appState else {
-            return false
-        }
-        return appState.settings.general.useIceBar || shouldUseBarForNotch(appState: appState)
+        (appState?.settings.general.useIceBar ?? false) || notchSession.isUsingBar
     }
 
-    /// A Boolean value that indicates whether the notch forces the Trincano Bar
-    /// (see ``NotchBarPolicy``).
-    private func shouldUseBarForNotch(appState: AppState) -> Bool {
-        guard
-            appState.settings.general.autoBarOnNotch,
-            let screen = screenForIceBar,
-            let notch = screen.notchGeometry
-        else {
-            return false
-        }
-        let cache = appState.itemManager.itemCache
+    /// Decides, from live measurements, whether the notch forces the Trincano
+    /// Bar for this show. Uses the same screen the bar would appear on.
+    private func beginNotchSession(appState: AppState) {
+        let screen = screenForIceBar
         var sections: [MenuBarSection.Name] = [.visible, .hidden]
         if name == .alwaysHidden {
             sections.append(.alwaysHidden)
         }
-        let widths = sections.flatMap { cache[$0].map { Double($0.bounds.width) } }
-        return NotchBarPolicy.shouldUseBar(
-            isEnabled: true,
-            rightSafeAreaWidth: Double(notch.rightSafeArea.width),
-            obscuredCount: appState.itemManager.notchObscuredCount,
-            expandedItemWidths: widths
+        notchSession.begin(
+            isEnabled: appState.settings.general.autoBarOnNotch,
+            rightSafeAreaWidth: screen?.notchGeometry.map { Double($0.rightSafeArea.width) },
+            obscuredCount: { screen.map { appState.itemManager.notchObscuredItems(on: $0).count } ?? 0 },
+            expandedItemWidths: { appState.itemManager.liveItemWidths(in: sections) }
         )
     }
 
@@ -188,6 +180,10 @@ final class MenuBarSection {
             return
         }
 
+        if let appState {
+            beginNotchSession(appState: appState)
+        }
+
         guard controlItem.isAddedToMenuBar else {
             // The section is disabled.
             // TODO: Can we use isEnabled for this check?
@@ -263,6 +259,7 @@ final class MenuBarSection {
         }
 
         stopRehideChecks()
+        notchSession.end()
     }
 
     /// Shows the section in the Trincano Bar on the given screen, even when

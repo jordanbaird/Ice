@@ -20,6 +20,15 @@ Decisões do Paulo: itens que ficariam atrás do notch vão **automaticamente** 
 CPU 0,0 % · memória 56 MB · RSS 75 MB · footprint/pico 56/153 MB · 5 threads. Mesmos valores da fase 3 (56 MB/152 MB). Poll de janelas: 71 em 5 min (mesmo ritmo das fases anteriores), p50 2,2 ms, fora da main.
 Wakeups acumulados: 43→64 em 2 min (~0,15 a 0,2/s). Nas amostras anteriores o contador parecia quase parado; um `sample` de 30 s mostrou só o poll de 5 s (`cacheItemsIfNeeded`) e o timer de 5 s do `IceBarColorManager`, **nenhuma fonte nova** (o código novo só roda ao refazer o cache). O contador do `top` não é comparável entre sessões; a fase 3 já registrava ~0,05/s. Fica anotado como pendência de investigação (reduzir/unir os timers de 5 s) em vez de afirmar regressão ou não.
 
+## Correções da revisão do Lupa (PR #7), com o vermelho registrado
+Vermelho (antes da implementação; `xcodebuild test` não compilava): `cannot find 'NotchBarSession' in scope`, `cannot find type 'NotchBarSession' in scope`, `extra argument 'menuBarHeight' in call` e `'nil' requires a contextual type` (as fixtures de `NotchClickResolver`). Depois: 101 testes passando.
+1. **Tela pelo ponto do clique** (`NotchClickResolver`): a ação do notch não usa mais `NSScreen.main` (tela do foco do teclado); `HIDEventManager.handleNotchClick` roda antes do `bestScreen` e escolhe a tela pelo `NSEvent.mouseLocation` (dentro estrito primeiro, depois contando as bordas superior/direita). Os outros handlers continuam com `bestScreen`. Testes: foco no externo + clique no notebook deslocado e abaixo, borda superior, logo fora do notch (3 lados), clique direito, desligado, clique no externo, fora de todas as telas.
+2. **Vertical** (`NotchOverflowResolver`, novo `menuBarHeight`): o item precisa cruzar a faixa da barra do display-alvo em coordenadas CG (`CGDisplayBounds`, altura = altura do notch); monitores empilhados dividem o mesmo intervalo x. Testes: externo acima e notebook abaixo com o mesmo x (só o item do notebook), e item abaixo da faixa ignorado.
+3. **Revalidação na hora de mostrar** (`NotchBarSession`): a decisão usa larguras e contagem **medidas agora** (`liveItemWidths`, `notchObscuredItems`) a cada `show()`, para a mesma tela da Barra, e fica fixa até o `hide()` (sem virar no meio do ciclo). Testes: IDs constantes com largura mudando, transição inline → Barra → inline, decisão fixa sem nova medição, itens já obscurecidos, tela sem notch.
+
+### Pendência mantida (sem afirmar causa): wakeups
+Comparação pareada, com as mesmas opções e timers, e contagem de recaches e consultas por tela (signposts já existem: `cacheItems`, `poll.windowList`).
+
 ## Não validado ao vivo (precisa do Paulo)
 - Clique no notch abrindo/fechando a Barra; a Barra automática quando a seção oculta não cabe; item realmente preso atrás do notch. No layout atual do Paulo `notchObscuredCount` ficou 0 (nenhum log "Items behind the notch" desde a instalação).
 - Roteiro: (1) clicar no notch; (2) com a Barra desligada nos ajustes, mostrar a seção oculta com itens suficientes para passar de ~645 pt; (3) conferir se a Barra abre e se os itens presos atrás do notch aparecem nela.

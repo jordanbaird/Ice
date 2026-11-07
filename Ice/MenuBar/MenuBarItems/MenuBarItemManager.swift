@@ -708,8 +708,10 @@ extension MenuBarItemManager {
         let counter = EventCounter(count: count)
         let disableTap: @MainActor (EventTap) -> Void = { $0.disable() }
         try await EventTapGroup<EventTap>.withGroup(disable: disableTap) { tapGroup in
-            let timeoutTask = Task(timeout: timeout * count) {
-                try await withCheckedThrowingContinuation { continuation in
+            do {
+                // The wait owns timeout, caller cancellation and the single resume of its
+                // continuation (see SignalWait); the group's cleanup then runs on every exit.
+                try await SignalWait.wait(timeout: timeout * count) { complete in
                     // Listen for the following events at the first location
                     // and perform the following actions:
                     //
@@ -733,7 +735,7 @@ extension MenuBarItemManager {
                         }
                         if rEvent.matches(exitEvent, byIntegerFields: [.eventSourceUserData]) {
                             tap.disable()
-                            continuation.resume()
+                            complete(.success(()))
                             return nil
                         }
                         return rEvent
@@ -765,21 +767,10 @@ extension MenuBarItemManager {
                     // Keep the taps alive.
                     tapGroup.adopt([eventTap1, eventTap2])
 
-                    Task {
-                        await withTaskCancellationHandler {
-                            eventTap1.enable()
-                            eventTap2.enable()
-                            entryEvent.post(to: firstLocation)
-                        } onCancel: {
-                            eventTap1.disable()
-                            eventTap2.disable()
-                            continuation.resume(throwing: CancellationError())
-                        }
-                    }
+                    eventTap1.enable()
+                    eventTap2.enable()
+                    entryEvent.post(to: firstLocation)
                 }
-            }
-            do {
-                try await timeoutTask.value
             } catch is TaskTimeoutError {
                 throw EventError.eventOperationTimeout(item)
             } catch {
@@ -830,8 +821,10 @@ extension MenuBarItemManager {
         let counter = EventCounter(count: count)
         let disableTap: @MainActor (EventTap) -> Void = { $0.disable() }
         try await EventTapGroup<EventTap>.withGroup(disable: disableTap) { tapGroup in
-            let timeoutTask = Task(timeout: timeout * count) {
-                try await withCheckedThrowingContinuation { continuation in
+            do {
+                // The wait owns timeout, caller cancellation and the single resume of its
+                // continuation (see SignalWait); the group's cleanup then runs on every exit.
+                try await SignalWait.wait(timeout: timeout * count) { complete in
                     // Listen for the following events at the first location
                     // and perform the following actions:
                     //
@@ -855,7 +848,7 @@ extension MenuBarItemManager {
                         }
                         if rEvent.matches(exitEvent, byIntegerFields: [.eventSourceUserData]) {
                             tap.disable()
-                            continuation.resume()
+                            complete(.success(()))
                             return nil
                         }
                         return rEvent
@@ -908,23 +901,11 @@ extension MenuBarItemManager {
                     // Keep the taps alive.
                     tapGroup.adopt([eventTap1, eventTap2, eventTap3])
 
-                    Task {
-                        await withTaskCancellationHandler {
-                            eventTap1.enable()
-                            eventTap2.enable()
-                            eventTap3.enable()
-                            entryEvent.post(to: firstLocation)
-                        } onCancel: {
-                            eventTap1.disable()
-                            eventTap2.disable()
-                            eventTap3.disable()
-                            continuation.resume(throwing: CancellationError())
-                        }
-                    }
+                    eventTap1.enable()
+                    eventTap2.enable()
+                    eventTap3.enable()
+                    entryEvent.post(to: firstLocation)
                 }
-            }
-            do {
-                try await timeoutTask.value
             } catch is TaskTimeoutError {
                 throw EventError.eventOperationTimeout(item)
             } catch {

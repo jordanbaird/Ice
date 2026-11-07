@@ -14,7 +14,7 @@ tests_group = group.new_group("TrincanoTests", "TrincanoTests")
 
 sources = Dir["Tests/TrincanoTests/*.swift"].sort
 # Lógica pura compilada direto no alvo de testes (sem host, sem AppKit).
-logic = Dir["Shared/Utilities/XPCPeerPolicy.swift", "Shared/Utilities/ActiveMenuBarDisplayResolver.swift", "Ice/Utilities/LayoutItemAccessibility.swift", "Ice/MenuBar/ControlItem/ControlItemImage.swift", "Ice/MenuBar/ControlItem/ControlItemImageSet.swift"] + Dir["Ice/Utilities/Pure/*.swift"]
+logic = Dir["Shared/Utilities/XPCPeerPolicy.swift", "Shared/Utilities/ActiveMenuBarDisplayResolver.swift", "Ice/Utilities/LayoutItemAccessibility.swift", "Ice/MenuBar/ControlItem/ControlItemImage.swift", "Ice/MenuBar/ControlItem/ControlItemImageSet.swift", "Ice/Utilities/ConcurrencyHelpers.swift"] + Dir["Ice/Utilities/Pure/*.swift"]
 
 refs = sources.map { |f| tests_group.new_file(File.basename(f)) }
 logic_group = proj.main_group.new_group("TestedSources", ".")

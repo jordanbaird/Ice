@@ -14,3 +14,6 @@
 - Os alvos Ice, MenuBarItemService e TrincanoTests usam `SWIFT_VERSION = 6.0` (também em `scripts/add-test-target.rb`); com `SWIFT_STRICT_CONCURRENCY=complete` não há avisos de concorrência.
 - Regra: `@unchecked Sendable`, `nonisolated(unsafe)` e `MainActor.assumeIsolated` só com comentário de uma linha dizendo a invariante (por exemplo, "só tocado na fila X"). Estado global mutável usa `OSAllocatedUnfairLock`.
 - `RunLoopLocalEventMonitor` foi removido por não ter nenhum uso.
+
+## Fase 7 (revisão do Lupa): espera dos eventos de mover itens
+`postEventWithBarrier` e `scrombleEvent` esperam o evento de retorno por `SignalWait.wait` dentro de `EventTapGroup.withGroup`. A espera termina de **uma de três formas** (sinal, timeout ou cancelamento do chamador) e retoma a continuation **exatamente uma vez** (`Gate`); o `withTaskCancellationHandler` envolve a própria continuation (antes ficava numa `Task` separada que terminava logo depois de postar, e um evento de retorno ausente deixava taps vivos, cursor oculto e semáforo ocupado). A limpeza dos taps roda na main em todos os caminhos.

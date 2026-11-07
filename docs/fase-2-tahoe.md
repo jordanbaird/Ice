@@ -41,13 +41,24 @@ O aviso `CGImage(windowListFromArray…)` indisponível continua (a API é o ún
 
 ## Medição (CPU/memória)
 
-Antes = build da `main` rodando para o Paulo (PID 98930, 9 min de uso, Air M4, ocioso, sessão normal, 6 amostras de 10 s com `top`):
+Mesmo método nas duas medições: Air M4, macOS 26.6.2, uso normal do Paulo, ~9 min de uptime, ocioso, 6 amostras de 10 s (`top -l 6 -s 10 -pid <pid> -stats pid,cpu,mem,idlew,power,threads`), `footprint <pid>`, `ps -o rss`.
 
-| Métrica | Antes (main) | Depois (fase 2) |
+| Métrica | Antes (main pós-fase 1, PID 98930) | Depois (main pós-fase 2, PID 63782, build 646915f) |
 |---|---|---|
-| CPU ocioso | 0,0 a 0,4 % (mediana 0,1 %) | pendente: precisa rodar o build novo |
-| Memória (`mem` do top) | 66 MB | pendente |
-| `phys_footprint` / pico | 66 MB / 165 MB | pendente |
-| Threads | 5 | pendente |
+| CPU ocioso | 0,0 a 0,4 % (mediana 0,1 %) | 0,0 a 0,1 % (mediana 0,0 %) |
+| Memória (`mem` do top) | 66 MB | 55 MB |
+| RSS | 99 MB | 74 MB |
+| `phys_footprint` / pico | 66 MB / 165 MB | 55 MB / 152 MB |
+| Threads | 5 | 5 (4 logo após abrir) |
+| Wakeups ociosos (`idlew`, acumulado) | ~225 ao fim de 9 min | 28 a 31 aos 9 min |
 
-O "depois" não foi medido porque instalar o build novo fecharia o Trincano que o Paulo está usando. Roteiro: `scripts/install.sh`, 10 min de uso, repetir `top -l 6 -s 10 -pid $(pgrep -x Trincano) -stats pid,cpu,mem,idlew,power,threads` e `footprint $(pgrep -x Trincano)`.
+Leitura honesta: é uma amostra por build, com sessões de uso diferentes; a diferença de ~11 MB e menos wakeups é coerente com o fim do laço de re-cache por `sourcePID` nulo, mas **não** prova causa. A fase 3 mede com `os_signpost` e repetições.
+
+## Runtime depois da troca (build instalado com `scripts/install.sh`)
+
+Logs (`/usr/bin/log show --info --debug`, subsystem `br.com.pilutech.trincano`), 12 min após abrir:
+- Nenhum `Missing sourcePID`, nenhum `Some items failed capture` (antes: 3× para o item do Printaí em 30 min), nenhum `Unable to display`, nenhum erro de XPC.
+- Único erro: `Missing control item for hidden section, clearing menu bar item cache`, 1× na abertura (também aparecia antes; é a etapa de inicialização, ainda a investigar).
+- O helper `MenuBarItemService` subiu junto (PID próprio) e os itens continuaram resolvendo o `sourcePID`.
+- O Paulo confirmou que não houve novo pedido de permissão entre builds (requisito designado estável `certificate leaf = H"206f51…"`).
+- Não exercitados ao vivo: o fallback ScreenCaptureKit (a CGWindowList segue funcionando neste Mac) e o retry de PID com backoff (não há item sem PID agora). Continuam cobertos só por teste unitário.

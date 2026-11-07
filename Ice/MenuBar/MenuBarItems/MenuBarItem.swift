@@ -4,6 +4,7 @@
 //
 
 import Cocoa
+import os
 
 /// A structural representation of a menu bar item.
 struct MenuBarItem: CustomStringConvertible {
@@ -330,7 +331,7 @@ private extension MenuBarItemTag {
 // MARK: - MenuBarItemTag.Namespace Helper
 
 private extension MenuBarItemTag.Namespace {
-    private static var uuidCache = [CGWindowID: UUID]()
+    private static let uuidCache = OSAllocatedUnfairLock(initialState: [CGWindowID: UUID]())
 
     /// Creates a namespace without checks.
     ///
@@ -363,11 +364,15 @@ private extension MenuBarItemTag.Namespace {
         // which are more likely not to have a bundle ID.
         if let sourcePID, let app = NSRunningApplication(processIdentifier: sourcePID) {
             self = .optional(app.bundleIdentifier ?? app.localizedName)
-        } else if let uuid = Self.uuidCache[itemWindow.windowID] {
-            self = .uuid(uuid)
         } else {
-            let uuid = UUID()
-            Self.uuidCache[itemWindow.windowID] = uuid
+            let uuid = Self.uuidCache.withLock { cache in
+                if let cached = cache[itemWindow.windowID] {
+                    return cached
+                }
+                let new = UUID()
+                cache[itemWindow.windowID] = new
+                return new
+            }
             self = .uuid(uuid)
         }
     }

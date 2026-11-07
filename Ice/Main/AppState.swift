@@ -56,7 +56,7 @@ final class AppState: ObservableObject {
     private let logger = Logger(category: "AppState")
 
     /// Async setup actions, run once on first access.
-    private lazy var setupTask = Task {
+    private lazy var setupTask = Task { @MainActor in
         permissions.stopAllChecks()
 
         settings.performSetup(with: self)

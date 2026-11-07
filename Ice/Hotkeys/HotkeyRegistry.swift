@@ -59,6 +59,9 @@ final class HotkeyRegistry {
 
     private var registrations = [UInt32: Registration]()
 
+    /// The identifier of the next registration.
+    private var nextRegistrationID: UInt32 = 0
+
     private var cancellables = Set<AnyCancellable>()
 
     /// Installs the global event handler reference, if it isn't already installed.
@@ -122,12 +125,8 @@ final class HotkeyRegistry {
     /// - Returns: The registration's identifier on success, `nil` on failure.
     @MainActor
     func register(hotkey: Hotkey, eventKind: EventKind, handler: @escaping () -> Void) -> UInt32? {
-        enum Context {
-            static var currentID: UInt32 = 0
-        }
-
         defer {
-            Context.currentID += 1
+            nextRegistrationID += 1
         }
 
         guard let keyCombination = hotkey.keyCombination else {
@@ -142,7 +141,7 @@ final class HotkeyRegistry {
             return nil
         }
 
-        let id = Context.currentID
+        let id = nextRegistrationID
 
         guard registrations[id] == nil else {
             Logger.hotkeys.error("Hotkey already registered for id \(id, privacy: .public)")

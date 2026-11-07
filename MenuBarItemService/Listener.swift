@@ -7,7 +7,8 @@ import OSLog
 import XPC
 
 /// A wrapper around an XPC listener object.
-final class Listener {
+// Mutable state is only touched from the XPC and main queues the service uses.
+final class Listener: @unchecked Sendable {
     /// The shared listener.
     static let shared = Listener()
 
@@ -48,8 +49,10 @@ final class Listener {
     @available(macOS 26.0, *)
     private func uncheckedActivateWithSameTeamRequirement() throws {
         listener = try XPCListener(service: name, requirement: .trincanoPeer(signingIdentifier: MenuBarItemService.appSigningIdentifier)) { [weak self] request in
-            request.accept { message in
-                self?.handleMessage(message)
+            // The Listener lives as long as the service process, so holding it
+            // strongly while a request is accepted is harmless.
+            request.accept { [listener = self] message in
+                listener?.handleMessage(message)
             }
         }
     }
@@ -57,8 +60,10 @@ final class Listener {
     /// Activates the listener without checking if it is already active.
     private func uncheckedActivate() throws {
         listener = try XPCListener(service: name) { [weak self] request in
-            request.accept { message in
-                self?.handleMessage(message)
+            // The Listener lives as long as the service process, so holding it
+            // strongly while a request is accepted is harmless.
+            request.accept { [listener = self] message in
+                listener?.handleMessage(message)
             }
         }
     }

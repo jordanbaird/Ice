@@ -177,10 +177,16 @@ final class IceBarPanel: NSPanel {
             await appState.imageCache.updateCache()
         }
 
-        do {
-            try await cacheTask.value
-        } catch {
-            Logger.default.error("Cache update failed when showing IceBarPanel - \(error)")
+        // Appear at once with the cached images when there are any; the view
+        // observes the image cache, so the refresh fills in the rest.
+        let items = appState.itemManager.itemCache[section]
+        let itemsWithImages = items.filter { appState.imageCache.images[$0.tag] != nil }.count
+        if IceBarPresentationPolicy.shouldWaitForRefresh(itemCount: items.count, itemsWithImages: itemsWithImages) {
+            do {
+                try await cacheTask.value
+            } catch {
+                Logger.default.error("Cache update failed when showing IceBarPanel - \(error)")
+            }
         }
 
         contentView = IceBarHostingView(

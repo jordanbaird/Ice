@@ -21,6 +21,18 @@ final class HIDEventManager: ObservableObject {
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
+    /// Short-lived caches for the geometry the mouse handlers query on every
+    /// event: the window list and the Accessibility application menu frame
+    /// are IPC calls and must not run once per mouse-moved event.
+    private var menuBarItemBoundsMemo = TimedMemo<[CGRect]>(ttl: 0.25)
+    private var applicationMenuFrameMemos = [CGDirectDisplayID: TimedMemo<CGRect?>]()
+
+    /// Drops the cached geometry (application, space or screen changed).
+    private func invalidateGeometryCaches() {
+        menuBarItemBoundsMemo.invalidate()
+        applicationMenuFrameMemos.removeAll()
+    }
+
     /// History of the manager's enabled states.
     private var enabledStateStack = [Bool]()
 
@@ -152,7 +164,28 @@ final class HIDEventManager: ObservableObject {
                 }
             }
             .store(in: &c)
+
+            // Items move when sections expand or collapse.
+            hiddenSection.controlItem.$frame
+                .sink { [weak self] _ in
+                    self?.menuBarItemBoundsMemo.invalidate()
+                }
+                .store(in: &c)
         }
+
+        let workspaceCenter = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.didActivateApplicationNotification, NSWorkspace.activeSpaceDidChangeNotification] {
+            workspaceCenter.publisher(for: name)
+                .sink { [weak self] _ in
+                    self?.invalidateGeometryCaches()
+                }
+                .store(in: &c)
+        }
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .sink { [weak self] _ in
+                self?.invalidateGeometryCaches()
+            }
+            .store(in: &c)
 
         cancellables = c
     }
@@ -481,9 +514,13 @@ extension HIDEventManager {
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of the current application menu.
     func isMouseInsideApplicationMenu(appState: AppState, screen: NSScreen) -> Bool {
+        let now = ProcessInfo.processInfo.systemUptime
+        var memo = applicationMenuFrameMemos[screen.displayID] ?? TimedMemo<CGRect?>(ttl: 0.5)
+        let cachedFrame = memo.value(now: now) { screen.getApplicationMenuFrame() }
+        applicationMenuFrameMemos[screen.displayID] = memo
         guard
             let mouseLocation = MouseHelpers.locationCoreGraphics,
-            var applicationMenuFrame = screen.getApplicationMenuFrame()
+            var applicationMenuFrame = cachedFrame
         else {
             return false
         }
@@ -498,13 +535,11 @@ extension HIDEventManager {
         guard let mouseLocation = MouseHelpers.locationCoreGraphics else {
             return false
         }
-        let windowIDs = Bridging.getMenuBarWindowList(option: [.onScreen, .activeSpace, .itemsOnly])
-        return windowIDs.contains { windowID in
-            guard let bounds = Bridging.getWindowBounds(for: windowID) else {
-                return false
-            }
-            return bounds.contains(mouseLocation)
+        let bounds = menuBarItemBoundsMemo.value(now: ProcessInfo.processInfo.systemUptime) {
+            Bridging.getMenuBarWindowList(option: [.onScreen, .activeSpace, .itemsOnly])
+                .compactMap { Bridging.getWindowBounds(for: $0) }
         }
+        return bounds.contains { $0.contains(mouseLocation) }
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within
@@ -525,10 +560,11 @@ extension HIDEventManager {
     /// A Boolean value that indicates whether the mouse pointer is within
     /// the bounds of an empty space in the menu bar.
     func isMouseInsideEmptyMenuBarSpace(appState: AppState, screen: NSScreen) -> Bool {
+        // Cheapest checks first: the last two query the window server / AX.
         isMouseInsideMenuBar(appState: appState, screen: screen) &&
+        !isMouseInsideNotch(appState: appState, screen: screen) &&
         !isMouseInsideApplicationMenu(appState: appState, screen: screen) &&
-        !isMouseInsideMenuBarItem(appState: appState, screen: screen) &&
-        !isMouseInsideNotch(appState: appState, screen: screen)
+        !isMouseInsideMenuBarItem(appState: appState, screen: screen)
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within

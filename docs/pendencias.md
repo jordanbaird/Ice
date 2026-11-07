@@ -58,3 +58,7 @@ Veredito do Lupa: PR #1 (3ff4ef9) pode seguir para **uso pessoal**, **não** est
 
 ## Fase 6 (Lupa, PR #9 a344c7d)
 - VoiceOver no editor de layout: ações custom "mover para a esquerda/direita/para outra seção" (hoje o item é só lido, sem papel de botão nem ação de pressionar). Exige expor o movimento do `LayoutBarContainer` como ação acessível.
+
+## Fase 6 (Lupa, PR #9, depois do merge)
+- Teste do `DurationText.interfaceLocale` com o idioma do app diferente da região do sistema (por exemplo, app em pt-BR com região en_US, e o inverso): hoje só o formatador é testado com locales explícitos, não a escolha do locale da interface a partir de `Bundle.main.preferredLocalizations`.
+- Texto antigo do PR #9 e de docs: "papel botão" no editor de layout (hoje o item é anunciado como imagem) e "177 chaves" (o catálogo tem mais chaves depois das correções). `docs/fase-6-acabamento.md` foi atualizado; a descrição do PR #9 no GitHub, não (já mergeado).

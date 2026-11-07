@@ -1,7 +1,7 @@
 # Fase 6 — acabamento (acessibilidade, movimento, localização, ícone)
 
 ## 1. Localização PT-BR / inglês (String Catalog)
-- `Ice/Resources/Localizable.xcstrings`: inglês é a língua-fonte; **pt-BR completo** (177 chaves). A interface segue o idioma do sistema (o app tem `en.lproj` e `pt-BR.lproj`; região `pt-BR` no projeto).
+- `Ice/Resources/Localizable.xcstrings`: inglês é a língua-fonte; **pt-BR completo** (183 chaves no catálogo atual). A interface segue o idioma do sistema (o app tem `en.lproj` e `pt-BR.lproj`; região `pt-BR` no projeto).
 - **"Barra do Trincano"**: toda frase com "Trincano Bar" fica "Barra do Trincano" em PT-BR; o nome do produto nunca é traduzido (testado).
 - Strings fora do SwiftUI (menus da barra, alertas, permissões, nomes de seção, importação do Ice) passaram a usar `String(localized:)`.
 - `STRING_CATALOG_GENERATE_SYMBOLS = NO` (chaves em linguagem natural geram símbolos conflitantes).
@@ -14,7 +14,7 @@
 
 ## 3. VoiceOver
 - Itens de controle da barra de menus: rótulo ("Trincano", "Divisor da seção escondida", "Divisor da seção sempre escondida") e ajuda.
-- Editor de layout (`LayoutBarItemView`): elemento de acessibilidade com papel botão, nome do item e ajuda "Arraste para mover…".
+- Editor de layout (`LayoutBarItemView`): elemento de acessibilidade com o nome do item, anunciado como **imagem** (lida, não acionável; sem ação de pressionar nem mover; item fixo diz "…, não pode ser movido"). Ver a correção da revisão abaixo.
 - Barra do Trincano: itens com papel de botão, ações "clique esquerdo/direito" localizadas.
 - Busca: imagens decorativas ocultas do VoiceOver (o texto da linha já nomeia o item); botão "Clicar/Mostrar item" localizado; gravador de atalho com "Limpar/Gravar/Cancelar".
 - **Não validado com VoiceOver ligado** (depende do Paulo); roteiro: ligar o VoiceOver (⌘F5), navegar a barra de menus, a Barra, os ajustes e o editor de layout.

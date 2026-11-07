@@ -135,12 +135,19 @@ final class LayoutBarContainer: NSView {
             .map { $0.bounds.height }
             .max() ?? 0
 
+        // the animator proxies below use this group's duration (150-300 ms by
+        // the motion policy; the proxies aren't used with reduced motion)
+        NSAnimationContext.beginGrouping()
+        NSAnimationContext.current.duration = Motion.duration(.reorder)
+        defer { NSAnimationContext.endGrouping() }
+
         for var view in arrangedViews {
             if subviews.contains(view) {
                 // view already exists inside the layout view, but may
                 // have moved from its previous location;
                 if shouldAnimateNextLayoutPass && !Motion.reduceMotion {
-                    // replace the view with its animator proxy
+                    // replace the view with its animator proxy; the duration
+                    // follows the motion policy (150-300 ms)
                     view = view.animator()
                 }
             } else {

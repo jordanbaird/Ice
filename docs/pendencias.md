@@ -55,3 +55,6 @@ Veredito do Lupa: PR #1 (3ff4ef9) pode seguir para **uso pessoal**, **não** est
 ## Fase 6 (acabamento)
 - `IceBarColorManager` (linha ~68) só atualiza a cor quando `screen == .main` (tela do foco do teclado); com monitor externo a Barra do notebook pode não atualizar a cor. Trocar pela tela-alvo.
 - Validar PT-BR ao vivo e VoiceOver com o Paulo; escolher o ícone (ver docs/fase-6-acabamento.md).
+
+## Fase 6 (Lupa, PR #9 a344c7d)
+- VoiceOver no editor de layout: ações custom "mover para a esquerda/direita/para outra seção" (hoje o item é só lido, sem papel de botão nem ação de pressionar). Exige expor o movimento do `LayoutBarContainer` como ação acessível.

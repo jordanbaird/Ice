@@ -71,11 +71,7 @@ final class LayoutBarItemView: NSView {
         self.toolTip = item.displayName
         self.isEnabled = item.isMovable
 
-        // VoiceOver: a named, draggable item.
-        setAccessibilityElement(true)
-        setAccessibilityRole(.button)
-        setAccessibilityLabel(item.displayName)
-        setAccessibilityHelp(String(localized: "Drag to move the item to another section."))
+        applyLayoutItemAccessibility(name: item.displayName, isMovable: item.isMovable)
 
         configureCancellables()
     }

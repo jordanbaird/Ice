@@ -18,6 +18,23 @@
         }
       }
     },
+    "%@, not movable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, not movable"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, não pode ser movido"
+          }
+        }
+      }
+    },
     "1": {
       "extractionState": "manual",
       "localizations": {
@@ -269,6 +286,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Organizar os itens da barra de menus."
+          }
+        }
+      }
+    },
+    "Arrow": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrow"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seta"
           }
         }
       }
@@ -579,6 +613,23 @@
         }
       }
     },
+    "Custom": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalizado"
+          }
+        }
+      }
+    },
     "Custom icon uses dynamic appearance": {
       "extractionState": "manual",
       "localizations": {
@@ -664,6 +715,40 @@
         }
       }
     },
+    "Door": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Door"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Porta"
+          }
+        }
+      }
+    },
+    "Dot": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dot"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ponto"
+          }
+        }
+      }
+    },
     "Drag to arrange your menu bar items into different sections.": {
       "extractionState": "manual",
       "localizations": {
@@ -677,23 +762,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Arraste para organizar os itens da barra de menus em seções diferentes."
-          }
-        }
-      }
-    },
-    "Drag to move the item to another section.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Drag to move the item to another section."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Arraste para mover o item para outra seção."
           }
         }
       }
@@ -745,6 +813,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Editar a aparência da barra de menus…"
+          }
+        }
+      }
+    },
+    "Ellipsis": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ellipsis"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reticências"
           }
         }
       }
@@ -1123,6 +1208,23 @@
         }
       }
     },
+    "Ice Cube": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ice Cube"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cubo de gelo"
+          }
+        }
+      }
+    },
     "Import Settings": {
       "extractionState": "manual",
       "localizations": {
@@ -1323,6 +1425,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Organização da barra de menus"
+          }
+        }
+      }
+    },
+    "Menu Bar Overlay": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu Bar Overlay"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobreposição da barra de menus"
           }
         }
       }
@@ -2258,6 +2377,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Estratégia"
+          }
+        }
+      }
+    },
+    "Sunglasses": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sunglasses"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Óculos escuros"
           }
         }
       }

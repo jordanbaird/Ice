@@ -31,7 +31,7 @@ final class MenuBarAppearanceEditorPanel: NSPanel {
             backing: .buffered,
             defer: false
         )
-        self.title = "Menu Bar Appearance"
+        self.title = String(localized: "Menu Bar Appearance")
         self.titlebarAppearsTransparent = true
         self.allowsToolTipsWhenApplicationIsInactive = true
         self.isFloatingPanel = true

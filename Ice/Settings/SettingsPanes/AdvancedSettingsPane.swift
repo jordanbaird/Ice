@@ -15,12 +15,7 @@ struct AdvancedSettingsPane: View {
     }
 
     private func formattedToSeconds(_ interval: TimeInterval) -> LocalizedStringKey {
-        let formatted = interval.formatted()
-        return if interval == 1 {
-            LocalizedStringKey(formatted + " second")
-        } else {
-            LocalizedStringKey(formatted + " seconds")
-        }
+        LocalizedStringKey(DurationText.string(seconds: interval, locale: DurationText.interfaceLocale))
     }
 
     var body: some View {

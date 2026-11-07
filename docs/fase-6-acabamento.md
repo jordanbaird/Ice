@@ -19,6 +19,13 @@
 - Busca: imagens decorativas ocultas do VoiceOver (o texto da linha já nomeia o item); botão "Clicar/Mostrar item" localizado; gravador de atalho com "Limpar/Gravar/Cancelar".
 - **Não validado com VoiceOver ligado** (depende do Paulo); roteiro: ligar o VoiceOver (⌘F5), navegar a barra de menus, a Barra, os ajustes e o editor de layout.
 
+## 3b. Correções da revisão do Lupa (PR #9)
+- **Durações localizadas**: os 3 controles de duração concatenavam o número com " second/seconds" antes de virar `LocalizedStringKey`: essas chaves não existem no catálogo e a unidade ficava em inglês no pt-BR. Agora `DurationText` usa o formatador de medidas do sistema com o idioma da interface (plural e vírgula decimal corretos: "0 segundo", "1 segundo", "2 segundos", "0,1 segundo"; en: "0 seconds", "1 second", "2 seconds", "0.1 seconds"). **Vermelho comportamental** contra a concatenação antiga (12 falhas de asserção).
+- Nome do conjunto de ícones (`Text(imageSet.name.rawValue)`) e títulos AppKit (editor de aparência, Barra, overlay) agora localizados.
+- **VoiceOver do layout**: a `NSView` era anunciada como botão sem implementar pressionar nem mover. Agora `applyLayoutItemAccessibility` (a mesma função que a `LayoutBarItemView` chama) a anuncia como **imagem** (lida, não acionável), sem ajuda que prometa arrastar, e item não movível diz "…, não pode ser movido". Teste numa `NSView` real. Vermelho: 3 falhas. Ações de mover por VoiceOver ficam em `docs/pendencias.md`.
+- `extract-strings.py` agora **falha** (código 2) se não extrair nenhuma string (build ausente). `Motion.duration(.reorder)` aplicado ao grupo de animação do layout.
+- Limite honesto: o teste de acessibilidade usa uma `NSView` configurada pela mesma função, não a `LayoutBarItemView` inteira (depende de `AppState`).
+
 ## 4. Ícone: 3 propostas do designer (nada implementado ainda)
 O subagente `designer` só propôs; as imagens estão em `docs/identidade/propostas-icone/` (SVG do app 1024, glifos escondido/visível 18 pt e prévias PNG). Todas fogem do cubo de gelo e do visual de apps pagos.
 1. **Trinco** (ferrolho de latão num trilho de vidro; escondido = pino à esquerda, visível = à direita). "Trinco" está no nome. Ressalva: o glifo visível lembra um interruptor.

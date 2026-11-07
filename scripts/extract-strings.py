@@ -42,6 +42,9 @@ def load_catalog():
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "list"
     keys = extracted_keys()
+    if not keys:
+        print("ERRO: nenhuma string extraida; faca o build antes (xcodebuild ... build).")
+        sys.exit(2)
     if mode == "list":
         for key in sorted(keys):
             print(repr(key), "<-", keys[key])

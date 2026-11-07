@@ -37,3 +37,13 @@ Veredito do Lupa: PR #1 (3ff4ef9) pode seguir para **uso pessoal**, **não** est
 - Teste do snapshot antigo do poll após troca de espaço/app.
 - Teste de integração: abrir/fechar/trocar seção durante refresh lento.
 - Teste de fiação do `HIDEventManager` (quais chamadas usam `.cached`/`.fresh`) além do `MenuBarHitTester`.
+
+## Wakeups (fase 4, Lupa PR #7)
+- Comparação pareada (mesmo build base/depois, mesmas opções e timers) e contagem de recaches/consultas por tela com os signposts; só então decidir sobre os timers de 5 s (poll e `IceBarColorManager`). Causa não afirmada.
+
+## Notch (Lupa, PR #7 eb4e313)
+- Teste de integração show/hide/seção com o handler real (`HIDEventManager` + `MenuBarSection`).
+- Garantir por teste que a ação do notch já tratada não dispara os handlers seguintes que usam `bestScreen` (hoje: `handleNotchClick` devolve `true` e o monitor retorna antes; só por revisão).
+
+## Limpeza da API do notch (Lupa, PR #7 1eabfbc)
+- `HIDEventManager.swift:350` ainda lê `NSEvent.mouseLocation` para passar como `cursorLocation`, que o `NotchClickResolver.decide` ignora de propósito. Remover a leitura e o parâmetro da API de produção (os testes que simulam o cursor da entrega passariam a chamar `resolve(point:...)` direto ou um helper de teste).

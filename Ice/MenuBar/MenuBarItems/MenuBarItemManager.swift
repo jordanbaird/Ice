@@ -14,6 +14,10 @@ final class MenuBarItemManager: ObservableObject {
     /// The current cache of menu bar items.
     @Published private(set) var itemCache = ItemCache(displayID: nil)
 
+    /// The number of visible items the system pushed behind the notch of the
+    /// screen with the active menu bar. Zero on a screen without a notch.
+    @Published private(set) var notchObscuredCount = 0
+
     /// Logger for the menu bar item manager.
     private nonisolated let logger = Logger.menuBarItemManager
 
@@ -222,6 +226,67 @@ extension MenuBarItemManager {
         }
     }
 
+    /// Returns the items to display for an Ice Bar section on the given screen.
+    ///
+    /// The system keeps items pushed behind a display notch in Ice's visible
+    /// section, even though the user cannot see or click them. Include those
+    /// items in the hidden Ice Bar without permanently changing their layout.
+    func itemsForIceBar(in section: MenuBarSection.Name, on screen: NSScreen) -> [MenuBarItem] {
+        let sectionItems = itemCache[section]
+
+        guard section == .hidden else {
+            return sectionItems
+        }
+
+        let existingWindowIDs = Set(sectionItems.map(\.windowID))
+        let obscuredItems = notchObscuredItems(on: screen)
+            .filter { !existingWindowIDs.contains($0.windowID) }
+
+        return sectionItems + obscuredItems
+    }
+
+    /// Returns the visible items that the system pushed behind the notch of
+    /// the given screen (empty for a screen without a notch).
+    func notchObscuredItems(on screen: NSScreen) -> [MenuBarItem] {
+        let visibleItems = itemCache[.visible]
+        let excludedIndices = Set(visibleItems.indices.filter { visibleItems[$0].isControlItem })
+        let itemBounds = visibleItems.map { Bridging.getWindowBounds(for: $0.windowID) }
+        let obscuredIndices = NotchOverflowResolver.obscuredIndices(
+            itemBounds: itemBounds,
+            excluding: excludedIndices,
+            screenBounds: CGDisplayBounds(screen.displayID),
+            rightSafeArea: screen.notchGeometry?.rightSafeArea,
+            menuBarHeight: screen.notchGeometry?.frame.height ?? 0
+        )
+        return obscuredIndices.map { visibleItems[$0] }
+    }
+
+    /// Returns the current widths of the items in the given sections, measured
+    /// now (a dynamic item can change width while keeping its window ID).
+    func liveItemWidths(in sections: [MenuBarSection.Name]) -> [Double] {
+        sections.flatMap { section in
+            itemCache[section].map { item in
+                Double(Bridging.getWindowBounds(for: item.windowID)?.width ?? item.bounds.width)
+            }
+        }
+    }
+
+    /// Updates ``notchObscuredCount`` for the screen the cache was made for.
+    private func updateNotchObscuredCount() {
+        guard
+            let displayID = itemCache.displayID,
+            let screen = NSScreen.screens.first(where: { $0.displayID == displayID })
+        else {
+            notchObscuredCount = 0
+            return
+        }
+        let count = notchObscuredItems(on: screen).count
+        if count != notchObscuredCount {
+            logger.notice("Items behind the notch: \(count, privacy: .public)")
+            notchObscuredCount = count
+        }
+    }
+
     /// A pair of control items, taken from a list of menu bar items
     /// during a menu bar item cache operation.
     private struct ControlItemPair {
@@ -343,11 +408,14 @@ extension MenuBarItemManager {
         }
 
         guard itemCache != context.cache else {
+            // Items may have shifted behind the notch without the set changing.
+            updateNotchObscuredCount()
             logger.debug("Not updating menu bar item cache, as items haven't changed")
             return
         }
 
         itemCache = context.cache
+        updateNotchObscuredCount()
         logger.debug("Updated menu bar item cache")
     }
 

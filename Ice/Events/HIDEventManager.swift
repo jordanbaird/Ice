@@ -63,7 +63,15 @@ final class HIDEventManager: ObservableObject {
     private(set) lazy var mouseDownMonitor = EventMonitor.universal(
         for: [.leftMouseDown, .rightMouseDown]
     ) { [weak self] event in
-        guard let self, isEnabled, let appState, let screen = bestScreen(appState: appState) else {
+        guard let self, isEnabled, let appState else {
+            return event
+        }
+        // The notch click is resolved from the click point (not from
+        // `NSScreen.main`, the keyboard-focus screen), before anything else.
+        if self.handleNotchClick(event: event, appState: appState) {
+            return event
+        }
+        guard let screen = bestScreen(appState: appState) else {
             return event
         }
         Signposts.measure("hid.mouseDown") {
@@ -324,6 +332,43 @@ extension HIDEventManager {
         }
     }
 
+    /// Shows or hides the Trincano Bar when a notch is clicked (see
+    /// ``NotchClickResolver``). Returns `true` if the click was handled, so the
+    /// caller doesn't run the other click handlers for it.
+    ///
+    /// The point is the one **recorded in the event** (`CGEvent.unflippedLocation`,
+    /// global AppKit-compatible coordinates), never the cursor's current
+    /// position, which may have moved by the time a delayed event is delivered.
+    private func handleNotchClick(event: NSEvent, appState: AppState) -> Bool {
+        guard event.type == .leftMouseDown || event.type == .rightMouseDown else {
+            return false
+        }
+        let screens = NSScreen.screens
+        let decision = NotchClickResolver.decide(
+            eventLocation: event.cgEvent?.unflippedLocation,
+            cursorLocation: NSEvent.mouseLocation,
+            screens: screens.map { NotchClickResolver.Screen(frame: $0.frame, notch: $0.notchGeometry) },
+            isEnabled: appState.settings.general.showBarOnNotchClick,
+            isLeftButton: event.type == .leftMouseDown
+        )
+        guard case .toggleBar(let index) = decision else {
+            return false
+        }
+        toggleBarFromNotch(appState: appState, screen: screens[index])
+        return true
+    }
+
+    private func toggleBarFromNotch(appState: AppState, screen: NSScreen) {
+        guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
+            return
+        }
+        if appState.menuBarManager.iceBarPanel.isVisible {
+            hiddenSection.hide()
+        } else {
+            hiddenSection.showInBar(on: screen)
+        }
+    }
+
     // MARK: Handle Secondary Context Menu
 
     private func handleSecondaryContextMenu(appState: AppState, screen: NSScreen) {
@@ -564,12 +609,11 @@ extension HIDEventManager {
     func isMouseInsideNotch(appState: AppState, screen: NSScreen) -> Bool {
         guard
             let mouseLocation = MouseHelpers.locationAppKit,
-            var frameOfNotch = screen.frameOfNotch
+            let notch = screen.notchGeometry
         else {
             return false
         }
-        frameOfNotch.size.height += 1
-        return frameOfNotch.contains(mouseLocation)
+        return notch.contains(mouseLocation)
     }
 
     /// A Boolean value that indicates whether the mouse pointer is within

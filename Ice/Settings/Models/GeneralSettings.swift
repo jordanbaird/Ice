@@ -31,6 +31,15 @@ final class GeneralSettings: ObservableObject {
     /// in a separate bar below the menu bar.
     @Published var useIceBar = false
 
+    /// A Boolean value that indicates whether hidden items that would end up
+    /// behind the notch are shown in the Trincano Bar automatically (only on
+    /// screens with a notch).
+    @Published var autoBarOnNotch = true
+
+    /// A Boolean value that indicates whether clicking the notch opens the
+    /// Trincano Bar.
+    @Published var showBarOnNotchClick = true
+
     /// The location where the Ice Bar appears.
     @Published var iceBarLocation: IceBarLocation = .dynamic
 
@@ -87,6 +96,8 @@ final class GeneralSettings: ObservableObject {
         Defaults.ifPresent(key: .showIceIcon, assign: &showIceIcon)
         Defaults.ifPresent(key: .customIceIconIsTemplate, assign: &customIceIconIsTemplate)
         Defaults.ifPresent(key: .useIceBar, assign: &useIceBar)
+        Defaults.ifPresent(key: .autoBarOnNotch, assign: &autoBarOnNotch)
+        Defaults.ifPresent(key: .showBarOnNotchClick, assign: &showBarOnNotchClick)
         Defaults.ifPresent(key: .showOnClick, assign: &showOnClick)
         Defaults.ifPresent(key: .showOnHover, assign: &showOnHover)
         Defaults.ifPresent(key: .showOnScroll, assign: &showOnScroll)
@@ -157,6 +168,20 @@ final class GeneralSettings: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { useIceBar in
                 Defaults.set(useIceBar, forKey: .useIceBar)
+            }
+            .store(in: &c)
+
+        $autoBarOnNotch
+            .receive(on: DispatchQueue.main)
+            .sink { isOn in
+                Defaults.set(isOn, forKey: .autoBarOnNotch)
+            }
+            .store(in: &c)
+
+        $showBarOnNotchClick
+            .receive(on: DispatchQueue.main)
+            .sink { isOn in
+                Defaults.set(isOn, forKey: .showBarOnNotchClick)
             }
             .store(in: &c)
 

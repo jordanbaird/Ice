@@ -19,6 +19,10 @@ final class IceBarPanel: NSPanel {
     /// The currently displayed section.
     private(set) var currentSection: MenuBarSection.Name?
 
+    /// Which display and section the bar is being presented on, captured when
+    /// the show begins (before any await).
+    private var presentationTracker = BarPresentationTracker<MenuBarSection.Name>()
+
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
@@ -171,6 +175,7 @@ final class IceBarPanel: NSPanel {
         // before updating the caches.
         appState.navigationState.isIceBarPresented = true
         currentSection = section
+        let token = presentationTracker.begin(displayID: screen.displayID, section: section)
 
         let cacheTask = Task(timeout: .seconds(1)) {
             await appState.itemManager.cacheItemsIfNeeded()
@@ -187,6 +192,16 @@ final class IceBarPanel: NSPanel {
             } catch {
                 Logger.default.error("Cache update failed when showing IceBarPanel - \(error)")
             }
+        }
+
+        // The display may have been removed while waiting: don't put the bar
+        // on a screen that no longer exists, nor resurrect a cancelled show.
+        let connectedDisplayIDs = Set(NSScreen.screens.map(\.displayID))
+        guard
+            presentationTracker.canPublish(token: token, connectedDisplayIDs: connectedDisplayIDs),
+            let screen = NSScreen.screens.first(where: { $0.displayID == screen.displayID })
+        else {
+            return
         }
 
         contentView = IceBarHostingView(
@@ -209,6 +224,17 @@ final class IceBarPanel: NSPanel {
         orderFrontRegardless()
     }
 
+    /// Closes the bar if the display it is being presented on was removed,
+    /// closing the section that was actually presented.
+    func reconcileConnectedDisplays() {
+        let connected = Set(NSScreen.screens.map(\.displayID))
+        guard let section = presentationTracker.reconcile(connectedDisplayIDs: connected) else {
+            return
+        }
+        appState?.menuBarManager.section(withName: section)?.hide()
+        close()
+    }
+
     /// Hides the panel.
     func hide() {
         if
@@ -222,6 +248,7 @@ final class IceBarPanel: NSPanel {
 
     override func close() {
         super.close()
+        presentationTracker.end()
         contentView = nil
         currentSection = nil
         appState?.navigationState.isIceBarPresented = false

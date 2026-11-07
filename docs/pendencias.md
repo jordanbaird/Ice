@@ -47,3 +47,7 @@ Veredito do Lupa: PR #1 (3ff4ef9) pode seguir para **uso pessoal**, **não** est
 
 ## Limpeza da API do notch (Lupa, PR #7 1eabfbc)
 - `HIDEventManager.swift:350` ainda lê `NSEvent.mouseLocation` para passar como `cursorLocation`, que o `NotchClickResolver.decide` ignora de propósito. Remover a leitura e o parâmetro da API de produção (os testes que simulam o cursor da entrega passariam a chamar `resolve(point:...)` direto ou um helper de teste).
+
+## Telas (Lupa, PR #8 11d381e)
+- UUID ausente (`CGDisplayCreateUUIDFromDisplayID` nil) hoje exclui o display da topologia: usar o `displayID` efêmero para a sessão/recache, sem gravar perfil.
+- UUID duplicado duplica a identidade no `ForEach` do ajuste de Displays: usar ID de runtime na UI e definir uma política para UUID ambíguo; fixtures com UUID nil e duplicado.

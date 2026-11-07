@@ -57,6 +57,21 @@ final class MenuBarSection {
     /// The notch decision for the current show-to-hide cycle.
     private var notchSession = NotchBarSession()
 
+    /// The display pinned when the section was shown. The rehide checks use it
+    /// until the section is hidden, so the target can't follow the pointer
+    /// across screens.
+    private var targetSession = TargetDisplaySession()
+
+    /// The screen for the rehide checks: the pinned one for the current cycle.
+    /// `nil` if the pinned display is no longer connected.
+    private var rehideScreen: NSScreen? {
+        let connected = Set(NSScreen.screens.map(\.displayID))
+        let id = targetSession.displayID(connected: connected) {
+            screenForIceBar?.displayID ?? CGMainDisplayID()
+        }
+        return id.flatMap { id in NSScreen.screens.first { $0.displayID == id } }
+    }
+
     /// A Boolean value that indicates whether the Ice Bar should be used:
     /// the user's choice, or, on a screen with a notch, the decision taken
     /// when the section was shown (see ``NotchBarSession``).
@@ -84,6 +99,7 @@ final class MenuBarSection {
     private func beginNotchSession(appState: AppState) {
         let screen = screenForIceBar
         targetDisplayUUID = screen?.displayUUIDString
+        _ = targetSession.begin { screen?.displayID ?? CGMainDisplayID() }
         var sections: [MenuBarSection.Name] = [.visible, .hidden]
         if name == .alwaysHidden {
             sections.append(.alwaysHidden)
@@ -220,7 +236,7 @@ final class MenuBarSection {
                 }
             }
 
-            if let screen = screenForIceBar {
+            if let screen = rehideScreen {
                 Task {
                     switch name {
                     case .visible, .hidden:
@@ -277,6 +293,7 @@ final class MenuBarSection {
 
         stopRehideChecks()
         notchSession.end()
+        targetSession.end()
     }
 
     /// Shows the section in the Trincano Bar on the given screen, even when
@@ -285,6 +302,7 @@ final class MenuBarSection {
         guard let menuBarManager, controlItem.isAddedToMenuBar else {
             return
         }
+        _ = targetSession.begin { screen.displayID }
         for section in menuBarManager.sections {
             switch section.name {
             case .visible:
@@ -320,7 +338,7 @@ final class MenuBarSection {
         rehideMonitor = EventMonitor.universal(for: .mouseMoved) { [weak self] event in
             guard
                 let self,
-                let screen = screenForIceBar
+                let screen = rehideScreen
             else {
                 return event
             }
@@ -334,10 +352,14 @@ final class MenuBarSection {
                         withTimeInterval: appState.settings.general.rehideInterval,
                         repeats: false
                     ) { [weak self] _ in
-                        guard
-                            let self,
-                            let screen = screenForIceBar
-                        else {
+                        guard let self else {
+                            return
+                        }
+                        guard let screen = rehideScreen else {
+                            // The pinned display disconnected.
+                            Task {
+                                await self.hide()
+                            }
                             return
                         }
                         if RehideGeometry.isPointerOutsideMenuBar(

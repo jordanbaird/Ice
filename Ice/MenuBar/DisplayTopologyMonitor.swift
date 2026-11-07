@@ -52,17 +52,16 @@ final class DisplayTopologyMonitor {
         lastDisplays = current
 
         let panel = appState.menuBarManager.iceBarPanel
-        let barUUID = panel.isVisible ? panel.screen?.displayUUIDString : nil
-        let reactions = DisplayTopology.reactions(to: change, barDisplayUUID: barUUID)
+        let reactions = DisplayTopology.reactions(to: change, barDisplayUUID: nil)
         guard !reactions.isEmpty else {
             return
         }
         logger.notice("Display change: +\(change.added.count, privacy: .public) -\(change.removed.count, privacy: .public) main:\(change.mainChanged, privacy: .public) reconfigured:\(change.reconfigured.count, privacy: .public)")
 
-        if reactions.contains(.hideBar) {
-            appState.menuBarManager.section(withName: .hidden)?.hide()
-            panel.close()
-        }
+        // Close the bar (and the section really presented) if its display is
+        // gone. The identity was captured when the show began, so this works
+        // even if the panel's `screen` is already nil or remapped.
+        panel.reconcileConnectedDisplays()
         if reactions.contains(.recache) {
             Task {
                 await appState.itemManager.cacheItemsRegardless()

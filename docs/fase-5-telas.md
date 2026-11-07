@@ -27,6 +27,11 @@ Testes de 3 e 6 foram escritos junto com a implementação (sem registrar o verm
 5. Alternar o foco entre as telas várias vezes e conferir o tamanho da barra/Barra do notebook (#929/#698) e, com vídeo em tela cheia num dos monitores, a Barra/overlay no outro (#988/#1023). Anotar prints.
 6. Deixar o timer de rehide ("Rehide: timed") e mover o ponteiro entre as telas: só fecha quando o ponteiro sai da barra de menus da tela-alvo.
 
+## Correções da revisão do Lupa (PR #8), com vermelho comportamental
+1. **Tela-alvo fixa na sessão** (`TargetDisplaySession`): com a chamada do sistema nil o resolver segue o ponteiro, e o rehide reavaliava a tela a cada movimento/timer, então o alvo acompanhava o cursor (abrir no externo, mover para a barra do notebook → "dentro", timer cancelado). Agora `show`/`showInBar` fixam o display da sessão e o monitor/timer usam a mesma tela até o `hide`; se o display fixado some, o timer esconde a seção. Vermelho: 6 falhas de asserção contra uma sessão que re-resolvia a cada consulta (resolver com `systemID = nil`, externo acima, cursor mudando de tela antes e durante os ticks).
+2. **Identidade da apresentação da Barra** (`BarPresentationTracker`): display e seção são capturados **antes dos awaits** do `show`; `DisplayTopologyMonitor`/`IceBarPanel.reconcileConnectedDisplays` fecham a seção **realmente apresentada** (`alwaysHidden` incluída) se o display some, mesmo com `panel.screen` nil/remapeada ou painel ainda invisível; depois do cache o `show` revalida token e display conectado e relê a `NSScreen` antes do `orderFront` (sem reaparecer). Vermelho: 9 falhas contra um tracker que nunca cancelava.
+3. **JSON de perfis tolerante por entrada**: um valor de tipo errado derrubava o decode inteiro para o padrão; agora só aquela entrada é descartada. Vermelho: 1 falha.
+
 ## Medição
 
 ### Comparação pareada de wakeups (pendência da fase 4)

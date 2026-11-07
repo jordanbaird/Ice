@@ -36,19 +36,20 @@ struct DisplayProfiles: Codable, Equatable {
         try JSONEncoder().encode(self)
     }
 
-    /// Decodes stored data. Corrupt or missing data gives empty profiles, and
-    /// an unknown mode (from a newer version) becomes ``DisplayBarMode/followGlobal``.
+    /// Decodes stored data. Corrupt or missing data gives empty profiles; an
+    /// entry with an unknown mode (from a newer version) or a value of the
+    /// wrong type is dropped on its own, keeping the valid ones.
     static func decode(_ data: Data?) -> DisplayProfiles {
         guard
             let data,
-            let raw = try? JSONDecoder().decode([String: [String: String]].self, from: data),
-            let stored = raw["modes"]
+            let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let stored = root["modes"] as? [String: Any]
         else {
             return DisplayProfiles()
         }
         var profiles = DisplayProfiles()
-        for (uuid, rawMode) in stored {
-            if let mode = DisplayBarMode(rawValue: rawMode) {
+        for (uuid, value) in stored {
+            if let rawMode = value as? String, let mode = DisplayBarMode(rawValue: rawMode) {
                 profiles.set(mode, for: uuid)
             }
         }

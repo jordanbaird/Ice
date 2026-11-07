@@ -56,4 +56,16 @@ struct DisplayProfilesTests {
         #expect(profiles.mode(for: builtIn) == .followGlobal)
         #expect(profiles.mode(for: external) == .bar)
     }
+
+    @Test func aWrongTypedValueDropsOnlyThatEntry() {
+        let json = #"{"modes":{"\#(builtIn)":42,"\#(external)":"bar"}}"#
+        let profiles = DisplayProfiles.decode(Data(json.utf8))
+        #expect(profiles.mode(for: builtIn) == .followGlobal)
+        #expect(profiles.mode(for: external) == .bar)      // the valid entry survives
+    }
+
+    @Test func aWrongTypedModesContainerGivesEmptyProfiles() {
+        #expect(DisplayProfiles.decode(Data(#"{"modes":[1,2,3]}"#.utf8)) == DisplayProfiles())
+        #expect(DisplayProfiles.decode(Data(#"[]"#.utf8)) == DisplayProfiles())
+    }
 }

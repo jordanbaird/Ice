@@ -80,8 +80,17 @@ final class SourcePIDCache {
 
     /// State for the cache.
     private struct State {
+        /// Minimum time that must pass before retrying a previously
+        /// failed source-PID lookup. Prevents a feedback loop where
+        /// items that can never be resolved (e.g., items whose owning
+        /// app does not expose its extras menu bar via AX) trigger an
+        /// expensive AX enumeration of every running app on every
+        /// cache refresh.
+        static let failedLookupTTL: TimeInterval = 30
+
         var apps = [CachedApplication]()
         var pids = [CGWindowID: pid_t]()
+        var failedLookups = [CGWindowID: Date]()
 
         /// Returns the latest bounds of the given window after ensuring
         /// that the bounds are stable (a.k.a. not currently changing).
@@ -151,9 +160,15 @@ final class SourcePIDCache {
                         continue
                     }
                     pids[window.windowID] = app.processIdentifier
+                    failedLookups.removeValue(forKey: window.windowID)
                     return
                 }
             }
+
+            // No app matched. Record the failure so that subsequent
+            // lookups for this window skip the expensive AX enumeration
+            // until the TTL expires or the running apps list changes.
+            failedLookups[window.windowID] = Date()
         }
     }
 
@@ -222,6 +237,17 @@ final class SourcePIDCache {
         state.withLock { state in
             if let pid = state.pids[window.windowID] {
                 return pid
+            }
+            // Skip the AX scan if we recently failed to resolve this
+            // window. The failed-lookup entry is cleared whenever the
+            // running apps list changes (see the runningApplications
+            // observer above), so newly-launched apps still get a chance
+            // to match. Without this throttle, a single unresolvable
+            // item spams AX calls on every cache refresh and causes the
+            // main app to thrash its menu bar item cache.
+            if let failedAt = state.failedLookups[window.windowID],
+               Date().timeIntervalSince(failedAt) < State.failedLookupTTL {
+                return nil
             }
             state.updatePID(for: window)
             return state.pids[window.windowID]

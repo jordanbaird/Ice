@@ -6,7 +6,10 @@
 import Foundation
 
 enum MenuBarItemService {
-    static let name = "com.jordanbaird.Ice.MenuBarItemService"
+    static let name = "br.com.pilutech.trincano.MenuBarItemService"
+
+    /// The signing identifier (bundle identifier) of the app that hosts the service.
+    static let appSigningIdentifier = "br.com.pilutech.trincano"
 }
 
 extension MenuBarItemService {

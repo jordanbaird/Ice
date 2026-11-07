@@ -104,7 +104,7 @@ extension MenuBarItemService {
                     logger.warning("Session was cancelled with error \(error.localizedDescription)")
                     self.session = nil
                 }
-                session.setPeerRequirement(.isFromSameTeam())
+                session.setPeerRequirement(.trincanoPeer(signingIdentifier: MenuBarItemService.name))
                 session.setTargetQueue(queue)
                 try session.activate()
                 self.session = session

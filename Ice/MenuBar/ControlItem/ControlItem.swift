@@ -500,10 +500,10 @@ final class ControlItem {
             appState.settings.hotkeys.hotkey(withAction: action)
         }
 
-        let menu = NSMenu(title: "Ice")
+        let menu = NSMenu(title: "Trincano")
 
         let settingsItem = NSMenuItem(
-            title: "Ice Settings…",
+            title: "Trincano Settings…",
             action: #selector(AppDelegate.openSettingsWindow),
             keyEquivalent: ","
         )
@@ -556,18 +556,8 @@ final class ControlItem {
 
         menu.addItem(.separator())
 
-        let checkForUpdatesItem = NSMenuItem(
-            title: "Check for Updates…",
-            action: #selector(checkForUpdates),
-            keyEquivalent: ""
-        )
-        checkForUpdatesItem.target = self
-        menu.addItem(checkForUpdatesItem)
-
-        menu.addItem(.separator())
-
         let quitItem = NSMenuItem(
-            title: "Quit Ice",
+            title: "Quit Trincano",
             action: #selector(NSApp.terminate),
             keyEquivalent: "q"
         )
@@ -597,14 +587,6 @@ final class ControlItem {
     /// Opens the menu bar search panel.
     @objc private func showSearchPanel() {
         appState?.menuBarManager.searchPanel.show()
-    }
-
-    /// Opens the settings window and checks for app updates.
-    @objc private func checkForUpdates() {
-        guard let appState else {
-            return
-        }
-        appState.updatesManager.checkForUpdates()
     }
 }
 

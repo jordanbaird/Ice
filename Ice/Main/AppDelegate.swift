@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         // Initial chore work.
         NSSplitViewItem.swizzle()
+        IceSettingsImporter.offerImportIfNeeded()
         MigrationManager(appState: appState).migrateAll()
     }
 

@@ -46,6 +46,15 @@ Leitura honesta:
 6. "Missing control item for hidden section" na abertura: causa provável é as janelas dos controles ainda não existirem; agora não grava os IDs como já em cache nessa falha (próximo poll tenta de novo) e o log é `notice`. Continua aparecendo 1× na abertura (esperado); sem regressão.
 7. `ImageMergePolicy` evicta imagens de itens que saíram (port manual do `d8978b0` de lxy1992/Ice, com crédito; testes red-first).
 
+## Correções da revisão do Lupa (PR #6), red-first
+1. **Clique lê geometria fresca** (`MenuBarHitTester`, `Freshness`): o cache de 250/500 ms só serve ao *movimento* (`handleShowOnHover`, as duas chamadas passam `.cached`). Toda decisão de clique (`handleShowOnClick`, o callback assíncrono do menu de contexto, `handlePreventShowOnHover` no mouseDown e o posicionamento dinâmico da Barra) usa o padrão `.fresh`, que relê e atualiza o cache. Testes: hover reaproveita (1 consulta em 50 eventos), aquecer memo → menu do app cresce sem notificação → clique dentro do TTL não é "espaço vazio", item novo idem, leitura fresca realimenta o cache, `invalidate` vale para o hover, Apple menu conta como dentro, frame desconhecido = fora.
+2. **Cache de imagens consistente** (`RefreshSequencer`, `ImageMergePolicy.keepingOnly`): as tags válidas são lidas e as imagens publicadas no MESMO `MainActor.run`; o filtro vale para o resultado final (antigo e novo), então captura tardia de item que saiu não volta mesmo com `validKeys` vazio; refresh superado por outro mais novo é descartado. Testes: novo contendo tag inválida, `validKeys` vazio com `new` não vazio, duas atualizações intercaladas preservando a imagem atual.
+
+### Ainda sem teste (pendências)
+- Snapshot antigo do poll após troca de espaço/app (o poll fora da main pode devolver uma lista de antes da troca; hoje só o próximo poll corrige).
+- Integração abrir/fechar/trocar seção durante um refresh lento (precisa do `AppState` real).
+- Fiação HID ponta a ponta: o teste cobre o `MenuBarHitTester`; quais chamadas usam `.cached` está garantido por `grep` (só as duas de `handleShowOnHover`) e por revisão, não por teste automatizado.
+
 ## Avaliados e não aplicados
 - Timers de 3/5/10 s: o `sample` de 20 s em repouso mostrou só a consulta de 5 s (15 ms de CPU em 20 s) e os wakeups já são ~0,05/s; o timer de 3 s do cache de imagens retorna cedo quando nenhuma UI está aberta. Sem ganho mensurável, não mexi.
 - `Task.sleep` de 25 ms (IceBar, busca, LayoutBar): esperas curtas de layout, sem custo ocioso; trocar por evento fica para quando houver medição (`iceBar.show`).

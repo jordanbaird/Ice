@@ -70,6 +70,9 @@ final class MenuBarItemImageCache: ObservableObject {
     /// The cached item images, keyed by their corresponding tags.
     @Published private(set) var images = [MenuBarItemTag: CapturedImage]()
 
+    /// Numbers image refreshes so a slow, superseded one is discarded.
+    @MainActor private var refreshSequencer = RefreshSequencer()
+
     /// Logger for the menu bar item image cache.
     private let logger = Logger(category: "MenuBarItemImageCache")
 
@@ -289,6 +292,7 @@ final class MenuBarItemImageCache: ObservableObject {
 
         let scale = screen.backingScaleFactor
         var newImages = [MenuBarItemTag: CapturedImage]()
+        let token = await MainActor.run { refreshSequencer.begin() }
 
         for section in sections {
             guard await !appState.itemManager.itemCache[section].isEmpty else {
@@ -305,9 +309,14 @@ final class MenuBarItemImageCache: ObservableObject {
             newImages.merge(sectionImages) { (_, new) in new }
         }
 
-        let validTags = await Set(appState.itemManager.itemCache.managedItems.map(\.tag))
-
-        await MainActor.run { [newImages, validTags] in
+        // Read the valid tags and publish in the SAME main-actor pass, so the
+        // tags can't change between the read and the write; drop a refresh
+        // that a newer one superseded.
+        await MainActor.run { [newImages] in
+            guard refreshSequencer.isCurrent(token) else {
+                return
+            }
+            let validTags = Set(appState.itemManager.itemCache.managedItems.map(\.tag))
             images = ImageMergePolicy.merge(
                 old: images,
                 new: newImages,

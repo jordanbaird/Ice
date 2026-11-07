@@ -19,13 +19,18 @@ enum ImageMergePolicy {
         isFallback: (Image) -> Bool,
         keepingOnly validKeys: Set<Key>? = nil
     ) -> [Key: Image] {
-        let kept = validKeys.map { valid in old.filter { valid.contains($0.key) } } ?? old
-        return kept.merging(new) { old, new in
+        let merged = old.merging(new) { old, new in
             if isFallback(new), !isFallback(old) {
                 old
             } else {
                 new
             }
         }
+        // Filter the final result: a late capture of an item that already left
+        // must not come back (even when `validKeys` is empty).
+        guard let validKeys else {
+            return merged
+        }
+        return merged.filter { validKeys.contains($0.key) }
     }
 }

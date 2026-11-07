@@ -8,13 +8,19 @@
 /// An app-icon fallback stands in for a window that could not be captured.
 /// It must never replace an image that was really captured, but a real
 /// capture always replaces a fallback.
+///
+/// Images whose key is no longer valid (the item left the menu bar) are
+/// evicted so the cache doesn't grow for the whole lifetime of the app.
+/// Idea from lxy1992/Ice (`Evict stale menu bar item images`).
 enum ImageMergePolicy {
     static func merge<Key: Hashable, Image>(
         old: [Key: Image],
         new: [Key: Image],
-        isFallback: (Image) -> Bool
+        isFallback: (Image) -> Bool,
+        keepingOnly validKeys: Set<Key>? = nil
     ) -> [Key: Image] {
-        old.merging(new) { old, new in
+        let kept = validKeys.map { valid in old.filter { valid.contains($0.key) } } ?? old
+        return kept.merging(new) { old, new in
             if isFallback(new), !isFallback(old) {
                 old
             } else {

@@ -305,8 +305,15 @@ final class MenuBarItemImageCache: ObservableObject {
             newImages.merge(sectionImages) { (_, new) in new }
         }
 
-        await MainActor.run { [newImages] in
-            images = ImageMergePolicy.merge(old: images, new: newImages, isFallback: \.isFallback)
+        let validTags = await Set(appState.itemManager.itemCache.managedItems.map(\.tag))
+
+        await MainActor.run { [newImages, validTags] in
+            images = ImageMergePolicy.merge(
+                old: images,
+                new: newImages,
+                isFallback: \.isFallback,
+                keepingOnly: validTags
+            )
         }
     }
 

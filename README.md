@@ -1,39 +1,38 @@
 <div align="center">
     <img src="Ice/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width=200 height=200>
-    <h1>Ice</h1>
+    <h1>Trincano</h1>
 </div>
 
-Ice is a powerful menu bar management tool. While its primary function is hiding and showing menu bar items, it aims to cover a wide variety of additional features to make it one of the most versatile menu bar tools available.
+Trincano is a menu bar manager for macOS, with a focus on Macs with a notch and on macOS 26 (Tahoe). It hides and shows menu bar items, shows them in a bar below the menu bar (the "Trincano Bar") and more.
 
-![Banner](https://github.com/user-attachments/assets/4423085c-4e4b-4f3d-ad0f-90a217c03470)
+> [!IMPORTANT]
+> **Trincano is a modified version of [Ice](https://github.com/jordanbaird/Ice), by Jordan Baird.** It is free software released under the [GNU General Public License v3.0](LICENSE), like Ice. It is based on Ice's `macos-26` branch. Modified by Paulo Victor T Silva (PILUTECH), 2026. Many thanks to Jordan Baird and to everyone who contributed to Ice. This project is not affiliated with or endorsed by the Ice project.
 
-[![Download](https://img.shields.io/badge/download-latest-brightgreen?style=flat-square)](https://github.com/jordanbaird/Ice/releases/latest)
 ![Platform](https://img.shields.io/badge/platform-macOS-blue?style=flat-square)
 ![Requirements](https://img.shields.io/badge/requirements-macOS%2014%2B-fa4e49?style=flat-square)
-[![Sponsor](https://img.shields.io/badge/Sponsor%20%E2%9D%A4%EF%B8%8F-8A2BE2?style=flat-square)](https://github.com/sponsors/jordanbaird)
-[![Website](https://img.shields.io/badge/Website-015FBA?style=flat-square)](https://icemenubar.app)
-[![License](https://img.shields.io/github/license/jordanbaird/Ice?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-GPL--3.0-green?style=flat-square)](LICENSE)
 
-> [!NOTE]
-> Ice is currently in active development. Some features have not yet been implemented. Download the latest release [here](https://github.com/jordanbaird/Ice/releases/latest) and see the roadmap below for upcoming features.
+## Privacy
 
-<a href="https://www.buymeacoffee.com/jordanbaird" target="_blank">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;">
-</a>
+Everything stays on your Mac. Trincano has no telemetry, no analytics and **no network access**: it does not check for updates (the update system of Ice was removed). It needs two permissions to work: Accessibility and Screen Recording (used only to read the position and image of menu bar items).
 
-## Install
+## Build and install
 
-### Manual Installation
-
-Download the "Ice.zip" file from the [latest release](https://github.com/jordanbaird/Ice/releases/latest) and move the unzipped app into your `Applications` folder.
-
-### Homebrew
-
-Install Ice using the following command:
+Requires Xcode 26 and macOS 26. There are no prebuilt releases.
 
 ```sh
-brew install --cask jordanbaird-ice
+scripts/build.sh      # Release build, signed with a local certificate
+scripts/install.sh    # copies to /Applications/Trincano.app (never closes Ice)
+scripts/check.sh      # swiftlint + tests + build (everything runs locally)
 ```
+
+The build is signed with a self-signed local certificate ("Trincano Local Signing", created on first build in `~/.trincano/signing`) so macOS remembers the permissions between builds. To sign with another identity (for example a Developer ID), set `SIGN_IDENTITY`. See [docs/assinatura.md](docs/assinatura.md).
+
+Do not run Trincano and Ice at the same time: both manage the same menu bar.
+
+## Documentation
+
+See [docs/](docs/) (in Portuguese). Original features and roadmap from Ice follow.
 
 ## Features/Roadmap
 

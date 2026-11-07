@@ -18,11 +18,11 @@ struct MenuBarAppearanceConfigurationV1: Hashable {
     var splitShapeInfo: MenuBarSplitShapeInfo
     var tintKind: MenuBarTintKind
     var tintColor: CGColor
-    var tintGradient: CustomGradient
+    var tintGradient: IceGradient
 
     var hasRoundedShape: Bool {
         switch shapeKind {
-        case .none: false
+        case .noShape: false
         case .full: fullShapeInfo.hasRoundedShape
         case .split: splitShapeInfo.hasRoundedShape
         }
@@ -49,13 +49,13 @@ struct MenuBarAppearanceConfigurationV1: Hashable {
             }
 
             if let borderColorData = Defaults.data(forKey: .menuBarBorderColor) {
-                configuration.borderColor = try decoder.decode(CodableColor.self, from: borderColorData).cgColor
+                configuration.borderColor = try decoder.decode(IceColor.self, from: borderColorData).cgColor
             }
             if let tintColorData = Defaults.data(forKey: .menuBarTintColor) {
-                configuration.tintColor = try decoder.decode(CodableColor.self, from: tintColorData).cgColor
+                configuration.tintColor = try decoder.decode(IceColor.self, from: tintColorData).cgColor
             }
             if let tintGradientData = Defaults.data(forKey: .menuBarTintGradient) {
-                configuration.tintGradient = try decoder.decode(CustomGradient.self, from: tintGradientData)
+                configuration.tintGradient = try decoder.decode(IceGradient.self, from: tintGradientData)
             }
             if let shapeKindData = Defaults.data(forKey: .menuBarShapeKind) {
                 configuration.shapeKind = try decoder.decode(MenuBarShapeKind.self, from: shapeKindData)
@@ -101,10 +101,10 @@ extension MenuBarAppearanceConfigurationV1 {
         isInset: true,
         borderColor: .black,
         borderWidth: 1,
-        shapeKind: .none,
+        shapeKind: .noShape,
         fullShapeInfo: .default,
         splitShapeInfo: .default,
-        tintKind: .none,
+        tintKind: .noTint,
         tintColor: .black,
         tintGradient: .defaultMenuBarTint
     )
@@ -132,14 +132,14 @@ extension MenuBarAppearanceConfigurationV1: Codable {
             hasShadow: container.decodeIfPresent(Bool.self, forKey: .hasShadow) ?? Self.defaultConfiguration.hasShadow,
             hasBorder: container.decodeIfPresent(Bool.self, forKey: .hasBorder) ?? Self.defaultConfiguration.hasBorder,
             isInset: container.decodeIfPresent(Bool.self, forKey: .isInset) ?? Self.defaultConfiguration.isInset,
-            borderColor: container.decodeIfPresent(CodableColor.self, forKey: .borderColor)?.cgColor ?? Self.defaultConfiguration.borderColor,
+            borderColor: container.decodeIfPresent(IceColor.self, forKey: .borderColor)?.cgColor ?? Self.defaultConfiguration.borderColor,
             borderWidth: container.decodeIfPresent(Double.self, forKey: .borderWidth) ?? Self.defaultConfiguration.borderWidth,
             shapeKind: container.decodeIfPresent(MenuBarShapeKind.self, forKey: .shapeKind) ?? Self.defaultConfiguration.shapeKind,
             fullShapeInfo: container.decodeIfPresent(MenuBarFullShapeInfo.self, forKey: .fullShapeInfo) ?? Self.defaultConfiguration.fullShapeInfo,
             splitShapeInfo: container.decodeIfPresent(MenuBarSplitShapeInfo.self, forKey: .splitShapeInfo) ?? Self.defaultConfiguration.splitShapeInfo,
             tintKind: container.decodeIfPresent(MenuBarTintKind.self, forKey: .tintKind) ?? Self.defaultConfiguration.tintKind,
-            tintColor: container.decodeIfPresent(CodableColor.self, forKey: .tintColor)?.cgColor ?? Self.defaultConfiguration.tintColor,
-            tintGradient: container.decodeIfPresent(CustomGradient.self, forKey: .tintGradient) ?? Self.defaultConfiguration.tintGradient
+            tintColor: container.decodeIfPresent(IceColor.self, forKey: .tintColor)?.cgColor ?? Self.defaultConfiguration.tintColor,
+            tintGradient: container.decodeIfPresent(IceGradient.self, forKey: .tintGradient) ?? Self.defaultConfiguration.tintGradient
         )
     }
 
@@ -148,13 +148,13 @@ extension MenuBarAppearanceConfigurationV1: Codable {
         try container.encode(hasShadow, forKey: .hasShadow)
         try container.encode(hasBorder, forKey: .hasBorder)
         try container.encode(isInset, forKey: .isInset)
-        try container.encode(CodableColor(cgColor: borderColor), forKey: .borderColor)
+        try container.encode(IceColor(cgColor: borderColor), forKey: .borderColor)
         try container.encode(borderWidth, forKey: .borderWidth)
         try container.encode(shapeKind, forKey: .shapeKind)
         try container.encode(fullShapeInfo, forKey: .fullShapeInfo)
         try container.encode(splitShapeInfo, forKey: .splitShapeInfo)
         try container.encode(tintKind, forKey: .tintKind)
-        try container.encode(CodableColor(cgColor: tintColor), forKey: .tintColor)
+        try container.encode(IceColor(cgColor: tintColor), forKey: .tintColor)
         try container.encode(tintGradient, forKey: .tintGradient)
     }
 }

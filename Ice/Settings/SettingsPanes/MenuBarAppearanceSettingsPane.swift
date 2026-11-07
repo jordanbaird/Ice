@@ -6,15 +6,9 @@
 import SwiftUI
 
 struct MenuBarAppearanceSettingsPane: View {
-    @EnvironmentObject var appState: AppState
+    @ObservedObject var appearanceManager: MenuBarAppearanceManager
 
     var body: some View {
-        MenuBarAppearanceEditor(location: .settings)
-            .environmentObject(appState.appearanceManager)
+        MenuBarAppearanceEditor(appearanceManager: appearanceManager, location: .settings)
     }
-}
-
-#Preview {
-    MenuBarAppearanceSettingsPane()
-        .environmentObject(AppState())
 }

@@ -34,7 +34,7 @@ struct IcePicker<Label: View, SelectionValue: Hashable, Content: View>: View {
     }
 
     var body: some View {
-        IceLabeledContent {
+        LabeledContent {
             Picker(selection: $selection) {
                 content
                     .labelStyle(.titleAndIcon)

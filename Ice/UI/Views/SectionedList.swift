@@ -14,11 +14,8 @@ struct SectionedList<ItemID: Hashable>: View {
     }
 
     @Binding var selection: ItemID?
-
     @Binding var items: [SectionedListItem<ItemID>]
-
     @State private var itemFrames = [ItemID: CGRect]()
-
     @State private var scrollIndicatorsFlashTrigger = 0
 
     let spacing: CGFloat
@@ -74,24 +71,27 @@ struct SectionedList<ItemID: Hashable>: View {
             }
         }
         .scrollIndicatorsFlash(trigger: scrollIndicatorsFlashTrigger)
-        .onKeyDown(key: .downArrow) {
+        .onKeyDown(key: .downArrow, isEnabled: selection != nil) {
             DispatchQueue.main.async {
                 if let nextSelectableItem {
                     selection = nextSelectableItem.id
                 }
             }
+            return .handled
         }
-        .onKeyDown(key: .upArrow) {
+        .onKeyDown(key: .upArrow, isEnabled: selection != nil) {
             DispatchQueue.main.async {
                 if let previousSelectableItem {
                     selection = previousSelectableItem.id
                 }
             }
+            return .handled
         }
-        .onKeyDown(key: .return) {
+        .onKeyDown(key: .return, isEnabled: selection != nil) {
             DispatchQueue.main.async {
                 items.first { $0.id == selection }?.action?()
             }
+            return .handled
         }
         .task {
             scrollIndicatorsFlashTrigger += 1
@@ -144,7 +144,7 @@ struct SectionedList<ItemID: Hashable>: View {
 extension SectionedList {
     /// Sets the padding of the sectioned list's content.
     func contentPadding(_ insets: EdgeInsets) -> SectionedList {
-        with(self) { copy in
+        withMutableCopy(of: self) { copy in
             copy.contentPadding = insets
         }
     }
@@ -180,25 +180,56 @@ struct SectionedListItem<ID: Hashable> {
 // MARK: - SectionedListItemView
 
 private struct SectionedListItemView<ItemID: Hashable>: View {
+    @Environment(\.self) private var environment
     @Binding var selection: ItemID?
     @Binding var itemFrames: [ItemID: CGRect]
     @State private var isHovering = false
 
     let item: SectionedListItem<ItemID>
 
+    private var foregroundStyle: some ShapeStyle {
+        if
+            environment.colorScheme == .light,
+            selection == item.id
+        {
+            Color.primary.resolve(in: withMutableCopy(of: environment) { $0.colorScheme = .dark })
+        } else {
+            Color.primary.resolve(in: environment)
+        }
+    }
+
+    private var borderShape: some InsettableShape {
+        if !item.isSelectable {
+            RoundedRectangle(cornerRadius: 0, style: .circular)
+        } else if #available(macOS 26.0, *) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+        } else {
+            RoundedRectangle(cornerRadius: 5, style: .circular)
+        }
+    }
+
+    private var borderOpacity: CGFloat {
+        guard item.isSelectable else {
+            return 0
+        }
+        if selection == item.id {
+            return 0.5
+        }
+        if isHovering {
+            return 0.25
+        }
+        return 0
+    }
+
     var body: some View {
         ZStack {
-            if item.isSelectable {
-                if selection == item.id {
-                    itemBackground.opacity(0.5)
-                } else if isHovering {
-                    itemBackground.opacity(0.25)
-                }
-            }
+            borderShape
+                .fill(.tint.opacity(borderOpacity))
             item.content
+                .foregroundStyle(foregroundStyle)
         }
         .frame(minWidth: 22, minHeight: 22)
-        .contentShape(Rectangle())
+        .contentShape([.focusEffect, .interaction], borderShape)
         .onHover { hovering in
             isHovering = hovering
         }
@@ -213,11 +244,5 @@ private struct SectionedListItemView<ItemID: Hashable>: View {
         .onFrameChange(in: .global) { frame in
             itemFrames[item.id] = frame
         }
-    }
-
-    @ViewBuilder
-    private var itemBackground: some View {
-        VisualEffectView(material: .selection, blendingMode: .withinWindow)
-            .clipShape(RoundedRectangle(cornerRadius: 5, style: .circular))
     }
 }

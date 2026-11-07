@@ -7,14 +7,11 @@ import SwiftUI
 
 struct AdvancedSettingsPane: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject var settings: AdvancedSettings
     @State private var maxSliderLabelWidth: CGFloat = 0
 
     private var menuBarManager: MenuBarManager {
         appState.menuBarManager
-    }
-
-    private var manager: AdvancedSettingsManager {
-        appState.settingsManager.advancedSettingsManager
     }
 
     private func formattedToSeconds(_ interval: TimeInterval) -> LocalizedStringKey {
@@ -28,19 +25,16 @@ struct AdvancedSettingsPane: View {
 
     var body: some View {
         IceForm {
-            IceSection {
-                hideApplicationMenus
-                showSectionDividers
-                showAllSectionsOnUserDrag
-                showContextMenuOnRightClick
-            }
-            IceSection {
+            IceSection("Menu Bar Sections") {
                 enableAlwaysHiddenSection
-                canToggleAlwaysHiddenSection
+                showAllSectionsOnUserDrag
+                sectionDividerStyle
             }
-            IceSection {
-                showOnHoverDelaySlider
-                tempShowIntervalSlider
+            IceSection("Other") {
+                hideApplicationMenus
+                enableSecondaryContextMenu
+                showOnHoverDelay
+                tempShowInterval
             }
             IceSection("Permissions") {
                 allPermissions
@@ -49,105 +43,108 @@ struct AdvancedSettingsPane: View {
     }
 
     @ViewBuilder
-    private var hideApplicationMenus: some View {
-        Toggle("Hide application menus when showing menu bar items", isOn: manager.bindings.hideApplicationMenus)
-            .annotation("Make more room in the menu bar by hiding the left application menus if needed")
-    }
-
-    @ViewBuilder
-    private var showSectionDividers: some View {
-        Toggle("Show section dividers", isOn: manager.bindings.showSectionDividers)
-            .annotation {
-                HStack(spacing: 2) {
-                    Text("Insert divider items")
-                    if let nsImage = ControlItemImage.builtin(.chevronLarge).nsImage(for: appState) {
-                        HStack(spacing: 0) {
-                            Text("(")
-                                .font(.body.monospaced().bold())
-                            Image(nsImage: nsImage)
-                                .padding(.horizontal, -2)
-                            Text(")")
-                                .font(.body.monospaced().bold())
-                        }
-                    }
-                    Text("between sections")
-                }
-            }
-    }
-
-    @ViewBuilder
     private var enableAlwaysHiddenSection: some View {
-        Toggle("Enable always-hidden section", isOn: manager.bindings.enableAlwaysHiddenSection)
+        Toggle(
+            "Enable the always-hidden section",
+            isOn: $settings.enableAlwaysHiddenSection
+        )
     }
 
     @ViewBuilder
-    private var canToggleAlwaysHiddenSection: some View {
-        if manager.enableAlwaysHiddenSection {
-            Toggle("Always-hidden section can be shown", isOn: manager.bindings.canToggleAlwaysHiddenSection)
-                .annotation {
-                    if appState.settingsManager.generalSettingsManager.showOnClick {
-                        Text("Option + click one of Ice's menu bar items, or inside an empty area of the menu bar to show the section")
-                    } else {
-                        Text("Option + click one of Ice's menu bar items to show the section")
-                    }
-                }
+    private var showAllSectionsOnUserDrag: some View {
+        Toggle(
+            "Show all sections when ⌘ Command + dragging menu bar items",
+            isOn: $settings.showAllSectionsOnUserDrag
+        )
+    }
+
+    @ViewBuilder
+    private var sectionDividerStyle: some View {
+        IcePicker("Section divider style", selection: $settings.sectionDividerStyle) {
+            ForEach(SectionDividerStyle.allCases) { style in
+                Text(style.localized).tag(style)
+            }
         }
     }
 
     @ViewBuilder
-    private var showOnHoverDelaySlider: some View {
-        IceLabeledContent {
+    private var hideApplicationMenus: some View {
+        Toggle(
+            "Hide app menus when showing menu bar items",
+            isOn: $settings.hideApplicationMenus
+        )
+        .annotation {
+            Text(
+                """
+                Make more room in the menu bar by hiding the current app menus if \
+                needed. macOS requires Ice to make itself visible in the Dock while \
+                this setting is in effect.
+                """
+            )
+            .padding(.trailing, 75)
+        }
+    }
+
+    @ViewBuilder
+    private var enableSecondaryContextMenu: some View {
+        Toggle(
+            "Enable secondary context menu",
+            isOn: $settings.enableSecondaryContextMenu
+        )
+        .annotation {
+            Text(
+                """
+                Right-click in an empty area of the menu bar to display a minimal \
+                version of Ice's menu. Disable this setting if you encounter conflicts \
+                with other apps.
+                """
+            )
+            .padding(.trailing, 75)
+        }
+    }
+
+    @ViewBuilder
+    private var showOnHoverDelay: some View {
+        LabeledContent {
             IceSlider(
-                formattedToSeconds(manager.showOnHoverDelay),
-                value: manager.bindings.showOnHoverDelay,
+                formattedToSeconds(settings.showOnHoverDelay),
+                value: $settings.showOnHoverDelay,
                 in: 0...1,
                 step: 0.1
             )
         } label: {
             Text("Show on hover delay")
-                .frame(minHeight: .compactSliderMinHeight)
                 .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
                 .onFrameChange { frame in
                     maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
                 }
         }
-        .annotation("The amount of time to wait before showing on hover")
+        .annotation("The amount of time to wait before showing on hover.")
     }
 
     @ViewBuilder
-    private var tempShowIntervalSlider: some View {
-        IceLabeledContent {
+    private var tempShowInterval: some View {
+        LabeledContent {
             IceSlider(
-                formattedToSeconds(manager.tempShowInterval),
-                value: manager.bindings.tempShowInterval,
-                in: 0...30,
+                formattedToSeconds(settings.tempShowInterval),
+                value: $settings.tempShowInterval,
+                in: 0...60,
                 step: 1
             )
         } label: {
             Text("Temporarily shown item delay")
-                .frame(minHeight: .compactSliderMinHeight)
                 .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
                 .onFrameChange { frame in
                     maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
                 }
         }
-        .annotation("The amount of time to wait before hiding temporarily shown menu bar items")
-    }
-
-    @ViewBuilder
-    private var showAllSectionsOnUserDrag: some View {
-        Toggle("Show all sections when Command + dragging menu bar items", isOn: manager.bindings.showAllSectionsOnUserDrag)
-    }
-
-    @ViewBuilder
-    private var showContextMenuOnRightClick: some View {
-        Toggle("Show context menu on right click", isOn: manager.bindings.showContextMenuOnRightClick)
+        .annotation("The amount of time to wait before hiding temporarily shown menu bar items.")
     }
 
     @ViewBuilder
     private var allPermissions: some View {
-        ForEach(appState.permissionsManager.allPermissions) { permission in
-            IceLabeledContent {
+        ForEach(appState.permissions.allPermissions) { permission in
+            LabeledContent {
                 if permission.hasPermission {
                     Label {
                         Text("Permission Granted")
@@ -166,10 +163,4 @@ struct AdvancedSettingsPane: View {
             .frame(height: 22)
         }
     }
-}
-
-#Preview {
-    AdvancedSettingsPane()
-        .fixedSize()
-        .environmentObject(AppState())
 }

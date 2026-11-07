@@ -75,6 +75,13 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
+    /// Reconciles every section's show-to-hide cycle with the connected displays.
+    func reconcileSectionsWithDisplays() {
+        for section in sections {
+            section.reconcileConnectedDisplays()
+        }
+    }
+
     /// Configures the internal observers for the manager.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()

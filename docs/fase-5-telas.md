@@ -32,6 +32,12 @@ Testes de 3 e 6 foram escritos junto com a implementação (sem registrar o verm
 2. **Identidade da apresentação da Barra** (`BarPresentationTracker`): display e seção são capturados **antes dos awaits** do `show`; `DisplayTopologyMonitor`/`IceBarPanel.reconcileConnectedDisplays` fecham a seção **realmente apresentada** (`alwaysHidden` incluída) se o display some, mesmo com `panel.screen` nil/remapeada ou painel ainda invisível; depois do cache o `show` revalida token e display conectado e relê a `NSScreen` antes do `orderFront` (sem reaparecer). Vermelho: 9 falhas contra um tracker que nunca cancelava.
 3. **JSON de perfis tolerante por entrada**: um valor de tipo errado derrubava o decode inteiro para o padrão; agora só aquela entrada é descartada. Vermelho: 1 falha.
 
+## 2ª rodada do Lupa (PR #8): fiação do ciclo da seção
+Para o teste exercitar o **caller real**, todo o arme/desarme do rehide e todo hide por mudança de display passam agora por `SectionSession` (a `MenuBarSection` virou só cola: `session.begin/armRehideIfCurrent/rearmIfActive/end/reconcile`).
+1. **Show suspenso não rearma**: `show/showInBar` ficam com um token; depois do `await iceBarPanel.show` só armam o monitor/timer se `armRehideIfCurrent(token)` for verdadeiro (sessão ativa e mesma geração). Um `hide`, uma remoção de display ou um novo `show` invalidam o token. Também o rearme do timer só acontece com a sessão ativa.
+2. **Seção inline com display removido**: `DisplayTopologyMonitor` chama `menuBarManager.reconcileSectionsWithDisplays()` (todas as seções, com ou sem Barra/autoRehide/timer): a sessão termina, o monitor/timer é desarmado e a seção é escondida.
+Vermelho comportamental: 17 falhas de asserção contra um `SectionSession` com o comportamento anterior (arma sempre; `reconcile` não faz nada). Testes: show suspenso + remoção (Barra), show suspenso + hide, `showInBar`/`alwaysHidden` (mesma API), novo show invalida o anterior, show concluído arma uma vez, **inline no externo sem timer armado + remoção** (seção escondida, sessão encerrada, monitor parado), inline com timer, sessão inativa ignora mudanças, timer não rearma sessão encerrada. Limite honesto: o teste exercita o `SectionSession` que a `MenuBarSection` usa, não a `MenuBarSection` em si (depende de `AppState`/AppKit); a cola é só delegação por revisão.
+
 ## Medição
 
 ### Comparação pareada de wakeups (pendência da fase 4)

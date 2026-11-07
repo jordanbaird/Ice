@@ -62,6 +62,8 @@ final class DisplayTopologyMonitor {
         // gone. The identity was captured when the show began, so this works
         // even if the panel's `screen` is already nil or remapped.
         panel.reconcileConnectedDisplays()
+        // Inline sections have no bar: reconcile every section's cycle too.
+        appState.menuBarManager.reconcileSectionsWithDisplays()
         if reactions.contains(.recache) {
             Task {
                 await appState.itemManager.cacheItemsRegardless()

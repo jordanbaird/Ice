@@ -57,17 +57,52 @@ final class MenuBarSection {
     /// The notch decision for the current show-to-hide cycle.
     private var notchSession = NotchBarSession()
 
+    /// The show-to-hide cycle: the pinned display (the rehide checks use it so
+    /// the target can't follow the pointer across screens) and the rules for
+    /// arming/tearing down the rehide checks (see ``SectionSession``). All
+    /// arm/disarm and display-change hides go through it.
+    private lazy var session = SectionSession(effects: .init(
+        armRehide: { [weak self] in self?.startRehideChecks() },
+        disarmRehide: { [weak self] in self?.stopRehideChecks() },
+        hideSection: { [weak self] in self?.hide() }
+    ))
+
+    /// The screen for the rehide checks: the pinned one for the current cycle.
+    /// `nil` if the pinned display is no longer connected.
+    private var rehideScreen: NSScreen? {
+        let connected = Set(NSScreen.screens.map(\.displayID))
+        let id = session.displayID(connected: connected) {
+            screenForIceBar?.displayID ?? CGMainDisplayID()
+        }
+        return id.flatMap { id in NSScreen.screens.first { $0.displayID == id } }
+    }
+
     /// A Boolean value that indicates whether the Ice Bar should be used:
     /// the user's choice, or, on a screen with a notch, the decision taken
     /// when the section was shown (see ``NotchBarSession``).
     private var useIceBar: Bool {
-        (appState?.settings.general.useIceBar ?? false) || notchSession.isUsingBar
+        guard let appState else {
+            return false
+        }
+        let profile = appState.settings.general.displayProfiles.mode(for: targetDisplayUUID)
+        return DisplayBarPolicy.useBar(global: appState.settings.general.useIceBar, mode: profile) ||
+            notchSession.isUsingBar
     }
+
+    /// A Boolean value that indicates whether the section is shown in the
+    /// Trincano Bar (per display profile or notch) rather than inline.
+    var isUsingIceBar: Bool {
+        useIceBar
+    }
+
+    /// The UUID of the display the current show-to-hide cycle targets (see
+    /// ``DisplayProfiles``), refreshed each time the section is shown.
+    private var targetDisplayUUID: String?
 
     /// Decides, from live measurements, whether the notch forces the Trincano
     /// Bar for this show. Uses the same screen the bar would appear on.
-    private func beginNotchSession(appState: AppState) {
-        let screen = screenForIceBar
+    private func beginNotchSession(appState: AppState, screen: NSScreen?) {
+        targetDisplayUUID = screen?.displayUUIDString
         var sections: [MenuBarSection.Name] = [.visible, .hidden]
         if name == .alwaysHidden {
             sections.append(.alwaysHidden)
@@ -92,9 +127,10 @@ final class MenuBarSection {
         }
         if appState.activeSpace.isFullscreen {
             return NSScreen.screenWithMouse ?? NSScreen.main
-        } else {
-            return NSScreen.main
         }
+        // The screen with the active menu bar, not `NSScreen.main` (the screen
+        // with keyboard focus): with an external monitor they can differ.
+        return NSScreen.screenWithActiveMenuBar ?? NSScreen.main
     }
 
     /// A Boolean value that indicates whether the section is hidden.
@@ -180,8 +216,9 @@ final class MenuBarSection {
             return
         }
 
+        let targetScreen = screenForIceBar
         if let appState {
-            beginNotchSession(appState: appState)
+            beginNotchSession(appState: appState, screen: targetScreen)
         }
 
         guard controlItem.isAddedToMenuBar else {
@@ -189,6 +226,10 @@ final class MenuBarSection {
             // TODO: Can we use isEnabled for this check?
             return
         }
+
+        // Pin the display and start the cycle; the token guards every later
+        // step that waits (the bar's cache) against a hide or display removal.
+        let token = session.begin { targetScreen?.displayID ?? CGMainDisplayID() }
 
         if useIceBar {
             // Make sure hidden and always-hidden control items are collapsed.
@@ -203,7 +244,7 @@ final class MenuBarSection {
                 }
             }
 
-            if let screen = screenForIceBar {
+            if let screen = rehideScreen {
                 Task {
                     switch name {
                     case .visible, .hidden:
@@ -211,7 +252,7 @@ final class MenuBarSection {
                     case .alwaysHidden:
                         await menuBarManager.iceBarPanel.show(section: .alwaysHidden, on: screen)
                     }
-                    startRehideChecks()
+                    session.armRehideIfCurrent(token)
                 }
             }
 
@@ -233,7 +274,7 @@ final class MenuBarSection {
             }
         }
 
-        startRehideChecks()
+        session.armRehideIfCurrent(token)
     }
 
     /// Hides the section.
@@ -260,6 +301,7 @@ final class MenuBarSection {
 
         stopRehideChecks()
         notchSession.end()
+        session.end()
     }
 
     /// Shows the section in the Trincano Bar on the given screen, even when
@@ -268,6 +310,7 @@ final class MenuBarSection {
         guard let menuBarManager, controlItem.isAddedToMenuBar else {
             return
         }
+        let token = session.begin { screen.displayID }
         for section in menuBarManager.sections {
             switch section.name {
             case .visible:
@@ -278,8 +321,14 @@ final class MenuBarSection {
         }
         Task {
             await menuBarManager.iceBarPanel.show(section: .hidden, on: screen)
-            startRehideChecks()
+            session.armRehideIfCurrent(token)
         }
+    }
+
+    /// Hides the section if the display it was shown on was disconnected,
+    /// whether it is inline or in the bar, with or without a rehide timer.
+    func reconcileConnectedDisplays() {
+        session.reconcile(connectedDisplayIDs: Set(NSScreen.screens.map(\.displayID)))
     }
 
     /// Toggles the visibility of the section.
@@ -303,29 +352,41 @@ final class MenuBarSection {
         rehideMonitor = EventMonitor.universal(for: .mouseMoved) { [weak self] event in
             guard
                 let self,
-                let screen = NSScreen.main
+                let screen = rehideScreen
             else {
                 return event
             }
-            if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
+            if RehideGeometry.isPointerOutsideMenuBar(
+                pointer: NSEvent.mouseLocation,
+                screenFrame: screen.frame,
+                visibleFrame: screen.visibleFrame
+            ) {
                 if rehideTimer == nil {
                     rehideTimer = .scheduledTimer(
                         withTimeInterval: appState.settings.general.rehideInterval,
                         repeats: false
                     ) { [weak self] _ in
-                        guard
-                            let self,
-                            let screen = NSScreen.main
-                        else {
+                        guard let self else {
                             return
                         }
-                        if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
+                        guard let screen = rehideScreen else {
+                            // The pinned display disconnected.
+                            Task {
+                                await self.hide()
+                            }
+                            return
+                        }
+                        if RehideGeometry.isPointerOutsideMenuBar(
+                            pointer: NSEvent.mouseLocation,
+                            screenFrame: screen.frame,
+                            visibleFrame: screen.visibleFrame
+                        ) {
                             Task {
                                 await self.hide()
                             }
                         } else {
                             Task {
-                                await self.startRehideChecks()
+                                self.session.rearmIfActive()
                             }
                         }
                     }

@@ -118,9 +118,20 @@ extension Bridging {
            let id = getActiveDisplayList().first(where: { getDisplayUUID(for: $0) == uuid }) {
             return id
         }
-        // CGSCopyActiveMenuBarDisplayIdentifier returns nil on macOS 26.4.1.
-        let fallback = CGMainDisplayID()
-        logger.warning("CGSCopyActiveMenuBarDisplayIdentifier unavailable, using CGMainDisplayID=\(fallback, privacy: .public)")
+        // CGSCopyActiveMenuBarDisplayIdentifier returns nil on some macOS 26
+        // releases (26.4.1). The main display is not always the right answer
+        // (an external monitor can be where the user is working), so prefer
+        // the display under the pointer.
+        let displays = getActiveDisplayList().map {
+            ActiveMenuBarDisplayResolver.Display(id: $0, frame: CGDisplayBounds($0))
+        }
+        let fallback = ActiveMenuBarDisplayResolver.resolve(
+            systemID: nil,
+            displays: displays,
+            pointer: CGEvent(source: nil)?.location,
+            mainID: CGMainDisplayID()
+        )
+        logger.warning("CGSCopyActiveMenuBarDisplayIdentifier unavailable, using display \(fallback, privacy: .public)")
         return fallback
     }
 }

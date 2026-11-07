@@ -75,6 +75,13 @@ final class MenuBarManager: ObservableObject {
         }
     }
 
+    /// Reconciles every section's show-to-hide cycle with the connected displays.
+    func reconcileSectionsWithDisplays() {
+        for section in sections {
+            section.reconcileConnectedDisplays()
+        }
+    }
+
     /// Configures the internal observers for the manager.
     private func configureCancellables() {
         var c = Set<AnyCancellable>()
@@ -162,7 +169,7 @@ final class MenuBarManager: ObservableObject {
                 //   * The settings window is visible.
                 guard
                     appState.settings.advanced.hideApplicationMenus,
-                    !appState.settings.general.useIceBar,
+                    !sections.contains(where: \.isUsingIceBar),
                     !isMenuBarHiddenBySystem,
                     !appState.activeSpace.isFullscreen,
                     !appState.navigationState.isSettingsPresented
@@ -171,7 +178,7 @@ final class MenuBarManager: ObservableObject {
                 }
 
                 if sections.contains(where: { $0.controlItem.state == .showSection }) {
-                    guard let screen = NSScreen.main else {
+                    guard let screen = NSScreen.screenWithActiveMenuBar ?? NSScreen.main else {
                         return
                     }
 

@@ -40,6 +40,9 @@ final class GeneralSettings: ObservableObject {
     /// Trincano Bar.
     @Published var showBarOnNotchClick = true
 
+    /// Per-display settings, keyed by display UUID.
+    @Published var displayProfiles = DisplayProfiles()
+
     /// The location where the Ice Bar appears.
     @Published var iceBarLocation: IceBarLocation = .dynamic
 
@@ -97,6 +100,7 @@ final class GeneralSettings: ObservableObject {
         Defaults.ifPresent(key: .customIceIconIsTemplate, assign: &customIceIconIsTemplate)
         Defaults.ifPresent(key: .useIceBar, assign: &useIceBar)
         Defaults.ifPresent(key: .autoBarOnNotch, assign: &autoBarOnNotch)
+        displayProfiles = DisplayProfiles.decode(Defaults.data(forKey: .displayProfiles))
         Defaults.ifPresent(key: .showBarOnNotchClick, assign: &showBarOnNotchClick)
         Defaults.ifPresent(key: .showOnClick, assign: &showOnClick)
         Defaults.ifPresent(key: .showOnHover, assign: &showOnHover)
@@ -168,6 +172,15 @@ final class GeneralSettings: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { useIceBar in
                 Defaults.set(useIceBar, forKey: .useIceBar)
+            }
+            .store(in: &c)
+
+        $displayProfiles
+            .receive(on: DispatchQueue.main)
+            .sink { profiles in
+                if let data = try? profiles.encoded() {
+                    Defaults.set(data, forKey: .displayProfiles)
+                }
             }
             .store(in: &c)
 

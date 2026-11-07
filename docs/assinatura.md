@@ -26,6 +26,15 @@ SIGN_IDENTITY="Developer ID Application: Nome (TEAMID)" SIGN_KEYCHAIN="" scripts
 | Com Team ID (Developer ID / Apple Development) | mesmo time **e** signing identifier esperado |
 | Sem Team ID (certificado local ou ad hoc) | signing identifier exato (requisito leve `signing-identifier`) |
 
-O requisito nunca é removido. Além disso, o helper é um XPC service embutido no app, só visível para o app que o contém.
+**Limite conhecido (MÉDIO, em aberto):** o `signing-identifier` sozinho **não prova que o peer foi assinado com o nosso certificado**. Verificado offline: copiar o `.xpc`, reassinar ad hoc (`codesign -f -s -`) mantém `identifier "…MenuBarItemService"` satisfeito, mas **falha** em `identifier "…" and certificate leaf = H"…"`. A API Swift `XPCPeerRequirement` do SDK 26 não aceita string de requisito nem certificado (só entitlement, mesmo time, plataforma e requisitos leves), e `XPCSession`/`XPCListener` não expõem o handle C para `xpc_*_set_peer_code_signing_requirement`. Prender o certificado exigiria trocar o transporte XPC por conexão C ou usar `cdhash`; fica como tarefa própria.
+Mitigação atual: o helper é um XPC service embutido no app, visível só ao app que o contém, e a checagem continua ativa (melhor que os PRs do upstream, que a removem). Com Developer ID o requisito volta a ser "mesmo time" e o limite some.
 
 **Pendente de validação em runtime** (precisa do Paulo, pois o Ice ainda está aberto e as permissões pedem confirmação): confirmar no Tahoe que o Menu Bar Layout carrega os itens com o requisito `signing-identifier`.
+
+## Chave de assinatura
+
+O keychain `~/.trincano/signing` não tem senha nem bloqueio automático e está na lista de busca: qualquer processo rodando como o usuário pode assinar como "Trincano Local Signing". Aceito para um certificado local sem valor fora deste Mac; o Developer ID **não** deve seguir esse modelo (usar o login keychain/Secure Enclave).
+
+## Ferramentas (versões)
+
+SwiftLint 0.65.1 (MIT, Homebrew); gem `xcodeproj` 1.28.1 (MIT) e dependências instaladas com ela (nanaimo, colored2, claide, atomos, base64, nkf, CFPropertyList), só em `~/.gem` do usuário, usadas apenas por `scripts/add-test-target.rb` (dev, nunca embutidas no app).

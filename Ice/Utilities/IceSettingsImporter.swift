@@ -29,6 +29,7 @@ enum IceSettingsImporter {
             return
         }
 
+        NSApp.activate()
         let alert = NSAlert()
         alert.messageText = "Import your settings from Ice?"
         alert.informativeText = """
@@ -42,7 +43,9 @@ enum IceSettingsImporter {
             return
         }
 
-        let existing = Set(defaults.dictionaryRepresentation().keys)
+        // Only the app's own domain counts: dictionaryRepresentation() also
+        // includes the global and registration domains.
+        let existing = Set(defaults.persistentDomain(forName: Constants.bundleIdentifier)?.keys.map { $0 } ?? [])
         let values = SettingsImportPlan.valuesToImport(
             source: source,
             allowedKeys: Set(Defaults.Key.allCases.map(\.rawValue)),

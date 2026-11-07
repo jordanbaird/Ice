@@ -26,6 +26,13 @@ struct SettingsImportPlanTests {
         #expect(result[key] as? Double == 120.0)
     }
 
+    @Test func keepsControlItemVisibilityKeys() {
+        let keys = ["NSStatusItem Visible Ice.ControlItem.Hidden", "NSStatusItem VisibleCC Ice.ControlItem.Visible"]
+        let source = Dictionary(uniqueKeysWithValues: keys.map { ($0, true as Any) })
+        let result = SettingsImportPlan.valuesToImport(source: source, allowedKeys: allowed, existingKeys: [])
+        #expect(Set(result.keys) == Set(keys))
+    }
+
     @Test func emptySourceImportsNothing() {
         #expect(SettingsImportPlan.valuesToImport(source: [:], allowedKeys: allowed, existingKeys: []).isEmpty)
     }

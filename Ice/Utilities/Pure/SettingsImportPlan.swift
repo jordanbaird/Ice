@@ -13,6 +13,12 @@ enum SettingsImportPlan {
     /// the menu bar, so the arrangement survives the switch.
     static let controlItemPositionPrefix = "NSStatusItem Preferred Position Ice.ControlItem."
 
+    /// Returns whether the key stores the position or visibility of an
+    /// Ice control item (`NSStatusItem Preferred Position|Visible|VisibleCC Ice.ControlItem.*`).
+    static func isControlItemKey(_ key: String) -> Bool {
+        key.hasPrefix("NSStatusItem ") && key.contains(" Ice.ControlItem.")
+    }
+
     /// Returns the values to import.
     ///
     /// - Parameters:
@@ -26,7 +32,7 @@ enum SettingsImportPlan {
         existingKeys: Set<String>
     ) -> [String: Any] {
         source.filter { key, _ in
-            let isKnown = allowedKeys.contains(key) || key.hasPrefix(controlItemPositionPrefix)
+            let isKnown = allowedKeys.contains(key) || isControlItemKey(key)
             return isKnown && !existingKeys.contains(key)
         }
     }

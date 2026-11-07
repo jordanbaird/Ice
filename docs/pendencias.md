@@ -44,3 +44,6 @@ Veredito do Lupa: PR #1 (3ff4ef9) pode seguir para **uso pessoal**, **não** est
 ## Notch (Lupa, PR #7 eb4e313)
 - Teste de integração show/hide/seção com o handler real (`HIDEventManager` + `MenuBarSection`).
 - Garantir por teste que a ação do notch já tratada não dispara os handlers seguintes que usam `bestScreen` (hoje: `handleNotchClick` devolve `true` e o monitor retorna antes; só por revisão).
+
+## Limpeza da API do notch (Lupa, PR #7 1eabfbc)
+- `HIDEventManager.swift:350` ainda lê `NSEvent.mouseLocation` para passar como `cursorLocation`, que o `NotchClickResolver.decide` ignora de propósito. Remover a leitura e o parâmetro da API de produção (os testes que simulam o cursor da entrega passariam a chamar `resolve(point:...)` direto ou um helper de teste).

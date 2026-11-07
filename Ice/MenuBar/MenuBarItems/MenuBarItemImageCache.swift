@@ -302,7 +302,7 @@ final class MenuBarItemImageCache: ObservableObject {
         }
 
         await MainActor.run { [newImages] in
-            images.merge(newImages) { old, new in new.isFallback ? old : new }
+            images = ImageMergePolicy.merge(old: images, new: newImages, isFallback: \.isFallback)
         }
     }
 

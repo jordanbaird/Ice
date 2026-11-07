@@ -7,21 +7,26 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0341030D2B66D6AF39494F8C /* SettingsImportPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66FB4E683CEBCB32D58AA398 /* SettingsImportPlanTests.swift */; };
 		175061912B1543DD003144CD /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 175061902B1543DD003144CD /* LaunchAtLogin */; };
 		1787C4272B16890B002F50DF /* AXSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 1787C4262B16890B002F50DF /* AXSwift */; };
 		17F71BB52B880B4500905CBA /* CompactSlider in Frameworks */ = {isa = PBXBuildFile; productRef = 17F71BB42B880B4500905CBA /* CompactSlider */; };
-		1CEE3174CEBC25B9C2E53679 /* SettingsImportPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE480BFB3D365791FFC848A5 /* SettingsImportPlan.swift */; };
-		445CA458839B4209D26DA6B5 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A63D371CB51EAD85ED64E81 /* Cocoa.framework */; };
-		5BDA5AC4F4005D93FD20B69A /* SettingsImportPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 256ECF1FC60123BD9A0B0D0C /* SettingsImportPlanTests.swift */; };
+		2065C1A366455DE27973BD9F /* ImageMergePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBFB1057E310061D2EF0432F /* ImageMergePolicyTests.swift */; };
+		3D25C60218ACFC631DB85C01 /* SettingsImportPlanTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C45D929BE26D221E17898DA1 /* SettingsImportPlanTests.swift */; };
+		5D36D5CB6E92D76DB3CAA70A /* XPCPeerPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA6647886393C4CD3E8877F /* XPCPeerPolicyTests.swift */; };
+		5E2BE3C4735A8E32B4BE76D6 /* SettingsImportPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5685DFF741D8614BD7D4AAEB /* SettingsImportPlan.swift */; };
 		7127A9FF2C4886D100D99DEF /* IfritStatic in Frameworks */ = {isa = PBXBuildFile; productRef = 7127A9FE2C4886D100D99DEF /* IfritStatic */; };
 		7168EE532E281CBC00FF9830 /* AXSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 7168EE522E281CBC00FF9830 /* AXSwift */; };
 		7188A68C2E27F9ED008F131D /* MenuBarItemService.xpc in Embed XPC Services */ = {isa = PBXBuildFile; fileRef = 7188A6832E27F9ED008F131D /* MenuBarItemService.xpc */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		71A065092E680C620087DB38 /* Semaphore in Frameworks */ = {isa = PBXBuildFile; productRef = 71A065082E680C620087DB38 /* Semaphore */; };
-		74815888193F722A61AF8F74 /* XPCPeerPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E01158CE23350A9415382E2 /* XPCPeerPolicy.swift */; };
-		754352B5F59B233756AAF457 /* XPCPeerPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96261975F431BD6B1B1DEECD /* XPCPeerPolicyTests.swift */; };
-		85AE51796EF6C053A260C04A /* XPCPeerPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A65B13A98BE24A665356287 /* XPCPeerPolicyTests.swift */; };
-		B0007F645D9F4B933043CB6D /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A63D371CB51EAD85ED64E81 /* Cocoa.framework */; };
-		BD4B357D4F8D1E0C51CDDD42 /* XPCPeerPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA5E76743108B73DB7B7918 /* XPCPeerPolicy.swift */; };
+		81317541762F718C9DA8CF4A /* XPCPeerPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F314BB402C4DB5C9B5BE04 /* XPCPeerPolicy.swift */; };
+		8ED1316E658339EB84AB7B1A /* ImageMergePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D96CDC1F9E00108F31E300D /* ImageMergePolicyTests.swift */; };
+		D5230BB9CCCD8ABA9932FCB2 /* XPCPeerPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A988BE734360C257748BCB5A /* XPCPeerPolicy.swift */; };
+		D8322E7320167809A618173A /* XPCPeerPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41DFDF7704D3F2AE3E04C4B7 /* XPCPeerPolicyTests.swift */; };
+		DA05959BAF9729F0290DB546 /* ImageMergePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 523E4746C92AE53D91027455 /* ImageMergePolicy.swift */; };
+		E823FEE95DEDA370108CB456 /* SettingsImportPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08EB82F1C38F57BA24BDC39D /* SettingsImportPlan.swift */; };
+		FA21073E3C9A43ACFFA69CD1 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A63D371CB51EAD85ED64E81 /* Cocoa.framework */; };
+		FB303D8B821717B0067B7B2F /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A63D371CB51EAD85ED64E81 /* Cocoa.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,17 +54,24 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		08EB82F1C38F57BA24BDC39D /* SettingsImportPlan.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsImportPlan.swift; path = Ice/Utilities/Pure/SettingsImportPlan.swift; sourceTree = "<group>"; };
 		0A63D371CB51EAD85ED64E81 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk/System/Library/Frameworks/Cocoa.framework; sourceTree = DEVELOPER_DIR; };
-		0FA5E76743108B73DB7B7918 /* XPCPeerPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = XPCPeerPolicy.swift; path = Shared/Utilities/XPCPeerPolicy.swift; sourceTree = "<group>"; };
-		256ECF1FC60123BD9A0B0D0C /* SettingsImportPlanTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsImportPlanTests.swift; sourceTree = "<group>"; };
-		3A65B13A98BE24A665356287 /* XPCPeerPolicyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = XPCPeerPolicyTests.swift; sourceTree = "<group>"; };
+		41DFDF7704D3F2AE3E04C4B7 /* XPCPeerPolicyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = XPCPeerPolicyTests.swift; sourceTree = "<group>"; };
+		523E4746C92AE53D91027455 /* ImageMergePolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ImageMergePolicy.swift; path = Ice/Utilities/Pure/ImageMergePolicy.swift; sourceTree = "<group>"; };
 		540692EA616DD04D1D4AA9FF /* TrincanoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrincanoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5685DFF741D8614BD7D4AAEB /* SettingsImportPlan.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsImportPlan.swift; path = Ice/Utilities/Pure/SettingsImportPlan.swift; sourceTree = "<group>"; };
+		66FB4E683CEBCB32D58AA398 /* SettingsImportPlanTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsImportPlanTests.swift; sourceTree = "<group>"; };
+		6EA6647886393C4CD3E8877F /* XPCPeerPolicyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = XPCPeerPolicyTests.swift; sourceTree = "<group>"; };
 		7166832A2A767E6A006ABF84 /* Trincano.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Trincano.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7188A6832E27F9ED008F131D /* MenuBarItemService.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = MenuBarItemService.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
-		96261975F431BD6B1B1DEECD /* XPCPeerPolicyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = XPCPeerPolicyTests.swift; sourceTree = "<group>"; };
-		9E01158CE23350A9415382E2 /* XPCPeerPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = XPCPeerPolicy.swift; path = Shared/Utilities/XPCPeerPolicy.swift; sourceTree = "<group>"; };
+		79F314BB402C4DB5C9B5BE04 /* XPCPeerPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = XPCPeerPolicy.swift; path = Shared/Utilities/XPCPeerPolicy.swift; sourceTree = "<group>"; };
+		7D96CDC1F9E00108F31E300D /* ImageMergePolicyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImageMergePolicyTests.swift; sourceTree = "<group>"; };
+		827E4E17B3A30B6F1C5FA6C6 /* TrincanoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrincanoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		93F6A1468259918197D41D00 /* TrincanoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrincanoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A988BE734360C257748BCB5A /* XPCPeerPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = XPCPeerPolicy.swift; path = Shared/Utilities/XPCPeerPolicy.swift; sourceTree = "<group>"; };
 		B8BBB6E4B4C45086FDD31A28 /* TrincanoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrincanoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		EE480BFB3D365791FFC848A5 /* SettingsImportPlan.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsImportPlan.swift; path = Ice/Utilities/Pure/SettingsImportPlan.swift; sourceTree = "<group>"; };
+		C45D929BE26D221E17898DA1 /* SettingsImportPlanTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsImportPlanTests.swift; sourceTree = "<group>"; };
+		FBFB1057E310061D2EF0432F /* ImageMergePolicyTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ImageMergePolicyTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -119,14 +131,6 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		140D18CEDD54DB62DE10094D /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				B0007F645D9F4B933043CB6D /* Cocoa.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		716683272A767E6A006ABF84 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -147,14 +151,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BE54734AA2075DFB3C69A523 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA21073E3C9A43ACFFA69CD1 /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		30679C072FE3718945FAF322 /* TrincanoTests */ = {
+		4E1D70622351EA1202652BFC /* TrincanoTests */ = {
 			isa = PBXGroup;
 			children = (
-				256ECF1FC60123BD9A0B0D0C /* SettingsImportPlanTests.swift */,
-				3A65B13A98BE24A665356287 /* XPCPeerPolicyTests.swift */,
+				FBFB1057E310061D2EF0432F /* ImageMergePolicyTests.swift */,
+				C45D929BE26D221E17898DA1 /* SettingsImportPlanTests.swift */,
+				41DFDF7704D3F2AE3E04C4B7 /* XPCPeerPolicyTests.swift */,
 			);
 			name = TrincanoTests;
 			path = TrincanoTests;
@@ -168,8 +181,8 @@
 				7188A6842E27F9ED008F131D /* MenuBarItemService */,
 				7166832B2A767E6A006ABF84 /* Products */,
 				A4243F7A8AB06916D1ED7CD4 /* Frameworks */,
-				9FB196C1358FDE2370CB98B2 /* Tests */,
-				FC51A022C38A23B441AF5BF3 /* TestedSources */,
+				7D202A4797DB0A2A0B700310 /* Tests */,
+				98D65B5A458E152B50931EB5 /* TestedSources */,
 			);
 			sourceTree = "<group>";
 		};
@@ -180,17 +193,30 @@
 				7188A6832E27F9ED008F131D /* MenuBarItemService.xpc */,
 				B8BBB6E4B4C45086FDD31A28 /* TrincanoTests.xctest */,
 				540692EA616DD04D1D4AA9FF /* TrincanoTests.xctest */,
+				827E4E17B3A30B6F1C5FA6C6 /* TrincanoTests.xctest */,
+				93F6A1468259918197D41D00 /* TrincanoTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		9FB196C1358FDE2370CB98B2 /* Tests */ = {
+		7D202A4797DB0A2A0B700310 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				30679C072FE3718945FAF322 /* TrincanoTests */,
+				4E1D70622351EA1202652BFC /* TrincanoTests */,
 			);
 			name = Tests;
 			path = Tests;
+			sourceTree = "<group>";
+		};
+		98D65B5A458E152B50931EB5 /* TestedSources */ = {
+			isa = PBXGroup;
+			children = (
+				79F314BB402C4DB5C9B5BE04 /* XPCPeerPolicy.swift */,
+				523E4746C92AE53D91027455 /* ImageMergePolicy.swift */,
+				5685DFF741D8614BD7D4AAEB /* SettingsImportPlan.swift */,
+			);
+			name = TestedSources;
+			path = .;
 			sourceTree = "<group>";
 		};
 		A4243F7A8AB06916D1ED7CD4 /* Frameworks */ = {
@@ -209,19 +235,26 @@
 			name = "OS X";
 			sourceTree = "<group>";
 		};
-		FC51A022C38A23B441AF5BF3 /* TestedSources */ = {
-			isa = PBXGroup;
-			children = (
-				0FA5E76743108B73DB7B7918 /* XPCPeerPolicy.swift */,
-				EE480BFB3D365791FFC848A5 /* SettingsImportPlan.swift */,
-			);
-			name = TestedSources;
-			path = .;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		48FCD7E5EC3F512C46C7315A /* TrincanoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8232533896D0D2051617CC78 /* Build configuration list for PBXNativeTarget "TrincanoTests" */;
+			buildPhases = (
+				E8ACB2E077DECED3F4EFFC98 /* Sources */,
+				BE54734AA2075DFB3C69A523 /* Frameworks */,
+				5836F851C5FED95CCCCCEA72 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = TrincanoTests;
+			productName = TrincanoTests;
+			productReference = 93F6A1468259918197D41D00 /* TrincanoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		716683292A767E6A006ABF84 /* Ice */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 716683392A767E6B006ABF84 /* Build configuration list for PBXNativeTarget "Ice" */;
@@ -277,23 +310,6 @@
 			productReference = 7188A6832E27F9ED008F131D /* MenuBarItemService.xpc */;
 			productType = "com.apple.product-type.xpc-service";
 		};
-		EABC95204044741B20ADF372 /* TrincanoTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 4E50E3000F99C068E7816F43 /* Build configuration list for PBXNativeTarget "TrincanoTests" */;
-			buildPhases = (
-				2E7532D48701BA5AE3817299 /* Sources */,
-				140D18CEDD54DB62DE10094D /* Frameworks */,
-				A3256012262CCF029227EA79 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = TrincanoTests;
-			productName = TrincanoTests;
-			productReference = 540692EA616DD04D1D4AA9FF /* TrincanoTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -334,12 +350,19 @@
 			targets = (
 				716683292A767E6A006ABF84 /* Ice */,
 				7188A6822E27F9ED008F131D /* MenuBarItemService */,
-				EABC95204044741B20ADF372 /* TrincanoTests */,
+				48FCD7E5EC3F512C46C7315A /* TrincanoTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		5836F851C5FED95CCCCCEA72 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		716683282A767E6A006ABF84 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -348,13 +371,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		7188A6812E27F9ED008F131D /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		A3256012262CCF029227EA79 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -386,17 +402,6 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		2E7532D48701BA5AE3817299 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				5BDA5AC4F4005D93FD20B69A /* SettingsImportPlanTests.swift in Sources */,
-				85AE51796EF6C053A260C04A /* XPCPeerPolicyTests.swift in Sources */,
-				BD4B357D4F8D1E0C51CDDD42 /* XPCPeerPolicy.swift in Sources */,
-				1CEE3174CEBC25B9C2E53679 /* SettingsImportPlan.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		716683262A767E6A006ABF84 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -411,6 +416,19 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E8ACB2E077DECED3F4EFFC98 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2065C1A366455DE27973BD9F /* ImageMergePolicyTests.swift in Sources */,
+				3D25C60218ACFC631DB85C01 /* SettingsImportPlanTests.swift in Sources */,
+				D8322E7320167809A618173A /* XPCPeerPolicyTests.swift in Sources */,
+				81317541762F718C9DA8CF4A /* XPCPeerPolicy.swift in Sources */,
+				DA05959BAF9729F0290DB546 /* ImageMergePolicy.swift in Sources */,
+				5E2BE3C4735A8E32B4BE76D6 /* SettingsImportPlan.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -422,36 +440,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		53D0C3F894EB3FBFEBAB3F77 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = br.com.pilutech.trincano.tests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		662BA89D7FECC7B0D244D2E0 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
-				DEVELOPMENT_TEAM = "";
-				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				PRODUCT_BUNDLE_IDENTIFIER = br.com.pilutech.trincano.tests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
 		716683372A767E6B006ABF84 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -696,7 +684,7 @@
 			};
 			name = Release;
 		};
-		86BE76B90F73A68D6F7E7229 /* Debug */ = {
+		847C2E365D7829F667BFED30 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
@@ -711,7 +699,37 @@
 			};
 			name = Debug;
 		};
-		9AD173B7C523E70E32A4D043 /* Release */ = {
+		96AF4A681455341F146A9DD9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = br.com.pilutech.trincano.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		CC21F391F7EEB3E7B00B4BC1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = br.com.pilutech.trincano.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		F6C33D0FB612140F51785716 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "-";
@@ -729,15 +747,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		4E50E3000F99C068E7816F43 /* Build configuration list for PBXNativeTarget "TrincanoTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				9AD173B7C523E70E32A4D043 /* Release */,
-				662BA89D7FECC7B0D244D2E0 /* Debug */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		716683252A767E6A006ABF84 /* Build configuration list for PBXProject "Ice" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -761,6 +770,15 @@
 			buildConfigurations = (
 				7188A68E2E27F9ED008F131D /* Debug */,
 				7188A68F2E27F9ED008F131D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8232533896D0D2051617CC78 /* Build configuration list for PBXNativeTarget "TrincanoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				96AF4A681455341F146A9DD9 /* Release */,
+				847C2E365D7829F667BFED30 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

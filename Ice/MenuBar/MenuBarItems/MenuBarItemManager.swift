@@ -107,19 +107,6 @@ final class MenuBarItemManager: ObservableObject {
 
 // MARK: - Item Cache
 
-// Estado compartilhado por uma operação de evento: o contador de repetições e
-// os taps mantidos vivos até o fim da operação.
-// @unchecked Sendable: os taps rodam no run loop principal, que é o único lugar
-// que muta `count`; `eventTaps` só recebe elementos dentro do closure de setup.
-private final class EventOperationState: @unchecked Sendable {
-    var count: Int
-    var eventTaps = [EventTap]()
-
-    init(count: Int) {
-        self.count = count
-    }
-}
-
 extension MenuBarItemManager {
     /// An actor that manages menu bar item cache operations.
     private final actor CacheActor {
@@ -715,7 +702,12 @@ extension MenuBarItemManager {
         let firstLocation = EventTap.Location.pid(pid)
         let secondLocation = EventTap.Location.sessionEventTap
 
-        let state = EventOperationState(count: count)
+        // The callbacks capture only the counter; the group owns the taps and is torn
+        // down on every exit path (success, error, timeout, cancellation), so there is
+        // no state -> taps -> callbacks -> state reference cycle.
+        let counter = EventCounter(count: count)
+        let tapGroup = EventTapGroup<EventTap> { $0.disable() }
+        defer { tapGroup.tearDown() }
 
         let timeoutTask = Task(timeout: timeout * count) {
             try await withCheckedThrowingContinuation { continuation in
@@ -736,7 +728,7 @@ extension MenuBarItemManager {
                     option: .defaultTap
                 ) { tap, rEvent in
                     if rEvent.matches(entryEvent, byIntegerFields: [.eventSourceUserData]) {
-                        state.count -= 1
+                        counter.count -= 1
                         event.post(to: secondLocation)
                         return nil
                     }
@@ -761,7 +753,7 @@ extension MenuBarItemManager {
                     guard rEvent.matches(event, byIntegerFields: CGEventField.menuBarItemEventFields) else {
                         return rEvent
                     }
-                    if state.count < 1 {
+                    if counter.count < 1 {
                         tap.disable()
                         exitEvent.post(to: firstLocation)
                     } else {
@@ -772,7 +764,7 @@ extension MenuBarItemManager {
                 }
 
                 // Keep the taps alive.
-                state.eventTaps.append(contentsOf: [eventTap1, eventTap2])
+                tapGroup.adopt([eventTap1, eventTap2])
 
                 Task {
                     await withTaskCancellationHandler {
@@ -832,7 +824,12 @@ extension MenuBarItemManager {
         let firstLocation = EventTap.Location.pid(pid)
         let secondLocation = EventTap.Location.sessionEventTap
 
-        let state = EventOperationState(count: count)
+        // The callbacks capture only the counter; the group owns the taps and is torn
+        // down on every exit path (success, error, timeout, cancellation), so there is
+        // no state -> taps -> callbacks -> state reference cycle.
+        let counter = EventCounter(count: count)
+        let tapGroup = EventTapGroup<EventTap> { $0.disable() }
+        defer { tapGroup.tearDown() }
 
         let timeoutTask = Task(timeout: timeout * count) {
             try await withCheckedThrowingContinuation { continuation in
@@ -853,7 +850,7 @@ extension MenuBarItemManager {
                     option: .defaultTap
                 ) { tap, rEvent in
                     if rEvent.matches(entryEvent, byIntegerFields: [.eventSourceUserData]) {
-                        state.count -= 1
+                        counter.count -= 1
                         event.post(to: secondLocation)
                         return nil
                     }
@@ -878,7 +875,7 @@ extension MenuBarItemManager {
                     guard rEvent.matches(event, byIntegerFields: CGEventField.menuBarItemEventFields) else {
                         return rEvent
                     }
-                    if state.count < 1 {
+                    if counter.count < 1 {
                         tap.disable()
                     }
                     event.post(to: firstLocation)
@@ -899,7 +896,7 @@ extension MenuBarItemManager {
                     guard rEvent.matches(event, byIntegerFields: CGEventField.menuBarItemEventFields) else {
                         return rEvent
                     }
-                    if state.count < 1 {
+                    if counter.count < 1 {
                         tap.disable()
                         exitEvent.post(to: firstLocation)
                     } else {
@@ -910,7 +907,7 @@ extension MenuBarItemManager {
                 }
 
                 // Keep the taps alive.
-                state.eventTaps.append(contentsOf: [eventTap1, eventTap2, eventTap3])
+                tapGroup.adopt([eventTap1, eventTap2, eventTap3])
 
                 Task {
                     await withTaskCancellationHandler {

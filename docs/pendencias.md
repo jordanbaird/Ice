@@ -62,3 +62,7 @@ Veredito do Lupa: PR #1 (3ff4ef9) pode seguir para **uso pessoal**, **não** est
 ## Fase 6 (Lupa, PR #9, depois do merge)
 - Teste do `DurationText.interfaceLocale` com o idioma do app diferente da região do sistema (por exemplo, app em pt-BR com região en_US, e o inverso): hoje só o formatador é testado com locales explícitos, não a escolha do locale da interface a partir de `Bundle.main.preferredLocalizations`.
 - Texto antigo do PR #9 e de docs: "papel botão" no editor de layout (hoje o item é anunciado como imagem) e "177 chaves" (o catálogo tem mais chaves depois das correções). `docs/fase-6-acabamento.md` foi atualizado; a descrição do PR #9 no GitHub, não (já mergeado).
+
+## Fase 7 (Lupa, PR #12)
+- Teste que detecte mudança de executor/thread da captura de imagens (`captureImages` deve continuar fora da main) e do `Timer` do rehide (deve rodar na main, onde há `MainActor.assumeIsolated`) se as flags do Swift mudarem (por exemplo `NonisolatedNonsendingByDefault`). Hoje isso só é garantido por revisão e pelos signposts (`imageCache.update` aparece como "fora da main").
+- `AXHelpers.queue` é concorrente e não serializa por si: a invariante (só consultas AX de leitura, thread-safe) está documentada no código; se surgir escrita AX, trocar por fila serial.

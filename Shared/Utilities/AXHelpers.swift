@@ -7,6 +7,13 @@ import AXSwift
 import Cocoa
 
 enum AXHelpers {
+    /// Invariant: ``queue`` is *concurrent* and does not serialize anything by
+    /// itself. It only moves the (potentially slow) Accessibility calls off the
+    /// caller's thread. Everything run on it must be a thread-safe, read-only AX
+    /// query (hit-testing, attribute reads, trust checks); nothing here mutates
+    /// shared state. Don't add AX writes or non-thread-safe state to it without
+    /// making it serial.
+    ///
     /// The system-wide element, used only from within ``queue``. (AXSwift's own
     /// `systemWideElement` global is mutable shared state; this is our own.)
     private nonisolated(unsafe) static let systemWide = AXUIElementCreateSystemWide()

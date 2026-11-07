@@ -40,7 +40,7 @@ Mesma janela de uptime (9–14 min), mesmas opções e timers (nenhum timer novo
 | Usos da Barra (`iceBar.show`) / `section.show` | 0 / 0 | 12 / 8 |
 | Capturas (`capture.windows`) / `imageCache.update` | 0 / 0 | 87 / 15 |
 
-Leitura honesta: na janela "depois" o Paulo abriu a Barra 12 vezes (cada uma com captura de imagens), o que acorda o processo; na janela "antes" não houve nenhum uso. Os dois números de wakeups **não** isolam o custo ocioso e eu não afirmo regressão nem ausência. O que se pode afirmar: a fase 5 **não adiciona timers** (o `DisplayTopologyMonitor` só reage a `didChangeScreenParametersNotification`), e o poll de 5 s tem o mesmo cadeiamento (60 a 72 por 5 min, varia com troca de apps). Para fechar a pendência é preciso uma janela sem uso nos dois builds (o `measure-idle.sh` com o Mac parado).
+Leitura honesta: na janela "depois" o Paulo abriu a Barra 12 vezes (cada uma com captura de imagens), o que acorda o processo; na janela "antes" não houve nenhum uso. Os dois números de wakeups **não** isolam o custo ocioso e eu não afirmo regressão nem ausência. O que se pode afirmar: a fase 5 **não adiciona timers** (o `DisplayTopologyMonitor` só reage a `didChangeScreenParametersNotification`), e o poll de 5 s tem o mesmo ritmo (60 a 72 por 5 min, varia com troca de apps). Para fechar a pendência é preciso uma janela sem uso nos dois builds (o `measure-idle.sh` com o Mac parado).
 
 ### Memória
 Footprint 68 MB (pico 166 MB) e RSS 74 MB aos 14 min **depois de 12 usos da Barra e 87 capturas**; ocioso a 4 min o build desta família fica em 56–59 MB. Sem regressão ociosa conhecida; a alta é uso (cache de imagens).

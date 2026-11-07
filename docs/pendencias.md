@@ -25,3 +25,6 @@ Veredito do Lupa: PR #1 (3ff4ef9) pode seguir para **uso pessoal**, **não** est
 ## Limpeza
 - Remover `SUEnableAutomaticChecks` do `Ice/Resources/Info.plist`.
 - Remover o Sparkle do `Acknowledgements.rtf` (e do `.pdf`).
+
+## Projeto Xcode
+- Limpar referências órfãs dos alvos de teste geradas no `project.pbxproj` por `scripts/add-test-target.rb` (o script recria o alvo e deixa grupos/refs antigas; sugestão do Lupa no PR #4).

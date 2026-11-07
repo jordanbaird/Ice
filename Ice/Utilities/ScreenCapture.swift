@@ -79,6 +79,12 @@ enum ScreenCapture {
     ///     Pass `nil` to capture the minimum rectangle that encloses the windows.
     ///   - option: Options that specify which parts of the windows are captured.
     static func captureWindows(with windowIDs: [CGWindowID], screenBounds: CGRect? = nil, option: CGWindowImageOption = []) -> CGImage? {
+        Signposts.measure("capture.windows") {
+            performCaptureWindows(with: windowIDs, screenBounds: screenBounds, option: option)
+        }
+    }
+
+    private static func performCaptureWindows(with windowIDs: [CGWindowID], screenBounds: CGRect?, option: CGWindowImageOption) -> CGImage? {
         if let array = Bridging.createCGWindowArray(with: windowIDs) {
             let bounds = screenBounds ?? .null
             // ScreenCaptureKit doesn't support capturing images of offscreen menu bar

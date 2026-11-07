@@ -358,6 +358,10 @@ extension MenuBarItemManager {
     /// the hidden and always-hidden sections are correctly ordered,
     /// arranging them into valid positions if needed.
     func cacheItemsRegardless(_ currentItemWindowIDs: [CGWindowID]? = nil) async {
+        await Signposts.measure("cacheItems") { await performCacheItemsRegardless(currentItemWindowIDs) }
+    }
+
+    private func performCacheItemsRegardless(_ currentItemWindowIDs: [CGWindowID]?) async {
         await cacheActor.runCacheTask { [weak self] in
             guard let self else {
                 return
@@ -393,7 +397,10 @@ extension MenuBarItemManager {
     /// the hidden and always-hidden sections are correctly ordered,
     /// arranging them into valid positions if needed.
     func cacheItemsIfNeeded() async {
-        let itemWindowIDs = Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace])
+        Signposts.event("poll.itemWindowList")
+        let itemWindowIDs = Signposts.measure("poll.windowList") {
+            Bridging.getMenuBarWindowList(option: [.itemsOnly, .activeSpace])
+        }
         let hasChanged = await cacheActor.cachedItemWindowIDs != itemWindowIDs
         let isRetryDue = pendingPIDs.isRetryDue(among: itemWindowIDs, now: ProcessInfo.processInfo.systemUptime)
         if hasChanged || isRetryDue {

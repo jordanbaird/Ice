@@ -48,16 +48,18 @@ final class HIDEventManager: ObservableObject {
         guard let self, isEnabled, let appState, let screen = bestScreen(appState: appState) else {
             return event
         }
-        switch event.type {
-        case .leftMouseDown:
-            handleShowOnClick(appState: appState, screen: screen)
-            handleSmartRehide(with: event, appState: appState, screen: screen)
-        case .rightMouseDown:
-            handleSecondaryContextMenu(appState: appState, screen: screen)
-        default:
-            return event
+        Signposts.measure("hid.mouseDown") {
+            switch event.type {
+            case .leftMouseDown:
+                self.handleShowOnClick(appState: appState, screen: screen)
+                self.handleSmartRehide(with: event, appState: appState, screen: screen)
+            case .rightMouseDown:
+                self.handleSecondaryContextMenu(appState: appState, screen: screen)
+            default:
+                return
+            }
+            self.handlePreventShowOnHover(with: event, appState: appState, screen: screen)
         }
-        handlePreventShowOnHover(with: event, appState: appState, screen: screen)
         return event
     }
 
@@ -90,7 +92,9 @@ final class HIDEventManager: ObservableObject {
         option: .listenOnly
     ) { [weak self] _, event in
         if let self, isEnabled, let appState, let screen = bestScreen(appState: appState) {
-            handleShowOnHover(appState: appState, screen: screen)
+            Signposts.measure("hid.mouseMoved") {
+                self.handleShowOnHover(appState: appState, screen: screen)
+            }
         }
         return event
     }

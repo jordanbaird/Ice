@@ -269,6 +269,10 @@ final class MenuBarItemImageCache: ObservableObject {
     /// Updates the cache for the given sections, without checking whether
     /// caching is necessary.
     func updateCacheWithoutChecks(sections: [MenuBarSection.Name]) async {
+        await Signposts.measure("imageCache.update") { await performUpdateCacheWithoutChecks(sections: sections) }
+    }
+
+    private func performUpdateCacheWithoutChecks(sections: [MenuBarSection.Name]) async {
         guard
             let appState,
             await appState.hasPermission(.screenRecording)

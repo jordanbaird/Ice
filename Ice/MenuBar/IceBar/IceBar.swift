@@ -159,6 +159,10 @@ final class IceBarPanel: NSPanel {
     /// Shows the panel on the given screen, displaying the given
     /// menu bar section.
     func show(section: MenuBarSection.Name, on screen: NSScreen) async {
+        await Signposts.measure("iceBar.show") { await performShow(section: section, on: screen) }
+    }
+
+    private func performShow(section: MenuBarSection.Name, on screen: NSScreen) async {
         guard let appState else {
             return
         }

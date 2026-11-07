@@ -56,4 +56,27 @@ enum NotchClickResolver {
             point.y >= frame.minY && point.y <= frame.maxY
         }
     }
+
+    /// Decides from a mouse-down delivery.
+    ///
+    /// - Parameters:
+    ///   - eventLocation: Where the mouse-down happened (the event's own
+    ///     location), or `nil` if the event has none.
+    ///   - cursorLocation: Where the cursor is when the event is delivered. It
+    ///     is deliberately **not** used: a delayed event would be judged by
+    ///     where the cursor is now instead of where the click happened. Without
+    ///     an event location the notch action is ignored.
+    static func decide(
+        eventLocation: CGPoint?,
+        cursorLocation: CGPoint,
+        screens: [Screen],
+        isEnabled: Bool,
+        isLeftButton: Bool
+    ) -> Decision {
+        _ = cursorLocation
+        guard let eventLocation else {
+            return .none
+        }
+        return resolve(point: eventLocation, screens: screens, isEnabled: isEnabled, isLeftButton: isLeftButton)
+    }
 }

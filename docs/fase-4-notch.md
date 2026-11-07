@@ -26,6 +26,9 @@ Vermelho (antes da implementação; `xcodebuild test` não compilava): `cannot f
 2. **Vertical** (`NotchOverflowResolver`, novo `menuBarHeight`): o item precisa cruzar a faixa da barra do display-alvo em coordenadas CG (`CGDisplayBounds`, altura = altura do notch); monitores empilhados dividem o mesmo intervalo x. Testes: externo acima e notebook abaixo com o mesmo x (só o item do notebook), e item abaixo da faixa ignorado.
 3. **Revalidação na hora de mostrar** (`NotchBarSession`): a decisão usa larguras e contagem **medidas agora** (`liveItemWidths`, `notchObscuredItems`) a cada `show()`, para a mesma tela da Barra, e fica fixa até o `hide()` (sem virar no meio do ciclo). Testes: IDs constantes com largura mudando, transição inline → Barra → inline, decisão fixa sem nova medição, itens já obscurecidos, tela sem notch.
 
+### 2ª rodada: posição do clique
+O ponto agora é o do **próprio evento** (`event.cgEvent?.unflippedLocation`, coordenadas globais compatíveis com AppKit), não `NSEvent.mouseLocation` (cursor na entrega). Sem `CGEvent`, só a ação do notch é ignorada; nunca volta ao cursor atual. `handleNotchClick` devolve `true` quando tratou o clique e o monitor retorna antes dos outros handlers (que usam `bestScreen`). Vermelho **comportamental** (contra uma `decide` que usava o cursor, como a implementação anterior), 4 falhas de asserção: clique fora/cursor depois dentro (abria), clique dentro/cursor depois fora (perdia), foco no externo com o cursor já no monitor de cima (perdia) e evento sem posição com o cursor no notch (abria). Verde depois: clique direito, foco no externo com notebook deslocado e `CGEvent` nil também cobertos.
+
 ### Pendência mantida (sem afirmar causa): wakeups
 Comparação pareada, com as mesmas opções e timers, e contagem de recaches e consultas por tela (signposts já existem: `cacheItems`, `poll.windowList`).
 

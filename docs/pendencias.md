@@ -40,3 +40,7 @@ Veredito do Lupa: PR #1 (3ff4ef9) pode seguir para **uso pessoal**, **não** est
 
 ## Wakeups (fase 4, Lupa PR #7)
 - Comparação pareada (mesmo build base/depois, mesmas opções e timers) e contagem de recaches/consultas por tela com os signposts; só então decidir sobre os timers de 5 s (poll e `IceBarColorManager`). Causa não afirmada.
+
+## Notch (Lupa, PR #7 eb4e313)
+- Teste de integração show/hide/seção com o handler real (`HIDEventManager` + `MenuBarSection`).
+- Garantir por teste que a ação do notch já tratada não dispara os handlers seguintes que usam `bestScreen` (hoje: `handleNotchClick` devolve `true` e o monitor retorna antes; só por revisão).

@@ -27,7 +27,11 @@ enum Signposts {
 
     /// Measures an asynchronous operation.
     @discardableResult
-    static func measure<T>(_ name: StaticString, _ body: () async throws -> T) async rethrows -> T {
+    static func measure<T>(
+        _ name: StaticString,
+        isolation: isolated (any Actor)? = #isolation,
+        _ body: () async throws -> T
+    ) async rethrows -> T {
         let state = signposter.beginInterval(name, id: signposter.makeSignpostID())
         defer { signposter.endInterval(name, state) }
         return try await body()

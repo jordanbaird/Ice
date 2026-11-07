@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import os
 import Testing
 
 struct BackgroundCaptureCacheTests {
@@ -12,7 +13,17 @@ struct BackgroundCaptureCacheTests {
     /// `deliver` ends the *result* (UI keeps the previous value); `finish`
     /// ends the *physical work*. A provider that ignores cancellation delivers
     /// a timeout result long before it finishes.
-    private final class ManualProvider {
+    /// A clock the test advances by hand.
+    private final class ManualClock: Sendable {
+        private let storage = OSAllocatedUnfairLock(initialState: TimeInterval(0))
+        var now: TimeInterval {
+            get { storage.withLock { $0 } }
+            set { storage.withLock { $0 = newValue } }
+        }
+    }
+
+    // @unchecked Sendable: each test drives its provider from a single thread.
+    private final class ManualProvider: @unchecked Sendable {
         struct Started {
             let key: Int
             let operation: BackgroundCaptureOperation<String>
@@ -34,7 +45,7 @@ struct BackgroundCaptureCacheTests {
     private func make(
         provider: ManualProvider,
         maxInFlight: Int = 1,
-        clock: @escaping () -> TimeInterval = { 0 }
+        clock: @escaping @Sendable () -> TimeInterval = { 0 }
     ) -> BackgroundCaptureCache<Int, String> {
         BackgroundCaptureCache(maxInFlight: maxInFlight, maxAge: 1, now: clock, start: provider.start)
     }
@@ -57,12 +68,12 @@ struct BackgroundCaptureCacheTests {
     }
 
     @Test func previousValueIsKeptWhileRefreshing() {
-        var now: TimeInterval = 0
+        let time = ManualClock()
         let provider = ManualProvider()
-        let cache = make(provider: provider, clock: { now })
+        let cache = make(provider: provider, clock: { time.now })
         _ = cache.value(for: 1)
         provider.starts[0].complete("old")
-        now = 5                                    // stale: refresh starts, old value still served
+        time.now = 5                                    // stale: refresh starts, old value still served
         #expect(cache.value(for: 1) == "old")
         #expect(provider.starts.count == 2)
         #expect(cache.value(for: 1) == "old")
@@ -95,31 +106,31 @@ struct BackgroundCaptureCacheTests {
     }
 
     @Test func failedCaptureLeavesPreviousValueAndAllowsRetry() {
-        var now: TimeInterval = 0
+        let time = ManualClock()
         let provider = ManualProvider()
-        let cache = make(provider: provider, clock: { now })
+        let cache = make(provider: provider, clock: { time.now })
         _ = cache.value(for: 1)
         provider.starts[0].complete("ok")
-        now = 5
+        time.now = 5
         _ = cache.value(for: 1)
         provider.starts[1].complete(nil)           // capture failed
         #expect(cache.value(for: 1) == "ok")
         #expect(provider.starts.count == 2)        // cooling down: no retry storm
-        now = 7
+        time.now = 7
         #expect(cache.value(for: 1) == "ok")
         #expect(provider.starts.count == 3)        // retried after maxAge
     }
 
     @Test func expiredOperationsKeepTheirSlotUntilTheyReallyFinish() {
-        var now: TimeInterval = 0
+        let time = ManualClock()
         let provider = ManualProvider()
-        let cache = make(provider: provider, maxInFlight: 2, clock: { now })
+        let cache = make(provider: provider, maxInFlight: 2, clock: { time.now })
         _ = cache.value(for: 1)
         _ = cache.value(for: 2)
         #expect(provider.starts.count == 2)
         provider.starts[0].expire()          // timeout: result gone, work still running
         provider.starts[1].expire()
-        now = 10                              // well past the cooldown
+        time.now = 10                              // well past the cooldown
         for key in 1...6 { _ = cache.value(for: key) }
         #expect(provider.starts.count == 2)  // no third operation while orphans live
         provider.starts[0].finish()           // real end of the first one
@@ -128,12 +139,12 @@ struct BackgroundCaptureCacheTests {
     }
 
     @Test func sameKeyIsNotRestartedWhileItsOrphanLives() {
-        var now: TimeInterval = 0
+        let time = ManualClock()
         let provider = ManualProvider()
-        let cache = make(provider: provider, maxInFlight: 4, clock: { now })
+        let cache = make(provider: provider, maxInFlight: 4, clock: { time.now })
         _ = cache.value(for: 1)
         provider.starts[0].expire()
-        now = 10
+        time.now = 10
         _ = cache.value(for: 1)
         #expect(provider.starts.count == 1)
         provider.starts[0].finish()
@@ -151,18 +162,18 @@ struct BackgroundCaptureCacheTests {
     }
 
     @Test func staleCooldownsAreCleaned() {
-        var now: TimeInterval = 0
+        let time = ManualClock()
         let provider = ManualProvider()
         let cache = BackgroundCaptureCache<Int, String>(
-            maxInFlight: 100, maxAge: 1, maxEntries: 3, now: { now }, start: provider.start
+            maxInFlight: 100, maxAge: 1, maxEntries: 3, now: { time.now }, start: provider.start
         )
         for key in 0..<50 {
             _ = cache.value(for: key)
             provider.starts[provider.starts.count - 1].complete(nil)   // fail: cooldown recorded
-            now += 0.1
+            time.now += 0.1
         }
         #expect(cache.cooldownCount <= 11)       // only cooldowns younger than maxAge are kept
-        now += 5
+        time.now += 5
         _ = cache.value(for: 999)
         provider.starts[provider.starts.count - 1].complete(nil)
         #expect(cache.cooldownCount == 1)

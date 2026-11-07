@@ -64,7 +64,7 @@ extension UserNotificationManager: @preconcurrency UNUserNotificationCenterDeleg
             completionHandler()
         }
 
-        guard let appState else {
+        guard appState != nil else {
             return
         }
 

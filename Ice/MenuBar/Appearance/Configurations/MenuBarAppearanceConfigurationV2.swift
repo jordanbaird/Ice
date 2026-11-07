@@ -23,6 +23,7 @@ struct MenuBarAppearanceConfigurationV2: Hashable {
         }
     }
 
+    @MainActor
     var current: MenuBarAppearancePartialConfiguration {
         if isDynamic {
             switch SystemAppearance.current {

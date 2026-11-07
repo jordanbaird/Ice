@@ -7,6 +7,7 @@ Fork do [Ice](https://github.com/jordanbaird/Ice) (jordanbaird, GPL-3.0) com sup
 - [docs/decisoes.md](docs/decisoes.md): decisões da fase 1 (identidade, Sparkle removido, créditos GPL, importação do Ice, testes).
 - [docs/assinatura.md](docs/assinatura.md): certificado local, troca pelo Developer ID, checagem do XPC.
 - [docs/roteiro-teste.md](docs/roteiro-teste.md): roteiro manual da fase 1.
+- [docs/pendencias.md](docs/pendencias.md): pendências da revisão do Lupa (XPC, chave local, importação, limpeza).
 
 ## Comandos
 - `scripts/check.sh`: swiftlint (`--strict`) + testes + build Release. Tudo local (CI do GitHub sem minutos).

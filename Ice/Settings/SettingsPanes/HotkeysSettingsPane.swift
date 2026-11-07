@@ -37,7 +37,7 @@ struct HotkeysSettingsPane: View {
                 case .searchMenuBarItems:
                     Text("Search menu bar items")
                 case .enableIceBar:
-                    Text("Enable the Ice Bar")
+                    Text("Enable the Trincano Bar")
                 case .toggleApplicationMenus:
                     Text("Toggle application menus")
                 }

@@ -52,7 +52,7 @@ struct PermissionsView: View {
             if let nsImage = NSImage(named: NSImage.applicationIconName) {
                 Image(nsImage: nsImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
                     .frame(width: 85, height: 85)
             }
         }
@@ -62,7 +62,7 @@ struct PermissionsView: View {
     private var explanationBox: some View {
         IceSection {
             VStack {
-                Text("Ice needs your permission to manage the menu bar.")
+                Text("Trincano needs your permission to manage the menu bar.")
                     .fontWeight(.medium)
                 Text("Absolutely no personal information is collected or stored.")
                     .bold()
@@ -135,7 +135,7 @@ struct PermissionsView: View {
                     .underline()
 
                 VStack(spacing: 2) {
-                    Text("Ice needs this to:")
+                    Text("Trincano needs this to:")
                         .font(.title3)
                         .bold()
 
@@ -167,7 +167,7 @@ struct PermissionsView: View {
                 .allowsHitTesting(!permission.hasPermission)
 
                 if !permission.isRequired {
-                    CalloutBox("Ice can work in a limited mode without this permission.") {
+                    CalloutBox("Trincano can work in a limited mode without this permission.") {
                         Image(systemName: "checkmark.shield")
                             .foregroundStyle(.green)
                     }

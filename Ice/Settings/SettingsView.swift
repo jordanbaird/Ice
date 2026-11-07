@@ -74,7 +74,7 @@ struct SettingsView: View {
                     sidebarItem(for: identifier)
                 }
             } header: {
-                Text("Ice")
+                Text("Trincano")
                     .font(.system(size: sidebarFontSize * 2.67, weight: .medium))
                     .foregroundStyle(sidebarTextStyle)
                     .padding(.leading, sidebarPadding)
@@ -140,7 +140,7 @@ struct SettingsView: View {
         case .advanced:
             AdvancedSettingsPane(settings: appState.settings.advanced)
         case .about:
-            AboutSettingsPane(updatesManager: appState.updatesManager)
+            AboutSettingsPane()
         }
     }
 }

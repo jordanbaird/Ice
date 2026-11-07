@@ -23,7 +23,7 @@ enum IceBarLocation: Int, CaseIterable, Identifiable {
         switch self {
         case .dynamic: "Dynamic"
         case .mousePointer: "Mouse pointer"
-        case .iceIcon: "Ice icon"
+        case .iceIcon: "Trincano icon"
         }
     }
 }

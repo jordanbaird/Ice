@@ -7,7 +7,6 @@ import SwiftUI
 
 struct AboutSettingsPane: View {
     @EnvironmentObject var appState: AppState
-    @ObservedObject var updatesManager: UpdatesManager
     @Environment(\.openURL) private var openURL
 
     private var acknowledgementsURL: URL {
@@ -16,25 +15,19 @@ struct AboutSettingsPane: View {
     }
 
     private var contributeURL: URL {
-        // swiftlint:disable:next force_unwrapping
+        URL(string: "https://github.com/PiluVitu/trincano")!
+    }
+
+    private var upstreamURL: URL {
         URL(string: "https://github.com/jordanbaird/Ice")!
+    }
+
+    private var licenseURL: URL {
+        contributeURL.appendingPathComponent("blob/main/LICENSE")
     }
 
     private var issuesURL: URL {
         contributeURL.appendingPathComponent("issues")
-    }
-
-    private var donateURL: URL {
-        // swiftlint:disable:next force_unwrapping
-        URL(string: "https://icemenubar.app/Donate")!
-    }
-
-    private var lastUpdateCheckString: String {
-        if let date = updatesManager.lastUpdateCheckDate {
-            date.formatted(date: .abbreviated, time: .standard)
-        } else {
-            "Never"
-        }
     }
 
     var body: some View {
@@ -63,7 +56,7 @@ struct AboutSettingsPane: View {
             Spacer(minLength: 0)
                 .frame(maxHeight: 20)
 
-            updatesSection
+            creditsSection
                 .layoutPriority(1)
         }
         .padding(.top, 5)
@@ -80,12 +73,12 @@ struct AboutSettingsPane: View {
                 if let nsImage = NSImage(named: NSImage.applicationIconName) {
                     Image(nsImage: nsImage)
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
+                        .scaledToFit()
                         .frame(width: 230)
                 }
 
                 VStack(alignment: .leading) {
-                    Text("Ice")
+                    Text("Trincano")
                         .font(.system(size: 80))
                         .foregroundStyle(.primary)
 
@@ -103,63 +96,39 @@ struct AboutSettingsPane: View {
     }
 
     @ViewBuilder
-    private var updatesSection: some View {
-        IceSection(options: .hasDividers) {
-            automaticallyCheckForUpdates
-            automaticallyDownloadUpdates
-            if updatesManager.canCheckForUpdates {
-                checkForUpdates
+    private var creditsSection: some View {
+        IceSection(options: .plain) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Trincano is a modified version of Ice by Jordan Baird, released under the GNU General Public License v3.0. Modified by Paulo Victor T Silva (PILUTECH), 2026.")
+                Text("Everything stays on your Mac: Trincano has no telemetry and does not check for updates.")
+                    .foregroundStyle(.secondary)
             }
-        }
-        .frame(maxWidth: 600)
-    }
-
-    @ViewBuilder
-    private var automaticallyCheckForUpdates: some View {
-        Toggle(
-            "Automatically check for updates",
-            isOn: $updatesManager.automaticallyChecksForUpdates
-        )
-    }
-
-    @ViewBuilder
-    private var automaticallyDownloadUpdates: some View {
-        Toggle(
-            "Automatically download updates",
-            isOn: $updatesManager.automaticallyDownloadsUpdates
-        )
-    }
-
-    @ViewBuilder
-    private var checkForUpdates: some View {
-        HStack {
-            Button("Check for Updates") {
-                updatesManager.checkForUpdates()
-            }
-            Spacer()
-            Text("Last checked: \(lastUpdateCheckString)")
-                .font(.caption)
+            .font(.callout)
+            .frame(maxWidth: 600, alignment: .leading)
         }
     }
 
     @ViewBuilder
     private func bottomBar(containerShape: some InsettableShape) -> some View {
         HStack {
-            Button("Quit Ice") {
+            Button("Quit Trincano") {
                 NSApp.terminate(nil)
             }
             Spacer()
             Button("Acknowledgements") {
                 NSWorkspace.shared.open(acknowledgementsURL)
             }
-            Button("Contribute") {
+            Button("Original Ice") {
+                openURL(upstreamURL)
+            }
+            Button("License") {
+                openURL(licenseURL)
+            }
+            Button("Source Code") {
                 openURL(contributeURL)
             }
             Button("Report a Bug") {
                 openURL(issuesURL)
-            }
-            Button("Support Ice", systemImage: "heart.circle.fill") {
-                openURL(donateURL)
             }
         }
         .padding(8)

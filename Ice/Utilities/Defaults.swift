@@ -136,7 +136,7 @@ enum Defaults {
 }
 
 extension Defaults {
-    enum Key: String {
+    enum Key: String, CaseIterable {
         // MARK: General Settings
         case showIceIcon = "ShowIceIcon"
         case iceIcon = "IceIcon"

@@ -61,13 +61,29 @@ final class MenuBarSection {
     /// the user's choice, or, on a screen with a notch, the decision taken
     /// when the section was shown (see ``NotchBarSession``).
     private var useIceBar: Bool {
-        (appState?.settings.general.useIceBar ?? false) || notchSession.isUsingBar
+        guard let appState else {
+            return false
+        }
+        let profile = appState.settings.general.displayProfiles.mode(for: targetDisplayUUID)
+        return DisplayBarPolicy.useBar(global: appState.settings.general.useIceBar, mode: profile) ||
+            notchSession.isUsingBar
     }
+
+    /// A Boolean value that indicates whether the section is shown in the
+    /// Trincano Bar (per display profile or notch) rather than inline.
+    var isUsingIceBar: Bool {
+        useIceBar
+    }
+
+    /// The UUID of the display the current show-to-hide cycle targets (see
+    /// ``DisplayProfiles``), refreshed each time the section is shown.
+    private var targetDisplayUUID: String?
 
     /// Decides, from live measurements, whether the notch forces the Trincano
     /// Bar for this show. Uses the same screen the bar would appear on.
     private func beginNotchSession(appState: AppState) {
         let screen = screenForIceBar
+        targetDisplayUUID = screen?.displayUUIDString
         var sections: [MenuBarSection.Name] = [.visible, .hidden]
         if name == .alwaysHidden {
             sections.append(.alwaysHidden)
@@ -92,9 +108,10 @@ final class MenuBarSection {
         }
         if appState.activeSpace.isFullscreen {
             return NSScreen.screenWithMouse ?? NSScreen.main
-        } else {
-            return NSScreen.main
         }
+        // The screen with the active menu bar, not `NSScreen.main` (the screen
+        // with keyboard focus): with an external monitor they can differ.
+        return NSScreen.screenWithActiveMenuBar ?? NSScreen.main
     }
 
     /// A Boolean value that indicates whether the section is hidden.
@@ -303,11 +320,15 @@ final class MenuBarSection {
         rehideMonitor = EventMonitor.universal(for: .mouseMoved) { [weak self] event in
             guard
                 let self,
-                let screen = NSScreen.main
+                let screen = screenForIceBar
             else {
                 return event
             }
-            if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
+            if RehideGeometry.isPointerOutsideMenuBar(
+                pointer: NSEvent.mouseLocation,
+                screenFrame: screen.frame,
+                visibleFrame: screen.visibleFrame
+            ) {
                 if rehideTimer == nil {
                     rehideTimer = .scheduledTimer(
                         withTimeInterval: appState.settings.general.rehideInterval,
@@ -315,11 +336,15 @@ final class MenuBarSection {
                     ) { [weak self] _ in
                         guard
                             let self,
-                            let screen = NSScreen.main
+                            let screen = screenForIceBar
                         else {
                             return
                         }
-                        if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
+                        if RehideGeometry.isPointerOutsideMenuBar(
+                            pointer: NSEvent.mouseLocation,
+                            screenFrame: screen.frame,
+                            visibleFrame: screen.visibleFrame
+                        ) {
                             Task {
                                 await self.hide()
                             }

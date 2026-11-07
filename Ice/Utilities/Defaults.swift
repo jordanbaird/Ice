@@ -144,6 +144,7 @@ extension Defaults {
         case useIceBar = "UseIceBar"
         case iceBarLocation = "IceBarLocation"
         case autoBarOnNotch = "AutoBarOnNotch"
+        case displayProfiles = "DisplayProfiles"
         case showBarOnNotchClick = "ShowBarOnNotchClick"
         case showOnClick = "ShowOnClick"
         case showOnHover = "ShowOnHover"

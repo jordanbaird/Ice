@@ -515,6 +515,15 @@ extension NSScreen {
         return screens.first { $0.displayID == displayID }
     }
 
+    /// The stable UUID of the screen's display (survives reconnection, unlike
+    /// the numeric display ID).
+    var displayUUIDString: String? {
+        guard let uuid = CGDisplayCreateUUIDFromDisplayID(displayID)?.takeRetainedValue() else {
+            return nil
+        }
+        return CFUUIDCreateString(nil, uuid) as String?
+    }
+
     /// The display identifier of the screen.
     var displayID: CGDirectDisplayID {
         // Value and type are guaranteed here, so force casting is okay.

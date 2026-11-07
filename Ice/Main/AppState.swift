@@ -43,6 +43,9 @@ final class AppState: ObservableObject {
     /// Manager for input events received by the app.
     let hidEventManager = HIDEventManager()
 
+    /// Monitor for display connection and arrangement changes.
+    let displayTopologyMonitor = DisplayTopologyMonitor()
+
     /// Manager for user notifications.
     let userNotificationManager = UserNotificationManager()
 
@@ -68,6 +71,7 @@ final class AppState: ObservableObject {
         await itemManager.performSetup(with: self)
         imageCache.performSetup(with: self)
         userNotificationManager.performSetup(with: self)
+        displayTopologyMonitor.performSetup(with: self)
 
         configureCancellables()
     }

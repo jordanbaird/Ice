@@ -29,3 +29,7 @@ O plano das 7 fases foi concluído (a fase 7, Swift 6, entrou pelo PR #12); veja
 - XPC: nunca desligar a checagem de peer; ver `XPCPeerPolicy`.
 - Swift 6 com concorrência estrita (zero avisos); `@unchecked Sendable`/`nonisolated(unsafe)`/`assumeIsolated` só com a invariante comentada. Interface em PT-BR e en (String Catalog); texto novo entra no catálogo.
 - Bug: teste que falha primeiro. Lint limpo. Atualizar este arquivo e o `AGENTS.md` (idêntico) a cada fluxo novo.
+
+## Página do catálogo (PRODUTO.md)
+- `PRODUTO.md`, na raiz, alimenta a seção "Mais sobre" de https://pilutech.com.br/apps/trincano: o build do repo `pilutech-sites` o puxa da main. O texto foi aprovado pelo Paulo (proposta em `pilutech-sites`, `docs/propostas-produto-md/trincano.md`).
+- Mudar o `PRODUTO.md` é mudar texto público: nada interno, sem preço, sem promessa, e só o que o produto já faz. Se o produto mudar, proponha o texto novo antes, em vez de editar direto.

@@ -91,9 +91,17 @@ fi
 
 echo -e "${GREEN}Found app at: $APP_PATH${NC}"
 
-# Step 4: Re-sign (fixes dyld "different Team IDs" crash on Sparkle.framework)
-echo -e "${YELLOW}[4/5] Re-signing app (ad-hoc)...${NC}"
-codesign --force --deep --sign - "$APP_PATH"
+# Step 4: Re-sign (fixes dyld "different Team IDs" crash on Sparkle.framework).
+# Use the release certificate when it is in the keychain so local builds keep
+# their permissions across updates like CI builds (script/create-release-cert.sh).
+IDENTITY="${ICE_RELEASE_IDENTITY:-Ice Release}"
+if [ "$IDENTITY" != "-" ] && ! security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
+    echo -e "${YELLOW}No \"$IDENTITY\" cert in keychain — signing ad-hoc (macOS will ask for permissions again).${NC}"
+    echo -e "${YELLOW}Import it with: ./script/create-release-cert.sh --import (or security import ~/.ice-signing/ice-release.p12)${NC}"
+    IDENTITY="-"
+fi
+echo -e "${YELLOW}[4/5] Re-signing app ($IDENTITY)...${NC}"
+codesign --force --deep --preserve-metadata=entitlements --sign "$IDENTITY" "$APP_PATH"
 
 codesign --verify --deep --strict "$APP_PATH"
 if [ $? -ne 0 ]; then

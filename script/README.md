@@ -57,7 +57,17 @@ item-list fallback reads only icons drawn on the measured display.
 ./script/fix-permissions.sh [/path/to/Ice.app]
 ```
 
-Ad-hoc signed builds are pinned to a `cdhash` that changes with every build, so the grant recorded for the previous binary stops matching — System Settings shows the toggle on while the app is denied. See [Permissions](../README.md#permissions).
+Ad-hoc signed builds are pinned to a `cdhash` that changes with every build, so the grant recorded for the previous binary stops matching — System Settings shows the toggle on while the app is denied. Releases are signed with the stable `Ice Release` certificate instead, so this is only needed when switching from an ad-hoc build. See [Permissions](../README.md#permissions).
+
+## Release signing certificate (one time)
+
+```bash
+./script/create-release-cert.sh --import   # writes ~/.ice-signing/ice-release.p12 + password
+base64 -i ~/.ice-signing/ice-release.p12 | gh secret set MACOS_CERT_P12 -R cavaldos/Ice
+gh secret set MACOS_CERT_PASSWORD -R cavaldos/Ice < ~/.ice-signing/ice-release.password
+```
+
+`release.yml` refuses to publish without these secrets. Back up `~/.ice-signing` — a new certificate makes every user re-grant permissions once.
 
 ## Every release (2 commands)
 

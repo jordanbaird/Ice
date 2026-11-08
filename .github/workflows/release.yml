@@ -58,9 +58,51 @@ jobs:
             | sed -n 's/^ *BUILT_PRODUCTS_DIR *= *//p' | head -1)
           echo "APP_PATH=$BUILD_DIR/Ice.app" >> $GITHUB_ENV
           echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+      # Sign with one stable self-signed certificate (script/create-release-cert.sh).
+      # Ad-hoc signatures pin a cdhash that changes every build, so macOS
+      # dropped Accessibility / Screen Recording on each update. A certificate
+      # gives a designated requirement that stays the same across releases.
+      - name: Import signing certificate
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          if [ -z "$CERT_P12" ] || [ -z "$CERT_PASSWORD" ]; then
+            echo "::error::Set MACOS_CERT_P12 and MACOS_CERT_PASSWORD (see script/create-release-cert.sh). Ad-hoc releases make users re-grant permissions on every update."
+            exit 1
+          fi
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+          printf '%s' "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          # Self-signed, so it is listed as untrusted: select it by SHA-1 hash.
+          IDENTITY=$(security find-identity -p codesigning "$KEYCHAIN" | awk '/"Ice Release"/ {print $2; exit}')
+          if [ -z "$IDENTITY" ]; then
+            echo "::error::No \"Ice Release\" code signing identity in MACOS_CERT_P12"
+            exit 1
+          fi
+          echo "SIGN_KEYCHAIN=$KEYCHAIN" >> $GITHUB_ENV
+          echo "SIGN_IDENTITY=$IDENTITY" >> $GITHUB_ENV
+      - name: Sign app
+        run: |
+          # Re-sign everything (also fixes dyld "different Team IDs" on Sparkle.framework),
+          # keeping the entitlements Xcode embedded in each bundle.
+          codesign --force --deep --preserve-metadata=entitlements \
+            --keychain "$SIGN_KEYCHAIN" --sign "$SIGN_IDENTITY" "$APP_PATH"
+          codesign --verify --deep --strict "$APP_PATH"
+          REQ=$(codesign -d -r- "$APP_PATH" 2>&1)
+          echo "$REQ"
+          if ! grep -q 'certificate leaf' <<< "$REQ" || grep -q 'cdhash' <<< "$REQ"; then
+            echo "::error::Designated requirement is not tied to the certificate"
+            exit 1
+          fi
       - name: Zip and publish to GitHub Release
         run: |
-          codesign --force --deep --sign - "$APP_PATH"
           ditto -c -k --keepParent "$APP_PATH" Ice.zip
       - uses: softprops/action-gh-release@v2
         with:
@@ -108,9 +150,9 @@ jobs:
             ]
 
             caveats <<~EOS
-              Ice is ad-hoc signed. On first launch, right-click the app and choose Open.
-              After every update, re-grant Accessibility and Screen Recording in
-              System Settings > Privacy & Security (see https://github.com/cavaldos/Ice#permissions).
+              Ice is self-signed and not notarized. On first launch, right-click the app and choose Open.
+              Grant Accessibility and Screen Recording once in System Settings > Privacy & Security;
+              updates keep them (see https://github.com/cavaldos/Ice#permissions).
             EOS
           end
           EOF

@@ -46,7 +46,7 @@ brew install cavaldos/tap/ice
 
 1. Download `Ice.zip` from the [latest release](https://github.com/cavaldos/Ice/releases/latest).
 2. Unzip it and move `Ice.app` into `/Applications`.
-3. Clear the quarantine flag — releases are ad-hoc signed and not notarized, so Gatekeeper would otherwise block the first launch:
+3. Clear the quarantine flag — releases are self-signed and not notarized, so Gatekeeper would otherwise block the first launch:
 
 ```bash
 xattr -d com.apple.quarantine /Applications/Ice.app
@@ -55,6 +55,12 @@ xattr -d com.apple.quarantine /Applications/Ice.app
 Then open Ice and grant **Accessibility** and **Screen Recording** in System Settings (see [Permissions](#permissions)).
 
 For local development, see [script/README.md](script/README.md).
+
+## Permissions
+
+Ice needs **Accessibility** and **Screen Recording** (System Settings → Privacy & Security). Grant them once: every release is signed with the same certificate, so updates keep them.
+
+If you are updating from a release older than the switch to the stable certificate, grant them one last time. If a toggle shows on but Ice still asks, run `./script/fix-permissions.sh`, or remove Ice from both lists and add it again.
 
 ## Uninstall
 

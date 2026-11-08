@@ -44,10 +44,27 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
           echo "Building version $VERSION ($BUILD_NUMBER)"
+      # Sparkle's binary target is a GitHub release download. Anonymous
+      # downloads from runners get throttled / time out (504), so authenticate
+      # through ~/.netrc and retry. The build reuses the packages resolved here.
+      - name: Resolve Swift packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          umask 077
+          printf 'machine github.com login x-access-token password %s\n' "$GH_TOKEN" > ~/.netrc
+          for attempt in 1 2 3 4 5; do
+            xcodebuild -resolvePackageDependencies -project Ice.xcodeproj -scheme Ice \
+              -packageAuthorizationProvider netrc && exit 0
+            echo "Package resolution failed (attempt $attempt), retrying in $((attempt * 15))s..."
+            sleep $((attempt * 15))
+          done
+          exit 1
       - name: Build app
         run: |
           xcodebuild -project Ice.xcodeproj -scheme Ice -configuration Release \
             -destination 'platform=macOS,arch=arm64' \
+            -packageAuthorizationProvider netrc \
             CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
             MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             clean build
@@ -80,7 +97,16 @@ jobs:
           security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
           rm -f "$RUNNER_TEMP/cert.p12"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
-          # Self-signed, so it is listed as untrusted: select it by SHA-1 hash.
+          # codesign only finds identities in the user search list...
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          # ...and the runner's codesign rejects an untrusted self-signed identity
+          # ("no identity found"), so trust it for code signing on this runner only.
+          security find-certificate -c "Ice Release" -p "$KEYCHAIN" > "$RUNNER_TEMP/cert.pem"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign \
+            -k /Library/Keychains/System.keychain "$RUNNER_TEMP/cert.pem"
+          rm -f "$RUNNER_TEMP/cert.pem"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+          # Select it by SHA-1 hash, not name, so no other identity can match.
           IDENTITY=$(security find-identity -p codesigning "$KEYCHAIN" | awk '/"Ice Release"/ {print $2; exit}')
           if [ -z "$IDENTITY" ]; then
             echo "::error::No \"Ice Release\" code signing identity in MACOS_CERT_P12"
@@ -97,7 +123,7 @@ jobs:
           codesign --verify --deep --strict "$APP_PATH"
           REQ=$(codesign -d -r- "$APP_PATH" 2>&1)
           echo "$REQ"
-          if ! grep -q 'certificate leaf' <<< "$REQ" || grep -q 'cdhash' <<< "$REQ"; then
+          if ! grep -qE 'certificate (leaf|root)' <<< "$REQ" || grep -q 'cdhash' <<< "$REQ"; then
             echo "::error::Designated requirement is not tied to the certificate"
             exit 1
           fi
@@ -187,10 +213,17 @@ jobs:
       - name: Install Sparkle tools
         env:
           SPARKLE_VERSION: "2.9.6" # keep in sync with Package.resolved
+          GH_TOKEN: ${{ github.token }} # authenticated: anonymous downloads time out
         run: |
           mkdir -p "$RUNNER_TEMP/sparkle"
-          curl -fsSL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz" \
-            | tar -xJ -C "$RUNNER_TEMP/sparkle"
+          for attempt in 1 2 3 4 5; do
+            gh release download "$SPARKLE_VERSION" -R sparkle-project/Sparkle \
+              -p "Sparkle-$SPARKLE_VERSION.tar.xz" -O "$RUNNER_TEMP/sparkle.tar.xz" --clobber && break
+            [ "$attempt" = 5 ] && exit 1
+            echo "Download failed (attempt $attempt), retrying in $((attempt * 15))s..."
+            sleep $((attempt * 15))
+          done
+          tar -xJf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle"
           echo "$RUNNER_TEMP/sparkle/bin" >> $GITHUB_PATH
       - name: Publish appcast
         env:

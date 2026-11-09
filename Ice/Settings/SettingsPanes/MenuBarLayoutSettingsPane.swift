@@ -94,13 +94,53 @@ struct MenuBarLayoutSettingsPane: View {
             let section = appState.menuBarManager.section(withName: name),
             section.isEnabled
         {
-            VStack(alignment: .leading) {
-                Text(name.localized)
-                    .font(.headline)
-                    .padding(.leading, 8)
+            let summary = sectionSummary(for: name)
 
-                LayoutBar(imageCache: appState.imageCache, section: name)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(name.localized)
+                        .font(.headline)
+                    Spacer(minLength: 8)
+                    Text("\(summary.itemCount) items")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .accessibilityElement(children: .combine)
+
+                LayoutBar(imageCache: appState.imageCache, section: name, isEmpty: summary.isEmpty)
+
+                if summary.showsNotchNote {
+                    notchNote(count: summary.behindNotchCount)
+                }
             }
         }
+    }
+
+    /// The count and notch state of a section, for the header and the note.
+    private func sectionSummary(for name: MenuBarSection.Name) -> SectionCountSummary {
+        let itemCount = itemManager.itemCache.managedItems(for: name).count
+        guard name == .visible else {
+            return SectionCountSummary(itemCount: itemCount)
+        }
+        // Screens without a notch have nothing behind it: no note.
+        let behindNotch = NSScreen.screens
+            .first { $0.notchGeometry != nil }
+            .map { itemManager.notchObscuredItems(on: $0).count } ?? 0
+        return SectionCountSummary(itemCount: itemCount, behindNotchCount: behindNotch)
+    }
+
+    @ViewBuilder
+    private func notchNote(count: Int) -> some View {
+        HStack(spacing: 8) {
+            UnevenRoundedRectangle(bottomLeadingRadius: 4, bottomTrailingRadius: 4)
+                .frame(width: 18, height: 9)
+                .accessibilityHidden(true)
+            Text("\(count) items are behind the notch on this screen and appear in the Trincano Bar.")
+        }
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 8)
+        .accessibilityElement(children: .combine)
     }
 }

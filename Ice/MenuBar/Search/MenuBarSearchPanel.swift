@@ -202,6 +202,14 @@ private struct MenuBarSearchContentView: View {
         !itemManager.itemCache.managedItems.isEmpty
     }
 
+    private var summary: MenuBarSearchSummary {
+        MenuBarSearchSummary(
+            query: model.searchText,
+            shown: model.displayedItems.filter { $0.isSelectable }.count,
+            total: itemManager.itemCache.managedItems.count
+        )
+    }
+
     private var bottomBarPadding: CGFloat {
         if #available(macOS 26.0, *) { 7 } else { 5 }
     }
@@ -258,6 +266,11 @@ private struct MenuBarSearchContentView: View {
             SectionedList(selection: $model.selection, items: $model.displayedItems)
                 .contentPadding(8)
                 .scrollContentBackground(.hidden)
+                .overlay {
+                    if case .noResults(let query) = summary {
+                        noResults(for: query)
+                    }
+                }
         } else {
             VStack {
                 Text("Loading menu bar items…")
@@ -270,24 +283,48 @@ private struct MenuBarSearchContentView: View {
     }
 
     @ViewBuilder
+    private func noResults(for query: String) -> some View {
+        VStack(spacing: 6) {
+            Text("No items found for \"\(query)\"")
+                .font(.headline)
+                .multilineTextAlignment(.center)
+            Text("Check the spelling or search by the name of the app that owns the item.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var countLabel: some View {
+        switch summary {
+        case .total(let total):
+            Text("\(total) items in the menu bar")
+        case .filtered(let shown, let total):
+            Text("Showing \(shown) of \(total)")
+        case .noResults:
+            Text("No results")
+        }
+    }
+
+    @ViewBuilder
     private var bottomBar: some View {
-        HStack {
+        HStack(spacing: 14) {
             SettingsButton {
                 closePanel()
                 itemManager.appState?.activate(withPolicy: .regular)
                 itemManager.appState?.openWindow(.settings)
             }
 
-            Spacer()
+            countLabel
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            if
-                let selection = model.selection,
-                let item = menuBarItem(for: selection)
-            {
-                ShowItemButton(item: item) {
-                    performAction(for: item)
-                }
-            }
+            shortcutHints
         }
         .padding(bottomBarPadding)
         .background(.thinMaterial)
@@ -295,6 +332,18 @@ private struct MenuBarSearchContentView: View {
         .overlay(alignment: .top) {
             Divider()
         }
+    }
+
+    /// The keyboard shortcuts of the panel, always visible in the footer.
+    @ViewBuilder
+    private var shortcutHints: some View {
+        HStack(spacing: 12) {
+            ShortcutHint(keys: ["↑", "↓"], title: "Navigate")
+            ShortcutHint(keys: ["↩"], title: "Click")
+            ShortcutHint(keys: ["esc"], title: "Close")
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Up and down arrows navigate, Return clicks the item, Escape closes"))
     }
 
     private func selectFirstDisplayedItem() {
@@ -404,40 +453,25 @@ private struct SettingsButton: View {
     }
 }
 
-private struct ShowItemButton: View {
-    let item: MenuBarItem
-    let action: () -> Void
-
-    private var backgroundShape: some InsettableShape {
-        if #available(macOS 26.0, *) {
-            RoundedRectangle(cornerRadius: 5, style: .continuous)
-        } else {
-            RoundedRectangle(cornerRadius: 3, style: .circular)
-        }
-    }
+/// A key cap and the action it performs, for the footer of the panel.
+private struct ShortcutHint: View {
+    let keys: [String]
+    let title: LocalizedStringKey
 
     var body: some View {
-        Button(action: action) {
-            HStack {
-                Text(Bridging.isWindowOnScreen(item.windowID) ? String(localized: "Click Item") : String(localized: "Show Item"))
-                    .padding(.leading, 5)
-
-                Image(systemName: "return")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 11, height: 11)
-                    .foregroundStyle(.secondary)
-                    .fontWeight(.bold)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 5)
-                    .background {
-                        backgroundShape
-                            .fill(.regularMaterial)
-                            .brightness(0.25)
-                            .opacity(0.5)
-                    }
+        HStack(spacing: 5) {
+            ForEach(keys, id: \.self) { key in
+                Text(key)
+                    .font(.system(size: 11, weight: .semibold))
+                    .padding(.horizontal, 5)
+                    .frame(minWidth: 18, minHeight: 18)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
             }
+            Text(title)
+                .font(.callout)
+                .foregroundStyle(.secondary)
         }
+        .fixedSize()
     }
 }
 
@@ -537,15 +571,41 @@ private struct MenuBarSearchItemView: View {
             } icon: {
                 labelIcon
             }
-            Spacer()
+            Spacer(minLength: 8)
+            if isSelected {
+                selectedAction
+            }
             itemView
         }
         .padding(padding)
     }
 
+    private var isSelected: Bool {
+        model.selection == .item(item.tag)
+    }
+
     @ViewBuilder
     private var labelText: some View {
         Text(item.displayName)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .help(item.displayName)
+    }
+
+    /// The action of the Return key, shown on the selected row.
+    @ViewBuilder
+    private var selectedAction: some View {
+        HStack(spacing: 6) {
+            Text(Bridging.isWindowOnScreen(item.windowID) ? LocalizedStringKey("Click Item") : LocalizedStringKey("Show Item"))
+                .fontWeight(.semibold)
+            Text(verbatim: "↩")
+                .font(.system(size: 11, weight: .semibold))
+                .padding(.horizontal, 5)
+                .frame(minWidth: 18, minHeight: 18)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+        }
+        .fixedSize()
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder

@@ -35,6 +35,129 @@
         }
       }
     },
+    "%lld items": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld itens"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items are behind the notch on this screen and appear in the Trincano Bar.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item is behind the notch on this screen and appears in the Trincano Bar."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items are behind the notch on this screen and appear in the Trincano Bar."
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item fica atrás do notch nesta tela e aparece na Barra do Trincano."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld itens ficam atrás do notch nesta tela e aparecem na Barra do Trincano."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld items in the menu bar": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item in the menu bar"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items in the menu bar"
+                }
+              }
+            }
+          }
+        },
+        "pt-BR": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item na barra de menus"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld itens na barra de menus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "1": {
       "extractionState": "manual",
       "localizations": {
@@ -133,23 +256,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Acessibilidade"
-          }
-        }
-      }
-    },
-    "Acknowledgements": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Acknowledgements"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Créditos"
           }
         }
       }
@@ -426,6 +532,23 @@
         }
       }
     },
+    "Check the spelling or search by the name of the app that owns the item.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the spelling or search by the name of the app that owns the item."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confira a grafia ou procure pelo nome do app dono do item."
+          }
+        }
+      }
+    },
     "Chevron": {
       "extractionState": "manual",
       "localizations": {
@@ -490,6 +613,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Limpar"
+          }
+        }
+      }
+    },
+    "Click": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clicar"
           }
         }
       }
@@ -575,6 +715,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Clicar no notch mostra ou esconde a Barra do Trincano."
+          }
+        }
+      }
+    },
+    "Close": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fechar"
           }
         }
       }
@@ -745,6 +902,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ponto"
+          }
+        }
+      }
+    },
+    "Drag items here": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag items here"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arraste itens para cá"
           }
         }
       }
@@ -1407,7 +1581,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aparência da barra de menus"
+            "value": "Aparência"
           }
         }
       }
@@ -1441,7 +1615,7 @@
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Organização da barra de menus"
+            "value": "Organização"
           }
         }
       }
@@ -1599,6 +1773,40 @@
         }
       }
     },
+    "Modified by": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modified by"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modificado por"
+          }
+        }
+      }
+    },
+    "Modified version of Ice, by Jordan Baird.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modified version of Ice, by Jordan Baird."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versão modificada do Ice, de Jordan Baird."
+          }
+        }
+      }
+    },
     "Mouse pointer": {
       "extractionState": "manual",
       "localizations": {
@@ -1612,6 +1820,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ponteiro do mouse"
+          }
+        }
+      }
+    },
+    "Navigate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Navigate"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Navegar"
+          }
+        }
+      }
+    },
+    "No items found for \"%@\"": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No items found for \"%@\""
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum item encontrado para \"%@\""
+          }
+        }
+      }
+    },
+    "No results": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No results"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sem resultados"
           }
         }
       }
@@ -1646,6 +1905,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nenhum"
+          }
+        }
+      }
+    },
+    "Not affiliated with or endorsed by the Ice project.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not affiliated with or endorsed by the Ice project."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não afiliado nem endossado pelo projeto Ice."
           }
         }
       }
@@ -1718,6 +1994,40 @@
         }
       }
     },
+    "Open": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir"
+          }
+        }
+      }
+    },
+    "Open Acknowledgements": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Acknowledgements"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir os créditos"
+          }
+        }
+      }
+    },
     "Open Trincano Settings": {
       "extractionState": "manual",
       "localizations": {
@@ -1731,6 +2041,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abrir os ajustes do Trincano"
+          }
+        }
+      }
+    },
+    "Origin": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Origin"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Origem"
           }
         }
       }
@@ -1769,6 +2096,23 @@
         }
       }
     },
+    "Other credits": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other credits"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Outros créditos"
+          }
+        }
+      }
+    },
     "Permission Granted": {
       "extractionState": "manual",
       "localizations": {
@@ -1799,6 +2143,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permissões"
+          }
+        }
+      }
+    },
+    "Privacy": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacidade"
+          }
+        }
+      }
+    },
+    "Provenance and license": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provenance and license"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Procedência e licença"
           }
         }
       }
@@ -2262,6 +2640,23 @@
         }
       }
     },
+    "Showing %lld of %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing %lld of %lld"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrando %lld de %lld"
+          }
+        }
+      }
+    },
     "Shows or hides the hidden menu bar items.": {
       "extractionState": "manual",
       "localizations": {
@@ -2530,6 +2925,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quanto tempo esperar antes de mostrar ao passar o mouse."
+          }
+        }
+      }
+    },
+    "Third-party libraries used by the app.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Third-party libraries used by the app."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bibliotecas de terceiros usadas pelo app."
           }
         }
       }
@@ -2823,23 +3235,6 @@
         }
       }
     },
-    "Trincano is a modified version of Ice by Jordan Baird, released under the GNU General Public License v3.0. Modified by Paulo Victor T Silva (PILUTECH), 2026.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trincano is a modified version of Ice by Jordan Baird, released under the GNU General Public License v3.0. Modified by Paulo Victor T Silva (PILUTECH), 2026."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O Trincano é uma versão modificada do Ice, de Jordan Baird, distribuída sob a Licença Pública Geral GNU v3.0. Modificado por Paulo Victor T Silva (PILUTECH), 2026."
-          }
-        }
-      }
-    },
     "Trincano needs this to:": {
       "extractionState": "manual",
       "localizations": {
@@ -2904,6 +3299,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Não foi possível mostrar os itens da barra de menus"
+          }
+        }
+      }
+    },
+    "Up and down arrows navigate, Return clicks the item, Escape closes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up and down arrows navigate, Return clicks the item, Escape closes"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setas para cima e para baixo navegam, Return clica no item, Esc fecha"
           }
         }
       }
@@ -2989,6 +3401,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Versão %@"
+          }
+        }
+      }
+    },
+    "View License": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View License"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver a licença"
           }
         }
       }

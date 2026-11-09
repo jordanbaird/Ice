@@ -13,7 +13,11 @@ struct LocalizationCatalogTests {
         struct Entry: Decodable {
             struct Localization: Decodable {
                 struct Unit: Decodable { let value: String }
+                struct Plural: Decodable { let one: Variation?; let other: Variation? }
+                struct Variation: Decodable { let stringUnit: Unit }
+                struct Variations: Decodable { let plural: Plural? }
                 let stringUnit: Unit?
+                let variations: Variations?
             }
             let localizations: [String: Localization]?
         }
@@ -29,7 +33,9 @@ struct LocalizationCatalogTests {
     }
 
     private func portuguese(_ entry: Catalog.Entry) -> String? {
-        entry.localizations?["pt-BR"]?.stringUnit?.value
+        let localization = entry.localizations?["pt-BR"]
+        return localization?.stringUnit?.value
+            ?? localization?.variations?.plural?.other?.stringUnit.value
     }
 
     private func placeholders(in string: String) -> [String] {
@@ -71,6 +77,20 @@ struct LocalizationCatalogTests {
     @Test func productNameIsNeverTranslated() throws {
         for (key, entry) in try loadCatalog().strings where key.contains("Trincano") {
             #expect((portuguese(entry) ?? "").contains("Trincano"), "name lost in: \(key)")
+        }
+    }
+
+    /// The sidebar is 220 pt wide at the default row size; the worst case is
+    /// pt-BR. Titles must stay short enough to fit on one line with the icon.
+    @Test func sidebarTitlesFitTheSidebarInPortuguese() throws {
+        let catalog = try loadCatalog()
+        let sidebarKeys = [
+            "General", "Menu Bar Layout", "Menu Bar Appearance",
+            "Hotkeys", "Advanced", "About",
+        ]
+        for key in sidebarKeys {
+            let value = try #require(catalog.strings[key].flatMap(portuguese), "missing: \(key)")
+            #expect(value.count <= 16, "sidebar title too long for 220 pt: \(key) -> \(value)")
         }
     }
 }

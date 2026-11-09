@@ -22,6 +22,10 @@ struct LayoutBar: View {
 
     let section: MenuBarSection.Name
 
+    /// A Boolean value that indicates whether the section has no items, to
+    /// show the invitation to drag items into it.
+    var isEmpty = false
+
     private var backgroundShape: some InsettableShape {
         if #available(macOS 26.0, *) {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -41,6 +45,14 @@ struct LayoutBar: View {
             .overlay {
                 backgroundShape
                     .strokeBorder(.quaternary)
+            }
+            .overlay {
+                if isEmpty {
+                    Text("Drag items here")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .allowsHitTesting(false)
+                }
             }
     }
 

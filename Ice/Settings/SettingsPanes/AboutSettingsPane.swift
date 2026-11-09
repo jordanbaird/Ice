@@ -31,133 +31,136 @@ struct AboutSettingsPane: View {
     }
 
     var body: some View {
-        if #available(macOS 26.0, *) {
-            contentForm(cornerStyle: .continuous)
-        } else {
-            contentForm(cornerStyle: .circular)
-        }
-    }
+        IceForm(alignment: .leading, spacing: 14) {
+            header
 
-    @ViewBuilder
-    private func contentForm(cornerStyle: RoundedCornerStyle) -> some View {
-        IceForm(spacing: 0) {
-            mainContent(containerShape: RoundedRectangle(cornerRadius: 20, style: cornerStyle))
-            Spacer(minLength: 10)
-            bottomBar(containerShape: Capsule(style: cornerStyle))
-        }
-    }
+            IceSection("Provenance and license") {
+                provenanceRow(
+                    title: "Origin",
+                    value: Text("Modified version of Ice, by Jordan Baird."),
+                    detail: Text("Not affiliated with or endorsed by the Ice project."),
+                    action: ("Original Ice", { openURL(upstreamURL) })
+                )
+                provenanceRow(
+                    title: "License",
+                    value: Text(verbatim: "GNU General Public License v3.0"),
+                    action: ("View License", { openURL(licenseURL) })
+                )
+                provenanceRow(
+                    title: "Modified by",
+                    value: Text(verbatim: "Paulo Victor T Silva (PILUTECH), 2026")
+                )
+                provenanceRow(
+                    title: "Source Code",
+                    value: Text(verbatim: "github.com/PiluVitu/trincano"),
+                    action: ("Open", { openURL(contributeURL) })
+                )
+                provenanceRow(
+                    title: "Other credits",
+                    value: Text("Third-party libraries used by the app."),
+                    action: ("Open Acknowledgements", { NSWorkspace.shared.open(acknowledgementsURL) }),
+                    showsExternalIcon: false
+                )
+            }
 
-    @ViewBuilder
-    private func mainContent(containerShape: some InsettableShape) -> some View {
-        IceSection(spacing: 0, options: .plain) {
-            appIconAndCopyrightSection
-                .layoutPriority(1)
+            IceSection("Privacy") {
+                provenanceRow(
+                    title: nil,
+                    value: Text("Everything stays on your Mac: Trincano has no telemetry and does not check for updates.")
+                )
+            }
 
             Spacer(minLength: 0)
-                .frame(maxHeight: 20)
 
-            creditsSection
-                .layoutPriority(1)
+            footer
         }
-        .padding(.top, 5)
-        .padding([.horizontal, .bottom], 30)
-        .frame(maxHeight: 500)
-        .background(.quinary, in: containerShape)
-        .containerShape(containerShape)
     }
 
     @ViewBuilder
-    private var appIconAndCopyrightSection: some View {
-        IceSection(options: .plain) {
-            HStack(spacing: 10) {
-                if let nsImage = NSImage(named: NSImage.applicationIconName) {
-                    Image(nsImage: nsImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 230)
-                }
-
-                VStack(alignment: .leading) {
-                    Text("Trincano")
-                        .font(.system(size: 80))
-                        .foregroundStyle(.primary)
-
-                    Text("Version \(Constants.versionString)")
-                        .font(.system(size: 15))
-                        .foregroundStyle(.secondary)
-
-                    Text(Constants.copyrightString)
-                        .font(.system(size: 14))
-                        .foregroundStyle(.secondary.opacity(0.67))
-                }
-                .fontWeight(.medium)
+    private var header: some View {
+        HStack(spacing: 16) {
+            if let nsImage = NSImage(named: NSImage.applicationIconName) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 72, height: 72)
+                    .accessibilityHidden(true)
             }
-        }
-    }
 
-    @ViewBuilder
-    private var creditsSection: some View {
-        IceSection(options: .plain) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Trincano is a modified version of Ice by Jordan Baird, released under the GNU General Public License v3.0. Modified by Paulo Victor T Silva (PILUTECH), 2026.")
-                Text("Everything stays on your Mac: Trincano has no telemetry and does not check for updates.")
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Trincano")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(.primary)
+
+                Text("Version \(Constants.versionString)")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+                Text(Constants.copyrightString)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
-            .font(.callout)
-            .frame(maxWidth: 600, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
         }
+        .accessibilityElement(children: .combine)
+    }
+
+    /// A labeled row of the provenance sheet. Long values wrap inside the
+    /// row and the action stays aligned to the trailing edge.
+    @ViewBuilder
+    private func provenanceRow(
+        title: LocalizedStringKey?,
+        value: Text,
+        detail: Text? = nil,
+        action: (title: LocalizedStringKey, perform: () -> Void)? = nil,
+        showsExternalIcon: Bool = true
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            if let title {
+                Text(title)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 120, alignment: .leading)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                value
+                if let detail {
+                    detail.font(.callout).foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+
+            if let action {
+                Button {
+                    action.perform()
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(action.title)
+                        if showsExternalIcon {
+                            Image(systemName: "arrow.up.right")
+                                .imageScale(.small)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                }
+                .controlSize(.small)
+            }
+        }
+        .frame(minHeight: 44)
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
-    private func bottomBar(containerShape: some InsettableShape) -> some View {
-        HStack {
-            Button("Quit Trincano") {
-                NSApp.terminate(nil)
-            }
-            Spacer()
-            Button("Acknowledgements") {
-                NSWorkspace.shared.open(acknowledgementsURL)
-            }
-            Button("Original Ice") {
-                openURL(upstreamURL)
-            }
-            Button("License") {
-                openURL(licenseURL)
-            }
-            Button("Source Code") {
-                openURL(contributeURL)
-            }
+    private var footer: some View {
+        HStack(spacing: 8) {
             Button("Report a Bug") {
                 openURL(issuesURL)
             }
+            Spacer(minLength: 0)
+            Button("Quit Trincano") {
+                NSApp.terminate(nil)
+            }
         }
-        .padding(8)
-        .buttonStyle(BottomBarButtonStyle())
-        .background(.quinary, in: containerShape)
-        .containerShape(containerShape)
-        .frame(height: 40)
-    }
-}
-
-private struct BottomBarButtonStyle: ButtonStyle {
-    @State private var isHovering = false
-
-    private var borderShape: some InsettableShape {
-        ContainerRelativeShape()
-    }
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background {
-                borderShape
-                    .fill(configuration.isPressed ? .tertiary : .quaternary)
-                    .opacity(isHovering ? 1 : 0)
-            }
-            .contentShape([.focusEffect, .interaction], borderShape)
-            .onHover { hovering in
-                isHovering = hovering
-            }
     }
 }

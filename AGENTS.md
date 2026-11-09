@@ -14,6 +14,7 @@ O plano das 7 fases foi concluído (a fase 7, Swift 6, entrou pelo PR #12); veja
 - [docs/fase-2-tahoe.md](docs/fase-2-tahoe.md), [fase-3](docs/fase-3-responsividade.md), [fase-4](docs/fase-4-notch.md), [fase-5](docs/fase-5-telas.md): o que cada fase fez, medições e roteiros ao vivo.
 - [docs/identidade/README.md](docs/identidade/README.md): ícone "Barra congelada" e como gerar/verificar.
 - [docs/fase-6-acabamento.md](docs/fase-6-acabamento.md): localização PT-BR/en, movimento reduzido, VoiceOver e propostas de ícone.
+- [docs/rodada-design/README.md](docs/rodada-design/README.md): rodada de design do Fable (Sobre B, Busca A, Organização A, Geral B, Barra B), PR a PR, com roteiro ao vivo.
 - [docs/pendencias.md](docs/pendencias.md): pendências da revisão do Lupa (XPC, chave local, importação, limpeza).
 
 ## Comandos

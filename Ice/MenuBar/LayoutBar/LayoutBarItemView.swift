@@ -117,13 +117,21 @@ final class LayoutBarItemView: NSView {
         return alert
     }
 
+    /// How much of an item that cannot be moved is drawn.
+    ///
+    /// It was 0.67, which reads as "slightly off" rather than "not yours to drag" — on a
+    /// light background a black glyph at two thirds is still almost black. These are a whole
+    /// third of the Visible section on macOS 27, where everything macOS draws itself is
+    /// listed and none of it can be moved, so the difference has to be plain at a glance.
+    private static let disabledFraction: CGFloat = 0.35
+
     override func draw(_ dirtyRect: NSRect) {
         if !isDraggingPlaceholder {
             cachedImage?.nsImage.draw(
                 in: bounds,
                 from: .zero,
                 operation: .sourceOver,
-                fraction: isEnabled ? 1.0 : 0.67
+                fraction: isEnabled ? 1.0 : Self.disabledFraction
             )
             if Bridging.isProcessUnresponsive(item.ownerPID) {
                 let warningImage = NSImage.warning

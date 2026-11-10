@@ -867,16 +867,14 @@ final class Concealer27: ObservableObject {
 
     /// The longest Ice watches a launching application for its item.
     ///
-    /// This bounds the watching, not the showing. It used to bound both, at 8 seconds, and
-    /// concealing the application when it ran out was the bug: Slack, Docker Desktop, Pritunl
-    /// and Claude all reached the deadline with no item at all (measured 2026-11-10, each
-    /// logged `item width 0.000000`), and an item created while its application is concealed
-    /// is never drawn again. Not after the application is relaunched — only after MenuBarAgent
-    /// is. So an application whose item never arrived is now left on the bar.
+    /// It was 8 seconds, which Slack, Docker Desktop, Pritunl and Claude all ran past with no
+    /// item at all (measured 2026-11-10, each logged `item width 0.000000`). An item created
+    /// while its application is concealed is never drawn again — not after the application is
+    /// relaunched, only after MenuBarAgent is — so missing the deadline cost the item.
     ///
-    /// 45 seconds is a judgement, not a measurement: nobody has timed how long the slowest
-    /// application takes to publish its item. Being too generous costs a poll of the bar three
-    /// times a second for a while longer; being too mean used to cost the item itself.
+    /// 45 seconds is a judgement, not a measurement: nobody has timed the slowest application.
+    /// Claude Desktop, which used to miss 8 seconds, publishes inside this one. Being generous
+    /// costs a poll of the bar three times a second for a while longer.
     private static let launchGrace = Duration.seconds(45)
 
     /// Applications shown while they create their status items, with when each gives up.
@@ -965,13 +963,24 @@ final class Concealer27: ObservableObject {
         }
     }
 
-    /// Stops watching an application whose item never arrived, and leaves it on the bar.
+    /// Conceals an application whose item never arrived, once the window has run out.
     ///
-    /// Concealing it here is what the deadline used to do, and it is the one moment at which
-    /// concealing does lasting damage: the item being created goes to an application macOS has
-    /// been told to keep off the bar, and macOS then never draws it, however the application is
-    /// restarted afterwards. A visible item the user wanted hidden is a small annoyance they
-    /// can fix; an item nothing will draw is not.
+    /// Between `3b7cd3e` and this, Ice left such an application on the bar instead, reasoning
+    /// that concealing an application while it creates its item is what stops macOS drawing
+    /// that item afterwards. The reasoning was right about the danger and wrong about when it
+    /// applies: the damage is done while the item is being created, and an application that has
+    /// published nothing for a whole window is not creating one. What the rule actually bought
+    /// was a bar that filled up with icons the user had hidden — five of them in one day,
+    /// Telegram, OneDrive, Cursor, Claude and Pritunl, each stranded in view for good, because
+    /// nothing ever took the temporary show back. Measured 2026-11-10, and reported before the
+    /// day was out.
+    ///
+    /// So the window ends in concealment again, as it did before, and the longer window is what
+    /// is kept from that change: 45 seconds rather than 8 gives a slow application the time it
+    /// needs, and Claude Desktop, which used to miss the old deadline, now publishes inside it.
+    /// Should an item be lost anyway, "Restart the menu bar" in Menu Bar Layout brings it back —
+    /// which is the recovery that was missing when the deadline was 8 seconds and the cost of
+    /// losing an item looked permanent.
     private func abandonLaunchGrace(bundleID: String) {
         guard launching.removeValue(forKey: bundleID) != nil else {
             return
@@ -979,10 +988,14 @@ final class Concealer27: ObservableObject {
         logger.notice(
             """
             \(bundleID, privacy: .public) published no item within \(Self.launchGrace, privacy: .public); \
-            leaving it on the bar, because concealing an application while it creates its item \
-            is what stops macOS drawing that item at all
+            concealing it again. If its icon is missing afterwards, restarting the menu bar from \
+            Menu Bar Layout is what brings it back
             """
         )
+        Task { [weak self] in
+            try? await Task.sleep(for: Self.settleAfterChange)
+            self?.endTemporaryShow(bundleID: bundleID)
+        }
     }
 
     /// Conceals an application again once its item exists.

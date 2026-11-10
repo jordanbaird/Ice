@@ -1077,10 +1077,11 @@ final class Concealer27: ObservableObject {
                 cache[.visible].append(item)
                 continue
             }
+            // Ice's own items stay out of the window. The visible one was listed here so the
+            // user could see Ice's icon among the rest, but it has no photograph — see
+            // `ItemImageStore27.isPhotographable` for why taking one broke the bar — and a tile
+            // with no picture is a hole that pushes its neighbour aside.
             if item.isControlItem {
-                if item.tag == .visibleControlItem {
-                    cache[.visible].append(item)
-                }
                 continue
             }
             switch layout[item.sourceApplication?.bundleIdentifier ?? ""] ?? .visible {

@@ -261,7 +261,17 @@ final class ItemImageStore27 {
         guard item.isOnScreen, !concealedPIDs.contains(item.ownerPID) else {
             return false
         }
-        return !item.isControlItem || item.tag == .visibleControlItem
+        // Ice's own item is not photographed, and the attempt is what this comment is for.
+        // It was photographed between a97dea4 and this, so that the layout window could show
+        // it, and the frame Ice's own process reports for it turned out to be as unreliable as
+        // any other: it came back at x=1366, on top of the audio-video item, while MenuBarAgent
+        // drew it at 1400. The overlap rule then refused a glyph to Ice's item, to the
+        // audio-video item and to whatever else fell in that span — Cursor, on this bar — and
+        // the retries for those missing glyphs showed and hid applications every few seconds,
+        // which reads as a flickering menu bar. Measured 2026-11-10: 8 refusals and 5 show-hide
+        // cycles in three minutes. Nothing may enter the overlap set on a frame Ice has not
+        // checked against what MenuBarAgent actually drew.
+        return !item.isControlItem
     }
 
     /// Shows the applications of items that have no image for a moment, and captures them.

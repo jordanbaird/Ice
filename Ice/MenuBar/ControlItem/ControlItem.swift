@@ -37,8 +37,12 @@ final class ControlItem {
                 Lengths.standard
             case .hidden, .alwaysHidden:
                 switch state {
-                case .showSection: Lengths.standard
-                case .hideSection: Lengths.expanded
+                case .showSection:
+                    Lengths.standard
+                case .hideSection:
+                    // macOS 27 discards status items wider than the status area, so the
+                    // section is concealed by `Concealer27` instead of pushed off screen.
+                    if #available(macOS 27.0, *) { Lengths.standard } else { Lengths.expanded }
                 }
             }
         }
@@ -88,6 +92,8 @@ final class ControlItem {
                     self.constraint = nil
                 }
 
+                // On macOS 27, Ice finds its own items through Accessibility by this identifier.
+                button.setAccessibilityIdentifier(controlItem.identifier.rawValue)
                 button.target = controlItem
                 button.action = #selector(controlItem.performAction)
                 button.sendAction(on: [.leftMouseDown, .rightMouseUp])
@@ -156,9 +162,21 @@ final class ControlItem {
 
     /// A Boolean value that indicates whether the control item is currently
     /// displayed in the menu bar.
+    ///
+    /// A divider standing aside on macOS 27 counts as displayed: its section
+    /// is still on, only the divider has left the bar (see ``isStandingAside``).
     var isAddedToMenuBar: Bool {
-        statusItem.isVisible
+        statusItem.isVisible || isStandingAside
     }
+
+    /// Whether this divider has left the bar while its section stays on.
+    ///
+    /// On macOS 27, while Ice hides through the native "Allow in the Menu Bar"
+    /// switch, a divider marks nothing — sections come from the saved layout —
+    /// yet MenuBarAgent spaces it like any other item, which leaves a visible
+    /// gap between the icons around it (see
+    /// ``Concealer27/dividersMayStandAside``).
+    private var isStandingAside = false
 
     /// The corresponding section name for the control item.
     var sectionName: MenuBarSection.Name {
@@ -193,7 +211,7 @@ final class ControlItem {
 
         statusItem.publisher(for: \.isVisible)
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] isVisible in
+            .sink { [weak self] _ in
                 guard
                     let self,
                     let menuBarManager = appState?.menuBarManager,
@@ -202,7 +220,8 @@ final class ControlItem {
                 else {
                     return
                 }
-                if isVisible {
+                // A divider standing aside keeps its section, and the section its hotkey.
+                if isAddedToMenuBar {
                     hotkey.enable()
                 } else {
                     hotkey.disable()
@@ -251,6 +270,16 @@ final class ControlItem {
                 }
             }
             .store(in: &c)
+
+        if #available(macOS 27.0, *), isSectionDivider, let appState {
+            appState.concealer27.$dividersMayStandAside
+                .removeDuplicates()
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] _ in
+                    self?.updateStatusItem()
+                }
+                .store(in: &c)
+        }
 
         if let appState {
             appState.$isDraggingMenuBarItem
@@ -365,6 +394,24 @@ final class ControlItem {
 
             button.image = image
         case .hidden, .alwaysHidden:
+            if #available(macOS 27.0, *) {
+                // Ice is signed locally, so MenuBarAgent drops its items whenever anything is
+                // concealed (measured on macOS 27.0). A divider is therefore never drawn, yet a
+                // standard-width status item still holds 18 points of the bar, which reads as a
+                // gap between the neighbouring icons. Sections come from the saved layout on 27,
+                // so the dividers only have to stay in the bar, not to take up room in it.
+                // Through the native switch MenuBarAgent keeps them, spacing included, so once
+                // the layout no longer needs reading off the bar they leave it altogether.
+                if appState.concealer27.dividersMayStandAside {
+                    standAside()
+                } else {
+                    rejoin()
+                }
+                updateStatusItemVisibility(false)
+                button.appearsDisabled = true
+                button.isHighlighted = false
+                return
+            }
             switch state {
             case .showSection:
                 switch appState.settings.advanced.sectionDividerStyle {
@@ -435,11 +482,20 @@ final class ControlItem {
             return
         }
         statusItem.isVisible = true
+        if isSectionDivider {
+            // On macOS 27 a divider may have to stand aside again at once.
+            updateStatusItem()
+        }
     }
 
     /// Removes the control item from the menu bar.
     private func removeFromMenuBar() {
         guard isAddedToMenuBar else {
+            return
+        }
+        if isStandingAside {
+            // Already off the bar: only the section goes off with it.
+            isStandingAside = false
             return
         }
         // Setting `statusItem.isVisible` to `false` has the unwanted side
@@ -448,6 +504,50 @@ final class ControlItem {
         let cached = ControlItemDefaults[.preferredPosition, autosaveName]
         statusItem.isVisible = false
         ControlItemDefaults[.preferredPosition, autosaveName] = cached
+    }
+
+    /// Takes a divider out of the bar while keeping its section on.
+    private func standAside() {
+        guard isSectionDivider, !isStandingAside, let appState else {
+            return
+        }
+        // The hidden section is never turned off. The always-hidden one is, and an invisible
+        // divider of a section turned off has nothing to stand aside from.
+        guard identifier == .hidden || appState.settings.advanced.enableAlwaysHiddenSection else {
+            return
+        }
+        // Set first, so everything that follows the status item's visibility
+        // still finds the section on.
+        isStandingAside = true
+        guard statusItem.isVisible else {
+            return
+        }
+        let autosaveName = statusItem.autosaveName as String
+        let cached = ControlItemDefaults[.preferredPosition, autosaveName]
+        statusItem.isVisible = false
+        // AppKit records the item as removed by the user, so the next launch would create the
+        // divider invisible and Ice would take its section for one turned off — the hidden
+        // section included, which then never shows on hover (measured 2026-10-26). Only Ice
+        // stood it aside, so the record is undone along with the position.
+        ControlItemDefaults[.preferredPosition, autosaveName] = cached
+        ControlItemDefaults[.visible, autosaveName] = true
+        if #available(macOS 26.0, *) {
+            ControlItemDefaults[.visibleCC, autosaveName] = true
+        }
+    }
+
+    /// Puts a divider that stood aside back in the bar.
+    ///
+    /// The hidden section's divider comes back even if it never stood aside: that section is
+    /// never turned off, so a divider AppKit created invisible from an old record would only
+    /// leave the section looking disabled.
+    private func rejoin() {
+        if isStandingAside {
+            isStandingAside = false
+            statusItem.isVisible = true
+        } else if identifier == .hidden, !statusItem.isVisible {
+            statusItem.isVisible = true
+        }
     }
 
     /// Performs the control item's action.

@@ -36,6 +36,15 @@ final class AdvancedSettings: ObservableObject {
     /// Time interval to temporarily show items for.
     @Published var tempShowInterval: TimeInterval = 15
 
+    /// Whether Ice draws its own camera and microphone indicator while it is hiding items.
+    ///
+    /// Control Centre's own is not drawn at all while anything is concealed, and no allowlist can
+    /// spare it, so without this there is nothing on the bar to say the camera is on (macOS 27).
+    @Published var showCaptureIndicator = true
+
+    /// How Ice hides applications' items on macOS 27.
+    @Published var macOS27HidingMethod: MacOS27HidingMethod = .nativeAllowList
+
     /// Storage for internal observers.
     private var cancellables = Set<AnyCancellable>()
 
@@ -56,7 +65,14 @@ final class AdvancedSettings: ObservableObject {
         Defaults.ifPresent(key: .hideApplicationMenus, assign: &hideApplicationMenus)
         Defaults.ifPresent(key: .enableSecondaryContextMenu, assign: &enableSecondaryContextMenu)
         Defaults.ifPresent(key: .showOnHoverDelay, assign: &showOnHoverDelay)
+        Defaults.ifPresent(key: .showCaptureIndicator, assign: &showCaptureIndicator)
         Defaults.ifPresent(key: .tempShowInterval, assign: &tempShowInterval)
+
+        Defaults.ifPresent(key: .macOS27HidingMethod) { (rawValue: String) in
+            if let method = MacOS27HidingMethod(rawValue: rawValue) {
+                macOS27HidingMethod = method
+            }
+        }
 
         Defaults.ifPresent(key: .sectionDividerStyle) { rawValue in
             if let style = SectionDividerStyle(rawValue: rawValue) {
@@ -111,6 +127,20 @@ final class AdvancedSettings: ObservableObject {
             }
             .store(in: &c)
 
+        $showCaptureIndicator
+            .receive(on: DispatchQueue.main)
+            .sink { show in
+                Defaults.set(show, forKey: .showCaptureIndicator)
+            }
+            .store(in: &c)
+
+        $macOS27HidingMethod
+            .receive(on: DispatchQueue.main)
+            .sink { method in
+                Defaults.set(method.rawValue, forKey: .macOS27HidingMethod)
+            }
+            .store(in: &c)
+
         $tempShowInterval
             .receive(on: DispatchQueue.main)
             .sink { interval in
@@ -135,6 +165,29 @@ enum SectionDividerStyle: Int, CaseIterable, Identifiable {
         switch self {
         case .noDivider: "None"
         case .chevron: "Chevron"
+        }
+    }
+}
+
+// MARK: - MacOS27HidingMethod
+
+/// How Ice hides applications' items on macOS 27.
+enum MacOS27HidingMethod: String, CaseIterable, Identifiable {
+    /// macOS's own "Allow in the Menu Bar" switch for each hidden application
+    /// (see `NativeAllowListConcealer27`).
+    case nativeAllowList
+
+    /// MenuBarAgent's assessment mode (see `MenuBarAssessmentAssertion27`), which also removes
+    /// Control Centre's modules and ignores clicks on system items while it is in force.
+    case assessmentMode
+
+    var id: String { rawValue }
+
+    /// Localized string key representation.
+    var localized: LocalizedStringKey {
+        switch self {
+        case .nativeAllowList: "Allow in the Menu Bar"
+        case .assessmentMode: "Assessment mode"
         }
     }
 }

@@ -14,6 +14,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: NSApplicationDelegate Methods
 
     func applicationWillFinishLaunching(_ notification: Notification) {
+        if #available(macOS 27.0, *) {
+            // Before anything else: allow in the menu bar again every application an earlier
+            // run turned off and never turned back on, which is what a crash leaves behind.
+            // Whatever is still meant to be hidden is turned off again once the concealer is set up.
+            NativeAllowListConcealer27().releaseAll()
+        }
+
         // Initial chore work.
         NSSplitViewItem.swizzle()
         MigrationManager(appState: appState).migrateAll()
@@ -68,6 +75,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appState.deactivate(withPolicy: .accessory)
         }
         return false
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        if #available(macOS 27.0, *) {
+            // Every application Ice turned off in the menu bar is turned back on, as hiding
+            // through assessment mode ends by itself when Ice goes.
+            NativeAllowListConcealer27().releaseAll()
+        }
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {

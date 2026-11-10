@@ -132,6 +132,20 @@ final class MenuBarAppearanceManager: ObservableObject {
             return
         }
 
+        // Close the panels being replaced before building their successors.
+        //
+        // A visible NSWindow is retained by AppKit, so dropping the last Swift
+        // reference to it does not close it. Reassigning `overlayPanels` therefore
+        // left the previous set alive and on screen, each panel still running its
+        // own update loops. This function runs on every screen-parameter change,
+        // so attaching and detaching a display accumulated a full set of live
+        // panels per display each time, all competing to own the menu bar's
+        // appearance. The not-needed path above already closes them; this one did
+        // not.
+        while let panel = overlayPanels.popFirst() {
+            panel.close()
+        }
+
         var overlayPanels = Set<MenuBarOverlayPanel>()
         for screen in NSScreen.screens {
             let panel = MenuBarOverlayPanel(appState: appState, owningScreen: screen)

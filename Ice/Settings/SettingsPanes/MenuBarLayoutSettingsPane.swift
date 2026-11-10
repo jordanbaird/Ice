@@ -25,6 +25,9 @@ struct MenuBarLayoutSettingsPane: View {
                     StuckOverflowWarning(concealer: appState.concealer27)
                 }
                 layoutBars
+                if #available(macOS 27.0, *) {
+                    RedrawMenuBarSection(concealer: appState.concealer27)
+                }
             }
         }
     }
@@ -140,7 +143,7 @@ private struct StuckOverflowWarning: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Some items are folded away on the built-in display.")
                             .font(.headline)
-                        Text("macOS stopped laying them out when Ice freed the space beside the notch, and left no control to reach them. Relaunching the application whose item is missing brings it back.")
+                        Text("macOS stopped laying them out when Ice freed the space beside the notch, and left no control to reach them. Restarting the menu bar, below, brings them back. So does relaunching the application whose item is missing.")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -160,6 +163,38 @@ private struct StuckOverflowWarning: View {
                 .padding(15)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+        }
+    }
+}
+
+/// Offers to restart the process that draws the menu bar on macOS 27.
+///
+/// macOS can reach a state where it will not draw an item at all: one created while its
+/// application was switched off in the menu bar stays undrawn, and relaunching the application
+/// does not help. Restarting MenuBarAgent clears it. See ``Concealer27/restartMenuBarAgent()``
+/// for what was measured. It is offered rather than done automatically because Ice cannot tell
+/// this state apart from an application that simply has no item.
+@available(macOS 27.0, *)
+private struct RedrawMenuBarSection: View {
+    @ObservedObject var concealer: Concealer27
+
+    var body: some View {
+        IceSection {
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Items missing, or showing the wrong icon?")
+                        .font(.headline)
+                    Text("macOS sometimes stops drawing an item, and relaunching the application it belongs to does not bring it back. Restarting the part of macOS that draws the menu bar does. The bar blinks for about a second. Nothing closes, and no settings change.")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Button("Restart the menu bar") {
+                    concealer.restartMenuBarAgent()
+                }
+            }
+            .padding(15)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

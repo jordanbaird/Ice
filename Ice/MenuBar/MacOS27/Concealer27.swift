@@ -530,6 +530,39 @@ final class Concealer27: ObservableObject {
         }
     }
 
+    /// Restarts MenuBarAgent, the process that draws the menu bar on macOS 27.
+    ///
+    /// There is a state in which macOS will not draw an item at all: one created while its
+    /// application was switched off in the menu bar stays undrawn afterwards, and restarting
+    /// the application does not help. Measured 2026-11-10 — Slack was restarted with Ice
+    /// stopped and its switch on, and published nothing for two minutes. Restarting MenuBarAgent
+    /// clears it: on a bar missing ten items, all ten came back at once.
+    ///
+    /// launchd starts the agent again by itself, in about a second. The bar blinks; nothing
+    /// else is lost, and no application is closed. A reboot cures the same thing the expensive
+    /// way, which is what people have been doing instead.
+    func restartMenuBarAgent() {
+        guard let agent = NSRunningApplication.runningApplications(withBundleIdentifier: Self.menuBarAgentBundleID).first else {
+            logger.warning("MenuBarAgent is not running, so there is nothing to restart")
+            return
+        }
+        logger.notice("Restarting MenuBarAgent so it lays the bar out from scratch")
+        agent.terminate()
+        Task { [logger] in
+            for _ in 0..<8 where !agent.isTerminated {
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+            guard !agent.isTerminated else {
+                return
+            }
+            // It ignores a quit event, as a system agent with no event loop for one does.
+            logger.notice("MenuBarAgent did not take the quit, so it is being killed")
+            agent.forceTerminate()
+        }
+    }
+
+    private static let menuBarAgentBundleID = "com.apple.MenuBarAgent"
+
     /// Quits an application and starts it again, which is what lays its items out afresh.
     ///
     /// Asked for from Settings, for the application the user can see is missing. Ice does not do

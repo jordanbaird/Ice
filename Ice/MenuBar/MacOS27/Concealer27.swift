@@ -1004,7 +1004,15 @@ final class Concealer27: ObservableObject {
         var cache = MenuBarItemManager.ItemCache(displayID: displayID)
         let layout = savedLayout
         let all = items + concealedItemsMissing(from: items)
-        for item in all.sorted(by: { $0.bounds.minX < $1.bounds.minX }) where item.canBeHidden && !item.isSystemClone {
+        for item in all.sorted(by: { $0.bounds.minX < $1.bounds.minX }) where !item.isSystemClone {
+            // An item macOS 27 draws itself — the clock, Wi-Fi, the battery, Control Centre —
+            // can be neither hidden nor moved by Ice, but leaving it out made the layout
+            // window an incomplete account of the bar. It is listed under "Visible", where it
+            // always is, and `MenuBarItemTag.isMovable` is what dims it and refuses the drag.
+            guard item.canBeHidden else {
+                cache[.visible].append(item)
+                continue
+            }
             if item.isControlItem {
                 if item.tag == .visibleControlItem {
                     cache[.visible].append(item)

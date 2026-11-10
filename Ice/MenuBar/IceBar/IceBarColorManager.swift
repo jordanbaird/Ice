@@ -132,6 +132,12 @@ final class IceBarColorManager: ObservableObject {
     }
 
     private func updateColorInfo(with frame: CGRect, screen: NSScreen) {
+        if #available(macOS 27.0, *) {
+            // Keep the flat color that matches the stored glyphs. Sampling the dark menu bar
+            // here would give Light Mode a dark panel with black glyphs.
+            setColor27()
+            return
+        }
         guard let image = windowImage else {
             return
         }

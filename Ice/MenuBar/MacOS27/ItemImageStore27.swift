@@ -204,7 +204,7 @@ final class ItemImageStore27 {
         // for the whole strip, rather than tile by tile, keeps a dark patch of wallpaper behind
         // one item from passing for its glyph (see `ItemImages27.toneVotes`).
         var votes = (light: 0, dark: 0)
-        for item in items where item.isOnScreen && !item.isControlItem && !concealedPIDs.contains(item.ownerPID) {
+        for item in items where Self.isPhotographable(item, concealedPIDs: concealedPIDs) {
             guard
                 settled.contains(item.tag.description),
                 !overlapping.contains(item.tag.description),
@@ -219,7 +219,7 @@ final class ItemImageStore27 {
             votes.dark += tileVotes.dark
         }
         let tone: ItemImages27.GlyphTone? = votes.light + votes.dark == 0 ? nil : (votes.light >= votes.dark ? .light : .dark)
-        for item in items where item.isOnScreen && !item.isControlItem && !concealedPIDs.contains(item.ownerPID) {
+        for item in items where Self.isPhotographable(item, concealedPIDs: concealedPIDs) {
             guard settled.contains(item.tag.description) else {
                 skipped += 1
                 continue
@@ -243,6 +243,25 @@ final class ItemImageStore27 {
         }
         writeIndex()
         logger.debug("Stored \(stored, privacy: .public) item images from display \(displayID, privacy: .public), skipped \(skipped, privacy: .public) that moved")
+    }
+
+    /// Whether a glyph can be cut for this item from a photograph of the bar.
+    ///
+    /// Ice's own control items are skipped — with one exception. On macOS 27 the item for the
+    /// "Visible" section is Ice's icon itself, a glyph like any other, and it is the only one
+    /// of the three that is ever on the bar: the dividers stand aside there, because macOS
+    /// gives every item the inter-item spacing and a 2 pt divider shows as a ~50 pt hole (see
+    /// `Concealer27.dividersMayStandAside`).
+    ///
+    /// Skipping it had a visible cost. `Concealer27.cacheFromSavedLayout` puts the visible
+    /// control item in the "Visible" section, so the layout window laid out a tile as wide as
+    /// Ice's icon that drew nothing: the icon looked missing from the window, and whatever sat
+    /// beside it looked pushed away by something invisible. Reported 2026-11-10.
+    private static func isPhotographable(_ item: MenuBarItem, concealedPIDs: Set<pid_t>) -> Bool {
+        guard item.isOnScreen, !concealedPIDs.contains(item.ownerPID) else {
+            return false
+        }
+        return !item.isControlItem || item.tag == .visibleControlItem
     }
 
     /// Shows the applications of items that have no image for a moment, and captures them.

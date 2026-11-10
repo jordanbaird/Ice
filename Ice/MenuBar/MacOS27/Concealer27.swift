@@ -832,8 +832,19 @@ final class Concealer27: ObservableObject {
         }
     }
 
-    /// The longest a launching application is shown while Ice waits for its item.
-    private static let launchGrace = Duration.seconds(8)
+    /// The longest Ice watches a launching application for its item.
+    ///
+    /// This bounds the watching, not the showing. It used to bound both, at 8 seconds, and
+    /// concealing the application when it ran out was the bug: Slack, Docker Desktop, Pritunl
+    /// and Claude all reached the deadline with no item at all (measured 2026-11-10, each
+    /// logged `item width 0.000000`), and an item created while its application is concealed
+    /// is never drawn again. Not after the application is relaunched — only after MenuBarAgent
+    /// is. So an application whose item never arrived is now left on the bar.
+    ///
+    /// 45 seconds is a judgement, not a measurement: nobody has timed how long the slowest
+    /// application takes to publish its item. Being too generous costs a poll of the bar three
+    /// times a second for a while longer; being too mean used to cost the item itself.
+    private static let launchGrace = Duration.seconds(45)
 
     /// Applications shown while they create their status items, with when each gives up.
     private var launching = [String: (pid: pid_t, deadline: ContinuousClock.Instant)]()
@@ -913,7 +924,7 @@ final class Concealer27: ObservableObject {
                     if let item = items.first(where: { $0.ownerPID == pid && $0.bounds.width > 4 }) {
                         endLaunchGrace(bundleID: bundleID, width: item.bounds.width)
                     } else if now > entry.deadline {
-                        endLaunchGrace(bundleID: bundleID, width: 0)
+                        abandonLaunchGrace(bundleID: bundleID)
                     }
                 }
             }
@@ -921,7 +932,27 @@ final class Concealer27: ObservableObject {
         }
     }
 
-    /// Conceals an application again once its item exists, or once the grace has run out.
+    /// Stops watching an application whose item never arrived, and leaves it on the bar.
+    ///
+    /// Concealing it here is what the deadline used to do, and it is the one moment at which
+    /// concealing does lasting damage: the item being created goes to an application macOS has
+    /// been told to keep off the bar, and macOS then never draws it, however the application is
+    /// restarted afterwards. A visible item the user wanted hidden is a small annoyance they
+    /// can fix; an item nothing will draw is not.
+    private func abandonLaunchGrace(bundleID: String) {
+        guard launching.removeValue(forKey: bundleID) != nil else {
+            return
+        }
+        logger.notice(
+            """
+            \(bundleID, privacy: .public) published no item within \(Self.launchGrace, privacy: .public); \
+            leaving it on the bar, because concealing an application while it creates its item \
+            is what stops macOS drawing that item at all
+            """
+        )
+    }
+
+    /// Conceals an application again once its item exists.
     private func endLaunchGrace(bundleID: String, width: CGFloat) {
         guard launching.removeValue(forKey: bundleID) != nil else {
             return

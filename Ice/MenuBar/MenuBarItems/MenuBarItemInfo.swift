@@ -31,7 +31,15 @@ struct MenuBarItemInfo: Hashable, CustomStringConvertible {
 // MARK: MenuBarItemInfo Constants
 extension MenuBarItemInfo {
     /// An array of items whose movement is prevented by macOS.
-    static let immovableItems = [clock, siri, controlCenter]
+    ///
+    /// Siri can be moved as of macOS 26.
+    static let immovableItems: [MenuBarItemInfo] = {
+        if #available(macOS 26, *) {
+            [clock, controlCenter]
+        } else {
+            [clock, siri, controlCenter]
+        }
+    }()
 
     /// An array of items that can be moved, but cannot be hidden.
     static let nonHideableItems = [audioVideoModule, faceTime, musicRecognition]
@@ -70,10 +78,13 @@ extension MenuBarItemInfo {
     )
 
     /// Information for the "BentoBox" (a.k.a. "Control Center") item.
-    static let controlCenter = MenuBarItemInfo(
-        namespace: .controlCenter,
-        title: "BentoBox"
-    )
+    ///
+    /// macOS 26 renamed its window to "BentoBox-0".
+    static let controlCenter: MenuBarItemInfo = if #available(macOS 26, *) {
+        MenuBarItemInfo(namespace: .controlCenter, title: "BentoBox-0")
+    } else {
+        MenuBarItemInfo(namespace: .controlCenter, title: "BentoBox")
+    }
 
     /// Information for the item that appears in the menu bar while the
     /// screen or system audio is being recorded.

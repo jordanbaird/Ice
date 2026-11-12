@@ -523,9 +523,10 @@ private struct IceBarContentView: View {
 
     @ViewBuilder
     private var content: some View {
-        if itemManager.isItemDiscoveryUnavailable {
+        if itemManager.usesAccessibilityItemActivation {
             // macOS 27+: CGS no longer has per-item windows — show the app icon and
             // press via Accessibility instead of window snapshots + temp-show.
+            // macOS 26 uses this too: moving items there is unreliable.
             axFallbackView
                 .task {
                     await loadAXRows()

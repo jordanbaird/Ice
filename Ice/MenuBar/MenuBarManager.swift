@@ -37,7 +37,7 @@ final class MenuBarManager: ObservableObject {
     /// The panel that contains the Ice Bar interface.
     let iceBarPanel: IceBarPanel
 
-    /// Whether the Menu Bar Layout pane is on screen (macOS 27).
+    /// Whether the Menu Bar Layout pane is on screen.
     ///
     /// While editing, every section is revealed so Accessibility reports
     /// real positions for each icon and divider, and automatic rehiding is
@@ -220,19 +220,26 @@ final class MenuBarManager: ObservableObject {
                     var items = MenuBarItem.getMenuBarItems(on: displayID, onScreenOnly: false, activeSpaceOnly: true)
 
                     // Filter the items down according to the currently enabled/shown sections.
+                    //
+                    // If the divider can't be found, the hidden items can't be
+                    // told apart from the shown ones, and the off-screen hidden
+                    // items would always look like they overlap the menus. This
+                    // happened on macOS 26 until the item owners were resolved.
                     if
                         let alwaysHiddenSection = section(withName: .alwaysHidden),
                         alwaysHiddenSection.isEnabled
                     {
                         if alwaysHiddenSection.controlItem.state == .hideItems {
-                            if let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map({ items.remove(at: $0) }) {
-                                items.trimPrefix { $0.frame.maxX <= alwaysHiddenControlItem.frame.minX }
+                            guard let alwaysHiddenControlItem = items.firstIndex(matching: .alwaysHiddenControlItem).map({ items.remove(at: $0) }) else {
+                                return
                             }
+                            items.trimPrefix { $0.frame.maxX <= alwaysHiddenControlItem.frame.minX }
                         }
                     } else {
-                        if let hiddenControlItem = items.firstIndex(matching: .hiddenControlItem).map({ items.remove(at: $0) }) {
-                            items.trimPrefix { $0.frame.maxX <= hiddenControlItem.frame.minX }
+                        guard let hiddenControlItem = items.firstIndex(matching: .hiddenControlItem).map({ items.remove(at: $0) }) else {
+                            return
                         }
+                        items.trimPrefix { $0.frame.maxX <= hiddenControlItem.frame.minX }
                     }
 
                     // Get the leftmost item on the screen.
@@ -443,12 +450,15 @@ final class MenuBarManager: ObservableObject {
 
     /// Reveals every section while the Menu Bar Layout pane is open.
     ///
-    /// On macOS 27 a hidden icon has no usable position: it sits in overflow
-    /// and Accessibility reports a made-up frame. Dragging it, or dropping
-    /// next to a collapsed divider, missed and the icon snapped back
-    /// (issues #17, #24). The reveal is temporary and never saved.
+    /// The pane moves icons with a real ⌘-drag, so a hidden icon has to be
+    /// on screen. On macOS 27 a hidden icon sits in overflow and
+    /// Accessibility reports a made-up frame; on earlier versions it is
+    /// pushed off the left edge of the screen by the expanded divider.
+    /// Either way, dragging it, or dropping next to a collapsed divider,
+    /// missed and the icon snapped back (issues #17, #24). The reveal is
+    /// temporary and never saved.
     private func beginLayoutEditing() {
-        guard #available(macOS 27, *), !isLayoutEditing else {
+        guard !isLayoutEditing else {
             return
         }
         isLayoutEditing = true

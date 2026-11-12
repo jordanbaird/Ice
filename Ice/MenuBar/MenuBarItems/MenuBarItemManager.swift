@@ -104,6 +104,16 @@ final class MenuBarItemManager: ObservableObject {
     /// regardless of how many other windows the server still returns.
     @Published private(set) var isItemDiscoveryUnavailable = false
 
+    /// Whether the Ice Bar lists items through Accessibility and opens them
+    /// with a press, instead of window snapshots and moving the item.
+    ///
+    /// Also used on macOS 26, where moving items with events is unreliable
+    /// (slow, and items may not return to their original spots), so the Ice
+    /// Bar uses the same press-based path as macOS 27.
+    var usesAccessibilityItemActivation: Bool {
+        isItemDiscoveryUnavailable || MenuBarItemSourceResolver.isNeeded
+    }
+
     /// The shared app state.
     private(set) weak var appState: AppState?
 
@@ -329,6 +339,14 @@ extension MenuBarItemManager {
         itemCache = cache
     }
 
+    /// Resolves which app created each of the given item windows.
+    ///
+    /// Only does work on macOS 26. Returns `false` when some owners are still
+    /// unknown and worth another try.
+    private func resolveItemSources(for windowIDs: [CGWindowID]) async -> Bool {
+        await MenuBarItemSourceResolver.resolve(windowIDs: windowIDs)
+    }
+
     /// Caches the current menu bar items if needed, ensuring that the control
     /// items are in the correct order.
     ///
@@ -358,6 +376,11 @@ extension MenuBarItemManager {
         // window metadata can become available after the windows themselves.
         cachedItemWindowIDs = nil
 
+        // macOS 26 reports Control Center as the owner of every item
+        // window, so find the real owners before reading the items.
+        // Without this, Ice can't find its own dividers there.
+        let areSourcesResolved = await resolveItemSources(for: itemWindowIDs)
+
         var items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
 
         let hiddenControlItem = items.firstIndex(matching: .hiddenControlItem).map { items.remove(at: $0) }
@@ -386,7 +409,9 @@ extension MenuBarItemManager {
                 alwaysHiddenControlItem: alwaysHiddenControlItem,
                 otherItems: items
             )
-            cachedItemWindowIDs = itemWindowIDs
+            // Unplaced owners are retried on the next pass, even though
+            // the window list hasn't changed.
+            cachedItemWindowIDs = areSourcesResolved ? itemWindowIDs : nil
         } catch {
             Logger.itemManager.error("Error enforcing control item order: \(error)")
             Logger.itemManager.debug("Clearing menu bar item cache")

@@ -29,6 +29,14 @@ enum MenuBarItemAXMover {
             guard let eventSource = CGEventSource(stateID: .hidSystemState) else {
                 return
             }
+            // Ignore the real mouse while the drag runs: the user's hand is often
+            // still moving right after dropping in Settings, and a real move
+            // between synthetic events yanks the dragged icon off course.
+            // Keyboard and system events stay allowed.
+            let keepEvents: CGEventFilterMask = [.permitLocalKeyboardEvents, .permitSystemDefinedEvents]
+            eventSource.setLocalEventsFilterDuringSuppressionState(keepEvents, state: .eventSuppressionStateSuppressionInterval)
+            eventSource.setLocalEventsFilterDuringSuppressionState(keepEvents, state: .eventSuppressionStateRemoteMouseDrag)
+            eventSource.localEventsSuppressionInterval = 0.3
 
             // Remember the old cursor position to restore after the drag. Don't hide
             // the cursor: a disappearing cursor makes users think the app hung.
@@ -102,6 +110,15 @@ enum MenuBarItemAXMover {
                 )
                 post(.leftMouseDragged, at: point, flags: .maskCommand)
                 try? await Task.sleep(for: .milliseconds(15))
+            }
+
+            // Hover on the drop point before letting go. The menu bar slides
+            // icons aside while they're dragged past; releasing 15ms after
+            // arriving sometimes dropped against the half-finished layout, so
+            // the icon landed short and the drag had to be redone.
+            for _ in 0..<3 {
+                post(.leftMouseDragged, at: destination, flags: .maskCommand)
+                try? await Task.sleep(for: .milliseconds(50))
             }
 
             post(.leftMouseUp, at: destination, flags: .maskCommand)

@@ -133,11 +133,26 @@ enum ScreenCapture {
             if let pid = window[kCGWindowOwnerPID] as? pid_t, pid == ProcessInfo.processInfo.processIdentifier {
                 continue
             }
+            // On macOS 26 every item window, ours included, is owned by
+            // Control Center, so the check above misses our own items there.
+            // Skip them by name as well.
+            if isOwnStatusItemName(name) {
+                continue
+            }
             logger.debug("Screen capture permission confirmed by the menu bar window \"\(name)\".")
             return true
         }
         logger.debug("No named menu bar window found; inspected \(statusWindows) status window(s).")
         return false
+    }
+
+    /// Returns a Boolean value that indicates whether a window name belongs
+    /// to one of Ice's own status items (a section control item or one of
+    /// its spacers).
+    private static func isOwnStatusItemName(_ name: String) -> Bool {
+        ControlItem.Identifier.allCases.contains { identifier in
+            name == identifier.rawValue || name.hasPrefix("\(identifier.rawValue).Spacer")
+        }
     }
 
     /// Returns a Boolean value that indicates whether the app has been granted screen capture permissions.

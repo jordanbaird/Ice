@@ -60,6 +60,12 @@ final class Manager {
     var itemCache = Cache()
     var itemHasRecentlyMoved = false
     func waitForItemsToStopMoving(timeout: Duration) async throws {}
+    var sourcesResolved = true
+    var resolveCalls = 0
+    func resolveItemSources(for windowIDs: [CGWindowID]) async -> Bool {
+        resolveCalls += 1
+        return sourcesResolved
+    }
     func logSkippingCache(reason: String) {}
     func enforceControlItemOrder(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem) async throws {}
     func uncheckedCacheItems(hiddenControlItem: MenuBarItem, alwaysHiddenControlItem: MenuBarItem?, otherItems: [MenuBarItem]) {
@@ -113,6 +119,22 @@ let tests = #"""
         await recovery.cacheItemsIfNeeded()
         expect(!recovery.isItemDiscoveryUnavailable && recovery.itemCache.count == 1,
                "return to an earlier successful ID list rebuilds a cleared cache")
+
+        // macOS 26: item owners that couldn't be placed yet are retried.
+        let unresolved = Manager()
+        unresolved.sourcesResolved = false
+        input([55], hasDivider: true)
+        await unresolved.cacheItemsIfNeeded()
+        let unresolvedScans = MenuBarItem.scans
+        await unresolved.cacheItemsIfNeeded()
+        expect(MenuBarItem.scans == unresolvedScans + 1 && unresolved.resolveCalls == 2,
+               "unresolved item owners rescan even with unchanged IDs")
+        unresolved.sourcesResolved = true
+        await unresolved.cacheItemsIfNeeded()
+        let resolvedScans = MenuBarItem.scans
+        await unresolved.cacheItemsIfNeeded()
+        expect(MenuBarItem.scans == resolvedScans,
+               "resolved item owners stop rescanning unchanged IDs")
         exit(failures == 0 ? 0 : 1)
     }
 }

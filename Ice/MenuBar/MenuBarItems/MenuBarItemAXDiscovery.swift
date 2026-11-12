@@ -158,7 +158,7 @@ enum MenuBarItemAXDiscovery {
         case "sound": return "speaker.wave.2.fill"
         case "bluetooth": return "bluetooth"
         case "battery", "batterymenu": return "battery.100"
-        case "bentobox", "controlcenter", "control center": return "switch.2"
+        case "bentobox", "bentobox-0", "controlcenter", "control center": return "switch.2"
         case "clock": return "clock"
         case "spotlight": return "magnifyingglass"
         case "airplay", "screenmirroring", "screen mirroring": return "airplayvideo"

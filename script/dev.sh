@@ -24,6 +24,11 @@ fi
 IDENTITY="${ICE_CODE_SIGN_IDENTITY:-Ice Dev}"
 DEV_APP="${ICE_DEV_APP:-/Applications/Ice-Dev.app}"
 DEST="platform=macOS,arch=arm64"
+# Separate bundle ID => own permissions (TCC), own settings (UserDefaults), runs alongside the main Ice.
+DEV_BUNDLE_ID="${ICE_DEV_BUNDLE_ID:-com.jordanbaird.Ice.dev}"
+DEV_NAME="${ICE_DEV_NAME:-Ice Dev}"
+DEV_EXEC="$DEV_APP/Contents/MacOS/Ice"
+BUNDLE_ARGS=(PRODUCT_BUNDLE_IDENTIFIER="$DEV_BUNDLE_ID")
 
 SIGN_ARGS=()
 if [ "$IDENTITY" = "-" ]; then
@@ -40,20 +45,27 @@ fi
 
 echo "→ Building Debug (sign: ${IDENTITY})…"
 xcodebuild -project Ice.xcodeproj -scheme Ice -configuration Debug \
-    -destination "$DEST" "${SIGN_ARGS[@]}" "${VERSION_ARGS[@]}" build
+    -destination "$DEST" "${SIGN_ARGS[@]}" "${VERSION_ARGS[@]}" "${BUNDLE_ARGS[@]}" build
 
 APP_DIR=$(xcodebuild -project Ice.xcodeproj -scheme Ice -configuration Debug \
-    -destination "$DEST" "${VERSION_ARGS[@]}" -showBuildSettings 2>/dev/null | sed -n 's/^ *BUILT_PRODUCTS_DIR *= *//p' | head -1)
+    -destination "$DEST" "${VERSION_ARGS[@]}" "${BUNDLE_ARGS[@]}" -showBuildSettings 2>/dev/null | sed -n 's/^ *BUILT_PRODUCTS_DIR *= *//p' | head -1)
 SRC_APP="$APP_DIR/Ice.app"
 [ -d "$SRC_APP" ] || { echo "❌ Not found: $SRC_APP"; exit 1; }
 
-echo "→ Killing old build…"
-pkill -x Ice 2>/dev/null || true
+echo "→ Killing old dev build (main Ice is left alone)…"
+pkill -f "^$DEV_EXEC" 2>/dev/null || true
 sleep 1
 
 echo "→ Copying to $DEV_APP (fixed path = keeps permissions)…"
 rm -rf "$DEV_APP"
 ditto "$SRC_APP" "$DEV_APP"
+PLIST="$DEV_APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $DEV_BUNDLE_ID" "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleName $DEV_NAME" "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleName string $DEV_NAME" "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $DEV_NAME" "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $DEV_NAME" "$PLIST"
+# Keep the dev build from auto-updating itself via Sparkle.
+/usr/libexec/PlistBuddy -c "Delete :SUFeedURL" "$PLIST" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :SUEnableAutomaticChecks false" "$PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :SUEnableAutomaticChecks bool false" "$PLIST"
 echo "→ Re-signing uniformly ($IDENTITY, fixes dyld Team IDs)…"
 codesign --force --deep --sign "$IDENTITY" "$DEV_APP"
 codesign --verify --deep --strict "$DEV_APP"
@@ -67,9 +79,9 @@ echo "→ Built version: $BUILT_VERSION ($BUILT_BUILD)"
 echo "→ Opening new build…"
 open "$DEV_APP"
 sleep 2
-if ICE_PID=$(pgrep -x Ice); then
+if ICE_PID=$(pgrep -f "^$DEV_EXEC"); then
     echo "✅ App is running (PID $ICE_PID). Ice is a menu-bar app: look for its menu bar icon, it has no Dock icon."
-    echo "   Live logs: log stream --predicate 'process == \"Ice\"' --level debug"
+    echo "   Live logs: log stream --predicate 'subsystem == \"$DEV_BUNDLE_ID\"' --level debug"
 else
     echo "❌ App launched then quit — newest crash log: ls -t ~/Library/Logs/DiagnosticReports/Ice-*.ips | head -1"
     exit 1

@@ -24,7 +24,7 @@ final class MenuBarItemSpacingManager {
     }
 
     /// An error that groups multiple failed app relaunches.
-    private struct GroupedRelaunchError: LocalizedError {
+    struct GroupedRelaunchError: LocalizedError {
         let failedApps: [String]
 
         var errorDescription: String? {
@@ -43,24 +43,53 @@ final class MenuBarItemSpacingManager {
     /// Does not take effect until ``applyOffset()`` is called.
     var offset = 0
 
-    /// Runs a command with the given arguments.
+    /// Runs a command with the given arguments, throwing on non-zero exit.
     private func runCommand(_ command: String, with arguments: [String]) async throws {
         let process = Process()
 
         process.executableURL = URL(filePath: "/usr/bin/env")
         process.arguments = CollectionOfOne(command) + arguments
 
+        let errorPipe = Pipe()
+        process.standardError = errorPipe
+
         let task = Task.detached {
             try process.run()
             process.waitUntilExit()
         }
 
-        return try await task.value
+        try await task.value
+
+        if process.terminationStatus != 0 {
+            let rawMessage = String(data: errorPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let message: String
+            if let rawMessage, !rawMessage.isEmpty {
+                message = rawMessage
+            } else {
+                message = "Command '\(command)' failed with exit code \(process.terminationStatus)"
+            }
+            throw NSError(
+                domain: "MenuBarItemSpacing",
+                code: Int(process.terminationStatus),
+                userInfo: [NSLocalizedDescriptionKey: message]
+            )
+        }
     }
 
-    /// Removes the value for the specified key.
+    /// Removes the value for the specified key. Missing keys are ignored
+    /// so resetting to default never fails on a fresh system.
     private func removeValue(forKey key: Key) async throws {
-        try await runCommand("defaults", with: ["-currentHost", "delete", "-globalDomain", key.rawValue])
+        do {
+            try await runCommand("defaults", with: ["-currentHost", "delete", "-globalDomain", key.rawValue])
+        } catch {
+            // ponytail: `defaults delete` exits 1 when the key was never set —
+            // that's already the default state, not a failure.
+            if (error as NSError).localizedDescription.lowercased().contains("does not exist") {
+                return
+            }
+            throw error
+        }
     }
 
     /// Sets the value for the specified key to the key's default value plus the given offset.
@@ -140,9 +169,21 @@ final class MenuBarItemSpacingManager {
         }
     }
 
+    /// Whether spacing changes require a logout to take effect.
+    ///
+    /// On macOS 26 and later the system reads `NSStatusItemSpacing` and
+    /// `NSStatusItemSelectionPadding` at login time only — restarting menu
+    /// bar apps, MenuBarAgent, or ControlCenter does not pick up new values
+    /// (verified on macOS 27: icon positions identical after each restart).
+    static var requiresLogoutToApply: Bool {
+        ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26
+    }
+
     /// Applies the current ``offset``.
     ///
-    /// - Note: Calling this restarts all apps with a menu bar item.
+    /// - Note: On macOS 26 and later this only writes the preferences; the
+    ///   user must log out for the changes to take effect. On earlier versions
+    ///   this restarts all apps with a menu bar item.
     func applyOffset() async throws {
         if offset == 0 {
             try await removeValue(forKey: .spacing)
@@ -152,28 +193,35 @@ final class MenuBarItemSpacingManager {
             try await setOffset(offset, forKey: .padding)
         }
 
+        // ponytail: no relaunch dance on macOS 26+ — prefs are login-time only,
+        // so killing user apps would risk unsaved work for zero visual effect.
+        guard !Self.requiresLogoutToApply else {
+            return
+        }
+
         try? await Task.sleep(for: .milliseconds(100))
 
         let items = MenuBarItem.getMenuBarItems(onScreenOnly: false, activeSpaceOnly: true)
         let pids = Set(items.map { $0.ownerPID })
 
-        var failedApps = [String]()
-
-        await withTaskGroup(of: Void.self) { group in
+        // Collect failed app names as task results instead of mutating a
+        // shared array — avoids a data race across concurrent relaunch tasks.
+        let failedFromRelaunch: [String] = await withTaskGroup(of: String?.self) { group in
             for pid in pids {
                 guard
                     let app = NSRunningApplication(processIdentifier: pid),
                     app.bundleIdentifier != "com.apple.controlcenter", // ControlCenter handles its own relaunch, so skip it.
                     app != .current
                 else {
-                    break
+                    continue
                 }
                 group.addTask { @MainActor in
                     do {
                         try await self.relaunchApp(app)
+                        return nil
                     } catch {
                         guard let name = app.localizedName else {
-                            return
+                            return nil
                         }
                         if app.bundleIdentifier == "com.apple.Spotlight" {
                             // Spotlight automatically relaunches, so only consider it a failure if it never quit.
@@ -181,15 +229,25 @@ final class MenuBarItemSpacingManager {
                                 let latestSpotlightInstance = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Spotlight").first,
                                 latestSpotlightInstance.processIdentifier == app.processIdentifier
                             {
-                                failedApps.append(name)
+                                return name
                             }
+                            return nil
                         } else {
-                            failedApps.append(name)
+                            return name
                         }
                     }
                 }
             }
+            var collected = [String]()
+            for await name in group {
+                if let name {
+                    collected.append(name)
+                }
+            }
+            return collected
         }
+
+        var failedApps = failedFromRelaunch
 
         try? await Task.sleep(for: .milliseconds(100))
 

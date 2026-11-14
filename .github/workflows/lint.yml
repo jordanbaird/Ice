@@ -14,10 +14,29 @@ on:
 jobs:
   swiftlint:
     if: '!github.event.pull_request.merged'
-    runs-on: ubuntu-latest
+    # Pinned: the Linux SwiftLint binary links libxml2.so.2, which newer
+    # runner images no longer ship.
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Install SwiftLint 0.65.1
+        env:
+          # Authenticated downloads: GitHub throttles / times out anonymous
+          # release downloads from runners (504s).
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxml2
+          SWIFTLINT_VERSION=0.65.1
+          for attempt in 1 2 3 4 5; do
+            gh release download "$SWIFTLINT_VERSION" -R realm/SwiftLint \
+              -p swiftlint_linux_amd64.zip -O /tmp/swiftlint.zip --clobber && break
+            [ "$attempt" = 5 ] && exit 1
+            echo "Download failed (attempt $attempt), retrying in $((attempt * 15))s..."
+            sleep $((attempt * 15))
+          done
+          unzip -q -o /tmp/swiftlint.zip -d /tmp/swiftlint
+          echo "/tmp/swiftlint" >> "$GITHUB_PATH"
+          /tmp/swiftlint/swiftlint version
       - name: Run SwiftLint
-        uses: norio-nomura/action-swiftlint@3.2.1
-        with:
-          args: --strict
+        run: swiftlint --strict

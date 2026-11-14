@@ -105,7 +105,7 @@ struct AdvancedSettingsPane: View {
             )
         } label: {
             Text("Show on hover delay")
-                .frame(minHeight: .compactSliderMinHeight)
+                .frame(minHeight: 24)
                 .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
                 .onFrameChange { frame in
                     maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)
@@ -125,7 +125,7 @@ struct AdvancedSettingsPane: View {
             )
         } label: {
             Text("Temporarily shown item delay")
-                .frame(minHeight: .compactSliderMinHeight)
+                .frame(minHeight: 24)
                 .frame(minWidth: maxSliderLabelWidth, alignment: .leading)
                 .onFrameChange { frame in
                     maxSliderLabelWidth = max(maxSliderLabelWidth, frame.width)

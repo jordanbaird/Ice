@@ -11,10 +11,20 @@ extension View {
     /// - Note: The view this modifier is applied to must be transparent, or the style
     ///   will be drawn incorrectly.
     @ViewBuilder
-    func layoutBarStyle(appState: AppState, averageColorInfo: MenuBarAverageColorInfo?) -> some View {
+    func layoutBarStyle(appState: AppState, averageColorInfo: MenuBarAverageColorInfo?, tintOpacity: Double = 0.2, useLiveBlur: Bool = false) -> some View {
         background {
             if appState.isActiveSpaceFullscreen {
                 Color.black
+            } else if useLiveBlur {
+                // Mirror MenuBarOverlayPanel.updateChrome: live .menu blur
+                // under the tint instead of a static average-color sample —
+                // the bar sits on the wallpaper so only live blur matches
+                // the split pill.
+                let current = appState.appearanceManager.configuration.current
+                if !(current.blurAmount <= 0 || (current.tintKind != .none && current.tintOpacity >= 1)) {
+                    VisualEffectView(material: .menu, blendingMode: .behindWindow)
+                        .opacity(current.blurAmount)
+                }
             } else if let averageColorInfo {
                 switch averageColorInfo.source {
                 case .menuBarWindow:
@@ -43,11 +53,11 @@ extension View {
                     EmptyView()
                 case .solid:
                     Color(cgColor: appState.appearanceManager.configuration.current.tintColor)
-                        .opacity(0.2)
+                        .opacity(tintOpacity)
                         .allowsHitTesting(false)
                 case .gradient:
                     appState.appearanceManager.configuration.current.tintGradient
-                        .opacity(0.2)
+                        .opacity(tintOpacity)
                         .allowsHitTesting(false)
                 }
             }

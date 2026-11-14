@@ -10,10 +10,13 @@ struct PermissionsView: View {
     @Environment(\.openWindow) private var openWindow
 
     private var continueButtonText: LocalizedStringKey {
-        if case .hasRequiredPermissions = permissionsManager.permissionsState {
-            "Continue in Limited Mode"
-        } else {
+        switch permissionsManager.permissionsState {
+        case .hasAllPermissions:
             "Continue"
+        case .hasRequiredPermissions:
+            "Continue in Limited Mode"
+        case .missingPermissions:
+            "Skip for Now"
         }
     }
 
@@ -32,6 +35,7 @@ struct PermissionsView: View {
 
             explanationView
             permissionsGroupStack
+            skipHintView
 
             footerView
                 .padding(.vertical)
@@ -42,7 +46,10 @@ struct PermissionsView: View {
             guard let window else {
                 return
             }
-            window.styleMask.remove([.closable, .miniaturizable])
+            // Allow closing the window to Skip (only miniaturize is locked);
+            // the app is already set up in the background so closing is safe
+            // at any time.
+            window.styleMask.remove([.miniaturizable])
             if let contentView = window.contentView {
                 with(contentView.safeAreaInsets) { insets in
                     insets.bottom = -insets.bottom
@@ -64,7 +71,7 @@ struct PermissionsView: View {
             if let nsImage = NSImage(named: NSImage.applicationIconName) {
                 Image(nsImage: nsImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFit()
                     .frame(width: 75, height: 75)
             }
         }
@@ -91,6 +98,16 @@ struct PermissionsView: View {
             ForEach(permissionsManager.allPermissions) { permission in
                 permissionBox(permission)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var skipHintView: some View {
+        if case .missingPermissions = permissionsManager.permissionsState {
+            Text("You can skip and grant permissions later in Settings.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.top, 10)
         }
     }
 
@@ -127,7 +144,6 @@ struct PermissionsView: View {
                 .frame(maxWidth: .infinity)
                 .foregroundStyle(continueButtonForegroundStyle)
         }
-        .disabled(permissionsManager.permissionsState == .missingPermissions)
     }
 
     @ViewBuilder

@@ -142,6 +142,7 @@ extension Defaults {
 
         case showIceIcon = "ShowIceIcon"
         case iceIcon = "IceIcon"
+        case reverseIceIcon = "ReverseIceIcon"
         case customIceIconIsTemplate = "CustomIceIconIsTemplate"
         case useIceBar = "UseIceBar"
         case showOnClick = "ShowOnClick"
@@ -151,6 +152,9 @@ extension Defaults {
         case autoRehide = "AutoRehide"
         case rehideStrategy = "RehideStrategy"
         case rehideInterval = "RehideInterval"
+        case showVisibleSection = "ShowVisibleSection"
+        case showHiddenSection = "ShowHiddenSection"
+        case showAlwaysHiddenSection = "ShowAlwaysHiddenSection"
 
         // MARK: Hotkey Settings
 
@@ -176,12 +180,19 @@ extension Defaults {
         case iceBarLocation = "IceBarLocation"
         case iceBarPinnedLocation = "IceBarPinnedLocation"
 
+        // MARK: Star Request
+
+        case starRequestVersion = "StarRequestVersion"
+        case hasDeclinedStarRequest = "HasDeclinedStarRequest"
+
         // MARK: Migration
 
         case hasMigrated0_8_0 = "hasMigrated0_8_0"
         case hasMigrated0_10_0 = "hasMigrated0_10_0"
         case hasMigrated0_10_1 = "hasMigrated0_10_1"
         case hasMigrated0_11_10 = "hasMigrated0_11_10"
+        case hasMigrated0_11_27 = "hasMigrated0_11_27"
+        case hasMigrated0_11_27CorrectiveReveal = "hasMigrated0_11_27CorrectiveReveal"
 
         // MARK: Deprecated
 

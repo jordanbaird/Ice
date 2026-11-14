@@ -1,0 +1,251 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    # Liquid Glass is gated on the link SDK, not the run-time OS: building
+    # with Xcode <=16 keeps the legacy appearance even on Tahoe, so CI must
+    # build with the Xcode 26+ SDK like local builds do. macos-14 runners
+    # (Xcode 16 max) are deprecated.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26 SDK
+        run: |
+          ls -d /Applications/Xcode*.app
+          PINNED="/Applications/Xcode_26.6.app"
+          if [ -d "$PINNED" ]; then
+            XCODE="$PINNED"
+          else
+            XCODE=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          fi
+          if [ -z "${XCODE:-}" ]; then
+            echo "No Xcode 26+ found on runner"
+            exit 1
+          fi
+          echo "Selecting $XCODE"
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+          echo "macOS SDK: $(xcrun --show-sdk-version --sdk macosx)"
+      - name: Derive version from tag
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag '$TAG' must look like vX.Y.Z (e.g. v0.11.13)"
+            exit 1
+          fi
+          # Sparkle requires the build number to keep increasing and it must
+          # stay above 1117 (the last build released upstream).
+          BUILD_NUMBER=$((1117 + GITHUB_RUN_NUMBER))
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "Building version $VERSION ($BUILD_NUMBER)"
+      # Sparkle's binary target is a GitHub release download. Anonymous
+      # downloads from runners get throttled / time out (504), so authenticate
+      # through ~/.netrc and retry. The build reuses the packages resolved here.
+      - name: Resolve Swift packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          umask 077
+          printf 'machine github.com login x-access-token password %s\n' "$GH_TOKEN" > ~/.netrc
+          for attempt in 1 2 3 4 5; do
+            xcodebuild -resolvePackageDependencies -project Ice.xcodeproj -scheme Ice \
+              -packageAuthorizationProvider netrc && exit 0
+            echo "Package resolution failed (attempt $attempt), retrying in $((attempt * 15))s..."
+            sleep $((attempt * 15))
+          done
+          exit 1
+      - name: Build app
+        run: |
+          xcodebuild -project Ice.xcodeproj -scheme Ice -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
+            -packageAuthorizationProvider netrc \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            clean build
+          BUILD_DIR=$(xcodebuild -project Ice.xcodeproj -scheme Ice -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            -showBuildSettings 2>/dev/null \
+            | sed -n 's/^ *BUILT_PRODUCTS_DIR *= *//p' | head -1)
+          echo "APP_PATH=$BUILD_DIR/Ice.app" >> $GITHUB_ENV
+          echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+      # Sign with one stable self-signed certificate (script/create-release-cert.sh).
+      # Ad-hoc signatures pin a cdhash that changes every build, so macOS
+      # dropped Accessibility / Screen Recording on each update. A certificate
+      # gives a designated requirement that stays the same across releases.
+      - name: Import signing certificate
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          if [ -z "$CERT_P12" ] || [ -z "$CERT_PASSWORD" ]; then
+            echo "::error::Set MACOS_CERT_P12 and MACOS_CERT_PASSWORD (see script/create-release-cert.sh). Ad-hoc releases make users re-grant permissions on every update."
+            exit 1
+          fi
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+          printf '%s' "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          # codesign only finds identities in the user search list...
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          # ...and the runner's codesign rejects an untrusted self-signed identity
+          # ("no identity found"), so trust it for code signing on this runner only.
+          security find-certificate -c "Ice Release" -p "$KEYCHAIN" > "$RUNNER_TEMP/cert.pem"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign \
+            -k /Library/Keychains/System.keychain "$RUNNER_TEMP/cert.pem"
+          rm -f "$RUNNER_TEMP/cert.pem"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+          # Select it by SHA-1 hash, not name, so no other identity can match.
+          IDENTITY=$(security find-identity -p codesigning "$KEYCHAIN" | awk '/"Ice Release"/ {print $2; exit}')
+          if [ -z "$IDENTITY" ]; then
+            echo "::error::No \"Ice Release\" code signing identity in MACOS_CERT_P12"
+            exit 1
+          fi
+          echo "SIGN_KEYCHAIN=$KEYCHAIN" >> $GITHUB_ENV
+          echo "SIGN_IDENTITY=$IDENTITY" >> $GITHUB_ENV
+      - name: Sign app
+        run: |
+          # Re-sign everything (also fixes dyld "different Team IDs" on Sparkle.framework),
+          # keeping the entitlements Xcode embedded in each bundle.
+          codesign --force --deep --preserve-metadata=entitlements \
+            --keychain "$SIGN_KEYCHAIN" --sign "$SIGN_IDENTITY" "$APP_PATH"
+          codesign --verify --deep --strict "$APP_PATH"
+          REQ=$(codesign -d -r- "$APP_PATH" 2>&1)
+          echo "$REQ"
+          if ! grep -qE 'certificate (leaf|root)' <<< "$REQ" || grep -q 'cdhash' <<< "$REQ"; then
+            echo "::error::Designated requirement is not tied to the certificate"
+            exit 1
+          fi
+      - name: Zip and publish to GitHub Release
+        run: |
+          ditto -c -k --keepParent "$APP_PATH" Ice.zip
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: Ice.zip
+          generate_release_notes: true
+  update-homebrew:
+    needs: release
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.ref, '-') }} # Skip for pre-releases
+    steps:
+      - name: Derive version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+      - name: Get SHA256 from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "SHA256=$(gh api repos/cavaldos/Ice/releases/tags/$GITHUB_REF_NAME \
+            --jq '.assets[] | select(.name == "Ice.zip") | .digest' \
+            | sed 's/sha256://')" >> $GITHUB_ENV
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: cavaldos/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+      - name: Update cask
+        run: |
+          cat > homebrew-tap/Casks/ice.rb << 'EOF'
+          cask "ice" do
+            version "${{ env.VERSION }}"
+            sha256 "${{ env.SHA256 }}"
+
+            url "https://github.com/cavaldos/Ice/releases/download/v#{version}/Ice.zip"
+            name "Ice"
+            desc "Free and open-source menu bar manager for macOS"
+            homepage "https://icemenubar.app"
+
+            depends_on macos: :sonoma
+            conflicts_with cask: "jordanbaird-ice"
+
+            app "Ice.app"
+
+            zap trash: [
+              "~/Library/Preferences/com.jordanbaird.Ice.plist",
+            ]
+
+            caveats <<~EOS
+              Ice is self-signed and not notarized. On first launch, right-click the app and choose Open.
+              Grant Accessibility and Screen Recording once in System Settings > Privacy & Security;
+              updates keep them (see https://github.com/cavaldos/Ice#permissions).
+            EOS
+          end
+          EOF
+      - name: Commit and push
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/ice.rb
+          git diff --cached --quiet || git commit -m "ice ${{ env.VERSION }}"
+          # GitHub sometimes rejects pushes with a transient 500, so retry.
+          for attempt in 1 2 3 4 5; do
+            git push && exit 0
+            echo "Push failed (attempt $attempt), retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+            git pull --rebase
+          done
+          exit 1
+  # Publish appcast.xml so installed apps see the update. Without this step
+  # "Check for Updates" keeps saying "You're up to date" (cavaldos/Ice#28).
+  # Needs three repo secrets:
+  #   SPARKLE_PRIVATE_KEY            contents of the EdDSA key matching SUPublicEDKey
+  #   MACOS_APP_RELEASES_DEPLOY_KEY  private SSH key of a write deploy key on cavaldos/macos-app-releases
+  #   ICE_RELEASES_DEPLOY_KEY        same for cavaldos/ice-releases (old feed, mirrored until it is deleted)
+  # Manual fallback: ./script/update-appcast.sh <tag> --key <private-key.pem>
+  update-appcast:
+    needs: release
+    runs-on: macos-26
+    if: ${{ !contains(github.ref, '-') }} # Skip for pre-releases
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Sparkle tools
+        env:
+          SPARKLE_VERSION: "2.9.6" # keep in sync with Package.resolved
+          GH_TOKEN: ${{ github.token }} # authenticated: anonymous downloads time out
+        run: |
+          mkdir -p "$RUNNER_TEMP/sparkle"
+          for attempt in 1 2 3 4 5; do
+            gh release download "$SPARKLE_VERSION" -R sparkle-project/Sparkle \
+              -p "Sparkle-$SPARKLE_VERSION.tar.xz" -O "$RUNNER_TEMP/sparkle.tar.xz" --clobber && break
+            [ "$attempt" = 5 ] && exit 1
+            echo "Download failed (attempt $attempt), retrying in $((attempt * 15))s..."
+            sleep $((attempt * 15))
+          done
+          tar -xJf "$RUNNER_TEMP/sparkle.tar.xz" -C "$RUNNER_TEMP/sparkle"
+          echo "$RUNNER_TEMP/sparkle/bin" >> $GITHUB_PATH
+      - name: Publish appcast
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SPARKLE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          RELEASES_KEY: ${{ secrets.MACOS_APP_RELEASES_DEPLOY_KEY }}
+          LEGACY_KEY: ${{ secrets.ICE_RELEASES_DEPLOY_KEY }}
+        run: |
+          if [ -z "$SPARKLE_KEY" ] || [ -z "$RELEASES_KEY" ] || [ -z "$LEGACY_KEY" ]; then
+            echo "::error::Set SPARKLE_PRIVATE_KEY, MACOS_APP_RELEASES_DEPLOY_KEY and ICE_RELEASES_DEPLOY_KEY, or run ./script/update-appcast.sh $GITHUB_REF_NAME by hand"
+            exit 1
+          fi
+          KEYS="$RUNNER_TEMP/keys"
+          mkdir -m 700 "$KEYS"
+          trap 'rm -rf "$KEYS"' EXIT
+          printf '%s' "$SPARKLE_KEY" > "$KEYS/sparkle.pem"
+          printf '%s\n' "$RELEASES_KEY" > "$KEYS/releases"
+          printf '%s\n' "$LEGACY_KEY" > "$KEYS/legacy"
+          chmod 600 "$KEYS"/*
+          # Pinned from https://api.github.com/meta
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > "$KEYS/known_hosts"
+          SSH="ssh -o IdentitiesOnly=yes -o UserKnownHostsFile=$KEYS/known_hosts"
+          RELEASES_SSH="$SSH -i $KEYS/releases" LEGACY_RELEASES_SSH="$SSH -i $KEYS/legacy" \
+            ./script/update-appcast.sh "$GITHUB_REF_NAME" --key "$KEYS/sparkle.pem"
+# ponytail: ad-hoc signing is for internal testing only, public releases need Developer ID + notarization

@@ -17,8 +17,9 @@ final class AdvancedSettingsManager: ObservableObject {
     @Published var showSectionDividers = false
 
     /// A Boolean value that indicates whether the always-hidden section
-    /// is enabled.
-    @Published var enableAlwaysHiddenSection = false
+    /// is enabled. Defaults to true so a fresh install gets the section
+    /// without having to discover the switch (saved value still wins).
+    @Published var enableAlwaysHiddenSection = true
 
     /// A Boolean value that indicates whether the always-hidden section
     /// can be toggled by holding down the Option key.

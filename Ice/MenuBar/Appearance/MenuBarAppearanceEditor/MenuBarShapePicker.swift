@@ -11,6 +11,7 @@ struct MenuBarShapePicker: View {
 
     var body: some View {
         shapeKindPicker
+        cornerRadiusSlider
         exampleView
     }
 
@@ -31,6 +32,22 @@ struct MenuBarShapePicker: View {
     }
 
     @ViewBuilder
+    private var cornerRadiusSlider: some View {
+        if appearanceManager.configuration.shapeKind != .none,
+           appearanceManager.configuration.hasRoundedShape
+        {
+            IceLabeledContent("Corner Radius") {
+                HStack {
+                    Slider(value: appearanceManager.bindings.configuration.cornerRadius, in: 0...1)
+                    Text("\(Int((appearanceManager.configuration.cornerRadius * 100).rounded()))%")
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 40, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private var exampleView: some View {
         switch appearanceManager.configuration.shapeKind {
         case .none:
@@ -38,11 +55,17 @@ struct MenuBarShapePicker: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .center)
         case .full:
-            MenuBarFullShapeExampleView(info: appearanceManager.bindings.configuration.fullShapeInfo)
+            MenuBarFullShapeExampleView(
+                info: appearanceManager.bindings.configuration.fullShapeInfo,
+                cornerRadiusFactor: appearanceManager.configuration.cornerRadius
+            )
                 .equatable()
                 .foregroundStyle(colorScheme == .dark ? .primary : .secondary)
         case .split:
-            MenuBarSplitShapeExampleView(info: appearanceManager.bindings.configuration.splitShapeInfo)
+            MenuBarSplitShapeExampleView(
+                info: appearanceManager.bindings.configuration.splitShapeInfo,
+                cornerRadiusFactor: appearanceManager.configuration.cornerRadius
+            )
                 .equatable()
                 .foregroundStyle(colorScheme == .dark ? .primary : .secondary)
         }
@@ -51,6 +74,7 @@ struct MenuBarShapePicker: View {
 
 private struct MenuBarFullShapeExampleView: View, Equatable {
     @Binding var info: MenuBarFullShapeInfo
+    var cornerRadiusFactor: Double = 1
 
     var body: some View {
         VStack {
@@ -129,7 +153,8 @@ private struct MenuBarFullShapeExampleView: View, Equatable {
     private var leadingEndCapExample: some View {
         MenuBarEndCapExampleView(
             endCap: info.leadingEndCap,
-            edge: .leading
+            edge: .leading,
+            cornerRadiusFactor: cornerRadiusFactor
         )
     }
 
@@ -137,12 +162,13 @@ private struct MenuBarFullShapeExampleView: View, Equatable {
     private var trailingEndCapExample: some View {
         MenuBarEndCapExampleView(
             endCap: info.trailingEndCap,
-            edge: .trailing
+            edge: .trailing,
+            cornerRadiusFactor: cornerRadiusFactor
         )
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.info == rhs.info
+        lhs.info == rhs.info && lhs.cornerRadiusFactor == rhs.cornerRadiusFactor
     }
 
     private func cgRectEdge(for edge: HorizontalEdge) -> CGRectEdge {
@@ -154,10 +180,15 @@ private struct MenuBarFullShapeExampleView: View, Equatable {
 }
 
 private struct MenuBarEndCapExampleView: View {
-    @State private var radius: CGFloat = 0
+    @State private var height: CGFloat = 24
 
     let endCap: MenuBarEndCap
     let edge: HorizontalEdge
+    var cornerRadiusFactor: Double = 1
+
+    private var radius: CGFloat {
+        height / 2 * CGFloat(cornerRadiusFactor)
+    }
 
     var body: some View {
         switch endCap {
@@ -172,7 +203,7 @@ private struct MenuBarEndCapExampleView: View {
                     style: .circular
                 )
                 .onFrameChange { frame in
-                    radius = frame.height / 2
+                    height = frame.height
                 }
             case .trailing:
                 UnevenRoundedRectangle(
@@ -181,7 +212,7 @@ private struct MenuBarEndCapExampleView: View {
                     style: .circular
                 )
                 .onFrameChange { frame in
-                    radius = frame.height / 2
+                    height = frame.height
                 }
             }
         }
@@ -190,19 +221,20 @@ private struct MenuBarEndCapExampleView: View {
 
 private struct MenuBarSplitShapeExampleView: View, Equatable {
     @Binding var info: MenuBarSplitShapeInfo
+    var cornerRadiusFactor: Double = 1
 
     var body: some View {
         HStack {
-            MenuBarFullShapeExampleView(info: $info.leading)
+            MenuBarFullShapeExampleView(info: $info.leading, cornerRadiusFactor: cornerRadiusFactor)
                 .equatable()
             Divider()
                 .padding(.horizontal)
-            MenuBarFullShapeExampleView(info: $info.trailing)
+            MenuBarFullShapeExampleView(info: $info.trailing, cornerRadiusFactor: cornerRadiusFactor)
                 .equatable()
         }
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.info == rhs.info
+        lhs.info == rhs.info && lhs.cornerRadiusFactor == rhs.cornerRadiusFactor
     }
 }

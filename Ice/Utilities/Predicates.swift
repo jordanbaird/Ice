@@ -41,8 +41,13 @@ extension Predicates where Input == WindowInfo {
     /// for the given display.
     static func wallpaperWindow(for display: CGDirectDisplayID) -> NonThrowingPredicate {
         predicate { window in
-            // wallpaper window belongs to the Dock process
-            window.owningApplication?.bundleIdentifier == "com.apple.dock" &&
+            // macOS 14-15: wallpaper window belongs to the Dock process.
+            // macOS 26+: wallpaper moved to WindowManager (com.apple.WindowManager).
+            let bundleID = window.owningApplication?.bundleIdentifier
+            let isWallpaperOwner = bundleID == "com.apple.dock"
+                || bundleID == "com.apple.WindowManager"
+                || window.ownerName == "WindowManager"
+            return isWallpaperOwner &&
             window.title?.hasPrefix("Wallpaper") == true &&
             CGDisplayBounds(display).contains(window.frame)
         }

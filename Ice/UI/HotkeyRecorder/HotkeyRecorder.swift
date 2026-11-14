@@ -107,7 +107,7 @@ struct HotkeyRecorder<Label: View>: View {
         }
         Image(systemName: symbolString)
             .resizable()
-            .aspectRatio(contentMode: .fill)
+            .scaledToFill()
             .padding(2)
     }
 }

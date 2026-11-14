@@ -40,6 +40,7 @@ struct MenuBarAppearanceEditor: View {
                     .font(.title2)
                     .frame(maxWidth: .infinity, alignment: .center)
                 Button("Done", action: closePopover)
+                    .buttonStyle(IceButtonStyle())
                     .controlSize(.large)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
@@ -135,6 +136,8 @@ private struct UnlabeledPartialEditor: View {
     var body: some View {
         IceSection {
             tintPicker
+            tintOpacity
+            blurToggle
             shadowToggle
         }
         IceSection {
@@ -174,6 +177,32 @@ private struct UnlabeledPartialEditor: View {
                 }
             }
             .frame(height: 24)
+        }
+    }
+
+    @ViewBuilder
+    private var tintOpacity: some View {
+        if configuration.tintKind != .none {
+            IceLabeledContent("Tint Opacity") {
+                HStack {
+                    Slider(value: $configuration.tintOpacity, in: 0...1)
+                    Text("\(Int((configuration.tintOpacity * 100).rounded()))%")
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 40, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var blurToggle: some View {
+        IceLabeledContent("Blur") {
+            HStack {
+                Slider(value: $configuration.blurAmount, in: 0...1)
+                Text("\(Int((configuration.blurAmount * 100).rounded()))%")
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 40, alignment: .trailing)
+            }
         }
     }
 

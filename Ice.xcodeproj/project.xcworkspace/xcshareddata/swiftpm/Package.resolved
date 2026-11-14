@@ -1,5 +1,5 @@
 {
-  "originHash" : "a7567d11f06745371832127a8ce2132148ef6a89fb55ecc72d6c313b688387fa",
+  "originHash" : "a2231809130d85931a369b04321c6cc4ea6e6eb3b89a555b07304d6381e368ef",
   "pins" : [
     {
       "identity" : "axswift",
@@ -8,24 +8,6 @@
       "state" : {
         "revision" : "81dcc36aced905d6464cc25e35f8d13184bbf21c",
         "version" : "0.3.2"
-      }
-    },
-    {
-      "identity" : "compactslider",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/buh/CompactSlider",
-      "state" : {
-        "revision" : "abe4d1df6f0c85dcb133266cc07c2a5d08295726",
-        "version" : "1.1.6"
-      }
-    },
-    {
-      "identity" : "ifrit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ukushu/Ifrit",
-      "state" : {
-        "revision" : "e610cdf4eddec1e76a9c7ae5db37738c7f73150b",
-        "version" : "2.0.3"
       }
     },
     {
@@ -42,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sparkle-project/Sparkle",
       "state" : {
-        "revision" : "0ef1ee0220239b3776f433314515fd849025673f",
-        "version" : "2.6.4"
+        "revision" : "ac2def288cbff5cfc7df3ffef6abdf45b72bcb0a",
+        "version" : "2.9.6"
       }
     }
   ],

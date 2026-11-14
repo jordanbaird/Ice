@@ -92,7 +92,21 @@ final class UpdatesManager: NSObject, ObservableObject {
 }
 
 // MARK: UpdatesManager: SPUUpdaterDelegate
-extension UpdatesManager: @preconcurrency SPUUpdaterDelegate {
+extension UpdatesManager: SPUUpdaterDelegate {
+    /// Never show Sparkle's "check for updates automatically?" permission prompt.
+    ///
+    /// Ice runs as a background app (LSUIElement), so it is not active when
+    /// Sparkle presents that dialog and the dialog can never process the
+    /// response: its buttons and checkbox stay frozen, the choice is never
+    /// saved, and the prompt reappears on every launch until the user force
+    /// quits (jordanbaird/Ice#681). Ice already exposes the same choice with
+    /// its "Automatically check/download updates" toggles in Settings, so the
+    /// prompt is redundant as well as broken.
+    @objc(updaterShouldPromptForPermissionToCheckForUpdates:)
+    func updaterShouldPromptForPermissionToCheck(forUpdates updater: SPUUpdater) -> Bool {
+        false
+    }
+
     func updater(_ updater: SPUUpdater, willScheduleUpdateCheckAfterDelay delay: TimeInterval) {
         guard let appState else {
             return
@@ -112,7 +126,11 @@ extension UpdatesManager: @preconcurrency SPUStandardUserDriverDelegate {
         if NSApp.isActive {
             return immediateFocus
         } else {
-            return false
+            // Sparkle cannot present interactive UI while Ice sits in the
+            // background (LSUIElement): the dialog shows but never dismisses
+            // (jordanbaird/Ice#681). Activate first so the update alert works.
+            appState?.activate(withPolicy: .regular)
+            return true
         }
     }
 
@@ -124,7 +142,11 @@ extension UpdatesManager: @preconcurrency SPUStandardUserDriverDelegate {
         guard let appState else {
             return
         }
-        if !state.userInitiated {
+        if handleShowingUpdate {
+            // Sparkle is presenting the update alert itself, so activate for
+            // the same reason as above.
+            appState.activate(withPolicy: .regular)
+        } else if !state.userInitiated {
             appState.userNotificationManager.addRequest(
                 with: .updateCheck,
                 title: "A new update is available",

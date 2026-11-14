@@ -4,6 +4,7 @@
 //
 
 import Cocoa
+import Combine
 
 /// A representation of a section in a menu bar.
 @MainActor
@@ -39,11 +40,31 @@ final class MenuBarSection {
     /// The control item that manages the section.
     let controlItem: ControlItem
 
+    /// Storage for internal observers.
+    private var cancellables = Set<AnyCancellable>()
+
     /// The shared app state.
     private weak var appState: AppState?
 
+    /// Earliest date at which a new toggle may start.
+    ///
+    /// Spam-clicking the divider (or mashing the hotkey) reverses the native
+    /// icon slide mid-flight, so the icons never rest and the pill chases a
+    /// moving target forever. Toggles inside the cooldown are dropped.
+    private var nextToggleDate = Date.distantPast
+
+    /// Minimum gap between two toggles, so one slide animation always
+    /// finishes before the next one starts.
+    private static let toggleCooldown: TimeInterval = 0.25
+
     /// A timer that manages rehiding the section.
     private var rehideTimer: Timer?
+
+    /// Whether state changes currently represent a durable user choice.
+    private var persistsStateChanges = true
+
+    /// Changes even for transient updates, so temporary reveals cannot undo a newer choice.
+    private(set) var stateRevision = 0
 
     /// An event monitor that handles starting the rehide timer when the mouse
     /// is outside of the menu bar.
@@ -112,6 +133,34 @@ final class MenuBarSection {
         self.name = name
         self.controlItem = controlItem
         self.appState = appState
+        // Restore the visibility the user last chose; a fresh install
+        // defaults to hidden, matching the previous launch behavior.
+        // Exception: on macOS 27 the pre-reveal population (no 0.11.27
+        // migration flag yet) starts shown, so icons trapped out of sight
+        // by the old hidden default come back (issue #17). Decided here at
+        // init instead of in the async migration so no launch race can
+        // strand the sections hidden; the migration persists the outcome.
+        controlItem.state = Self.initialState(for: shownDefaultsKey)
+        controlItem.$state
+            .sink { [weak self] state in
+                guard let self else {
+                    return
+                }
+                stateRevision += 1
+                guard persistsStateChanges else {
+                    return
+                }
+                Defaults.set(state == .showItems, forKey: shownDefaultsKey)
+                // The Ice icon mirrors the always-hidden section; repaint
+                // its arrow when that section changes.
+                if
+                    name == .alwaysHidden,
+                    let visibleSection = self.appState?.menuBarManager.section(withName: .visible)
+                {
+                    visibleSection.controlItem.updateStatusItem(with: visibleSection.controlItem.state)
+                }
+            }
+            .store(in: &cancellables)
     }
 
     /// Creates a section with the given name and app state.
@@ -127,8 +176,33 @@ final class MenuBarSection {
         self.init(name: name, controlItem: controlItem, appState: appState)
     }
 
+    /// The UserDefaults key that stores whether the section is shown.
+    private var shownDefaultsKey: Defaults.Key {
+        switch name {
+        case .visible: .showVisibleSection
+        case .hidden: .showHiddenSection
+        case .alwaysHidden: .showAlwaysHiddenSection
+        }
+    }
+
+    /// The hiding state a section starts in for the given persisted key.
+    ///
+    /// Before the 0.11.27 migration has run on macOS 27, starts shown: the
+    /// old hidden default (or a stored hidden choice from when dividers
+    /// could be placed) can otherwise trap icons out of sight with no
+    /// working drag to pull them back. Afterwards the stored choice wins.
+    private static func initialState(for key: Defaults.Key) -> ControlItem.HidingState {
+        if #available(macOS 27, *), !Defaults.bool(forKey: .hasMigrated0_11_27) {
+            return .showItems
+        }
+        return Defaults.bool(forKey: key) ? .showItems : .hideItems
+    }
+
     /// Shows the section.
-    func show() {
+    ///
+    /// - Parameter persistState: Whether this is an explicit visibility choice.
+    ///   Automatic hover reveals must not change the next-launch preference.
+    func show(persistState: Bool = true) {
         guard
             let appState,
             isHidden
@@ -142,21 +216,21 @@ final class MenuBarSection {
         }
         switch name {
         case .visible where useIceBar, .hidden where useIceBar:
+            // The Ice Bar shows items WITHOUT expanding the menu bar: the spacer stays put.
+            // The bar lists whatever AX sees (dividersMissing → show everything);
+            // deeply parked items with no AX node can't be listed — an accepted
+            // trade-off per the user's call (menu bar must not jut left).
             Task {
                 if let screenForIceBar {
                     await iceBarPanel?.show(section: .hidden, on: screenForIceBar)
                 }
-                for section in appState.menuBarManager.sections {
-                    section.controlItem.state = .hideItems
-                }
             }
         case .alwaysHidden where useIceBar:
+            // Same as above: clicking the Ice icon only shows the bar below,
+            // the menu bar stays put.
             Task {
                 if let screenForIceBar {
                     await iceBarPanel?.show(section: .alwaysHidden, on: screenForIceBar)
-                }
-                for section in appState.menuBarManager.sections {
-                    section.controlItem.state = .hideItems
                 }
             }
         case .visible:
@@ -164,15 +238,15 @@ final class MenuBarSection {
             guard let hiddenSection = appState.menuBarManager.section(withName: .hidden) else {
                 return
             }
-            controlItem.state = .showItems
-            hiddenSection.controlItem.state = .showItems
+            setState(.showItems, persist: persistState)
+            hiddenSection.setState(.showItems, persist: persistState)
         case .hidden:
             iceBarPanel?.close()
             guard let visibleSection = appState.menuBarManager.section(withName: .visible) else {
                 return
             }
-            controlItem.state = .showItems
-            visibleSection.controlItem.state = .showItems
+            setState(.showItems, persist: persistState)
+            visibleSection.setState(.showItems, persist: persistState)
         case .alwaysHidden:
             iceBarPanel?.close()
             guard
@@ -181,16 +255,32 @@ final class MenuBarSection {
             else {
                 return
             }
-            controlItem.state = .showItems
-            hiddenSection.controlItem.state = .showItems
-            visibleSection.controlItem.state = .showItems
+            setState(.showItems, persist: persistState)
+            hiddenSection.setState(.showItems, persist: persistState)
+            visibleSection.setState(.showItems, persist: persistState)
         }
         startRehideChecks()
     }
 
+    /// Updates this section's state with an explicit persistence intent.
+    func setState(_ state: ControlItem.HidingState, persist: Bool) {
+        let previousPersistence = persistsStateChanges
+        persistsStateChanges = persist
+        controlItem.state = state
+        persistsStateChanges = previousPersistence
+    }
+
     /// Hides the section.
-    func hide() {
+    ///
+    /// - Parameter persistState: Whether the new state should become the
+    ///   user's stored choice. Automatic rehide is transient and must not
+    ///   replace an explicit reveal from a later launch.
+    func hide(persistState: Bool = true) {
         guard
+            persistState || iceBarPanel?.isActivatingAXItem != true,
+            // Automatic rehides wait while the Layout pane is editing; an
+            // explicit hide (click, hotkey) still goes through.
+            persistState || appState?.menuBarManager.isLayoutEditing != true,
             let appState,
             !isHidden
         else {
@@ -200,7 +290,7 @@ final class MenuBarSection {
         switch name {
         case _ where useIceBar:
             for section in appState.menuBarManager.sections {
-                section.controlItem.state = .hideItems
+                section.setState(.hideItems, persist: persistState)
             }
         case .visible:
             guard
@@ -209,9 +299,9 @@ final class MenuBarSection {
             else {
                 return
             }
-            controlItem.state = .hideItems
-            hiddenSection.controlItem.state = .hideItems
-            alwaysHiddenSection.controlItem.state = .hideItems
+            setState(.hideItems, persist: persistState)
+            hiddenSection.setState(.hideItems, persist: persistState)
+            alwaysHiddenSection.setState(.hideItems, persist: persistState)
         case .hidden:
             guard
                 let visibleSection = appState.menuBarManager.section(withName: .visible),
@@ -219,18 +309,26 @@ final class MenuBarSection {
             else {
                 return
             }
-            controlItem.state = .hideItems
-            visibleSection.controlItem.state = .hideItems
-            alwaysHiddenSection.controlItem.state = .hideItems
+            setState(.hideItems, persist: persistState)
+            visibleSection.setState(.hideItems, persist: persistState)
+            alwaysHiddenSection.setState(.hideItems, persist: persistState)
         case .alwaysHidden:
-            controlItem.state = .hideItems
+            setState(.hideItems, persist: persistState)
         }
         appState.allowShowOnHover()
         stopRehideChecks()
     }
 
     /// Toggles the visibility of the section.
+    ///
+    /// Drops toggles that arrive inside ``toggleCooldown`` of the previous
+    /// one: reversing the slide mid-flight leaves icons and pill permanently
+    /// out of sync, so spam clicks wait for the animation to land instead.
     func toggle() {
+        guard Date() >= nextToggleDate else {
+            return
+        }
+        nextToggleDate = Date().addingTimeInterval(Self.toggleCooldown)
         if isHidden {
             show()
         } else {
@@ -239,8 +337,9 @@ final class MenuBarSection {
     }
 
     /// Starts running checks to determine when to rehide the section.
-    private func startRehideChecks() {
+    func startRehideChecks() {
         rehideTimer?.invalidate()
+        rehideTimer = nil
         rehideMonitor?.stop()
 
         guard
@@ -272,7 +371,7 @@ final class MenuBarSection {
                         }
                         if NSEvent.mouseLocation.y < screen.visibleFrame.maxY {
                             Task {
-                                await self.hide()
+                                await self.hide(persistState: false)
                             }
                         } else {
                             Task {

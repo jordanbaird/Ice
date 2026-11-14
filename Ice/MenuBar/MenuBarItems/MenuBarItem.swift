@@ -15,6 +15,13 @@ struct MenuBarItem {
     /// The menu bar item info associated with this item.
     let info: MenuBarItemInfo
 
+    /// The process identifier of the app that created the item.
+    ///
+    /// Same as the window's owner, except on macOS 26, where the window
+    /// server reports Control Center as the owner of every item window.
+    /// See ``MenuBarItemSourceResolver``.
+    let sourcePID: pid_t
+
     /// The identifier of the item's window.
     var windowID: CGWindowID {
         window.windowID
@@ -49,7 +56,7 @@ struct MenuBarItem {
 
     /// The process identifier of the application that owns the item.
     var ownerPID: pid_t {
-        window.ownerPID
+        sourcePID
     }
 
     /// The name of the application that owns the item.
@@ -57,12 +64,15 @@ struct MenuBarItem {
     /// This may have a value when ``owningApplication`` does not have
     /// a localized name.
     var ownerName: String? {
-        window.ownerName
+        guard sourcePID != window.ownerPID else {
+            return window.ownerName
+        }
+        return owningApplication?.localizedName ?? window.ownerName
     }
 
     /// The application that owns the item.
     var owningApplication: NSRunningApplication? {
-        window.owningApplication
+        NSRunningApplication(processIdentifier: sourcePID)
     }
 
     /// A name associated with the item that is suited for display to
@@ -86,7 +96,7 @@ struct MenuBarItem {
         case .controlCenter:
             switch title {
             case "AccessibilityShortcuts": "Accessibility Shortcuts"
-            case "BentoBox": bestName // Control Center
+            case "BentoBox", "BentoBox-0"/*Tahoe*/: bestName // Control Center
             case "FocusModes": "Focus"
             case "KeyboardBrightness": "Keyboard Brightness"
             case "MusicRecognition": "Music Recognition"
@@ -100,6 +110,7 @@ struct MenuBarItem {
         case .systemUIServer:
             switch title {
             case "TimeMachine.TMMenuExtraHost"/*Sonoma*/, "TimeMachineMenuExtra.TMMenuExtraHost"/*Sequoia*/: "Time Machine"
+            case "com.apple.menuextra.TimeMachine"/*Tahoe*/: "Time Machine"
             default: title
             }
         case MenuBarItemInfo.Namespace("com.apple.Passwords.MenuBarExtra"): "Passwords"
@@ -126,8 +137,10 @@ struct MenuBarItem {
     /// it is a valid menu bar item window. Only call this initializer if you are
     /// certain that the window is valid.
     private init(uncheckedItemWindow itemWindow: WindowInfo) {
+        let sourcePID = MenuBarItemSourceResolver.sourcePID(for: itemWindow.windowID) ?? itemWindow.ownerPID
         self.window = itemWindow
-        self.info = MenuBarItemInfo(uncheckedItemWindow: itemWindow)
+        self.sourcePID = sourcePID
+        self.info = MenuBarItemInfo(uncheckedItemWindow: itemWindow, sourcePID: sourcePID)
     }
 
     /// Creates a menu bar item.
@@ -225,8 +238,8 @@ private extension MenuBarItemInfo {
     /// This initializer does not perform any checks on the window to ensure that
     /// it is a valid menu bar item window. Only call this initializer if you are
     /// certain that the window is valid.
-    init(uncheckedItemWindow itemWindow: WindowInfo) {
-        if let bundleIdentifier = itemWindow.owningApplication?.bundleIdentifier {
+    init(uncheckedItemWindow itemWindow: WindowInfo, sourcePID: pid_t) {
+        if let bundleIdentifier = NSRunningApplication(processIdentifier: sourcePID)?.bundleIdentifier {
             self.namespace = Namespace(bundleIdentifier)
         } else {
             self.namespace = .null

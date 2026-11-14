@@ -37,32 +37,64 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
+        // ponytail: plain HStack instead of NavigationSplitView — the sidebar
+        // is fixed-width and non-collapsible, so the split view only added
+        // an undeletable Liquid Glass divider pill.
+        // ponytail: no navigationTitle — like Pelmet, the titlebar shows
+        // only traffic lights instead of a long pane name over the sidebar.
+        HStack(spacing: 0) {
             sidebar
-        } detail: {
+                .frame(width: sidebarWidth)
             detailView
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // ponytail: no Divider — like Pelmet, sidebar stays light and
+                // the content sits on a darker shade instead of a line.
+                .background(.black.opacity(0.2))
         }
-        .navigationTitle(navigationState.settingsNavigationIdentifier.localized)
     }
 
     @ViewBuilder
     private var sidebar: some View {
-        List(selection: $navigationState.settingsNavigationIdentifier) {
-            Section {
-                ForEach(SettingsNavigationIdentifier.allCases, id: \.self) { identifier in
-                    sidebarItem(for: identifier)
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(mainIdentifiers, id: \.self) { identifier in
+                SettingsSidebarItem(
+                    identifier: identifier,
+                    icon: icon(for: identifier),
+                    isSelected: navigationState.settingsNavigationIdentifier == identifier,
+                    fontSize: sidebarItemFontSize,
+                    rowHeight: sidebarItemHeight + 4
+                ) {
+                    navigationState.settingsNavigationIdentifier = identifier
                 }
-            } header: {
-                Text("Ice")
-                    .font(.system(size: 36, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .padding(.vertical, 5)
             }
-            .collapsible(false)
+            Divider()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+            ForEach(secondaryIdentifiers, id: \.self) { identifier in
+                SettingsSidebarItem(
+                    identifier: identifier,
+                    icon: icon(for: identifier),
+                    isSelected: navigationState.settingsNavigationIdentifier == identifier,
+                    fontSize: sidebarItemFontSize,
+                    rowHeight: sidebarItemHeight + 4
+                ) {
+                    navigationState.settingsNavigationIdentifier = identifier
+                }
+            }
         }
-        .scrollDisabled(true)
-        .removeSidebarToggle()
-        .navigationSplitViewColumnWidth(sidebarWidth)
+        .padding(.horizontal, 8)
+        .padding(.top, 12)
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    /// Primary items above the divider, mirroring Pelmet's General/Behavior/Menu Bar/Displays group.
+    private var mainIdentifiers: [SettingsNavigationIdentifier] {
+        SettingsNavigationIdentifier.allCases.filter { $0 != .about }
+    }
+
+    /// Secondary items below the divider, mirroring Pelmet's Thanks/About group.
+    private var secondaryIdentifiers: [SettingsNavigationIdentifier] {
+        [.about]
     }
 
     @ViewBuilder
@@ -83,18 +115,6 @@ struct SettingsView: View {
         }
     }
 
-    @ViewBuilder
-    private func sidebarItem(for identifier: SettingsNavigationIdentifier) -> some View {
-        Label {
-            Text(identifier.localized)
-                .font(.system(size: sidebarItemFontSize))
-                .padding(.leading, 2)
-        } icon: {
-            icon(for: identifier).view
-        }
-        .frame(height: sidebarItemHeight)
-    }
-
     private func icon(for identifier: SettingsNavigationIdentifier) -> IconResource {
         switch identifier {
         case .general: .systemSymbol("gearshape")
@@ -104,5 +124,47 @@ struct SettingsView: View {
         case .advanced: .systemSymbol("gearshape.2")
         case .about: .assetCatalog(.iceCubeStroke)
         }
+    }
+}
+
+/// A Pelmet-style sidebar row: gray icon + white text by default,
+/// translucent blue pill + blue icon/text when selected.
+private struct SettingsSidebarItem: View {
+    let identifier: SettingsNavigationIdentifier
+    let icon: IconResource
+    let isSelected: Bool
+    let fontSize: CGFloat
+    let rowHeight: CGFloat
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                icon.view
+                    .frame(width: 18, height: 18)
+                    .foregroundStyle(isSelected ? .blue : .secondary)
+                Text(identifier.localized)
+                    .font(.system(size: fontSize, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? .blue : .primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: rowHeight)
+            .background {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(
+                        isSelected
+                            ? .blue.opacity(0.16)
+                            : (isHovering ? .primary.opacity(0.06) : .clear)
+                    )
+            }
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
     }
 }

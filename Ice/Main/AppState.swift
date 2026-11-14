@@ -57,6 +57,9 @@ final class AppState: ObservableObject {
     /// The window that contains the permissions interface.
     private(set) weak var permissionsWindow: NSWindow?
 
+    /// A Boolean value that indicates whether setup has been performed.
+    private(set) var isSetup = false
+
     /// A Boolean value that indicates whether the "ShowOnHover" feature is prevented.
     private(set) var isShowOnHoverPrevented = false
 
@@ -146,7 +149,10 @@ final class AppState: ObservableObject {
                 return
             }
             Task.detached {
-                if ScreenCapture.cachedCheckPermissions(reset: true) {
+                // ponytail: don't reset:true here — reset forces a full menu-bar
+                // AX walk on every frontmost/settings toggle. Cached value is enough;
+                // a fresh grant takes effect on next cold check / relaunch.
+                if ScreenCapture.cachedCheckPermissions() {
                     await self.imageCache.updateCacheWithoutChecks(sections: MenuBarSection.Name.allCases)
                 }
             }
@@ -154,6 +160,11 @@ final class AppState: ObservableObject {
         .store(in: &c)
 
         menuBarManager.objectWillChange
+            .sink { [weak self] in
+                self?.objectWillChange.send()
+            }
+            .store(in: &c)
+        itemManager.objectWillChange
             .sink { [weak self] in
                 self?.objectWillChange.send()
             }
@@ -179,16 +190,39 @@ final class AppState: ObservableObject {
 
     /// Sets up the app state.
     func performSetup() {
+        guard !isSetup else {
+            return
+        }
+        isSetup = true
+        // Reveal-first on macOS 27 (issue #17): seed here, synchronously
+        // before the sections initialize, so no async migration race can
+        // strand them hidden.
+        MigrationManager.seedRevealSections27()
+        // Settings first: ControlItems subscribe to settings defaults, so loading
+        // settings before creating menu bar sections avoids a double
+        // updateStatusItem/add-remove cycle at boot.
+        settingsManager.performSetup()
         configureCancellables()
-        permissionsManager.stopAllChecks()
+        // Only stop checking the required permissions once they are granted;
+        // if the user skipped while some are still missing, keep the timer so we
+        // notice when they grant later in Settings. Optional permissions keep
+        // their timer either way — they can be granted at any point, and this is
+        // what notices it.
+        if permissionsManager.permissionsState != .missingPermissions {
+            permissionsManager.stopTimerChecks()
+        }
         menuBarManager.performSetup()
         appearanceManager.performSetup()
         eventManager.performSetup()
-        settingsManager.performSetup()
         itemManager.performSetup()
-        imageCache.performSetup()
-        updatesManager.performSetup()
+        // ponytail: Sparkle, image cache and notifications are not needed for the
+        // first menu-bar paint; defer past login-window contention.
         userNotificationManager.performSetup()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            guard let self else { return }
+            self.imageCache.performSetup()
+            self.updatesManager.performSetup()
+        }
     }
 
     /// Assigns the app delegate to the app state.
@@ -207,7 +241,9 @@ final class AppState: ObservableObject {
             return
         }
         settingsWindow = window
-        configureCancellables()
+        // ponytail: don't configureCancellables here — it instantiates every lazy
+        // manager during Scene init and runs 3x total. performSetup (after the
+        // 0.1s DidFinish delay, when both windows are assigned) configures once.
     }
 
     /// Assigns the permissions window to the app state.
@@ -217,7 +253,6 @@ final class AppState: ObservableObject {
             return
         }
         permissionsWindow = window
-        configureCancellables()
     }
 
     /// Opens the settings window.
